@@ -178,6 +178,118 @@ const prebookkeepingTypedExpense = answerPrebookkeepingQuestionDeterministically
 });
 assert.match(prebookkeepingTypedExpense.answer, /Operating Expenses.*120/i, "pre-bookkeeping explicit expense category still works");
 
+const largestTransactionRows = [
+  { Date: "2025-02-01", Description: "Coffee", Amount: "12", Quantity: "20" },
+  { Date: "2025-02-02", Description: "Protein Bar", Amount: "678.37", Quantity: "1" },
+  { Date: "2025-02-03", Description: "Tea", Amount: "9", Quantity: "30" },
+];
+const largestTransaction = answerDatasetQuestionDeterministically({
+  question: "What is the largest transaction?",
+  datasetId: "fixture:largest-transaction",
+  datasetType: "generic",
+  columns: Object.keys(largestTransactionRows[0] ?? {}),
+  rows: largestTransactionRows,
+});
+assert.ok(largestTransaction, "largest transaction question receives a deterministic ranking");
+assert.equal(largestTransaction.result.intent, "largest_transactions");
+assert.match(largestTransaction.answer, /largest transaction.*Protein Bar/i, "largest transaction answer names the largest row");
+assert.doesNotMatch(largestTransaction.answer, /statistically unusual|outlier candidate|suspicious|fraud/i, "largest transaction answer does not use anomaly or fraud language");
+
+const anomalyRows = [
+  ...[10, 11, 12, 12, 13, 14, 15, 16, 18].map((amount, index) => ({ Date: `2025-03-${String(index + 1).padStart(2, "0")}`, Description: `Regular ${index + 1}`, Amount: String(amount), Quantity: "50" })),
+  { Date: "2025-03-10", Description: "Protein Bar", Amount: "678.37", Quantity: "1", Category: "Food" },
+  { Date: "2025-03-11", Description: "Malformed row", Amount: "not available", Quantity: "99", Category: "Food" },
+];
+const unusualTransactions = answerDatasetQuestionDeterministically({
+  question: "Are there unusual transactions?",
+  datasetId: "fixture:unusual-transactions",
+  datasetType: "generic",
+  columns: Object.keys(anomalyRows[0] ?? {}),
+  rows: anomalyRows,
+});
+assert.ok(unusualTransactions, "unusual transaction question receives deterministic anomaly analysis");
+assert.equal(unusualTransactions.result.intent, "unusual_transactions");
+assert.match(unusualTransactions.answer, /statistically unusual/i, "unusual answer identifies statistical anomaly candidates");
+assert.match(unusualTransactions.answer, /Median transaction/i, "unusual answer includes median evidence");
+assert.match(unusualTransactions.answer, /Upper outlier threshold/i, "unusual answer includes threshold evidence");
+assert.match(unusualTransactions.answer, /Protein Bar/i, "unusual answer includes flagged transaction context");
+assert.match(unusualTransactions.answer, /invalid or blank/i, "unusual answer reports malformed value exclusion");
+assert.doesNotMatch(unusualTransactions.answer, /fraud|suspicious payment/i, "unusual answer does not imply fraud");
+
+const noOutlierRows = [10, 11, 12, 12, 13, 14, 15, 16, 17, 18].map((amount, index) => ({
+  Date: `2025-04-${String(index + 1).padStart(2, "0")}`,
+  Description: `Normal ${index + 1}`,
+  Amount: String(amount),
+}));
+const noOutliers = answerDatasetQuestionDeterministically({
+  question: "Any anomalies?",
+  datasetId: "fixture:no-outliers",
+  datasetType: "generic",
+  columns: Object.keys(noOutlierRows[0] ?? {}),
+  rows: noOutlierRows,
+});
+assert.ok(noOutliers, "no-outlier dataset receives a deterministic anomaly answer");
+assert.match(noOutliers.answer, /didn't detect any strong transaction-amount outliers/i, "no-outlier answer clearly says no strong outliers");
+assert.match(noOutliers.answer, /does not exceed the anomaly threshold/i, "no-outlier answer distinguishes largest from unusual");
+
+const insufficientAnomalies = answerDatasetQuestionDeterministically({
+  question: "Anything unusual in these transactions?",
+  datasetId: "fixture:small-anomaly-sample",
+  datasetType: "generic",
+  columns: Object.keys(largestTransactionRows[0] ?? {}),
+  rows: largestTransactionRows,
+});
+assert.ok(insufficientAnomalies, "small dataset receives insufficient-data anomaly answer");
+assert.match(insufficientAnomalies.answer, /not enough valid transaction amounts/i, "small dataset does not claim anomaly certainty");
+assert.match(insufficientAnomalies.answer, /largest transaction/i, "small dataset can still mention largest transaction as largest only");
+
+const amountVsQuantity = answerDatasetQuestionDeterministically({
+  question: "Are there unusual payments?",
+  datasetId: "fixture:amount-vs-quantity",
+  datasetType: "generic",
+  columns: Object.keys(anomalyRows[0] ?? {}),
+  rows: anomalyRows,
+});
+assert.ok(amountVsQuantity, "amount and quantity dataset receives anomaly answer");
+assert.equal(amountVsQuantity.result.amountColumn, "Amount", "anomaly analysis uses Amount instead of Quantity");
+
+const idOnlyRows = Array.from({ length: 10 }, (_, index) => ({
+  TransactionID: String(1000 + index),
+  CustomerID: String(9000 + index),
+  Quantity: String(index + 1),
+}));
+const idOnlyAnomalies = answerDatasetQuestionDeterministically({
+  question: "Are there abnormal transaction amounts?",
+  datasetId: "fixture:id-only",
+  datasetType: "generic",
+  columns: Object.keys(idOnlyRows[0] ?? {}),
+  rows: idOnlyRows,
+});
+assert.ok(idOnlyAnomalies, "numeric ID dataset receives missing amount answer");
+assert.match(idOnlyAnomalies.answer, /no validated transaction amount field/i, "numeric IDs are not treated as transaction values");
+
+const suspiciousQuestion = answerDatasetQuestionDeterministically({
+  question: "Are there suspicious transactions?",
+  datasetId: "fixture:suspicious-wording",
+  datasetType: "generic",
+  columns: Object.keys(anomalyRows[0] ?? {}),
+  rows: anomalyRows,
+});
+assert.ok(suspiciousQuestion, "suspicious wording routes to evidence-based anomaly analysis");
+assert.match(suspiciousQuestion.answer, /statistical outlier candidates/i, "suspicious wording is softened to statistical outlier language");
+assert.doesNotMatch(suspiciousQuestion.answer, /fraudulent|likely fraud|suspicious payment/i, "suspicious wording does not create fraud claims");
+
+const prebookkeepingUnusual = answerPrebookkeepingQuestionDeterministically({
+  question: "Are there unusual transactions this period?",
+  categorization: prebookkeepingFixture([
+    ...[10, 11, 12, 12, 13, 14, 15, 16, 18].map((amount, index) => ({ rowIndex: index, description: `Regular ${index + 1}`, amount, category: "other" as const })),
+    { rowIndex: 10, description: "Protein Bar", amount: 678.37, category: "other", sourceCategory: "Food" },
+  ]),
+});
+assert.match(prebookkeepingUnusual.answer, /statistical outlier candidates|unusually large/i, "pre-bookkeeping unusual question uses anomaly evidence");
+assert.match(prebookkeepingUnusual.answer, /Median transaction/i, "pre-bookkeeping unusual answer includes median evidence");
+assert.doesNotMatch(prebookkeepingUnusual.answer, /Large and low-confidence/i, "pre-bookkeeping unusual answer removes unsupported low-confidence takeaway");
+
 process.stdout.write("ok - dataset AI assistant deterministic responses and Usy isolation\n");
 
 function parseFixtureCsv(fileName: string) {

@@ -90,6 +90,8 @@ Text rules for this file:
 - Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
 - Answer selected-dataset AI Assistant questions from normalized dataset rows before provider routing when deterministic revenue, segment, risk, trend, best-segment, forecast-baseline, or summary answers are available.
 - Interpret short dataset questions such as plan, segment, growth, forecast, risk, and best-segment prompts against the selected dataset context without requiring perfect wording.
+- Analyze selected-dataset unusual transaction questions with validated transaction amount fields, IQR-based outlier thresholds, median and quartile evidence, invalid-value exclusion, and clear language that separates outlier candidates from largest transactions, suspicious activity, and fraud claims.
+- Rank selected-dataset largest transaction questions by validated transaction amount fields without labeling the largest row as unusual unless anomaly evidence supports that classification.
 - Send selected-dataset AI Assistant provider-backed questions to configured Gemini or Antigravity cloud AI when saved provider settings fail to load or no saved provider handles the request.
 - Pass the configured Gemini provider key directly into the Dataset AI Assistant cloud fallback request so production does not depend on implicit SDK environment variable names.
 - Return selected dataset context with Dataset AI Assistant cloud-provider failure responses so retryable production failures remain tied to the chosen dataset.

@@ -1,3 +1,38 @@
+## AI Analyst Transaction Anomaly Accuracy
+
+1. Interaction title
+AI Analyst transaction anomaly accuracy.
+
+2. What was the user goal
+Fix AI Analyst answers for questions like "Are there unusual transactions this period?" so UseClevr no longer treats the largest transaction as unusual without statistical evidence.
+
+3. What changed
+Added a reusable transaction amount anomaly detector that validates amount-like fields, excludes IDs, quantities, counts, rates, SKUs, nulls, and malformed values, and applies IQR-based outlier thresholds over transaction amount magnitude. The analytical intent registry now handles unusual, anomaly, abnormal, outlier, and suspicious transaction wording with evidence-backed outlier analysis before provider routing. Dataset AI and Pre-bookkeeping AI now keep largest-transaction ranking separate from unusual-transaction detection. Outlier answers include median, Q1, Q3, IQR, upper threshold, invalid-value exclusions, candidate threshold multiples, median multiples, and row context. No-outlier and insufficient-data answers state the limitation directly and avoid unsupported low-confidence, suspicious, or fraud language.
+
+4. Problems marked
+- blocker: none.
+- risk: IQR detection over absolute transaction magnitude identifies amount outlier candidates only; it does not detect duplicate, frequency, merchant, timing, or fraud-risk anomalies.
+- improvement: Future transaction anomaly work can add separate duplicate, frequency, and category-concentration handlers without changing largest-transaction ranking.
+- observation: Focused tests cover largest ranking, outlier found, no outlier, insufficient sample size, malformed values, amount versus quantity selection, numeric ID refusal, suspicious wording, pre-bookkeeping anomaly evidence, and analytical registry routing.
+
+5. User learning
+UseClevr must only call a transaction unusual when the answer shows why the amount is statistically atypical relative to the selected period.
+
+6. AI-agent learning
+Anomaly wording must route before generic fallback and before largest-transaction ranking; "largest" and "unusual" need separate deterministic handlers.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## AI Analyst Expense Semantics Guard
 
 1. Interaction title

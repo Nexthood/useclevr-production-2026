@@ -4,6 +4,7 @@ import {
   type PrebookkeepingCategorization,
   type PrebookkeepingCategory,
 } from "@/lib/accountancy/prebookkeeping-categorization";
+import { analyzeTransactionAmountAnomalies } from "@/lib/data/transaction-anomaly-analysis";
 
 export const prebookkeepingSuggestedQuestions = [
   "What are my largest expenses?",
@@ -29,6 +30,7 @@ export type PrebookkeepingAssistantAnswer = {
     type: "prebookkeeping_direct_analysis";
     intent: string;
     rowCount: number;
+    confidence?: number;
   };
 };
 
@@ -39,6 +41,14 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
   const categorization = normalizePrebookkeepingCategorization(input.categorization);
   const question = input.question.toLowerCase();
   const transactions = categorization.transactions;
+
+  if (isAnomalyQuestion(question)) {
+    return buildPrebookkeepingAnomalyAnswer(transactions);
+  }
+
+  if (isLargestTransactionQuestion(question)) {
+    return buildLargestTransactionAnswer(transactions);
+  }
 
   if (/duplicate/.test(question)) {
     const rows = transactions.filter((transaction) => transaction.duplicateStatus === "possible_duplicate").slice(0, 10);
@@ -223,19 +233,7 @@ export function answerPrebookkeepingQuestionDeterministically(input: {
     });
   }
 
-  const rows = [...transactions].sort((a, b) => Math.abs(b.amount || 0) - Math.abs(a.amount || 0)).slice(0, 10);
-  return buildAnswer({
-    intent: "unusual_transactions",
-    title: rows[0]
-      ? `The largest transaction is ${formatMoney(rows[0].amount || 0, currencyFor(transactions))}: ${rows[0].description || rows[0].supplierCustomer || "Unnamed transaction"}.`
-      : "No transactions are available for direct analysis.",
-    evidence: rows.slice(0, 5).map(describeTransaction),
-    takeaway: "Large and low-confidence transactions are the best first review targets.",
-    nextAction: "Filter Large Transactions and Needs Review before accountant export.",
-    data: rows.map(transactionData),
-    chartType: "table",
-    rowCount: transactions.length,
-  });
+  return buildLargestTransactionAnswer(transactions);
 }
 
 function buildAnswer(input: {
@@ -247,6 +245,7 @@ function buildAnswer(input: {
   data: Record<string, unknown>[];
   chartType: "table" | "bar" | "summary";
   rowCount: number;
+  confidence?: number;
 }): PrebookkeepingAssistantAnswer {
   const evidence = input.evidence.length > 0 ? input.evidence : ["No matching transaction rows were found."];
   const answer = [
@@ -267,6 +266,7 @@ function buildAnswer(input: {
       type: "prebookkeeping_direct_analysis",
       intent: input.intent,
       rowCount: input.rowCount,
+      confidence: input.confidence,
     },
   };
 }
@@ -348,6 +348,110 @@ function formatCategory(value: string) {
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function buildPrebookkeepingAnomalyAnswer(transactions: CategorizedTransaction[]) {
+  const rows = transactions.map((transaction) => ({
+    amount: transaction.amount,
+    description: transaction.description,
+    supplierCustomer: transaction.supplierCustomer,
+    category: formatCategory(transaction.category),
+    sourceCategory: transaction.sourceCategory,
+  }));
+  const analysis = analyzeTransactionAmountAnomalies({
+    rows,
+    columns: ["amount", "description", "supplierCustomer", "category", "sourceCategory"],
+    amountColumn: "amount",
+    labelColumns: ["description", "supplierCustomer"],
+    contextColumns: ["category", "sourceCategory"],
+  });
+  const currency = currencyFor(transactions);
+
+  if (analysis.status === "insufficient_data") {
+    return buildAnswer({
+      intent: "unusual_transactions",
+      title: "There are not enough valid transaction amounts in this period to reliably detect statistical outliers.",
+      evidence: [
+        `${analysis.validCount.toLocaleString()} valid amount value(s) were found; at least 8 valid values are required for this IQR check.`,
+        analysis.largest ? `Largest transaction: ${analysis.largest.label} at ${formatMoney(analysis.largest.amount, currency)}.` : "No largest transaction is available.",
+      ],
+      takeaway: "I can show the largest transactions, but I can't reliably classify them as unusual.",
+      nextAction: "Add more transaction rows or ask for the largest transactions instead.",
+      data: analysis.largest ? [{ ...analysis.largest, status: "largest_only" }] : [],
+      chartType: "table",
+      rowCount: transactions.length,
+      confidence: analysis.confidence,
+    });
+  }
+
+  if (analysis.candidates.length === 0) {
+    return buildAnswer({
+      intent: "unusual_transactions",
+      title: "I didn't detect any strong transaction-amount outliers for this period.",
+      evidence: [
+        `Median transaction: ${formatMoney(analysis.median || 0, currency)}`,
+        `Q1: ${formatMoney(analysis.q1 || 0, currency)}`,
+        `Q3: ${formatMoney(analysis.q3 || 0, currency)}`,
+        `IQR: ${formatMoney(analysis.iqr || 0, currency)}`,
+        `Upper outlier threshold: ${formatMoney(analysis.upperThreshold || 0, currency)}`,
+        analysis.largest ? `Largest transaction: ${analysis.largest.label} at ${formatMoney(analysis.largest.amount, currency)}; it does not exceed the anomaly threshold.` : "No largest transaction is available.",
+      ],
+      takeaway: "No strong transaction-amount anomalies were detected.",
+      nextAction: "No anomaly review is required based on transaction amount alone.",
+      data: [
+        { metric: "Median transaction", value: analysis.median },
+        { metric: "Upper outlier threshold", value: analysis.upperThreshold },
+      ],
+      chartType: "table",
+      rowCount: transactions.length,
+      confidence: analysis.confidence,
+    });
+  }
+
+  return buildAnswer({
+    intent: "unusual_transactions",
+    title: `Yes. I found ${analysis.candidates.length.toLocaleString()} ${analysis.candidates.length === 1 ? "transaction that is" : "transactions that are"} unusually large compared with the typical transaction size this period.`,
+    evidence: [
+      `Median transaction: ${formatMoney(analysis.median || 0, currency)}`,
+      `Q1: ${formatMoney(analysis.q1 || 0, currency)}`,
+      `Q3: ${formatMoney(analysis.q3 || 0, currency)}`,
+      `IQR: ${formatMoney(analysis.iqr || 0, currency)}`,
+      `Upper outlier threshold: ${formatMoney(analysis.upperThreshold || 0, currency)}`,
+      ...(analysis.invalidCount > 0 ? [`${analysis.invalidCount.toLocaleString()} invalid or blank value(s) were excluded.`] : []),
+      ...analysis.candidates.slice(0, 5).map((candidate) => `${candidate.label}: ${formatMoney(candidate.amount, currency)} - ${candidate.thresholdMultiple ?? "above"}x threshold, ${candidate.medianMultiple ?? "above"}x median${candidate.context ? ` (${candidate.context})` : ""}`),
+    ],
+    takeaway: "These transactions are statistical outlier candidates, not proof of an error or misconduct.",
+    nextAction: "Review the flagged outlier transactions and confirm that the amounts and categories are expected.",
+    data: analysis.candidates.map((candidate) => ({ ...candidate, status: "outlier_candidate" })),
+    chartType: "table",
+    rowCount: transactions.length,
+    confidence: analysis.confidence,
+  });
+}
+
+function buildLargestTransactionAnswer(transactions: CategorizedTransaction[]) {
+  const rows = [...transactions].sort((a, b) => Math.abs(b.amount || 0) - Math.abs(a.amount || 0)).slice(0, 10);
+  return buildAnswer({
+    intent: "largest_transactions",
+    title: rows[0]
+      ? `The largest transaction is ${formatMoney(rows[0].amount || 0, currencyFor(transactions))}: ${rows[0].description || rows[0].supplierCustomer || "Unnamed transaction"}.`
+      : "No transactions are available for direct analysis.",
+    evidence: rows.slice(0, 5).map(describeTransaction),
+    takeaway: "This ranking shows the largest transaction amounts only; it does not classify them as unusual.",
+    nextAction: "Ask about unusual transactions to run statistical outlier detection.",
+    data: rows.map(transactionData),
+    chartType: "table",
+    rowCount: transactions.length,
+    confidence: rows.length >= 1 ? 0.9 : 0.4,
+  });
+}
+
+function isAnomalyQuestion(question: string) {
+  return /unusual|anomal|outlier|abnormal|stand(s)?\s+out|suspicious/.test(question) && /transaction|payment|amount|anything|any/.test(question);
+}
+
+function isLargestTransactionQuestion(question: string) {
+  return /largest|biggest|highest[-\s]*value|top/.test(question) && /transaction|payment|amount/.test(question);
 }
 
 function isExpenseOnlyQuestion(question: string) {

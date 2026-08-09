@@ -18,6 +18,7 @@
 
 ### Fixed
 
+- Fix AI Analyst unusual transaction answers so anomaly questions use statistical outlier evidence, largest-transaction questions stay separate, and answers avoid unsupported suspicious or fraud language.
 - Fix AI Analyst expense answers so sales-only and generic amount datasets refuse unsupported expense calculations, explain missing expense evidence, and keep valid COGS or classified expense analysis working.
 - Harden credit billing by restricting direct credit purchases to admin-only access, enforcing verified provider webhooks as the source of truth for payment credits.
 - Fix spending limits so daily, weekly, monthly purchased, and per-operation caps are actually enforced on analyze, chat, report generation, dataset upload, and accountancy upload entry points.

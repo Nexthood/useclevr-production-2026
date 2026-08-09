@@ -149,13 +149,33 @@ const opexSuggestions = availableAnalyticalSuggestions({
 });
 assert.ok(!opexSuggestions.includes("What is the current gross margin?"), "unsupported gross margin suggestion is filtered out");
 
+const unusualTransactions = executeAnalyticalIntent({
+  question: "Are there unusual transactions this period?",
+  datasetId: "fixture:unusual-transactions",
+  datasetType: "generic",
+  columns: ["Date", "Description", "Amount", "Quantity", "Category"],
+  rows: [
+    ...[10, 11, 12, 12, 13, 14, 15, 16, 18].map((amount, index) => ({ Date: `2025-03-${String(index + 1).padStart(2, "0")}`, Description: `Regular ${index + 1}`, Amount: String(amount), Quantity: "50", Category: "Food" })),
+    { Date: "2025-03-10", Description: "Protein Bar", Amount: "678.37", Quantity: "1", Category: "Food" },
+  ],
+});
+assert.equal(unusualTransactions.status, "success", "unusual transaction intent uses deterministic anomaly analysis");
+if (unusualTransactions.status === "success") {
+  assert.equal(unusualTransactions.intent, "unusual_transactions");
+  assert.match(unusualTransactions.answer, /statistically unusual/i);
+  assert.match(unusualTransactions.answer, /Median transaction/i);
+  assert.match(unusualTransactions.answer, /Upper outlier threshold/i);
+  assert.equal(unusualTransactions.result.amountColumn, "Amount");
+  assert.doesNotMatch(unusualTransactions.answer, /fraud|suspicious payment/i);
+}
+
 const datasetChatRoute = readFileSync(join(repoRoot, "src", "app", "api", "hybrid-ai", "dataset-chat", "route.ts"), "utf8");
 assert.match(datasetChatRoute, /executeAnalyticalIntent/, "dataset-chat uses the generic analytical executor");
 assert.match(datasetChatRoute, /providerName: "Not required"/, "direct analysis reports no provider requirement");
 assert.match(datasetChatRoute, /and\(eq\(datasets\.id, parsed\.datasetId\), eq\(datasets\.userId, userId\)\)/, "dataset access is scoped to selected dataset ID and user");
 
 const suggestionsRoute = readFileSync(join(repoRoot, "src", "app", "api", "suggestions", "generate", "route.ts"), "utf8");
-assert.match(suggestionsRoute, /suggestions_dataset_v2_\$\{datasetId\}/, "suggestion cache key includes dataset ID and semantic version");
+assert.match(suggestionsRoute, /suggestions_dataset_v3_\$\{datasetId\}/, "suggestion cache key includes dataset ID and semantic version");
 assert.match(suggestionsRoute, /availableAnalyticalSuggestions/, "suggestions are filtered by semantic metrics");
 
 process.stdout.write("ok - analytical intent registry and gross margin fixtures\n");
