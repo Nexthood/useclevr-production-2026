@@ -63,19 +63,19 @@ const config: Config = {
           "5": "hsl(var(--chart-5))",
         },
         brand: {
-          cyan: "#06b6d4",
-          purple: "#a855f7",
+          cyan: "#79E6E3",
+          purple: "#C4B5FD",
         },
         workspace: {
-          bg: "#0c0f14",
-          card: "#141922",
-          border: "#242b38",
+          bg: "#0B1020",
+          card: "#101827",
+          border: "rgba(255,255,255,0.06)",
         },
       },
       borderRadius: {
-        lg: "8px",
-        md: "6px",
-        sm: "4px",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 3px)",
+        sm: "calc(var(--radius) - 6px)",
       },
       letterSpacing: {
         tighter: "-0.05em",

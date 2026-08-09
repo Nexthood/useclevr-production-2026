@@ -87,9 +87,9 @@ export function DataTable<T extends Record<string, unknown>>({
   }
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card/95 shadow-[0_18px_50px_rgba(8,13,30,0.08),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
       {(title || description || actions || bulkActions) && (
-        <div className="border-b border-border/50 bg-muted/30 px-5 py-3.5">
+        <div className="border-b border-border/50 bg-muted/25 px-5 py-4">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
@@ -97,7 +97,7 @@ export function DataTable<T extends Record<string, unknown>>({
             </div>
             <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
               {selectable && activeSelectedRows.size > 0 && (
-                <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-muted/70 px-2.5 py-1.5 text-xs text-muted-foreground">
                   <span className="whitespace-nowrap">{visibleSelectedCount} selected</span>
                   {bulkActions}
                 </div>
@@ -109,7 +109,7 @@ export function DataTable<T extends Record<string, unknown>>({
       )}
       <div className="overflow-x-auto">
         <table className={`w-full ${minWidth} text-sm`}>
-          <thead className="border-b border-border/50 bg-muted/40 text-muted-foreground">
+          <thead className="border-b border-border/50 bg-muted/35 text-muted-foreground">
             <tr>
               {selectable && (
                 <th className="px-4 py-3 text-center">
@@ -137,7 +137,7 @@ export function DataTable<T extends Record<string, unknown>>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/40">
+          <tbody className="divide-y divide-border/35">
             {rows.length === 0 ? (
               <tr>
                 <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={columns.length + (selectable ? 1 : 0)}>
@@ -146,7 +146,7 @@ export function DataTable<T extends Record<string, unknown>>({
               </tr>
             ) : (
               rows.map((row, rowIndex) => (
-                <tr key={rowKey?.(row, rowIndex) || rowIndex} className="border-b border-transparent transition-colors hover:bg-muted/50">
+                <tr key={rowKey?.(row, rowIndex) || rowIndex} className="border-b border-transparent transition-colors duration-200 hover:bg-muted/45">
                   {selectable && (
                     <td className="px-4 py-3 text-center">
                       <input

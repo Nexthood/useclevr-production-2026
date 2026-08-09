@@ -46,8 +46,8 @@ const SelectTrigger = ({ children, className }: SelectTriggerProps) => {
     <button
       type="button"
       className={[
-        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm",
-        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        "flex h-10 w-full items-center justify-between rounded-lg border border-input/80 bg-background/80 px-3 py-2 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200",
+        "hover:border-primary/35 focus:outline-none focus:ring-2 focus:ring-ring/35 focus:ring-offset-0",
         className,
       ]
         .filter(Boolean)
@@ -80,7 +80,7 @@ const SelectContent = ({ children, className }: SelectContentProps) => {
   return (
     <div
       className={[
-        "absolute top-full z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md",
+        "absolute top-full z-50 mt-1 w-full overflow-hidden rounded-lg border border-border/70 bg-popover/95 text-popover-foreground shadow-[0_18px_48px_rgba(8,13,30,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl",
         className,
       ]
         .filter(Boolean)
@@ -106,9 +106,9 @@ const SelectItem = ({ value: itemValue, children, className, disabled }: SelectI
   return (
     <div
       className={[
-        "relative flex cursor-default select-none items-center px-2 py-1.5 text-sm",
-        "focus:bg-accent focus:text-accent-foreground",
-        value === itemValue && "bg-accent text-accent-foreground",
+        "relative flex cursor-default select-none items-center rounded-md px-2.5 py-2 text-sm transition-colors",
+        "focus:bg-accent/10 focus:text-foreground",
+        value === itemValue && "bg-accent/15 text-foreground",
         disabled && "pointer-events-none opacity-50",
         className,
       ]

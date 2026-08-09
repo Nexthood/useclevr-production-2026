@@ -2605,3 +2605,135 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Login Page AI Analyst Demo Presentation
+
+1. Interaction title
+Login page AI Analyst demo presentation polish.
+
+2. What was the user goal
+Make the right-side UseClevr AI Analyst animated product demo a stronger visual centerpiece while preserving the login card, authentication logic, routing, theme toggle, Ask Us widget, and responsive behavior.
+
+3. What changed
+The login page now gives the product demo a wider centered desktop rail. The auth demo variant uses larger responsive dimensions, a stronger dark glass surface, refined cyan and purple depth, a larger Performance snapshot chart, roomier upload and workflow cards, more polished use-case chips with a subtle active state, and restrained workflow highlight animations for analysis, insight discovery, and recommended action. Tablet sizing stays compact and mobile keeps the existing auth-only layout.
+
+4. Problems marked
+blocker: none.
+observation: Headless Chrome screenshots at 1440x900, 1024x768, and 390x844 confirm the page renders without horizontal overflow, clipping, or broken mobile behavior.
+
+5. User learning
+The login page now communicates UseClevr's AI/BI value immediately on desktop while keeping the authentication flow unchanged.
+
+6. AI-agent learning
+For the shared public demo component, keep `layout="auth"` as a separate responsive presentation branch so login-page polish does not enlarge the public landing-page demo unexpectedly.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Assistant Launcher Refinement
+
+1. Interaction title
+Usy assistant launcher refinement.
+
+2. What was the user goal
+Replace the permanent Ask Us pill launcher with a clean floating Usy avatar, keep assistant functionality, and add one restrained hover/focus invitation interaction.
+
+3. What changed
+The launcher now renders only the circular Usy avatar in the bottom-right corner. The permanent Ask Us text and separate chat icon are removed. The avatar uses one calm cyan breathing ring, hover and keyboard focus intensify the glow, and a compact dark glass speech bubble says "How can I help you today!?" above the avatar. Reduced-motion users do not receive the breathing animation or bubble transition.
+
+4. Problems marked
+blocker: none.
+observation: The existing click handler, aria label, title, expanded state, panel rendering, chat routing, and assistant message logic stay unchanged.
+observation: Local headless Chrome CDP inspection did not hydrate the app reliably, so responsive verification uses source-level geometry review plus the available dev-server desktop screenshot.
+
+5. User learning
+Users now see Usy as a calm avatar-first assistant entry point instead of a persistent pill, and hover or keyboard focus reveals the invitation only when needed.
+
+6. AI-agent learning
+For fixed assistant launchers, keep the avatar as the single animation owner and place hover copy inside the launcher group so focus and hover states share one interaction model.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## What You're Missing News Page Transformation
+
+1. Interaction title
+What You're Missing public page transformation.
+
+2. What was the user goal
+Replace the conventional News page with a premium interactive storytelling experience that demonstrates how correct business metrics can hide contradictions, risks, and opportunities between the numbers.
+
+3. What changed
+The `/news` page now uses a dark enterprise BI editorial design with a pain-point hero, healthy metric cards, hidden relationship reveals, contradiction cards, a memorable insight reveal, a connected Data to Action intelligence stack, status-labeled technology modules, and an evidence-to-action sequence. The visible public header and footer labels now say What You're Missing while the route remains `/news` for navigation and SEO compatibility. Existing news content structures and detail routes remain intact.
+
+4. Problems marked
+blocker: none.
+observation: DevTools mobile emulation confirms 390px mobile has no horizontal overflow, with the hero, visualization panel, and circular Usy launcher inside viewport bounds.
+observation: Sample inventory values use non-currency notation so the public story does not conflict with pricing validation rules.
+observation: Plain headless Chrome `--window-size` screenshots can mimic a clipped desktop viewport on mobile-sized windows, so DevTools mobile emulation is the reliable responsive measurement for this page.
+
+5. User learning
+Visitors now encounter the product problem first: the numbers can look healthy while margins, order value, inventory, and stockout risk tell a different business story.
+
+6. AI-agent learning
+For public storytelling pages, keep complex desktop relationship visuals and mobile insight pairs as separate responsive presentations so the narrative stays readable without horizontal scrolling.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Global Enterprise Design System Elevation
+
+1. Interaction title
+Global enterprise design system elevation.
+
+2. What was the user goal
+Elevate UseClevr from a technically good SaaS interface into a calmer, more premium enterprise AI platform without redesigning layouts, removing features, or changing business logic.
+
+3. What changed
+Global tokens now use deeper dark navy, softer light surfaces, calmer cyan and lilac accents, larger radius values, subtle ambient lighting, refined chart and workspace colors, and polished scrollbar styling. Shared Button, Card, Input, Select, Dialog, Tabs, and DataTable primitives now use softer borders, controlled shadows, glass-like surfaces, smoother hover and focus states, and more consistent spacing. Tailwind brand, workspace, and radius tokens now align with the refined global palette.
+
+4. Problems marked
+blocker: none.
+observation: Representative public screenshots for the landing page, pricing page, and What You're Missing page show the shared surface changes without obvious clipping or horizontal overflow.
+observation: Authenticated modules inherit the changes through shared primitives, but complete visual inspection of every authenticated module requires signed-in user flows.
+
+5. User learning
+The product now uses a calmer shared visual foundation across public and authenticated surfaces, which supports a more trustworthy enterprise feel without changing workflows.
+
+6. AI-agent learning
+For broad visual polish requests, updating tokens and shared primitives creates the safest wide impact while preserving page architecture and feature behavior.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
