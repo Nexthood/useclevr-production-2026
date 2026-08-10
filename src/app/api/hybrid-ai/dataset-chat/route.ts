@@ -254,6 +254,59 @@ export async function POST(request: Request) {
   });
   const latestQuestion = latestUserMessage(messages);
   if (latestQuestion) {
+    const prebookkeepingCategorization = readPrebookkeepingCategorization(dataset.analysis);
+    if (datasetType === "prebookkeeping" && prebookkeepingCategorization) {
+      const prebookkeepingResult = answerPrebookkeepingQuestionDeterministically({
+        question: latestQuestion,
+        categorization: prebookkeepingCategorization,
+      });
+      const providerStatus = directDataAnalysisStatus();
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Direct data analysis",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: true,
+      });
+      debugLog("[DATASET_AI] Direct pre-bookkeeping response generated", {
+        requestId,
+        datasetId: parsed.datasetId,
+        datasetType,
+        userId,
+        tenant: userId,
+        provider: "Direct data analysis",
+        model: "none",
+        stage: "direct_prebookkeeping_answer",
+        durationMs: Date.now() - startedAt,
+        httpStatus: 200,
+      });
+      return NextResponse.json({
+        success: true,
+        answer: prebookkeepingResult.answer,
+        content: prebookkeepingResult.answer,
+        insight: prebookkeepingResult.insight,
+        explanation: prebookkeepingResult.explanation,
+        recommendation: prebookkeepingResult.recommendation,
+        data: prebookkeepingResult.data,
+        chartType: prebookkeepingResult.chartType,
+        providerName: "Not required",
+        modelName: "",
+        confidence: confidenceFromResult(prebookkeepingResult.result),
+        mode: "direct",
+        route: "direct",
+        analyticalResult: prebookkeepingResult.result,
+        datasetContext: contextForClient(context),
+        privacyWarning: null,
+        providerStatus,
+        requestId,
+      });
+    }
+
     const analyticalResult = executeAnalyticalIntent({
       question: latestQuestion,
       datasetId: dataset.id,
@@ -346,59 +399,6 @@ export async function POST(request: Request) {
         mode: "direct",
         route: "direct",
         analyticalResult: deterministicResult.result,
-        datasetContext: contextForClient(context),
-        privacyWarning: null,
-        providerStatus,
-        requestId,
-      });
-    }
-
-    const prebookkeepingCategorization = readPrebookkeepingCategorization(dataset.analysis);
-    if (datasetType === "prebookkeeping" && prebookkeepingCategorization) {
-      const prebookkeepingResult = answerPrebookkeepingQuestionDeterministically({
-        question: latestQuestion,
-        categorization: prebookkeepingCategorization,
-      });
-      const providerStatus = directDataAnalysisStatus();
-      recordAiRequestAudit({
-        userId,
-        datasetId: parsed.datasetId,
-        providerName: "Direct data analysis",
-        providerType: "deterministic",
-        modelName: "none",
-        mode: "direct",
-        executionLocation: "none",
-        fallbackUsed: false,
-        purpose: "dataset_analysis",
-        success: true,
-      });
-      debugLog("[DATASET_AI] Direct pre-bookkeeping response generated", {
-        requestId,
-        datasetId: parsed.datasetId,
-        datasetType,
-        userId,
-        tenant: userId,
-        provider: "Direct data analysis",
-        model: "none",
-        stage: "direct_prebookkeeping_answer",
-        durationMs: Date.now() - startedAt,
-        httpStatus: 200,
-      });
-      return NextResponse.json({
-        success: true,
-        answer: prebookkeepingResult.answer,
-        content: prebookkeepingResult.answer,
-        insight: prebookkeepingResult.insight,
-        explanation: prebookkeepingResult.explanation,
-        recommendation: prebookkeepingResult.recommendation,
-        data: prebookkeepingResult.data,
-        chartType: prebookkeepingResult.chartType,
-        providerName: "Not required",
-        modelName: "",
-        confidence: confidenceFromResult(prebookkeepingResult.result),
-        mode: "direct",
-        route: "direct",
-        analyticalResult: prebookkeepingResult.result,
         datasetContext: contextForClient(context),
         privacyWarning: null,
         providerStatus,

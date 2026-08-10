@@ -78,6 +78,11 @@ assert.match(datasetRouteSource, /datasetId: input\.datasetId/, "Dataset AI defa
 assert.match(datasetRouteSource, /contextForClient\(input\.context\)/, "Dataset AI default cloud response returns selected dataset context");
 assert.match(datasetRouteSource, /providerName: "Gemini Cloud"[\s\S]*route: "none"/, "Dataset AI reports default cloud provider failures without dropping selected dataset context");
 assert.match(datasetRouteSource, /providerErrorDiagnostic/, "Dataset AI reports sanitized cloud provider diagnostics");
+assert.ok(
+  datasetRouteSource.indexOf("const prebookkeepingCategorization = readPrebookkeepingCategorization") <
+    datasetRouteSource.indexOf("const analyticalResult = executeAnalyticalIntent"),
+  "Dataset AI routes pre-bookkeeping questions before generic analytical dispatch",
+);
 
 const usySource = readFileSync(join(repoRoot, "src", "components", "ui", "help-chatbox.tsx"), "utf8");
 assert.match(usySource, /fetch\("\/api\/hybrid-ai\/chat"/, "Usy Bot keeps its separate chat API");
@@ -201,7 +206,7 @@ const anomalyRows = [
   { Date: "2025-03-11", Description: "Malformed row", Amount: "not available", Quantity: "99", Category: "Food" },
 ];
 const unusualTransactions = answerDatasetQuestionDeterministically({
-  question: "Are there unusual transactions?",
+  question: "Are there unusual transactions this period?",
   datasetId: "fixture:unusual-transactions",
   datasetType: "generic",
   columns: Object.keys(anomalyRows[0] ?? {}),
@@ -209,6 +214,7 @@ const unusualTransactions = answerDatasetQuestionDeterministically({
 });
 assert.ok(unusualTransactions, "unusual transaction question receives deterministic anomaly analysis");
 assert.equal(unusualTransactions.result.intent, "unusual_transactions");
+assert.notEqual(unusualTransactions.result.intent, "largest_transactions", "unusual transaction question does not route to largest transaction ranking");
 assert.match(unusualTransactions.answer, /statistically unusual/i, "unusual answer identifies statistical anomaly candidates");
 assert.match(unusualTransactions.answer, /Median transaction/i, "unusual answer includes median evidence");
 assert.match(unusualTransactions.answer, /Upper outlier threshold/i, "unusual answer includes threshold evidence");
