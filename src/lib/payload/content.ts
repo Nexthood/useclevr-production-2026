@@ -44,17 +44,17 @@ const homepageFallback: HomepageContent = {
 const privacyFallback: LegalContent = {
   title: "Privacy Policy",
   description: "Current privacy terms for UseClevr.",
-  lastUpdatedLabel: "Last updated: June 4, 2026",
+  lastUpdatedLabel: "Last updated: August 10, 2026",
   content:
-    "UseClevr collects account, usage, billing, and uploaded-business-data information only to operate, secure, and improve the service.\n\nUseClevr stores and processes customer data with role-based access boundaries, operational logging, and service-provider support where needed.\n\nUseClevr does not sell personal information to advertisers.\n\nCustomers can contact start@useclevr.com for privacy requests, correction requests, or deletion requests allowed by applicable law.",
+    "UseClevr collects account, usage, billing, and uploaded-business-data information only to operate, secure, and improve the service.\n\nUploaded datasets remain customer content. UseClevr processes datasets only as reasonably needed to host, process, analyze, secure, transmit where necessary, display, generate requested outputs, and provide the service.\n\nUseClevr stores and processes customer data with role-based access boundaries, operational logging, and service-provider support where needed.\n\nUseClevr may use configured AI providers, cloud AI, or local/private provider routing to explain analysis results and support chat workflows. UseClevr aims to send only the limited context needed for requested functionality, and AI outputs may contain errors.\n\nUseClevr does not sell personal information to advertisers.\n\nCustomers can contact start@useclevr.com for privacy requests, correction requests, or deletion requests allowed by applicable law.",
 }
 
 const termsFallback: LegalContent = {
   title: "Terms of Service",
   description: "Current terms for using UseClevr.",
-  lastUpdatedLabel: "Last updated: June 4, 2026",
+  lastUpdatedLabel: "Last updated: August 10, 2026",
   content:
-    "UseClevr provides AI-assisted business intelligence, reporting, and support workflows for uploaded business data.\n\nCustomers must use the service lawfully, protect account access, and review generated outputs before relying on them for business, legal, tax, investment, or compliance decisions.\n\nPaid plans, subscriptions, and payment flows remain subject to the active billing terms and payment-provider rules.\n\nQuestions about these terms can be sent to start@useclevr.com.",
+    "UseClevr provides AI-assisted business intelligence, reporting, and support workflows for uploaded business data.\n\nCustomers retain ownership of uploaded datasets and business content. UseClevr receives only the limited rights reasonably needed to host, process, analyze, secure, transmit where necessary, display, and generate requested outputs.\n\nCustomers must use the service lawfully, protect account access, and review AI-generated or AI-assisted outputs against the underlying data, evidence, and calculation sources before relying on them for material business, financial, accounting, tax, legal, investment, compliance, or operational decisions.\n\nUseClevr may combine deterministic calculations with AI-generated interpretation, and evidence or confidence indicators do not guarantee completeness, accuracy, or suitability for a particular purpose.\n\nPaid plans, subscriptions, and payment flows remain subject to the active billing terms and payment-provider rules.\n\nQuestions about these terms can be sent to start@useclevr.com.",
 }
 
 export function renderParagraphs(content: string) {

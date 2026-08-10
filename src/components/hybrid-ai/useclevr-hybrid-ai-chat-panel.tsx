@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import {
   askUseClevrHelper,
   getUseClevrHelperStatus,
@@ -212,6 +213,7 @@ export function UseClevrHybridAiChatPanel({
             {isAsking ? "Asking..." : "Ask privately"}
           </Button>
         </div>
+        <AiAccuracyDisclaimer />
         {status.state === "offline" && (
           <p className="text-xs text-muted-foreground">Start the helper or download it again.</p>
         )}

@@ -107,13 +107,13 @@ Hybrid AI is UseClevr's local-on-device AI capability with automatic cloud fallb
 
 Common objections and responses:
 
-| Objection                             | Response                                                                                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "I can do this in Excel."             | "Excel shows numbers. UseClevr shows what they mean — AI tells you which product drives profit, which region underperforms, and what to do next." |
-| "ChatGPT can analyse my data."        | "ChatGPT gives generic answers. UseClevr computes KPIs from your actual dataset and shows the numbers behind every answer."                       |
-| "I need an accountant, not software." | "UseClevr organises your data before the accountant sees it. Upload → Business Profile → Accountancy readiness saves hours of prep."              |
-| "My data is sensitive."               | "AI receives only aggregated metrics, never raw rows. Data stays in EU/GDPR-compliant Neon PostgreSQL. Hybrid AI option processes locally."       |
-| "I'm not technical."                  | "Upload CSV. Ask in plain English. Get answers. No SQL, no dashboards, no setup."                                                                 |
+| Objection                             | Response                                                                                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "I can do this in Excel."             | "Excel shows numbers. UseClevr shows what they mean — AI tells you which product drives profit, which region underperforms, and what to do next."                                    |
+| "ChatGPT can analyse my data."        | "ChatGPT gives generic answers. UseClevr computes KPIs from your actual dataset and shows the numbers behind every answer."                                                          |
+| "I need an accountant, not software." | "UseClevr organises your data before the accountant sees it. Upload → Business Profile → Accountancy readiness saves hours of prep."                                                 |
+| "My data is sensitive."               | "UseClevr sends only the limited context needed for the requested AI workflow, uses database-backed access controls, and supports local/private Hybrid AI routing where configured." |
+| "I'm not technical."                  | "Upload CSV. Ask in plain English. Get answers. No SQL, no dashboards, no setup."                                                                                                    |
 
 ## Metrics
 

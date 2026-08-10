@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { Input } from "@/components/ui/input"
 import { v4 as uuidv4 } from "uuid"
 import {
@@ -478,6 +479,7 @@ addMessage("assistant",
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+            <AiAccuracyDisclaimer />
           </div>
         </div>
       )}

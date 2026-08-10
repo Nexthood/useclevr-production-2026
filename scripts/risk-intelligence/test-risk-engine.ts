@@ -39,6 +39,32 @@ assert.ok(noHistory, "deterministic calculation runs without AI")
 assert.equal(noHistory.trendComparison, "No previous comparison available.", "trend is not fabricated without comparable history")
 assert.ok(noHistory.overallScore <= 100, "overall score is capped")
 
+const isolatedDatasetRows = [
+  { date: "2026-01-01", product: "Selected", category: "Core", customer_id: "C1", revenue: 100, cost: 150, stock: 0, units_sold: 3 },
+  { date: "2026-01-02", product: "Selected", category: "Core", customer_id: "C2", revenue: 100, cost: 150, stock: 0, units_sold: 2 },
+]
+const unrelatedDatasetRows = [
+  { date: "2026-01-01", product: "Other", category: "Core", customer_id: "C9", revenue: 1000, cost: 50, stock: 5, units_sold: 10 },
+]
+const selectedRisk = calculateRiskIntelligence(
+  buildDataset({ id: "dataset_b", name: "Selected risk dataset", rowCount: isolatedDatasetRows.length }),
+  isolatedDatasetRows,
+)
+const combinedRisk = calculateRiskIntelligence(
+  buildDataset({ id: "combined", name: "Combined datasets", rowCount: isolatedDatasetRows.length + unrelatedDatasetRows.length }),
+  [...isolatedDatasetRows, ...unrelatedDatasetRows],
+)
+assert.ok(selectedRisk, "selected dataset risk result exists")
+assert.ok(combinedRisk, "combined comparison risk result exists")
+assert.equal(selectedRisk.dataset.id, "dataset_b", "risk result keeps the selected immutable dataset ID")
+assert.equal(selectedRisk.dataset.rowCount, isolatedDatasetRows.length, "risk result row count comes from the selected dataset only")
+assert.equal(selectedRisk.metrics.netMarginPct.value, -50, "risk result uses only selected dataset financial rows")
+assert.notEqual(
+  selectedRisk.metrics.netMarginPct.value,
+  combinedRisk.metrics.netMarginPct.value,
+  "risk result is not calculated from combined workspace datasets",
+)
+
 assert.equal(isSupportedRiskDatasetType("standard"), true, "standard datasets are supported")
 assert.equal(isSupportedRiskDatasetType("retail"), true, "retail datasets are supported")
 assert.equal(isSupportedRiskDatasetType("profitability"), true, "profitability datasets are supported")
@@ -200,6 +226,8 @@ assert.equal(
 
 const riskServiceSource = readFileSync("src/lib/risk-intelligence/risk-service.ts", "utf8")
 const riskPageSource = readFileSync("src/app/(auth)/app/risk-intelligence/page.tsx", "utf8")
+const riskSelectorSource = readFileSync("src/components/risk-intelligence/risk-dataset-selector.tsx", "utf8")
+const assistantWorkspaceSource = readFileSync("src/components/chat/ai-assistant-workspace.tsx", "utf8")
 const prebookkeepingPageSource = readFileSync("src/app/(auth)/app/prebookkeeping/page.tsx", "utf8")
 const accountancyUploadSource = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8")
 assert.ok(riskServiceSource.includes("scope ? eq(datasets.datasetType, scope)"), "risk dataset list filters by dataset_type scope")
@@ -207,7 +235,23 @@ assert.ok(riskServiceSource.includes("datasetId ? eq(datasets.id, datasetId)"), 
 assert.ok(riskServiceSource.includes("dedupeByDatasetId"), "risk dataset list deduplicates by immutable dataset ID")
 assert.ok(riskServiceSource.includes("isVisibleRiskDataset"), "risk dataset list hides test and seed records from production selectors")
 assert.ok(riskPageSource.includes('params?.scope || "standard"'), "risk page defaults to standard scope instead of every user dataset")
-assert.ok(riskPageSource.includes("datasetId: params?.datasetId || null"), "risk page scopes the selector to the supplied dataset ID")
+assert.doesNotMatch(
+  riskPageSource,
+  /listRiskIntelligenceDatasets\([\s\S]*datasetId:\s*params\?\.datasetId/,
+  "risk page lists all module-scoped datasets before selecting the active dataset",
+)
+assert.ok(riskPageSource.includes("selectionRedirectHref"), "risk page redirects stale active dataset IDs to another dataset or empty scope")
+assert.ok(riskPageSource.includes("calculateRiskIntelligenceForDataset(selectedDatasetId"), "risk page calculates risk for one selected dataset ID")
+assert.ok(riskPageSource.includes("RiskDatasetSelector"), "risk page renders the deletion-capable dataset selector")
+assert.ok(riskSelectorSource.includes("DeleteDatasetButton"), "risk selector renders delete controls for dataset items")
+assert.ok(riskSelectorSource.includes("datasets.map"), "risk selector renders every scoped dataset item")
+assert.ok(riskSelectorSource.includes("remainingDatasets[0]?.id"), "risk selector selects another available dataset after active deletion")
+assert.ok(riskSelectorSource.includes("redirectHref"), "risk selector redirects after deletion")
+assert.ok(assistantWorkspaceSource.includes("ACTIVE_DATASET_ID_KEY"), "assistant persists active dataset selection")
+assert.ok(assistantWorkspaceSource.includes("nextActiveDatasetId"), "assistant selects another available dataset when the stored active dataset disappears")
+assert.ok(assistantWorkspaceSource.includes("setMessages([buildDatasetContextMessage(selectedDatasetId, datasets)])"), "assistant clears prior dataset-specific messages when the active dataset changes")
+assert.ok(assistantWorkspaceSource.includes("body: JSON.stringify({"), "assistant sends one request body per active dataset question")
+assert.ok(assistantWorkspaceSource.includes("datasetId: selectedDatasetId || undefined"), "assistant request uses the current selected dataset ID only")
 assert.ok(prebookkeepingPageSource.includes("scope=prebookkeeping"), "pre-bookkeeping review links risk intelligence with pre-bookkeeping scope")
 assert.ok(accountancyUploadSource.includes("useclevr_active_prebookkeeping_dataset_id"), "successful pre-bookkeeping upload persists active dataset ID")
 

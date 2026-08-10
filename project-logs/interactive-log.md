@@ -2676,6 +2676,110 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## AI Transparency Legal Disclosure Strengthening
+
+1. Interaction title
+AI transparency legal disclosure strengthening.
+
+2. What was the user goal
+Strengthen UseClevr AI transparency across Terms, Privacy, and in-product AI disclaimers while preserving the existing legal foundations, dataset ownership principle, professional-advice limitations, and accuracy safeguards.
+
+3. What changed
+Terms Section 4 now identifies AI-assisted outputs, explains that UseClevr combines deterministic calculations with AI-generated interpretation, states that confidence, evidence, and source information do not guarantee accuracy, and directs users to review material business, financial, accounting, tax, legal, compliance, investment, and operational decisions. Privacy Section 7 remains data-processing focused and now explains limited AI context, local/cloud/private routing, variable processing locations, derived dataset context, backend-side deterministic calculations, AI output error risk, and provider arrangements. Dataset ownership language now says uploads do not transfer ownership to UseClevr. Public FAQ, Payload legal fallbacks, and sales collateral now avoid overbroad compliance or raw-row claims. The shared in-product AI disclaimer remains the composer-level disclosure.
+
+4. Problems marked
+blocker: none.
+risk: The existing pre-launch legal review notices remain active and require qualified legal review before large-scale commercial launch.
+observation: No EU AI Act compliance, certification, approval, or blanket regulatory claim was added.
+observation: Sales collateral previously overclaimed AI context handling and data hosting compliance; the copy now follows the Privacy Policy's limited-context wording.
+
+5. User learning
+UseClevr now presents AI as decision support with deterministic calculations, evidence, and confidence where available, while making clear that users retain datasets and must verify important outputs.
+
+6. AI-agent learning
+For legal/transparency work, check public legal pages, CMS fallbacks, FAQ seed content, and sales collateral because inconsistent claims can live outside the canonical pages.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Global AI Accuracy Disclaimer
+
+1. Interaction title
+Global AI accuracy disclaimer.
+
+2. What was the user goal
+Add a permanent, subtle AI accuracy disclaimer under every UseClevr AI chat composer so users know AI-generated analysis can contain errors and important business or financial information needs verification.
+
+3. What changed
+The app now exposes one shared `AiAccuracyDisclaimer` component with the approved wording: "UseClevr AI can make mistakes. Verify important business and financial information." AI Assistant, Usy, shared chat panels, Clevr chat, dataset modal chat, Hybrid AI provider chat, private helper chat, and report chat render the shared disclosure directly under their composer controls. Existing evidence, provider, privacy, confidence, and deterministic safeguards remain in place.
+
+4. Problems marked
+blocker: none.
+risk: Browser visual checks across device widths and themes remain pending in this local run.
+observation: UseClevr has multiple chat composer implementations, so the wording is canonical in one component while each composer imports that component.
+
+5. User learning
+AI chat inputs now carry a consistent product disclosure without adding warning banners or repeated disclaimers under individual answers.
+
+6. AI-agent learning
+For global chat UI changes, audit both authenticated and public AI entry points because older modal/report chat surfaces can sit outside the main assistant workspace.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Risk Intelligence Dataset Deletion and Isolation
+
+1. Interaction title
+Risk Intelligence dataset deletion and isolation.
+
+2. What was the user goal
+Add a delete option to every Risk Intelligence dataset item, keep multiple datasets available, delete by immutable ID with confirmation, choose another active dataset or empty state after deletion, and enforce active-dataset-only behavior in Risk Intelligence and the Dataset AI Assistant.
+
+3. What changed
+Risk Intelligence now lists all module-scoped datasets before choosing the active dataset, calculates risk only for the selected dataset ID, redirects stale selected IDs to another dataset or the empty scoped page, and renders per-dataset delete controls through the existing dataset deletion API. The shared dataset delete button now supports icon-only usage, custom labels, post-delete redirects, and deletion callbacks. The Dataset AI Assistant now selects another available dataset when a stored active dataset disappears and resets dataset-specific messages when the active dataset changes.
+
+4. Problems marked
+blocker: none.
+risk: Source-level UI tests protect routing and context boundaries, while full browser confirmation flow testing remains outside this local run.
+observation: The backend deletion service already deletes datasets by immutable ID and cleans rows, reports, traces, retrieval docs, activity references, and stored upload files.
+observation: Existing dataset classification remains the source for Risk Intelligence dataset support and scope filtering.
+
+5. User learning
+Risk Intelligence deletion now uses the existing deletion contract, and selected-dataset analysis does not aggregate across multiple uploaded datasets.
+
+6. AI-agent learning
+For active dataset bugs, verify both the server selector query and the client conversation state because backend dataset scoping can be correct while UI state still carries stale context.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Login Page AI Analyst Demo Presentation
 
 1. Interaction title

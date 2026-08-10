@@ -5,7 +5,7 @@ import { Cookie, Database, LockKeyhole, Mail, ShieldCheck } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
-const LAST_UPDATED = "July 4, 2026"
+const LAST_UPDATED = "August 10, 2026"
 
 const privacySections = [
   {
@@ -30,11 +30,11 @@ const privacySections = [
   },
   {
     title: "Uploaded Datasets",
-    body: "Uploaded CSV, Excel, and related business datasets remain your content. UseClevr processes uploaded datasets to profile columns, calculate metrics, generate dashboards, detect risks and opportunities, produce reports, and support customer-requested workflows. You are responsible for ensuring you have the right to upload and process the data.",
+    body: "Uploaded CSV, Excel, and related business datasets remain your content. Uploading a dataset does not transfer ownership of that dataset to UseClevr. UseClevr processes uploaded datasets only as reasonably needed to host, process, analyze, secure, transmit where necessary, display, generate requested outputs, provide the service, profile columns, calculate metrics, generate dashboards, detect risks and opportunities, produce reports, and support customer-requested workflows. You are responsible for ensuring you have the right to upload and process the data.",
   },
   {
     title: "AI Processing",
-    body: "UseClevr may use configured AI providers, cloud AI, or local/private provider routing to explain analysis results, summarize datasets, generate recommendations, and support chat workflows. Depending on your settings, plan, and provider configuration, AI processing may occur through providers located in different countries. UseClevr aims to send only the context needed for the requested analysis and to keep deterministic calculations in the backend where possible. AI outputs are not guaranteed to be complete, current, or error-free.",
+    body: "UseClevr may use configured AI providers, cloud AI, or local/private provider routing to explain analysis results, summarize datasets, generate recommendations, and support chat workflows. Depending on your settings, plan, provider configuration, and requested functionality, AI processing may occur locally, through UseClevr systems, or through providers located in different countries. UseClevr aims to send only the limited context needed for the requested functionality, such as prompts, derived dataset context, summaries, column profiles, calculated metrics, bounded samples, or other relevant analysis context. Deterministic calculations may remain backend-side where applicable, and AI-generated explanations may use derived dataset context rather than every raw row. AI outputs may contain errors and are not guaranteed to be complete, current, or error-free. Relevant provider processing may also be subject to the provider's service, privacy, security, and data-processing arrangements.",
   },
   {
     title: "Data Retention",

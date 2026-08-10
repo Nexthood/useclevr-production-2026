@@ -221,3 +221,6 @@
 - fixed: guide Pre-bookkeeping accountant export through reviewed-transaction validation and render bookkeeping Risk Intelligence with deterministic risk findings or graceful problem states instead of server crashes
 - deployed: push the global enterprise design system polish to `origin/beta`, verify GitHub `Validate Source` and `Publish Dist-Test from Beta` success, and confirm `https://test.useclevr.com/api/health` returns app and database healthy
 - fixed: route pre-bookkeeping selected-dataset unusual transaction questions through the existing anomaly analysis before generic deterministic fallbacks so the suggested question does not return largest-transaction ranking
+- fixed: add Risk Intelligence per-dataset deletion controls, keep module-scoped dataset lists available, redirect deleted active selections to another dataset or empty state, and clear Dataset AI Assistant context when the active dataset changes
+- changed: add one shared AI accuracy disclosure under UseClevr AI chat composers across AI Assistant, Usy, shared chat panels, Hybrid AI chats, dataset modal chat, and report chat
+- changed: strengthen Terms and Privacy AI transparency, clarify dataset ownership and limited processing rights, align FAQ/CMS/sales claims with limited-context AI processing, and add a focused AI transparency disclosure regression

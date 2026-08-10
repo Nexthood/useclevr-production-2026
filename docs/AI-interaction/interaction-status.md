@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-10
-- **Goal**: Trace and fix the selected-dataset execution path for "Are there unusual transactions this period?" without duplicating anomaly detection logic.
-- **Durable change**: Pre-bookkeeping selected-dataset questions now route through the pre-bookkeeping direct-analysis router before generic analytical and dataset fallbacks, so the existing `unusual_transactions` anomaly handler answers the suggested question instead of any generic largest-transaction fallback. The regression test proves the exact question does not route to `largest_transactions`.
-- **Verification**: `pnpm test:dataset-ai-assistant` passes; `pnpm test:analytical-intents` passes; `pnpm lint:changelog` passes; `pnpm lint:secrets` passes.
+- **Goal**: Strengthen UseClevr AI transparency, Terms, Privacy, and in-product AI disclaimer consistency without rewriting the canonical legal pages.
+- **Durable change**: Terms Section 4 now covers AI-assisted output identification, deterministic calculations plus AI interpretation, evidence and confidence limits, and human review for material decisions. Privacy Section 7 remains focused on AI-related data processing and now covers limited context, routing, processing location, derived dataset context, backend calculations, AI output errors, and provider arrangements. Dataset ownership language is consistent, public FAQ/CMS/sales claims avoid overbroad compliance language, and the shared composer-level AI disclaimer remains active.
+- **Verification**: `pnpm test:ai-transparency` passes; `pnpm test:dataset-ai-assistant` passes; `pnpm validate:types` passes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
