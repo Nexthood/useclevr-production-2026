@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bot, Cloud, Database, Loader2, Send, ShieldCheck, Sparkles, TriangleAlert, Wifi } from "lucide-react"
 import * as React from "react"
@@ -301,6 +302,7 @@ export function ByoaiHybridChat() {
                 Send
               </Button>
             </div>
+            <AiAccuracyDisclaimer />
             <p className="mt-2 text-xs text-muted-foreground">
               API keys stay server-side. Local only mode never calls cloud AI; Auto and Cloud only follow AI Providers settings.
             </p>

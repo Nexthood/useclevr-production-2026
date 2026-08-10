@@ -53,6 +53,33 @@ assert.ok(generalAnswer, "short growth question receives a grounded response");
 assert.match(generalAnswer.answer, /Revenue/, "growth answer summarizes revenue trend");
 
 const datasetAssistantSource = readFileSync(join(repoRoot, "src", "components", "chat", "ai-assistant-workspace.tsx"), "utf8");
+const accuracyDisclaimerSource = readFileSync(join(repoRoot, "src", "components", "chat", "ai-accuracy-disclaimer.tsx"), "utf8");
+const disclaimerSurfaces = [
+  "src/components/chat/ai-assistant-workspace.tsx",
+  "src/components/ui/help-chatbox.tsx",
+  "src/components/chat/ai-chat-interface.tsx",
+  "src/components/chat/chat-panel.tsx",
+  "src/components/chat/clevr-chat.tsx",
+  "src/components/modals/dataset-modal.tsx",
+  "src/components/hybrid-ai/byoai-hybrid-chat.tsx",
+  "src/components/hybrid-ai/useclevr-hybrid-ai-chat-panel.tsx",
+  "src/app/report/[id]/page.tsx",
+];
+assert.match(
+  accuracyDisclaimerSource,
+  /UseClevr AI can make mistakes\. Verify important business and financial information\./,
+  "AI accuracy disclaimer uses the approved concise product wording",
+);
+assert.doesNotMatch(accuracyDisclaimerSource, /WARNING|DANGER|DO NOT TRUST AI/, "AI accuracy disclaimer avoids alarming warning language");
+for (const relativePath of disclaimerSurfaces) {
+  const surfaceSource = readFileSync(join(repoRoot, relativePath), "utf8");
+  assert.match(surfaceSource, /AiAccuracyDisclaimer/, `${relativePath} renders the shared AI accuracy disclaimer`);
+  assert.doesNotMatch(
+    surfaceSource,
+    /UseClevr AI can make mistakes\. Verify important business and financial information\./,
+    `${relativePath} does not duplicate the disclaimer wording`,
+  );
+}
 assert.match(datasetAssistantSource, /\/api\/hybrid-ai\/dataset-chat/, "Dataset AI frontend uses the dataset-chat API when a dataset is selected");
 assert.match(datasetAssistantSource, /retryQuestion/, "Dataset AI preserves failed questions for retry");
 assert.match(datasetAssistantSource, /Retry/, "Dataset AI renders a retry action");

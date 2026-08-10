@@ -1,6 +1,7 @@
 "use client";
 
 import usyAvatar from "@/assets/images/avatar.png";
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer";
 import { Button } from "@/components/ui/button";
 import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy, buildUploadCreditLimitMessage } from "@/lib/billing/upload-credit-messaging";
 import { publicMonthlyPlanPrices, publicProMonthlyLaunchPrices } from "@/lib/billing/plans";
@@ -1592,6 +1593,10 @@ export function HelpChatbox({
                 </Button>
               </div>
             </div>
+            <AiAccuracyDisclaimer
+              className="mt-2 px-1 text-slate-300/80"
+              iconClassName="text-cyan-200/80"
+            />
           </form>
         </section>
       )}

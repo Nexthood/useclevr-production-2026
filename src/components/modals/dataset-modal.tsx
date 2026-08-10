@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
 import { CheckCircle, Download, Loader2, Send, Sparkles, X } from "lucide-react"
@@ -320,6 +321,7 @@ export function DatasetModal({ isOpen, onClose, dataset }: DatasetModalProps): R
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+            <AiAccuracyDisclaimer />
           </div>
         </div>
       </div>

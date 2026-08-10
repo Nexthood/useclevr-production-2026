@@ -2,6 +2,7 @@
 
 import { debugError } from "@/lib/utils/debug"
 
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react"
@@ -256,6 +257,7 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          <AiAccuracyDisclaimer />
         </div>
       </div>
     </div>

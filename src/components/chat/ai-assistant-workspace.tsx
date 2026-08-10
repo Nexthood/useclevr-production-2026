@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import type { DataTableColumn } from "@/components/ui/data-table"
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import {
   AnalyticalResultView,
   normalizeAnalyticalResult,
@@ -842,6 +843,9 @@ export function AiAssistantWorkspace() {
             <Button type="submit" size="icon" disabled={!inputValue.trim() || !canAsk} aria-label="Send question">
               {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
+          </div>
+          <div className="mx-auto max-w-3xl">
+            <AiAccuracyDisclaimer />
           </div>
         </form>
       </main>

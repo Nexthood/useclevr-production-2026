@@ -2676,6 +2676,40 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Global AI Accuracy Disclaimer
+
+1. Interaction title
+Global AI accuracy disclaimer.
+
+2. What was the user goal
+Add a permanent, subtle AI accuracy disclaimer under every UseClevr AI chat composer so users know AI-generated analysis can contain errors and important business or financial information needs verification.
+
+3. What changed
+The app now exposes one shared `AiAccuracyDisclaimer` component with the approved wording: "UseClevr AI can make mistakes. Verify important business and financial information." AI Assistant, Usy, shared chat panels, Clevr chat, dataset modal chat, Hybrid AI provider chat, private helper chat, and report chat render the shared disclosure directly under their composer controls. Existing evidence, provider, privacy, confidence, and deterministic safeguards remain in place.
+
+4. Problems marked
+blocker: none.
+risk: Browser visual checks across device widths and themes remain pending in this local run.
+observation: UseClevr has multiple chat composer implementations, so the wording is canonical in one component while each composer imports that component.
+
+5. User learning
+AI chat inputs now carry a consistent product disclosure without adding warning banners or repeated disclaimers under individual answers.
+
+6. AI-agent learning
+For global chat UI changes, audit both authenticated and public AI entry points because older modal/report chat surfaces can sit outside the main assistant workspace.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Risk Intelligence Dataset Deletion and Isolation
 
 1. Interaction title

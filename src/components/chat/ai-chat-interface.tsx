@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { Input } from "@/components/ui/input"
 import {
     Columns, Copy, Database, Info,
@@ -355,6 +356,7 @@ export function AiChatInterface({ datasetId, datasetName, columns, rowCount }: A
               <p className="text-xs text-muted-foreground text-center mt-2">
                 Press Enter to send • Shift+Enter for new line
               </p>
+              <AiAccuracyDisclaimer className="justify-center text-center" />
             </div>
           </div>
         </div>

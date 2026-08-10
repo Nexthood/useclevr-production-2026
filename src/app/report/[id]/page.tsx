@@ -1,6 +1,7 @@
 // app/report/[id]/page.tsx
 // Public report page with interactive AI assistant
 
+import { AiAccuracyDisclaimer } from '@/components/chat/ai-accuracy-disclaimer';
 import { answerReportQuestion, generateReportSuggestions } from '@/lib/reports/report-ai-chat';
 import { getReport } from '@/lib/reports/report-generator';
 import { Bot, Send } from 'lucide-react';
@@ -352,6 +353,7 @@ export default async function ReportPage({
                 <Send className="h-4 w-4" />
               </button>
             </div>
+            <AiAccuracyDisclaimer />
           </form>
         </aside>
       </div>
