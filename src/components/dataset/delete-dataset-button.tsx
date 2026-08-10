@@ -15,7 +15,23 @@ import { Loader2, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import * as React from "react"
 
-export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; label?: string }) {
+type DeleteDatasetButtonProps = {
+  datasetId: string
+  label?: string
+  className?: string
+  ariaLabel?: string
+  redirectHref?: string
+  onDeleted?: (deletedIds: string[]) => void
+}
+
+export function DeleteDatasetButton({
+  datasetId,
+  label,
+  className,
+  ariaLabel = "Delete dataset",
+  redirectHref,
+  onDeleted,
+}: DeleteDatasetButtonProps) {
   const router = useRouter()
   const { showNotice } = useNotice()
   const [open, setOpen] = React.useState(false)
@@ -44,7 +60,12 @@ export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; l
 
       setOpen(false)
       window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
-      router.refresh()
+      onDeleted?.(deletedIds)
+      if (redirectHref) {
+        router.replace(redirectHref)
+      } else {
+        router.refresh()
+      }
       showNotice({
         type: "success",
         title: "Dataset deleted.",
@@ -79,8 +100,11 @@ export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; l
           setDeleteError(null)
           setOpen(true)
         }}
-        className={label ? "text-muted-foreground hover:text-destructive" : "h-8 w-8 text-muted-foreground hover:text-destructive"}
-        aria-label="Delete dataset"
+        className={[
+          label ? "text-muted-foreground hover:text-destructive" : "h-8 w-8 text-muted-foreground hover:text-destructive",
+          className || "",
+        ].join(" ")}
+        aria-label={ariaLabel}
       >
         {label ? (
           <>
@@ -88,12 +112,12 @@ export function DeleteDatasetButton({ datasetId, label }: { datasetId: string; l
             {label}
           </>
         ) : (
-          "Delete"
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
         )}
       </Button>
       <DialogContent className="max-w-[560px]">
         <DialogHeader className="pr-8">
-          <DialogTitle>Delete dataset?</DialogTitle>
+          <DialogTitle>Delete this dataset?</DialogTitle>
           <DialogDescription>
             1 selected dataset will be permanently removed, including rows, generated insights, linked reports, activity references, retrieval documents, and stored upload files where available.
           </DialogDescription>

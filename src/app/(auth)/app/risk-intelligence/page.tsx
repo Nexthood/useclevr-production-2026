@@ -1,4 +1,5 @@
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
+import { RiskDatasetSelector } from "@/components/risk-intelligence/risk-dataset-selector"
 import { auth } from "@/lib/auth/auth"
 import { getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate"
 import {
@@ -14,7 +15,7 @@ import {
   type RiskDatasetSummary,
 } from "@/lib/risk-intelligence/risk-service"
 import { RISK_SEVERITY_LABELS, type RiskSeverity } from "@/lib/risk-intelligence/risk-rules"
-import { AlertTriangle, ArrowDownWideNarrow, CheckCircle2, Database, Gauge, LockKeyhole, ShieldAlert } from "lucide-react"
+import { AlertTriangle, ArrowDownWideNarrow, CheckCircle2, Gauge, LockKeyhole, ShieldAlert } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -43,10 +44,12 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
 
   const params = await searchParams
   const requestedScope = params?.scope || "standard"
+  const requestedDatasetId = params?.datasetId || null
   let supportedDatasets: RiskDatasetSummary[] = []
   let selectedDatasetId: string | null = null
   let riskResult: Awaited<ReturnType<typeof calculateRiskIntelligenceForDataset>> | null = null
   let loadError: string | null = null
+  let selectionRedirectHref: string | null = null
 
   try {
     const datasets = await listRiskIntelligenceDatasets({
@@ -55,13 +58,18 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
       email: session.user.email,
     }, {
       scope: requestedScope,
-      datasetId: params?.datasetId || null,
     })
     supportedDatasets = datasets.filter((dataset) => dataset.supported)
     selectedDatasetId =
-      supportedDatasets.find((dataset) => dataset.id === params?.datasetId)?.id || supportedDatasets[0]?.id || null
+      supportedDatasets.find((dataset) => dataset.id === requestedDatasetId)?.id || supportedDatasets[0]?.id || null
 
-    riskResult = selectedDatasetId
+    if (requestedDatasetId && selectedDatasetId && requestedDatasetId !== selectedDatasetId) {
+      selectionRedirectHref = `/app/risk-intelligence?datasetId=${encodeURIComponent(selectedDatasetId)}&scope=${encodeURIComponent(requestedScope)}`
+    } else if (requestedDatasetId && !selectedDatasetId) {
+      selectionRedirectHref = `/app/risk-intelligence?scope=${encodeURIComponent(requestedScope)}`
+    }
+
+    riskResult = selectedDatasetId && !selectionRedirectHref
       ? await calculateRiskIntelligenceForDataset(selectedDatasetId, {
           id: session.user.id,
           role: access.role,
@@ -75,10 +83,13 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
     console.error("[RISK_INTELLIGENCE_PAGE] Failed to render risk workspace", {
       error: serializeRiskPageError(error),
       requestedScope,
-      requestedDatasetId: params?.datasetId || null,
+      requestedDatasetId,
       userId: session.user.id,
     })
   }
+
+  if (selectionRedirectHref) redirect(selectionRedirectHref)
+
   const intelligence = riskResult?.success ? riskResult.result : null
 
   return (
@@ -89,7 +100,7 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
     >
       <div className="space-y-5">
         {supportedDatasets.length > 0 ? (
-          <DatasetSelector datasets={supportedDatasets} selectedDatasetId={selectedDatasetId} scope={requestedScope} />
+          <RiskDatasetSelector datasets={supportedDatasets} selectedDatasetId={selectedDatasetId} scope={requestedScope} />
         ) : null}
 
         {intelligence ? (
@@ -159,44 +170,6 @@ function LockedState() {
           >
             Upgrade to Business
           </Link>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function DatasetSelector({
-  datasets,
-  selectedDatasetId,
-  scope,
-}: {
-  datasets: RiskDatasetSummary[]
-  selectedDatasetId: string | null
-  scope: string
-}) {
-  return (
-    <section className="rounded-lg border border-border bg-card p-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Dataset scope</p>
-          <p className="text-xs text-muted-foreground">Risk Intelligence calculates one module-scoped dataset at a time.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {datasets.slice(0, 8).map((dataset) => (
-            <Link
-              key={dataset.id}
-              href={`/app/risk-intelligence?datasetId=${encodeURIComponent(dataset.id)}&scope=${encodeURIComponent(scope)}`}
-              className={[
-                "inline-flex min-h-9 items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition",
-                selectedDatasetId === dataset.id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background text-muted-foreground hover:text-foreground",
-              ].join(" ")}
-            >
-              <Database className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="max-w-[180px] truncate">{dataset.name}</span>
-            </Link>
-          ))}
         </div>
       </div>
     </section>

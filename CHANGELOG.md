@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add Risk Intelligence dataset deletion controls so users can remove a selected dataset with confirmation while other uploaded datasets remain available.
 - Add one-time credit top-up payment reconciliation for Stripe and Square: verified provider webhooks issue credits, trusted server-side package config prevents tampering, DB-level unique constraints prevent duplicate credit grants.
 - Add CreditTopUp table with unique indexes on (provider, providerPaymentId) and (provider, providerEventId) for webhook idempotency.
 - Add credit package configuration reading Stripe price IDs and Square catalog IDs from environment variables.
@@ -18,6 +19,7 @@
 
 ### Fixed
 
+- Fix selected-dataset isolation so Risk Intelligence and Dataset AI Assistant use the active dataset only and clear stale dataset context when the active dataset changes.
 - Fix AI Analyst unusual transaction answers so standard and pre-bookkeeping datasets use statistical outlier evidence, largest-transaction questions stay separate, and answers avoid unsupported suspicious or fraud language.
 - Fix AI Analyst expense answers so sales-only and generic amount datasets refuse unsupported expense calculations, explain missing expense evidence, and keep valid COGS or classified expense analysis working.
 - Harden credit billing by restricting direct credit purchases to admin-only access, enforcing verified provider webhooks as the source of truth for payment credits.

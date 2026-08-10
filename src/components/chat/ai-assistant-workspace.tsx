@@ -99,6 +99,33 @@ const FALLBACK_SUGGESTIONS = [
   "What should I compare against the previous period?",
 ]
 
+function buildWelcomeMessage(): AssistantMessage {
+  return {
+    id: "welcome",
+    role: "assistant",
+    content: "Ask a general business question, or select a dataset from the sidebar for dataset-aware analysis.",
+    insight: "AI assistant ready",
+    explanation: "UseClevr routes answers through your AI Providers settings and Hybrid AI mode.",
+    recommendation: "Select a dataset for questions about risks, best performers, and next actions.",
+  }
+}
+
+function buildDatasetContextMessage(datasetId: string, datasets: DatasetOption[]): AssistantMessage {
+  if (!datasetId) return buildWelcomeMessage()
+
+  const dataset = datasets.find((candidate) => candidate.id === datasetId)
+  const datasetName = dataset?.name || "the selected dataset"
+  return {
+    id: `dataset-context-${datasetId}`,
+    datasetId,
+    role: "assistant",
+    content: `Dataset context is set to ${datasetName}. Ask questions about this dataset only.`,
+    insight: "Dataset context updated",
+    explanation: "The next answer uses only the active dataset selected in the sidebar.",
+    recommendation: "Ask a dataset-specific question when you are ready.",
+  }
+}
+
 function responseText(data: Record<string, unknown>) {
   const text = data.answer || data.response || data.content
   if (typeof text === "string" && text.trim()) {
@@ -196,16 +223,7 @@ export function AiAssistantWorkspace() {
     }
     return ""
   })
-  const [messages, setMessages] = React.useState<AssistantMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "Ask a general business question, or select a dataset from the sidebar for dataset-aware analysis.",
-      insight: "AI assistant ready",
-      explanation: "UseClevr routes answers through your AI Providers settings and Hybrid AI mode.",
-      recommendation: "Select a dataset for questions about risks, best performers, and next actions.",
-    },
-  ])
+  const [messages, setMessages] = React.useState<AssistantMessage[]>([buildWelcomeMessage()])
   const [inputValue, setInputValue] = React.useState("")
   const [loadingDatasets, setLoadingDatasets] = React.useState(true)
   const [isAsking, setIsAsking] = React.useState(false)
@@ -226,6 +244,7 @@ export function AiAssistantWorkspace() {
   const [overrideMap, setOverrideMap] = React.useState<Record<string, OverrideAction>>({})
   const initialUrlQuestionRef = React.useRef<string | null>(null)
   const initialUrlQuestionAskedRef = React.useRef(false)
+  const previousDatasetIdRef = React.useRef(selectedDatasetId)
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -256,11 +275,20 @@ export function AiAssistantWorkspace() {
         if (cancelled) return
         const nextDatasets = Array.isArray(body.datasets) ? body.datasets : []
         setDatasets(nextDatasets)
-        if (nextDatasets.length === 0) sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
+        if (nextDatasets.length === 0) {
+          sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
+          setSelectedDatasetId("")
+          return
+        }
         setSelectedDatasetId((current) => {
           if (!current || nextDatasets.some((dataset: DatasetOption) => dataset.id === current)) return current
-          sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
-          return ""
+          const nextActiveDatasetId = nextDatasets[0]?.id || ""
+          if (nextActiveDatasetId) {
+            sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, nextActiveDatasetId)
+          } else {
+            sessionStorage.removeItem(ACTIVE_DATASET_ID_KEY)
+          }
+          return nextActiveDatasetId
         })
       } catch {
         if (!cancelled) setDatasets([])
@@ -271,6 +299,13 @@ export function AiAssistantWorkspace() {
     loadDatasets()
     return () => { cancelled = true }
   }, [])
+
+  React.useEffect(() => {
+    if (previousDatasetIdRef.current === selectedDatasetId) return
+    previousDatasetIdRef.current = selectedDatasetId
+    setInputValue("")
+    setMessages([buildDatasetContextMessage(selectedDatasetId, datasets)])
+  }, [selectedDatasetId, datasets])
 
   React.useEffect(() => {
     if (rightTab !== "history" || !rightSidebarOpen) return
@@ -519,6 +554,12 @@ export function AiAssistantWorkspace() {
     void askAssistant(question)
   }
 
+  function handleDatasetSelection(dataset: DatasetOption) {
+    if (dataset.id === selectedDatasetId) return
+    setSelectedDatasetId(dataset.id)
+    sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, dataset.id)
+  }
+
   React.useEffect(() => {
     if (!selectedDatasetId || initialUrlQuestionAskedRef.current || !initialUrlQuestionRef.current) return
     initialUrlQuestionAskedRef.current = true
@@ -574,10 +615,7 @@ export function AiAssistantWorkspace() {
                     <button
                       key={dataset.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedDatasetId(dataset.id)
-                        sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, dataset.id)
-                      }}
+                      onClick={() => handleDatasetSelection(dataset)}
                       className={`w-full truncate rounded-md px-3 py-2 text-left text-sm transition ${
                         selectedDatasetId === dataset.id
                           ? "bg-primary text-primary-foreground"
