@@ -151,7 +151,7 @@ export const allFaqCategories: FaqCategory[] = [
     items: [
       {
         q: "Is my data secure?",
-        a: "UseClevr is GDPR-compliant and aligned with SOC 2 principles. Uploaded datasets and generated reports are your property. We never use them to train external systems.",
+        a: "UseClevr is built with GDPR-oriented privacy controls and SOC 2-aligned security practices. Uploaded datasets and generated reports remain your content, and UseClevr does not use them to train external systems.",
       },
       {
         q: "Where is my data stored?",

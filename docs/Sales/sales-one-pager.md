@@ -20,7 +20,7 @@ Upload CSV → Ask question in plain language → Review AI answer + computed KP
 | **Accountancy Readiness** | Track bookkeeping, tax context, and compliance readiness from uploaded datasets.                       |
 | **Reports & Downloads**   | Download analysis as PDF or CSV. Share with stakeholders, investors, or advisors.                      |
 | **AI Trace History**      | Review past questions, re-run with different providers, export conversation history.                   |
-| **Guided Setup**          | Progress tracking, quick links, FAQ, Usy assistant guidance, and support tickets.                       |
+| **Guided Setup**          | Progress tracking, quick links, FAQ, Usy assistant guidance, and support tickets.                      |
 
 ## Who It's For
 
@@ -34,11 +34,11 @@ Upload CSV → Ask question in plain language → Review AI answer + computed KP
 
 ## Pricing
 
-| Plan             | Price   | Key Features                                    |
-| ---------------- | ------- | ----------------------------------------------- |
-| Free             | €0/month   | 2 Analyst credits, Basic AI, Dataset upload     |
-| Pro              | €40 / £39 / $45 / CA$55 per month | More datasets, advanced AI, report downloads    |
-| Business         | €420/month | Unlimited datasets, team features, priority support |
+| Plan     | Price                             | Key Features                                        |
+| -------- | --------------------------------- | --------------------------------------------------- |
+| Free     | €0/month                          | 2 Analyst credits, Basic AI, Dataset upload         |
+| Pro      | €40 / £39 / $45 / CA$55 per month | More datasets, advanced AI, report downloads        |
+| Business | €420/month                        | Unlimited datasets, team features, priority support |
 
 Hybrid AI upgrade runs analysis on-device (Lite: ~2GB model, MEGA: ~5GB model) with automatic cloud fallback. Data never leaves your machine in local mode. No API credits consumed for local analysis.
 
@@ -53,8 +53,8 @@ Hybrid AI upgrade runs analysis on-device (Lite: ~2GB model, MEGA: ~5GB model) w
 
 ## Data & Privacy
 
-- Data stored in Neon PostgreSQL (EU, GDPR-compliant).
-- AI receives only aggregated metrics, never raw row data.
+- Data stored in database-backed infrastructure with role-based access controls.
+- AI receives only the limited context needed for the requested workflow.
 - No model training on customer data.
 - Full data deletion on account termination.
 - Payment details handled by Stripe (no card numbers stored).

@@ -2676,6 +2676,41 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## AI Transparency Legal Disclosure Strengthening
+
+1. Interaction title
+AI transparency legal disclosure strengthening.
+
+2. What was the user goal
+Strengthen UseClevr AI transparency across Terms, Privacy, and in-product AI disclaimers while preserving the existing legal foundations, dataset ownership principle, professional-advice limitations, and accuracy safeguards.
+
+3. What changed
+Terms Section 4 now identifies AI-assisted outputs, explains that UseClevr combines deterministic calculations with AI-generated interpretation, states that confidence, evidence, and source information do not guarantee accuracy, and directs users to review material business, financial, accounting, tax, legal, compliance, investment, and operational decisions. Privacy Section 7 remains data-processing focused and now explains limited AI context, local/cloud/private routing, variable processing locations, derived dataset context, backend-side deterministic calculations, AI output error risk, and provider arrangements. Dataset ownership language now says uploads do not transfer ownership to UseClevr. Public FAQ, Payload legal fallbacks, and sales collateral now avoid overbroad compliance or raw-row claims. The shared in-product AI disclaimer remains the composer-level disclosure.
+
+4. Problems marked
+blocker: none.
+risk: The existing pre-launch legal review notices remain active and require qualified legal review before large-scale commercial launch.
+observation: No EU AI Act compliance, certification, approval, or blanket regulatory claim was added.
+observation: Sales collateral previously overclaimed AI context handling and data hosting compliance; the copy now follows the Privacy Policy's limited-context wording.
+
+5. User learning
+UseClevr now presents AI as decision support with deterministic calculations, evidence, and confidence where available, while making clear that users retain datasets and must verify important outputs.
+
+6. AI-agent learning
+For legal/transparency work, check public legal pages, CMS fallbacks, FAQ seed content, and sales collateral because inconsistent claims can live outside the canonical pages.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Global AI Accuracy Disclaimer
 
 1. Interaction title

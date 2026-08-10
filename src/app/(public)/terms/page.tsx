@@ -5,7 +5,7 @@ import { FileText, Mail, ShieldCheck } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
-const LAST_UPDATED = "July 4, 2026"
+const LAST_UPDATED = "August 10, 2026"
 
 const termsSections = [
   {
@@ -22,7 +22,7 @@ const termsSections = [
   },
   {
     title: "AI-Generated Content Disclaimer",
-    body: "UseClevr may generate summaries, recommendations, forecasts, explanations, and business insights using AI systems, configured AI providers, local or cloud processing, and deterministic calculations. AI-generated content can be incomplete, outdated, or inaccurate and does not replace professional legal, tax, accounting, financial, medical, investment, employment, compliance, or operational advice in any jurisdiction. You are responsible for reviewing outputs before relying on them.",
+    body: "UseClevr may generate summaries, recommendations, forecasts, explanations, and business insights using AI systems, configured AI providers, local or cloud processing, and deterministic calculations. UseClevr identifies AI-assisted interactions and outputs where appropriate. AI-generated or AI-assisted outputs may contain errors and can be incomplete, outdated, or inaccurate. UseClevr may combine deterministic calculations with AI-generated interpretation, and the use of deterministic calculations, confidence indicators, evidence, source information, or calculation sources does not guarantee that an output is complete, accurate, or suitable for a particular purpose. You are responsible for reviewing outputs against the underlying data, available evidence, calculation sources, and other relevant information before relying on them for material business, financial, accounting, tax, legal, compliance, investment, or operational decisions. UseClevr supports decision-making but does not replace appropriate human judgment or professional legal, tax, accounting, financial, medical, investment, employment, compliance, or operational advice in any jurisdiction.",
   },
   {
     title: "Global SaaS Subscription & Billing",
@@ -42,7 +42,7 @@ const termsSections = [
   },
   {
     title: "Intellectual Property",
-    body: "UseClevr, its software, interface, brand, documentation, workflows, templates, analytics methods, and platform content remain owned by UseClevr or its licensors worldwide. You retain ownership of uploaded datasets and your business content. UseClevr receives the limited rights needed to process, secure, display, transmit, host, back up, and support that content within the service and with service providers acting on UseClevr's behalf.",
+    body: "UseClevr, its software, interface, brand, documentation, workflows, templates, analytics methods, and platform content remain owned by UseClevr or its licensors worldwide. You retain ownership of uploaded datasets and your business content, and uploading data does not transfer dataset ownership to UseClevr. UseClevr receives only the limited rights reasonably needed to host, process, analyze, secure, transmit where necessary, display, back up, generate requested outputs from, and support that content within the service and with service providers acting on UseClevr's behalf.",
   },
   {
     title: "Acceptable Use",

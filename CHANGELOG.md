@@ -2,6 +2,7 @@
 
 ### Added
 
+- Strengthen AI transparency disclosures across legal pages and chat interfaces so users understand AI-assisted outputs, deterministic calculations, dataset ownership, and verification responsibilities.
 - Add a persistent AI accuracy disclosure under UseClevr chat composers so users verify important business and financial information before making decisions.
 - Add Risk Intelligence dataset deletion controls so users can remove a selected dataset with confirmation while other uploaded datasets remain available.
 - Add one-time credit top-up payment reconciliation for Stripe and Square: verified provider webhooks issue credits, trusted server-side package config prevents tampering, DB-level unique constraints prevent duplicate credit grants.
