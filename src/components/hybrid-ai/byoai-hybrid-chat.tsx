@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ProductStatusBadge } from "@/components/ui/product-status-badge"
 import { Bot, Cloud, Database, Loader2, Send, ShieldCheck, Sparkles, TriangleAlert, Wifi } from "lucide-react"
 import * as React from "react"
 
@@ -204,6 +205,13 @@ export function ByoaiHybridChat() {
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Test your selected AI provider against a safe summary of your uploaded dataset before running deeper analysis.
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>Cloud AI routes are available.</span>
+              <span className="text-border">|</span>
+              <span className="inline-flex items-center gap-1.5">
+                Local AI <ProductStatusBadge status="beta" /> depends on your provider and system configuration.
+              </span>
+            </div>
           </div>
           <ProviderSummary message={latestAssistant} />
         </div>
@@ -304,7 +312,7 @@ export function ByoaiHybridChat() {
             </div>
             <AiAccuracyDisclaimer />
             <p className="mt-2 text-xs text-muted-foreground">
-              API keys stay server-side. Local only mode never calls cloud AI; Auto and Cloud only follow AI Providers settings.
+              API keys stay server-side. Local AI beta status is separate from the current route status shown above.
             </p>
           </form>
         </CardContent>

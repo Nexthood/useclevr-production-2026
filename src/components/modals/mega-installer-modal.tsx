@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
+import { ProductStatusBadge } from "@/components/ui/product-status-badge"
 import {
   getUseClevrHelperStatus,
   type UseClevrHelperStatus,
@@ -77,8 +78,14 @@ const byoaiOptions = [
 
 function statusClassName(state: UseClevrHelperStatus["state"]) {
   if (state === "connected") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-  if (state === "setup") return "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-  return "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+  if (state === "setup") return "border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
+  return "border-border bg-muted text-muted-foreground"
+}
+
+function helperStatusLabel(state: UseClevrHelperStatus["state"]) {
+  if (state === "connected") return "Online"
+  if (state === "setup") return "Setup needed"
+  return "Offline"
 }
 
 export function MegaInstallerModal({
@@ -170,12 +177,13 @@ export function MegaInstallerModal({
         <div className="rounded-lg border border-primary/30 bg-primary/10 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
                 <PlugZap className="h-4 w-4 text-primary" />
-                Recommended: Connect Existing AI
+                Local AI Providers
+                <ProductStatusBadge status="beta" />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                BYOAI is Phase 1 for Hybrid AI. Connect a local or hosted AI provider and UseClevr routes analysis through it with fallback.
+                Connect a supported local or private provider and UseClevr routes analysis through it with fallback. Performance and compatibility depend on your system configuration.
               </p>
             </div>
             <Link
@@ -266,17 +274,20 @@ export function MegaInstallerModal({
         <div className="rounded-lg border border-border bg-muted/30 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">UseClevr Helper</h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">UseClevr Helper</h3>
+                <ProductStatusBadge status="beta" />
+              </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Phase 2 will add a UseClevr-managed desktop runtime for advanced automation, local workflows, and future enterprise modules.
               </p>
             </div>
             <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassName(status.state)}`}>
-              {status.message}
+              Local AI • {helperStatusLabel(status.state)}
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Downloads are coming soon and stay disabled until signed binaries are available.
+            Start the UseClevr Helper or connect a supported local AI provider to use private local analysis. Downloads are coming soon and stay disabled until signed binaries are available.
           </p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             {platformDownloads.map((platform) => {

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNotice } from "@/components/ui/notice-bar";
+import { ProductStatusBadge } from "@/components/ui/product-status-badge";
 import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
 import type { HybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import { getAiProvidersPageState } from "@/lib/hybrid-ai/provider-page-state";
@@ -388,6 +389,16 @@ export function AiProvidersClient({
             </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 rounded-lg border border-fuchsia-300/25 bg-fuchsia-300/10 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-semibold uppercase text-foreground">Local AI Providers</p>
+                <ProductStatusBadge status="beta" />
+                <span className="text-xs text-muted-foreground">{localProviderCount} configured</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ollama, LM Studio, vLLM, and compatible local endpoints depend on your system configuration.
+              </p>
+            </div>
             {providers.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border bg-background/70 p-6">
                 <p className="font-medium text-foreground">No providers connected</p>
@@ -479,7 +490,8 @@ export function AiProvidersClient({
                   value="local"
                   current={aiMode}
                   title="Local AI"
-                  description="Runs on your device. Data stays local unless cloud fallback is enabled."
+                  badge={<ProductStatusBadge status="beta" />}
+                  description="Runs supported analysis through local providers on compatible hardware. Performance and compatibility depend on your system configuration."
                 />
                 <ModeOption
                   value="byok"
@@ -511,13 +523,13 @@ export function AiProvidersClient({
               {aiMode === "local" || aiMode === "local-only" ? (
                 <div className="flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-800 dark:text-sky-200">
                   <ShieldCheck className="h-4 w-4" />
-                  <span>Offline mode active</span>
+                  <span>Local AI <ProductStatusBadge status="beta" className="mx-1 align-middle" /> • {localProviderCount > 0 ? "Connected" : "Not configured"}</span>
                 </div>
               ) : null}
 
               {(aiMode === "local" || aiMode === "local-only") && localProviderCount === 0 ? (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-                  Offline mode needs at least one enabled local provider before analysis can run.
+                <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-800 dark:text-cyan-200">
+                  Start the UseClevr Helper or connect a supported local AI provider to use private local analysis.
                 </div>
               ) : null}
 
@@ -917,11 +929,13 @@ function ModeOption({
   value,
   current,
   title,
+  badge,
   description,
 }: {
   value: AiMode;
   current: AiMode;
   title: string;
+  badge?: React.ReactNode;
   description: string;
 }) {
   return (
@@ -934,7 +948,10 @@ function ModeOption({
         className="mt-1 h-4 w-4 border-border"
       />
       <span>
-        <span className="block text-sm font-medium text-foreground">{title}</span>
+        <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
+          {title}
+          {badge}
+        </span>
         <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
       </span>
     </label>

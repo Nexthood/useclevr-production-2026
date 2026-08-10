@@ -224,3 +224,4 @@
 - fixed: add Risk Intelligence per-dataset deletion controls, keep module-scoped dataset lists available, redirect deleted active selections to another dataset or empty state, and clear Dataset AI Assistant context when the active dataset changes
 - changed: add one shared AI accuracy disclosure under UseClevr AI chat composers across AI Assistant, Usy, shared chat panels, Hybrid AI chats, dataset modal chat, and report chat
 - changed: strengthen Terms and Privacy AI transparency, clarify dataset ownership and limited processing rights, align FAQ/CMS/sales claims with limited-context AI processing, and add a focused AI transparency disclosure regression
+- changed: add one shared Local AI beta status badge across AI mode selection, Hybrid AI setup, Local AI chat, provider settings, public header promotion, and Hybrid AI chat while keeping Cloud AI unbadged and connection status separate

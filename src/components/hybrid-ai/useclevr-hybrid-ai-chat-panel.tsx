@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
+import { ProductStatusBadge } from "@/components/ui/product-status-badge"
 import {
   askUseClevrHelper,
   getUseClevrHelperStatus,
@@ -23,8 +24,14 @@ type Message = {
 
 function statusClassName(state: UseClevrHelperStatus["state"]) {
   if (state === "connected") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-  if (state === "setup") return "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-  return "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+  if (state === "setup") return "border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300"
+  return "border-border bg-muted text-muted-foreground"
+}
+
+function connectionStatusLabel(state: UseClevrHelperStatus["state"]) {
+  if (state === "connected") return "Online"
+  if (state === "setup") return "Setup needed"
+  return "Offline"
 }
 
 export function UseClevrHybridAiChatPanel({
@@ -96,7 +103,7 @@ export function UseClevrHybridAiChatPanel({
       const latestStatus = await getUseClevrHelperStatus()
       setStatus(latestStatus)
       if (latestStatus.state === "offline") {
-        setError("UseClevr Helper is not running. Start the helper or download it again.")
+        setError("Start the UseClevr Helper or connect a supported local AI provider to use private local analysis.")
         return
       }
       if (!entitlement.canUseLite) {
@@ -118,7 +125,7 @@ export function UseClevrHybridAiChatPanel({
         },
       ])
     } catch {
-      setError("UseClevr Helper is not running. Start the helper or download it again.")
+      setError("Start the UseClevr Helper or connect a supported local AI provider to use private local analysis.")
       setStatus({
         state: "offline",
         message: "UseClevr Helper is not running",
@@ -138,16 +145,17 @@ export function UseClevrHybridAiChatPanel({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">UseClevr Hybrid AI</h2>
+              <h2 className="text-sm font-semibold text-foreground">UseClevr Local AI</h2>
+              <ProductStatusBadge status="beta" />
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Private analysis on your device</p>
+            <p className="mt-1 text-xs text-muted-foreground">Private analysis on supported local hardware</p>
           </div>
           <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassName(status.state)}`}>
-            {status.message}
+            Local AI • {connectionStatusLabel(status.state)}
           </span>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Files stay on your device when Hybrid AI is active. UseClevr Helper processes private analysis locally.
+          Local AI is in beta. Performance and compatibility depend on your system configuration.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {enabledModules.slice(0, compact ? 6 : enabledModules.length).map((module) => (
@@ -187,7 +195,7 @@ export function UseClevrHybridAiChatPanel({
               {message.role === "assistant" && (
                 <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Private AI Analysis
+                  Local AI analysis
                 </div>
               )}
               <p className="whitespace-pre-wrap">{message.content}</p>
@@ -215,7 +223,7 @@ export function UseClevrHybridAiChatPanel({
         </div>
         <AiAccuracyDisclaimer />
         {status.state === "offline" && (
-          <p className="text-xs text-muted-foreground">Start the helper or download it again.</p>
+          <p className="text-xs text-muted-foreground">Start the UseClevr Helper or connect a supported local AI provider to use private local analysis.</p>
         )}
       </form>
     </section>

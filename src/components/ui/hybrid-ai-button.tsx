@@ -3,10 +3,17 @@
 import { MegaInstallerModal } from "@/components/modals/mega-installer-modal"
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
+import { ProductStatusBadge } from "@/components/ui/product-status-badge"
 import { billingPlans, formatPlanPrice } from "@/lib/billing/plans"
 import type { HybridAiCreditCosts } from "@/lib/billing/settings-store"
 import { getHybridAiEntitlement, HYBRID_AI_MODULES, type HybridAiModule } from "@/lib/hybrid-ai/features"
-import { Brain, Check, PlugZap } from "lucide-react"
+import {
+  Brain,
+  Check,
+  Cloud,
+  Cpu,
+  PlugZap,
+} from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -68,10 +75,32 @@ export default function HybridAiButton({
         open={open}
         onOpenChange={setOpen}
         title="UseClevr Hybrid AI"
-        description="Phase 1 connects your existing AI provider. Phase 2 adds the UseClevr Helper."
+        description="Choose the AI mode that fits your privacy and performance needs."
       >
         <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
           <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <p className="text-sm font-semibold text-foreground">Choose your AI mode</p>
+              <p className="mt-1 text-sm text-muted-foreground">Your data. Your choice.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <AiModeCard
+                  icon={Cloud}
+                  title="Cloud AI"
+                  statusLabel="Online"
+                  description="UseClevr Cloud handles supported AI analysis through managed cloud infrastructure."
+                />
+                <AiModeCard
+                  icon={Cpu}
+                  title="Local AI"
+                  badge={<ProductStatusBadge status="beta" />}
+                  statusLabel={hasLocalAiAccess ? "Not configured" : "Upgrade required"}
+                  description="Use supported local providers or UseClevr Helper for private local analysis."
+                />
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Local AI is in beta. Performance and compatibility depend on your system configuration.
+              </p>
+            </div>
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
               Hybrid AI workflow
             </h3>
@@ -93,11 +122,14 @@ export default function HybridAiButton({
 
           {hasLocalAiAccess ? (
             <div className="rounded-lg border border-slate-300 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950">
-              <p className="text-sm font-semibold text-slate-950 dark:text-white">
-                Recommended: connect your AI provider
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                  Recommended: connect your AI provider
+                </p>
+                <ProductStatusBadge status="beta" />
+              </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                BYOAI is available now for Hybrid AI. UseClevr Helper downloads are Phase 2 and marked coming soon.
+                Local AI providers are available now for Hybrid AI. UseClevr Helper downloads are Phase 2 and marked coming soon.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
                 Configure Ollama, LM Studio, vLLM, or another compatible provider in Settings.
@@ -178,6 +210,36 @@ export default function HybridAiButton({
         </Modal>
       ) : null}
     </>
+  )
+}
+
+function AiModeCard({
+  icon: Icon,
+  title,
+  badge,
+  statusLabel,
+  description,
+}: {
+  icon: typeof Cloud
+  title: string
+  badge?: React.ReactNode
+  statusLabel: string
+  description: string
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background/70 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-primary" />
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          {badge}
+        </div>
+        <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {statusLabel}
+        </span>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p>
+    </div>
   )
 }
 

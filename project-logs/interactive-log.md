@@ -2979,3 +2979,37 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Local AI Beta Status Across UseClevr
+
+1. Interaction title
+Local AI beta status across UseClevr.
+
+2. What was the user goal
+Add a consistent professional beta maturity label for UseClevr Local AI across relevant AI surfaces without changing provider routing, deterministic analytics, Cloud AI behavior, or Local AI architecture.
+
+3. What changed
+The shared `ProductStatusBadge` component now renders the canonical `BETA` product maturity label. The AI mode selector, provider settings, Hybrid AI setup modal, Local AI helper chat, dataset-aware Hybrid AI chat, public header Hybrid AI promotion, and FAQ copy now label Local AI beta status separately from Online, Offline, Connected, Not configured, and setup states. Cloud AI labels remain unbadged. The Usy composer now says it is powered by UseClevr AI so Cloud AI and Local AI maturity are not conflated. A focused regression test verifies the shared badge contract, Local AI beta copy, Cloud AI badge exclusion, helper offline guidance, public header coverage, and preserved AI accuracy disclaimer placement.
+
+4. Problems marked
+blocker: none.
+observation: Existing Local AI download buttons remain disabled because signed UseClevr Helper binaries are still marked coming soon.
+observation: The topbar selector does not have a full provider-health data source, so it displays Local AI access as not configured or upgrade required while provider settings and chat responses show more specific route and connection states.
+
+5. User learning
+Users now see Local AI as a beta capability without mistaking beta maturity for provider health or Cloud AI availability.
+
+6. AI-agent learning
+For product maturity labeling, centralize the badge in shared UI and apply it only to the named capability so connection state, availability, and AI accuracy disclaimers keep distinct meanings.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
