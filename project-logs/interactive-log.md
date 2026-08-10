@@ -2841,3 +2841,37 @@ None.
 
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Unusual Transaction Route Trace and Fix
+
+1. Interaction title
+Unusual transaction route trace and fix.
+
+2. What was the user goal
+Trace "Are there unusual transactions this period?", reuse any existing anomaly handler, remove conflicting fallback routing, add a regression test, then commit and push to `beta`.
+
+3. What changed
+The selected-dataset API now sends pre-bookkeeping datasets with saved categorization to `answerPrebookkeepingQuestionDeterministically` before generic analytical intent and generic deterministic dispatch. The existing `unusual_transactions` handler and `analyzeTransactionAmountAnomalies` implementation remain the anomaly source of truth. The dataset assistant regression test now uses the exact question and asserts it does not route to `largest_transactions`; it also asserts pre-bookkeeping dispatch appears before generic analytical dispatch.
+
+4. Problems marked
+blocker: none.
+observation: Existing anomaly implementations already exist in `transaction-anomaly-analysis`, `analytical-intents`, `dataset-assistant-deterministic`, and `prebookkeeping-ai-assistant`.
+observation: The conflicting fallback is route order, not missing anomaly logic: generic handlers ran before the pre-bookkeeping direct-analysis router.
+
+5. User learning
+The suggested pre-bookkeeping question now stays in the bookkeeping analysis mode and uses statistical outlier evidence rather than largest-transaction ranking.
+
+6. AI-agent learning
+For selected-dataset AI bugs, trace the endpoint router order before changing intent patterns because mode-specific handlers can be bypassed by generic deterministic dispatch.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
