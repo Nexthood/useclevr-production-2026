@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import type { DataTableColumn } from "@/components/ui/data-table"
 import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
+import { GHOST_MODE_STORAGE_KEY } from "@/lib/ai/ghost-mode"
 import {
   AnalyticalResultView,
   normalizeAnalyticalResult,
@@ -31,6 +32,7 @@ import {
   Download,
   Repeat,
   X,
+  Ghost,
 } from "lucide-react"
 import * as React from "react"
 
@@ -86,6 +88,7 @@ type HistoryEntry = {
 }
 
 const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
+const GHOST_MODE_NOTICE_KEY = "useclevr_ghost_mode_notice_seen"
 
 const FALLBACK_SUGGESTIONS = [
   "What are the key insights in this dataset?",
@@ -241,6 +244,11 @@ export function AiAssistantWorkspace() {
   const [searchResults, setSearchResults] = React.useState<HistoryEntry[]>([])
   const [searching, setSearching] = React.useState(false)
   const [showDataNotice, setShowDataNotice] = React.useState(true)
+  const [ghostMode, setGhostMode] = React.useState(() => {
+    if (typeof window === "undefined") return false
+    return sessionStorage.getItem(GHOST_MODE_STORAGE_KEY) === "true"
+  })
+  const [showGhostNotice, setShowGhostNotice] = React.useState(false)
   const [feedbackMap, setFeedbackMap] = React.useState<Record<string, "positive" | "negative">>({})
   const [overrideMap, setOverrideMap] = React.useState<Record<string, OverrideAction>>({})
   const initialUrlQuestionRef = React.useRef<string | null>(null)
@@ -250,6 +258,14 @@ export function AiAssistantWorkspace() {
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isAsking])
+
+  React.useEffect(() => {
+    if (ghostMode) {
+      sessionStorage.setItem(GHOST_MODE_STORAGE_KEY, "true")
+      return
+    }
+    sessionStorage.removeItem(GHOST_MODE_STORAGE_KEY)
+  }, [ghostMode])
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -366,6 +382,7 @@ export function AiAssistantWorkspace() {
         signal: controller.signal,
         body: JSON.stringify({
           datasetId: selectedDatasetId || undefined,
+          ghostMode,
           messages: [...messages, userMessage]
             .filter((message) => message.role === "user" || message.role === "assistant")
             .map((message) => ({ role: message.role, content: message.content })),
@@ -561,6 +578,25 @@ export function AiAssistantWorkspace() {
     sessionStorage.setItem(ACTIVE_DATASET_ID_KEY, dataset.id)
   }
 
+  function toggleGhostMode() {
+    setGhostMode((current) => {
+      const next = !current
+      if (next) {
+        const noticeSeen = sessionStorage.getItem(GHOST_MODE_NOTICE_KEY) === "true"
+        if (!noticeSeen) {
+          setShowGhostNotice(true)
+          sessionStorage.setItem(GHOST_MODE_NOTICE_KEY, "true")
+        }
+      } else {
+        setShowGhostNotice(false)
+        setFeedbackMap({})
+        setOverrideMap({})
+        setMessages([buildDatasetContextMessage(selectedDatasetId, datasets)])
+      }
+      return next
+    })
+  }
+
   React.useEffect(() => {
     if (!selectedDatasetId || initialUrlQuestionAskedRef.current || !initialUrlQuestionRef.current) return
     initialUrlQuestionAskedRef.current = true
@@ -653,7 +689,27 @@ export function AiAssistantWorkspace() {
           </div>
         )}
 
-        <AiPrivacyStatusPanel latestMessage={latestProviderMessage} />
+        {showGhostNotice && ghostMode && (
+          <div className="flex items-start gap-2 border-b border-cyan-200/20 bg-cyan-500/10 px-4 py-2 text-xs text-cyan-900 dark:text-cyan-100">
+            <Ghost className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">Ghost Mode active</p>
+              <p className="mt-0.5 text-cyan-900/80 dark:text-cyan-100/80">
+                AI conversations in this session won't be saved to your UseClevr history. Cloud AI may still process the minimum context required to answer.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGhostNotice(false)}
+              className="ml-auto rounded p-0.5 text-cyan-900/70 hover:bg-cyan-500/10 hover:text-cyan-950 dark:text-cyan-100/70 dark:hover:text-cyan-50"
+              aria-label="Dismiss Ghost Mode notice"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
+        <AiPrivacyStatusPanel latestMessage={latestProviderMessage} ghostMode={ghostMode} onToggleGhostMode={toggleGhostMode} />
 
         <div className="flex-1 overflow-y-auto p-4">
           <div className="mx-auto max-w-3xl space-y-4">
@@ -771,10 +827,11 @@ export function AiAssistantWorkspace() {
                           key={action}
                           type="button"
                           onClick={() => recordOverride(message, action)}
+                          disabled={ghostMode}
                           className={`rounded border px-2 py-1 text-[10px] font-medium transition ${
                             overrideMap[message.id] === action
                               ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                           }`}
                         >
                           {action === "accept" ? "Accept" : action === "reject" ? "Reject" : action === "edit" ? "Edit" : "Undo"}
@@ -784,10 +841,11 @@ export function AiAssistantWorkspace() {
                       <button
                         type="button"
                         onClick={() => sendFeedback(message.traceId, "positive")}
+                        disabled={ghostMode || !message.traceId}
                         className={`rounded p-1 transition ${
                           feedbackMap[message.traceId || ""] === "positive"
                             ? "text-primary bg-primary/10"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                         }`}
                         aria-label="Mark as helpful"
                       >
@@ -796,10 +854,11 @@ export function AiAssistantWorkspace() {
                       <button
                         type="button"
                         onClick={() => sendFeedback(message.traceId, "negative")}
+                        disabled={ghostMode || !message.traceId}
                         className={`rounded p-1 transition ${
                           feedbackMap[message.traceId || ""] === "negative"
                             ? "text-destructive bg-destructive/10"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                         }`}
                         aria-label="Mark as not helpful"
                       >
@@ -968,7 +1027,7 @@ export function AiAssistantWorkspace() {
                     </div>
                   ) : historyEntries.length === 0 ? (
                     <p className="px-1 py-2 text-xs text-muted-foreground">
-                      No past conversations yet. Ask a question to get started.
+                      {ghostMode ? "Ghost Mode conversations are not saved to history." : "No past conversations yet. Ask a question to get started."}
                     </p>
                   ) : (
                     <div className="space-y-1.5">
@@ -1078,7 +1137,15 @@ function isProviderStatus(value: unknown): value is ProviderStatus {
   )
 }
 
-function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMessage }) {
+function AiPrivacyStatusPanel({
+  latestMessage,
+  ghostMode,
+  onToggleGhostMode,
+}: {
+  latestMessage?: AssistantMessage
+  ghostMode: boolean
+  onToggleGhostMode: () => void
+}) {
   const status = latestMessage?.providerStatus
   const message = status?.message || "Provider routing appears after the next AI response."
   const providerName = latestMessage?.providerName || "Not used yet"
@@ -1089,9 +1156,29 @@ function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMess
     <div className="border-b border-border bg-background px-4 py-2">
       <div className="mx-auto flex max-w-3xl flex-col gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="font-semibold text-foreground">AI Privacy Status</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-foreground">AI Privacy Status</p>
+            <button
+              type="button"
+              onClick={onToggleGhostMode}
+              title="Ghost Mode — minimize data retention"
+              aria-pressed={ghostMode}
+              aria-label={ghostMode ? "Disable Ghost Mode" : "Enable Ghost Mode"}
+              className={[
+                "inline-flex min-h-7 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition",
+                ghostMode
+                  ? "border-cyan-300/40 bg-cyan-500/15 text-cyan-800 shadow-[0_0_20px_rgba(34,211,238,0.12)] dark:text-cyan-100"
+                  : "border-border bg-background text-muted-foreground hover:border-cyan-300/40 hover:text-foreground",
+              ].join(" ")}
+            >
+              <Ghost className="h-3.5 w-3.5" aria-hidden="true" />
+              {ghostMode ? "Ghost Mode ON" : <span className="sr-only">Ghost Mode</span>}
+            </button>
+          </div>
           <p className="mt-0.5 text-muted-foreground">
-            {status?.state === "offline_active"
+            {ghostMode
+              ? "Minimize what UseClevr retains. Dataset storage is unchanged."
+              : status?.state === "offline_active"
               ? "Offline mode active"
               : status?.state === "fallback_active"
                 ? "Cloud fallback active"
@@ -1103,6 +1190,11 @@ function AiPrivacyStatusPanel({ latestMessage }: { latestMessage?: AssistantMess
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
+          {ghostMode && (
+            <span className="rounded-full border border-cyan-300/40 bg-cyan-500/10 px-2 py-0.5 font-medium text-cyan-800 dark:text-cyan-100">
+              No chat history
+            </span>
+          )}
           <span className={`rounded-full border px-2 py-0.5 font-medium ${providerStatusClassName(status?.state)}`}>
             {route}
           </span>

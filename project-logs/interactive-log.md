@@ -1,3 +1,38 @@
+## Ghost Mode Private AI Sessions
+
+1. Interaction title
+Ghost Mode private AI sessions.
+
+2. What was the user goal
+Add a small launch-safe Ghost Mode for AI sessions, verify normal persistence remains active when off, keep Local AI and dataset isolation unchanged, and commit/push the work to `origin/beta`.
+
+3. What changed
+Added a sessionStorage-backed Ghost Mode toggle in the AI Assistant privacy status area with the requested first-activation notice, active "Ghost Mode ON" state, and disabled content-linked feedback/override writes while Ghost Mode is on. Chat, analyze, hybrid chat, dataset chat, and assistant-history routes now accept `ghostMode`; Ghost Mode skips normal chat history and content-level AI traces, while request audit, billing, credit finalization, provider routing, latency/token metadata, and error metadata continue. Normal mode still creates `aiInteractionTraces` for persisted assistant history. Dataset storage, dataset isolation, provider routing, and Local AI behavior stay unchanged. Privacy, requirements, changelog, package scripts, and focused regression checks document the current behavior.
+
+4. Problems marked
+- blocker: none.
+- risk: Cloud providers still receive the minimum prompt and summarized dataset context required to answer when routing uses cloud AI.
+- improvement: Browser-level or provider-level retention controls remain separate from UseClevr Ghost Mode.
+- observation: Source-level tests verify Ghost Mode copy avoids local-only or zero-retention claims.
+
+5. User learning
+Ghost Mode minimizes UseClevr retention for one browser session; it does not delete uploaded datasets and does not promise that cloud processing leaves the device.
+
+6. AI-agent learning
+AI privacy controls must preserve billing/security audit records while removing prompt/response persistence from user-visible history and content trace tables.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## AI Analyst Transaction Anomaly Accuracy
 
 1. Interaction title

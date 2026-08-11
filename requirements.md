@@ -86,6 +86,7 @@ Text rules for this file:
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
 - Ask AI questions about uploaded datasets and receive structured answers.
+- Enable session-based Ghost Mode for AI requests so UseClevr skips normal conversation history and content-level AI traces while preserving billing, security, operational metadata, cloud provider routing, Local AI behavior, dataset storage, and dataset isolation.
 - Classify every selected-dataset AI Analyst question into a structured business intent before metric calculation or provider routing.
 - Resolve selected-dataset metric questions through deterministic calculations for revenue, average order value, average selling price, order count, customer count, revenue grouping, rankings, concentration, risk, trend, customer growth, forecast baselines, comparisons, and margin.
 - Return a precise missing-data explanation when a requested metric lacks required validated columns, and do not replace the requested metric with a generic revenue summary.

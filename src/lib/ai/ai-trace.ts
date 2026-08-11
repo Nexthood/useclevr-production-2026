@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db"
 import { aiInteractionTraces } from "@/lib/db/schema"
 import { desc, eq, and, gte, lte, like, or, sql, count } from "drizzle-orm"
+import { normalizeGhostMode } from "@/lib/ai/ghost-mode"
 
 export interface CreateTraceInput {
   userId: string
@@ -14,6 +15,7 @@ export interface CreateTraceInput {
   tokenCount?: number | null
   estimatedCostUsd?: number | null
   error?: string | null
+  ghostMode?: boolean | null
 }
 
 export interface TraceRecord {
@@ -75,6 +77,8 @@ export function getCurrentPromptVersion(): string {
 
 export async function createTrace(input: CreateTraceInput): Promise<TraceRecord | null> {
   try {
+    if (normalizeGhostMode(input.ghostMode)) return null
+
     const db = getDb()
     if (!db) return null
 
