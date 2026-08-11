@@ -10,6 +10,8 @@ import {
 } from "@/lib/ai/universal-ai-adapter";
 import { listPrivateAiProviderConfigs, isCloudProvider } from "@/lib/ai/byoai-provider";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
+import { ghostModeTraceMessage } from "@/lib/ai/ghost-mode";
+import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { NextResponse } from "next/server";
@@ -33,6 +35,7 @@ const chatMessageSchema = z.object({
 const hybridChatSchema = z.object({
   message: z.string().optional(),
   messages: z.array(chatMessageSchema).optional(),
+  ghostMode: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {
@@ -50,11 +53,13 @@ export async function POST(request: Request) {
   }
 
   const messages = normalizeMessages(parsed);
+  const ghostMode = parsed.ghostMode === true;
   if (messages.length === 0) {
     return NextResponse.json({ success: false, error: "Send a message to chat with Hybrid AI." }, { status: 400 });
   }
 
   const prompt = buildHybridChatPrompt(messages);
+  const latestQuestion = latestUserMessage(messages);
   const [aiMode, allowUseclevrCloudFallback] = await Promise.all([
     getAiMode(userId),
     getUseClevrCloudFallbackAllowed(userId),
@@ -75,9 +80,20 @@ export async function POST(request: Request) {
         mode: result.mode,
         route: result.route,
       });
+      const trace = ghostMode ? null : await createTrace({
+        userId,
+        prompt: latestQuestion || prompt,
+        response: result.text,
+        providerName: result.providerName,
+        modelName: result.modelName,
+        promptVersion: getCurrentPromptVersion(),
+        latencyMs: result.latencyMs,
+        tokenCount: result.usage ? result.usage.inputTokens + result.usage.outputTokens : null,
+      });
 
       return NextResponse.json({
         success: true,
+        traceId: trace?.id ?? null,
         answer: result.text,
         content: result.text,
         providerName: result.providerName,
@@ -91,6 +107,8 @@ export async function POST(request: Request) {
           result.mode,
           result.route,
         ),
+        ghostMode,
+        privacyWarning: ghostMode ? ghostModeTraceMessage() : null,
       });
     }
   } catch (error) {
@@ -131,6 +149,8 @@ export async function POST(request: Request) {
           fallbackActive: false,
           route: "none",
         } satisfies HybridProviderStatus,
+        ghostMode,
+        privacyWarning: ghostMode ? ghostModeTraceMessage() : null,
       }, { status: 503 });
     }
 
@@ -179,6 +199,8 @@ export async function POST(request: Request) {
         fallbackActive: false,
         route: "none",
       } satisfies HybridProviderStatus,
+      ghostMode,
+      privacyWarning: ghostMode ? ghostModeTraceMessage() : null,
     }, { status: 503 });
   }
 
@@ -216,6 +238,8 @@ export async function POST(request: Request) {
         fallbackActive: false,
         route: "none",
       } satisfies HybridProviderStatus,
+      ghostMode,
+      privacyWarning: ghostMode ? ghostModeTraceMessage() : null,
     }, { status: 503 });
   }
 
@@ -233,9 +257,20 @@ export async function POST(request: Request) {
         mode: result.mode,
         route: result.route,
       });
+      const trace = ghostMode ? null : await createTrace({
+        userId,
+        prompt: latestQuestion || prompt,
+        response: result.text,
+        providerName: result.providerName,
+        modelName: result.modelName,
+        promptVersion: getCurrentPromptVersion(),
+        latencyMs: result.latencyMs,
+        tokenCount: result.usage ? result.usage.inputTokens + result.usage.outputTokens : null,
+      });
 
       return NextResponse.json({
         success: true,
+        traceId: trace?.id ?? null,
         answer: result.text,
         content: result.text,
         providerName: result.providerName,
@@ -249,6 +284,8 @@ export async function POST(request: Request) {
           result.mode,
           result.route,
         ),
+        ghostMode,
+        privacyWarning: ghostMode ? ghostModeTraceMessage() : null,
       });
     }
     throw new Error("Cloud fallback provider returned no response.");
@@ -283,6 +320,8 @@ export async function POST(request: Request) {
         fallbackActive: false,
         route: "none",
       } satisfies HybridProviderStatus,
+      ghostMode,
+      privacyWarning: ghostMode ? ghostModeTraceMessage() : null,
     }, { status: 503 });
   }
 }
@@ -291,6 +330,10 @@ function normalizeMessages(input: z.infer<typeof hybridChatSchema>) {
   if (Array.isArray(input.messages) && input.messages.length > 0) return input.messages;
   const message = input.message?.trim();
   return message ? [{ role: "user" as const, content: message }] : [];
+}
+
+function latestUserMessage(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>) {
+  return [...messages].reverse().find((message) => message.role === "user")?.content.trim() || "";
 }
 
 function buildHybridChatPrompt(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>) {

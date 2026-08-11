@@ -9,6 +9,7 @@ export const chatRequestSchema = z.object({
   datasetId: z.string().optional(),
   processedData: z.any().optional(),
   stream: z.boolean().optional().default(false),
+  ghostMode: z.boolean().optional().default(false),
 })
 
 export const analyzeRequestSchema = z.object({
@@ -17,6 +18,7 @@ export const analyzeRequestSchema = z.object({
   data: z.array(z.record(z.string(), z.any())).optional(),
   columns: z.array(z.string()).optional(),
   analysis: z.any().optional(),
+  ghostMode: z.boolean().optional().default(false),
 })
 
 export const queryRequestSchema = z.object({

@@ -52,6 +52,7 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
+import { ghostModeTraceMessage, normalizeGhostMode } from "@/lib/ai/ghost-mode";
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { estimateUsageFromText } from "@/lib/billing/provider-usage";
@@ -201,6 +202,7 @@ export async function POST(request: Request) {
   let traceUserId: string | null = null
   let creditOperationId: string | null = null
   let reservedAnalysisCredits = 0
+  let isGhostMode = false
 
   try {
     let body;
@@ -234,11 +236,16 @@ export async function POST(request: Request) {
       });
     }
 
-    const { question, datasetId, data, columns, analysis: precomputedAnalysis } = parseResult.data;
+    const { question, datasetId, data, columns, analysis: precomputedAnalysis, ghostMode } = parseResult.data;
+    isGhostMode = normalizeGhostMode(ghostMode)
     traceQuestion = question
     traceDatasetId = datasetId || null
 
-    debugLog('[ANALYZE] Question:', question);
+    if (isGhostMode) {
+      debugLog('[ANALYZE] Ghost Mode question metadata:', { questionLength: question.length });
+    } else {
+      debugLog('[ANALYZE] Question:', question);
+    }
     debugLog('[ANALYZE] Dataset ID:', datasetId);
 
     // ============================================================================
@@ -915,7 +922,7 @@ try {
     let savedTraceId: string | null = null
 
     // Save trace before returning so the UI can attach feedback to the real trace.
-    if (traceUserId) {
+    if (traceUserId && !isGhostMode) {
       const latencyMs = Date.now() - requestStart
       const trace = await createTrace({
         userId: traceUserId,
@@ -930,8 +937,15 @@ try {
         estimatedCostUsd: 0,
       })
       savedTraceId = trace?.id ?? null
+    } else if (traceUserId && isGhostMode) {
+      debugLog("[ANALYZE] Ghost Mode active; skipping AI interaction content trace", {
+        userId: traceUserId,
+        datasetId: traceDatasetId,
+      })
+    }
 
       // Finalize credits only for successful AI-backed analysis; ordinary provider errors release reservations.
+    if (traceUserId) {
       if (!hasUnlimitedCredits && !llmError) {
         const deductionResult = creditOperationId
           ? await finalizeCredits({
@@ -978,6 +992,8 @@ try {
       metricColumn,
       columns: availableColumns,
       traceId: savedTraceId,
+      ghostMode: isGhostMode,
+      privacyWarning: isGhostMode ? ghostModeTraceMessage() : undefined,
       providerName: traceProvider,
       modelName: traceModel,
       providerStatus,
@@ -997,7 +1013,7 @@ try {
     debugError('[ANALYZE] FATAL ERROR:', error);
     debugError('[ANALYZE] Stack:', error?.stack);
 
-    if (traceUserId) {
+    if (traceUserId && !isGhostMode) {
       const latencyMs = Date.now() - requestStart
       createTrace({
         userId: traceUserId,
@@ -1009,6 +1025,11 @@ try {
         promptVersion: getCurrentPromptVersion(),
         latencyMs,
         error: traceError,
+      })
+    } else if (traceUserId && isGhostMode) {
+      debugLog("[ANALYZE] Ghost Mode active; skipping failed AI interaction content trace", {
+        userId: traceUserId,
+        datasetId: traceDatasetId,
       })
     }
 
@@ -1022,6 +1043,8 @@ try {
       recommendation: "Try rephrasing your question or refreshing the page.",
       data: [],
       chartType: "table",
+      ghostMode: isGhostMode,
+      privacyWarning: isGhostMode ? ghostModeTraceMessage() : undefined,
     });
   }
 }
