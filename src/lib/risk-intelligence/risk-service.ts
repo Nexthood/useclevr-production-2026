@@ -82,7 +82,7 @@ export async function listRiskIntelligenceDatasets(
       updatedAt: true,
     },
     orderBy: [desc(datasets.createdAt)],
-    limit: datasetId ? 1 : 50,
+    limit: datasetId ? 1 : 100,
   })
 
   return dedupeByDatasetId(rows)

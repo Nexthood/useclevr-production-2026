@@ -1,5 +1,6 @@
 import { requireSession } from "@/lib/auth/require-session"
 import { createTrace, getUserTraces } from "@/lib/ai/ai-trace"
+import { ghostModeTraceMessage, normalizeGhostMode } from "@/lib/ai/ghost-mode"
 import { debugError } from "@/lib/utils/debug"
 import { NextResponse } from "next/server"
 
@@ -23,6 +24,15 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
+    if (normalizeGhostMode(body.ghostMode)) {
+      return NextResponse.json({
+        success: true,
+        trace: null,
+        ghostMode: true,
+        message: ghostModeTraceMessage(),
+      })
+    }
+
     const trace = await createTrace({
       userId: auth.userId,
       datasetId: body.datasetId,

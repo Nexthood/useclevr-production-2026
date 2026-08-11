@@ -73,16 +73,20 @@ Text rules for this file:
 - Show dataset library rows with dataset type, upload source, destination module, and analysis status.
 - Route dataset library clicks to the matching workspace for retail, profitability, accountancy, and pre-bookkeeping datasets.
 - Delete selected Dataset Library rows only after user confirmation.
+- Select and delete multiple datasets from Risk Intelligence and Dataset Library management controls without removing the existing single-dataset delete action.
+- Send bulk dataset deletion through one collection-level request that carries immutable dataset IDs.
 - Delete only datasets the signed-in user owns or an admin/superadmin is allowed to manage.
 - Delete selected datasets together with dataset rows, AI request metadata, cost and audit references, activity references, generated reports, and stored upload files where available.
 - Keep storage cleanup non-blocking and log missing or failed storage object cleanup server-side.
 - Show deleted Dataset Library rows, overview counters, selected IDs, and sidebar usage from the latest successful delete result.
 - Keep failed Dataset Library delete selections visible and selected when a bulk delete partially succeeds.
+- Clear stale active dataset, Risk Intelligence, and Dataset AI Assistant state after deleting the active dataset by selecting another valid dataset or showing the empty state.
 - Render Executive Dashboard Overview, Financial, Inventory, Geography, and AI & Activity tabs as in-place content panels under the tab bar without automatic scrolling, route navigation, page reloads, or duplicate stacked sections.
 - Use title links, open/edit links, and row-end actions in dataset rows.
 - Load dataset detail and dataset analysis pages through the same signed-in dataset access rules, with superadmin access across datasets.
 - Redirect dataset detail to dataset analysis when detail-row loading cannot complete, without showing the datasets error page.
 - Ask AI questions about uploaded datasets and receive structured answers.
+- Enable session-based Ghost Mode for AI requests so UseClevr skips normal conversation history and content-level AI traces while preserving billing, security, operational metadata, cloud provider routing, Local AI behavior, dataset storage, and dataset isolation.
 - Classify every selected-dataset AI Analyst question into a structured business intent before metric calculation or provider routing.
 - Resolve selected-dataset metric questions through deterministic calculations for revenue, average order value, average selling price, order count, customer count, revenue grouping, rankings, concentration, risk, trend, customer growth, forecast baselines, comparisons, and margin.
 - Return a precise missing-data explanation when a requested metric lacks required validated columns, and do not replace the requested metric with a generic revenue summary.

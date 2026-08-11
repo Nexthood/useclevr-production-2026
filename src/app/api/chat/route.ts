@@ -28,6 +28,7 @@ import { formatAIResponse } from '@/lib/chat/explanation';
 import { handleRegularChat, handleRegularChatStream, type ChatProviderStatus } from '@/lib/chat/fallback';
 import { checkChatLoop, logChatExecution } from '@/lib/chat/utils';
 import { requireHybridAiFeature } from '@/lib/hybrid-ai/feature-gate';
+import { ghostModeTraceMessage } from '@/lib/ai/ghost-mode';
 
 function streamResponse(readable: ReadableStream<string>): Response {
   const encoder = new TextEncoder()
@@ -52,6 +53,7 @@ async function handleAnalyticalQuery(
   lastMessage: string,
   stream: boolean,
   userId: string,
+  ghostMode = false,
 ): Promise<Response> {
   debugLog('[CHAT] Question requires verified computation');
 
@@ -63,7 +65,11 @@ async function handleAnalyticalQuery(
     );
   }
 
-  debugLog('[STRICT_SQL] Executing strict SQL for:', lastMessage);
+  if (ghostMode) {
+    debugLog('[STRICT_SQL] Executing strict SQL for Ghost Mode request:', { datasetId, messageLength: lastMessage.length });
+  } else {
+    debugLog('[STRICT_SQL] Executing strict SQL for:', lastMessage);
+  }
   const sqlResult = await executeStrictSQL(datasetId, lastMessage);
 
   if (!sqlResult.success) {
@@ -127,6 +133,8 @@ async function handleAnalyticalQuery(
         providerName: adapterResult.providerName,
         modelName: adapterResult.modelName,
         providerStatus,
+        ghostMode,
+        privacyWarning: ghostMode ? ghostModeTraceMessage() : undefined,
         computation: {
           operation: sqlResult.result.operation,
           sql: sqlResult.sql,
@@ -152,6 +160,8 @@ async function handleAnalyticalQuery(
         role: "assistant",
         verified: true,
         providerStatus,
+        ghostMode,
+        privacyWarning: ghostMode ? ghostModeTraceMessage() : undefined,
         computation: {
           operation: sqlResult.result.operation,
           sql: sqlResult.sql,
@@ -227,6 +237,8 @@ async function handleAnalyticalQuery(
       providerName: "gemini-cloud",
       modelName: "gemini-2.5-flash",
       providerStatus,
+      ghostMode,
+      privacyWarning: ghostMode ? ghostModeTraceMessage() : undefined,
       computation: {
         operation: sqlResult.result.operation,
         sql: sqlResult.sql,
@@ -248,6 +260,8 @@ async function handleAnalyticalQuery(
         message: "Provider unavailable",
         fallbackActive: true,
       },
+      ghostMode,
+      privacyWarning: ghostMode ? ghostModeTraceMessage() : undefined,
       computation: {
         operation: sqlResult.result.operation,
         sql: sqlResult.sql,
@@ -268,7 +282,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { messages, datasetId, processedData, stream } = validation.data;
+    const { messages, datasetId, processedData, stream, ghostMode } = validation.data;
     const session = await auth();
     const userId = session?.user?.id;
 
@@ -350,7 +364,11 @@ export async function POST(request: Request) {
 
     const sessionKey = datasetId || 'no-dataset';
 
-    debugLog('[CHAT] Incoming message:', lastMessage);
+    if (ghostMode) {
+      debugLog('[CHAT] Incoming Ghost Mode message metadata:', { messageLength: lastMessage.length });
+    } else {
+      debugLog('[CHAT] Incoming message:', lastMessage);
+    }
     debugLog('[CHAT] Dataset ID:', datasetId);
 
     const loopCheck = checkChatLoop(sessionKey + ':' + lastMessage.slice(0, 50), lastMessage);
@@ -367,7 +385,7 @@ export async function POST(request: Request) {
     const isAnalyticalQuestion = isAnalyticalQuery || /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
 
     if (datasetId && isAnalyticalQuestion) {
-      return handleAnalyticalQuery(datasetId, lastMessage, !!stream, userId);
+      return handleAnalyticalQuery(datasetId, lastMessage, !!stream, userId, ghostMode);
     }
 
     const operationId = `chat:${userId}:${crypto.randomUUID()}`;
@@ -483,6 +501,8 @@ export async function POST(request: Request) {
         message: "Connection healthy",
         fallbackActive: false,
       },
+      ghostMode,
+      privacyWarning: ghostMode ? ghostModeTraceMessage() : undefined,
     });
 
   } catch (err: any) {

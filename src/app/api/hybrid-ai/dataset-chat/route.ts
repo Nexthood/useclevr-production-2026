@@ -7,6 +7,8 @@ import {
 } from "@/lib/accountancy/prebookkeeping-ai-assistant";
 import { isPrebookkeepingCategorization } from "@/lib/accountancy/prebookkeeping-categorization";
 import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-request-audit";
+import { ghostModeTraceMessage } from "@/lib/ai/ghost-mode";
+import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
 import { isCloudProvider, listPrivateAiProviderConfigs } from "@/lib/ai/byoai-provider";
 import {
@@ -98,6 +100,7 @@ const datasetChatSchema = z.object({
   datasetId: z.string().min(1),
   message: z.string().optional(),
   messages: z.array(chatMessageSchema).optional(),
+  ghostMode: z.boolean().optional().default(false),
 });
 
 export async function GET() {
@@ -158,6 +161,7 @@ export async function POST(request: Request) {
     });
   }
 
+  const ghostMode = parsed.ghostMode === true;
   const messages = normalizeMessages(parsed);
   if (messages.length === 0) {
     return datasetAiErrorResponse({
@@ -169,6 +173,7 @@ export async function POST(request: Request) {
       datasetId: parsed.datasetId,
       stage: "normalize_question",
       startedAt,
+      ghostMode,
     });
   }
 
@@ -211,6 +216,7 @@ export async function POST(request: Request) {
       datasetId: parsed.datasetId,
       stage: "load_dataset",
       startedAt,
+      ghostMode,
     });
   }
 
@@ -235,6 +241,7 @@ export async function POST(request: Request) {
       datasetType: dataset.datasetType || "standard",
       stage: "load_rows",
       startedAt,
+      ghostMode,
     });
   }
   const profileRows = analysisRows.slice(0, MAX_PROFILE_ROWS);
@@ -285,8 +292,19 @@ export async function POST(request: Request) {
         durationMs: Date.now() - startedAt,
         httpStatus: 200,
       });
+      const trace = await createDatasetChatTrace({
+        ghostMode,
+        userId,
+        datasetId: parsed.datasetId,
+        prompt: latestQuestion,
+        response: prebookkeepingResult.answer,
+        providerName: "Direct data analysis",
+        modelName: "deterministic-result",
+        latencyMs: Date.now() - startedAt,
+      });
       return NextResponse.json({
         success: true,
+        traceId: trace?.id ?? null,
         answer: prebookkeepingResult.answer,
         content: prebookkeepingResult.answer,
         insight: prebookkeepingResult.insight,
@@ -301,7 +319,8 @@ export async function POST(request: Request) {
         route: "direct",
         analyticalResult: prebookkeepingResult.result,
         datasetContext: contextForClient(context),
-        privacyWarning: null,
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
         providerStatus,
         requestId,
       });
@@ -328,8 +347,19 @@ export async function POST(request: Request) {
         purpose: "dataset_analysis",
         success: true,
       });
+      const trace = await createDatasetChatTrace({
+        ghostMode,
+        userId,
+        datasetId: parsed.datasetId,
+        prompt: latestQuestion,
+        response: analyticalResult.answer,
+        providerName: "Direct data analysis",
+        modelName: "deterministic-result",
+        latencyMs: Date.now() - startedAt,
+      });
       return NextResponse.json({
         success: true,
+        traceId: trace?.id ?? null,
         answer: analyticalResult.answer,
         content: analyticalResult.answer,
         insight: analyticalResult.insight,
@@ -345,7 +375,8 @@ export async function POST(request: Request) {
         analyticalResult: analyticalResult.result,
         deterministicAnalysis: analyticalResult.intent === "segment_decline" ? analyticalResult.result : undefined,
         datasetContext: contextForClient(context),
-        privacyWarning: null,
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
         providerStatus,
         requestId,
       });
@@ -384,8 +415,19 @@ export async function POST(request: Request) {
         durationMs: Date.now() - startedAt,
         httpStatus: 200,
       });
+      const trace = await createDatasetChatTrace({
+        ghostMode,
+        userId,
+        datasetId: parsed.datasetId,
+        prompt: latestQuestion,
+        response: deterministicResult.answer,
+        providerName: "Direct data analysis",
+        modelName: "deterministic-result",
+        latencyMs: Date.now() - startedAt,
+      });
       return NextResponse.json({
         success: true,
+        traceId: trace?.id ?? null,
         answer: deterministicResult.answer,
         content: deterministicResult.answer,
         insight: deterministicResult.insight,
@@ -400,7 +442,8 @@ export async function POST(request: Request) {
         route: "direct",
         analyticalResult: deterministicResult.result,
         datasetContext: contextForClient(context),
-        privacyWarning: null,
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
         providerStatus,
         requestId,
       });
@@ -434,7 +477,8 @@ export async function POST(request: Request) {
         route: "none",
         analyticalResult,
         datasetContext: contextForClient(context),
-        privacyWarning: null,
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
         providerStatus,
         requestId,
       }, { status: 422 });
@@ -456,6 +500,7 @@ export async function POST(request: Request) {
       modelName: "none",
       stage: "provider_gate",
       startedAt,
+      ghostMode,
     });
   }
   const { aiMode, allowUseclevrCloudFallback } = await resolveDatasetAiProviderSettings({
@@ -480,9 +525,21 @@ export async function POST(request: Request) {
         mode: result.mode,
         route: result.route,
       });
+      const trace = await createDatasetChatTrace({
+        ghostMode,
+        userId,
+        datasetId: parsed.datasetId,
+        prompt: latestQuestion || prompt,
+        response: result.text,
+        providerName: result.providerName,
+        modelName: result.modelName,
+        latencyMs: result.latencyMs,
+        tokenCount: result.usage ? result.usage.inputTokens + result.usage.outputTokens : null,
+      });
 
       return NextResponse.json({
         success: true,
+        traceId: trace?.id ?? null,
         answer: result.text,
         content: result.text,
         providerName: result.providerName,
@@ -490,9 +547,10 @@ export async function POST(request: Request) {
         mode: result.mode,
         route: result.route,
         datasetContext: contextForClient(context),
-        privacyWarning: result.route === "cloud" && result.fallbackUsed
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, result.route === "cloud" && result.fallbackUsed
           ? "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset."
-          : null,
+          : null),
         providerStatus: providerStatusFromAdapterResult(
           result.providerType,
           result.providerName,
@@ -537,7 +595,8 @@ export async function POST(request: Request) {
         mode: "local-only",
         route: "none",
         datasetContext: contextForClient(context),
-        privacyWarning: null,
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
         providerStatus: {
           label: "Offline mode",
           state: "local_unavailable",
@@ -596,7 +655,8 @@ export async function POST(request: Request) {
       mode: aiMode,
       route: "none",
       datasetContext: contextForClient(context),
-      privacyWarning: null,
+      ghostMode,
+      privacyWarning: ghostModeWarning(ghostMode, null),
       providerStatus: {
         label: "Hybrid AI",
         state: "provider_unavailable",
@@ -616,6 +676,7 @@ export async function POST(request: Request) {
       aiMode,
       userProviderFailed,
       requestId,
+      ghostMode,
     });
     if (defaultCloudResult) return defaultCloudResult;
 
@@ -647,7 +708,8 @@ export async function POST(request: Request) {
       mode: aiMode,
       route: "none",
       datasetContext: contextForClient(context),
-      privacyWarning: null,
+      ghostMode,
+      privacyWarning: ghostModeWarning(ghostMode, null),
       providerStatus: {
         label: "Hybrid AI",
         state: "provider_unavailable",
@@ -673,9 +735,21 @@ export async function POST(request: Request) {
         mode: result.mode,
         route: result.route,
       });
+      const trace = await createDatasetChatTrace({
+        ghostMode,
+        userId,
+        datasetId: parsed.datasetId,
+        prompt: latestQuestion || prompt,
+        response: result.text,
+        providerName: result.providerName,
+        modelName: result.modelName,
+        latencyMs: result.latencyMs,
+        tokenCount: result.usage ? result.usage.inputTokens + result.usage.outputTokens : null,
+      });
 
       return NextResponse.json({
         success: true,
+        traceId: trace?.id ?? null,
         answer: result.text,
         content: result.text,
         providerName: result.providerName,
@@ -683,7 +757,8 @@ export async function POST(request: Request) {
         mode: result.mode,
         route: result.route,
         datasetContext: contextForClient(context),
-        privacyWarning: result.route === "cloud" ? "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset." : null,
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, result.route === "cloud" ? "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset." : null),
         providerStatus: providerStatusFromAdapterResult(
           result.providerType,
           result.providerName,
@@ -710,6 +785,7 @@ export async function POST(request: Request) {
       userProviderFailed: true,
       requestId,
       previousError: cloudError,
+      ghostMode,
     });
     if (defaultCloudResult) return defaultCloudResult;
 
@@ -721,6 +797,7 @@ export async function POST(request: Request) {
       aiMode,
       error: cloudError,
       fallbackUsed: true,
+      ghostMode,
     });
   }
 }
@@ -782,6 +859,7 @@ async function generateDefaultCloudDatasetAnswer(input: {
   userProviderFailed: boolean;
   requestId: string;
   previousError?: unknown;
+  ghostMode?: boolean;
 }) {
   const startedAt = Date.now();
   try {
@@ -821,6 +899,17 @@ async function generateDefaultCloudDatasetAnswer(input: {
       mode: input.aiMode,
       route: "cloud",
     });
+    const trace = await createDatasetChatTrace({
+      ghostMode: input.ghostMode === true,
+      userId: input.userId,
+      datasetId: input.datasetId,
+      prompt: input.prompt,
+      response: answer,
+      providerName: cloudResult.providerName,
+      modelName: cloudResult.modelName,
+      latencyMs: Date.now() - startedAt,
+      tokenCount: normalizedUsage.inputTokens + normalizedUsage.outputTokens,
+    });
 
     return NextResponse.json({
       success: true,
@@ -831,9 +920,11 @@ async function generateDefaultCloudDatasetAnswer(input: {
       mode: input.aiMode,
       route: "cloud",
       datasetContext: contextForClient(input.context),
-      privacyWarning: input.userProviderFailed
+      traceId: trace?.id ?? null,
+      ghostMode: input.ghostMode === true,
+      privacyWarning: ghostModeWarning(input.ghostMode === true, input.userProviderFailed
         ? "Cloud fallback is active. UseClevr sent summarized dataset context, not the full dataset."
-        : null,
+        : null),
       providerStatus: {
         label: cloudResult.providerName,
         state: input.userProviderFailed ? "fallback_active" : "connection_healthy",
@@ -880,7 +971,8 @@ async function generateDefaultCloudDatasetAnswer(input: {
       mode: input.aiMode,
       route: "none",
       datasetContext: contextForClient(input.context),
-      privacyWarning: null,
+      ghostMode: input.ghostMode === true,
+      privacyWarning: ghostModeWarning(input.ghostMode === true, null),
       providerStatus: {
         label: "Gemini Cloud",
         state: "provider_unavailable",
@@ -946,6 +1038,7 @@ function providerFailureResponse(input: {
   aiMode: AiMode;
   error: unknown;
   fallbackUsed: boolean;
+  ghostMode?: boolean;
 }) {
   const code = providerErrorCode(input.error);
   const message = providerErrorMessage(input.error);
@@ -969,7 +1062,8 @@ function providerFailureResponse(input: {
     requestId: input.requestId,
     error: message,
     datasetContext: contextForClient(input.context),
-    privacyWarning: null,
+    ghostMode: input.ghostMode === true,
+    privacyWarning: ghostModeWarning(input.ghostMode === true, null),
     providerStatus: {
       label: "Hybrid AI",
       state: "provider_unavailable",
@@ -992,6 +1086,7 @@ function datasetAiErrorResponse(input: {
   modelName?: string;
   stage: string;
   startedAt: number;
+  ghostMode?: boolean;
 }) {
   debugWarn("[DATASET_AI] Request failed", {
     requestId: input.requestId,
@@ -1016,6 +1111,8 @@ function datasetAiErrorResponse(input: {
     requestId: input.requestId,
     providerName: input.providerName || "Dataset AI",
     modelName: input.modelName || "",
+    ghostMode: input.ghostMode === true,
+    privacyWarning: ghostModeWarning(input.ghostMode === true, null),
     providerStatus: {
       label: input.providerName || "Dataset AI",
       state: input.status === 401 || input.status === 404 || input.status === 422 ? "provider_unavailable" : "provider_unavailable",
@@ -1080,6 +1177,31 @@ function normalizeMessages(input: z.infer<typeof datasetChatSchema>) {
 
 function latestUserMessage(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>) {
   return [...messages].reverse().find((message) => message.role === "user")?.content.trim() || "";
+}
+
+async function createDatasetChatTrace(input: {
+  ghostMode: boolean;
+  userId: string;
+  datasetId: string;
+  prompt: string;
+  response: string;
+  providerName: string;
+  modelName: string;
+  latencyMs?: number | null;
+  tokenCount?: number | null;
+}) {
+  if (input.ghostMode) return null;
+  return createTrace({
+    userId: input.userId,
+    datasetId: input.datasetId,
+    prompt: input.prompt,
+    response: input.response,
+    providerName: input.providerName,
+    modelName: input.modelName,
+    promptVersion: getCurrentPromptVersion(),
+    latencyMs: input.latencyMs ?? null,
+    tokenCount: input.tokenCount ?? null,
+  });
 }
 
 function buildDatasetChatPrompt(
@@ -1394,4 +1516,9 @@ function providerStatusLabel(providerType: string, providerName: string) {
   if (providerType === "openai") return "OpenAI";
   if (providerType === "anthropic") return "Anthropic";
   return providerName || "AI Provider";
+}
+
+function ghostModeWarning(ghostMode: boolean, message?: string | null) {
+  if (!ghostMode) return message ?? null;
+  return message ? `${ghostModeTraceMessage()} ${message}` : ghostModeTraceMessage();
 }

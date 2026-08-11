@@ -32,6 +32,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1000. Add session-based Ghost Mode for AI requests so UseClevr skips normal conversation history and content-level AI traces while preserving billing, security, operational metadata, provider routing, Local AI behavior, dataset storage, and dataset isolation. (labels: ai, security, ui, testing; commit: worktree)
 - T-992. Strengthen dataset-aware AI analysis with marketplace semantic roles, deterministic dashboard KPIs, governance source disclosure, and Business plan intelligence value copy. (labels: ai, data, dashboard, billing, testing; commit: worktree)
 - T-981. Stabilize AI Governance server rendering on fresh installations by applying all AI provider, audit, interaction-trace, and override table dependencies before the page reads governance data. (labels: ai, deployment, stability, testing; commit: worktree)
 - T-979. Prevent AI Governance server rendering from crashing when governance tables, settings, providers, audit logs, traces, or override records are missing, and apply the override-table migration during Railway predeploy. (labels: ai, stability, deployment, testing; commit: worktree)
@@ -44,6 +45,7 @@ moving work between states.
 
 ## Label: workflow
 
+- T-999. Risk Intelligence and Dataset Library management controls select and delete multiple datasets through one confirmed bulk action while preserving single-dataset deletion, active-dataset recovery, and retryable partial-failure handling. (labels: workflow, data, ui, testing; commit: c4c05f3c)
 - T-703. Add pre-commit hooks (lint:todos, lint:changelog, lint:secrets, lint:package) and pre-push hooks (types, dist validate, lint, workflows). Verified fully implemented. (labels: workflow, ci-build; commit: worktree)
 - T-851. Distribute the project phase map into active and deferred TODO queues with explicit phase gates. (labels: workflow, docs; commit: worktree)
 - T-852. Align sales, product, user, and developer descriptions with usable-MVP, sales-validation, AI-differentiation, and platform-expansion phases. (labels: docs, sales, workflow; commit: worktree)
