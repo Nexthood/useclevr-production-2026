@@ -278,11 +278,30 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
             onSelectedRowsChange={setSelectedIds}
             bulkActions={
               selectedIds.size > 0 && (
-                <BatchDeleteButton
-                  datasetIds={Array.from(selectedIds)}
-                  onDeleted={handleBulkDelete}
-                  onResetSelection={() => setSelectedIds(new Set())}
-                />
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIds(new Set(datasets.map((dataset) => dataset.id)))}
+                    disabled={selectedIds.size === datasets.length}
+                  >
+                    Select all
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    Clear
+                  </Button>
+                  <BatchDeleteButton
+                    datasetIds={Array.from(selectedIds)}
+                    onDeleted={handleBulkDelete}
+                    onResetSelection={() => setSelectedIds(new Set())}
+                  />
+                </>
               )
             }
             actions={

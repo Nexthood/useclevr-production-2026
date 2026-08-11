@@ -2,6 +2,7 @@
 
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
+import { ProductStatusBadge } from "@/components/ui/product-status-badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Brain, Cloud, Menu, Sparkles, WifiOff, X } from "lucide-react"
 import { getSession } from "next-auth/react"
@@ -68,9 +69,10 @@ export function PublicHeader() {
                 <div className="flex items-center gap-2 mb-3">
                   <Brain className="h-5 w-5 text-primary dark:text-cyan-100" />
                   <h3 className="text-lg font-bold text-foreground">Hybrid AI</h3>
+                  <ProductStatusBadge status="beta" />
                 </div>
                 <p className="text-base text-foreground/80 mb-4 leading-relaxed">
-                  Run UseClevr in cloud or local mode. Your data stays on your device when you need it.
+                  Choose Cloud AI for managed analysis or Local AI beta for compatible private provider setups.
                 </p>
                 <div className="space-y-2 mb-4">
                   <p className="text-sm font-medium text-cyan-800 dark:text-cyan-100">
@@ -81,7 +83,7 @@ export function PublicHeader() {
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground/50 pt-3 border-t border-border/30">
-                  Availability depends on device capability
+                  Local AI performance and compatibility depend on your system configuration.
                 </p>
               </div>
             )}
@@ -119,19 +121,20 @@ export function PublicHeader() {
               onMouseLeave={() => setShowModePopover(false)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all relative overflow-hidden ${
                 isOffline
-                  ? "border border-amber-700/30 bg-amber-500/10 text-amber-800 hover:border-amber-700/50 dark:border-amber-300/30 dark:text-amber-100 dark:hover:border-amber-300/50"
+                  ? "border border-fuchsia-700/25 bg-fuchsia-500/10 text-fuchsia-800 hover:border-fuchsia-700/45 dark:border-fuchsia-200/25 dark:text-fuchsia-100 dark:hover:border-fuchsia-200/45"
                   : "border border-cyan-700/30 bg-cyan-500/10 text-cyan-800 hover:border-cyan-700/50 dark:border-cyan-300/30 dark:text-cyan-100 dark:hover:border-cyan-300/50"
               }`}
             >
               {isOffline ? (
                 <>
                   <WifiOff className="h-3.5 w-3.5" />
-                  <span>Offline</span>
+                  <span>Local AI</span>
+                  <ProductStatusBadge status="beta" />
                 </>
               ) : (
                 <>
                   <Cloud className="h-3.5 w-3.5" />
-                  <span>Cloud</span>
+                  <span>Cloud AI</span>
                 </>
               )}
             </button>
@@ -156,15 +159,18 @@ export function PublicHeader() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-100">Offline Mode</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-fuchsia-800 dark:text-fuchsia-100">Local AI</p>
+                      <ProductStatusBadge status="beta" />
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Run UseClevr Hybrid AI on your device for private analysis.
+                      Connect a supported local provider or UseClevr Helper for private local analysis.
                     </p>
                   </div>
                 </div>
 
                 <p className="text-xs text-muted-foreground/50 pt-2 border-t border-border/30">
-                  Mode availability depends on device capability
+                  Local AI is in beta. Performance and compatibility depend on your system configuration.
                 </p>
               </div>
             )}

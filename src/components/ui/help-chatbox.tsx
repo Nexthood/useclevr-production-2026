@@ -1577,7 +1577,7 @@ export function HelpChatbox({
                 className="max-h-24 min-h-9 w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-5 text-white placeholder:text-slate-400 focus:outline-none"
               />
               <div className="flex items-center justify-between gap-3 px-1 pb-0.5">
-                <span className="text-[11px] text-slate-400">Powered by UseClevr Hybrid AI</span>
+                <span className="text-[11px] text-slate-400">Powered by UseClevr AI</span>
                 <Button
                   type="submit"
                   size="icon"

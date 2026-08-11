@@ -82,11 +82,11 @@ export const dashboardFaqCategories: FaqCategory[] = [
     items: [
       {
         q: "Who can download Hybrid AI?",
-        a: "Pro users can use Hybrid AI Lite. Business users can use Hybrid AI MEGA. Super-admins can see both options for testing.",
+        a: "Pro users can use Hybrid AI Lite. Business users can use Hybrid AI MEGA. Local AI capability is beta and depends on the configured provider and workstation.",
       },
       {
         q: "Why do I see plan options instead of a download?",
-        a: "Your current plan may not include local Hybrid AI. Upgrade from Settings → Subscription or the public Plans page.",
+        a: "Your current plan may not include Local AI beta access. Upgrade from Settings → Subscription or the public Plans page.",
       },
       {
         q: "Does local mode replace cloud analysis?",

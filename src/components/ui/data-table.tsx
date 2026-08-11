@@ -97,7 +97,7 @@ export function DataTable<T extends Record<string, unknown>>({
             </div>
             <div className="relative z-10 flex min-w-0 shrink-0 flex-wrap items-center gap-2 sm:justify-end">
               {selectable && activeSelectedRows.size > 0 && (
-                <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-muted/70 px-2.5 py-1.5 text-xs text-muted-foreground">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-muted/70 px-2.5 py-1.5 text-xs text-muted-foreground" aria-live="polite">
                   <span className="whitespace-nowrap">{visibleSelectedCount} selected</span>
                   {bulkActions}
                 </div>

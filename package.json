@@ -77,6 +77,7 @@
     "test:standard-upload-success-ui": "node -r tsx/esm scripts/upload/test-standard-upload-success-ui.ts",
     "test:accuracy-tenant-isolation": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/accuracy/test-tenant-isolation.ts",
     "test:hybrid-ai-gates": "node -r tsx/esm scripts/hybrid-ai/test-feature-gates.ts",
+    "test:local-ai-beta-status": "node -r tsx/esm scripts/hybrid-ai/test-local-ai-beta-status.ts",
     "test:ai-provider-security": "node -r tsx/esm scripts/ai/test-provider-security.ts",
     "test:dashboard-crud": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dashboard-crud.ts",
     "test:dataset-deletion": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dataset-deletion.ts",

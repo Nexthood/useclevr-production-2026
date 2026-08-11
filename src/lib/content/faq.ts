@@ -126,7 +126,7 @@ export const allFaqCategories: FaqCategory[] = [
     items: [
       {
         q: "How does UseClevr answer AI questions?",
-        a: "UseClevr provides cloud analysis for standard workflows and UseClevr Hybrid AI for private analysis on your device. Files stay on your device when Hybrid AI is active.",
+        a: "UseClevr provides cloud analysis for standard workflows and Local AI beta support for private analysis on compatible local providers.",
       },
       {
         q: "What kinds of questions can I ask?",
@@ -138,7 +138,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "Is Hybrid AI really local?",
-        a: "Yes. Hybrid AI connects to UseClevr Helper on your device. UseClevr Helper processes private analysis locally.",
+        a: "Local AI is in beta. UseClevr connects to supported local providers or UseClevr Helper when configured, and performance depends on your system configuration.",
       },
       {
         q: "Which Hybrid AI mode should I pick?",
