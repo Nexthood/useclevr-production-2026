@@ -5,7 +5,6 @@
     "buildCommand": "echo prebuilt"
   },
   "deploy": {
-    "preDeployCommand": "node ./scripts/runtime/railway-predeploy.cjs",
     "startCommand": "node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
