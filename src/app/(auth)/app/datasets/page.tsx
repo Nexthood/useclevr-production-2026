@@ -38,7 +38,7 @@ export default async function DatasetsPage() {
     .from(datasets)
     .where(eq(datasets.userId, session.user.id))
     .orderBy(desc(datasets.createdAt))
-    .limit(20)
+    .limit(100)
 
     datasetsList = data.map((dataset) => {
       const datasetType = resolveDatasetType(dataset.datasetType, dataset.analysis)

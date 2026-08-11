@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add fast bulk dataset management in Risk Intelligence and the Dataset Library so users can select many uploaded datasets, delete them with one confirmation, retry failed deletions, and keep the active dataset state valid.
 - Add consistent Local AI beta labeling across AI mode selection, helper setup, provider settings, and Hybrid AI chats so users separate product maturity from connection status.
 - Strengthen AI transparency disclosures across legal pages and chat interfaces so users understand AI-assisted outputs, deterministic calculations, dataset ownership, and verification responsibilities.
 - Add a persistent AI accuracy disclosure under UseClevr chat composers so users verify important business and financial information before making decisions.

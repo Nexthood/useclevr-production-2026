@@ -44,7 +44,7 @@ export function BatchDeleteButton({
   const [deleteError, setDeleteError] = React.useState<string | null>(null)
   const selectedCount = datasetIds.length
   const pendingCount = pendingIds.length || selectedCount
-  const pendingDeleteLabel = pendingCount === 1 ? "Delete dataset" : "Delete datasets"
+  const pendingDeleteLabel = pendingCount === 1 ? "Delete dataset" : `Delete ${pendingCount} datasets`
 
   const handleBulkDelete = async () => {
     const idsToDelete = pendingIds.length > 0 ? pendingIds : datasetIds
@@ -117,7 +117,6 @@ export function BatchDeleteButton({
     setOpen(false)
     setPendingIds([])
     setDeleteError(null)
-    onResetSelection?.()
   }
 
   return (
@@ -130,13 +129,15 @@ export function BatchDeleteButton({
         className="border-destructive text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Trash2 className="mr-2 h-4 w-4" />
-        {isDeleting ? "Deleting..." : `Delete ${selectedCount}`}
+        {isDeleting ? "Deleting..." : selectedCount === 1 ? "Delete selected" : `Delete ${selectedCount}`}
       </Button>
       <DialogContent className="max-w-[560px]">
         <DialogHeader className="pr-8">
-          <DialogTitle>{pendingCount === 1 ? "Delete dataset?" : "Delete datasets?"}</DialogTitle>
+          <DialogTitle>{pendingCount === 1 ? "Delete 1 dataset?" : `Delete ${pendingCount} datasets?`}</DialogTitle>
           <DialogDescription>
-            {pendingCount} selected dataset{pendingCount === 1 ? "" : "s"} will be permanently removed, including rows, generated insights, linked reports, activity references, retrieval documents, and stored upload files where available.
+            {pendingCount === 1
+              ? "This will remove the selected dataset and its associated analysis records according to the existing deletion behavior."
+              : "This will remove the selected datasets and their associated analysis records according to the existing deletion behavior."}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">

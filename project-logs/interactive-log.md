@@ -2879,6 +2879,40 @@ None.
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Fast Dataset Bulk Delete
+
+1. Interaction title
+Fast dataset bulk delete.
+
+2. What was the user goal
+Add fast multi-select and bulk-delete dataset management for users with many historical datasets while keeping single-dataset delete available.
+
+3. What changed
+Risk Intelligence now includes a compact Manage datasets mode with accessible checkboxes, selected-state styling, active-dataset labeling, search, Select visible, Select all, Clear, and confirmed bulk deletion through the existing collection-level dataset deletion endpoint. The Dataset Library bulk bar now exposes Select all and Clear next to the delete action. Bulk confirmation text names the selected count, cancel preserves selection, successful deletion clears selection, partial failures remain selected for retry, and selectors load up to 100 datasets so 50+ dataset cleanup remains usable. Requirements, changelog, TODO, and focused Risk Intelligence regression assertions now document and verify the behavior.
+
+4. Problems marked
+blocker: none.
+observation: The backend already provides a shared dataset deletion service that deletes immutable IDs with scoped authorization and cleans related rows, traces, reports, retrieval documents, activity references, and storage objects where available.
+observation: The Dataset Library previously limited its initial query to 20 rows, which blocked the 50+ dataset management requirement.
+
+5. User learning
+Users can remove many datasets from Risk Intelligence or the Dataset Library through one confirmed action without losing the existing one-at-a-time delete control.
+
+6. AI-agent learning
+When a bulk-delete backend already exists, prioritize adding selector state, active-selection recovery, partial-failure retry state, and source-level regression checks instead of duplicating deletion logic.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Global Enterprise Design System Elevation
 
 1. Interaction title

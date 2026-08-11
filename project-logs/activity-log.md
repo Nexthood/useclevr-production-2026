@@ -225,3 +225,4 @@
 - changed: add one shared AI accuracy disclosure under UseClevr AI chat composers across AI Assistant, Usy, shared chat panels, Hybrid AI chats, dataset modal chat, and report chat
 - changed: strengthen Terms and Privacy AI transparency, clarify dataset ownership and limited processing rights, align FAQ/CMS/sales claims with limited-context AI processing, and add a focused AI transparency disclosure regression
 - changed: add one shared Local AI beta status badge across AI mode selection, Hybrid AI setup, Local AI chat, provider settings, public header promotion, and Hybrid AI chat while keeping Cloud AI unbadged and connection status separate
+- changed: add fast bulk dataset management to Risk Intelligence and the Dataset Library with explicit manage mode, accessible checkboxes, select visible, select all, clear, search, confirmed collection-level deletion, active-dataset recovery, retryable failed selections, and 50+ dataset selector capacity
