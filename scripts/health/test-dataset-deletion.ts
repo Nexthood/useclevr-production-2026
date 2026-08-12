@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 
 import { deleteDatasetsForUser } from "@/lib/data/delete-datasets"
 import { db } from "@/lib/db"
-import { datasetRows, datasets, retrievalDocuments, users } from "@/lib/db/schema"
+import { datasetRows, datasets, prebookkeepingAuditEvents, retrievalDocuments, users } from "@/lib/db/schema"
 import { eq, inArray, sql } from "drizzle-orm"
 
 async function main() {
@@ -13,8 +13,10 @@ async function main() {
   const datasetA1 = `delete_test_dataset_a1_${suffix}`
   const datasetA2 = `delete_test_dataset_a2_${suffix}`
   const datasetB1 = `delete_test_dataset_b1_${suffix}`
+  const bulkDatasetIds = Array.from({ length: 100 }, (_, index) => `delete_test_bulk_${String(index + 1).padStart(3, "0")}_${suffix}`)
   const now = new Date()
   const retrievalTableExists = await tableExists("RetrievalDocument")
+  const prebookkeepingAuditTableExists = await tableExists("PrebookkeepingAuditEvent")
 
   try {
     await db.insert(users).values([
@@ -50,6 +52,8 @@ async function main() {
     })
 
     assert.equal(single.ok, true, "single delete succeeds")
+    assert.equal(single.requestedCount, 1, "single delete reports requested count")
+    assert.equal(single.deletedCount, 1, "single delete reports confirmed deleted count")
     assert.deepEqual(single.deletedIds, [datasetA1], "single delete returns deleted dataset")
     await assertDatasetAbsent(datasetA1)
     await assertDatasetRowsAbsent(datasetA1)
@@ -62,6 +66,7 @@ async function main() {
       role: "user",
     })
     assert.equal(repeated.deletedIds.length, 0, "repeated delete is idempotent")
+    assert.equal(repeated.deletedCount, 0, "repeated delete reports zero confirmed deletions")
     assert.equal(repeated.failed[0]?.datasetId, datasetA1, "repeated delete reports the missing dataset")
 
     const mixed = await deleteDatasetsForUser({
@@ -73,6 +78,9 @@ async function main() {
 
     assert.equal(mixed.ok, false, "mixed authorized/unauthorized delete reports partial failure")
     assert.deepEqual(mixed.deletedIds, [datasetA2], "mixed delete removes only authorized dataset")
+    assert.equal(mixed.requestedCount, 2, "partial delete reports requested count")
+    assert.equal(mixed.deletedCount, 1, "partial delete reports confirmed deleted count")
+    assert.deepEqual(mixed.failedIds, [datasetB1], "partial delete exposes failed IDs")
     assert.equal(mixed.failed[0]?.datasetId, datasetB1, "mixed delete reports unauthorized dataset")
     await assertDatasetAbsent(datasetA2)
     await assertDatasetPresent(datasetB1)
@@ -94,9 +102,49 @@ async function main() {
     await assertDatasetRowsAbsent(datasetB1)
     if (retrievalTableExists) await assertRetrievalAbsent(datasetB1)
 
-    console.log(`Dataset deletion verification passed. retrievalTableExists=${retrievalTableExists}`)
+    await db.insert(datasets).values(
+      bulkDatasetIds.map((datasetId, index) => ({
+        ...buildDataset(datasetId, userA, index % 2 === 0 ? "ecommerce_orders_jan2025" : "saas_orders_analytics_jan2025", now),
+        datasetType: index % 3 === 0 ? "prebookkeeping" : "standard",
+      })),
+    )
+    await db.insert(datasetRows).values(
+      bulkDatasetIds.map((datasetId, index) => buildDatasetRow(datasetId, 0, {
+        order_id: `ORDER-${index + 1}`,
+        display_name: index % 2 === 0 ? "ecommerce_orders_jan2025" : "saas_orders_analytics_jan2025",
+        amount: 100 + index,
+      })),
+    )
+    if (prebookkeepingAuditTableExists) {
+      await db.insert(prebookkeepingAuditEvents).values(
+        bulkDatasetIds
+          .filter((_, index) => index % 3 === 0)
+          .map((datasetId, index) => buildPrebookkeepingAuditEvent(userA, datasetId, index, now)),
+      )
+    }
+
+    await assertDatasetsPresent(bulkDatasetIds)
+    const bulk = await deleteDatasetsForUser({
+      datasetIds: bulkDatasetIds,
+      userId: userA,
+      userEmail: `${userA}@example.test`,
+      role: "user",
+    })
+
+    assert.equal(bulk.ok, true, "100 dataset bulk delete succeeds")
+    assert.equal(bulk.requestedCount, 100, "100 dataset bulk delete reports requested count")
+    assert.equal(bulk.matchedCount, 100, "100 dataset bulk delete reports matched count")
+    assert.equal(bulk.deletedCount, 100, "100 dataset bulk delete reports confirmed database delete count")
+    assert.equal(bulk.deletedIds.length, 100, "100 dataset bulk delete returns every deleted immutable ID")
+    assert.equal(bulk.failed.length, 0, "100 dataset bulk delete has no failures")
+    assert.equal(new Set(bulk.deletedIds).size, 100, "100 dataset bulk delete preserves duplicate filenames by unique ID")
+    await assertDatasetsAbsent(bulkDatasetIds)
+    await assertDatasetRowsAbsentForMany(bulkDatasetIds)
+    if (prebookkeepingAuditTableExists) await assertPrebookkeepingAuditAbsent(bulkDatasetIds)
+
+    console.log(`Dataset deletion verification passed. retrievalTableExists=${retrievalTableExists} prebookkeepingAuditTableExists=${prebookkeepingAuditTableExists}`)
   } finally {
-    await cleanup([datasetA1, datasetA2, datasetB1], [userA, userB], retrievalTableExists)
+    await cleanup([datasetA1, datasetA2, datasetB1, ...bulkDatasetIds], [userA, userB], retrievalTableExists, prebookkeepingAuditTableExists)
   }
 }
 
@@ -148,6 +196,19 @@ function buildRetrievalDocument(userId: string, datasetId: string, content: stri
   }
 }
 
+function buildPrebookkeepingAuditEvent(userId: string, datasetId: string, index: number, now: Date) {
+  return {
+    id: `${datasetId}-audit-${index}`,
+    userId,
+    datasetId,
+    rowIndex: index,
+    action: "bulk_delete_fixture",
+    before: { category: "uncategorized" },
+    after: { category: "office" },
+    createdAt: now,
+  }
+}
+
 async function assertDatasetAbsent(datasetId: string) {
   const rows = await db.select({ id: datasets.id }).from(datasets).where(eq(datasets.id, datasetId))
   assert.equal(rows.length, 0, `${datasetId} remains in Dataset`)
@@ -158,9 +219,24 @@ async function assertDatasetPresent(datasetId: string) {
   assert.equal(rows.length, 1, `${datasetId} is missing unexpectedly`)
 }
 
+async function assertDatasetsPresent(datasetIds: string[]) {
+  const rows = await db.select({ id: datasets.id }).from(datasets).where(inArray(datasets.id, datasetIds))
+  assert.equal(rows.length, datasetIds.length, "bulk fixture datasets were not inserted")
+}
+
+async function assertDatasetsAbsent(datasetIds: string[]) {
+  const rows = await db.select({ id: datasets.id }).from(datasets).where(inArray(datasets.id, datasetIds))
+  assert.equal(rows.length, 0, "bulk-deleted datasets reappeared after authoritative database refetch")
+}
+
 async function assertDatasetRowsAbsent(datasetId: string) {
   const rows = await db.select({ id: datasetRows.id }).from(datasetRows).where(eq(datasetRows.datasetId, datasetId))
   assert.equal(rows.length, 0, `${datasetId} rows remain`)
+}
+
+async function assertDatasetRowsAbsentForMany(datasetIds: string[]) {
+  const rows = await db.select({ id: datasetRows.id }).from(datasetRows).where(inArray(datasetRows.datasetId, datasetIds))
+  assert.equal(rows.length, 0, "bulk-deleted dataset rows remain after authoritative database refetch")
 }
 
 async function assertRetrievalAbsent(datasetId: string) {
@@ -173,12 +249,20 @@ async function assertRetrievalPresent(datasetId: string) {
   assert.equal(rows.length, 1, `${datasetId} retrieval document is missing unexpectedly`)
 }
 
+async function assertPrebookkeepingAuditAbsent(datasetIds: string[]) {
+  const rows = await db.select({ id: prebookkeepingAuditEvents.id }).from(prebookkeepingAuditEvents).where(inArray(prebookkeepingAuditEvents.datasetId, datasetIds))
+  assert.equal(rows.length, 0, "bulk-deleted pre-bookkeeping audit events remain after authoritative database refetch")
+}
+
 async function tableExists(tableName: string) {
   const result = await db.execute(sql`SELECT to_regclass(${`"${tableName}"`}) IS NOT NULL AS "exists"`)
   return extractRows(result).some((row) => row.exists === true || row.exists === "t")
 }
 
-async function cleanup(datasetIds: string[], userIds: string[], retrievalTableExists: boolean) {
+async function cleanup(datasetIds: string[], userIds: string[], retrievalTableExists: boolean, prebookkeepingAuditTableExists: boolean) {
+  if (prebookkeepingAuditTableExists) {
+    await db.delete(prebookkeepingAuditEvents).where(inArray(prebookkeepingAuditEvents.datasetId, datasetIds)).catch(() => {})
+  }
   if (retrievalTableExists) {
     await db.delete(retrievalDocuments).where(inArray(retrievalDocuments.datasetId, datasetIds)).catch(() => {})
   }

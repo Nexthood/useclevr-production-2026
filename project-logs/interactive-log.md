@@ -2744,6 +2744,39 @@ None.
 9. Minimal destination
 Release notes: existing `CHANGELOG.md` bulk dataset entry; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Reliable Bulk Dataset Deletion
+
+1. Interaction title
+Reliable bulk dataset deletion.
+
+2. What was the user goal
+Fix bulk dataset deletion so large selected dataset sets are actually removed from the database, do not reappear after refresh, report confirmed counts, use immutable dataset IDs, preserve authorization, clean related records, and keep the current bulk-selection UI.
+
+3. What changed
+Bulk deletion now uses a dedicated `POST /api/datasets/bulk-delete` route while the legacy collection `DELETE` route delegates to the same handler. The shared API handler returns requested, matched, confirmed deleted, failed count, failed IDs, cleanup details, no-store headers, and revalidates dataset-related app views only after confirmed deletion. The dataset deletion service now chunks large ID sets server-side, deletes dataset-scoped AI governance overrides and pre-bookkeeping audit events before dataset deletion, records actual rows returned by the dataset delete statement, refetches the database after the transaction, and reports success only for IDs that are absent after verification. The shared bulk delete button posts one request to the bulk endpoint and treats zero confirmed deletions as failure. The database health test now creates 100 duplicate-named datasets, deletes all 100 in one operation, verifies requested/matched/deleted counts, checks failed IDs, proves rows and pre-bookkeeping audit events are removed, and performs an authoritative database refetch to verify the datasets do not reappear.
+
+4. Problems marked
+blocker: none.
+root cause: Previous bulk deletion reported success from the accessible ID list without verifying the dataset delete result or post-transaction database state, so the UI could remove selected IDs even when durable deletion was not confirmed.
+
+5. User learning
+Users can bulk-delete up to 100 selected datasets in one operation and rely on the response count matching the database state after refresh.
+
+6. AI-agent learning
+Bulk destructive APIs must derive success from confirmed database deletion, not request completion or pre-delete authorization matches, and UI state must update only from confirmed deleted IDs.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Railway Predeploy Pipeline Restoration
 
 1. Interaction title

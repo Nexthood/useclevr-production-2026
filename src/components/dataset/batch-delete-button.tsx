@@ -17,9 +17,12 @@ import * as React from "react"
 
 export type BatchDeleteResult = {
   ok: boolean
-  deletedIds: string[]
-  failed: { datasetId: string; reason: string }[]
+  requestedCount?: number
+  matchedCount?: number
   deletedCount?: number
+  deletedIds: string[]
+  failedIds?: string[]
+  failed: { datasetId: string; reason: string }[]
   message?: string
   storage?: {
     deleted: string[]
@@ -53,8 +56,8 @@ export function BatchDeleteButton({
     setIsDeleting(true)
     setDeleteError(null)
     try {
-      const response = await fetch("/api/datasets", {
-        method: "DELETE",
+      const response = await fetch("/api/datasets/bulk-delete", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ datasetIds: idsToDelete }),
       })
@@ -64,11 +67,18 @@ export function BatchDeleteButton({
       }
       const deleteResult: BatchDeleteResult = {
         ok: Boolean(result.ok),
+        requestedCount: typeof result.requestedCount === "number" ? result.requestedCount : idsToDelete.length,
+        matchedCount: typeof result.matchedCount === "number" ? result.matchedCount : undefined,
+        deletedCount: typeof result.deletedCount === "number" ? result.deletedCount : undefined,
         deletedIds: Array.isArray(result.deletedIds) ? result.deletedIds : [],
+        failedIds: Array.isArray(result.failedIds) ? result.failedIds.filter((id): id is string => typeof id === "string") : undefined,
         failed: Array.isArray(result.failed) ? result.failed : [],
-        deletedCount: result.deletedCount,
         message: result.message,
         storage: isStorageResult(result.storage) ? result.storage : undefined,
+      }
+
+      if (deleteResult.deletedIds.length === 0 && idsToDelete.length > 0) {
+        throw new Error(result.error || deleteResult.message || "No selected datasets were deleted.")
       }
 
       onDeleted?.(deleteResult)
