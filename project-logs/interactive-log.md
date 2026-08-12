@@ -2711,6 +2711,40 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Railway Predeploy Pipeline Restoration
+
+1. Interaction title
+Railway predeploy pipeline restoration.
+
+2. What was the user goal
+Restore the normal Railway deployment pipeline so Railway runs `node ./scripts/runtime/railway-predeploy.cjs` before starting the generated app, without rebasing or changing unrelated app behavior.
+
+3. What changed
+`dist-root/server-config/railway.json` now defines `deploy.preDeployCommand` with `node ./scripts/runtime/railway-predeploy.cjs`. Inspection confirmed `scripts/package-dist/create-dist.cjs` packages the runtime helper into `dist/scripts/runtime/` and strips accidental host configs from generated output, while `scripts/server/railway/sync-config.cjs` validates the source template directly.
+
+4. Problems marked
+blocker: none.
+risk: Railway deploys skip schema/runtime predeploy work when `deploy.preDeployCommand` is absent from `dist-root/server-config/railway.json`.
+observation: `dist-root/server-config/railway.json` is the Railway config source of truth; `create-dist.cjs` does not generate that file.
+
+5. User learning
+Railway deploy config ownership lives in `dist-root/server-config/railway.json`; generated `dist/` output contains the helper script but does not own the host command.
+
+6. AI-agent learning
+For Railway pipeline fixes, inspect packaging and sync scripts first, then change the server-config template and validate with `pnpm prod:build` plus `pnpm validate:dist`.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## AI Transparency Legal Disclosure Strengthening
 
 1. Interaction title
