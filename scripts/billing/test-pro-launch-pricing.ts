@@ -12,6 +12,16 @@ import {
   resolveProPriceForCountry,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing"
+import {
+  FREE_PLAN_LIMITS,
+  billingPlans,
+  formatCustomerPlanLabel,
+  formatPlanPrice,
+  getBillingPlan,
+  getBillingPlanByTier,
+  normalizeBillingPlanId,
+  normalizeSubscriptionTier,
+} from "@/lib/billing/plans"
 
 const repoRoot = resolve(import.meta.dirname, "../..")
 
@@ -40,6 +50,23 @@ for (const expected of expectedCases) {
   assert.equal(actual.amountMinor, expected.amountMinor, `${expected.label} amount`)
   assert.equal(actual.label, expected.labelText, `${expected.label} label`)
 }
+
+assert.deepEqual(
+  billingPlans.map((plan) => plan.name),
+  ["Free", "Pro", "Business"],
+  "customer-facing billing catalog exposes only Free, Pro, and Business",
+)
+assert.equal(billingPlans.some((plan) => plan.name === "Demo" || plan.id === "demo"), false, "Demo is not a customer-facing plan")
+assert.equal(FREE_PLAN_LIMITS.monthlyCredits, 2, "Free retains 2 included AI credits")
+assert.equal(getBillingPlan("free").name, "Free", "Free plan resolves by ID")
+assert.equal(getBillingPlanByTier("free").name, "Free", "Free plan resolves by tier")
+assert.equal(formatPlanPrice(getBillingPlan("free")), "$0/€0/month", "Free displays both launch currencies")
+assert.equal(normalizeBillingPlanId("demo"), "free", "legacy demo plan IDs route to Free")
+assert.equal(normalizeSubscriptionTier("demo"), "free", "legacy demo subscription tiers route to Free")
+assert.equal(getBillingPlan("demo").name, "Free", "legacy demo plan requests display Free")
+assert.equal(getBillingPlanByTier("demo").name, "Free", "legacy demo tiers display Free")
+assert.equal(formatCustomerPlanLabel("demo"), "Free", "legacy demo tier labels display Free")
+assert.equal(formatCustomerPlanLabel("builtin"), "Free", "built-in customer plan labels display Free")
 
 const browserDiffers = resolveCheckoutProPrice({
   billingCountry: "US",
@@ -202,8 +229,18 @@ assert.ok(checkoutPageSource.includes('plan: plan.tier'), "checkout browser payl
 assert.ok(checkoutPageSource.includes('billingInterval: "monthly"'), "checkout browser payload sends canonical interval")
 assert.ok(checkoutPageSource.includes("market: selectedMarket"), "checkout browser payload sends canonical market")
 assert.ok(checkoutPageSource.includes("buildCheckoutUrl({ planId, market: selectedMarket"), "terms flow preserves selected market in the URL")
+assert.ok(checkoutPageSource.includes("Free is active. No checkout required."), "Free checkout path explains that checkout is not required")
+assert.ok(checkoutPageSource.includes("const canReview = !isFreePlan"), "Free plan cannot enter paid checkout review")
+assert.ok(checkoutPageSource.includes('if (plan.tier === "free") return "$0/€0/month";'), "Free checkout displays $0/€0")
 assert.equal(checkoutPageSource.includes("requestedAmountMinor"), false, "checkout browser payload does not send an amount override")
 assert.equal(checkoutPageSource.includes("requestedStripePriceId"), false, "checkout browser payload does not send a Stripe Price ID override")
+
+const pricingPageSource = readProjectFile("src/app/(public)/pricing/page.tsx")
+assert.ok(pricingPageSource.includes('$0/€0'), "public pricing displays Free as $0/€0")
+assert.equal(pricingPageSource.includes("Demo"), false, "public pricing does not show a Demo plan")
+
+const checkoutConfirmSource = readProjectFile("src/app/api/checkout/confirm/route.ts")
+assert.ok(checkoutConfirmSource.includes("The Free plan does not require checkout."), "checkout API refuses Free checkout")
 
 const checkoutOptionsSource = readProjectFile("src/app/api/checkout/options/route.ts")
 assert.ok(checkoutOptionsSource.includes('getCheckoutMarketOptions("business")'), "Business checkout exposes shared market options")

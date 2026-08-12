@@ -39,21 +39,18 @@ const planIcon = {
   free: Sparkles,
   pro: Zap,
   business: Building2,
-  demo: Sparkles,
 } as const
 
 const checkoutHref: Record<BillingPlan["tier"], string> = {
   free: "/signup",
   pro: "/signup",
   business: "/app/settings/checkout?plan=business_monthly",
-  demo: "/start",
 }
 
 const ctaLabel: Record<BillingPlan["tier"], string> = {
   free: "Get Started",
   pro: "Upgrade to Pro",
   business: "Upgrade to Business",
-  demo: "Start Free",
 }
 
 function PricingCard({ plan }: { plan: BillingPlan }) {
@@ -85,7 +82,7 @@ function PricingCard({ plan }: { plan: BillingPlan }) {
           <p className="text-sm text-muted-foreground">{plan.description}</p>
         </div>
         <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold tracking-tight">{formatPlanPrice(plan).replace("/month", "")}</span>
+          <span className="text-4xl font-bold tracking-tight">{plan.tier === "free" ? "$0/€0" : formatPlanPrice(plan).replace("/month", "")}</span>
           <span className="text-sm text-muted-foreground">/month</span>
         </div>
         {launchPrices.length > 0 && (

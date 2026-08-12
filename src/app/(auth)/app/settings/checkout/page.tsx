@@ -81,6 +81,7 @@ function CheckoutClient() {
 
   const plan: CheckoutPlan = availablePlans.find((candidate) => candidate.id === planId) ?? getBillingPlan(planId);
   const paidPlans = availablePlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
+  const isFreePlan = plan.tier === "free";
   const selectedMarketOption = getSelectedMarketOption(plan, selectedMarket);
 
   React.useEffect(() => {
@@ -168,7 +169,7 @@ function CheckoutClient() {
   }, [plan.tier]);
 
   const tscUrl = "/terms";
-  const canReview = !isPlanConfigLoading && Boolean(selectedMarketOption?.enabled);
+  const canReview = !isFreePlan && !isPlanConfigLoading && Boolean(selectedMarketOption?.enabled);
   const submitLabel = isPlanConfigLoading
     ? "Checking payment provider..."
     : canReview
@@ -249,6 +250,30 @@ function CheckoutClient() {
           <div className="w-full space-y-6">
             <div className="rounded-lg border border-border bg-background p-5">
               <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => selectPlan("free")}
+                  className={[
+                    "rounded-lg border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isFreePlan
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : "border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5",
+                  ].join(" ")}
+                  aria-pressed={isFreePlan}
+                >
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-semibold text-foreground">Free</span>
+                    <span
+                      className={[
+                        "h-4 w-4 rounded-full border",
+                        isFreePlan ? "border-primary bg-primary shadow-[inset_0_0_0_4px_hsl(var(--background))]" : "border-muted-foreground/50",
+                      ].join(" ")}
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="mt-1 block text-sm font-medium text-foreground">$0/€0/month</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">Included plan. No checkout required.</span>
+                </button>
                 {paidPlans.map((candidate) => {
                   const isSelected = candidate.id === plan.id;
                   return (
@@ -312,8 +337,9 @@ function CheckoutClient() {
                 ))}
               </div>
 
-              <div className="mt-5 space-y-2">
-                {availableDiscounts.length > 0 ? (
+              {!isFreePlan && (
+                <div className="mt-5 space-y-2">
+                  {availableDiscounts.length > 0 ? (
                   availableDiscounts.map((d) => (
                     <div key={d.id} className="min-w-0 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
                       <div className="flex min-w-0 items-center gap-2 font-medium text-foreground">
@@ -327,14 +353,23 @@ function CheckoutClient() {
                   <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                     No discounts available for {plan.tier} plan.
                   </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               <div className="mt-5">
-                <Button onClick={goTerms} className="w-full" disabled={!canReview}>
-                  {canReview ? "Continue to terms & conditions" : "Checkout unavailable for this market"}
-                </Button>
-                {!isPlanConfigLoading && !canReview && (
+                {isFreePlan ? (
+                  <Link href="/app/settings/subscription" className="block">
+                    <Button variant="outline" className="w-full bg-transparent">
+                      Free is active. No checkout required.
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button onClick={goTerms} className="w-full" disabled={!canReview}>
+                    {canReview ? "Continue to terms & conditions" : "Checkout unavailable for this market"}
+                  </Button>
+                )}
+                {!isFreePlan && !isPlanConfigLoading && !canReview && (
                   <p className="mt-2 text-sm text-destructive">
                     {selectedMarketOption
                       ? `${selectedMarketOption.marketLabel} checkout is not available for ${plan.name} yet.`
@@ -344,29 +379,31 @@ function CheckoutClient() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-background p-5">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 shrink-0 text-primary" />
-                <h2 className="font-semibold">Terms &amp; Conditions</h2>
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                By continuing you confirm acceptance of our{" "}
-                <a
-                  href={tscUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  Terms and Conditions
-                </a>
-                .
-              </p>
-              <div className="mt-3 rounded-lg border border-border bg-muted/50 px-4 py-3">
-                <p className="text-xs text-muted-foreground">
-                  Full review must be completed before accepting.
+            {!isFreePlan && (
+              <div className="rounded-lg border border-border bg-background p-5">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 shrink-0 text-primary" />
+                  <h2 className="font-semibold">Terms &amp; Conditions</h2>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  By continuing you confirm acceptance of our{" "}
+                  <a
+                    href={tscUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    Terms and Conditions
+                  </a>
+                  .
                 </p>
+                <div className="mt-3 rounded-lg border border-border bg-muted/50 px-4 py-3">
+                  <p className="text-xs text-muted-foreground">
+                    Full review must be completed before accepting.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -563,6 +600,8 @@ function getMarketSelectionForPlan(plan: CheckoutPlan, currentMarket: CheckoutMa
 }
 
 function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket) {
+  if (plan.tier === "free") return "$0/€0/month";
+
   if (plan.id === "pro_monthly" || plan.id === "business_monthly") {
     return getSelectedMarketOption(plan, market)?.displayPrice ?? formatPlanPrice(plan);
   }

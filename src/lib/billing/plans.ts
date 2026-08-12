@@ -31,7 +31,7 @@ export interface PlanLimits {
 export interface BillingPlan {
   id: BillingPlanId;
   name: string;
-  tier: "free" | "pro" | "business" | "demo";
+  tier: "free" | "pro" | "business";
   price: number;
   priceInMinor?: number;
   currency?: SupportedCurrency;
@@ -151,7 +151,7 @@ export const billingPlans: BillingPlan[] = [
     description: "Try UseClevr with essential AI insights.",
     features: [
       "CSV & Excel Upload",
-      "2 AI Credits / Month",
+      "2 AI Credits total",
       "Up to 2 Datasets",
       "Basic AI Insights",
       "Retail Dashboard",
@@ -212,22 +212,6 @@ export const billingPlans: BillingPlan[] = [
     limits: BUSINESS_PLAN_LIMITS,
     stripePriceId: resolveStripePriceId("business_monthly"),
   },
-  {
-    id: "demo",
-    name: "Demo",
-    tier: "demo",
-    price: 0,
-    interval: "month",
-    description: "Try UseClevr with limited demo access.",
-    features: [
-      "2 AI Credits Total",
-      "1 Dataset",
-      "Basic AI Insights",
-      "CSV & Excel Upload",
-      "Email Verification Required",
-    ],
-    limits: DEMO_PLAN_LIMITS,
-  },
 ];
 
 export const publicMonthlyPlanPrices = {
@@ -245,10 +229,20 @@ export function getBillingPlanByTier(tier: string | null | undefined) {
   return billingPlans.find((plan) => plan.tier === normalizeSubscriptionTier(tier)) || billingPlans[0];
 }
 
+export function formatCustomerPlanLabel(tier: string | null | undefined, unlimitedLabel?: string | null) {
+  if (unlimitedLabel) return unlimitedLabel
+
+  const normalizedTier = tier?.toLowerCase()
+  if (normalizedTier === "superadmin") return "Super admin"
+  if (normalizedTier === "admin") return "Admin"
+
+  return getBillingPlanByTier(normalizedTier).name
+}
+
 export function normalizeBillingPlanId(planId: string | null | undefined): BillingPlanId {
   if (planId === "business" || planId === "business_monthly") return "business_monthly"
   if (planId === "free") return "free"
-  if (planId === "demo") return "demo"
+  if (planId === "demo") return "free"
   return "pro_monthly"
 }
 
@@ -256,18 +250,17 @@ export function normalizeSubscriptionTier(tier: string | null | undefined): Bill
   const normalizedTier = tier?.toLowerCase()
   if (normalizedTier === "business") return "business"
   if (normalizedTier === "pro") return "pro"
-  if (normalizedTier === "demo") return "demo"
   return "free"
 }
 
 export function formatPlanPrice(plan: BillingPlan) {
-  if (plan.price === 0) return "€0/month";
+  if (plan.price === 0) return "$0/€0/month";
   if (plan.id === "pro_monthly") return formatMonthlyPrice(getFixedProPrice("EUR").amountMinor, "EUR");
   return `€${plan.price}/month`;
 }
 
 export function formatPlanPriceForCurrency(plan: BillingPlan, currency: SupportedCurrency = "EUR") {
-  if (plan.price === 0) return "€0/month";
+  if (plan.price === 0) return "$0/€0/month";
   if (plan.id === "pro_monthly") {
     return formatMonthlyPrice(getFixedProPrice(currency).amountMinor, currency);
   }

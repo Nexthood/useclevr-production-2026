@@ -2711,6 +2711,38 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Free Plan Standardization
+
+1. Interaction title
+Free plan standardization.
+
+2. What was the user goal
+Remove Demo as a customer-facing billing plan and keep only Free, Pro, and Business in UseClevr pricing, subscription, checkout, and account plan displays without changing internal billing, auth, database, Stripe, credits, or dataset behavior.
+
+3. What changed
+The customer-facing billing catalog now exposes Free, Pro, and Business only. Legacy `demo` plan IDs and subscription tiers normalize to Free for display and plan lookup. Public pricing, subscription cards, settings sidebars, topbar plan labels, Account Center, profile security labels, admin customer copy, and checkout review no longer present Demo as a plan. Free displays $0/€0, explains that checkout is not required, and cannot enter the paid checkout review flow. Pro and Business remain the only checkout-enabled plan selections.
+
+4. Problems marked
+blocker: none.
+observation: Internal demo access remains in auth fixtures, demo-access services, feature-gate compatibility, database migrations, `/demo` route guards, product demo visuals, sales demo forms, and historical logs/docs because those references are not the customer-facing billing plan and support existing accounts or product-demo workflows.
+
+5. User learning
+Existing Free users now see Free instead of Demo/Built-in demo in plan surfaces, Free retains 2 included AI credits, and Free does not show unavailable checkout messaging.
+
+6. AI-agent learning
+For billing-plan renames, separate customer-facing plan catalogs from legacy entitlement identifiers. Normalize legacy IDs at display and lookup boundaries before removing compatibility paths.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Eclipse Mode Privacy Rebrand
 
 1. Interaction title

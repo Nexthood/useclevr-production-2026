@@ -1,6 +1,7 @@
 import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-layout"
 import { auth } from "@/lib/auth/auth"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
+import { formatCustomerPlanLabel } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
@@ -48,7 +49,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         <section className="rounded-lg border border-border bg-background/70 p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground">Account status</h3>
           <div className="mt-4 grid gap-3">
-            <StatusLine icon={CreditCard} label="Plan" value={usage.unlimitedLabel || usage.subscriptionTier} />
+            <StatusLine icon={CreditCard} label="Plan" value={formatCustomerPlanLabel(usage.subscriptionTier, usage.unlimitedLabel)} />
             <StatusLine icon={ShieldCheck} label="Access" value={usage.canAnalyze ? "Analysis enabled" : "Credits used"} />
             <StatusLine icon={Settings} label="Role" value={session?.user?.role || "user"} />
           </div>

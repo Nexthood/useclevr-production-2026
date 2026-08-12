@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- Show Free as the only no-cost customer plan with $0/€0 pricing, no checkout prompt, and included credits.
 - Fix bulk dataset deletion so large selections use a verified bulk request, return confirmed delete counts, clean dataset-scoped records, and do not reappear after refresh.
 - Fix selected-dataset isolation so Risk Intelligence and Dataset AI Assistant use the active dataset only and clear stale dataset context when the active dataset changes.
 - Fix AI Analyst unusual transaction answers so standard and pre-bookkeeping datasets use statistical outlier evidence, largest-transaction questions stay separate, and answers avoid unsupported suspicious or fraud language.

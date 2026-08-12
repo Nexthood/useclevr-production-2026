@@ -388,7 +388,7 @@ export function PayloadLoginView() {
                     }}
                   >
                     <Rocket className="mr-2 h-4 w-4 text-pink-500" />
-                    Superadmin demo
+                    Superadmin access
                     <span className="ml-2 rounded-full bg-pink-500/15 px-2 py-0.5 text-xs text-pink-600 dark:text-pink-300">
                       Test
                     </span>

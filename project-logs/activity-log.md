@@ -231,3 +231,4 @@
 - fixed: redirect Risk Intelligence to the next valid scoped dataset or scoped empty state when bulk deletion includes the active dataset, and verify the shared bulk delete button uses one collection-level request
 - fixed: persist large bulk dataset deletion through a dedicated verified bulk endpoint, server-side ID chunking, confirmed database delete counts, related-record cleanup, no-store responses, and a 100-dataset authoritative refetch regression
 - changed: rebrand Ghost Mode as Eclipse Mode in current user-facing AI privacy surfaces with a partial-eclipse switch, restrained motion, reduced-motion support, accessible state, and unchanged privacy/session behavior
+- fixed: standardize customer-facing billing on Free, Pro, and Business by removing the Demo plan card, mapping legacy demo plan identifiers to Free display, showing Free as $0/€0 with no checkout path, and preserving internal demo-access compatibility
