@@ -2711,6 +2711,39 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Eclipse Mode Privacy Rebrand
+
+1. Interaction title
+Eclipse Mode privacy rebrand.
+
+2. What was the user goal
+Rebrand the existing Ghost Mode private AI session feature to Eclipse Mode with premium product copy, a professional partial-eclipse visual control, accessible switch semantics, preserved privacy behavior, and no architecture rewrite.
+
+3. What changed
+The AI Assistant privacy control now presents Eclipse Mode with ON and OFF labels, a custom CSS sun-and-moon partial-eclipse glyph, a restrained 300ms moon transition, reduced-motion support, switch role, aria checked state, and a clear accessible label. The first-activation notice, history empty state, shared privacy warning, current Privacy Policy copy, and current changelog entry now use Eclipse Mode wording. Existing `ghostMode`, `GHOST_MODE_STORAGE_KEY`, API payload fields, validation, trace skipping, assistant-history skipping, billing metadata, provider routing, Local AI behavior, Cloud AI behavior, and dataset isolation remain unchanged.
+
+4. Problems marked
+blocker: none.
+compatibility: Internal Ghost Mode identifiers remain in code where renaming would create launch risk or storage/API compatibility risk.
+
+5. User learning
+Users now see a premium Eclipse Mode privacy control that describes minimized AI conversation retention without making absolute privacy claims.
+
+6. AI-agent learning
+Product rebrands for privacy controls should separate user-facing naming from stable internal contracts so launch-safe behavior remains unchanged.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Bulk Dataset Delete Active Selection
 
 1. Interaction title

@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-12
-- **Goal**: Fix bulk dataset deletion so large selections are durably removed from the database and do not reappear after refresh.
-- **Durable change**: Bulk dataset deletion now posts to a dedicated verified endpoint, chunks large ID sets server-side, cleans dataset-scoped AI governance and pre-bookkeeping audit records, verifies the dataset table after the transaction, returns requested/matched/deleted/failed counts, and updates UI state only from confirmed deleted IDs.
-- **Verification**: `pnpm test:dataset-deletion` passes with a 100-dataset duplicate-name fixture and authoritative database refetch; `pnpm test:risk-intelligence` passes; `pnpm validate:types` passes.
+- **Goal**: Rebrand the existing Ghost Mode private AI session feature as Eclipse Mode without changing privacy architecture.
+- **Durable change**: The AI Assistant privacy control, first-use notice, history empty state, shared privacy warning, current Privacy Policy copy, and current changelog entry now present Eclipse Mode. The UI uses a custom partial-eclipse glyph, switch semantics, aria checked state, restrained motion, and reduced-motion support while retaining existing `ghostMode` storage, API, trace, billing, provider-routing, Local AI, Cloud AI, and dataset-isolation behavior.
+- **Verification**: `pnpm test:ghost-mode` passes; `pnpm validate:types` passes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
