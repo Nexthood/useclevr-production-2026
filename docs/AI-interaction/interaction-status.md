@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-12
-- **Goal**: Restore the normal Railway predeploy pipeline on `beta` without rebasing or changing unrelated app behavior.
-- **Durable change**: `dist-root/server-config/railway.json` now sets `deploy.preDeployCommand` to `node ./scripts/runtime/railway-predeploy.cjs`, while the existing start command and healthcheck settings remain unchanged.
-- **Verification**: `pnpm prod:build` passes; direct JSON parsing confirms `preDeployCommand`, `startCommand`, `healthcheckPath`, and `healthcheckTimeout`; `node scripts/server/railway/sync-config.cjs --check` passes; `pnpm validate:dist` passes.
+- **Goal**: Add fast multi-select and bulk-delete dataset management while keeping single delete and active dataset state safe.
+- **Durable change**: Risk Intelligence bulk deletion detects when the deleted ID set includes the active dataset, removes deleted IDs from the visible selector state together, and redirects to the next valid scoped dataset or scoped empty state. Regression coverage verifies active deletion routing and one collection-level bulk delete request.
+- **Verification**: `pnpm test:risk-intelligence` passes; `pnpm validate:types` passes.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

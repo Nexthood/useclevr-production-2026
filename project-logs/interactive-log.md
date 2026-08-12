@@ -2711,6 +2711,39 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Bulk Dataset Delete Active Selection
+
+1. Interaction title
+Bulk dataset delete active selection.
+
+2. What was the user goal
+Add fast multi-select and bulk delete for datasets, keep single delete available, use one bulk-delete API request, preserve dataset isolation, and leave no stale active dataset state after deletion.
+
+3. What changed
+Risk Intelligence bulk deletion now detects when the active dataset is included in the deleted IDs, removes all successfully deleted datasets from the visible selector state together, and redirects to the next valid scoped dataset or the scoped empty state. Single dataset delete redirect selection now uses the current visible selector state. Focused Risk Intelligence regression assertions now verify active bulk-deletion detection, redirect execution, local visible-state cleanup, partial-failure retry selection, and one collection-level fetch from the shared bulk delete button.
+
+4. Problems marked
+blocker: none.
+observation: The feature implementation already existed on `origin/beta`; this interaction hardens the active-dataset bulk-delete path and focused regression coverage.
+
+5. User learning
+Users can bulk-delete datasets without leaving Risk Intelligence pointed at a deleted active dataset.
+
+6. AI-agent learning
+Bulk deletion UI must route active-selection cleanup through the same scoped URL recovery behavior as single deletion, because refreshing alone can briefly preserve stale dataset context.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: existing `CHANGELOG.md` bulk dataset entry; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Railway Predeploy Pipeline Restoration
 
 1. Interaction title
