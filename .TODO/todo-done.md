@@ -52,6 +52,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1003. Dataset Library row actions show only the working primary destination and keep selection, bulk deletion, upload, and backend row access unchanged. (labels: upload, ui, testing; commit: worktree)
 - T-995. Pre-bookkeeping export workflow guides users to review transactions before accountant export, and Risk Intelligence renders bookkeeping risk insights or graceful problem states without server crashes. (labels: upload, reports, stability, testing; commit: worktree)
 - T-994. Accounting AI applies Business Profile tax configuration to VAT prediction, routes uncertain transactions to exception review, stores scoped VAT corrections for future uploads, and exports reviewed VAT audit details. (labels: upload, business, ai, testing; commit: worktree)
 - T-993. Hide the broken dataset-detail action on Retail upload success while keeping Open Retail and Upload Another File actions available. (labels: upload, ui, testing; commit: worktree)

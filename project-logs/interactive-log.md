@@ -1,3 +1,38 @@
+## Dataset Library View Rows Cleanup
+
+1. Interaction title
+Dataset Library View rows cleanup.
+
+2. What was the user goal
+Remove the visible non-functional View rows action from Dataset Library row actions without deleting backend row data, APIs, processing, selection, or bulk deletion behavior.
+
+3. What changed
+Removed only the View rows link from the Dataset Library Actions column. Standard datasets keep Open dashboard, module-scoped datasets keep Open module, and the action cell now right-aligns the single remaining destination action. Dataset detail routes, row data, dataset APIs, upload behavior, checkboxes, select all, clear selection, and bulk deletion remain unchanged.
+
+4. Problems marked
+- blocker: none.
+- risk: Browser-only verification for click navigation, checkbox behavior, bulk deletion, and responsive layout requires an authenticated session with datasets.
+- improvement: A reliable Dataset Preview experience remains a separate future product surface.
+- observation: The Dataset Library action was the only visible View rows entry point found in the component.
+
+5. User learning
+Dataset rows and backend access remain available for future preview work; this change removes only the unreliable library shortcut.
+
+6. AI-agent learning
+Dataset Library UI cleanup should leave shared routes and backend helpers intact when the request targets only a broken entry point.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dashboard Daily Health Report Action
 
 1. Interaction title

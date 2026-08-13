@@ -175,10 +175,7 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           ? `/app/dashboard?datasetId=${encodeURIComponent(dataset.id)}`
           : getDatasetTypeLink(dataset)
         return (
-          <div className="flex justify-end gap-3">
-            <Link href={`/app/datasets/${dataset.id}`} className="text-xs font-medium text-primary hover:underline">
-              View rows
-            </Link>
+          <div className="flex justify-end">
             <Link href={analyzeHref} className="text-xs font-medium text-primary hover:underline">
               {type === "standard" ? "Open dashboard" : "Open module"}
             </Link>

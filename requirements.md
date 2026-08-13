@@ -71,6 +71,7 @@ Text rules for this file:
 - Keep the main Dashboard free of retail-specific report sections and retail-only KPIs.
 - Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.
 - Show dataset library rows with dataset type, upload source, destination module, and analysis status.
+- Show only the working primary destination action in Dataset Library row actions, using Open dashboard for standard datasets and Open module for module-scoped datasets.
 - Route dataset library clicks to the matching workspace for retail, profitability, accountancy, and pre-bookkeeping datasets.
 - Delete selected Dataset Library rows only after user confirmation.
 - Select and delete multiple datasets from Risk Intelligence and Dataset Library management controls without removing the existing single-dataset delete action.
