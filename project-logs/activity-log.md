@@ -233,3 +233,4 @@
 - changed: rebrand Ghost Mode as Eclipse Mode in current user-facing AI privacy surfaces with a partial-eclipse switch, restrained motion, reduced-motion support, accessible state, and unchanged privacy/session behavior
 - fixed: standardize customer-facing billing on Free, Pro, and Business by removing the Demo plan card, mapping legacy demo plan identifiers to Free display, showing Free as $0/€0 with no checkout path, and preserving internal demo-access compatibility
 - changed: add Monthly and Yearly paid-plan selection for Pro and Business, resolve checkout prices by selected market and interval, validate Stripe recurring interval before session creation, and block missing yearly configuration without falling back to monthly prices
+- changed: expose the existing Generate Report action in the Executive Daily Health dashboard header beside View Full Daily Brief, using the active dashboard dataset and existing persisted report flow

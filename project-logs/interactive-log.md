@@ -1,3 +1,38 @@
+## Dashboard Daily Health Report Action
+
+1. Interaction title
+Dashboard Daily Health report action.
+
+2. What was the user goal
+Expose the existing Generate Report action beside View Full Daily Brief in the Executive Daily Health dashboard header without rebuilding report generation.
+
+3. What changed
+Reused `GenerateReportAction` in the Executive Daily Health header, passed the active dashboard dataset ID into the section, and rendered the action as an outlined secondary button beside the existing primary full-brief link. The action keeps the existing `/api/reports` generation flow, idempotency key handling, persisted report result, Reports & Downloads redirect behavior, and safe error display. The shared action accepts presentation props for variant and class names while preserving existing default callers.
+
+4. Problems marked
+- blocker: none.
+- risk: End-to-end Reports & Downloads PDF and CSV verification requires an authenticated browser session and a dataset with report-generation access.
+- improvement: none.
+- observation: The dashboard already scopes reports to `selected.selectedDataset.id`; the Daily Health header now uses that same dataset scope.
+
+5. User learning
+The Daily Health header can expose report generation without adding a new report backend because the dashboard already owns the active dataset context.
+
+6. AI-agent learning
+Dashboard header actions should reuse existing report flow components and pass selected dataset IDs explicitly into nested sections.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Yearly Paid Plan Billing
 
 1. Interaction title
