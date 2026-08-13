@@ -235,3 +235,4 @@
 - changed: add Monthly and Yearly paid-plan selection for Pro and Business, resolve checkout prices by selected market and interval, validate Stripe recurring interval before session creation, and block missing yearly configuration without falling back to monthly prices
 - changed: expose the existing Generate Report action in the Executive Daily Health dashboard header beside View Full Daily Brief, using the active dashboard dataset and existing persisted report flow
 - fixed: remove the non-functional View rows action from Dataset Library row actions while preserving Open dashboard, Open module, selection, bulk deletion, upload, and backend row access
+- fixed: show Generate Report in the Executive Daily Health header on the default dashboard by using the canonical latest reportable dashboard dataset when no dataset query is selected

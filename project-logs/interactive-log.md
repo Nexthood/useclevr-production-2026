@@ -1,3 +1,38 @@
+## Executive Daily Health Generate Report Visibility
+
+1. Interaction title
+Executive Daily Health Generate Report visibility.
+
+2. What was the user goal
+Find and fix why the existing Generate Report action was not visible beside View Full Daily Brief on the actual main dashboard.
+
+3. What changed
+Fixed the active `/app` dashboard component so Executive Daily Health receives a reportable dataset ID even on the default dashboard route. The previous implementation passed `selected.selectedDataset?.id` into the Daily Health section, but `selected.selectedDataset` is intentionally null when no `datasetId` query parameter is present. The Daily Health section now uses the explicitly selected dashboard dataset when present, or the dashboard's canonical latest dataset when no dataset is selected, and disables the action only when that report dataset is deleted or not ready. `GenerateReportAction` remains the reused report flow component.
+
+4. Problems marked
+- blocker: none.
+- risk: Visual and functional browser verification for report generation, Reports & Downloads listing, PDF, CSV, and console state requires an authenticated session with reportable datasets.
+- improvement: none.
+- observation: `/app/dashboard` redirects to `/app`; `src/app/(auth)/app/page.tsx` is the active dashboard component that renders Executive Daily Health and View Full Daily Brief.
+
+5. User learning
+The button was invisible because the default dashboard route has no explicitly selected dataset, not because the report action or report API was missing.
+
+6. AI-agent learning
+Dashboard-level report actions on aggregate views must use the same canonical dashboard dataset fallback used by dashboard summaries instead of selected-only query state.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dataset Library View Rows Cleanup
 
 1. Interaction title

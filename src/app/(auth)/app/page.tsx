@@ -700,6 +700,12 @@ function selectDashboardDataset(stats: DashboardStats, datasetId: string | null)
   return { stats: scopedStats, selectedDataset, missing: false }
 }
 
+function isReportableDashboardDataset(dataset: DashboardDataset | null | undefined): boolean {
+  if (!dataset || dataset.status === "deleted") return false
+  const analysisStatus = dataset.analysisStatus || ""
+  return !analysisStatus || new Set(["ready", "completed", "processed"]).has(analysisStatus)
+}
+
 type DashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
@@ -733,6 +739,8 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
     selected.selectedDataset.status !== "deleted" &&
     (!selectedAnalysisStatus || new Set(["ready", "completed", "processed"]).has(selectedAnalysisStatus)),
   )
+  const dailyHealthReportDataset = selected.selectedDataset ?? dashboardStats.latestDataset
+  const dailyHealthReportReady = isReportableDashboardDataset(dailyHealthReportDataset)
   const bbscPreview = selected.selectedDataset
     ? calculateBusinessBalancedScorecard({
         rows: selected.selectedDataset.data,
@@ -793,8 +801,8 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
         {dailyBrief && (
           <ExecutiveDailyHealthSection
             brief={dailyBrief}
-            datasetId={selected.selectedDataset?.id ?? null}
-            reportDisabled={!selectedDatasetReady}
+            datasetId={dailyHealthReportDataset?.id ?? null}
+            reportDisabled={!dailyHealthReportReady}
           />
         )}
 

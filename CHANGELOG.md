@@ -26,6 +26,7 @@
 
 ### Fixed
 
+- Fix Generate Report visibility in the Executive Daily Health header so the default dashboard uses its latest reportable dataset when no dataset is explicitly selected.
 - Remove the non-functional View rows action from Dataset Library rows so users see only the working dashboard or module destination.
 - Show Free as the only no-cost customer plan with $0/€0 pricing, no checkout prompt, and included credits.
 - Fix bulk dataset deletion so large selections use a verified bulk request, return confirmed delete counts, clean dataset-scoped records, and do not reappear after refresh.
