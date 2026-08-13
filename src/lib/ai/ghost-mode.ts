@@ -5,5 +5,5 @@ export function normalizeGhostMode(value: unknown): boolean {
 }
 
 export function ghostModeTraceMessage() {
-  return "Ghost Mode skips normal AI conversation history and content-level traces. Operational metadata for billing, security, provider routing, latency, token use, request status, and errors may still be retained."
+  return "Eclipse Mode skips normal AI conversation history and content-level traces. Operational metadata for billing, security, provider routing, latency, token use, request status, and errors may still be retained."
 }

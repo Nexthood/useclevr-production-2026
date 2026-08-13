@@ -29,7 +29,7 @@ export type FeatureCostRule = {
   label: string
   baseCredits: number
   maxReservationCredits: number
-  allowedPlans: Array<BillingPlan["tier"] | "admin" | "superadmin">
+  allowedPlans: Array<BillingPlan["tier"] | "demo" | "admin" | "superadmin">
   variableCredits(input: FeatureCostInput): number
 }
 

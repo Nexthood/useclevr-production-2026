@@ -1,3 +1,38 @@
+## Yearly Paid Plan Billing
+
+1. Interaction title
+Yearly paid plan billing.
+
+2. What was the user goal
+Add Yearly subscription billing to the existing Monthly UseClevr billing flow without changing monthly checkout behavior, entitlements, webhooks, credits, or Stripe products.
+
+3. What changed
+Extended the shared paid-plan price resolver so Pro and Business resolve Stripe Price IDs by plan, market, and Monthly or Yearly interval. Added approved yearly display prices for USD, EUR, GBP, and CAD, market-specific yearly environment-variable lookup, safe missing-configuration errors, yearly-aware Stripe recurring interval validation, checkout URL and metadata interval preservation, public pricing Monthly/Yearly selection, subscription plan Monthly/Yearly selection, checkout review and terms interval display, and subscription billing-cycle labeling for configured yearly Price IDs. Focused billing tests cover all eight Yearly plan/market combinations, monthly restoration after yearly selection, server-side price tamper rejection, and webhook/subscription tier mapping.
+
+4. Problems marked
+- blocker: none.
+- risk: Live Stripe-hosted checkout amount and recurrence verification requires the deployed environment to provide the actual yearly Price IDs and a signed-in browser session.
+- improvement: Active Monthly-to-Yearly subscription migration and proration remain outside this change.
+- observation: Existing Monthly plan IDs, monthly env fallbacks, subscription activation, credit limits, and webhook tier mapping stay on the existing architecture.
+
+5. User learning
+Yearly billing uses configured recurring Stripe Price objects per plan and market; missing yearly configuration blocks that market instead of falling back to Monthly or another currency.
+
+6. AI-agent learning
+Billing interval changes must preserve selected market state through review, terms, cancellation, API metadata, and Stripe validation.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Ghost Mode Private AI Sessions
 
 1. Interaction title
@@ -2705,6 +2740,137 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 
 8. Instruction sources
 - AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Free Plan Standardization
+
+1. Interaction title
+Free plan standardization.
+
+2. What was the user goal
+Remove Demo as a customer-facing billing plan and keep only Free, Pro, and Business in UseClevr pricing, subscription, checkout, and account plan displays without changing internal billing, auth, database, Stripe, credits, or dataset behavior.
+
+3. What changed
+The customer-facing billing catalog now exposes Free, Pro, and Business only. Legacy `demo` plan IDs and subscription tiers normalize to Free for display and plan lookup. Public pricing, subscription cards, settings sidebars, topbar plan labels, Account Center, profile security labels, admin customer copy, and checkout review no longer present Demo as a plan. Free displays $0/€0, explains that checkout is not required, and cannot enter the paid checkout review flow. Pro and Business remain the only checkout-enabled plan selections.
+
+4. Problems marked
+blocker: none.
+observation: Internal demo access remains in auth fixtures, demo-access services, feature-gate compatibility, database migrations, `/demo` route guards, product demo visuals, sales demo forms, and historical logs/docs because those references are not the customer-facing billing plan and support existing accounts or product-demo workflows.
+
+5. User learning
+Existing Free users now see Free instead of Demo/Built-in demo in plan surfaces, Free retains 2 included AI credits, and Free does not show unavailable checkout messaging.
+
+6. AI-agent learning
+For billing-plan renames, separate customer-facing plan catalogs from legacy entitlement identifiers. Normalize legacy IDs at display and lookup boundaries before removing compatibility paths.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Eclipse Mode Privacy Rebrand
+
+1. Interaction title
+Eclipse Mode privacy rebrand.
+
+2. What was the user goal
+Rebrand the existing Ghost Mode private AI session feature to Eclipse Mode with premium product copy, a professional partial-eclipse visual control, accessible switch semantics, preserved privacy behavior, and no architecture rewrite.
+
+3. What changed
+The AI Assistant privacy control now presents Eclipse Mode with ON and OFF labels, a custom CSS sun-and-moon partial-eclipse glyph, a restrained 300ms moon transition, reduced-motion support, switch role, aria checked state, and a clear accessible label. The first-activation notice, history empty state, shared privacy warning, current Privacy Policy copy, and current changelog entry now use Eclipse Mode wording. Existing `ghostMode`, `GHOST_MODE_STORAGE_KEY`, API payload fields, validation, trace skipping, assistant-history skipping, billing metadata, provider routing, Local AI behavior, Cloud AI behavior, and dataset isolation remain unchanged.
+
+4. Problems marked
+blocker: none.
+compatibility: Internal Ghost Mode identifiers remain in code where renaming would create launch risk or storage/API compatibility risk.
+
+5. User learning
+Users now see a premium Eclipse Mode privacy control that describes minimized AI conversation retention without making absolute privacy claims.
+
+6. AI-agent learning
+Product rebrands for privacy controls should separate user-facing naming from stable internal contracts so launch-safe behavior remains unchanged.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Bulk Dataset Delete Active Selection
+
+1. Interaction title
+Bulk dataset delete active selection.
+
+2. What was the user goal
+Add fast multi-select and bulk delete for datasets, keep single delete available, use one bulk-delete API request, preserve dataset isolation, and leave no stale active dataset state after deletion.
+
+3. What changed
+Risk Intelligence bulk deletion now detects when the active dataset is included in the deleted IDs, removes all successfully deleted datasets from the visible selector state together, and redirects to the next valid scoped dataset or the scoped empty state. Single dataset delete redirect selection now uses the current visible selector state. Focused Risk Intelligence regression assertions now verify active bulk-deletion detection, redirect execution, local visible-state cleanup, partial-failure retry selection, and one collection-level fetch from the shared bulk delete button.
+
+4. Problems marked
+blocker: none.
+observation: The feature implementation already existed on `origin/beta`; this interaction hardens the active-dataset bulk-delete path and focused regression coverage.
+
+5. User learning
+Users can bulk-delete datasets without leaving Risk Intelligence pointed at a deleted active dataset.
+
+6. AI-agent learning
+Bulk deletion UI must route active-selection cleanup through the same scoped URL recovery behavior as single deletion, because refreshing alone can briefly preserve stale dataset context.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: existing `CHANGELOG.md` bulk dataset entry; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Reliable Bulk Dataset Deletion
+
+1. Interaction title
+Reliable bulk dataset deletion.
+
+2. What was the user goal
+Fix bulk dataset deletion so large selected dataset sets are actually removed from the database, do not reappear after refresh, report confirmed counts, use immutable dataset IDs, preserve authorization, clean related records, and keep the current bulk-selection UI.
+
+3. What changed
+Bulk deletion now uses a dedicated `POST /api/datasets/bulk-delete` route while the legacy collection `DELETE` route delegates to the same handler. The shared API handler returns requested, matched, confirmed deleted, failed count, failed IDs, cleanup details, no-store headers, and revalidates dataset-related app views only after confirmed deletion. The dataset deletion service now chunks large ID sets server-side, deletes dataset-scoped AI governance overrides and pre-bookkeeping audit events before dataset deletion, records actual rows returned by the dataset delete statement, refetches the database after the transaction, and reports success only for IDs that are absent after verification. The shared bulk delete button posts one request to the bulk endpoint and treats zero confirmed deletions as failure. The database health test now creates 100 duplicate-named datasets, deletes all 100 in one operation, verifies requested/matched/deleted counts, checks failed IDs, proves rows and pre-bookkeeping audit events are removed, and performs an authoritative database refetch to verify the datasets do not reappear.
+
+4. Problems marked
+blocker: none.
+root cause: Previous bulk deletion reported success from the accessible ID list without verifying the dataset delete result or post-transaction database state, so the UI could remove selected IDs even when durable deletion was not confirmed.
+
+5. User learning
+Users can bulk-delete up to 100 selected datasets in one operation and rely on the response count matching the database state after refresh.
+
+6. AI-agent learning
+Bulk destructive APIs must derive success from confirmed database deletion, not request completion or pre-delete authorization matches, and UI state must update only from confirmed deleted IDs.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
 - ai-chat-behavior.config.ts
 - gemini-behavior.config.ts
 

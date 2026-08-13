@@ -4,7 +4,7 @@ export type SupportedCurrency = "EUR" | "GBP" | "USD" | "CAD"
 export type PricingTier = "TIER_A" | "TIER_B" | "TIER_C"
 export type CheckoutMarket = "eu" | "uk" | "us" | "ca"
 export type CheckoutPlanSlug = "pro" | "business"
-export type BillingInterval = "monthly"
+export type BillingInterval = "monthly" | "yearly"
 
 export type LaunchPrice = {
   currency: SupportedCurrency
@@ -132,11 +132,40 @@ const businessPriceEnvNamesByMarket: Record<CheckoutMarket, string[]> = {
   ca: ["STRIPE_PRICE_BUSINESS_CAD_MONTHLY", "STRIPE_BUSINESS_PRICE_ID_CAD"],
 }
 
+const proYearlyPriceEnvNamesByMarket: Record<CheckoutMarket, string[]> = {
+  eu: ["STRIPE_PRICE_PRO_EUR_YEARLY", "STRIPE_PRICE_PRO_EUR_ANNUAL", "STRIPE_PRICE_PRO_ANNUAL"],
+  uk: ["STRIPE_PRICE_PRO_GBP_YEARLY", "STRIPE_PRICE_PRO_GBP_ANNUAL"],
+  us: ["STRIPE_PRICE_PRO_USD_YEARLY", "STRIPE_PRICE_PRO_USD_ANNUAL"],
+  ca: ["STRIPE_PRICE_PRO_CAD_YEARLY", "STRIPE_PRICE_PRO_CAD_ANNUAL"],
+}
+
+const businessYearlyPriceEnvNamesByMarket: Record<CheckoutMarket, string[]> = {
+  eu: ["STRIPE_PRICE_BUSINESS_EUR_YEARLY", "STRIPE_PRICE_BUSINESS_EUR_ANNUAL", "STRIPE_PRICE_BUSINESS_ANNUAL"],
+  uk: ["STRIPE_PRICE_BUSINESS_GBP_YEARLY", "STRIPE_PRICE_BUSINESS_GBP_ANNUAL"],
+  us: ["STRIPE_PRICE_BUSINESS_USD_YEARLY", "STRIPE_PRICE_BUSINESS_USD_ANNUAL"],
+  ca: ["STRIPE_PRICE_BUSINESS_CAD_YEARLY", "STRIPE_PRICE_BUSINESS_CAD_ANNUAL"],
+}
+
 const approvedBusinessAmountByMarket: Partial<Record<CheckoutMarket, number>> = {
   eu: 42000,
   uk: 40950,
   us: 47250,
   ca: 57750,
+}
+
+const approvedYearlyAmountByPlanAndMarket: Record<CheckoutPlanSlug, Record<CheckoutMarket, number>> = {
+  pro: {
+    eu: 48000,
+    uk: 41000,
+    us: 55000,
+    ca: 77500,
+  },
+  business: {
+    eu: 504000,
+    uk: 432000,
+    us: 580000,
+    ca: 815000,
+  },
 }
 
 const proMarketByCurrency: Record<SupportedCurrency, CheckoutMarket> = {
@@ -198,11 +227,19 @@ export function getFixedProPrice(currency: SupportedCurrency): LaunchPrice {
 }
 
 export function formatMonthlyPrice(amountMinor: number, currency: SupportedCurrency): string {
+  return formatRecurringPrice(amountMinor, currency, "monthly")
+}
+
+export function formatYearlyPrice(amountMinor: number, currency: SupportedCurrency): string {
+  return formatRecurringPrice(amountMinor, currency, "yearly")
+}
+
+export function formatRecurringPrice(amountMinor: number, currency: SupportedCurrency, interval: BillingInterval): string {
   return `${new Intl.NumberFormat(currencyLocale[currency], {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(amountMinor / 100)}/month`
+  }).format(amountMinor / 100)}/${interval === "yearly" ? "year" : "month"}`
 }
 
 export function getProLaunchPrices(): LaunchPrice[] {
@@ -255,21 +292,21 @@ export function getMissingProStripePriceEnvLabel(currency: SupportedCurrency): s
   return proPriceEnvNamesByMarket[proMarketByCurrency[currency]].join(" or ")
 }
 
-export function getCheckoutMarketOptions(plan: CheckoutPlanSlug): CheckoutMarketPrice[] {
+export function getCheckoutMarketOptions(plan: CheckoutPlanSlug, billingInterval: BillingInterval = "monthly"): CheckoutMarketPrice[] {
   return checkoutMarkets.map(({ market, label, currency }) => {
-    const amountMinor = getApprovedAmountMinor(plan, market)
-    const priceEnvNames = getPriceEnvNames(plan, market)
+    const amountMinor = getApprovedAmountMinor(plan, market, billingInterval)
+    const priceEnvNames = getPriceEnvNames(plan, market, billingInterval)
     const stripePriceId = readFirstConfiguredEnv(priceEnvNames)
 
     return {
       plan,
       billingPlanId: plan === "pro" ? "pro_monthly" : "business_monthly",
-      billingInterval: "monthly",
+      billingInterval,
       market,
       marketLabel: label,
       currency,
       amountMinor,
-      displayPrice: amountMinor === null ? "Unavailable" : formatMonthlyPrice(amountMinor, currency),
+      displayPrice: amountMinor === null ? "Unavailable" : formatRecurringPrice(amountMinor, currency, billingInterval),
       stripePriceId,
       priceEnvNames,
       enabled: Boolean(stripePriceId) && amountMinor !== null,
@@ -279,10 +316,7 @@ export function getCheckoutMarketOptions(plan: CheckoutPlanSlug): CheckoutMarket
 
 export function resolveCheckoutMarketPrice(input: CheckoutPriceResolutionInput): CheckoutMarketPrice {
   const plan = normalizeCheckoutPlanSlug(input.plan)
-  const billingInterval = input.billingInterval || "monthly"
-  if (billingInterval !== "monthly") {
-    throw new CheckoutPricingError("invalid_billing_interval", "Only monthly checkout is available.")
-  }
+  const billingInterval = normalizeBillingInterval(input.billingInterval)
 
   const market = normalizeCheckoutMarket(input.market)
   if (!market) {
@@ -296,7 +330,7 @@ export function resolveCheckoutMarketPrice(input: CheckoutPriceResolutionInput):
     )
   }
 
-  const option = getCheckoutMarketOptions(plan).find((candidate) => candidate.market === market)
+  const option = getCheckoutMarketOptions(plan, billingInterval).find((candidate) => candidate.market === market)
   if (!option) {
     throw new CheckoutPricingError(`${plan}_market_lost`, "Choose a supported billing market before checkout.")
   }
@@ -304,32 +338,60 @@ export function resolveCheckoutMarketPrice(input: CheckoutPriceResolutionInput):
   if (option.amountMinor === null) {
     throw new CheckoutPricingError(
       `${plan}_price_not_configured`,
-      `${option.marketLabel} pricing is not available for ${plan === "pro" ? "Pro" : "Business"} yet.`,
+      `${billingInterval === "yearly" ? "Yearly" : "Monthly"} billing is currently unavailable for this market.`,
     )
   }
 
   if (!option.stripePriceId) {
+    debugWarn("[checkout] Missing Stripe price configuration.", {
+      plan,
+      billingInterval,
+      market,
+      priceEnvNames: option.priceEnvNames,
+    })
     throw new CheckoutPricingError(
       `${plan}_price_not_configured`,
-      `${option.marketLabel} checkout is not configured for ${plan === "pro" ? "Pro" : "Business"} yet.`,
+      `${billingInterval === "yearly" ? "Yearly" : "Monthly"} billing is currently unavailable for this market.`,
     )
   }
 
   return option
 }
 
-export function getStripePriceIdForCheckout(plan: CheckoutPlanSlug, market: CheckoutMarket): string | undefined {
-  return readFirstConfiguredEnv(getPriceEnvNames(plan, market))
+export function getStripePriceIdForCheckout(
+  plan: CheckoutPlanSlug,
+  market: CheckoutMarket,
+  billingInterval: BillingInterval = "monthly",
+): string | undefined {
+  return readFirstConfiguredEnv(getPriceEnvNames(plan, market, billingInterval))
 }
 
-export function getMissingCheckoutStripePriceEnvLabel(plan: CheckoutPlanSlug, market: CheckoutMarket): string {
-  return getPriceEnvNames(plan, market).join(" or ")
+export function getMissingCheckoutStripePriceEnvLabel(
+  plan: CheckoutPlanSlug,
+  market: CheckoutMarket,
+  billingInterval: BillingInterval = "monthly",
+): string {
+  return getPriceEnvNames(plan, market, billingInterval).join(" or ")
 }
 
 export function getSubscriptionTierForStripePriceId(priceId: string): CheckoutPlanSlug | null {
   for (const plan of ["pro", "business"] as CheckoutPlanSlug[]) {
-    for (const option of getCheckoutMarketOptions(plan)) {
-      if (option.stripePriceId === priceId) return plan
+    for (const interval of ["monthly", "yearly"] as BillingInterval[]) {
+      for (const option of getCheckoutMarketOptions(plan, interval)) {
+        if (option.stripePriceId === priceId) return plan
+      }
+    }
+  }
+
+  return null
+}
+
+export function getSubscriptionIntervalForStripePriceId(priceId: string): BillingInterval | null {
+  for (const plan of ["pro", "business"] as CheckoutPlanSlug[]) {
+    for (const interval of ["monthly", "yearly"] as BillingInterval[]) {
+      for (const option of getCheckoutMarketOptions(plan, interval)) {
+        if (option.stripePriceId === priceId) return interval
+      }
     }
   }
 
@@ -349,6 +411,12 @@ export function normalizeCheckoutMarket(market: string | null | undefined): Chec
     : null
 }
 
+export function normalizeBillingInterval(interval: string | null | undefined): BillingInterval {
+  const normalized = interval?.trim().toLowerCase()
+  if (normalized === "yearly" || normalized === "annual" || normalized === "annually" || normalized === "year") return "yearly"
+  return "monthly"
+}
+
 function normalizeCurrency(currency?: string | null): SupportedCurrency | null {
   const normalized = currency?.trim().toUpperCase()
   return normalized === "EUR" || normalized === "GBP" || normalized === "USD" || normalized === "CAD"
@@ -356,12 +424,17 @@ function normalizeCurrency(currency?: string | null): SupportedCurrency | null {
     : null
 }
 
-function getApprovedAmountMinor(plan: CheckoutPlanSlug, market: CheckoutMarket): number | null {
+function getApprovedAmountMinor(plan: CheckoutPlanSlug, market: CheckoutMarket, billingInterval: BillingInterval): number | null {
+  if (billingInterval === "yearly") return approvedYearlyAmountByPlanAndMarket[plan][market]
   if (plan === "pro") return getFixedProPrice(checkoutMarkets.find((entry) => entry.market === market)!.currency).amountMinor
   return approvedBusinessAmountByMarket[market] ?? null
 }
 
-function getPriceEnvNames(plan: CheckoutPlanSlug, market: CheckoutMarket): string[] {
+function getPriceEnvNames(plan: CheckoutPlanSlug, market: CheckoutMarket, billingInterval: BillingInterval): string[] {
+  if (billingInterval === "yearly") {
+    return plan === "pro" ? proYearlyPriceEnvNamesByMarket[market] : businessYearlyPriceEnvNamesByMarket[market]
+  }
+
   return plan === "pro" ? proPriceEnvNamesByMarket[market] : businessPriceEnvNamesByMarket[market]
 }
 

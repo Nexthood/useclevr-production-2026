@@ -18,6 +18,7 @@ export interface CreateStripeCheckoutOptions {
   customerId?: string | null;
   priceId: string;
   expectedCurrency?: string;
+  expectedInterval?: "month" | "year";
   plan?: string;
   successUrl: string;
   cancelUrl: string;
@@ -40,6 +41,7 @@ export async function createStripeCheckoutSession({
   customerId,
   priceId,
   expectedCurrency,
+  expectedInterval = "month",
   plan,
   successUrl,
   cancelUrl,
@@ -49,6 +51,7 @@ export async function createStripeCheckoutSession({
   await validateStripeSubscriptionPrice(stripe, {
     priceId,
     expectedCurrency,
+    expectedInterval,
     plan,
   });
   const mergedMetadata = {
@@ -83,6 +86,7 @@ async function validateStripeSubscriptionPrice(
   input: {
     priceId: string;
     expectedCurrency?: string;
+    expectedInterval?: "month" | "year";
     plan?: string;
   },
 ) {
@@ -93,10 +97,10 @@ async function validateStripeSubscriptionPrice(
     throw new StripeCheckoutConfigurationError(`${planCode}_price_inactive`, "The selected Stripe price is inactive.");
   }
 
-  if (!price.recurring || price.recurring.interval !== "month") {
+  if (!price.recurring || price.recurring.interval !== input.expectedInterval) {
     throw new StripeCheckoutConfigurationError(
       "stripe_mode_mismatch",
-      "The selected Stripe price must be a recurring monthly subscription price.",
+      `The selected Stripe price must be a recurring ${input.expectedInterval === "year" ? "yearly" : "monthly"} subscription price.`,
     );
   }
 

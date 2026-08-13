@@ -32,7 +32,6 @@ import {
   Download,
   Repeat,
   X,
-  Ghost,
 } from "lucide-react"
 import * as React from "react"
 
@@ -691,18 +690,18 @@ export function AiAssistantWorkspace() {
 
         {showGhostNotice && ghostMode && (
           <div className="flex items-start gap-2 border-b border-cyan-200/20 bg-cyan-500/10 px-4 py-2 text-xs text-cyan-900 dark:text-cyan-100">
-            <Ghost className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+            <EclipseModeGlyph enabled className="mt-0.5 flex-shrink-0" />
             <div>
-              <p className="font-semibold">Ghost Mode active</p>
+              <p className="font-semibold">Eclipse Mode active</p>
               <p className="mt-0.5 text-cyan-900/80 dark:text-cyan-100/80">
-                AI conversations in this session won't be saved to your UseClevr history. Cloud AI may still process the minimum context required to answer.
+                Private AI session with minimized conversation retention. Cloud AI may still process the minimum context required to answer.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setShowGhostNotice(false)}
               className="ml-auto rounded p-0.5 text-cyan-900/70 hover:bg-cyan-500/10 hover:text-cyan-950 dark:text-cyan-100/70 dark:hover:text-cyan-50"
-              aria-label="Dismiss Ghost Mode notice"
+              aria-label="Dismiss Eclipse Mode notice"
             >
               <X className="h-3 w-3" />
             </button>
@@ -1027,7 +1026,7 @@ export function AiAssistantWorkspace() {
                     </div>
                   ) : historyEntries.length === 0 ? (
                     <p className="px-1 py-2 text-xs text-muted-foreground">
-                      {ghostMode ? "Ghost Mode conversations are not saved to history." : "No past conversations yet. Ask a question to get started."}
+                      {ghostMode ? "Eclipse Mode conversations are not saved to history." : "No past conversations yet. Ask a question to get started."}
                     </p>
                   ) : (
                     <div className="space-y-1.5">
@@ -1161,23 +1160,24 @@ function AiPrivacyStatusPanel({
             <button
               type="button"
               onClick={onToggleGhostMode}
-              title="Ghost Mode — minimize data retention"
-              aria-pressed={ghostMode}
-              aria-label={ghostMode ? "Disable Ghost Mode" : "Enable Ghost Mode"}
+              title="Eclipse Mode minimizes retention of AI conversation content while preserving operational metadata required for security, billing, provider routing, and service reliability."
+              role="switch"
+              aria-checked={ghostMode}
+              aria-label="Eclipse Mode — minimize AI conversation retention"
               className={[
-                "inline-flex min-h-7 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition",
+                "inline-flex min-h-7 items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 ghostMode
-                  ? "border-cyan-300/40 bg-cyan-500/15 text-cyan-800 shadow-[0_0_20px_rgba(34,211,238,0.12)] dark:text-cyan-100"
+                  ? "border-cyan-300/40 bg-cyan-500/15 text-cyan-900 shadow-[0_0_20px_rgba(34,211,238,0.12)] dark:text-cyan-100"
                   : "border-border bg-background text-muted-foreground hover:border-cyan-300/40 hover:text-foreground",
               ].join(" ")}
             >
-              <Ghost className="h-3.5 w-3.5" aria-hidden="true" />
-              {ghostMode ? "Ghost Mode ON" : <span className="sr-only">Ghost Mode</span>}
+              <EclipseModeGlyph enabled={ghostMode} />
+              <span>{ghostMode ? "Eclipse Mode ON" : "Eclipse Mode OFF"}</span>
             </button>
           </div>
           <p className="mt-0.5 text-muted-foreground">
             {ghostMode
-              ? "Minimize what UseClevr retains. Dataset storage is unchanged."
+              ? "Private AI session with minimized conversation retention. Dataset storage is unchanged."
               : status?.state === "offline_active"
               ? "Offline mode active"
               : status?.state === "fallback_active"
@@ -1209,6 +1209,33 @@ function AiPrivacyStatusPanel({
         </div>
       </div>
     </div>
+  )
+}
+
+function EclipseModeGlyph({ enabled, className = "" }: { enabled: boolean; className?: string }) {
+  return (
+    <span
+      className={[
+        "relative inline-flex h-4 w-4 items-center justify-center overflow-visible",
+        className,
+      ].join(" ")}
+      aria-hidden="true"
+    >
+      <span
+        className={[
+          "absolute inset-0 rounded-full border",
+          enabled
+            ? "border-cyan-200/70 bg-[radial-gradient(circle_at_38%_35%,#fef9c3_0%,#fde68a_36%,#22d3ee_82%)] shadow-[0_0_10px_rgba(34,211,238,0.38)]"
+            : "border-amber-200/80 bg-[radial-gradient(circle_at_35%_32%,#fff7cc_0%,#facc15_54%,#f59e0b_100%)] shadow-[0_0_8px_rgba(250,204,21,0.18)]",
+        ].join(" ")}
+      />
+      <span
+        className={[
+          "absolute left-0 top-0.5 h-3.5 w-3.5 rounded-full border border-slate-700 bg-slate-950 shadow-[inset_0_0_7px_rgba(148,163,184,0.22)] transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none",
+          enabled ? "translate-x-0.5 opacity-100" : "translate-x-5 opacity-0",
+        ].join(" ")}
+      />
+    </span>
   )
 }
 

@@ -285,9 +285,9 @@ Text rules for this file:
 
 ## Subscriptions & Billing
 
-- Show Free at €0/month, Pro at €40/month, and Business at €420/month.
+- Show Free at $0/€0, Pro at €40/month or €480/year, and Business at €420/month or €5,040/year on EUR-default billing surfaces.
 - Use the Free plan with limited AI credits as the only free UseClevr entry point, and do not advertise separate trial periods on public landing or pricing surfaces.
-- Use shared monthly billing plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
+- Use shared monthly and yearly paid-plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
 - Show customer-facing plan feature lists from the shared billing plan source, limiting Free to CSV and Excel upload, 50 AI credits, 2 datasets, basic AI insights, retail dashboard, and community support; limiting Pro to 500 AI credits, 25 datasets, AI business analysis, revenue analysis, margin analysis, stock detection, reports, exports, and priority support; and limiting Business to Pro benefits, 5000 AI credits, 250 datasets, larger file uploads, Accounting AI, invoice processing, receipt processing, and dedicated support.
 - Keep future enterprise features hidden from pricing and upgrade surfaces until their customer workflow is production-ready.
 - Show Account settings as a professional control center with centered wide content, Profile,
@@ -299,10 +299,11 @@ Text rules for this file:
   enough width for plan details, terms, and action buttons.
 - Show selected-plan terms and payment confirmation in a compact two-column desktop layout with
   terms beside accept/payment actions.
-- Accept `plan=pro`, `plan=pro_monthly`, `plan=business`, and `plan=business_monthly` in checkout, show Pro and Business as switchable paid packages, and send only the canonical plan, monthly interval, and market to checkout APIs.
+- Accept `plan=pro`, `plan=pro_monthly`, `plan=business`, and `plan=business_monthly` in checkout, show Pro and Business as switchable paid packages, and send only the canonical plan, selected billing interval, and market to checkout APIs.
 - Resolve Stripe price IDs on the server from the selected paid plan and market, using Pro `USECLEVR_PRO_PRICE_EUR`, `USECLEVR_PRO_PRICE_GBP`, `USECLEVR_PRO_PRICE_USD`, and `USECLEVR_PRO_PRICE_CAD` values or their `STRIPE_PRO_PRICE_ID_*` aliases.
-- Resolve Business EUR checkout with `STRIPE_BUSINESS_PRICE_ID_EUR`, `STRIPE_PRICE_BUSINESS_MONTHLY`, or `STRIPE_PRICE_ID_BUSINESS_MONTHLY`, and keep Business UK, US, and Canada markets unavailable until approved prices and matching Stripe Price IDs exist.
-- Show paid checkout as available only after the server confirms the selected paid plan and market have an approved monthly amount and a configured Stripe price ID.
+- Resolve yearly Pro checkout from the selected market with `STRIPE_PRICE_PRO_EUR_YEARLY`, `STRIPE_PRICE_PRO_GBP_YEARLY`, `STRIPE_PRICE_PRO_USD_YEARLY`, or `STRIPE_PRICE_PRO_CAD_YEARLY`, using the matching `*_ANNUAL` aliases when configured.
+- Resolve Business EUR checkout with `STRIPE_BUSINESS_PRICE_ID_EUR`, `STRIPE_PRICE_BUSINESS_MONTHLY`, or `STRIPE_PRICE_ID_BUSINESS_MONTHLY`, and resolve Business yearly checkout with `STRIPE_PRICE_BUSINESS_EUR_YEARLY`, `STRIPE_PRICE_BUSINESS_GBP_YEARLY`, `STRIPE_PRICE_BUSINESS_USD_YEARLY`, or `STRIPE_PRICE_BUSINESS_CAD_YEARLY`, using the matching `*_ANNUAL` aliases when configured.
+- Show paid checkout as available only after the server confirms the selected paid plan, billing interval, and market have an approved amount and a configured Stripe price ID.
 - Use Subscription as the single customer-facing entry point for subscription management, with Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs.
 - Redirect legacy Billing and Credit Rules settings routes to the matching Subscription Management tabs.
 - Show upgrade modals with the selected plan name, monthly price, and a visible secure-checkout button.

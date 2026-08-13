@@ -6,6 +6,7 @@ import { TopbarNoticeActivityDrawer } from "@/components/ui/topbar-notice-activi
 import { TopbarPanelLink, TopbarSection } from "@/components/ui/topbar-section";
 import { TopbarSignOutButton } from "@/components/ui/topbar-sign-out-button";
 import { auth } from "@/lib/auth/auth";
+import { formatCustomerPlanLabel } from "@/lib/billing/plans";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { getSetupStatus } from "@/lib/business/company-setup-store";
 import { BriefcaseBusiness, CreditCard, HelpCircle, Shield, UserCircle } from "lucide-react";
@@ -31,9 +32,7 @@ export default async function Topbar() {
       ? "Unlimited Superadmin"
       : usage.subscriptionTier === "admin"
         ? "Unlimited Admin"
-        : usage.subscriptionTier === "builtin"
-          ? "Demo"
-          : usage.subscriptionTier || "Free";
+        : formatCustomerPlanLabel(usage.subscriptionTier);
 
   // Get business profile completion
   const setupStatus = userId ? await getSetupStatus(userId) : null

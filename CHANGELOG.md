@@ -2,7 +2,8 @@
 
 ### Added
 
-- Add Ghost Mode for AI sessions so users can minimize UseClevr retention of AI conversation content while billing, security, provider routing, and dataset isolation continue to work.
+- Add yearly billing selection for Pro and Business so customers can review monthly or yearly paid plans by market before Stripe Checkout opens.
+- Add Eclipse Mode for AI sessions so users can minimize UseClevr retention of AI conversation content while billing, security, provider routing, and dataset isolation continue to work.
 - Add fast bulk dataset management in Risk Intelligence and the Dataset Library so users can select many uploaded datasets, delete them with one confirmation, retry failed deletions, and keep the active dataset state valid.
 - Add consistent Local AI beta labeling across AI mode selection, helper setup, provider settings, and Hybrid AI chats so users separate product maturity from connection status.
 - Strengthen AI transparency disclosures across legal pages and chat interfaces so users understand AI-assisted outputs, deterministic calculations, dataset ownership, and verification responsibilities.
@@ -24,6 +25,8 @@
 
 ### Fixed
 
+- Show Free as the only no-cost customer plan with $0/€0 pricing, no checkout prompt, and included credits.
+- Fix bulk dataset deletion so large selections use a verified bulk request, return confirmed delete counts, clean dataset-scoped records, and do not reappear after refresh.
 - Fix selected-dataset isolation so Risk Intelligence and Dataset AI Assistant use the active dataset only and clear stale dataset context when the active dataset changes.
 - Fix AI Analyst unusual transaction answers so standard and pre-bookkeeping datasets use statistical outlier evidence, largest-transaction questions stay separate, and answers avoid unsupported suspicious or fraud language.
 - Fix AI Analyst expense answers so sales-only and generic amount datasets refuse unsupported expense calculations, explain missing expense evidence, and keep valid COGS or classified expense analysis working.

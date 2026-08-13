@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import type { RiskDatasetSummary } from "@/lib/risk-intelligence/risk-service"
 import { CheckSquare2, Database, Search, Square } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import * as React from "react"
 
 type RiskDatasetSelectorProps = {
@@ -15,6 +16,7 @@ type RiskDatasetSelectorProps = {
 }
 
 export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: RiskDatasetSelectorProps) {
+  const router = useRouter()
   const [visibleDatasets, setVisibleDatasets] = React.useState(datasets)
   const [isManaging, setIsManaging] = React.useState(false)
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
@@ -78,9 +80,10 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
   const handleBulkDeleted = (result: BatchDeleteResult) => {
     const deletedIds = new Set(result.deletedIds)
     const failedIds = new Set(result.failed.map((failure) => failure.datasetId))
+    const nextVisibleDatasets = visibleDatasets.filter((dataset) => !deletedIds.has(dataset.id))
 
     if (deletedIds.size > 0) {
-      setVisibleDatasets((current) => current.filter((dataset) => !deletedIds.has(dataset.id)))
+      setVisibleDatasets(nextVisibleDatasets)
     }
 
     setSelectedIds(() => {
@@ -94,6 +97,14 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
     if (failedIds.size === 0) {
       setIsManaging(false)
       setQuery("")
+    }
+
+    if (selectedDatasetId && deletedIds.has(selectedDatasetId)) {
+      const nextSelectedDatasetId = nextVisibleDatasets[0]?.id || null
+      const redirectHref = nextSelectedDatasetId
+        ? `/app/risk-intelligence?datasetId=${encodeURIComponent(nextSelectedDatasetId)}&scope=${encodeURIComponent(scope)}`
+        : `/app/risk-intelligence?scope=${encodeURIComponent(scope)}`
+      router.replace(redirectHref)
     }
   }
 
@@ -156,7 +167,7 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
           {filteredDatasets.map((dataset) => {
             const isSelected = selectedDatasetId === dataset.id
             const isBulkSelected = selectedIds.has(dataset.id)
-            const remainingDatasets = datasets.filter((candidate) => candidate.id !== dataset.id)
+            const remainingDatasets = visibleDatasets.filter((candidate) => candidate.id !== dataset.id)
             const nextSelectedDatasetId = isSelected ? remainingDatasets[0]?.id || null : selectedDatasetId
             const redirectHref = nextSelectedDatasetId
               ? `/app/risk-intelligence?datasetId=${encodeURIComponent(nextSelectedDatasetId)}&scope=${encodeURIComponent(scope)}`

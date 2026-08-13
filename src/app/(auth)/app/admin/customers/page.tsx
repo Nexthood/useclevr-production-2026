@@ -281,7 +281,7 @@ export default function AdminCustomersPage() {
   return (
     <DashboardSubpageLayout
       title="Customers"
-      description="Review registered customers, static demo accounts, plans, and account activity."
+      description="Review registered customers, static built-in accounts, plans, and account activity."
       breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Customers" }]}
       icon={Users}
       rightSidebar={rightSidebar}

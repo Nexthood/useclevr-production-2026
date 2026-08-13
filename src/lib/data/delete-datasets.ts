@@ -5,11 +5,13 @@ import { db } from "@/lib/db"
 import {
   accuracyIngestionJobs,
   aiCostLogs,
+  aiGovernanceOverrides,
   aiInteractionTraces,
   aiRequestAuditLogs,
   datasetRows,
   datasets,
   mcpAuditLogs,
+  prebookkeepingAuditEvents,
   retrievalDocuments,
   userActivities,
 } from "@/lib/db/schema"
@@ -24,11 +26,17 @@ export type DeleteDatasetFailure = {
 
 export type DeleteDatasetsResult = {
   ok: boolean
+  requestedCount: number
+  matchedCount: number
+  deletedCount: number
   deletedIds: string[]
+  failedIds: string[]
   failed: DeleteDatasetFailure[]
   cleanup: {
     accuracyDocuments: number
     accuracyJobs: number
+    prebookkeepingAuditEvents: number
+    aiGovernanceOverrides: number
   }
   deletedReports: string[]
   storage: {
@@ -45,6 +53,7 @@ type DeleteDatasetsInput = {
 }
 
 export const MAX_DELETE_BATCH_SIZE = 100
+const DELETE_CHUNK_SIZE = 50
 
 export function sanitizeDatasetIds(value: unknown): string[] {
   if (!Array.isArray(value)) return []
@@ -61,9 +70,13 @@ export async function deleteDatasetsForUser({
   if (requestedIds.length === 0) {
     return {
       ok: false,
+      requestedCount: 0,
+      matchedCount: 0,
+      deletedCount: 0,
       deletedIds: [],
+      failedIds: [],
       failed: [],
-      cleanup: { accuracyDocuments: 0, accuracyJobs: 0 },
+      cleanup: { accuracyDocuments: 0, accuracyJobs: 0, prebookkeepingAuditEvents: 0, aiGovernanceOverrides: 0 },
       deletedReports: [],
       storage: { deleted: [], missingOrFailed: [] },
     }
@@ -97,45 +110,86 @@ export async function deleteDatasetsForUser({
   if (accessibleIds.length === 0) {
     return {
       ok: false,
+      requestedCount: requestedIds.length,
+      matchedCount: 0,
+      deletedCount: 0,
       deletedIds: [],
+      failedIds: failed.map((failure) => failure.datasetId),
       failed,
-      cleanup: { accuracyDocuments: 0, accuracyJobs: 0 },
+      cleanup: { accuracyDocuments: 0, accuracyJobs: 0, prebookkeepingAuditEvents: 0, aiGovernanceOverrides: 0 },
       deletedReports: [],
       storage: { deleted: [], missingOrFailed: [] },
     }
   }
 
-  const cleanup = { accuracyDocuments: 0, accuracyJobs: 0 }
+  const cleanup = { accuracyDocuments: 0, accuracyJobs: 0, prebookkeepingAuditEvents: 0, aiGovernanceOverrides: 0 }
+  const deletedIds = new Set<string>()
   await db.transaction(async (tx) => {
     const accuracyCleanup = await deleteAccuracyRecordsIfTablesExist(tx, accessibleIds)
     cleanup.accuracyDocuments = accuracyCleanup.documents
     cleanup.accuracyJobs = accuracyCleanup.jobs
-    if (await tableExists(tx, "AiInteractionTrace")) {
-      await tx.delete(aiInteractionTraces).where(inArray(aiInteractionTraces.datasetId, accessibleIds))
-    }
-    if (await tableExists(tx, "AiRequestAuditLog")) {
-      await tx.delete(aiRequestAuditLogs).where(inArray(aiRequestAuditLogs.datasetId, accessibleIds))
-    }
-    if (await tableExists(tx, "AICostLog")) {
-      await tx.delete(aiCostLogs).where(inArray(aiCostLogs.datasetId, accessibleIds))
-    }
-    if (await tableExists(tx, "MCPAuditLog")) {
-      await tx.delete(mcpAuditLogs).where(inArray(mcpAuditLogs.datasetId, accessibleIds))
-    }
-    if (await tableExists(tx, "UserActivity")) {
-      for (const datasetId of accessibleIds) {
-        await tx.delete(userActivities).where(sql`
-          ${userActivities.metadata}->>'datasetId' = ${datasetId}
-          OR COALESCE(${userActivities.metadata}->'datasetIds', '[]'::jsonb) @> ${JSON.stringify([datasetId])}::jsonb
-        `)
+
+    for (const chunk of chunkIds(accessibleIds)) {
+      if (await tableExists(tx, "AiGovernanceOverride")) {
+        const deleted = await tx.delete(aiGovernanceOverrides)
+          .where(inArray(aiGovernanceOverrides.datasetId, chunk))
+          .returning()
+        cleanup.aiGovernanceOverrides += deleted.length
       }
+      if (await tableExists(tx, "PrebookkeepingAuditEvent")) {
+        const deleted = await tx.delete(prebookkeepingAuditEvents)
+          .where(inArray(prebookkeepingAuditEvents.datasetId, chunk))
+          .returning()
+        cleanup.prebookkeepingAuditEvents += deleted.length
+      }
+      if (await tableExists(tx, "AiInteractionTrace")) {
+        await tx.delete(aiInteractionTraces).where(inArray(aiInteractionTraces.datasetId, chunk))
+      }
+      if (await tableExists(tx, "AiRequestAuditLog")) {
+        await tx.delete(aiRequestAuditLogs).where(inArray(aiRequestAuditLogs.datasetId, chunk))
+      }
+      if (await tableExists(tx, "AICostLog")) {
+        await tx.delete(aiCostLogs).where(inArray(aiCostLogs.datasetId, chunk))
+      }
+      if (await tableExists(tx, "MCPAuditLog")) {
+        await tx.delete(mcpAuditLogs).where(inArray(mcpAuditLogs.datasetId, chunk))
+      }
+      if (await tableExists(tx, "UserActivity")) {
+        for (const datasetId of chunk) {
+          await tx.delete(userActivities).where(sql`
+            ${userActivities.metadata}->>'datasetId' = ${datasetId}
+            OR COALESCE(${userActivities.metadata}->'datasetIds', '[]'::jsonb) @> ${JSON.stringify([datasetId])}::jsonb
+          `)
+        }
+      }
+      await tx.delete(datasetRows).where(inArray(datasetRows.datasetId, chunk))
+      const deletedDatasets = await tx.delete(datasets)
+        .where(inArray(datasets.id, chunk))
+        .returning()
+      for (const dataset of deletedDatasets) deletedIds.add(dataset.id)
     }
-    await tx.delete(datasetRows).where(inArray(datasetRows.datasetId, accessibleIds))
-    await tx.delete(datasets).where(inArray(datasets.id, accessibleIds))
   })
+
+  const remainingRows = await db.select({ id: datasets.id })
+    .from(datasets)
+    .where(inArray(datasets.id, accessibleIds))
+  const remainingIds = new Set(remainingRows.map((row) => row.id))
+  for (const datasetId of remainingIds) deletedIds.delete(datasetId)
+
+  const confirmedDeletedIds = accessibleIds.filter((datasetId) => deletedIds.has(datasetId))
+  const unconfirmedFailures = accessibleIds
+    .filter((datasetId) => !deletedIds.has(datasetId))
+    .map((datasetId) => ({
+      datasetId,
+      reason: remainingIds.has(datasetId)
+        ? "Dataset deletion was not confirmed by the database."
+        : "Dataset deletion did not return a deleted row.",
+    }))
+  const allFailed = [...failed, ...unconfirmedFailures]
 
   const storage: DeleteDatasetsResult["storage"] = { deleted: [], missingOrFailed: [] }
   for (const dataset of accessibleDatasets) {
+    if (!deletedIds.has(dataset.id)) continue
     if (!dataset.storageKey) continue
     try {
       const removed = await deleteFile(dataset.storageKey)
@@ -157,7 +211,7 @@ export async function deleteDatasetsForUser({
     }
   }
 
-  const reportCleanup = await deleteReportsForDatasets(accessibleIds)
+  const reportCleanup = await deleteReportsForDatasets(confirmedDeletedIds)
   if (reportCleanup.failed.length > 0) {
     debugError("[DATASETS DELETE] Report file cleanup failed:", reportCleanup.failed)
   }
@@ -168,32 +222,44 @@ export async function deleteDatasetsForUser({
     })
   }
 
-  await recordActivity({
-    userId,
-    userEmail,
-    type: "dataset_deleted",
-    feature: "datasets",
-    title: accessibleIds.length === 1 ? "Dataset deleted" : "Datasets deleted",
-    description: accessibleIds.length === 1
-      ? `${accessibleDatasets[0]?.name || "Dataset"} was removed.`
-      : `${accessibleIds.length} datasets were removed.`,
-    metadata: {
-      datasetIds: accessibleIds,
-      count: accessibleIds.length,
-      datasetTypes: accessibleDatasets.map((dataset) => dataset.datasetType || "standard"),
-      rowCount: accessibleDatasets.reduce((total, dataset) => total + (dataset.rowCount || 0), 0),
-      accuracyDocumentsDeleted: cleanup.accuracyDocuments,
-      accuracyJobsDeleted: cleanup.accuracyJobs,
-      storageDeleted: storage.deleted.length,
-      storageMissingOrFailed: storage.missingOrFailed.length,
-      deletedReports: reportCleanup.deletedReportIds.length,
-    },
-  })
+  if (confirmedDeletedIds.length > 0) {
+    const deletedDatasetRows = accessibleDatasets.filter((dataset) => deletedIds.has(dataset.id))
+    await recordActivity({
+      userId,
+      userEmail,
+      type: "dataset_deleted",
+      feature: "datasets",
+      title: confirmedDeletedIds.length === 1 ? "Dataset deleted" : "Datasets deleted",
+      description: confirmedDeletedIds.length === 1
+        ? `${deletedDatasetRows[0]?.name || "Dataset"} was removed.`
+        : `${confirmedDeletedIds.length} datasets were removed.`,
+      metadata: {
+        datasetIds: confirmedDeletedIds,
+        requestedCount: requestedIds.length,
+        matchedCount: accessibleIds.length,
+        deletedCount: confirmedDeletedIds.length,
+        failedIds: allFailed.map((failure) => failure.datasetId),
+        datasetTypes: deletedDatasetRows.map((dataset) => dataset.datasetType || "standard"),
+        rowCount: deletedDatasetRows.reduce((total, dataset) => total + (dataset.rowCount || 0), 0),
+        accuracyDocumentsDeleted: cleanup.accuracyDocuments,
+        accuracyJobsDeleted: cleanup.accuracyJobs,
+        prebookkeepingAuditEventsDeleted: cleanup.prebookkeepingAuditEvents,
+        aiGovernanceOverridesDeleted: cleanup.aiGovernanceOverrides,
+        storageDeleted: storage.deleted.length,
+        storageMissingOrFailed: storage.missingOrFailed.length,
+        deletedReports: reportCleanup.deletedReportIds.length,
+      },
+    })
+  }
 
   return {
-    ok: failed.length === 0,
-    deletedIds: accessibleIds,
-    failed,
+    ok: allFailed.length === 0,
+    requestedCount: requestedIds.length,
+    matchedCount: accessibleIds.length,
+    deletedCount: confirmedDeletedIds.length,
+    deletedIds: confirmedDeletedIds,
+    failedIds: allFailed.map((failure) => failure.datasetId),
+    failed: allFailed,
     cleanup,
     deletedReports: reportCleanup.deletedReportIds,
     storage,
@@ -224,6 +290,14 @@ async function deleteAccuracyRecordsIfTablesExist(
   }
 
   return { documents, jobs }
+}
+
+function chunkIds(datasetIds: string[]) {
+  const chunks: string[][] = []
+  for (let index = 0; index < datasetIds.length; index += DELETE_CHUNK_SIZE) {
+    chunks.push(datasetIds.slice(index, index + DELETE_CHUNK_SIZE))
+  }
+  return chunks
 }
 
 async function tableExists(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], tableName: string) {

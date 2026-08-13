@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId, isSuperAdminUserId, OFFICIAL_SUPERADMIN_NAME } from "@/lib/auth/builtin-users"
+import { formatCustomerPlanLabel } from "@/lib/billing/plans"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
@@ -68,7 +69,7 @@ export default async function ProfileSettingsPage() {
     { label: "Security", complete: securityComplete },
   ]
   const completionPercent = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100)
-  const planLabel = usage.unlimitedLabel || usage.subscriptionTier
+  const planLabel = formatCustomerPlanLabel(usage.subscriptionTier, usage.unlimitedLabel)
   const businessFacts = [
     { label: "Company", value: profile?.businessName || "Not set" },
     { label: "Industry", value: profile?.industry || "Not set" },
@@ -199,7 +200,7 @@ export default async function ProfileSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <MetricLine label="Email identity" value={email || "Missing"} />
-                <MetricLine label="Account type" value={isSuperAdmin ? "Unlimited Superadmin" : (isBuiltinUserId(user?.id) ? "Built-in demo" : "User account")} />
+                <MetricLine label="Account type" value={isSuperAdmin ? "Unlimited Superadmin" : (isBuiltinUserId(user?.id) ? "Built-in identity" : "User account")} />
                 <div className="rounded-md border border-border bg-background/70 p-3 text-sm text-muted-foreground">
                   Authentication settings are managed by the active sign-in provider.
                 </div>

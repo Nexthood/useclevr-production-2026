@@ -6,12 +6,23 @@ import {
   getCheckoutMarketOptions,
   getFixedProPrice,
   getProStripePriceId,
+  getSubscriptionIntervalForStripePriceId,
   getSubscriptionTierForStripePriceId,
   resolveCheckoutMarketPrice,
   resolveCheckoutProPrice,
   resolveProPriceForCountry,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing"
+import {
+  FREE_PLAN_LIMITS,
+  billingPlans,
+  formatCustomerPlanLabel,
+  formatPlanPrice,
+  getBillingPlan,
+  getBillingPlanByTier,
+  normalizeBillingPlanId,
+  normalizeSubscriptionTier,
+} from "@/lib/billing/plans"
 
 const repoRoot = resolve(import.meta.dirname, "../..")
 
@@ -40,6 +51,23 @@ for (const expected of expectedCases) {
   assert.equal(actual.amountMinor, expected.amountMinor, `${expected.label} amount`)
   assert.equal(actual.label, expected.labelText, `${expected.label} label`)
 }
+
+assert.deepEqual(
+  billingPlans.map((plan) => plan.name),
+  ["Free", "Pro", "Business"],
+  "customer-facing billing catalog exposes only Free, Pro, and Business",
+)
+assert.equal(billingPlans.some((plan) => plan.name === "Demo" || plan.id === "demo"), false, "Demo is not a customer-facing plan")
+assert.equal(FREE_PLAN_LIMITS.monthlyCredits, 2, "Free retains 2 included AI credits")
+assert.equal(getBillingPlan("free").name, "Free", "Free plan resolves by ID")
+assert.equal(getBillingPlanByTier("free").name, "Free", "Free plan resolves by tier")
+assert.equal(formatPlanPrice(getBillingPlan("free")), "$0/€0/month", "Free displays both launch currencies")
+assert.equal(normalizeBillingPlanId("demo"), "free", "legacy demo plan IDs route to Free")
+assert.equal(normalizeSubscriptionTier("demo"), "free", "legacy demo subscription tiers route to Free")
+assert.equal(getBillingPlan("demo").name, "Free", "legacy demo plan requests display Free")
+assert.equal(getBillingPlanByTier("demo").name, "Free", "legacy demo tiers display Free")
+assert.equal(formatCustomerPlanLabel("demo"), "Free", "legacy demo tier labels display Free")
+assert.equal(formatCustomerPlanLabel("builtin"), "Free", "built-in customer plan labels display Free")
 
 const browserDiffers = resolveCheckoutProPrice({
   billingCountry: "US",
@@ -89,6 +117,14 @@ const previousEnv = {
   STRIPE_BUSINESS_PRICE_ID_GBP: process.env.STRIPE_BUSINESS_PRICE_ID_GBP,
   STRIPE_BUSINESS_PRICE_ID_USD: process.env.STRIPE_BUSINESS_PRICE_ID_USD,
   STRIPE_BUSINESS_PRICE_ID_CAD: process.env.STRIPE_BUSINESS_PRICE_ID_CAD,
+  STRIPE_PRICE_PRO_EUR_YEARLY: process.env.STRIPE_PRICE_PRO_EUR_YEARLY,
+  STRIPE_PRICE_PRO_GBP_YEARLY: process.env.STRIPE_PRICE_PRO_GBP_YEARLY,
+  STRIPE_PRICE_PRO_USD_YEARLY: process.env.STRIPE_PRICE_PRO_USD_YEARLY,
+  STRIPE_PRICE_PRO_CAD_YEARLY: process.env.STRIPE_PRICE_PRO_CAD_YEARLY,
+  STRIPE_PRICE_BUSINESS_EUR_YEARLY: process.env.STRIPE_PRICE_BUSINESS_EUR_YEARLY,
+  STRIPE_PRICE_BUSINESS_GBP_YEARLY: process.env.STRIPE_PRICE_BUSINESS_GBP_YEARLY,
+  STRIPE_PRICE_BUSINESS_USD_YEARLY: process.env.STRIPE_PRICE_BUSINESS_USD_YEARLY,
+  STRIPE_PRICE_BUSINESS_CAD_YEARLY: process.env.STRIPE_PRICE_BUSINESS_CAD_YEARLY,
 }
 
 process.env.USECLEVR_PRO_PRICE_EUR = "price_pro_eur_test"
@@ -105,6 +141,14 @@ delete process.env.STRIPE_PRICE_ID_BUSINESS_MONTHLY
 process.env.STRIPE_BUSINESS_PRICE_ID_GBP = "price_business_gbp_test"
 process.env.STRIPE_BUSINESS_PRICE_ID_USD = "price_business_usd_test"
 process.env.STRIPE_BUSINESS_PRICE_ID_CAD = "price_business_cad_test"
+process.env.STRIPE_PRICE_PRO_EUR_YEARLY = "price_pro_eur_yearly_test"
+process.env.STRIPE_PRICE_PRO_GBP_YEARLY = "price_pro_gbp_yearly_test"
+process.env.STRIPE_PRICE_PRO_USD_YEARLY = "price_pro_usd_yearly_test"
+process.env.STRIPE_PRICE_PRO_CAD_YEARLY = "price_pro_cad_yearly_test"
+process.env.STRIPE_PRICE_BUSINESS_EUR_YEARLY = "price_business_eur_yearly_test"
+process.env.STRIPE_PRICE_BUSINESS_GBP_YEARLY = "price_business_gbp_yearly_test"
+process.env.STRIPE_PRICE_BUSINESS_USD_YEARLY = "price_business_usd_yearly_test"
+process.env.STRIPE_PRICE_BUSINESS_CAD_YEARLY = "price_business_cad_yearly_test"
 
 assert.equal(getProStripePriceId("EUR"), "price_pro_eur_test", "EUR checkout uses EUR Stripe price ID")
 assert.equal(getProStripePriceId("GBP"), "price_pro_gbp_test", "GBP checkout uses GBP Stripe price ID")
@@ -194,24 +238,71 @@ assert.equal(businessCa.amountMinor, 57750, "Business CA amount is preserved")
 assert.equal(businessCa.displayPrice, "CA$578/month", "Business CA display price")
 assert.equal(businessCa.stripePriceId, "price_business_cad_test", "Business CA uses configured Stripe price")
 
+const yearlyCases = [
+  { plan: "pro", market: "us", currency: "USD", amountMinor: 55000, displayPrice: "$550/year", priceId: "price_pro_usd_yearly_test" },
+  { plan: "pro", market: "eu", currency: "EUR", amountMinor: 48000, displayPrice: "€480/year", priceId: "price_pro_eur_yearly_test" },
+  { plan: "pro", market: "uk", currency: "GBP", amountMinor: 41000, displayPrice: "£410/year", priceId: "price_pro_gbp_yearly_test" },
+  { plan: "pro", market: "ca", currency: "CAD", amountMinor: 77500, displayPrice: "CA$775/year", priceId: "price_pro_cad_yearly_test" },
+  { plan: "business", market: "us", currency: "USD", amountMinor: 580000, displayPrice: "$5,800/year", priceId: "price_business_usd_yearly_test" },
+  { plan: "business", market: "eu", currency: "EUR", amountMinor: 504000, displayPrice: "€5,040/year", priceId: "price_business_eur_yearly_test" },
+  { plan: "business", market: "uk", currency: "GBP", amountMinor: 432000, displayPrice: "£4,320/year", priceId: "price_business_gbp_yearly_test" },
+  { plan: "business", market: "ca", currency: "CAD", amountMinor: 815000, displayPrice: "CA$8,150/year", priceId: "price_business_cad_yearly_test" },
+] as const
+
+for (const expected of yearlyCases) {
+  const resolved = resolveCheckoutMarketPrice({
+    plan: expected.plan,
+    billingInterval: "yearly",
+    market: expected.market,
+  })
+  assert.equal(resolved.billingInterval, "yearly", `${expected.plan} ${expected.market} yearly interval`)
+  assert.equal(resolved.currency, expected.currency, `${expected.plan} ${expected.market} yearly currency`)
+  assert.equal(resolved.amountMinor, expected.amountMinor, `${expected.plan} ${expected.market} yearly amount`)
+  assert.equal(resolved.displayPrice, expected.displayPrice, `${expected.plan} ${expected.market} yearly display price`)
+  assert.equal(resolved.stripePriceId, expected.priceId, `${expected.plan} ${expected.market} yearly Stripe price`)
+  assert.equal(resolved.enabled, true, `${expected.plan} ${expected.market} yearly opens Stripe`)
+}
+
+assert.equal(
+  resolveCheckoutMarketPrice({ plan: "pro", billingInterval: "monthly", market: "eu" }).stripePriceId,
+  "price_pro_eur_test",
+  "Monthly after Yearly returns to the original Pro EUR monthly Stripe price",
+)
+assert.equal(getSubscriptionTierForStripePriceId("price_business_eur_yearly_test"), "business", "webhook maps Business yearly Price IDs to Business")
+assert.equal(getSubscriptionIntervalForStripePriceId("price_business_eur_yearly_test"), "yearly", "subscription page maps Business yearly Price IDs to Yearly")
 assert.equal(getSubscriptionTierForStripePriceId("price_pro_usd_test"), "pro", "webhook maps Pro market Price IDs to Pro")
 assert.equal(getSubscriptionTierForStripePriceId("price_business_eur_test"), "business", "webhook maps Business EUR Price ID to Business")
 
 const checkoutPageSource = readProjectFile("src/app/(auth)/app/settings/checkout/page.tsx")
 assert.ok(checkoutPageSource.includes('plan: plan.tier'), "checkout browser payload sends canonical plan")
-assert.ok(checkoutPageSource.includes('billingInterval: "monthly"'), "checkout browser payload sends canonical interval")
+assert.ok(checkoutPageSource.includes("billingInterval: selectedBillingInterval"), "checkout browser payload sends selected interval")
 assert.ok(checkoutPageSource.includes("market: selectedMarket"), "checkout browser payload sends canonical market")
 assert.ok(checkoutPageSource.includes("buildCheckoutUrl({ planId, market: selectedMarket"), "terms flow preserves selected market in the URL")
+assert.ok(checkoutPageSource.includes("BillingIntervalSelector"), "checkout review exposes the Monthly and Yearly selector")
+assert.ok(checkoutPageSource.includes("Billing:"), "checkout review shows the selected billing interval before Stripe")
+assert.ok(checkoutPageSource.includes("Free is active. No checkout required."), "Free checkout path explains that checkout is not required")
+assert.ok(checkoutPageSource.includes("const canReview = !isFreePlan"), "Free plan cannot enter paid checkout review")
+assert.ok(checkoutPageSource.includes('if (plan.tier === "free") return "$0/€0/month";'), "Free checkout displays $0/€0")
 assert.equal(checkoutPageSource.includes("requestedAmountMinor"), false, "checkout browser payload does not send an amount override")
 assert.equal(checkoutPageSource.includes("requestedStripePriceId"), false, "checkout browser payload does not send a Stripe Price ID override")
 
+const pricingPageSource = readProjectFile("src/app/(public)/pricing/page.tsx")
+const publicPricingPlansSource = readProjectFile("src/components/billing/public-pricing-plans.tsx")
+assert.ok(publicPricingPlansSource.includes('$0/€0'), "public pricing displays Free as $0/€0")
+assert.ok(publicPricingPlansSource.includes("BillingIntervalSelector"), "public pricing exposes the Monthly and Yearly selector")
+assert.equal(pricingPageSource.includes("Demo"), false, "public pricing does not show a Demo plan")
+
+const checkoutConfirmSource = readProjectFile("src/app/api/checkout/confirm/route.ts")
+assert.ok(checkoutConfirmSource.includes("The Free plan does not require checkout."), "checkout API refuses Free checkout")
+
 const checkoutOptionsSource = readProjectFile("src/app/api/checkout/options/route.ts")
-assert.ok(checkoutOptionsSource.includes('getCheckoutMarketOptions("business")'), "Business checkout exposes shared market options")
+assert.ok(checkoutOptionsSource.includes('getCheckoutMarketOptions("business", "monthly")'), "Business checkout exposes shared monthly market options")
+assert.ok(checkoutOptionsSource.includes('getCheckoutMarketOptions("business", "yearly")'), "Business checkout exposes shared yearly market options")
 
 const stripeCheckoutSource = readProjectFile("src/services/stripe/checkout.ts")
 assert.ok(stripeCheckoutSource.includes("stripe.prices.retrieve"), "checkout validates Stripe Price IDs before session creation")
 assert.ok(stripeCheckoutSource.includes("!price.active"), "checkout rejects inactive Stripe prices")
-assert.ok(stripeCheckoutSource.includes('price.recurring.interval !== "month"'), "checkout rejects non-monthly Stripe prices")
+assert.ok(stripeCheckoutSource.includes("price.recurring.interval !== input.expectedInterval"), "checkout validates the selected recurring interval")
 
 const webhookSource = readProjectFile("src/services/stripe/webhook.ts")
 assert.ok(webhookSource.includes("getSubscriptionTierForStripePriceId"), "webhook maps all market Price IDs through the checkout registry")

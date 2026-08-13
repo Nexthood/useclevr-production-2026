@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
 import { saveAiProvider, updateProfile } from "@/app/actions/settings"
-import { formatPlanPrice, getBillingPlan } from "@/lib/billing/plans"
+import { FREE_PLAN_LIMITS, formatCustomerPlanLabel, formatPlanPrice, getBillingPlan } from "@/lib/billing/plans"
 import { Bot, Building2, CheckCircle2, CreditCard, FileText, LockKeyhole, ShieldCheck, Sparkles, User, Settings } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -119,7 +119,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
     { label: "Security", complete: securityComplete },
   ]
   const completionPercent = Math.round((completionItems.filter((item) => item.complete).length / completionItems.length) * 100)
-  const planLabel = usage?.unlimitedLabel || usage?.subscriptionTier || "Free"
+  const planLabel = formatCustomerPlanLabel(usage?.subscriptionTier, usage?.unlimitedLabel)
 
   const isUnlimited = Boolean(usage?.unlimited)
 
@@ -513,7 +513,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
                 <div className="overflow-hidden rounded-lg border border-border">
                   <div className="grid grid-cols-2 gap-4 border-b border-border px-4 py-3">
                     <p className="text-sm font-medium text-foreground">Free customer</p>
-                    <p className="text-sm text-muted-foreground">50 credits/month</p>
+                    <p className="text-sm text-muted-foreground">{FREE_PLAN_LIMITS.monthlyCredits} credits total</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-b border-border px-4 py-3">
                     <p className="text-sm font-medium text-foreground">Pro customer</p>
@@ -662,7 +662,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
               </div>
               <div className="flex items-center justify-between gap-4 rounded-md border border-border bg-background/70 px-3 py-2">
                 <span className="text-sm text-muted-foreground">Account type</span>
-                <span className="truncate text-sm font-medium text-foreground">{isDemo ? "Built-in demo" : "User account"}</span>
+                <span className="truncate text-sm font-medium text-foreground">{isDemo ? "Built-in identity" : "User account"}</span>
               </div>
               <div className="rounded-md border border-border bg-background/70 p-3 text-sm text-muted-foreground">
                 Authentication settings are managed by the active sign-in provider.
