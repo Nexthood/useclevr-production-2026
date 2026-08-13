@@ -142,7 +142,7 @@ export interface ReportRecommendation {
   businessImpact: string;
   recommendedAction: string;
   estimatedImpact?: string | null;
-  confidence: "High" | "Medium" | "Low";
+  confidence?: "High" | "Medium" | "Low";
   requiredData?: string[];
 }
 

@@ -1,3 +1,166 @@
+## Executive BI Report Accuracy And Missing Data
+
+1. Interaction title
+Executive BI report accuracy and missing data.
+
+2. What was the user goal
+Fix generated Executive BI reports so missing financial inputs are never shown as zero, unsupported profit metrics are not fabricated, Balanced Scorecard comparisons remain meaningful, and recommendations are actionable and selected-dataset grounded.
+
+3. What changed
+Generic dataset report generation now builds strict financials for standard reports and keeps revenue, COGS, operating expenses, interest, tax, profit, margin, trend, and expense-ratio values unavailable unless explicit recognized fields or complete required inputs exist. PDF financial charts render unavailable values as Not available instead of numeric bars, trend charts require real net-profit period values, and incomplete scorecard output labels source-data completeness rather than profitability health. Balanced Scorecard strongest/weakest comparisons require at least two available perspective scores. Report recommendations come from supported signals and missing-data limitations instead of generic findings filler.
+
+4. Problems marked
+- blocker: none.
+- risk: Full browser regeneration for a private uploaded `startup_dataset` requires an authenticated session that has that dataset available.
+- improvement: none.
+- observation: Unsupported repeated profit values came from the PDF financial normalizer copying a single Profit KPI into gross, operating, and net profit when no structured financials existed; missing chart values came from Revenue vs Expenses bars using zero fallbacks for null fields.
+
+5. User learning
+The Executive BI report must distinguish a missing cost field from an actual source value of zero before calculating profit, margin, trend, scorecard comparison, or recommendations.
+
+6. AI-agent learning
+Report financial metrics need a structured unavailable state at the builder level so PDF formatting cannot silently turn missing evidence into zero-valued visuals or copied profit metrics.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+
+## Report Generation Cost Logging Repair
+
+1. Interaction title
+Report generation cost logging repair.
+
+2. What was the user goal
+Fix the Generate Report failure that showed a raw database insert error for AI cost logging while preserving the existing report engine, downloads, credits, billing, and AI provenance.
+
+3. What changed
+Added an idempotent AI cost telemetry schema repair that creates the report cost-log table with the columns expected by the Drizzle schema and applies the repair during Railway predeploy. Report API routes still reserve, finalize, and release credits through the credit engine, and they isolate non-critical cost telemetry failures from report generation responses. The dashboard report action keeps known billing messages visible and replaces internal database details with a customer-safe report-generation error.
+
+4. Problems marked
+- blocker: none.
+- risk: Full browser verification for report creation, Reports & Downloads listing, PDF download, CSV download, AI provenance metadata, and console state requires an authenticated session with a reportable dataset and the deployed database after predeploy runs.
+- improvement: none.
+- observation: The configured runtime database did not have the `AICostLog` table even though application code inserted report-generation cost telemetry into that schema.
+
+5. User learning
+The report failure came from a missing telemetry table, not from the report engine, PDF/CSV generation, or dashboard dataset scoping.
+
+6. AI-agent learning
+Report-generation telemetry must be schema-synchronized through migrations and predeploy, and non-critical telemetry inserts must not override completed credit handling or leak raw SQL into customer-facing UI.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+
+## Executive Daily Health Generate Report Visibility
+
+1. Interaction title
+Executive Daily Health Generate Report visibility.
+
+2. What was the user goal
+Find and fix why the existing Generate Report action was not visible beside View Full Daily Brief on the actual main dashboard.
+
+3. What changed
+Fixed the active `/app` dashboard component so Executive Daily Health receives a reportable dataset ID even on the default dashboard route. The previous implementation passed `selected.selectedDataset?.id` into the Daily Health section, but `selected.selectedDataset` is intentionally null when no `datasetId` query parameter is present. The Daily Health section now uses the explicitly selected dashboard dataset when present, or the dashboard's canonical latest dataset when no dataset is selected, and disables the action only when that report dataset is deleted or not ready. `GenerateReportAction` remains the reused report flow component.
+
+4. Problems marked
+- blocker: none.
+- risk: Visual and functional browser verification for report generation, Reports & Downloads listing, PDF, CSV, and console state requires an authenticated session with reportable datasets.
+- improvement: none.
+- observation: `/app/dashboard` redirects to `/app`; `src/app/(auth)/app/page.tsx` is the active dashboard component that renders Executive Daily Health and View Full Daily Brief.
+
+5. User learning
+The button was invisible because the default dashboard route has no explicitly selected dataset, not because the report action or report API was missing.
+
+6. AI-agent learning
+Dashboard-level report actions on aggregate views must use the same canonical dashboard dataset fallback used by dashboard summaries instead of selected-only query state.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dataset Library View Rows Cleanup
+
+1. Interaction title
+Dataset Library View rows cleanup.
+
+2. What was the user goal
+Remove the visible non-functional View rows action from Dataset Library row actions without deleting backend row data, APIs, processing, selection, or bulk deletion behavior.
+
+3. What changed
+Removed only the View rows link from the Dataset Library Actions column. Standard datasets keep Open dashboard, module-scoped datasets keep Open module, and the action cell now right-aligns the single remaining destination action. Dataset detail routes, row data, dataset APIs, upload behavior, checkboxes, select all, clear selection, and bulk deletion remain unchanged.
+
+4. Problems marked
+- blocker: none.
+- risk: Browser-only verification for click navigation, checkbox behavior, bulk deletion, and responsive layout requires an authenticated session with datasets.
+- improvement: A reliable Dataset Preview experience remains a separate future product surface.
+- observation: The Dataset Library action was the only visible View rows entry point found in the component.
+
+5. User learning
+Dataset rows and backend access remain available for future preview work; this change removes only the unreliable library shortcut.
+
+6. AI-agent learning
+Dataset Library UI cleanup should leave shared routes and backend helpers intact when the request targets only a broken entry point.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Daily Health Report Action
+
+1. Interaction title
+Dashboard Daily Health report action.
+
+2. What was the user goal
+Expose the existing Generate Report action beside View Full Daily Brief in the Executive Daily Health dashboard header without rebuilding report generation.
+
+3. What changed
+Reused `GenerateReportAction` in the Executive Daily Health header, passed the active dashboard dataset ID into the section, and rendered the action as an outlined secondary button beside the existing primary full-brief link. The action keeps the existing `/api/reports` generation flow, idempotency key handling, persisted report result, Reports & Downloads redirect behavior, and safe error display. The shared action accepts presentation props for variant and class names while preserving existing default callers.
+
+4. Problems marked
+- blocker: none.
+- risk: End-to-end Reports & Downloads PDF and CSV verification requires an authenticated browser session and a dataset with report-generation access.
+- improvement: none.
+- observation: The dashboard already scopes reports to `selected.selectedDataset.id`; the Daily Health header now uses that same dataset scope.
+
+5. User learning
+The Daily Health header can expose report generation without adding a new report backend because the dashboard already owns the active dataset context.
+
+6. AI-agent learning
+Dashboard header actions should reuse existing report flow components and pass selected dataset IDs explicitly into nested sections.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Yearly Paid Plan Billing
 
 1. Interaction title

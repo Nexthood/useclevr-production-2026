@@ -1,3 +1,5 @@
+- fixed: keep Executive BI report missing financial fields unavailable, require explicit or complete source inputs for profit and margin metrics, prevent one-perspective scorecard comparisons, and ground recommendations in selected-dataset evidence
+- fixed: align report-generation AI cost telemetry with the deployed database schema, keep credit handling intact, and return customer-safe report errors when non-critical telemetry logging fails
 - fixed: restore Railway's native predeploy command in the server-config template so generated deployment branches run the schema/runtime predeploy helper before starting the app
 - added: Ghost Mode lets users run session-scoped AI conversations that skip UseClevr chat-history and content-level trace retention while preserving billing, security, provider-routing audit metadata, Local AI behavior, dataset storage, and dataset isolation
 - fixed: separate AI Analyst unusual transaction analysis from largest-transaction ranking; anomaly answers now validate transaction amount fields, use IQR outlier thresholds, include median/quartile evidence, exclude malformed values, and avoid unsupported suspicious or fraud claims
@@ -233,3 +235,6 @@
 - changed: rebrand Ghost Mode as Eclipse Mode in current user-facing AI privacy surfaces with a partial-eclipse switch, restrained motion, reduced-motion support, accessible state, and unchanged privacy/session behavior
 - fixed: standardize customer-facing billing on Free, Pro, and Business by removing the Demo plan card, mapping legacy demo plan identifiers to Free display, showing Free as $0/€0 with no checkout path, and preserving internal demo-access compatibility
 - changed: add Monthly and Yearly paid-plan selection for Pro and Business, resolve checkout prices by selected market and interval, validate Stripe recurring interval before session creation, and block missing yearly configuration without falling back to monthly prices
+- changed: expose the existing Generate Report action in the Executive Daily Health dashboard header beside View Full Daily Brief, using the active dashboard dataset and existing persisted report flow
+- fixed: remove the non-functional View rows action from Dataset Library row actions while preserving Open dashboard, Open module, selection, bulk deletion, upload, and backend row access
+- fixed: show Generate Report in the Executive Daily Health header on the default dashboard by using the canonical latest reportable dashboard dataset when no dataset query is selected

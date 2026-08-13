@@ -39,6 +39,19 @@ function forbidden() {
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 }
 
+type ReportCostLogInput = Parameters<typeof logAiCost>[0];
+
+async function safeLogReportAiCost(input: ReportCostLogInput, context: string) {
+  try {
+    await logAiCost(input);
+  } catch (error) {
+    debugError('[REPORTS POST] AI cost logging failed:', {
+      context,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 export async function POST(request: Request) {
   let operationId: string | null = null;
   let reservationCreated = false;
@@ -120,7 +133,7 @@ export async function POST(request: Request) {
     if (!isUnlimited) {
       const spendingLimitCheck = await checkSpendingLimits(userId)
       if (spendingLimitCheck.blocked) {
-        await logAiCost({
+        await safeLogReportAiCost({
           userId,
           subscriptionPlan: subscriptionTier,
           provider: 'system',
@@ -133,7 +146,7 @@ export async function POST(request: Request) {
           requestStatus: 'blocked',
           errorMessage: spendingLimitCheck.reason,
           datasetId,
-        });
+        }, 'spending_limit_blocked');
         return NextResponse.json(
           { success: false, error: spendingLimitCheck.reason || 'Spending limit reached.' },
           { status: 402 }
@@ -155,7 +168,7 @@ export async function POST(request: Request) {
         });
 
     if (reservation && !reservation.success) {
-      await logAiCost({
+      await safeLogReportAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
         provider: 'system',
@@ -168,7 +181,7 @@ export async function POST(request: Request) {
         requestStatus: 'blocked',
         errorMessage: reservation.error,
         datasetId,
-      });
+      }, 'credit_reservation_blocked');
       return NextResponse.json(
         { success: false, error: reservation.error || 'No credits remaining. Please upgrade to generate reports.' },
         { status: 402 }
@@ -179,7 +192,7 @@ export async function POST(request: Request) {
     const enforcementCheck = await checkActionEnforcement(userId, 'report_generation', resolvedRole, session.user.email ?? null);
     if (!enforcementCheck.allowed) {
       if (reservationCreated && operationId) await releaseCredits(operationId, 'usage_limit_blocked');
-      await logAiCost({
+      await safeLogReportAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
         provider: 'system',
@@ -192,7 +205,7 @@ export async function POST(request: Request) {
         requestStatus: 'blocked',
         errorMessage: enforcementCheck.reason,
         datasetId,
-      });
+      }, 'usage_limit_blocked');
       return NextResponse.json(
         { success: false, error: enforcementCheck.upgradeMessage || enforcementCheck.reason || 'Your plan has reached a usage limit.' },
         { status: 402 }
@@ -249,7 +262,7 @@ export async function POST(request: Request) {
       creditsRemaining = deduction.remainingCredits;
     }
 
-    await logAiCost({
+    await safeLogReportAiCost({
       userId,
       subscriptionPlan: subscriptionTier,
       provider: 'system',
@@ -262,7 +275,7 @@ export async function POST(request: Request) {
       requestStatus: 'success',
       datasetId,
       metadata: { reportId: report.id, businessModel: report.businessModel, reportType: report.reportType },
-    });
+    }, 'report_generated');
     
     debugLog('[REPORTS POST] Generated report:', report.id);
     
@@ -285,13 +298,17 @@ export async function POST(request: Request) {
       creditsRemaining,
     });
     
-  } catch (error: any) {
+  } catch (error) {
     if (reservationCreated && operationId) {
       await releaseCredits(operationId, 'report_generation_failed');
     }
-    debugError('[REPORTS POST] Error:', error.message, error.stack);
+    debugError(
+      '[REPORTS POST] Error:',
+      error instanceof Error ? error.message : String(error),
+      error instanceof Error ? error.stack : undefined,
+    );
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to generate report' },
+      { success: false, error: 'Failed to generate report' },
       { status: 500 }
     );
   }

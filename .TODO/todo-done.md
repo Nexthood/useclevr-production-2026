@@ -52,6 +52,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1003. Dataset Library row actions show only the working primary destination and keep selection, bulk deletion, upload, and backend row access unchanged. (labels: upload, ui, testing; commit: worktree)
 - T-995. Pre-bookkeeping export workflow guides users to review transactions before accountant export, and Risk Intelligence renders bookkeeping risk insights or graceful problem states without server crashes. (labels: upload, reports, stability, testing; commit: worktree)
 - T-994. Accounting AI applies Business Profile tax configuration to VAT prediction, routes uncertain transactions to exception review, stores scoped VAT corrections for future uploads, and exports reviewed VAT audit details. (labels: upload, business, ai, testing; commit: worktree)
 - T-993. Hide the broken dataset-detail action on Retail upload success while keeping Open Retail and Upload Another File actions available. (labels: upload, ui, testing; commit: worktree)
@@ -164,6 +165,8 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-1004. Executive Daily Health mounts Generate Report on the default dashboard by using the latest reportable dashboard dataset when no dataset is explicitly selected. (labels: dashboard, reports, ui, testing; commit: worktree)
+- T-1002. Executive Daily Health shows the existing Generate Report action beside View Full Daily Brief and scopes report generation to the active dashboard dataset. (labels: dashboard, reports, ui, testing; commit: worktree)
 - T-942. Render Executive Dashboard tab content in-place without route navigation, page reloads, anchor scrolling, or automatic viewport jumps. (labels: dashboard, ui, stability; commit: worktree)
 - T-939. Keep the main Dashboard free of retail-specific reports, route categorized uploads to their correct workspaces, and store dataset category metadata for standard, retail, accountancy, and profitability uploads. (labels: dashboard, upload, reporting; commit: worktree)
 - T-885. Apply global authenticated page spacing, visible-field Business Profile completion, and role-aware analyst credit limits across dashboard upload, analysis, and report workflows. (labels: dashboard, billing, business, ui; commit: worktree)
@@ -506,6 +509,8 @@ moving work between states.
 
 ## Label: reports
 
+- T-1006. Executive BI reports keep missing financial fields unavailable, derive profit metrics only from explicit or complete inputs, and produce dataset-grounded recommendations. (labels: reports, data, testing; commit: worktree)
+- T-1005. Report generation records AI cost telemetry against the current database schema and returns customer-safe errors when non-critical telemetry logging fails. (labels: reports, billing, logging, testing; commit: worktree)
 - T-290. Service layer extraction created lib/services/reportService.ts for report generation orchestration. (labels: reports; commit: 53deaed7)
 - T-211. Move flowcharts into developer guide folders. (labels: reports, docs, workflow; commit: 53deaed7)
 - T-223. Create the original system flowchart. (labels: reports, workflow; commit: 53deaed7)

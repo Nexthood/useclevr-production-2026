@@ -71,6 +71,7 @@ Text rules for this file:
 - Keep the main Dashboard free of retail-specific report sections and retail-only KPIs.
 - Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.
 - Show dataset library rows with dataset type, upload source, destination module, and analysis status.
+- Show only the working primary destination action in Dataset Library row actions, using Open dashboard for standard datasets and Open module for module-scoped datasets.
 - Route dataset library clicks to the matching workspace for retail, profitability, accountancy, and pre-bookkeeping datasets.
 - Delete selected Dataset Library rows only after user confirmation.
 - Select and delete multiple datasets from Risk Intelligence and Dataset Library management controls without removing the existing single-dataset delete action.
@@ -277,6 +278,10 @@ Text rules for this file:
 ## Downloads & Reports
 
 - Generate PDF reports from analysis results for Pro and Business users.
+- Show the existing Generate Report action beside View Full Daily Brief in the Executive Daily Health dashboard header, using the explicitly selected dashboard dataset or the dashboard's canonical latest dataset as the report scope.
+- Record report-generation AI cost telemetry against the deployed database schema, preserve credit reservation and finalization outcomes, and return customer-safe report errors when non-critical telemetry logging fails.
+- Keep missing report financial fields unavailable instead of numeric zero, derive profit and margin metrics only from explicit recognized fields or complete required inputs, and show dataset-grounded recommendations without fixed-card filler.
+- Compare strongest and weakest Business Balanced Scorecard perspectives only when at least two perspectives have valid comparable scores.
 - Track downloads by dataset and report entry.
 - Combine charts and table details in PDF exports.
 - Use separated row actions for viewing, downloading, and deleting report rows.

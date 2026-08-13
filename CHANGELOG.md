@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add Generate Report to the Executive Daily Health dashboard header so users can create the active dataset report beside the full daily brief action.
 - Add yearly billing selection for Pro and Business so customers can review monthly or yearly paid plans by market before Stripe Checkout opens.
 - Add Eclipse Mode for AI sessions so users can minimize UseClevr retention of AI conversation content while billing, security, provider routing, and dataset isolation continue to work.
 - Add fast bulk dataset management in Risk Intelligence and the Dataset Library so users can select many uploaded datasets, delete them with one confirmation, retry failed deletions, and keep the active dataset state valid.
@@ -25,6 +26,10 @@
 
 ### Fixed
 
+- Fix Executive BI reports so missing financial fields stay unavailable, profit metrics require explicit or complete source inputs, and recommendations stay grounded in the selected dataset.
+- Fix report generation telemetry so dashboard reports keep customer-safe errors and complete after credit handling when non-critical telemetry logging fails.
+- Fix Generate Report visibility in the Executive Daily Health header so the default dashboard uses its latest reportable dataset when no dataset is explicitly selected.
+- Remove the non-functional View rows action from Dataset Library rows so users see only the working dashboard or module destination.
 - Show Free as the only no-cost customer plan with $0/€0 pricing, no checkout prompt, and included credits.
 - Fix bulk dataset deletion so large selections use a verified bulk request, return confirmed delete counts, clean dataset-scoped records, and do not reappear after refresh.
 - Fix selected-dataset isolation so Risk Intelligence and Dataset AI Assistant use the active dataset only and clear stale dataset context when the active dataset changes.

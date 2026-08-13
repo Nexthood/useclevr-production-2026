@@ -700,6 +700,12 @@ function selectDashboardDataset(stats: DashboardStats, datasetId: string | null)
   return { stats: scopedStats, selectedDataset, missing: false }
 }
 
+function isReportableDashboardDataset(dataset: DashboardDataset | null | undefined): boolean {
+  if (!dataset || dataset.status === "deleted") return false
+  const analysisStatus = dataset.analysisStatus || ""
+  return !analysisStatus || new Set(["ready", "completed", "processed"]).has(analysisStatus)
+}
+
 type DashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
@@ -733,6 +739,8 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
     selected.selectedDataset.status !== "deleted" &&
     (!selectedAnalysisStatus || new Set(["ready", "completed", "processed"]).has(selectedAnalysisStatus)),
   )
+  const dailyHealthReportDataset = selected.selectedDataset ?? dashboardStats.latestDataset
+  const dailyHealthReportReady = isReportableDashboardDataset(dailyHealthReportDataset)
   const bbscPreview = selected.selectedDataset
     ? calculateBusinessBalancedScorecard({
         rows: selected.selectedDataset.data,
@@ -790,7 +798,13 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
           </div>
         </section>
 
-        {dailyBrief && <ExecutiveDailyHealthSection brief={dailyBrief} />}
+        {dailyBrief && (
+          <ExecutiveDailyHealthSection
+            brief={dailyBrief}
+            datasetId={dailyHealthReportDataset?.id ?? null}
+            reportDisabled={!dailyHealthReportReady}
+          />
+        )}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {kpis.map((item) => (
@@ -973,7 +987,15 @@ function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {
   }
 }
 
-function ExecutiveDailyHealthSection({ brief }: { brief: ExecutiveDailyBrief }) {
+function ExecutiveDailyHealthSection({
+  brief,
+  datasetId,
+  reportDisabled,
+}: {
+  brief: ExecutiveDailyBrief
+  datasetId: string | null
+  reportDisabled: boolean
+}) {
   const priorities = brief.todaysPriorities.slice(0, 3)
   const recommendations = brief.recommendedActions.slice(0, 3)
   const criticalAlerts = brief.alerts.filter((alert) => alert.severity === "critical")
@@ -989,10 +1011,20 @@ function ExecutiveDailyHealthSection({ brief }: { brief: ExecutiveDailyBrief }) 
             <p className="mt-1 text-sm text-muted-foreground">Generated once per day for this workspace.</p>
           </div>
         </div>
-        <Link href="/app/daily-health" className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 dark:text-cyan-100">
-          View Full Daily Brief
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          {datasetId && (
+            <GenerateReportAction
+              datasetId={datasetId}
+              disabled={reportDisabled}
+              variant="outline"
+              className="h-10 border-cyan-300/25 bg-background/60 px-4 text-cyan-700 hover:border-cyan-300/45 hover:bg-cyan-300/10 dark:text-cyan-100"
+            />
+          )}
+          <Link href="/app/daily-health" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 dark:text-cyan-100">
+            View Full Daily Brief
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       {criticalAlerts.length > 0 && (

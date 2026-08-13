@@ -10,10 +10,14 @@ export function GenerateReportAction({
   datasetId,
   disabled = false,
   label = "Generate Report",
+  variant = "default",
+  className = "",
 }: {
   datasetId: string
   disabled?: boolean
   label?: string
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  className?: string
 }) {
   const router = useRouter()
   const [isGenerating, setIsGenerating] = useState(false)
@@ -50,7 +54,7 @@ export function GenerateReportAction({
           : typeof result.message === "string"
             ? result.message
             : "Report generation failed."
-        throw new Error(message)
+        throw new Error(getSafeReportErrorMessage(message))
       }
 
       const reportId = typeof result.reportId === "string" ? result.reportId : null
@@ -74,9 +78,11 @@ export function GenerateReportAction({
     <div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">
       <Button
         type="button"
-        className="shrink-0 whitespace-nowrap"
+        variant={variant}
+        className={["shrink-0 whitespace-nowrap", className].filter(Boolean).join(" ")}
         disabled={disabled || isGenerating}
         onClick={handleGenerateReport}
+        aria-busy={isGenerating}
       >
         {isGenerating ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -90,6 +96,18 @@ export function GenerateReportAction({
       )}
     </div>
   )
+}
+
+function getSafeReportErrorMessage(message: string) {
+  const normalized = message.toLowerCase()
+  const exposesDatabaseDetails =
+    normalized.includes("failed query") ||
+    normalized.includes("insert into") ||
+    normalized.includes("aicostlog") ||
+    normalized.includes("sql") ||
+    normalized.includes("parameters:")
+
+  return exposesDatabaseDetails ? "Failed to generate report" : message
 }
 
 function createClientId() {

@@ -31,6 +31,19 @@ function getGeneratedAssetsDir() {
   return path.join(process.cwd(), 'src', 'assets', 'generated')
 }
 
+type ReportCostLogInput = Parameters<typeof logAiCost>[0];
+
+async function safeLogReportAiCost(input: ReportCostLogInput, context: string) {
+  try {
+    await logAiCost(input);
+  } catch (error) {
+    debugError('[REPORT] AI cost logging failed:', {
+      context,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 /**
  * Generate a simple text-based report file
  * Minimal version - generates basic files for each format
@@ -270,7 +283,7 @@ export async function POST(request: Request) {
     if (!isUnlimited) {
       const spendingLimitCheck = await checkSpendingLimits(userId)
       if (spendingLimitCheck.blocked) {
-        await logAiCost({
+        await safeLogReportAiCost({
           userId,
           subscriptionPlan: subscriptionTier,
           provider: 'system',
@@ -282,7 +295,7 @@ export async function POST(request: Request) {
           creditsCharged: 0,
           requestStatus: 'blocked',
           errorMessage: spendingLimitCheck.reason,
-        });
+        }, 'spending_limit_blocked');
         return NextResponse.json(
           { success: false, error: spendingLimitCheck.reason || 'Spending limit reached.' },
           { status: 402 }
@@ -304,7 +317,7 @@ export async function POST(request: Request) {
           metadata: { format },
         });
     if (reservation && !reservation.success) {
-      await logAiCost({
+      await safeLogReportAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
         provider: 'system',
@@ -316,7 +329,7 @@ export async function POST(request: Request) {
         creditsCharged: 0,
         requestStatus: 'blocked',
         errorMessage: reservation.error,
-      });
+      }, 'credit_reservation_blocked');
       return NextResponse.json(
         { success: false, error: reservation.error || 'No credits remaining. Please upgrade to generate reports.' },
         { status: 402 }
@@ -331,7 +344,7 @@ export async function POST(request: Request) {
     );
     if (!enforcementCheck.allowed) {
       if (reservation) await releaseCredits(operationId, 'usage_limit_blocked');
-      await logAiCost({
+      await safeLogReportAiCost({
         userId,
         subscriptionPlan: subscriptionTier,
         provider: 'system',
@@ -343,7 +356,7 @@ export async function POST(request: Request) {
         creditsCharged: 0,
         requestStatus: 'blocked',
         errorMessage: enforcementCheck.reason,
-      });
+      }, 'usage_limit_blocked');
       return NextResponse.json(
         { success: false, error: enforcementCheck.upgradeMessage || enforcementCheck.reason || 'Your plan has reached a usage limit.' },
         { status: 402 }

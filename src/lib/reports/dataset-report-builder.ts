@@ -9,10 +9,19 @@ type DatasetRecord = typeof datasets.$inferSelect
 type DataRow = Record<string, unknown>
 type ReportModel = BusinessModel | DatasetCategory | "business_consulting"
 type ReportKpi = { title: string; value: number; format: "currency" | "number" | "percent" }
+type MetricSource = "source_field" | "derived_calculation"
+type FinancialMetric = { value: number | null; source: MetricSource | null }
 
 type ColumnMap = {
   revenue?: string
   cost?: string
+  grossProfit?: string
+  operatingProfit?: string
+  netProfit?: string
+  cogs?: string
+  operatingExpenses?: string
+  interestExpense?: string
+  taxExpense?: string
   profit?: string
   quantity?: string
   order?: string
@@ -21,6 +30,7 @@ type ColumnMap = {
   channel?: string
   product?: string
   category?: string
+  date?: string
   stock?: string
   reorderPoint?: string
   mrr?: string
@@ -67,20 +77,24 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
-  const kpis = buildKpis(reportModel, rows, columnMap)
+  const financials = buildGenericFinancials(rows, columnMap)
+  const kpis = buildKpis(reportModel, rows, columnMap, financials)
   const charts = buildCharts(reportModel, rows, columnMap)
   const findings = buildFindings(reportModel, rows, columnMap, kpis)
   const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
+  const recommendations = buildDatasetRecommendations(columnMap, financials, bbsc)
 
   return {
     businessModel,
     reportType: reportModel,
-    summary: `${reportModelLabel(reportModel)} report for ${dataset.name}. This report uses only the selected dataset and includes a Business Balanced Scorecard when enough source fields are available.`,
+    summary: buildDatasetSummary(dataset.name, reportModel, rows, columnMap, financials, bbsc),
     findings,
     kpis,
     charts,
+    financials,
     aiInsights: extractInsights(dataset.analysis),
     predictions: [],
+    recommendations,
     alerts: buildAlerts(reportModel, rows, columnMap),
     bbsc,
     rowCount: dataset.rowCount || rows.length,
@@ -318,8 +332,190 @@ function buildProfitabilityRecommendations(
       businessImpact: "Unavailable source fields reduce confidence and prevent some KPI calculations.",
       recommendedAction: "Add the missing financial fields to the next Revenue and Expenses upload.",
       estimatedImpact: null,
-      confidence: "Medium",
       requiredData: financials.missingFields,
+    })
+  }
+  return recommendations.slice(0, 5)
+}
+
+function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFinancials {
+  const revenue = sourceMetric(sumColumn(rows, columns.revenue) ?? sumColumn(rows, columns.gmv), columns.revenue || columns.gmv)
+  const cogs = sourceMetric(sumColumn(rows, columns.cogs), columns.cogs)
+  const operatingExpenses = sourceMetric(sumColumn(rows, columns.operatingExpenses), columns.operatingExpenses)
+  const interestExpense = sourceMetric(sumColumn(rows, columns.interestExpense), columns.interestExpense)
+  const taxExpense = sourceMetric(sumColumn(rows, columns.taxExpense), columns.taxExpense)
+  const grossProfitSource = sourceMetric(sumColumn(rows, columns.grossProfit), columns.grossProfit)
+  const operatingProfitSource = sourceMetric(sumColumn(rows, columns.operatingProfit), columns.operatingProfit)
+  const netProfitSource = sourceMetric(sumColumn(rows, columns.netProfit), columns.netProfit)
+  const grossProfit = grossProfitSource.value !== null
+    ? grossProfitSource
+    : revenue.value !== null && cogs.value !== null
+      ? calculatedMetric(round(revenue.value - cogs.value))
+      : unavailableMetric()
+  const operatingProfit = operatingProfitSource.value !== null
+    ? operatingProfitSource
+    : grossProfit.value !== null && operatingExpenses.value !== null
+      ? calculatedMetric(round(grossProfit.value - operatingExpenses.value))
+      : unavailableMetric()
+  const netProfit = netProfitSource.value !== null
+    ? netProfitSource
+    : operatingProfit.value !== null && interestExpense.value !== null && taxExpense.value !== null
+      ? calculatedMetric(round(operatingProfit.value - interestExpense.value - taxExpense.value))
+      : unavailableMetric()
+  const grossMargin = revenue.value !== null && revenue.value !== 0 && grossProfit.value !== null
+    ? calculatedMetric(round((grossProfit.value / revenue.value) * 100))
+    : unavailableMetric()
+  const operatingMargin = revenue.value !== null && revenue.value !== 0 && operatingProfit.value !== null
+    ? calculatedMetric(round((operatingProfit.value / revenue.value) * 100))
+    : unavailableMetric()
+  const netMargin = revenue.value !== null && revenue.value !== 0 && netProfit.value !== null
+    ? calculatedMetric(round((netProfit.value / revenue.value) * 100))
+    : unavailableMetric()
+  const costValues = [cogs.value, operatingExpenses.value, interestExpense.value, taxExpense.value].filter((value): value is number => value !== null)
+  const expenseRatio = revenue.value !== null && revenue.value !== 0 && costValues.length > 0
+    ? round((costValues.reduce((total, value) => total + value, 0) / revenue.value) * 100)
+    : null
+
+  return {
+    reportingPeriod: null,
+    dataConfidence: dataConfidenceForFinancials([revenue, cogs, operatingExpenses, interestExpense, taxExpense]),
+    revenue: revenue.value,
+    cogs: cogs.value,
+    grossProfit: grossProfit.value,
+    operatingExpenses: operatingExpenses.value,
+    operatingProfit: operatingProfit.value,
+    interestExpense: interestExpense.value,
+    taxExpense: taxExpense.value,
+    netProfit: netProfit.value,
+    grossMargin: grossMargin.value,
+    operatingMargin: operatingMargin.value,
+    netMargin: netMargin.value,
+    revenueGrowth: null,
+    expenseRatio,
+    missingFields: missingProfitabilityFields({
+      revenue: revenue.value,
+      cogs: cogs.value,
+      grossProfit: grossProfit.value,
+      operatingExpenses: operatingExpenses.value,
+      operatingProfit: operatingProfit.value,
+      interestExpense: interestExpense.value,
+      taxExpense: taxExpense.value,
+      netProfit: netProfit.value,
+      grossMargin: grossMargin.value,
+      operatingMargin: operatingMargin.value,
+      netMargin: netMargin.value,
+    }, {}),
+    topCostCategories: [],
+    periodTrends: [],
+  }
+}
+
+function sourceMetric(value: number | null, column?: string): FinancialMetric {
+  return value !== null && column ? { value, source: "source_field" } : unavailableMetric()
+}
+
+function calculatedMetric(value: number): FinancialMetric {
+  return { value, source: "derived_calculation" }
+}
+
+function unavailableMetric(): FinancialMetric {
+  return { value: null, source: null }
+}
+
+function dataConfidenceForFinancials(metrics: FinancialMetric[]) {
+  const available = metrics.filter((metric) => metric.value !== null).length
+  return Math.round((available / metrics.length) * 100)
+}
+
+function buildDatasetSummary(
+  datasetName: string,
+  model: ReportModel,
+  rows: DataRow[],
+  columns: ColumnMap,
+  financials: ReportFinancials,
+  bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+) {
+  const parts: string[] = []
+  if (financials.revenue !== null) {
+    parts.push(`${datasetName} contains ${formatCurrencyForSummary(financials.revenue)} in recognized revenue across ${rows.length.toLocaleString()} loaded rows.`)
+  } else {
+    parts.push(`${datasetName} has ${rows.length.toLocaleString()} loaded rows, but revenue is not available from recognized source fields.`)
+  }
+  if (financials.netProfit === null) {
+    parts.push("Profitability cannot be reliably assessed because required cost, expense, interest, or tax fields are missing.")
+  } else {
+    parts.push(`Net profit is ${formatCurrencyForSummary(financials.netProfit)} from explicit source fields or complete required financial inputs.`)
+  }
+  parts.push(hasTrendFields(columns) ? "Trend analysis can use the recognized date or period field." : "Trend analysis is unavailable because no valid date or period field is recognized.")
+  if (bbsc.availablePerspectiveCount < 2) {
+    parts.push("Balanced Scorecard comparison is unavailable because fewer than two perspectives have comparable source data.")
+  }
+  if (model === "startup" && !columns.customer) {
+    parts.push("Customer analysis is unavailable because no recognized customer or account field exists.")
+  }
+  return parts.join(" ")
+}
+
+function buildDatasetRecommendations(
+  columns: ColumnMap,
+  financials: ReportFinancials,
+  bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+): ReportRecommendation[] {
+  const recommendations: ReportRecommendation[] = []
+  if (financials.revenue !== null && financials.netProfit === null) {
+    recommendations.push({
+      issue: "Revenue is available, but profitability inputs are incomplete.",
+      businessImpact: "Margin, profit, and expense-ratio decisions are not reliable until cost data is present.",
+      recommendedAction: "Add COGS, operating expenses, interest, and tax fields before making margin or profitability decisions.",
+      estimatedImpact: null,
+      requiredData: ["COGS", "Operating Expenses", "Interest Expense", "Tax Expense"],
+    })
+  }
+  if (!hasTrendFields(columns)) {
+    recommendations.push({
+      issue: "No recognized date or period field is available for trend analysis.",
+      businessImpact: "The report cannot show growth, seasonality, or changes in business health over time.",
+      recommendedAction: "Add a date, month, or period column to enable trend and growth analysis.",
+      estimatedImpact: null,
+      requiredData: ["Date or Period"],
+    })
+  }
+  if (financials.cogs === null || financials.operatingExpenses === null) {
+    recommendations.push({
+      issue: "Categorized expense data is incomplete.",
+      businessImpact: "Cost optimization opportunities cannot be ranked or quantified from this dataset.",
+      recommendedAction: "Upload categorized expense data so COGS and operating-expense drivers can be reviewed separately.",
+      estimatedImpact: null,
+      requiredData: ["Expense Category", "COGS", "Operating Expenses"],
+    })
+  }
+  if (!columns.customer && !columns.order) {
+    recommendations.push({
+      issue: "Customer and order fields are not recognized.",
+      businessImpact: "Customer performance, concentration, retention, and order-value analysis are unavailable.",
+      recommendedAction: "Add customer, account, order, or transaction identifiers to unlock customer performance analysis.",
+      estimatedImpact: null,
+      requiredData: ["Customer ID", "Order ID"],
+    })
+  }
+  if (financials.netMargin !== null && financials.netMargin < 10) {
+    recommendations.push({
+      issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
+      businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
+      recommendedAction: "Prioritize margin expansion through pricing, COGS review, and operating-expense controls.",
+      estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of net margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in net profit.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (bbsc.weakestPerspective && bbsc.availablePerspectiveCount >= 2) {
+    recommendations.push({
+      issue: `${bbsc.weakestPerspective.title} is the weakest available perspective at ${bbsc.weakestPerspective.score}/100.`,
+      businessImpact: "The weakest scored perspective limits the overall business score.",
+      recommendedAction: bbsc.weakestPerspective.recommendedActions[0] || "Track the missing drivers and review the perspective monthly.",
+      estimatedImpact: null,
+      confidence: bbsc.weakestPerspective.dataConfidence >= 70 ? "High" : "Medium",
+      requiredData: [],
     })
   }
   return recommendations.slice(0, 5)
@@ -402,7 +598,14 @@ function detectColumns(columns: string[]): ColumnMap {
   return {
     revenue: findColumn(columns, [/revenue/, /^sales$/, /amount/, /turnover/, /income/]),
     cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /shipping_cost/, /unit_cost/, /spend/]),
-    profit: findColumn(columns, [/profit/, /gross_margin/, /margin/]),
+    grossProfit: findColumn(columns, [/gross_profit/, /grossprofit/]),
+    operatingProfit: findColumn(columns, [/operating_profit/, /operatingprofit/, /ebit\b/]),
+    netProfit: findColumn(columns, [/net_profit/, /netprofit/, /^profit$/, /profit_loss/]),
+    cogs: findColumn(columns, [/^cogs$/, /cost_of_goods/, /cost_of_sales/]),
+    operatingExpenses: findColumn(columns, [/operating_expenses/, /^opex$/, /sg_a/, /sga/]),
+    interestExpense: findColumn(columns, [/interest_expense/, /^interest$/]),
+    taxExpense: findColumn(columns, [/tax_expense/, /^tax$/, /taxes/]),
+    profit: findColumn(columns, [/net_profit/, /gross_profit/, /operating_profit/, /^profit$/]),
     quantity: findColumn(columns, [/quantity/, /^qty$/, /units_sold/, /units/]),
     order: findColumn(columns, [/order_id/, /^order$/, /transaction/, /invoice/]),
     customer: findColumn(columns, [/customer_id/, /customer/, /client_id/, /client/]),
@@ -410,6 +613,7 @@ function detectColumns(columns: string[]): ColumnMap {
     channel: findColumn(columns, [/channel/, /source/]),
     product: findColumn(columns, [/product_id/, /product/, /^sku$/, /item/]),
     category: findColumn(columns, [/category/, /sector/, /industry/]),
+    date: findColumn(columns, [/date/, /month/, /period/, /created_at/]),
     stock: findColumn(columns, [/stock_on_hand/, /stock/, /inventory/]),
     reorderPoint: findColumn(columns, [/reorder_point/, /reorder/]),
     mrr: findColumn(columns, [/^mrr$/]),
@@ -439,10 +643,10 @@ function detectColumns(columns: string[]): ColumnMap {
   }
 }
 
-function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap): ReportKpi[] {
-  const revenue = sumColumn(rows, columns.revenue) ?? sumColumn(rows, columns.gmv)
+function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials): ReportKpi[] {
+  const revenue = financials.revenue ?? sumColumn(rows, columns.gmv)
   const cost = sumColumn(rows, columns.cost)
-  const profit = sumColumn(rows, columns.profit) ?? (revenue !== null && cost !== null ? revenue - cost : null)
+  const profit = financials.netProfit ?? financials.grossProfit
   const quantity = sumColumn(rows, columns.quantity)
   const orders = columns.order ? uniqueCount(rows, columns.order) : quantity
   const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
@@ -529,8 +733,10 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap): R
 }
 
 function buildFindings(model: ReportModel, rows: DataRow[], columns: ColumnMap, kpis: ReportKpi[]) {
-  const findings = [`Generated from ${rows.length.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
-  if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is included as a primary KPI for this selected dataset.")
+  const findings = [`The selected dataset contains ${rows.length.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
+  if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
+  if (!columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
   if (model === "local_retail" && columns.stock) findings.push("Inventory and reorder-risk checks are included from stock columns.")
   if (model === "ecommerce" && columns.country) findings.push("Geography uses only country or region values present in this dataset.")
   if ((model === "saas" || model === "startup") && (columns.mrr || columns.arr)) findings.push("Recurring revenue metrics are included from MRR/ARR columns.")
@@ -621,6 +827,10 @@ function groupedChart(rows: DataRow[], groupColumn: string | undefined, valueCol
     .sort((a, b) => b.value - a.value)
     .slice(0, 8)
   return data.length > 0 ? { type: "bar", title, data } : null
+}
+
+function hasTrendFields(columns: ColumnMap) {
+  return Boolean(columns.date)
 }
 
 function getNumber(value: unknown) {

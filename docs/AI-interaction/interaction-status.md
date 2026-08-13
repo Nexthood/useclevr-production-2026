@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-13
-- **Goal**: Add Yearly billing to the existing Pro and Business Monthly subscription flow without changing monthly checkout behavior.
-- **Durable change**: Paid-plan checkout, public pricing, and Subscription plan selection now support Monthly and Yearly intervals while preserving the selected market. The server resolves Stripe Price IDs by plan, market, and interval, validates the selected Stripe recurring interval, and blocks missing Yearly configuration without falling back to Monthly or another market.
-- **Verification**: `pnpm test:pro-pricing` passes; `pnpm exec tsc --noEmit --pretty false` passes.
+- **Goal**: Fix Executive BI report accuracy, missing-data handling, and recommendations.
+- **Durable change**: Executive BI reports keep unavailable financial fields out of numeric calculations, derive profit and margin metrics only from explicit recognized fields or complete required inputs, label incomplete scorecard output accurately, and produce dataset-grounded recommendations without fixed-card filler.
+- **Verification**: `pnpm test:report-accuracy`, `pnpm test:profitability-two-file`, `pnpm test:bbsc`, `pnpm exec tsc --noEmit --pretty false`, focused ESLint, and `git diff --check` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
