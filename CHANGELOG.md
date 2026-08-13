@@ -26,6 +26,7 @@
 
 ### Fixed
 
+- Fix dashboard empty states so deleted datasets no longer feed current scores, confidence, priorities, recommendations, KPI trends, reports, or Daily Health briefs.
 - Fix Executive BI reports so missing financial fields stay unavailable, profit metrics require explicit or complete source inputs, and recommendations stay grounded in the selected dataset.
 - Fix report generation telemetry so dashboard reports keep customer-safe errors and complete after credit handling when non-critical telemetry logging fails.
 - Fix Generate Report visibility in the Executive Daily Health header so the default dashboard uses its latest reportable dataset when no dataset is explicitly selected.

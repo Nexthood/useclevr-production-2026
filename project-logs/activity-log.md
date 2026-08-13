@@ -1,3 +1,4 @@
+- fixed: keep the dashboard in a deterministic no-data state when every dataset is deleted, excluding deleted datasets from current analytics and suppressing stale Daily Health scores, confidence, priorities, recommendations, report generation, and brief navigation
 - fixed: keep Executive BI report missing financial fields unavailable, require explicit or complete source inputs for profit and margin metrics, prevent one-perspective scorecard comparisons, and ground recommendations in selected-dataset evidence
 - fixed: align report-generation AI cost telemetry with the deployed database schema, keep credit handling intact, and return customer-safe report errors when non-critical telemetry logging fails
 - fixed: restore Railway's native predeploy command in the server-config template so generated deployment branches run the schema/runtime predeploy helper before starting the app

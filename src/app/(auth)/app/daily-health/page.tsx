@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
+import { loadDashboardDatasetAggregation } from "@/lib/data/dashboard-dataset-aggregation"
 import { getOrCreateDailyHealthBrief, listDailyHealthBriefs, type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
 import { Activity, AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, Sparkles, Target, TrendingUp } from "lucide-react"
 import Link from "next/link"
@@ -21,11 +22,13 @@ export default async function DailyHealthPage({ searchParams }: DailyHealthPageP
 
   const params = (await searchParams) || {}
   const window = parseWindow(params.window)
+  const dashboardData = await loadDashboardDatasetAggregation(userId)
+  const hasActiveDatasets = dashboardData.activeDatasetCount > 0
   const [today, history] = await Promise.all([
-    getOrCreateDailyHealthBrief({ userId }),
+    hasActiveDatasets ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
     listDailyHealthBriefs({ userId, limit: windowToLimit(window) }),
   ])
-  const reports = mergeToday(today, history).slice(0, windowToLimit(window))
+  const reports = hasActiveDatasets ? mergeToday(today, history).slice(0, windowToLimit(window)) : []
 
   return (
     <div className="flex-1 bg-background">
@@ -42,7 +45,7 @@ export default async function DailyHealthPage({ searchParams }: DailyHealthPageP
               </span>
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight text-foreground">Executive Daily Health</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Cached daily briefs for this workspace.</p>
+                <p className="mt-1 text-sm text-muted-foreground">{hasActiveDatasets ? "Cached daily briefs for this workspace." : "Upload a dataset to activate the Executive Daily Health Check."}</p>
               </div>
             </div>
           </div>
@@ -64,7 +67,7 @@ export default async function DailyHealthPage({ searchParams }: DailyHealthPageP
           </div>
         </div>
 
-        {today ? <FullBrief brief={today} /> : <EmptyBrief />}
+        {today && hasActiveDatasets ? <FullBrief brief={today} /> : <EmptyBrief />}
 
         <section className="space-y-4">
           <div className="flex items-center gap-3">

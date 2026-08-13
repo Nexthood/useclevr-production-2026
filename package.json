@@ -82,6 +82,7 @@
     "test:ghost-mode": "node -r tsx/esm scripts/hybrid-ai/test-ghost-mode.ts",
     "test:ai-provider-security": "node -r tsx/esm scripts/ai/test-provider-security.ts",
     "test:dashboard-crud": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dashboard-crud.ts",
+    "test:dashboard-empty-state": "node -r tsx/esm scripts/health/test-dashboard-empty-state.ts",
     "test:dataset-deletion": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dataset-deletion.ts",
      "test:credit-engine": "node -r tsx/esm scripts/billing/test-credit-engine.ts",
      "test:credit-topup-webhooks": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/billing/test-credit-topup-webhooks.ts",

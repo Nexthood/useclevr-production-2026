@@ -509,6 +509,7 @@ moving work between states.
 
 ## Label: reports
 
+- T-1007. Dashboard analytics enter a no-data state when every uploaded dataset is deleted, so current scores, recommendations, trends, reports, and daily briefs never use stale dataset evidence. (labels: dashboard, data, reports, testing; commit: worktree)
 - T-1006. Executive BI reports keep missing financial fields unavailable, derive profit metrics only from explicit or complete inputs, and produce dataset-grounded recommendations. (labels: reports, data, testing; commit: worktree)
 - T-1005. Report generation records AI cost telemetry against the current database schema and returns customer-safe errors when non-critical telemetry logging fails. (labels: reports, billing, logging, testing; commit: worktree)
 - T-290. Service layer extraction created lib/services/reportService.ts for report generation orchestration. (labels: reports; commit: 53deaed7)

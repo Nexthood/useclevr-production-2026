@@ -1,3 +1,32 @@
+## Dashboard Empty State After Dataset Deletion
+
+1. Interaction title
+Dashboard empty state after dataset deletion.
+
+2. What was the user goal
+Fix the main dashboard and Executive Daily Health so deleting every uploaded dataset removes current analytical scores, confidence, priorities, recommendations, KPI trends, report generation, and full-brief access instead of showing stale or fallback values.
+
+3. What changed
+Dashboard aggregation now exposes only non-deleted datasets as current analytics, so dataset count, active count, total rows, latest upload, detected columns, business model counts, and dashboard rows all share the same active-dataset source of truth. The executive metrics builder returns a deterministic empty metrics object when active dataset count is zero. KPI cards show No data for analytical metrics, while Active Datasets and Rows Processed show measured zeros. Executive Daily Health renders a no-analysis empty state, hides score and confidence output, hides priorities and recommendations, hides Generate Report, and disables View Full Daily Brief when no active dataset exists. The full Daily Health page checks active dataset count before creating or showing a current brief or history.
+
+4. Problems marked
+- blocker: none.
+- risk: Browser-only refresh, logout/login, upload, delete, and reupload checks require an authenticated app session.
+- improvement: none.
+- observation: The incorrect 49/100 AI Confidence came from the dashboard formula `34 + rows bonus + business profile bonus` after deleted dataset rows still reached current analytics. The incorrect 34 score came from the health calculation averaging readiness, fallback confidence, forecast confidence, and growth readiness for a deleted/stale dataset surface instead of a zero-dataset branch.
+
+5. User learning
+Dashboard empty state must use current active dataset availability, not report history, AI traces, cached Daily Health records, or deleted dataset rows.
+
+6. AI-agent learning
+Dashboard aggregation must remove deleted datasets before calculating current totals and derived analytics; separate active counts are not enough if stale rows remain in the dataset array.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+
 ## Executive BI Report Accuracy And Missing Data
 
 1. Interaction title

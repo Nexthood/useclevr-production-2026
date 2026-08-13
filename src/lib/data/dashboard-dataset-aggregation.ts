@@ -129,11 +129,13 @@ export async function loadDashboardDatasetAggregation(
     }
   })
 
+  const activeDatasets = normalizedDatasets.filter((dataset) => dataset.status !== "deleted")
+
   const allColumns = unique([
-    ...normalizedDatasets.flatMap((dataset) => dataset.columns),
-    ...normalizedDatasets.flatMap((dataset) => dataset.data.slice(0, 20).flatMap((row) => Object.keys(row))),
+    ...activeDatasets.flatMap((dataset) => dataset.columns),
+    ...activeDatasets.flatMap((dataset) => dataset.data.slice(0, 20).flatMap((row) => Object.keys(row))),
   ])
-  const fileTypeCounts = normalizedDatasets.reduce<NormalizedDashboardData["fileTypeCounts"]>((counts, dataset) => {
+  const fileTypeCounts = activeDatasets.reduce<NormalizedDashboardData["fileTypeCounts"]>((counts, dataset) => {
     const fileName = dataset.fileName.toLowerCase()
     if (fileName.endsWith(".csv")) counts.csv += 1
     else if (/\.(xlsx|xls)$/i.test(fileName)) counts.excel += 1
@@ -144,16 +146,16 @@ export async function loadDashboardDatasetAggregation(
   }, { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 })
 
   return {
-    datasetCount: normalizedDatasets.length,
-    activeDatasetCount: normalizedDatasets.filter((dataset) => dataset.status !== "deleted").length,
-    totalRows: normalizedDatasets.reduce((total, dataset) => total + dataset.rowCount, 0),
-    latestUpload: normalizedDatasets[0] || null,
+    datasetCount: activeDatasets.length,
+    activeDatasetCount: activeDatasets.length,
+    totalRows: activeDatasets.reduce((total, dataset) => total + dataset.rowCount, 0),
+    latestUpload: activeDatasets[0] || null,
     fileTypeCounts,
     detectedColumns: detectColumnAliases(allColumns),
-    businessModelCounts: countBusinessModels(normalizedDatasets),
-    dominantBusinessModel: findDominantBusinessModel(normalizedDatasets),
+    businessModelCounts: countBusinessModels(activeDatasets),
+    dominantBusinessModel: findDominantBusinessModel(activeDatasets),
     allColumns,
-    datasets: normalizedDatasets,
+    datasets: activeDatasets,
   }
 }
 
