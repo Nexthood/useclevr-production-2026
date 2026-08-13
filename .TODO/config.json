@@ -1,6 +1,6 @@
 {
   "currentTaskPrefix": "T-",
-  "nextTaskNumber": 1006,
+  "nextTaskNumber": 1007,
   "todoFiles": {
     "next": ".TODO/todo-next.md",
     "done": ".TODO/todo-done.md",

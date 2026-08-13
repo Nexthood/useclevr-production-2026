@@ -138,6 +138,9 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
   const score = report.bbsc?.overallScore === null || report.bbsc?.overallScore === undefined
     ? "Not available"
     : `${report.bbsc.overallScore}/100`;
+  const scoreTitle = financials.netProfit === null || financials.grossProfit === null
+    ? "Source Data Completeness"
+    : "Profitability Health Score";
   const metrics: PdfMetric[] = [
     metric("Revenue", financials.revenue, "currency", colors.cyan),
     metric("Gross Profit", financials.grossProfit, "currency", colors.green, missingLabel(financials, "Gross Profit")),
@@ -146,7 +149,7 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
     metric("Gross Margin", financials.grossMargin, "percent", colors.green, missingLabel(financials, "Gross Margin")),
     metric("Operating Margin", financials.operatingMargin, "percent", colors.violet, missingLabel(financials, "Operating Margin")),
     metric("Net Margin", financials.netMargin, "percent", colors.amber, missingLabel(financials, "Net Margin")),
-    { title: "Profitability Health Score", value: score, accent: colors.cyan, missing: score === "Not available" ? "Missing scorecard inputs" : null },
+    { title: scoreTitle, value: score, accent: colors.cyan, missing: score === "Not available" ? "Missing scorecard inputs" : null },
   ];
   drawMetricGrid(doc, metrics, margin, y, contentWidth, 4);
   y += 72;
@@ -174,10 +177,10 @@ function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials, marg
   drawSectionTitle(doc, "Revenue vs Expenses", margin, y);
   y += 8;
   drawHorizontalBars(doc, [
-    { name: "Revenue", value: financials.revenue || 0, color: colors.cyan },
-    { name: "COGS", value: financials.cogs || 0, color: colors.amber },
-    { name: "Operating Expenses", value: financials.operatingExpenses || 0, color: colors.violet },
-    { name: "Interest + Tax", value: (financials.interestExpense || 0) + (financials.taxExpense || 0), color: colors.red },
+    { name: "Revenue", value: financials.revenue, color: colors.cyan },
+    { name: "COGS", value: financials.cogs, color: colors.amber },
+    { name: "Operating Expenses", value: financials.operatingExpenses, color: colors.violet },
+    { name: "Interest + Tax", value: financials.interestExpense !== null && financials.taxExpense !== null ? financials.interestExpense + financials.taxExpense : null, color: colors.red },
   ], margin, y, contentWidth, true);
   y += 58;
 
@@ -232,8 +235,8 @@ function drawBalancedScorecard(doc: jsPDF, report: Report, margin: number, conte
   drawMetricGrid(doc, [
     { title: "Overall Business Score", value: bbsc.overallScore === null ? "Not available" : `${bbsc.overallScore}/100`, accent: colors.cyan },
     { title: "Available Perspectives", value: `${bbsc.availablePerspectiveCount}/4`, accent: colors.violet },
-    { title: "Strongest Perspective", value: bbsc.strongestPerspective?.shortTitle || "Not available", accent: colors.green },
-    { title: "Weakest Perspective", value: bbsc.weakestPerspective?.shortTitle || "Not available", accent: colors.amber },
+    { title: "Strongest Perspective", value: bbsc.strongestPerspective?.shortTitle || "Not enough data", accent: colors.green },
+    { title: "Weakest Perspective", value: bbsc.weakestPerspective?.shortTitle || "Not enough data", accent: colors.amber },
   ], margin, y, contentWidth, 4);
   y += 40;
 
@@ -291,7 +294,7 @@ function drawRecommendations(doc: jsPDF, report: Report, financials: ReportFinan
       `Impact: ${recommendation.businessImpact}`,
       `Action: ${recommendation.recommendedAction}`,
       recommendation.estimatedImpact ? `Estimated impact: ${recommendation.estimatedImpact}` : null,
-      `Confidence: ${recommendation.confidence}`,
+      recommendation.confidence ? `Confidence: ${recommendation.confidence}` : null,
       recommendation.requiredData?.length ? `Required additional data: ${recommendation.requiredData.join(", ")}` : null,
     ].filter(Boolean).join("  ");
     doc.text(doc.splitTextToSize(cleanText(body), contentWidth - 26).slice(0, 4), margin + 18, y + 16);
@@ -372,14 +375,15 @@ function drawCard(doc: jsPDF, x: number, y: number, width: number, height: numbe
 
 function drawHorizontalBars(
   doc: jsPDF,
-  rows: { name: string; value: number; color: Rgb }[],
+  rows: { name: string; value: number | null; color: Rgb }[],
   x: number,
   y: number,
   width: number,
   currency: boolean,
 ) {
   drawCard(doc, x, y, width, 48, colors.panel);
-  const max = Math.max(...rows.map((row) => Math.abs(row.value)), 1);
+  const availableRows = rows.filter((row): row is { name: string; value: number; color: Rgb } => row.value !== null);
+  const max = Math.max(...availableRows.map((row) => Math.abs(row.value)), 1);
   rows.forEach((row, index) => {
     const barY = y + 8 + index * 9;
     doc.setFont("helvetica", "normal");
@@ -388,11 +392,16 @@ function drawHorizontalBars(
     doc.text(cleanText(row.name), x + 5, barY + 4);
     doc.setFillColor(...colors.panel2);
     doc.roundedRect(x + 48, barY, width - 88, 5, 1.5, 1.5, "F");
-    doc.setFillColor(...row.color);
-    doc.roundedRect(x + 48, barY, ((width - 88) * Math.abs(row.value)) / max, 5, 1.5, 1.5, "F");
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(...colors.text);
-    doc.text(currency ? formatCurrency(row.value) : formatNumber(row.value), x + width - 6, barY + 4, { align: "right" });
+    if (row.value === null) {
+      doc.setTextColor(...colors.amber);
+      doc.text("Not available", x + width - 6, barY + 4, { align: "right" });
+    } else {
+      doc.setFillColor(...row.color);
+      doc.roundedRect(x + 48, barY, ((width - 88) * Math.abs(row.value)) / max, 5, 1.5, 1.5, "F");
+      doc.setTextColor(...colors.text);
+      doc.text(currency ? formatCurrency(row.value) : formatNumber(row.value), x + width - 6, barY + 4, { align: "right" });
+    }
   });
 }
 
@@ -409,7 +418,13 @@ function drawTrendPanel(doc: jsPDF, financials: ReportFinancials, x: number, y: 
     const chartY = y + 12;
     const chartW = width - 20;
     const chartH = 36;
-    const series = trends.map((trend) => trend.netProfit || 0);
+    const series = trends.map((trend) => trend.netProfit).filter((value): value is number => value !== null);
+    if (series.length < 2) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...colors.muted);
+      doc.text("Profit trend is not available because valid net-profit periods are incomplete.", x + 6, y + 14);
+    } else {
     const max = Math.max(...series, 1);
     const min = Math.min(...series, 0);
     const range = Math.max(max - min, 1);
@@ -426,6 +441,7 @@ function drawTrendPanel(doc: jsPDF, financials: ReportFinancials, x: number, y: 
       doc.circle(pointX, pointY, 1.3, "F");
       previous = { x: pointX, y: pointY };
     });
+    }
   }
   const notes = [
     `Revenue growth: ${financials.revenueGrowth === null || financials.revenueGrowth === undefined ? "Not available" : formatPercent(financials.revenueGrowth)}`,
@@ -478,20 +494,18 @@ function normalizeFinancials(report: Report): ReportFinancials {
   if (report.financials) return report.financials;
   const kpiValue = (title: string) => parseFormattedNumber(report.kpis.find((kpi) => kpi.title.toLowerCase() === title.toLowerCase())?.value);
   const revenue = kpiValue("Revenue");
-  const profit = kpiValue("Profit") ?? kpiValue("Net Profit");
-  const marginValue = parseFormattedPercent(report.kpis.find((kpi) => kpi.title.toLowerCase().includes("margin"))?.value);
   return {
     revenue,
     cogs: null,
-    grossProfit: profit,
+    grossProfit: kpiValue("Gross Profit"),
     operatingExpenses: null,
-    operatingProfit: profit,
+    operatingProfit: kpiValue("Operating Profit"),
     interestExpense: null,
     taxExpense: null,
-    netProfit: profit,
-    grossMargin: marginValue,
-    operatingMargin: marginValue,
-    netMargin: marginValue,
+    netProfit: kpiValue("Net Profit"),
+    grossMargin: parseFormattedPercent(report.kpis.find((kpi) => kpi.title.toLowerCase() === "gross margin")?.value),
+    operatingMargin: parseFormattedPercent(report.kpis.find((kpi) => kpi.title.toLowerCase() === "operating margin")?.value),
+    netMargin: parseFormattedPercent(report.kpis.find((kpi) => kpi.title.toLowerCase() === "net margin")?.value),
     missingFields: ["COGS", "Operating Expenses", "Interest Expense", "Tax Expense"].filter((field) => !report.kpis.some((kpi) => kpi.title === field)),
   };
 }
@@ -521,14 +535,26 @@ function managementSummary(report: Report, financials: ReportFinancials) {
 
 function normalizeRecommendations(report: Report, financials: ReportFinancials): ReportRecommendation[] {
   if (report.recommendations?.length) return report.recommendations.slice(0, 5);
-  return (report.findings || []).slice(0, 5).map((finding) => ({
-    issue: cleanText(finding),
-    businessImpact: "This item affects the selected dataset's operating performance.",
-    recommendedAction: "Review the source drivers and assign an owner for follow-up.",
-    estimatedImpact: financials.revenue ? `Each 1% movement in revenue equals ${formatCurrency(financials.revenue * 0.01)}.` : null,
-    confidence: "Medium",
-    requiredData: [],
-  }));
+  const recommendations: ReportRecommendation[] = [];
+  if (financials.revenue !== null && financials.netProfit === null) {
+    recommendations.push({
+      issue: "Revenue is available, but profitability inputs are incomplete.",
+      businessImpact: "Margin and profit decisions are not reliable until cost data is present.",
+      recommendedAction: "Add COGS, operating expenses, interest, and tax fields before using the report for margin decisions.",
+      estimatedImpact: null,
+      requiredData: ["COGS", "Operating Expenses", "Interest Expense", "Tax Expense"],
+    });
+  }
+  if ((financials.periodTrends || []).length < 2) {
+    recommendations.push({
+      issue: "Trend analysis is unavailable.",
+      businessImpact: "The report cannot verify growth, seasonality, or period-over-period change.",
+      recommendedAction: "Add a date, month, or period column to enable trend and growth analysis.",
+      estimatedImpact: null,
+      requiredData: ["Date or Period"],
+    });
+  }
+  return recommendations.slice(0, 5);
 }
 
 function formatCurrency(value: number) {

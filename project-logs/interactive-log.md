@@ -1,3 +1,32 @@
+## Executive BI Report Accuracy And Missing Data
+
+1. Interaction title
+Executive BI report accuracy and missing data.
+
+2. What was the user goal
+Fix generated Executive BI reports so missing financial inputs are never shown as zero, unsupported profit metrics are not fabricated, Balanced Scorecard comparisons remain meaningful, and recommendations are actionable and selected-dataset grounded.
+
+3. What changed
+Generic dataset report generation now builds strict financials for standard reports and keeps revenue, COGS, operating expenses, interest, tax, profit, margin, trend, and expense-ratio values unavailable unless explicit recognized fields or complete required inputs exist. PDF financial charts render unavailable values as Not available instead of numeric bars, trend charts require real net-profit period values, and incomplete scorecard output labels source-data completeness rather than profitability health. Balanced Scorecard strongest/weakest comparisons require at least two available perspective scores. Report recommendations come from supported signals and missing-data limitations instead of generic findings filler.
+
+4. Problems marked
+- blocker: none.
+- risk: Full browser regeneration for a private uploaded `startup_dataset` requires an authenticated session that has that dataset available.
+- improvement: none.
+- observation: Unsupported repeated profit values came from the PDF financial normalizer copying a single Profit KPI into gross, operating, and net profit when no structured financials existed; missing chart values came from Revenue vs Expenses bars using zero fallbacks for null fields.
+
+5. User learning
+The Executive BI report must distinguish a missing cost field from an actual source value of zero before calculating profit, margin, trend, scorecard comparison, or recommendations.
+
+6. AI-agent learning
+Report financial metrics need a structured unavailable state at the builder level so PDF formatting cannot silently turn missing evidence into zero-valued visuals or copied profit metrics.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+
 ## Report Generation Cost Logging Repair
 
 1. Interaction title

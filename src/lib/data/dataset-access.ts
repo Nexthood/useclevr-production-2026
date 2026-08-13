@@ -63,11 +63,11 @@ export async function findAccessibleDataset(
 }
 
 export async function loadDatasetData(datasetId: string, dataset: typeof datasets.$inferSelect) {
-  const db = getDb()
-  if (!db) return []
-
   const storedData = Array.isArray(dataset.data) ? (dataset.data as Record<string, unknown>[]) : []
   if (storedData.length > 0) return storedData
+
+  const db = getDb()
+  if (!db) return []
 
   const rows = await db.query.datasetRows.findMany({
     where: eq(datasetRows.datasetId, datasetId),

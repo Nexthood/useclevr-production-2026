@@ -51,6 +51,7 @@
     "test:csv-edge-cases": "node -r tsx/esm scripts/analysis/test-csv-edge-cases.ts",
     "test:bbsc": "node -r tsx/esm scripts/analysis/test-bbsc.ts",
     "test:profitability-two-file": "node -r tsx/esm scripts/analysis/test-profitability-two-file.ts",
+    "test:report-accuracy": "node -r tsx/esm scripts/analysis/test-report-accuracy-missing-data.ts",
     "test:business-intelligence": "node -r tsx/esm scripts/analysis/test-business-intelligence-engine.ts",
     "test:dataset-intelligence-engine": "node -r tsx/esm scripts/analysis/test-dataset-intelligence-engine.ts",
     "test:edie-pipeline": "node -r tsx/esm scripts/analysis/test-edie-pipeline.ts",

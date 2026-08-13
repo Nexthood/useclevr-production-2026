@@ -280,6 +280,8 @@ Text rules for this file:
 - Generate PDF reports from analysis results for Pro and Business users.
 - Show the existing Generate Report action beside View Full Daily Brief in the Executive Daily Health dashboard header, using the explicitly selected dashboard dataset or the dashboard's canonical latest dataset as the report scope.
 - Record report-generation AI cost telemetry against the deployed database schema, preserve credit reservation and finalization outcomes, and return customer-safe report errors when non-critical telemetry logging fails.
+- Keep missing report financial fields unavailable instead of numeric zero, derive profit and margin metrics only from explicit recognized fields or complete required inputs, and show dataset-grounded recommendations without fixed-card filler.
+- Compare strongest and weakest Business Balanced Scorecard perspectives only when at least two perspectives have valid comparable scores.
 - Track downloads by dataset and report entry.
 - Combine charts and table details in PDF exports.
 - Use separated row actions for viewing, downloading, and deleting report rows.

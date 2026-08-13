@@ -117,8 +117,8 @@ export function calculateBusinessBalancedScorecard(input: {
   const overallScore = available.length > 0
     ? Math.round(available.reduce((total, perspective) => total + (perspective.score || 0) * perspective.weight, 0))
     : null
-  const strongestPerspective = [...available].sort((a, b) => (b.score || 0) - (a.score || 0))[0] || null
-  const weakestPerspective = [...available].sort((a, b) => (a.score || 0) - (b.score || 0))[0] || null
+  const strongestPerspective = available.length >= 2 ? [...available].sort((a, b) => (b.score || 0) - (a.score || 0))[0] || null : null
+  const weakestPerspective = available.length >= 2 ? [...available].sort((a, b) => (a.score || 0) - (b.score || 0))[0] || null : null
   const excludedPerspectives = Object.values(perspectives)
     .filter((perspective) => perspective.status === "insufficient_data")
     .map((perspective) => perspective.title)
@@ -214,7 +214,7 @@ function buildMetrics(
   model: BbscReportModel,
   rows: DataRow[],
   columns: ColumnMap,
-  trend: BbscTrend,
+  _trend: BbscTrend,
 ): Metric[] {
   const revenue = sumColumn(rows, columns.revenue) ?? sumColumn(rows, columns.gmv)
   const cost = sumColumn(rows, columns.cost) ?? sumColumn(rows, columns.shippingCost) ?? sumColumn(rows, columns.returnCost)
