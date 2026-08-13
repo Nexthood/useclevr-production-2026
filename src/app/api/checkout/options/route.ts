@@ -20,9 +20,15 @@ export async function GET(_request: NextRequest) {
       discountLabel: plan.discountLabel ?? null,
       launchPrices: plan.id === "pro_monthly" ? getProLaunchPrices() : null,
       marketOptions: plan.id === "pro_monthly"
-        ? getCheckoutMarketOptions("pro").map(sanitizeMarketOption)
+        ? [
+            ...getCheckoutMarketOptions("pro", "monthly").map(sanitizeMarketOption),
+            ...getCheckoutMarketOptions("pro", "yearly").map(sanitizeMarketOption),
+          ]
         : plan.id === "business_monthly"
-          ? getCheckoutMarketOptions("business").map(sanitizeMarketOption)
+          ? [
+              ...getCheckoutMarketOptions("business", "monthly").map(sanitizeMarketOption),
+              ...getCheckoutMarketOptions("business", "yearly").map(sanitizeMarketOption),
+            ]
           : null,
       stripePriceStatusByCurrency: plan.id === "pro_monthly"
         ? {

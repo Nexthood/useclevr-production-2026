@@ -1,3 +1,38 @@
+## Yearly Paid Plan Billing
+
+1. Interaction title
+Yearly paid plan billing.
+
+2. What was the user goal
+Add Yearly subscription billing to the existing Monthly UseClevr billing flow without changing monthly checkout behavior, entitlements, webhooks, credits, or Stripe products.
+
+3. What changed
+Extended the shared paid-plan price resolver so Pro and Business resolve Stripe Price IDs by plan, market, and Monthly or Yearly interval. Added approved yearly display prices for USD, EUR, GBP, and CAD, market-specific yearly environment-variable lookup, safe missing-configuration errors, yearly-aware Stripe recurring interval validation, checkout URL and metadata interval preservation, public pricing Monthly/Yearly selection, subscription plan Monthly/Yearly selection, checkout review and terms interval display, and subscription billing-cycle labeling for configured yearly Price IDs. Focused billing tests cover all eight Yearly plan/market combinations, monthly restoration after yearly selection, server-side price tamper rejection, and webhook/subscription tier mapping.
+
+4. Problems marked
+- blocker: none.
+- risk: Live Stripe-hosted checkout amount and recurrence verification requires the deployed environment to provide the actual yearly Price IDs and a signed-in browser session.
+- improvement: Active Monthly-to-Yearly subscription migration and proration remain outside this change.
+- observation: Existing Monthly plan IDs, monthly env fallbacks, subscription activation, credit limits, and webhook tier mapping stay on the existing architecture.
+
+5. User learning
+Yearly billing uses configured recurring Stripe Price objects per plan and market; missing yearly configuration blocks that market instead of falling back to Monthly or another currency.
+
+6. AI-agent learning
+Billing interval changes must preserve selected market state through review, terms, cancellation, API metadata, and Stripe validation.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Ghost Mode Private AI Sessions
 
 1. Interaction title

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth/auth";
 import { getActiveCreditTopUpPackages } from "@/lib/billing/credit-packages";
-import { formatPlanPrice } from "@/lib/billing/plans";
+import { getSubscriptionIntervalForStripePriceId } from "@/lib/billing/launch-pricing";
 import { getBillingSettings } from "@/lib/billing/settings-store";
 import { getCreditTopUpHistory } from "@/lib/billing/credit-topup-service";
 import { getDb } from "@/lib/db";
@@ -13,6 +13,7 @@ import { ArrowUpRight, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles,
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CreditTopUpButton } from "@/components/shared/credit-topup-button"
+import { SubscriptionPlanSelector } from "@/components/billing/subscription-plan-selector";
 
 export const metadata: Metadata = { title: "Subscription" };
 
@@ -111,7 +112,10 @@ export default async function SubscriptionSettingsPage({
       : providerConfigured
         ? "Ready for checkout"
         : "Not configured";
-  const billingCycle = profile?.stripePriceId ? "Monthly" : "None";
+  const currentBillingInterval = profile?.stripePriceId
+    ? getSubscriptionIntervalForStripePriceId(profile.stripePriceId)
+    : null;
+  const billingCycle = currentBillingInterval === "yearly" ? "Yearly" : profile?.stripePriceId ? "Monthly" : "None";
   const nextBillingDate = profile?.stripeCurrentPeriodEnd
     ? profile.stripeCurrentPeriodEnd.toLocaleDateString()
     : "Not scheduled";
@@ -203,46 +207,11 @@ export default async function SubscriptionSettingsPage({
               </div>
             </div>
 
-            <div className="grid min-w-0 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-              {billingSettings.plans.map((plan) => {
-                const isCurrent =
-                  (plan.tier === "free" && currentPlanLabel === "Free") ||
-                  (plan.tier === "pro" && tier === "pro") ||
-                  (plan.tier === "business" && tier === "business");
-
-                return (
-                  <div key={plan.id} className="min-w-0 rounded-lg border border-border bg-background p-4">
-                    <div className="flex min-w-0 items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground">{plan.name}</p>
-                        <p className="break-words text-sm text-muted-foreground">{formatPlanPrice(plan)}</p>
-                      </div>
-                      {isCurrent && (
-                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">
-                          Current
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-3 min-h-10 break-words text-sm text-muted-foreground">{plan.description}</p>
-                    {isCurrent ? (
-                      <Button disabled size="sm" variant="outline" className="mt-4 w-full bg-transparent">
-                        Active plan
-                      </Button>
-                    ) : (
-                      <Link href={`/app/settings/checkout?plan=${plan.id}`}>
-                        <Button
-                          size="sm"
-                          variant={plan.tier === "free" ? "outline" : "default"}
-                          className={plan.tier === "free" ? "mt-4 w-full bg-transparent" : "mt-4 w-full"}
-                        >
-                          {plan.tier === "free" ? "Downgrade" : "Review change"}
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <SubscriptionPlanSelector
+              plans={billingSettings.plans}
+              currentTier={tier}
+              currentPlanLabel={currentPlanLabel}
+            />
           </div>
         )}
 

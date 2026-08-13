@@ -6,7 +6,9 @@ import {
   billingCountryOptions,
   getCountryFromLocale,
   getMarketForCountry,
+  normalizeBillingInterval,
   normalizeCheckoutMarket,
+  type BillingInterval,
   type CheckoutMarket,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing";
@@ -44,7 +46,7 @@ type CheckoutPlanOption = Omit<CheckoutPlan, "stripePriceId"> & {
 
 type CheckoutMarketOption = {
   plan: "pro" | "business";
-  billingInterval: "monthly";
+  billingInterval: BillingInterval;
   market: CheckoutMarket;
   marketLabel: string;
   currency: SupportedCurrency;
@@ -77,20 +79,23 @@ function CheckoutClient() {
   const [selectedMarket, setSelectedMarket] = React.useState<CheckoutMarket>(
     normalizeCheckoutMarket(searchParams.get("market")) ?? "eu",
   );
+  const [selectedBillingInterval, setSelectedBillingInterval] = React.useState<BillingInterval>(
+    normalizeBillingInterval(searchParams.get("interval")),
+  );
   const [browserCountry, setBrowserCountry] = React.useState<string | null>(null);
 
   const plan: CheckoutPlan = availablePlans.find((candidate) => candidate.id === planId) ?? getBillingPlan(planId);
   const paidPlans = availablePlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
   const isFreePlan = plan.tier === "free";
-  const selectedMarketOption = getSelectedMarketOption(plan, selectedMarket);
+  const selectedMarketOption = getSelectedMarketOption(plan, selectedMarket, selectedBillingInterval);
 
   React.useEffect(() => {
     const country = getCountryFromLocale(navigator.language);
     setBrowserCountry(country);
-    if (country && billingCountryOptions.some((option) => option.value === country)) {
+    if (!searchParams.get("market") && country && billingCountryOptions.some((option) => option.value === country)) {
       setSelectedMarket(getMarketForCountry(country));
     }
-  }, []);
+  }, [searchParams]);
 
   // Load checkout readiness from the server because Stripe price env vars are server-only.
   React.useEffect(() => {
@@ -143,9 +148,17 @@ function CheckoutClient() {
     setTermsAccepted(false);
     setCheckoutError(null);
     const nextPlan = availablePlans.find((candidate) => candidate.id === normalized) ?? getBillingPlan(normalized);
-    const nextMarket = getMarketSelectionForPlan(nextPlan, selectedMarket);
+    const nextMarket = getMarketSelectionForPlan(nextPlan, selectedMarket, selectedBillingInterval);
     setSelectedMarket(nextMarket);
-    router.push(buildCheckoutUrl({ planId: normalized, market: nextMarket, discount }));
+    router.push(buildCheckoutUrl({ planId: normalized, market: nextMarket, billingInterval: selectedBillingInterval, discount }));
+  };
+
+  const selectBillingInterval = (billingInterval: BillingInterval) => {
+    setSelectedBillingInterval(billingInterval);
+    setStep("review");
+    setTermsAccepted(false);
+    setCheckoutError(null);
+    router.push(buildCheckoutUrl({ planId, market: selectedMarket, billingInterval, discount }));
   };
 
   // Fetch available discounts and filter by plan target
@@ -187,7 +200,7 @@ function CheckoutClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan: plan.tier,
-          billingInterval: "monthly",
+          billingInterval: selectedBillingInterval,
           market: selectedMarket,
           browserCountry,
         }),
@@ -217,13 +230,13 @@ function CheckoutClient() {
   const goTerms = (e: React.MouseEvent) => {
     e.preventDefault();
     setStep("terms");
-    router.push(buildCheckoutUrl({ planId, market: selectedMarket, discount, form: "review-accepted" }));
+    router.push(buildCheckoutUrl({ planId, market: selectedMarket, billingInterval: selectedBillingInterval, discount, form: "review-accepted" }));
   };
 
   const goBack = (e: React.MouseEvent) => {
     e.preventDefault();
     setStep("review");
-    router.push(buildCheckoutUrl({ planId, market: selectedMarket, discount }));
+    router.push(buildCheckoutUrl({ planId, market: selectedMarket, billingInterval: selectedBillingInterval, discount }));
   };
 
   return (
@@ -300,7 +313,7 @@ function CheckoutClient() {
                         />
                       </span>
                       <span className="mt-1 block text-sm font-medium text-foreground">
-                        {formatCheckoutPlanPrice(candidate, selectedMarket)}
+                        {formatCheckoutPlanPrice(candidate, selectedMarket, selectedBillingInterval)}
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground">{candidate.description}</span>
                     </button>
@@ -311,19 +324,28 @@ function CheckoutClient() {
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">{plan.name}</h2>
                 <span className="text-xl font-semibold">
-                  {formatCheckoutPlanPrice(plan, selectedMarket)}
+                  {formatCheckoutPlanPrice(plan, selectedMarket, selectedBillingInterval)}
                 </span>
               </div>
+              {!isFreePlan && (
+                <div className="mt-4">
+                  <BillingIntervalSelector
+                    selectedBillingInterval={selectedBillingInterval}
+                    onSelect={selectBillingInterval}
+                  />
+                </div>
+              )}
               <p className="mt-3 break-words text-sm text-muted-foreground">{plan.description}</p>
 
               {(plan.id === "pro_monthly" || plan.id === "business_monthly") && (
                 <MarketSelector
                   plan={plan}
+                  selectedBillingInterval={selectedBillingInterval}
                   selectedMarket={selectedMarket}
                   onSelect={(market) => {
                     setSelectedMarket(market);
                     setCheckoutError(null);
-                    router.push(buildCheckoutUrl({ planId, market, discount }));
+                    router.push(buildCheckoutUrl({ planId, market, billingInterval: selectedBillingInterval, discount }));
                   }}
                 />
               )}
@@ -372,7 +394,7 @@ function CheckoutClient() {
                 {!isFreePlan && !isPlanConfigLoading && !canReview && (
                   <p className="mt-2 text-sm text-destructive">
                     {selectedMarketOption
-                      ? `${selectedMarketOption.marketLabel} checkout is not available for ${plan.name} yet.`
+                      ? `${selectedBillingInterval === "yearly" ? "Yearly" : "Monthly"} billing is currently unavailable for this market.`
                       : "Choose an available billing market before checkout."}
                   </p>
                 )}
@@ -420,7 +442,7 @@ function CheckoutClient() {
                 <p className="mb-1.5 text-xs">
                   By subscribing to the {plan.name} plan you agree to these terms. All paid
                   subscriptions are billed in advance and will renew automatically at the end of
-                  each billing period ({plan.interval}ly) unless cancelled before the renewal date.
+                  each billing period ({selectedBillingInterval === "yearly" ? "yearly" : "monthly"}) unless cancelled before the renewal date.
                 </p>
                 <p className="mb-1.5 font-semibold text-foreground text-xs">2. Usage</p>
                 <p className="mb-1.5 text-xs">
@@ -487,9 +509,15 @@ function CheckoutClient() {
                   {isPlanConfigLoading
                     ? "Checking the payment provider for this plan."
                     : canReview
-                    ? "Payment will be processed once you continue past this screen."
+                    ? `${plan.name} ${formatCheckoutPlanPrice(plan, selectedMarket, selectedBillingInterval)} billing opens once you continue past this screen.`
                     : "Card payment activates after the payment provider is connected."}
                 </p>
+                {!isFreePlan && (
+                  <div className="mt-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Billing:</span>{" "}
+                    {selectedBillingInterval === "yearly" ? "Yearly" : "Monthly"}
+                  </div>
+                )}
                 {!isPlanConfigLoading && !canReview && (
                   <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     Payment provider connection is required before saving card details. Contact support to enable Stripe integration.
@@ -542,14 +570,16 @@ function CheckoutClient() {
 
 function MarketSelector({
   plan,
+  selectedBillingInterval,
   selectedMarket,
   onSelect,
 }: {
   plan: CheckoutPlan;
+  selectedBillingInterval: BillingInterval;
   selectedMarket: CheckoutMarket;
   onSelect: (market: CheckoutMarket) => void;
 }) {
-  const options = plan.marketOptions ?? [];
+  const options = (plan.marketOptions ?? []).filter((option) => option.billingInterval === selectedBillingInterval);
   if (options.length === 0) return null;
 
   return (
@@ -589,21 +619,51 @@ function MarketSelector({
   );
 }
 
-function getSelectedMarketOption(plan: CheckoutPlan, market: CheckoutMarket) {
-  return plan.marketOptions?.find((option) => option.market === market) ?? null;
+function BillingIntervalSelector({
+  selectedBillingInterval,
+  onSelect,
+}: {
+  selectedBillingInterval: BillingInterval;
+  onSelect: (billingInterval: BillingInterval) => void;
+}) {
+  return (
+    <div className="inline-flex w-full rounded-lg border border-border bg-muted/40 p-1 sm:w-auto" role="group" aria-label="Billing interval">
+      {(["monthly", "yearly"] as BillingInterval[]).map((billingInterval) => {
+        const selected = billingInterval === selectedBillingInterval;
+        return (
+          <button
+            key={billingInterval}
+            type="button"
+            onClick={() => onSelect(billingInterval)}
+            className={[
+              "min-h-10 flex-1 rounded-md px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-w-28",
+              selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+            ].join(" ")}
+            aria-pressed={selected}
+          >
+            {billingInterval === "yearly" ? "Yearly" : "Monthly"}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
-function getMarketSelectionForPlan(plan: CheckoutPlan, currentMarket: CheckoutMarket): CheckoutMarket {
-  const options = plan.marketOptions ?? [];
+function getSelectedMarketOption(plan: CheckoutPlan, market: CheckoutMarket, billingInterval: BillingInterval) {
+  return plan.marketOptions?.find((option) => option.market === market && option.billingInterval === billingInterval) ?? null;
+}
+
+function getMarketSelectionForPlan(plan: CheckoutPlan, currentMarket: CheckoutMarket, billingInterval: BillingInterval): CheckoutMarket {
+  const options = (plan.marketOptions ?? []).filter((option) => option.billingInterval === billingInterval);
   if (options.some((option) => option.market === currentMarket && option.enabled)) return currentMarket;
   return options.find((option) => option.enabled)?.market ?? currentMarket;
 }
 
-function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket) {
+function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket, billingInterval: BillingInterval) {
   if (plan.tier === "free") return "$0/€0/month";
 
   if (plan.id === "pro_monthly" || plan.id === "business_monthly") {
-    return getSelectedMarketOption(plan, market)?.displayPrice ?? formatPlanPrice(plan);
+    return getSelectedMarketOption(plan, market, billingInterval)?.displayPrice ?? formatPlanPrice(plan);
   }
 
   return formatPlanPrice(plan);
@@ -612,15 +672,18 @@ function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket) {
 function buildCheckoutUrl({
   planId,
   market,
+  billingInterval,
   discount,
   form,
 }: {
   planId: string;
   market: CheckoutMarket;
+  billingInterval: BillingInterval;
   discount: boolean;
   form?: string;
 }) {
   const params = new URLSearchParams({ plan: normalizeBillingPlanId(planId), market });
+  params.set("interval", billingInterval);
   if (form) params.set("form", form);
   if (discount) params.set("discount", "auto");
   return `/app/settings/checkout?${params.toString()}`;

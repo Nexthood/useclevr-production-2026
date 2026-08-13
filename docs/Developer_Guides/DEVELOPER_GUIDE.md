@@ -74,8 +74,8 @@ Conditional service accounts:
 - Resend, required for production email verification delivery from the configured `EMAIL_FROM` sender.
 - AWS S3 or Cloudflare R2, only when durable uploaded-file storage is enabled.
 
-Stripe paid checkout uses server-resolved monthly Price IDs. Pro supports all launch markets with
-fixed approved prices:
+Stripe paid checkout uses server-resolved recurring Price IDs. Pro monthly checkout supports all
+launch markets with fixed approved prices:
 
 - `USECLEVR_PRO_PRICE_EUR`
 - `USECLEVR_PRO_PRICE_GBP`
@@ -88,10 +88,19 @@ to the matching UseClevr Pro monthly Stripe Price ID.
 
 Business EUR checkout uses `STRIPE_BUSINESS_PRICE_ID_EUR` with
 `STRIPE_PRICE_BUSINESS_MONTHLY` and `STRIPE_PRICE_ID_BUSINESS_MONTHLY` as compatibility fallbacks.
-Business UK, US, and Canada markets stay unavailable until approved monthly prices and matching
+Business UK, US, and Canada monthly checkout uses approved monthly prices when the matching
 `STRIPE_BUSINESS_PRICE_ID_GBP`, `STRIPE_BUSINESS_PRICE_ID_USD`, and
-`STRIPE_BUSINESS_PRICE_ID_CAD` values exist. The backend selects Stripe prices from the canonical
-plan, monthly interval, and market and rejects browser-supplied amounts or Price IDs.
+`STRIPE_BUSINESS_PRICE_ID_CAD` values exist.
+
+Yearly checkout uses existing recurring Stripe prices by market:
+
+- `STRIPE_PRICE_PRO_EUR_YEARLY`, `STRIPE_PRICE_PRO_GBP_YEARLY`,
+  `STRIPE_PRICE_PRO_USD_YEARLY`, and `STRIPE_PRICE_PRO_CAD_YEARLY`
+- `STRIPE_PRICE_BUSINESS_EUR_YEARLY`, `STRIPE_PRICE_BUSINESS_GBP_YEARLY`,
+  `STRIPE_PRICE_BUSINESS_USD_YEARLY`, and `STRIPE_PRICE_BUSINESS_CAD_YEARLY`
+
+The backend also accepts the matching `*_ANNUAL` aliases. The backend selects Stripe prices from
+the canonical plan, selected interval, and market and rejects browser-supplied amounts or Price IDs.
 
 Local-only tools:
 

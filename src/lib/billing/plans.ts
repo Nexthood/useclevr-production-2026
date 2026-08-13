@@ -69,6 +69,11 @@ export function getStripePriceEnvNames(planId: StripePricePlanId): string[] {
     return getCheckoutMarketOptions(slug).flatMap((option) => option.priceEnvNames);
   }
 
+  if (planId === "pro_annual" || planId === "business_annual") {
+    const slug = planId === "pro_annual" ? "pro" : "business";
+    return getCheckoutMarketOptions(slug, "yearly").flatMap((option) => option.priceEnvNames);
+  }
+
   const config = stripePriceEnvByPlanId[planId];
   if (!config) return [];
   return [config.primary, ...(config.fallbacks ?? [])];
@@ -77,6 +82,8 @@ export function getStripePriceEnvNames(planId: StripePricePlanId): string[] {
 export function resolveStripePriceId(planId: StripePricePlanId): string | undefined {
   if (planId === "pro_monthly") return getProStripePriceId("EUR");
   if (planId === "business_monthly") return getStripePriceIdForCheckout("business", "eu");
+  if (planId === "pro_annual") return getStripePriceIdForCheckout("pro", "eu", "yearly");
+  if (planId === "business_annual") return getStripePriceIdForCheckout("business", "eu", "yearly");
 
   return getStripePriceEnvNames(planId)
     .map((envName) => process.env[envName]?.trim())

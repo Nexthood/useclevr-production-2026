@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     const origin = request.nextUrl.origin;
     const checkoutToken = issueCheckoutToken(null, user.id);
     const successUrl = `${origin}/checkout/success?t=${checkoutToken}&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}&market=${checkoutPriceMetadata.market}`;
+    const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}&market=${checkoutPriceMetadata.market}&interval=${checkoutPriceMetadata.billingInterval}`;
 
     try {
       const checkout = await createStripeCheckoutSession({
@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
         customerId: profile?.stripeCustomerId ?? null,
         priceId,
         expectedCurrency: checkoutPriceMetadata.resolvedCurrency,
+        expectedInterval: checkoutPriceMetadata.billingInterval === "yearly" ? "year" : "month",
         plan: planSlug,
         successUrl,
         cancelUrl,

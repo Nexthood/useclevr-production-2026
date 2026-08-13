@@ -1,11 +1,11 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicPageHeader } from "@/components/layout/public-page-header"
+import { PublicPricingPlans } from "@/components/billing/public-pricing-plans"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { billingPlans, formatPlanPrice, type BillingPlan } from "@/lib/billing/plans"
 import { getPricingFaqs } from "@/lib/content/faq"
-import { Building2, Check, Sparkles, Zap } from "lucide-react"
+import { Check } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
@@ -33,89 +33,6 @@ export const metadata = {
 }
 
 const pricingFaqs = getPricingFaqs()
-const plans = billingPlans
-
-const planIcon = {
-  free: Sparkles,
-  pro: Zap,
-  business: Building2,
-} as const
-
-const checkoutHref: Record<BillingPlan["tier"], string> = {
-  free: "/signup",
-  pro: "/signup",
-  business: "/app/settings/checkout?plan=business_monthly",
-}
-
-const ctaLabel: Record<BillingPlan["tier"], string> = {
-  free: "Get Started",
-  pro: "Upgrade to Pro",
-  business: "Upgrade to Business",
-}
-
-function PricingCard({ plan }: { plan: BillingPlan }) {
-  const Icon = planIcon[plan.tier]
-  const isPro = plan.tier === "pro"
-  const launchPrices = plan.id === "pro_monthly" ? plan.launchPrices ?? [] : []
-
-  return (
-    <Card
-      className={[
-        "flex h-full flex-col space-y-5 border-border/50 bg-card p-6",
-        isPro ? "relative border-2 border-primary/50 shadow-lg shadow-primary/10" : "",
-      ].join(" ")}
-    >
-      {isPro && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <div className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-            Most Popular
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-          <Icon className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h3 className="mb-1 text-xl font-bold">{plan.name}</h3>
-          <p className="text-sm text-muted-foreground">{plan.description}</p>
-        </div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold tracking-tight">{plan.tier === "free" ? "$0/€0" : formatPlanPrice(plan).replace("/month", "")}</span>
-          <span className="text-sm text-muted-foreground">/month</span>
-        </div>
-        {launchPrices.length > 0 && (
-          <div className="flex flex-wrap gap-2 text-xs">
-            {launchPrices.map((price) => (
-              <span key={price.currency} className="rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
-                {price.label}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <ul className="flex-1 space-y-2">
-        {plan.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span className="text-sm font-medium">{feature}</span>
-          </li>
-        ))}
-      </ul>
-
-      <Link href={checkoutHref[plan.tier]} className="block" prefetch={false}>
-        <Button
-          variant={isPro ? "default" : "outline"}
-          className={isPro ? "w-full" : "w-full bg-transparent"}
-        >
-          {ctaLabel[plan.tier]}
-        </Button>
-      </Link>
-    </Card>
-  )
-}
 
 export default function PricingPage() {
   return (
@@ -142,11 +59,7 @@ export default function PricingPage() {
 
         <section className="container mx-auto px-4 py-8 md:px-6">
           <div className="mx-auto max-w-6xl">
-            <div className="grid gap-6 md:grid-cols-3">
-              {plans.map((plan) => (
-                <PricingCard key={plan.id} plan={plan} />
-              ))}
-            </div>
+            <PublicPricingPlans />
 
             <div className="mt-12">
               <h2 className="mb-8 text-center text-2xl font-bold md:text-3xl">Frequently asked questions</h2>

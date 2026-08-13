@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add yearly billing selection for Pro and Business so customers can review monthly or yearly paid plans by market before Stripe Checkout opens.
 - Add Eclipse Mode for AI sessions so users can minimize UseClevr retention of AI conversation content while billing, security, provider routing, and dataset isolation continue to work.
 - Add fast bulk dataset management in Risk Intelligence and the Dataset Library so users can select many uploaded datasets, delete them with one confirmation, retry failed deletions, and keep the active dataset state valid.
 - Add consistent Local AI beta labeling across AI mode selection, helper setup, provider settings, and Hybrid AI chats so users separate product maturity from connection status.
