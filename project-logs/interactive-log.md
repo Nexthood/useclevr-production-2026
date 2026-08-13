@@ -1,3 +1,32 @@
+## Report Generation Cost Logging Repair
+
+1. Interaction title
+Report generation cost logging repair.
+
+2. What was the user goal
+Fix the Generate Report failure that showed a raw database insert error for AI cost logging while preserving the existing report engine, downloads, credits, billing, and AI provenance.
+
+3. What changed
+Added an idempotent AI cost telemetry schema repair that creates the report cost-log table with the columns expected by the Drizzle schema and applies the repair during Railway predeploy. Report API routes still reserve, finalize, and release credits through the credit engine, and they isolate non-critical cost telemetry failures from report generation responses. The dashboard report action keeps known billing messages visible and replaces internal database details with a customer-safe report-generation error.
+
+4. Problems marked
+- blocker: none.
+- risk: Full browser verification for report creation, Reports & Downloads listing, PDF download, CSV download, AI provenance metadata, and console state requires an authenticated session with a reportable dataset and the deployed database after predeploy runs.
+- improvement: none.
+- observation: The configured runtime database did not have the `AICostLog` table even though application code inserted report-generation cost telemetry into that schema.
+
+5. User learning
+The report failure came from a missing telemetry table, not from the report engine, PDF/CSV generation, or dashboard dataset scoping.
+
+6. AI-agent learning
+Report-generation telemetry must be schema-synchronized through migrations and predeploy, and non-critical telemetry inserts must not override completed credit handling or leak raw SQL into customer-facing UI.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+
 ## Executive Daily Health Generate Report Visibility
 
 1. Interaction title

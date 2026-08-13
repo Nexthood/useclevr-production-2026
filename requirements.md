@@ -279,6 +279,7 @@ Text rules for this file:
 
 - Generate PDF reports from analysis results for Pro and Business users.
 - Show the existing Generate Report action beside View Full Daily Brief in the Executive Daily Health dashboard header, using the explicitly selected dashboard dataset or the dashboard's canonical latest dataset as the report scope.
+- Record report-generation AI cost telemetry against the deployed database schema, preserve credit reservation and finalization outcomes, and return customer-safe report errors when non-critical telemetry logging fails.
 - Track downloads by dataset and report entry.
 - Combine charts and table details in PDF exports.
 - Use separated row actions for viewing, downloading, and deleting report rows.

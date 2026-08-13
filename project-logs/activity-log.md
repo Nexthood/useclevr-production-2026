@@ -1,3 +1,4 @@
+- fixed: align report-generation AI cost telemetry with the deployed database schema, keep credit handling intact, and return customer-safe report errors when non-critical telemetry logging fails
 - fixed: restore Railway's native predeploy command in the server-config template so generated deployment branches run the schema/runtime predeploy helper before starting the app
 - added: Ghost Mode lets users run session-scoped AI conversations that skip UseClevr chat-history and content-level trace retention while preserving billing, security, provider-routing audit metadata, Local AI behavior, dataset storage, and dataset isolation
 - fixed: separate AI Analyst unusual transaction analysis from largest-transaction ranking; anomaly answers now validate transaction amount fields, use IQR outlier thresholds, include median/quartile evidence, exclude malformed values, and avoid unsupported suspicious or fraud claims

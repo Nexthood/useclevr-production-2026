@@ -307,6 +307,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0020_ai_governance_overrides.sql"),
   readMigrationStatement("src/lib/db/migrations/0022_upload_credit_usage_persistence.sql"),
   readMigrationStatement("src/lib/db/migrations/0024_credit_topup_reconciliation.sql"),
+  readMigrationStatement("src/lib/db/migrations/0026_ai_cost_log_schema.sql"),
 ];
 
 const constraints = [

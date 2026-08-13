@@ -26,6 +26,7 @@
 
 ### Fixed
 
+- Fix report generation telemetry so dashboard reports keep customer-safe errors and complete after credit handling when non-critical telemetry logging fails.
 - Fix Generate Report visibility in the Executive Daily Health header so the default dashboard uses its latest reportable dataset when no dataset is explicitly selected.
 - Remove the non-functional View rows action from Dataset Library rows so users see only the working dashboard or module destination.
 - Show Free as the only no-cost customer plan with $0/€0 pricing, no checkout prompt, and included credits.

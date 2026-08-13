@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-13
-- **Goal**: Fix Generate Report visibility in the Executive Daily Health dashboard header.
-- **Durable change**: The active `/app` dashboard now passes the explicitly selected dataset or, on the default aggregate dashboard, the canonical latest reportable dashboard dataset into the Executive Daily Health Generate Report action. The existing report action and report-generation flow remain unchanged.
-- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes; focused ESLint passes for `src/app/(auth)/app/page.tsx` and `src/components/dashboard/generate-report-action.tsx`; source search confirms the Daily Health report action uses the selected dataset or dashboard latest dataset.
+- **Goal**: Repair Generate Report cost logging so report generation does not expose database errors.
+- **Durable change**: Report generation has an idempotent database schema repair for AI cost telemetry, Railway predeploy applies that repair, and report routes keep credit handling separate from non-critical telemetry logging failures.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes; `git diff --check` passes; focused source checks confirm the AI cost telemetry migration, Railway predeploy hook, report-route safe logging, and dashboard raw-error sanitization.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

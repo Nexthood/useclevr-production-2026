@@ -509,6 +509,7 @@ moving work between states.
 
 ## Label: reports
 
+- T-1005. Report generation records AI cost telemetry against the current database schema and returns customer-safe errors when non-critical telemetry logging fails. (labels: reports, billing, logging, testing; commit: worktree)
 - T-290. Service layer extraction created lib/services/reportService.ts for report generation orchestration. (labels: reports; commit: 53deaed7)
 - T-211. Move flowcharts into developer guide folders. (labels: reports, docs, workflow; commit: 53deaed7)
 - T-223. Create the original system flowchart. (labels: reports, workflow; commit: 53deaed7)

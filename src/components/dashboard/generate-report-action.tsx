@@ -54,7 +54,7 @@ export function GenerateReportAction({
           : typeof result.message === "string"
             ? result.message
             : "Report generation failed."
-        throw new Error(message)
+        throw new Error(getSafeReportErrorMessage(message))
       }
 
       const reportId = typeof result.reportId === "string" ? result.reportId : null
@@ -96,6 +96,18 @@ export function GenerateReportAction({
       )}
     </div>
   )
+}
+
+function getSafeReportErrorMessage(message: string) {
+  const normalized = message.toLowerCase()
+  const exposesDatabaseDetails =
+    normalized.includes("failed query") ||
+    normalized.includes("insert into") ||
+    normalized.includes("aicostlog") ||
+    normalized.includes("sql") ||
+    normalized.includes("parameters:")
+
+  return exposesDatabaseDetails ? "Failed to generate report" : message
 }
 
 function createClientId() {
