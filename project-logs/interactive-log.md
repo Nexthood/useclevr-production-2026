@@ -3474,3 +3474,38 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Executive BI PDF Report Redesign and Accuracy
+
+1. Interaction title
+Executive BI PDF report redesign and accuracy.
+
+2. What was the user goal
+Redesign generated Executive BI PDF reports into professional corporate documents and make every financial number, chart, score, recommendation, and unavailable state data-grounded.
+
+3. What changed
+The PDF renderer now uses a white document layout with small cover-only UseClevr branding, metadata, executive summary, compact metric highlights, financial source tables, unavailable chart states, cost requirements, Balanced Scorecard comparison guardrails, executive recommendations, provenance, about text, and subtle footers. Report financials now classify metrics as source value, valid derived value, or unavailable. Report generation now rebuilds from the server-loaded accessible dataset and returns "No reportable dataset is currently available." for empty report inputs. Regression coverage asserts missing values, explicit zero values, explicit profit source fields, derived profit and margin rules, recommendation grounding, Balanced Scorecard guardrails, PDF generation, and source classifications.
+
+4. Problems marked
+blocker: none.
+risk: full production browser download flow remains untested in a signed-in session.
+improvement: long PDF table notes use compact one-line cells, so future report typography work can add multi-line table rows.
+observation: previous reports looked like dashboard exports because the PDF renderer used full dark backgrounds, rounded dashboard cards, and repeated brand text.
+
+5. User learning
+Generated reports now distinguish missing COGS and expenses from actual zero values and avoid fake profitability, fake charts, or filler recommendations.
+
+6. AI-agent learning
+For report accuracy work, carry source classification in the report data model before rendering so visual status, financial values, charts, and recommendations cannot imply unsupported conclusions.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

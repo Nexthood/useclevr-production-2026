@@ -9,8 +9,8 @@ type DatasetRecord = typeof datasets.$inferSelect
 type DataRow = Record<string, unknown>
 type ReportModel = BusinessModel | DatasetCategory | "business_consulting"
 type ReportKpi = { title: string; value: number; format: "currency" | "number" | "percent" }
-type MetricSource = "source_field" | "derived_calculation"
-type FinancialMetric = { value: number | null; source: MetricSource | null }
+type MetricSource = "source_value" | "derived_value" | "unavailable"
+type FinancialMetric = { value: number | null; source: MetricSource; note: string }
 
 type ColumnMap = {
   revenue?: string
@@ -111,9 +111,12 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   const operatingExpenses = numeric("operatingExpenses")
   const interestExpense = numeric("interestExpense")
   const taxExpense = numeric("taxExpense")
-  const grossProfit = totalRevenue !== null && cogs !== null ? round(totalRevenue - cogs) : null
-  const operatingProfit = grossProfit !== null && operatingExpenses !== null ? round(grossProfit - operatingExpenses) : null
-  const netProfit = operatingProfit !== null && interestExpense !== null && taxExpense !== null
+  const explicitGrossProfit = numeric("grossProfit")
+  const explicitOperatingProfit = numeric("operatingProfit")
+  const explicitNetProfit = numeric("netProfit")
+  const grossProfit = explicitGrossProfit !== null ? explicitGrossProfit : totalRevenue !== null && cogs !== null ? round(totalRevenue - cogs) : null
+  const operatingProfit = explicitOperatingProfit !== null ? explicitOperatingProfit : grossProfit !== null && operatingExpenses !== null ? round(grossProfit - operatingExpenses) : null
+  const netProfit = explicitNetProfit !== null ? explicitNetProfit : operatingProfit !== null && interestExpense !== null && taxExpense !== null
     ? round(operatingProfit - interestExpense - taxExpense)
     : null
   const grossMargin = totalRevenue && grossProfit !== null ? round((grossProfit / totalRevenue) * 100) : null
@@ -170,6 +173,19 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   const financials: ReportFinancials = {
     reportingPeriod: reportingPeriodFromMetrics(metrics),
     dataConfidence: typeof metrics.dataConfidence === "number" ? metrics.dataConfidence : null,
+    metricSources: {
+      revenue: totalRevenue !== null ? sourceMeta("Revenue source total from selected analysis inputs.") : unavailableMeta("No recognized revenue source field."),
+      cogs: cogs !== null ? sourceMeta("COGS source total from selected analysis inputs.") : unavailableMeta("No recognized COGS source field."),
+      grossProfit: explicitGrossProfit !== null ? sourceMeta("Explicit gross profit field from selected analysis inputs.") : grossProfit !== null ? derivedMeta("Revenue minus COGS.") : unavailableMeta("Requires COGS or explicit gross profit field."),
+      operatingExpenses: operatingExpenses !== null ? sourceMeta("Operating-expense source total from selected analysis inputs.") : unavailableMeta("No recognized operating-expense source field."),
+      operatingProfit: explicitOperatingProfit !== null ? sourceMeta("Explicit operating profit field from selected analysis inputs.") : operatingProfit !== null ? derivedMeta("Gross profit minus operating expenses.") : unavailableMeta("Requires operating expenses or explicit operating profit field."),
+      interestExpense: interestExpense !== null ? sourceMeta("Interest-expense source total from selected analysis inputs.") : unavailableMeta("No recognized interest-expense source field."),
+      taxExpense: taxExpense !== null ? sourceMeta("Tax-expense source total from selected analysis inputs.") : unavailableMeta("No recognized tax-expense source field."),
+      netProfit: explicitNetProfit !== null ? sourceMeta("Explicit net profit field from selected analysis inputs.") : netProfit !== null ? derivedMeta("Operating profit minus interest and tax expense.") : unavailableMeta("Requires interest, tax, and operating profit inputs or explicit net profit field."),
+      grossMargin: grossMargin !== null ? derivedMeta("Gross profit divided by revenue.") : unavailableMeta("Requires gross profit and non-zero revenue."),
+      operatingMargin: operatingMargin !== null ? derivedMeta("Operating profit divided by revenue.") : unavailableMeta("Requires operating profit and non-zero revenue."),
+      netMargin: netMargin !== null ? derivedMeta("Net profit divided by revenue.") : unavailableMeta("Requires net profit and non-zero revenue."),
+    },
     revenue: totalRevenue,
     cogs,
     grossProfit,
@@ -379,6 +395,19 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
   return {
     reportingPeriod: null,
     dataConfidence: dataConfidenceForFinancials([revenue, cogs, operatingExpenses, interestExpense, taxExpense]),
+    metricSources: {
+      revenue: metaFromMetric(revenue),
+      cogs: metaFromMetric(cogs, "No recognized COGS source field."),
+      grossProfit: metaFromMetric(grossProfit, "Requires COGS or explicit gross profit field."),
+      operatingExpenses: metaFromMetric(operatingExpenses, "No recognized operating-expense source field."),
+      operatingProfit: metaFromMetric(operatingProfit, "Requires operating expenses or explicit operating profit field."),
+      interestExpense: metaFromMetric(interestExpense, "No recognized interest-expense source field."),
+      taxExpense: metaFromMetric(taxExpense, "No recognized tax-expense source field."),
+      netProfit: metaFromMetric(netProfit, "Requires interest, tax, and operating profit inputs or explicit net profit field."),
+      grossMargin: metaFromMetric(grossMargin, "Requires gross profit and non-zero revenue."),
+      operatingMargin: metaFromMetric(operatingMargin, "Requires operating profit and non-zero revenue."),
+      netMargin: metaFromMetric(netMargin, "Requires net profit and non-zero revenue."),
+    },
     revenue: revenue.value,
     cogs: cogs.value,
     grossProfit: grossProfit.value,
@@ -411,15 +440,34 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
 }
 
 function sourceMetric(value: number | null, column?: string): FinancialMetric {
-  return value !== null && column ? { value, source: "source_field" } : unavailableMetric()
+  return value !== null && column ? { value, source: "source_value", note: `Directly from source field: ${column}.` } : unavailableMetric()
 }
 
 function calculatedMetric(value: number): FinancialMetric {
-  return { value, source: "derived_calculation" }
+  return { value, source: "derived_value", note: "Calculated from complete required source inputs." }
 }
 
 function unavailableMetric(): FinancialMetric {
-  return { value: null, source: null }
+  return { value: null, source: "unavailable", note: "Required source input is missing." }
+}
+
+function sourceMeta(note: string) {
+  return { kind: "source_value" as const, note }
+}
+
+function derivedMeta(note: string) {
+  return { kind: "derived_value" as const, note }
+}
+
+function unavailableMeta(note: string) {
+  return { kind: "unavailable" as const, note }
+}
+
+function metaFromMetric(metric: FinancialMetric, unavailableNote?: string) {
+  return {
+    kind: metric.source,
+    note: metric.source === "unavailable" ? unavailableNote || metric.note : metric.note,
+  }
 }
 
 function dataConfidenceForFinancials(metrics: FinancialMetric[]) {

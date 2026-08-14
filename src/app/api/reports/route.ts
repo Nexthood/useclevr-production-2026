@@ -70,7 +70,6 @@ export async function POST(request: Request) {
       timezone,
       timezoneOffset,
       idempotencyKey: bodyIdempotencyKey,
-      ...analysisData 
     } = body;
     const userId = session.user.id;
     const headerIdempotencyKey = request.headers.get('idempotency-key') || request.headers.get('x-idempotency-key');
@@ -212,13 +211,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const reportInput = datasetName
-      ? {
-          ...analysisData,
-          rowCount: typeof analysisData.rowCount === 'number' ? analysisData.rowCount : access.dataset.rowCount || 0,
-          columns: Array.isArray(analysisData.columns) ? analysisData.columns : (Array.isArray(access.dataset.columns) ? access.dataset.columns : []),
-        }
-      : await buildDatasetReportInput(access.dataset);
+    const reportInput = await buildDatasetReportInput(access.dataset);
+
+    if (reportInput.rowCount <= 0) {
+      if (reservationCreated && operationId) await releaseCredits(operationId, 'no_reportable_dataset');
+      return NextResponse.json(
+        { success: false, error: 'No reportable dataset is currently available.' },
+        { status: 422 },
+      );
+    }
     
     const report = await generateReport(
       datasetId,
