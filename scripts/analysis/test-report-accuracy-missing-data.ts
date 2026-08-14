@@ -82,6 +82,8 @@ async function main() {
   assert(completeFinancials.operatingProfit === 1400, "Complete dataset operating profit must derive from gross profit and opex")
   assert(completeFinancials.netProfit === 1050, "Complete dataset net profit must derive only when interest and tax exist")
   assert(completeFinancials.netMargin === 35, "Complete dataset net margin must derive from supported net profit")
+  assert(completeFinancials.metricSources?.revenue?.kind === "source_value", "Complete dataset revenue must be classified as a source value")
+  assert(completeFinancials.metricSources?.grossProfit?.kind === "derived_value", "Complete dataset gross profit must be classified as a valid derived value")
 
   const revenueOnly = await buildDatasetReportInput(dataset("startup_dataset", [
     { revenue: 19_090_000 },
@@ -93,6 +95,8 @@ async function main() {
   assert(revenueOnlyFinancials.grossProfit === null, "Revenue-only dataset must not fabricate gross profit")
   assert(revenueOnlyFinancials.operatingProfit === null, "Revenue-only dataset must not fabricate operating profit")
   assert(revenueOnlyFinancials.netProfit === null, "Revenue-only dataset must not fabricate net profit")
+  assert(revenueOnlyFinancials.metricSources?.cogs?.kind === "unavailable", "Missing COGS must be classified as unavailable")
+  assert(revenueOnlyFinancials.metricSources?.grossProfit?.kind === "unavailable", "Missing gross profit inputs must be classified as unavailable")
   assert(revenueOnly.summary.includes("Profitability cannot be reliably assessed"), "Revenue-only summary must explain missing profitability inputs")
   assert(revenueOnly.summary.includes("Trend analysis is unavailable"), "Revenue-only summary must explain missing trend inputs")
   assert((revenueOnly.recommendations || []).some((item) => item.requiredData?.includes("COGS")), "Revenue-only recommendations must request missing cost data")
@@ -103,6 +107,7 @@ async function main() {
   ], ["revenue", "net_profit"]))
   const explicitFinancials = financials(explicitNetProfit)
   assert(explicitFinancials.netProfit === 500, "Explicit net_profit field must be used safely")
+  assert(explicitFinancials.metricSources?.netProfit?.kind === "source_value", "Explicit net_profit must be classified as a source value")
   assert(explicitFinancials.grossProfit === null, "Explicit net profit must not fabricate gross profit")
   assert(explicitFinancials.operatingProfit === null, "Explicit net profit must not fabricate operating profit")
 
@@ -113,6 +118,8 @@ async function main() {
   assert(zeroFinancials.cogs === 0, "Actual zero COGS must remain zero")
   assert(zeroFinancials.operatingExpenses === 0, "Actual zero opex must remain zero")
   assert(zeroFinancials.netProfit === 1000, "Actual zero costs must support net profit")
+  assert(zeroFinancials.metricSources?.cogs?.kind === "source_value", "Actual zero COGS must remain a source value")
+  assert(zeroFinancials.metricSources?.operatingExpenses?.kind === "source_value", "Actual zero opex must remain a source value")
 
   const onePerspective = calculateBusinessBalancedScorecard({
     rows: [{ revenue: 1000 }, { revenue: 2000 }],

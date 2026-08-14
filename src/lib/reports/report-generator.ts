@@ -106,6 +106,10 @@ export interface ReportChart {
 export interface ReportFinancials {
   reportingPeriod?: string | null;
   dataConfidence?: number | null;
+  metricSources?: Partial<Record<keyof Omit<ReportFinancials, "metricSources" | "missingFields" | "topCostCategories" | "periodTrends">, {
+    kind: "source_value" | "derived_value" | "unavailable";
+    note: string;
+  }>>;
   revenue: number | null;
   cogs: number | null;
   grossProfit: number | null;

@@ -1,3 +1,32 @@
+## Dashboard Empty State After Dataset Deletion
+
+1. Interaction title
+Dashboard empty state after dataset deletion.
+
+2. What was the user goal
+Fix the main dashboard and Executive Daily Health so deleting every uploaded dataset removes current analytical scores, confidence, priorities, recommendations, KPI trends, report generation, and full-brief access instead of showing stale or fallback values.
+
+3. What changed
+Dashboard aggregation now exposes only non-deleted datasets as current analytics, so dataset count, active count, total rows, latest upload, detected columns, business model counts, and dashboard rows all share the same active-dataset source of truth. The executive metrics builder returns a deterministic empty metrics object when active dataset count is zero. KPI cards show No data for analytical metrics, while Active Datasets and Rows Processed show measured zeros. Executive Daily Health renders a no-analysis empty state, hides score and confidence output, hides priorities and recommendations, hides Generate Report, and disables View Full Daily Brief when no active dataset exists. The full Daily Health page checks active dataset count before creating or showing a current brief or history.
+
+4. Problems marked
+- blocker: none.
+- risk: Browser-only refresh, logout/login, upload, delete, and reupload checks require an authenticated app session.
+- improvement: none.
+- observation: The incorrect 49/100 AI Confidence came from the dashboard formula `34 + rows bonus + business profile bonus` after deleted dataset rows still reached current analytics. The incorrect 34 score came from the health calculation averaging readiness, fallback confidence, forecast confidence, and growth readiness for a deleted/stale dataset surface instead of a zero-dataset branch.
+
+5. User learning
+Dashboard empty state must use current active dataset availability, not report history, AI traces, cached Daily Health records, or deleted dataset rows.
+
+6. AI-agent learning
+Dashboard aggregation must remove deleted datasets before calculating current totals and derived analytics; separate active counts are not enough if stale rows remain in the dataset array.
+
+7. Follow-up tasks
+- none.
+
+8. Instruction sources
+- AGENTS.md
+
 ## Executive BI Report Accuracy And Missing Data
 
 1. Interaction title
@@ -3445,3 +3474,38 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Executive BI PDF Report Redesign and Accuracy
+
+1. Interaction title
+Executive BI PDF report redesign and accuracy.
+
+2. What was the user goal
+Redesign generated Executive BI PDF reports into professional corporate documents and make every financial number, chart, score, recommendation, and unavailable state data-grounded.
+
+3. What changed
+The PDF renderer now uses a white document layout with small cover-only UseClevr branding, metadata, executive summary, compact metric highlights, financial source tables, unavailable chart states, cost requirements, Balanced Scorecard comparison guardrails, executive recommendations, provenance, about text, and subtle footers. Report financials now classify metrics as source value, valid derived value, or unavailable. Report generation now rebuilds from the server-loaded accessible dataset and returns "No reportable dataset is currently available." for empty report inputs. Regression coverage asserts missing values, explicit zero values, explicit profit source fields, derived profit and margin rules, recommendation grounding, Balanced Scorecard guardrails, PDF generation, and source classifications.
+
+4. Problems marked
+blocker: none.
+risk: full production browser download flow remains untested in a signed-in session.
+improvement: long PDF table notes use compact one-line cells, so future report typography work can add multi-line table rows.
+observation: previous reports looked like dashboard exports because the PDF renderer used full dark backgrounds, rounded dashboard cards, and repeated brand text.
+
+5. User learning
+Generated reports now distinguish missing COGS and expenses from actual zero values and avoid fake profitability, fake charts, or filler recommendations.
+
+6. AI-agent learning
+For report accuracy work, carry source classification in the report data model before rendering so visual status, financial values, charts, and recommendations cannot imply unsupported conclusions.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

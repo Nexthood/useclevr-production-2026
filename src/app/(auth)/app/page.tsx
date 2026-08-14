@@ -132,11 +132,11 @@ type ExecutiveMetrics = {
   businessModel: BusinessModel
   supportedKpis: string[]
   businessHealth: {
-    health: number
-    aiConfidence: number
-    readiness: number
-    forecastConfidence: number
-    growthScore: number
+    health: number | null
+    aiConfidence: number | null
+    readiness: number | null
+    forecastConfidence: number | null
+    growthScore: number | null
   }
 }
 
@@ -253,6 +253,8 @@ function emptyStats(): DashboardStats {
 }
 
 function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): ExecutiveMetrics {
+  if (stats.dashboardData.activeDatasetCount === 0) return emptyExecutiveMetrics(stats)
+
   const businessModel = stats.dashboardData.dominantBusinessModel
   const rows = stats.allDatasets.flatMap((dataset) =>
     dataset.data.map((row) => ({
@@ -349,6 +351,45 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): Executiv
       readiness,
       forecastConfidence,
       growthScore,
+    },
+  }
+}
+
+function emptyExecutiveMetrics(stats: DashboardStats): ExecutiveMetrics {
+  return {
+    columns: {},
+    rowCount: 0,
+    loadedRowCount: 0,
+    totalRevenue: null,
+    totalProfit: null,
+    totalCost: null,
+    profitMargin: null,
+    activeDatasets: 0,
+    products: null,
+    inventoryValue: null,
+    deadStock: null,
+    aiInsightsGenerated: 0,
+    revenueTrend: [],
+    profitTrend: [],
+    inventoryTrend: [],
+    ordersTrend: [],
+    uploadTrend: [],
+    topProducts: [],
+    worstProducts: [],
+    lowStock: [],
+    deadStockItems: [],
+    overstock: [],
+    categoryDistribution: [],
+    regions: [],
+    recommendations: [],
+    businessModel: stats.dashboardData.dominantBusinessModel,
+    supportedKpis: getBusinessModelKpiNames(stats.dashboardData.dominantBusinessModel),
+    businessHealth: {
+      health: null,
+      aiConfidence: null,
+      readiness: null,
+      forecastConfidence: null,
+      growthScore: null,
     },
   }
 }
@@ -798,13 +839,12 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
           </div>
         </section>
 
-        {dailyBrief && (
-          <ExecutiveDailyHealthSection
-            brief={dailyBrief}
-            datasetId={dailyHealthReportDataset?.id ?? null}
-            reportDisabled={!dailyHealthReportReady}
-          />
-        )}
+        <ExecutiveDailyHealthSection
+          brief={dashboardStats.dashboardData.activeDatasetCount === 0 ? null : dailyBrief}
+          datasetId={dashboardStats.dashboardData.activeDatasetCount === 0 ? null : dailyHealthReportDataset?.id ?? null}
+          reportDisabled={!dailyHealthReportReady}
+          hasActiveDatasets={dashboardStats.dashboardData.activeDatasetCount > 0}
+        />
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {kpis.map((item) => (
@@ -919,6 +959,16 @@ type KpiDisplay = {
 }
 
 function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {
+  if (metrics.activeDatasets === 0) {
+    return [
+      kpi("Revenue", null, "currency", [], false, "Upload business data", CircleDollarSign, "cyan"),
+      kpi("Profit", null, "currency", [], false, "Upload cost or profit data", TrendingUp, "emerald"),
+      kpi("Profit Margin", null, "percent", [], false, "Upload revenue and profit data", PieChart, "violet"),
+      kpi("Active Datasets", 0, "number", [], true, "Current uploaded datasets", Database, "slate"),
+      kpi("Rows Processed", 0, "number", [], true, "Current processed rows", FileSpreadsheet, "slate"),
+    ]
+  }
+
   const common = [
     kpi("Revenue", metrics.totalRevenue, "currency", metrics.revenueTrend, metrics.columns.revenue, "Revenue column", CircleDollarSign, "cyan"),
     kpi("Active Datasets", metrics.activeDatasets, "number", metrics.uploadTrend, true, "Uploaded files", Database, "slate"),
@@ -991,14 +1041,16 @@ function ExecutiveDailyHealthSection({
   brief,
   datasetId,
   reportDisabled,
+  hasActiveDatasets,
 }: {
-  brief: ExecutiveDailyBrief
+  brief: ExecutiveDailyBrief | null
   datasetId: string | null
   reportDisabled: boolean
+  hasActiveDatasets: boolean
 }) {
-  const priorities = brief.todaysPriorities.slice(0, 3)
-  const recommendations = brief.recommendedActions.slice(0, 3)
-  const criticalAlerts = brief.alerts.filter((alert) => alert.severity === "critical")
+  const priorities = brief?.todaysPriorities.slice(0, 3) ?? []
+  const recommendations = brief?.recommendedActions.slice(0, 3) ?? []
+  const criticalAlerts = brief?.alerts.filter((alert) => alert.severity === "critical") ?? []
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1020,13 +1072,39 @@ function ExecutiveDailyHealthSection({
               className="h-10 border-cyan-300/25 bg-background/60 px-4 text-cyan-700 hover:border-cyan-300/45 hover:bg-cyan-300/10 dark:text-cyan-100"
             />
           )}
-          <Link href="/app/daily-health" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 dark:text-cyan-100">
-            View Full Daily Brief
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {hasActiveDatasets ? (
+            <Link href="/app/daily-health" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 dark:text-cyan-100">
+              View Full Daily Brief
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <span className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2 text-sm font-semibold text-muted-foreground" aria-disabled="true">
+              View Full Daily Brief
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          )}
         </div>
       </div>
 
+      {!hasActiveDatasets && (
+        <Card className="border-dashed p-6">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.55fr)] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">No analysis available</p>
+              <h3 className="mt-2 text-xl font-semibold text-foreground">No uploaded datasets are available yet.</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Upload business data to activate the Daily Executive Health Check.</p>
+            </div>
+            <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-1">
+              {["health score", "executive priorities", "recommendations", "KPI analysis"].map((item) => (
+                <div key={item} className="rounded-lg border border-border bg-background/60 px-3 py-2">{item}</div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {hasActiveDatasets && brief && (
+        <>
       {criticalAlerts.length > 0 && (
         <div className="grid gap-3 lg:grid-cols-3">
           {criticalAlerts.slice(0, 3).map((alert) => (
@@ -1091,6 +1169,8 @@ function ExecutiveDailyHealthSection({
           </div>
         </div>
       </Card>
+        </>
+      )}
     </section>
   )
 }
@@ -1140,9 +1220,9 @@ function ExecutiveKpiCard({ item }: { item: KpiDisplay }) {
       </div>
       <div className="mt-4 flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-xs text-muted-foreground">{item.available ? item.detail : item.detail}</span>
-        <span className={["inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold", positive ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-200" : "bg-rose-500/10 text-rose-700 dark:text-rose-200"].join(" ")}>
-          {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-          {change === null ? "No prior" : `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`}
+        <span className={["inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold", change === null ? "bg-muted text-muted-foreground" : positive ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-200" : "bg-rose-500/10 text-rose-700 dark:text-rose-200"].join(" ")}>
+          {change === null ? null : positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {change === null ? "No current trend" : `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`}
         </span>
       </div>
     </Card>
@@ -1439,20 +1519,22 @@ function ActivityList({ stats }: { stats: DashboardStats }) {
   )
 }
 
-function HealthCard({ label, value, tone }: { label: string; value: number; tone: Tone }) {
+function HealthCard({ label, value, tone }: { label: string; value: number | null; tone: Tone }) {
   const circumference = 2 * Math.PI * 34
-  const offset = circumference - (value / 100) * circumference
+  const offset = value === null ? circumference : circumference - (value / 100) * circumference
   return (
     <Card className="p-5">
       <div className="flex items-center gap-4">
-        <svg className="h-20 w-20 shrink-0" viewBox="0 0 80 80" role="img" aria-label={`${label}: ${value} out of 100`}>
+        <svg className="h-20 w-20 shrink-0" viewBox="0 0 80 80" role="img" aria-label={value === null ? `${label}: no data` : `${label}: ${value} out of 100`}>
           <circle cx="40" cy="40" r="34" fill="none" className="stroke-muted" strokeWidth="8" />
-          <circle cx="40" cy="40" r="34" fill="none" stroke={toneHex(tone)} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" strokeWidth="8" transform="rotate(-90 40 40)" />
-          <text x="40" y="45" fill="currentColor" textAnchor="middle" className="text-lg font-bold text-foreground">{value}</text>
+          {value !== null && (
+            <circle cx="40" cy="40" r="34" fill="none" stroke={toneHex(tone)} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" strokeWidth="8" transform="rotate(-90 40 40)" />
+          )}
+          <text x="40" y="45" fill="currentColor" textAnchor="middle" className="text-lg font-bold text-foreground">{value === null ? "—" : value}</text>
         </svg>
         <div>
           <p className="font-semibold text-foreground">{label}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{value >= 75 ? "Strong" : value >= 50 ? "Developing" : "Needs data"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{value === null ? "No data" : value >= 75 ? "Strong" : value >= 50 ? "Developing" : "Needs data"}</p>
         </div>
       </div>
     </Card>

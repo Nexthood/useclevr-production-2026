@@ -26,6 +26,8 @@
 
 ### Fixed
 
+- Fix Executive BI report accuracy so generated PDFs classify financial metrics as source values, valid derived values, or unavailable values and use only the selected server-loaded dataset.
+- Fix dashboard empty states so deleted datasets no longer feed current scores, confidence, priorities, recommendations, KPI trends, reports, or Daily Health briefs.
 - Fix Executive BI reports so missing financial fields stay unavailable, profit metrics require explicit or complete source inputs, and recommendations stay grounded in the selected dataset.
 - Fix report generation telemetry so dashboard reports keep customer-safe errors and complete after credit handling when non-critical telemetry logging fails.
 - Fix Generate Report visibility in the Executive Daily Health header so the default dashboard uses its latest reportable dataset when no dataset is explicitly selected.
@@ -78,6 +80,7 @@
 
 ### Changed
 
+- Redesign Executive BI PDF reports as structured corporate documents with cover metadata, financial tables, cost requirements, scorecard context, recommendations, provenance, and discreet UseClevr branding.
 - Elevate the global interface design system with calmer navy surfaces, softer cyan and lilac accents, premium cards, refined buttons, smoother form focus states, polished tables, dialogs, tabs, selects, and scrollbars.
 - Transform the public News page into a What You're Missing storytelling experience that shows how UseClevr reveals hidden relationships, risks, and actions inside sample business metrics.
 - Refine the Usy assistant launcher into a circular avatar with a calm glow and hover invitation so the help entry point feels cleaner and less distracting.

@@ -125,6 +125,7 @@ export async function getOrCreateDailyHealthBrief(input: {
   const workspaceKey = getWorkspaceKey(input.userId, workspaceId)
   const date = getUtcDateKey(new Date())
   const source = await loadDailyHealthSource(input.userId, workspaceId, workspaceKey, date)
+  if (source.datasets.length === 0) return null
   const sourceHash = hashDailyHealthSource(source)
 
   if (!input.force) {
@@ -208,6 +209,7 @@ async function loadDailyHealthSource(userId: string, workspaceId: string | null,
 
 async function generateDailyHealthBrief(source: DailyHealthSource): Promise<ExecutiveDailyBrief> {
   const metrics = calculateMetrics(source)
+  if (source.datasets.length === 0) return buildEmptyDailyHealthBrief(source)
   const signals = healthSignalProviders.map((provider) => provider.collect(source, metrics))
   const deterministic = buildDeterministicBrief(source, metrics, signals)
   const aiBrief = await generateAiBrief(source, metrics, deterministic)
@@ -225,6 +227,31 @@ async function generateDailyHealthBrief(source: DailyHealthSource): Promise<Exec
     alerts: deterministic.alerts,
     generatedBy: aiBrief ? "ai" : "deterministic",
     modelName: aiBrief?.modelName ?? null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+}
+
+function buildEmptyDailyHealthBrief(source: DailyHealthSource): ExecutiveDailyBrief {
+  return {
+    id: `edh_empty_${source.date}`,
+    userId: source.userId,
+    workspaceId: source.workspaceId,
+    workspaceKey: source.workspaceKey,
+    date: source.date,
+    score: 0,
+    aiConfidence: 0,
+    executiveSummary: "No uploaded datasets are available yet. Upload business data to activate the Daily Executive Health Check.",
+    topOpportunities: [],
+    criticalRisks: [],
+    anomalies: [],
+    todaysPriorities: [],
+    recommendedActions: [],
+    forecast: "No forecast is available until a dataset with dated business data is uploaded.",
+    estimatedBusinessImpact: "Business impact estimation is unavailable until current dataset evidence exists.",
+    alerts: [],
+    generatedBy: "deterministic",
+    modelName: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -319,7 +346,7 @@ async function storeDailyHealthBrief(brief: ExecutiveDailyBrief, sourceHash: str
 function hashDailyHealthSource(source: DailyHealthSource) {
   const dashboardFingerprint = getDashboardDataFingerprint({
     datasetCount: source.datasets.length,
-    activeDatasetCount: source.datasets.filter((dataset) => dataset.rowCount >= 0).length,
+    activeDatasetCount: source.datasets.length,
     totalRows: source.datasets.reduce((total, dataset) => total + dataset.rowCount, 0),
     latestUpload: source.datasets[0]
       ? {

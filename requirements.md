@@ -278,9 +278,11 @@ Text rules for this file:
 ## Downloads & Reports
 
 - Generate PDF reports from analysis results for Pro and Business users.
+- Keep the dashboard in a no-data state when the authenticated workspace has zero active datasets, with Active Datasets and Rows Processed shown as 0 and analytical KPIs shown as No data instead of fallback scores or stale values.
+- Hide current Executive Daily Health scores, confidence, priorities, recommendations, report generation, and full-brief navigation when no active dataset exists.
 - Show the existing Generate Report action beside View Full Daily Brief in the Executive Daily Health dashboard header, using the explicitly selected dashboard dataset or the dashboard's canonical latest dataset as the report scope.
 - Record report-generation AI cost telemetry against the deployed database schema, preserve credit reservation and finalization outcomes, and return customer-safe report errors when non-critical telemetry logging fails.
-- Keep missing report financial fields unavailable instead of numeric zero, derive profit and margin metrics only from explicit recognized fields or complete required inputs, and show dataset-grounded recommendations without fixed-card filler.
+- Keep generated Executive BI PDF reports structured as corporate documents with page-level hierarchy, discreet UseClevr branding on the cover, financial metric source classification, unavailable-state charts, cost data requirements, Balanced Scorecard comparison guardrails, dataset-grounded recommendations, provenance, and no numeric output for missing financial fields.
 - Compare strongest and weakest Business Balanced Scorecard perspectives only when at least two perspectives have valid comparable scores.
 - Track downloads by dataset and report entry.
 - Combine charts and table details in PDF exports.
