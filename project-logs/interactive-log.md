@@ -3544,3 +3544,38 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Full Fixture Validation Request and Temporary Upload Lock Rejection
+
+1. Interaction title
+Full fixture validation request and temporary upload lock rejection.
+
+2. What was the user goal
+Run the complete 10-family CSV/XLSX fixture validation suite, compare CSV and XLSX parity, run cross-dataset contamination checks, and reject temporary spreadsheet lock files from ingestion.
+
+3. What changed
+The required fixture suite is not present in the workspace: `01_local_retail` through `10_accountancy_ledger` CSV/XLSX files and `README_TEST_MAPPING.txt` return no matches outside ignored generated folders. The upload system now rejects temporary spreadsheet lock-file names before parsing or dataset creation in Standard Upload, simple upload, direct CSV/Excel parsers, browser CSV/Excel parsing, Accountancy, and Pre-bookkeeping paths. A focused regression verifies `~`, `~$`, and `.~` filename handling, direct parser rejection, accountancy validation rejection, and source-level guards in both standard upload paths.
+
+4. Problems marked
+blocker: full 20-file fixture validation cannot run until the exact named fixture suite and `README_TEST_MAPPING.txt` exist in the workspace.
+risk: CSV/XLSX parity, dataset-specific semantics, full 120-row Business Consulting processing, and cross-dataset contamination checks remain unproven for the missing required fixtures.
+improvement: add the complete 10-family fixture suite to a tracked or documented test-fixture path so the validation matrix can run repeatably.
+observation: the workspace contains only a smaller `test-fixtures/business-models` suite with local retail, ecommerce, startup SaaS, investor portfolio, and business consulting pairs.
+
+5. User learning
+Temporary files such as `~04_marketplace_startup.xlsx` and `~10_accountancy_ledger.xlsx` now fail before ingestion, but the requested full fixture matrix has no source files to validate in this checkout.
+
+6. AI-agent learning
+For broad fixture-validation requests, verify the exact fixture inventory before making pass/fail claims and separate blocked validation from safe code hardening that can still be completed.
+
+7. Follow-up tasks
+- Add the complete named CSV/XLSX fixture suite and `README_TEST_MAPPING.txt` to the workspace, then run the 20-file parity and contamination validation matrix.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

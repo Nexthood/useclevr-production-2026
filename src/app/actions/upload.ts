@@ -28,6 +28,7 @@ import {
 } from "@/lib/billing/credit-engine";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
@@ -180,10 +181,22 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     const fileType = getUploadCategoryCandidate(formData);
     const uploadCategory = getDatasetCategoryFromUpload(fileType);
     const isProfitabilityUpload = uploadCategory === "profitability";
+    const uploadFile = formData.get("file") as File | null;
     debugLog("[UPLOAD] fileType:", fileType);
     debugLog("[UPLOAD] dataset category:", uploadCategory);
     debugLog("[UPLOAD] isProfitabilityUpload:", isProfitabilityUpload);
-    debugLog("[UPLOAD] file received:", formData.get("file") instanceof File);
+    debugLog("[UPLOAD] file received:", uploadFile instanceof File);
+
+    if (!uploadFile) {
+      return fail(UPLOAD_STAGES.FILE_VALIDATED, "No file provided");
+    }
+
+    if (isTemporaryUploadFileName(uploadFile.name)) {
+      return fail(
+        UPLOAD_STAGES.FILE_VALIDATED,
+        `TEMPORARY_FILE_REJECTED|${temporaryUploadFileMessage()}`,
+      );
+    }
 
     // Explicit demo mode may bypass persistence only for non-built-in profitability uploads.
     const shouldUseDemoMode =
@@ -191,7 +204,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     if (shouldUseDemoMode) {
       debugLog("[UPLOAD] === DEMO MODE - Using non-persistent profitability flow ===");
-      const file = formData.get("file") as File | null;
+      const file = uploadFile;
       if (file) {
         const fileName = file.name.toLowerCase();
         const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
@@ -288,10 +301,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       session?.user?.email ?? null,
     );
 
-    const file = formData.get("file") as File | null;
-    if (!file) {
-      return fail(UPLOAD_STAGES.FILE_VALIDATED, "No file provided");
-    }
+    const file = uploadFile;
 
     // Validate file type (CSV or Excel)
     const fileName = file.name.toLowerCase();

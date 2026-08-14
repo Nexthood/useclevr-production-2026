@@ -7,6 +7,7 @@ import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
@@ -270,6 +271,16 @@ export async function POST(request: Request) {
         "File must be a CSV or Excel file (.csv, .xlsx, .xls).",
         false,
         { code: "UPLOAD_FILE_TYPE_INVALID", requestId },
+      );
+    }
+
+    if (isTemporaryUploadFileName(uploadFile.name)) {
+      return jsonError(
+        422,
+        "file_validated",
+        temporaryUploadFileMessage(),
+        false,
+        { code: "UPLOAD_TEMPORARY_FILE_REJECTED", requestId },
       );
     }
 

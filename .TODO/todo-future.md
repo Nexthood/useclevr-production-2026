@@ -78,6 +78,7 @@ into the active queue.
 
 - Evaluate restore candidates for legacy report PDF generation and cloud live-data refresh behavior before deciding whether they should return to the product. (labels: api, data, reports, workflow)
 - Add marketing, compliance, legal, risk, goals, and forecast scenario records with assumption overrides, missing-data confidence flags, and professional-verification labels. (labels: data, sales, content, workflow)
+- Add the complete 10-family CSV and Excel fixture suite with mapping notes, then run parity, semantic-output, row-count, and cross-dataset contamination validation for every required upload fixture. (labels: data, upload, testing)
 - Fix legacy constants in csv-upload.tsx — UPLOAD_QUEUE_KEY and LEGACY_UPLOAD_QUEUE_KEY resolve to the same string. (labels: data, upload, todo, workflow)
 - Data processing flow uses external placeholder images — add fallback and alt text. (labels: accessibility, data, workflow)
 - Add unit tests for pure utilities and data transforms. (labels: data, testing)

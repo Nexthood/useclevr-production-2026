@@ -12,6 +12,7 @@ import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/c
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { and, asc, eq } from "drizzle-orm";
@@ -187,6 +188,16 @@ export function validateAccountancyUpload(meta: AccountancyUploadMeta) {
   const spec = uploadSpecs[meta.uploadType];
   const extension = getFileExtension(meta.fileName);
   const mimeType = meta.mimeType.toLowerCase();
+
+  if (isTemporaryUploadFileName(meta.fileName)) {
+    throw new AccountancyUploadError(
+      "validation",
+      "TEMPORARY_FILE_REJECTED",
+      temporaryUploadFileMessage(),
+      422,
+      false,
+    );
+  }
 
   if (meta.size <= 0) {
     throw new AccountancyUploadError("validation", "EMPTY_FILE", "The selected file is empty.", 400, false);
