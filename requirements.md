@@ -62,6 +62,7 @@ Text rules for this file:
 - Route Standard Upload datasets to the generic dataset analysis route.
 - Show one Standard Upload success panel with Dataset type, Rows processed, Columns detected, Analysis status, Open in Dashboard, and Upload Another File actions after a standard dataset upload completes.
 - Reject temporary spreadsheet lock files whose filenames start with `~`, `~$`, or `.~` before parsing, storing, or analyzing uploaded CSV and Excel files.
+- Build generated dataset reports from the full authoritative row set, use `dataset.rowCount` as the single report row-count source, and keep KPI totals, executive summaries, trend analysis, cost intelligence, recommendations, and provenance aligned to one dataset-scoped semantic mapping context.
 - Route Profitability Upload datasets to the Profitability workspace.
 - Route Accountancy Upload datasets to the Accountancy workspace.
 - Route Invoice, Receipt, Bank Export, and Pre-bookkeeping Upload datasets to the Pre-bookkeeping workspace.

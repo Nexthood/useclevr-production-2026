@@ -400,7 +400,7 @@ export async function POST(request: Request) {
       rowCount: parsed.rowCount,
       columnCount: parsed.columns.length,
       columns: parsed.columns,
-      data: parsedRows.slice(0, 100),
+      data: parsedRows,
       columnTypes: {},
       precomputedMetrics: parsed.aggregatedMetrics,
       datasetType: "standard",

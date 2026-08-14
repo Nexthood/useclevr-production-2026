@@ -1,3 +1,35 @@
+## Full-Row Report Analysis And Semantic Mapping Consistency
+
+1. Interaction title
+Full-row report analysis and semantic mapping consistency.
+
+2. What was the user goal
+Fix the Executive BI report pipeline so the full-report XLSX regression uses the same 120 authoritative rows and semantic field mappings across executive summary, financial performance, trend analysis, Cost Intelligence, recommendations, and provenance.
+
+3. What changed
+Dataset report loading now reads `datasetRows` when inline dataset data contains fewer rows than `dataset.rowCount`, so report calculations do not stop at preview-sized inline payloads. Standard simple upload stores all parsed in-limit rows in the dataset payload instead of slicing inline report data to 100 rows. Dataset report building creates one semantic context per dataset for date, revenue, net profit, cost fields, expense category, expense amount, and vendor fields. Dataset report building calculates top cost categories and period trends from the same full-row dataset and semantic mapping used for financial KPIs and executive summaries. Generated reports carry structured diagnostics for dataset ID, filename, canonical row count, KPI rows, summary rows, semantic fields, and trend availability. The PDF renderer uses the report semantic context for Cost Intelligence field-availability rows instead of independently treating vendor, date, category, or amount fields as missing. The regression script creates the `UseClevr_Full_Report_Test_Dataset.xlsx` fixture shape with 120 rows, generates a fresh PDF, extracts rendered text with `pdftotext`, and verifies 120-row consistency, trend availability, and recognized semantic fields.
+
+4. Problems marked
+- blocker: The checked-in workspace does not contain a committed `UseClevr_Full_Report_Test_Dataset.xlsx` source fixture, so the regression generates the same named XLSX shape locally during validation.
+- risk: Large datasets above the existing parse or storage row limit still rely on aggregate or preview behavior until the product adds durable full-row storage for that scale.
+- improvement: Add the source XLSX regression fixture to a documented tracked or fixture-generation path if product QA requires manual PDF reproduction from the exact artifact.
+- observation: The observed 100-row PDF contradiction comes from report loading preferring inline `dataset.data` before `datasetRows`, combined with simple upload storing `data: parsedRows.slice(0, 100)`.
+
+5. User learning
+Generated report PDFs must prove row-count and semantic consistency in the rendered content, not only in TypeScript or object-level tests.
+
+6. AI-agent learning
+Report builders need one validated analysis object carrying row counts, semantic mappings, financials, diagnostics, and PDF-ready fields so downstream renderers do not re-detect or contradict source semantics.
+
+7. Follow-up tasks
+- Add the committed full-report XLSX regression fixture only if QA needs a durable binary artifact instead of deterministic fixture generation. (labels: data, upload, testing)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Dashboard Empty State After Dataset Deletion
 
 1. Interaction title

@@ -141,6 +141,35 @@ export interface ReportFinancials {
   }>;
 }
 
+export interface ReportSemanticContext {
+  datasetId: string;
+  datasetType: string;
+  mappings: Record<string, string | null>;
+  confidence: number;
+  dateField: string | null;
+  revenueField: string | null;
+  netProfitField: string | null;
+  costFields: string[];
+  expenseCategoryField: string | null;
+  expenseAmountField: string | null;
+  vendorField: string | null;
+}
+
+export interface ReportDiagnostics {
+  datasetId: string;
+  filename: string;
+  rowCount: number;
+  rowsUsedForKpis: number;
+  rowsUsedForSummary: number;
+  dateField: string | null;
+  expenseCategoryField: string | null;
+  expenseAmountField: string | null;
+  vendorField: string | null;
+  revenueField: string | null;
+  netProfitField: string | null;
+  trendAvailable: boolean;
+}
+
 export interface ReportRecommendation {
   issue: string;
   businessImpact: string;
@@ -183,6 +212,8 @@ export interface Report {
   aiInsights: string[];
   predictions: string[];
   recommendations?: ReportRecommendation[];
+  semanticContext?: ReportSemanticContext;
+  diagnostics?: ReportDiagnostics;
   alerts: { type: string; message: string; severity: string }[];
   
   // Metadata
@@ -219,6 +250,8 @@ export async function generateReport(
     alerts?: { type: string; message: string; severity: string }[];
     financials?: ReportFinancials;
     recommendations?: ReportRecommendation[];
+    semanticContext?: ReportSemanticContext;
+    diagnostics?: ReportDiagnostics;
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;
@@ -284,12 +317,18 @@ export async function generateReport(
     aiInsights: analysisData.aiInsights || [],
     predictions: (options.includePredictions !== false) ? (analysisData.predictions || []) : [],
     recommendations: analysisData.recommendations,
+    semanticContext: analysisData.semanticContext,
+    diagnostics: analysisData.diagnostics,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],
     
     // Metadata
     rowCount: analysisData.rowCount,
     columnCount: analysisData.columns.length
   };
+
+  if (report.diagnostics) {
+    debugLog("[REPORT] validated analysis diagnostics", report.diagnostics);
+  }
   
   // Generate PDF report
   try {

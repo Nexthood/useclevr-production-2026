@@ -64,10 +64,11 @@ export async function findAccessibleDataset(
 
 export async function loadDatasetData(datasetId: string, dataset: typeof datasets.$inferSelect) {
   const storedData = Array.isArray(dataset.data) ? (dataset.data as Record<string, unknown>[]) : []
-  if (storedData.length > 0) return storedData
+  const expectedRowCount = typeof dataset.rowCount === "number" ? dataset.rowCount : storedData.length
+  if (storedData.length > 0 && storedData.length >= expectedRowCount) return storedData
 
   const db = getDb()
-  if (!db) return []
+  if (!db) return storedData
 
   const rows = await db.query.datasetRows.findMany({
     where: eq(datasetRows.datasetId, datasetId),
@@ -75,5 +76,6 @@ export async function loadDatasetData(datasetId: string, dataset: typeof dataset
     orderBy: (row, { asc }) => [asc(row.rowIndex)],
   })
 
-  return rows.map((row) => row.data as Record<string, unknown>)
+  const normalizedRows = rows.map((row) => row.data as Record<string, unknown>)
+  return normalizedRows.length > 0 ? normalizedRows : storedData
 }
