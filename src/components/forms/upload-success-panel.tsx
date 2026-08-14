@@ -183,22 +183,15 @@ function StandardUploadSuccessPanel({
           ))}
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="flex flex-col items-stretch gap-2 sm:items-center">
           <Link
             href={view.dashboardHref}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto sm:min-w-56"
           >
             <BarChart3 className="mr-2 h-4 w-4" />
             Open in Dashboard
           </Link>
-          <Link
-            href={view.datasetHref}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            <Database className="mr-2 h-4 w-4" />
-            View Dataset
-          </Link>
-          <Button type="button" variant="outline" className="justify-center" onClick={onUploadAnother}>
+          <Button type="button" variant="outline" className="w-full justify-center sm:w-auto sm:min-w-56" onClick={onUploadAnother}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Upload Another File
           </Button>

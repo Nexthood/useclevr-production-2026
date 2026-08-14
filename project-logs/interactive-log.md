@@ -3509,3 +3509,38 @@ None.
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Standard Upload Success View Dataset Removal
+
+1. Interaction title
+Standard Upload success View Dataset removal.
+
+2. What was the user goal
+Remove the View Dataset button from the Standard Upload success screen while keeping Open in Dashboard as the primary CTA and Upload Another File as the secondary action.
+
+3. What changed
+The Standard Upload success panel now renders only Open in Dashboard and Upload Another File, with centered responsive action widths on mobile and desktop. The standard upload success view model no longer exposes a dataset-detail route because the removed button was its only consumer. The focused Standard Upload UI regression now asserts the button text and dataset route wiring stay absent from the Standard success panel.
+
+4. Problems marked
+blocker: none.
+risk: visual browser verification remains pending because this change was validated through source inspection and regression tests in the local workspace.
+improvement: none.
+observation: non-standard upload success flows still keep their existing dataset action behavior because the request scoped the removal to Standard Upload.
+
+5. User learning
+The Standard Upload success state now directs users to the dashboard first and keeps re-upload as the only secondary action.
+
+6. AI-agent learning
+For upload success UI changes, edit the Standard-only branch and its view model before changing shared non-standard upload flows.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

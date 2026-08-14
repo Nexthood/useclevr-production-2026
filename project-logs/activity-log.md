@@ -240,3 +240,4 @@
 - fixed: remove the non-functional View rows action from Dataset Library row actions while preserving Open dashboard, Open module, selection, bulk deletion, upload, and backend row access
 - fixed: show Generate Report in the Executive Daily Health header on the default dashboard by using the canonical latest reportable dashboard dataset when no dataset query is selected
 - changed: redesign Executive BI PDF reports as corporate documents, classify financial metrics as source values, valid derived values, or unavailable values, preserve selected-dataset-only generation, and verify missing values stay separate from explicit zero values
+- fixed: remove the Standard Upload success View Dataset action, keep Open in Dashboard as the primary CTA, and keep Upload Another File as the secondary action
