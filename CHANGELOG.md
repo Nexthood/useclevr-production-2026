@@ -26,6 +26,10 @@
 
 ### Fixed
 
+- Fix Executive BI reports so row counts, KPI calculations, executive summaries, trend analysis, cost intelligence, and provenance use the same full-row dataset and semantic field mapping.
+- Fix report regeneration so legacy idempotent report replays without current diagnostics or semantic context are rebuilt instead of serving stale PDFs.
+- Fix CSV and Excel upload validation so temporary spreadsheet lock files are rejected before parsing or dataset creation.
+- Fix Standard Upload success actions so users see Open in Dashboard as the primary action and Upload Another File as the secondary action without a separate dataset-detail button.
 - Fix Executive BI report accuracy so generated PDFs classify financial metrics as source values, valid derived values, or unavailable values and use only the selected server-loaded dataset.
 - Fix dashboard empty states so deleted datasets no longer feed current scores, confidence, priorities, recommendations, KPI trends, reports, or Daily Health briefs.
 - Fix Executive BI reports so missing financial fields stay unavailable, profit metrics require explicit or complete source inputs, and recommendations stay grounded in the selected dataset.

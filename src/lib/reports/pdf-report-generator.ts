@@ -57,12 +57,13 @@ export async function generatePdfReport(report: Report): Promise<string> {
 
   const datasetName = cleanText(report.datasetName || "Selected dataset");
   const financials = normalizeFinancials(report);
+  tracePdfRuntime("renderPdf", report, financials);
 
   drawExecutiveOverview(doc, report, financials, datasetName);
   addDocumentPage(doc, "Financial Performance", datasetName);
   drawFinancialPerformance(doc, financials);
   addDocumentPage(doc, "Cost Intelligence", datasetName);
-  drawCostIntelligence(doc, financials);
+  drawCostIntelligence(doc, report, financials);
   addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
   drawBalancedScorecard(doc, report);
   addDocumentPage(doc, "Executive Recommendations", datasetName);
@@ -104,6 +105,7 @@ function drawPageShell(doc: jsPDF, title: string, datasetName: string) {
 }
 
 function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFinancials, datasetName: string) {
+  tracePdfRuntime("buildExecutiveSummary", report, financials);
   drawBlankPage(doc);
   drawLogo(doc, page.margin, 16, 28);
 
@@ -186,8 +188,10 @@ function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {
   drawTrendPanel(doc, financials, page.margin, y, 174, 52);
 }
 
-function drawCostIntelligence(doc: jsPDF, financials: ReportFinancials) {
+function drawCostIntelligence(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  tracePdfRuntime("buildCostIntelligence", report, financials);
   let y = 48;
+  const semanticContext = report.semanticContext;
   drawSectionTitle(doc, "Top Cost Categories", y);
   y += 8;
   const categories = (financials.topCostCategories || []).filter((item) => Number.isFinite(item.value)).slice(0, 8);
@@ -224,12 +228,16 @@ function drawCostIntelligence(doc: jsPDF, financials: ReportFinancials) {
 
   drawSectionTitle(doc, "Data Requirements", y);
   y += 8;
+  const hasExpenseCategory = Boolean(semanticContext?.expenseCategoryField);
+  const hasExpenseAmount = Boolean(semanticContext?.expenseAmountField);
+  const hasDateField = Boolean(semanticContext?.dateField);
+  const hasVendor = Boolean(semanticContext?.vendorField);
   drawTable(doc, [
     ["Required Field", "Purpose", "Status", "Notes"],
-    ["Expense Category", "Categorize and analyze costs", categories.length > 0 ? "Available" : "Missing", categories.length > 0 ? "Used in top-cost table." : "No matching source field."],
-    ["Expense Amount", "Quantify total cost by category", categories.length > 0 ? "Available" : "Missing", categories.length > 0 ? "Used in top-cost table." : "No matching source field."],
-    ["Date / Period", "Analyze cost trends", hasTrendData(financials) ? "Available" : "Missing", hasTrendData(financials) ? "Trend inputs available." : "No valid period trend data."],
-    ["Vendor / Supplier", "Identify vendor opportunities", "Missing", "No vendor analysis source is present in this report payload."],
+    ["Expense Category", "Categorize and analyze costs", hasExpenseCategory ? "Available" : "Missing", hasExpenseCategory ? `Mapped from ${semanticContext?.expenseCategoryField}.` : "No matching source field."],
+    ["Expense Amount", "Quantify total cost by category", hasExpenseAmount ? "Available" : "Missing", hasExpenseAmount ? `Mapped from ${semanticContext?.expenseAmountField}.` : "No matching source field."],
+    ["Date / Period", "Analyze cost trends", hasDateField ? "Available" : "Missing", hasDateField ? `Mapped from ${semanticContext?.dateField}.` : "No matching source field."],
+    ["Vendor / Supplier", "Identify vendor opportunities", hasVendor ? "Available" : "Missing", hasVendor ? `Mapped from ${semanticContext?.vendorField}.` : "No matching source field."],
   ], page.margin, y, [42, 55, 28, 49]);
 }
 
@@ -464,6 +472,10 @@ function drawBars(doc: jsPDF, rows: { label: string; value: number | null; color
 }
 
 function drawTrendPanel(doc: jsPDF, financials: ReportFinancials, x: number, y: number, width: number, height: number) {
+  debugLog("[REPORT TRACE]", "buildTrendAnalysis", {
+    validTrendPeriods: financials.periodTrends?.length || 0,
+    validNetProfitTrendCount: (financials.periodTrends || []).filter((trend) => trend.netProfit !== null).length,
+  });
   const trends = (financials.periodTrends || []).slice(-6);
   const series = trends.map((trend) => trend.netProfit).filter((value): value is number => value !== null);
   if (trends.length < 2 || series.length < 2) {
@@ -560,6 +572,34 @@ function normalizeFinancials(report: Report): ReportFinancials {
       revenue: revenue !== null ? { kind: "source_value", note: "Revenue was parsed from report KPIs." } : { kind: "unavailable", note: "No recognized revenue value." },
     },
   };
+}
+
+function tracePdfRuntime(moduleName: string, report: Report, financials: ReportFinancials) {
+  debugLog("[REPORT TRACE]", moduleName, {
+    datasetId: report.datasetId,
+    filename: report.datasetName,
+    persistedRowCount: report.diagnostics?.persistedRowCount ?? report.rowCount,
+    loadedRowsLength: report.diagnostics?.loadedRowsLength ?? null,
+    analysisRowsLength: report.diagnostics?.analysisRowsLength ?? null,
+    summaryRowsLength: report.diagnostics?.rowsUsedForSummary ?? null,
+    reportRowsLength: report.diagnostics?.reportRowsLength ?? report.rowCount,
+    provenanceRowsLength: report.diagnostics?.provenanceRowsLength ?? report.rowCount,
+    detectedDateField: report.semanticContext?.dateField ?? null,
+    detectedExpenseCategoryField: report.semanticContext?.expenseCategoryField ?? null,
+    detectedExpenseAmountField: report.semanticContext?.expenseAmountField ?? null,
+    detectedVendorField: report.semanticContext?.vendorField ?? null,
+    revenueField: report.semanticContext?.revenueField ?? null,
+    netProfitField: report.semanticContext?.netProfitField ?? null,
+    validDateCount: report.diagnostics?.validDateCount ?? null,
+    validNetProfitCount: report.diagnostics?.validNetProfitCount ?? null,
+    validExpenseCategoryCount: report.diagnostics?.validExpenseCategoryCount ?? null,
+    validExpenseAmountCount: report.diagnostics?.validExpenseAmountCount ?? null,
+    validVendorCount: report.diagnostics?.validVendorCount ?? null,
+    trendAvailable: (financials.periodTrends || []).filter((trend) => trend.netProfit !== null).length > 0,
+    analysisObjectKeys: report.diagnostics?.analysisObjectKeys ?? [],
+    reportInputKeys: report.diagnostics?.reportInputKeys ?? Object.keys(report),
+    templateName: report.templateName ?? "legacy-report",
+  });
 }
 
 function financialRow(financials: ReportFinancials, label: string, key: MetricKey, format: "currency" | "percent"): TableRow {

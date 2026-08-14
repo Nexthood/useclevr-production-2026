@@ -13,7 +13,7 @@ import { findAccessibleDataset } from '@/lib/data/dataset-access';
 import { getDb } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { buildDatasetReportInput } from '@/lib/reports/dataset-report-builder';
-import { deleteReport, findReportByIdempotencyKey, generateReport, getReport, listAllReports, listReports } from '@/lib/reports/report-generator';
+import { deleteReport, findReportByIdempotencyKey, generateReport, getReport, isCurrentReportRuntime, listAllReports, listReports, traceReportRuntime, type ReportDiagnostics, type ReportSemanticContext } from '@/lib/reports/report-generator';
 import { eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import { NextResponse } from 'next/server';
@@ -107,23 +107,49 @@ export async function POST(request: Request) {
 
     const existingReport = findReportByIdempotencyKey(datasetId, idempotencyKey);
     if (existingReport) {
-      return NextResponse.json({
-        success: true,
+      traceReportRuntime("idempotentReportReplay", {
+        datasetId,
+        filename: existingReport.datasetName,
+        persistedRowCount: access.dataset.rowCount,
+        reportRowsLength: existingReport.rowCount,
+        provenanceRowsLength: existingReport.rowCount,
+        detectedDateField: existingReport.semanticContext?.dateField ?? null,
+        detectedExpenseCategoryField: existingReport.semanticContext?.expenseCategoryField ?? null,
+        detectedExpenseAmountField: existingReport.semanticContext?.expenseAmountField ?? null,
+        detectedVendorField: existingReport.semanticContext?.vendorField ?? null,
+        reportInputKeys: Object.keys(existingReport),
+        templateName: existingReport.templateName ?? "legacy-report",
+        runtimeVersion: existingReport.runtimeVersion ?? "legacy",
+        currentRuntime: isCurrentReportRuntime(existingReport),
+      });
+      if (isCurrentReportRuntime(existingReport)) {
+        return NextResponse.json({
+          success: true,
+          reportId: existingReport.id,
+          status: existingReport.status || 'ready',
+          datasetId: existingReport.datasetId,
+          datasetName: existingReport.datasetName,
+          reportType: existingReport.reportType,
+          businessModel: existingReport.businessModel,
+          redirectUrl: `/app/downloads?reportId=${existingReport.id}`,
+          downloadUrl: `/api/reports/download?id=${existingReport.id}&format=pdf`,
+          excelDownloadUrl: `/api/reports/download?id=${existingReport.id}&format=csv`,
+          shareableLink: `/report/${existingReport.id}`,
+          visibility: existingReport.visibility,
+          createdAt: existingReport.createdAt,
+          localTime: existingReport.localTime,
+          timezone: existingReport.timezone,
+          idempotent: true,
+        });
+      }
+      if (existingReport.pdfPath && fs.existsSync(existingReport.pdfPath)) {
+        fs.unlinkSync(existingReport.pdfPath);
+      }
+      deleteReport(existingReport.id);
+      traceReportRuntime("legacyReportInvalidated", {
+        datasetId,
         reportId: existingReport.id,
-        status: existingReport.status || 'ready',
-        datasetId: existingReport.datasetId,
-        datasetName: existingReport.datasetName,
-        reportType: existingReport.reportType,
-        businessModel: existingReport.businessModel,
-        redirectUrl: `/app/downloads?reportId=${existingReport.id}`,
-        downloadUrl: `/api/reports/download?id=${existingReport.id}&format=pdf`,
-        excelDownloadUrl: `/api/reports/download?id=${existingReport.id}&format=csv`,
-        shareableLink: `/report/${existingReport.id}`,
-        visibility: existingReport.visibility,
-        createdAt: existingReport.createdAt,
-        localTime: existingReport.localTime,
-        timezone: existingReport.timezone,
-        idempotent: true,
+        reason: "missing current report diagnostics or semantic context",
       });
     }
 
@@ -211,7 +237,39 @@ export async function POST(request: Request) {
       );
     }
 
+    traceReportRuntime("loadDataset", {
+      datasetId,
+      filename: access.dataset.fileName,
+      persistedRowCount: access.dataset.rowCount,
+      loadedRowsLength: Array.isArray(access.dataset.data) ? access.dataset.data.length : 0,
+      analysisObjectKeys: access.dataset.analysis && typeof access.dataset.analysis === "object" && !Array.isArray(access.dataset.analysis)
+        ? Object.keys(access.dataset.analysis)
+        : [],
+      templateName: "executive-bi-report",
+    });
+
     const reportInput = await buildDatasetReportInput(access.dataset);
+    const tracedReportInput = reportInput as typeof reportInput & {
+      diagnostics?: ReportDiagnostics;
+      semanticContext?: ReportSemanticContext;
+    };
+    traceReportRuntime("reportInputBuilt", {
+      datasetId,
+      filename: access.dataset.fileName,
+      persistedRowCount: access.dataset.rowCount,
+      loadedRowsLength: tracedReportInput.diagnostics?.loadedRowsLength ?? null,
+      analysisRowsLength: tracedReportInput.diagnostics?.analysisRowsLength ?? null,
+      summaryRowsLength: tracedReportInput.diagnostics?.rowsUsedForSummary ?? null,
+      reportRowsLength: reportInput.rowCount,
+      provenanceRowsLength: reportInput.rowCount,
+      detectedDateField: tracedReportInput.semanticContext?.dateField ?? null,
+      detectedExpenseCategoryField: tracedReportInput.semanticContext?.expenseCategoryField ?? null,
+      detectedExpenseAmountField: tracedReportInput.semanticContext?.expenseAmountField ?? null,
+      detectedVendorField: tracedReportInput.semanticContext?.vendorField ?? null,
+      analysisObjectKeys: tracedReportInput.diagnostics?.analysisObjectKeys ?? [],
+      reportInputKeys: Object.keys(reportInput),
+      templateName: tracedReportInput.diagnostics?.templateName ?? "executive-bi-report",
+    });
 
     if (reportInput.rowCount <= 0) {
       if (reservationCreated && operationId) await releaseCredits(operationId, 'no_reportable_dataset');

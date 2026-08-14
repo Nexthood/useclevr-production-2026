@@ -9,7 +9,6 @@ export function getStandardUploadSuccessView(result: UploadDatasetResponse) {
     title: "Upload completed successfully",
     description: "Your standard dataset was uploaded and is ready for analysis.",
     dashboardHref: result.redirectTo || (datasetId ? `/app/dashboard?datasetId=${encodeURIComponent(datasetId)}` : "/app/dashboard"),
-    datasetHref: datasetId ? `/app/datasets/${encodeURIComponent(datasetId)}` : "/app/datasets",
     hasDatasetNavigation: Boolean(datasetId),
     metrics: [
       { label: "Dataset type", value: "Standard" },

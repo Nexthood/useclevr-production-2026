@@ -1,5 +1,6 @@
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
+import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files"
 
 export function parseCSVFileBrowser(file: File): Promise<{
   rows: any[]
@@ -9,6 +10,10 @@ export function parseCSVFileBrowser(file: File): Promise<{
 }> {
   return new Promise((resolve, reject) => {
     const fileName = file.name.toLowerCase()
+    if (isTemporaryUploadFileName(file.name)) {
+      reject(new Error(temporaryUploadFileMessage()))
+      return
+    }
     const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
 
     if (isExcel) {

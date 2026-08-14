@@ -34,7 +34,7 @@ function main() {
   assert.equal(view.title, "Upload completed successfully")
   assert.equal(view.description, "Your standard dataset was uploaded and is ready for analysis.")
   assert.equal(view.dashboardHref, "/app/dashboard?datasetId=ds_standard_123", "standard dashboard route keeps the dataset ID")
-  assert.equal(view.datasetHref, "/app/datasets/ds_standard_123", "View Dataset opens the standard dataset detail page")
+  assert.equal("datasetHref" in view, false, "standard success view no longer exposes a View Dataset route")
   assert.deepEqual(
     view.metrics,
     [
@@ -59,7 +59,6 @@ function main() {
     analysisStatus: "failed",
   })
   assert.equal(encodedView.dashboardHref, "/app/dashboard?datasetId=ds%20id%2Fwith%20spaces")
-  assert.equal(encodedView.datasetHref, "/app/datasets/ds%20id%2Fwith%20spaces")
   assert.equal(encodedView.metrics[3]?.value, "Failed", "standard displays the full failed analysis status")
 
   const uploadSource = readProjectFile("src/components/forms/csv-upload.tsx")
@@ -84,6 +83,9 @@ function main() {
   assertIncludes(sharedPanelSource, 'data-upload-success-panel="standard"', "standard panel has one identifiable success panel")
   assertIncludes(sharedPanelSource, "grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4", "standard KPIs use mobile, tablet, and desktop columns")
   assertIncludes(sharedPanelSource, "whitespace-normal break-words", "standard KPI values wrap instead of truncating")
+  assertNotIncludes(sharedPanelSource.match(/function StandardUploadSuccessPanel[\s\S]*?function StandardResultMetric/m)?.[0] || "", "View Dataset", "standard success panel does not render View Dataset")
+  assertNotIncludes(sharedPanelSource.match(/function StandardUploadSuccessPanel[\s\S]*?function StandardResultMetric/m)?.[0] || "", "datasetHref", "standard success panel does not keep dataset-route wiring")
+  assertIncludes(sharedPanelSource.match(/function StandardUploadSuccessPanel[\s\S]*?function StandardResultMetric/m)?.[0] || "", "sm:min-w-56", "standard success actions keep balanced responsive widths")
   assertNotIncludes(sharedPanelSource.match(/function StandardResultMetric[\s\S]*?^}/m)?.[0] || "", "truncate", "standard KPI values are not truncated")
 
   assertIncludes(sharedPanelSource, 'if (uploadMode === "retail") return "/app/retail"', "Retail Upload route remains unchanged")

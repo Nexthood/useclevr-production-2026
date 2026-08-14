@@ -3,7 +3,9 @@ import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-mo
 import { loadDatasetData } from "@/lib/data/dataset-access"
 import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
 import type { datasets } from "@/lib/db/schema"
-import type { ReportChart, ReportFinancials, ReportRecommendation } from "@/lib/reports/report-generator"
+import { debugLog } from "@/lib/utils/debug"
+import { ReportIntegrityError } from "@/lib/reports/report-generator"
+import type { ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext } from "@/lib/reports/report-generator"
 
 type DatasetRecord = typeof datasets.$inferSelect
 type DataRow = Record<string, unknown>
@@ -31,6 +33,9 @@ type ColumnMap = {
   product?: string
   category?: string
   date?: string
+  expenseCategory?: string
+  expenseAmount?: string
+  vendor?: string
   stock?: string
   reorderPoint?: string
   mrr?: string
@@ -77,17 +82,102 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
+  traceReportRuntime("buildSemanticContext", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    analysisObjectKeys: isRecord(dataset.analysis) ? Object.keys(dataset.analysis) : [],
+    templateName: "executive-bi-report",
+  })
+  const semanticContext = buildSemanticContext({
+    datasetId: dataset.id,
+    datasetType,
+    columnMap,
+  })
+  traceReportRuntime("buildDeterministicAnalysis", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    analysisRowsLength: rows.length,
+    detectedDateField: semanticContext.dateField,
+    detectedExpenseCategoryField: semanticContext.expenseCategoryField,
+    detectedExpenseAmountField: semanticContext.expenseAmountField,
+    detectedVendorField: semanticContext.vendorField,
+    analysisObjectKeys: isRecord(dataset.analysis) ? Object.keys(dataset.analysis) : [],
+    templateName: "executive-bi-report",
+  })
   const financials = buildGenericFinancials(rows, columnMap)
   const kpis = buildKpis(reportModel, rows, columnMap, financials)
   const charts = buildCharts(reportModel, rows, columnMap)
-  const findings = buildFindings(reportModel, rows, columnMap, kpis)
+  const canonicalRowCount = dataset.rowCount || rows.length
+  if (rows.length !== canonicalRowCount) {
+    throw new ReportIntegrityError("Report KPI row count does not match the authoritative dataset row count.", {
+      datasetId: dataset.id,
+      filename: dataset.fileName,
+      persistedRowCount: dataset.rowCount,
+      loadedRowsLength: rows.length,
+      rowsForKpis: rows.length,
+      authoritativeRowCount: canonicalRowCount,
+    })
+  }
+  traceReportRuntime("buildExecutiveSummary", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    summaryRowsLength: canonicalRowCount,
+    detectedDateField: semanticContext.dateField,
+    detectedExpenseCategoryField: semanticContext.expenseCategoryField,
+    detectedExpenseAmountField: semanticContext.expenseAmountField,
+    detectedVendorField: semanticContext.vendorField,
+    templateName: "executive-bi-report",
+  })
+  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis)
   const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
   const recommendations = buildDatasetRecommendations(columnMap, financials, bbsc)
+  const diagnostics = buildReportDiagnostics({
+    dataset,
+    rowCount: canonicalRowCount,
+    rows,
+    semanticContext,
+    financials,
+  })
+
+  debugLog("[REPORT_BUILDER] validated analysis object", diagnostics)
+  traceReportRuntime("buildCostIntelligence", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    analysisRowsLength: rows.length,
+    detectedDateField: semanticContext.dateField,
+    detectedExpenseCategoryField: semanticContext.expenseCategoryField,
+    detectedExpenseAmountField: semanticContext.expenseAmountField,
+    detectedVendorField: semanticContext.vendorField,
+    validExpenseCategoryCount: diagnostics.validExpenseCategoryCount,
+    validExpenseAmountCount: diagnostics.validExpenseAmountCount,
+    validVendorCount: diagnostics.validVendorCount,
+    templateName: diagnostics.templateName,
+  })
+  traceReportRuntime("buildTrendAnalysis", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    detectedDateField: semanticContext.dateField,
+    detectedNetProfitField: semanticContext.netProfitField,
+    validDateCount: diagnostics.validDateCount,
+    validNetProfitCount: diagnostics.validNetProfitCount,
+    trendAvailable: diagnostics.trendAvailable,
+    templateName: diagnostics.templateName,
+  })
 
   return {
     businessModel,
     reportType: reportModel,
-    summary: buildDatasetSummary(dataset.name, reportModel, rows, columnMap, financials, bbsc),
+    summary: buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
     findings,
     kpis,
     charts,
@@ -97,7 +187,9 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     recommendations,
     alerts: buildAlerts(reportModel, rows, columnMap),
     bbsc,
-    rowCount: dataset.rowCount || rows.length,
+    semanticContext,
+    diagnostics,
+    rowCount: canonicalRowCount,
     columns,
   }
 }
@@ -391,9 +483,11 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
   const expenseRatio = revenue.value !== null && revenue.value !== 0 && costValues.length > 0
     ? round((costValues.reduce((total, value) => total + value, 0) / revenue.value) * 100)
     : null
+  const periodTrends = buildPeriodTrends(rows, columns)
+  const revenueGrowth = revenueGrowthFromPeriodTrends(periodTrends)
 
   return {
-    reportingPeriod: null,
+    reportingPeriod: reportingPeriodFromPeriodTrends(periodTrends),
     dataConfidence: dataConfidenceForFinancials([revenue, cogs, operatingExpenses, interestExpense, taxExpense]),
     metricSources: {
       revenue: metaFromMetric(revenue),
@@ -419,7 +513,7 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
     grossMargin: grossMargin.value,
     operatingMargin: operatingMargin.value,
     netMargin: netMargin.value,
-    revenueGrowth: null,
+    revenueGrowth,
     expenseRatio,
     missingFields: missingProfitabilityFields({
       revenue: revenue.value,
@@ -434,9 +528,157 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
       operatingMargin: operatingMargin.value,
       netMargin: netMargin.value,
     }, {}),
-    topCostCategories: [],
-    periodTrends: [],
+    topCostCategories: buildTopCostCategories(rows, columns),
+    periodTrends,
   }
+}
+
+function buildTopCostCategories(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.expenseCategory || !columns.expenseAmount) return []
+  const grouped = new Map<string, number>()
+  for (const row of rows) {
+    const category = String(row[columns.expenseCategory] || "").trim()
+    const amount = getNumber(row[columns.expenseAmount])
+    if (!category || amount === null) continue
+    grouped.set(category, (grouped.get(category) || 0) + amount)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({ name, value: round(value) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
+}
+
+function buildPeriodTrends(rows: DataRow[], columns: ColumnMap): NonNullable<ReportFinancials["periodTrends"]> {
+  if (!columns.date) return []
+  const valueColumns = [
+    columns.revenue || columns.gmv,
+    columns.cogs,
+    columns.operatingExpenses,
+    columns.interestExpense,
+    columns.taxExpense,
+    columns.grossProfit,
+    columns.operatingProfit,
+    columns.netProfit,
+  ]
+  if (!valueColumns.some(Boolean)) return []
+
+  const grouped = new Map<string, {
+    revenue: number | null
+    cogs: number | null
+    operatingExpenses: number | null
+    interestExpense: number | null
+    taxExpense: number | null
+    grossProfit: number | null
+    operatingProfit: number | null
+    netProfit: number | null
+  }>()
+
+  for (const row of rows) {
+    const period = periodKey(row[columns.date])
+    if (!period) continue
+    const current = grouped.get(period) || {
+      revenue: null,
+      cogs: null,
+      operatingExpenses: null,
+      interestExpense: null,
+      taxExpense: null,
+      grossProfit: null,
+      operatingProfit: null,
+      netProfit: null,
+    }
+    addTrendValue(current, "revenue", row, columns.revenue || columns.gmv)
+    addTrendValue(current, "cogs", row, columns.cogs)
+    addTrendValue(current, "operatingExpenses", row, columns.operatingExpenses)
+    addTrendValue(current, "interestExpense", row, columns.interestExpense)
+    addTrendValue(current, "taxExpense", row, columns.taxExpense)
+    addTrendValue(current, "grossProfit", row, columns.grossProfit)
+    addTrendValue(current, "operatingProfit", row, columns.operatingProfit)
+    addTrendValue(current, "netProfit", row, columns.netProfit)
+    grouped.set(period, current)
+  }
+
+  return Array.from(grouped.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([period, trend]) => {
+      const grossProfit = trend.grossProfit !== null
+        ? trend.grossProfit
+        : trend.revenue !== null && trend.cogs !== null
+          ? round(trend.revenue - trend.cogs)
+          : null
+      const operatingProfit = trend.operatingProfit !== null
+        ? trend.operatingProfit
+        : grossProfit !== null && trend.operatingExpenses !== null
+          ? round(grossProfit - trend.operatingExpenses)
+          : null
+      const netProfit = trend.netProfit !== null
+        ? trend.netProfit
+        : operatingProfit !== null && trend.interestExpense !== null && trend.taxExpense !== null
+          ? round(operatingProfit - trend.interestExpense - trend.taxExpense)
+          : null
+      return {
+        period,
+        revenue: trend.revenue,
+        cogs: trend.cogs,
+        operatingExpenses: trend.operatingExpenses,
+        interestExpense: trend.interestExpense,
+        taxExpense: trend.taxExpense,
+        grossProfit,
+        operatingProfit,
+        netProfit,
+        grossMargin: trend.revenue && grossProfit !== null ? round((grossProfit / trend.revenue) * 100) : null,
+        operatingMargin: trend.revenue && operatingProfit !== null ? round((operatingProfit / trend.revenue) * 100) : null,
+        netMargin: trend.revenue && netProfit !== null ? round((netProfit / trend.revenue) * 100) : null,
+      }
+    })
+}
+
+function addTrendValue(
+  target: Record<string, number | null>,
+  key: string,
+  row: DataRow,
+  column?: string,
+) {
+  if (!column) return
+  const value = getNumber(row[column])
+  if (value === null) return
+  target[key] = round((target[key] || 0) + value)
+}
+
+function periodKey(value: unknown) {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString().slice(0, 10)
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const parsed = XLSXDateToJSDate(value)
+    return parsed ? parsed.toISOString().slice(0, 10) : null
+  }
+  const text = String(value || "").trim()
+  if (!text) return null
+  const parsed = new Date(text)
+  if (Number.isFinite(parsed.getTime())) return parsed.toISOString().slice(0, 10)
+  if (/^\d{4}-\d{1,2}$/.test(text)) return text.replace(/-(\d)$/, "-0$1")
+  return null
+}
+
+function XLSXDateToJSDate(serial: number) {
+  if (serial < 1 || serial > 100000) return null
+  const utcDays = Math.floor(serial - 25569)
+  const utcValue = utcDays * 86400
+  const dateInfo = new Date(utcValue * 1000)
+  return Number.isFinite(dateInfo.getTime()) ? dateInfo : null
+}
+
+function revenueGrowthFromPeriodTrends(trends: NonNullable<ReportFinancials["periodTrends"]>) {
+  const revenuePeriods = trends.filter((trend) => trend.revenue !== null)
+  if (revenuePeriods.length < 2) return null
+  const first = revenuePeriods[0].revenue
+  const last = revenuePeriods[revenuePeriods.length - 1].revenue
+  if (!first || last === null) return null
+  return round(((last - first) / first) * 100)
+}
+
+function reportingPeriodFromPeriodTrends(trends: NonNullable<ReportFinancials["periodTrends"]>) {
+  if (trends.length === 0) return null
+  if (trends.length === 1) return trends[0].period
+  return `${trends[0].period} to ${trends[trends.length - 1].period}`
 }
 
 function sourceMetric(value: number | null, column?: string): FinancialMetric {
@@ -478,16 +720,16 @@ function dataConfidenceForFinancials(metrics: FinancialMetric[]) {
 function buildDatasetSummary(
   datasetName: string,
   model: ReportModel,
-  rows: DataRow[],
+  rowCount: number,
   columns: ColumnMap,
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
 ) {
   const parts: string[] = []
   if (financials.revenue !== null) {
-    parts.push(`${datasetName} contains ${formatCurrencyForSummary(financials.revenue)} in recognized revenue across ${rows.length.toLocaleString()} loaded rows.`)
+    parts.push(`${datasetName} contains ${formatCurrencyForSummary(financials.revenue)} in recognized revenue across ${rowCount.toLocaleString()} loaded rows.`)
   } else {
-    parts.push(`${datasetName} has ${rows.length.toLocaleString()} loaded rows, but revenue is not available from recognized source fields.`)
+    parts.push(`${datasetName} has ${rowCount.toLocaleString()} loaded rows, but revenue is not available from recognized source fields.`)
   }
   if (financials.netProfit === null) {
     parts.push("Profitability cannot be reliably assessed because required cost, expense, interest, or tax fields are missing.")
@@ -662,6 +904,9 @@ function detectColumns(columns: string[]): ColumnMap {
     product: findColumn(columns, [/product_id/, /product/, /^sku$/, /item/]),
     category: findColumn(columns, [/category/, /sector/, /industry/]),
     date: findColumn(columns, [/date/, /month/, /period/, /created_at/]),
+    expenseCategory: findColumn(columns, [/expense_category/, /expensecategory/, /cost_category/, /costcategory/, /category/]),
+    expenseAmount: findColumn(columns, [/expense_amount/, /expenseamount/, /cost_amount/, /costamount/, /amount/]),
+    vendor: findColumn(columns, [/vendor_supplier/, /vendorsupplier/, /^vendor$/, /supplier/, /merchant/]),
     stock: findColumn(columns, [/stock_on_hand/, /stock/, /inventory/]),
     reorderPoint: findColumn(columns, [/reorder_point/, /reorder/]),
     mrr: findColumn(columns, [/^mrr$/]),
@@ -689,6 +934,120 @@ function detectColumns(columns: string[]): ColumnMap {
     credit: findColumn(columns, [/credit/]),
     invoice: findColumn(columns, [/invoice/, /receipt/]),
   }
+}
+
+function buildSemanticContext(input: {
+  datasetId: string
+  datasetType: string
+  columnMap: ColumnMap
+}): ReportSemanticContext {
+  const mappings: Record<string, string | null> = {
+    date: input.columnMap.date || null,
+    revenue: input.columnMap.revenue || input.columnMap.gmv || null,
+    cogs: input.columnMap.cogs || null,
+    grossProfit: input.columnMap.grossProfit || null,
+    operatingExpenses: input.columnMap.operatingExpenses || null,
+    operatingProfit: input.columnMap.operatingProfit || null,
+    interestExpense: input.columnMap.interestExpense || null,
+    taxExpense: input.columnMap.taxExpense || null,
+    netProfit: input.columnMap.netProfit || null,
+    expenseCategory: input.columnMap.expenseCategory || null,
+    expenseAmount: input.columnMap.expenseAmount || null,
+    vendor: input.columnMap.vendor || null,
+  }
+  const required = ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
+  const available = required.filter((key) => Boolean(mappings[key])).length
+  return {
+    datasetId: input.datasetId,
+    datasetType: input.datasetType,
+    mappings,
+    confidence: Math.round((available / required.length) * 100),
+    dateField: mappings.date,
+    revenueField: mappings.revenue,
+    netProfitField: mappings.netProfit,
+    costFields: [
+      input.columnMap.cogs,
+      input.columnMap.operatingExpenses,
+      input.columnMap.interestExpense,
+      input.columnMap.taxExpense,
+    ].filter((field): field is string => Boolean(field)),
+    expenseCategoryField: mappings.expenseCategory,
+    expenseAmountField: mappings.expenseAmount,
+    vendorField: mappings.vendor,
+  }
+}
+
+function buildReportDiagnostics(input: {
+  dataset: DatasetRecord
+  rowCount: number
+  rows: DataRow[]
+  semanticContext: ReportSemanticContext
+  financials: ReportFinancials
+}): ReportDiagnostics {
+  const analysisKeys = isRecord(input.dataset.analysis) ? Object.keys(input.dataset.analysis) : []
+  return {
+    datasetId: input.dataset.id,
+    filename: input.dataset.fileName,
+    persistedRowCount: input.dataset.rowCount,
+    loadedRowsLength: input.rows.length,
+    analysisRowsLength: input.rows.length,
+    rowCount: input.rowCount,
+    rowsUsedForKpis: input.rows.length,
+    rowsUsedForSummary: input.rowCount,
+    reportRowsLength: input.rowCount,
+    provenanceRowsLength: input.rowCount,
+    dateField: input.semanticContext.dateField,
+    expenseCategoryField: input.semanticContext.expenseCategoryField,
+    expenseAmountField: input.semanticContext.expenseAmountField,
+    vendorField: input.semanticContext.vendorField,
+    revenueField: input.semanticContext.revenueField,
+    netProfitField: input.semanticContext.netProfitField,
+    validDateCount: validValueCount(input.rows, input.semanticContext.dateField, isValidDateValue),
+    validNetProfitCount: validValueCount(input.rows, input.semanticContext.netProfitField, (value) => getNumber(value) !== null),
+    validExpenseCategoryCount: validValueCount(input.rows, input.semanticContext.expenseCategoryField, (value) => String(value || "").trim().length > 0),
+    validExpenseAmountCount: validValueCount(input.rows, input.semanticContext.expenseAmountField, (value) => getNumber(value) !== null),
+    validVendorCount: validValueCount(input.rows, input.semanticContext.vendorField, (value) => String(value || "").trim().length > 0),
+    trendAvailable: hasTrendDataForDiagnostics(input.financials),
+    analysisObjectKeys: analysisKeys,
+    reportInputKeys: [
+      "businessModel",
+      "reportType",
+      "summary",
+      "findings",
+      "kpis",
+      "charts",
+      "financials",
+      "aiInsights",
+      "predictions",
+      "recommendations",
+      "alerts",
+      "bbsc",
+      "semanticContext",
+      "diagnostics",
+      "rowCount",
+      "columns",
+    ],
+    templateName: "executive-bi-report",
+  }
+}
+
+function hasTrendDataForDiagnostics(financials: ReportFinancials) {
+  const trends = financials.periodTrends || []
+  const validNetProfitCount = trends.filter((trend) => trend.netProfit !== null).length
+  return trends.length > 0 && validNetProfitCount > 0
+}
+
+function validValueCount(rows: DataRow[], column: string | null, predicate: (value: unknown) => boolean) {
+  if (!column) return 0
+  return rows.filter((row) => predicate(row[column])).length
+}
+
+function isValidDateValue(value: unknown) {
+  return Boolean(periodKey(value))
+}
+
+function traceReportRuntime(moduleName: string, details: Record<string, unknown>) {
+  debugLog("[REPORT TRACE]", moduleName, details)
 }
 
 function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials): ReportKpi[] {
@@ -780,8 +1139,8 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap): R
   return charts.slice(0, 4)
 }
 
-function buildFindings(model: ReportModel, rows: DataRow[], columns: ColumnMap, kpis: ReportKpi[]) {
-  const findings = [`The selected dataset contains ${rows.length.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
+function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[]) {
+  const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
   if (!columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")

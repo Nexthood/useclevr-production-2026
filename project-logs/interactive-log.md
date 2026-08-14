@@ -1,3 +1,67 @@
+## Report Runtime Trace And Legacy Replay Invalidation
+
+1. Interaction title
+Report runtime trace and legacy replay invalidation.
+
+2. What was the user goal
+Trace the actual production report-generation path for `UseClevr_Full_Report_Test_Dataset.xlsx`, identify the source of `100 loaded rows`, identify where semantic mappings disappear, and prevent misleading PDFs from being generated or replayed.
+
+3. What changed
+Report generation now logs `[REPORT TRACE]` diagnostics with dataset ID, filename, persisted row count, loaded row length, analysis row length, summary row length, report row length, provenance row length, detected semantic fields, analysis keys, report input keys, and template name at the route, data loader, semantic context, deterministic analysis, executive summary, trend analysis, Cost Intelligence, report generator, and PDF renderer transitions. The reports API checks idempotent reports for the current report runtime version, diagnostics, and semantic context; legacy report replays are invalidated and rebuilt instead of returning stale PDFs. Report generation stores a runtime version and template name. The report generator throws `ReportIntegrityError` before PDF rendering when row counts or semantic mappings contradict the validated analysis object, including a valid-date and valid-net-profit trend availability check. The full-row PDF regression verifies the trace path and source guards.
+
+4. Problems marked
+- blocker: none.
+- risk: Existing stale report files remain on disk until a matching idempotent request invalidates them or the user deletes/regenerates reports.
+- improvement: Add an admin cleanup tool for old generated report files if stale report storage needs bulk cleanup.
+- observation: The exact `100 loaded rows` text is produced by `buildDatasetSummary` from its row-count argument. The production persistence/replay path can keep serving a pre-fix report summary because `/api/reports` returned `findReportByIdempotencyKey` results before rebuilding report input. The semantic mappings disappeared because those legacy reports were generated before the report object carried `semanticContext` and before Cost Intelligence read that shared context.
+
+5. User learning
+Fixing the builder and PDF renderer is not sufficient when the report route can replay a previously generated PDF through idempotency; the runtime route must verify stored report shape before returning a report.
+
+6. AI-agent learning
+Runtime traces must include replay branches and storage/version checks, not only the fresh-build code path, when a generated artifact still shows pre-fix content.
+
+7. Follow-up tasks
+- Add an admin cleanup tool for old generated report files if stale report storage needs bulk cleanup. (labels: reports, data, workflow)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Full-Row Report Analysis And Semantic Mapping Consistency
+
+1. Interaction title
+Full-row report analysis and semantic mapping consistency.
+
+2. What was the user goal
+Fix the Executive BI report pipeline so the full-report XLSX regression uses the same 120 authoritative rows and semantic field mappings across executive summary, financial performance, trend analysis, Cost Intelligence, recommendations, and provenance.
+
+3. What changed
+Dataset report loading now reads `datasetRows` when inline dataset data contains fewer rows than `dataset.rowCount`, so report calculations do not stop at preview-sized inline payloads. Standard simple upload stores all parsed in-limit rows in the dataset payload instead of slicing inline report data to 100 rows. Dataset report building creates one semantic context per dataset for date, revenue, net profit, cost fields, expense category, expense amount, and vendor fields. Dataset report building calculates top cost categories and period trends from the same full-row dataset and semantic mapping used for financial KPIs and executive summaries. Generated reports carry structured diagnostics for dataset ID, filename, canonical row count, KPI rows, summary rows, semantic fields, and trend availability. The PDF renderer uses the report semantic context for Cost Intelligence field-availability rows instead of independently treating vendor, date, category, or amount fields as missing. The regression script creates the `UseClevr_Full_Report_Test_Dataset.xlsx` fixture shape with 120 rows, generates a fresh PDF, extracts rendered text with `pdftotext`, and verifies 120-row consistency, trend availability, and recognized semantic fields.
+
+4. Problems marked
+- blocker: The checked-in workspace does not contain a committed `UseClevr_Full_Report_Test_Dataset.xlsx` source fixture, so the regression generates the same named XLSX shape locally during validation.
+- risk: Large datasets above the existing parse or storage row limit still rely on aggregate or preview behavior until the product adds durable full-row storage for that scale.
+- improvement: Add the source XLSX regression fixture to a documented tracked or fixture-generation path if product QA requires manual PDF reproduction from the exact artifact.
+- observation: The observed 100-row PDF contradiction comes from report loading preferring inline `dataset.data` before `datasetRows`, combined with simple upload storing `data: parsedRows.slice(0, 100)`.
+
+5. User learning
+Generated report PDFs must prove row-count and semantic consistency in the rendered content, not only in TypeScript or object-level tests.
+
+6. AI-agent learning
+Report builders need one validated analysis object carrying row counts, semantic mappings, financials, diagnostics, and PDF-ready fields so downstream renderers do not re-detect or contradict source semantics.
+
+7. Follow-up tasks
+- Add the committed full-report XLSX regression fixture only if QA needs a durable binary artifact instead of deterministic fixture generation. (labels: data, upload, testing)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Dashboard Empty State After Dataset Deletion
 
 1. Interaction title
@@ -3500,6 +3564,76 @@ For report accuracy work, carry source classification in the report data model b
 
 7. Follow-up tasks
 None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Standard Upload Success View Dataset Removal
+
+1. Interaction title
+Standard Upload success View Dataset removal.
+
+2. What was the user goal
+Remove the View Dataset button from the Standard Upload success screen while keeping Open in Dashboard as the primary CTA and Upload Another File as the secondary action.
+
+3. What changed
+The Standard Upload success panel now renders only Open in Dashboard and Upload Another File, with centered responsive action widths on mobile and desktop. The standard upload success view model no longer exposes a dataset-detail route because the removed button was its only consumer. The focused Standard Upload UI regression now asserts the button text and dataset route wiring stay absent from the Standard success panel.
+
+4. Problems marked
+blocker: none.
+risk: visual browser verification remains pending because this change was validated through source inspection and regression tests in the local workspace.
+improvement: none.
+observation: non-standard upload success flows still keep their existing dataset action behavior because the request scoped the removal to Standard Upload.
+
+5. User learning
+The Standard Upload success state now directs users to the dashboard first and keeps re-upload as the only secondary action.
+
+6. AI-agent learning
+For upload success UI changes, edit the Standard-only branch and its view model before changing shared non-standard upload flows.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Full Fixture Validation Request and Temporary Upload Lock Rejection
+
+1. Interaction title
+Full fixture validation request and temporary upload lock rejection.
+
+2. What was the user goal
+Run the complete 10-family CSV/XLSX fixture validation suite, compare CSV and XLSX parity, run cross-dataset contamination checks, and reject temporary spreadsheet lock files from ingestion.
+
+3. What changed
+The required fixture suite is not present in the workspace: `01_local_retail` through `10_accountancy_ledger` CSV/XLSX files and `README_TEST_MAPPING.txt` return no matches outside ignored generated folders. The upload system now rejects temporary spreadsheet lock-file names before parsing or dataset creation in Standard Upload, simple upload, direct CSV/Excel parsers, browser CSV/Excel parsing, Accountancy, and Pre-bookkeeping paths. A focused regression verifies `~`, `~$`, and `.~` filename handling, direct parser rejection, accountancy validation rejection, and source-level guards in both standard upload paths.
+
+4. Problems marked
+blocker: full 20-file fixture validation cannot run until the exact named fixture suite and `README_TEST_MAPPING.txt` exist in the workspace.
+risk: CSV/XLSX parity, dataset-specific semantics, full 120-row Business Consulting processing, and cross-dataset contamination checks remain unproven for the missing required fixtures.
+improvement: add the complete 10-family fixture suite to a tracked or documented test-fixture path so the validation matrix can run repeatably.
+observation: the workspace contains only a smaller `test-fixtures/business-models` suite with local retail, ecommerce, startup SaaS, investor portfolio, and business consulting pairs.
+
+5. User learning
+Temporary files such as `~04_marketplace_startup.xlsx` and `~10_accountancy_ledger.xlsx` now fail before ingestion, but the requested full fixture matrix has no source files to validate in this checkout.
+
+6. AI-agent learning
+For broad fixture-validation requests, verify the exact fixture inventory before making pass/fail claims and separate blocked validation from safe code hardening that can still be completed.
+
+7. Follow-up tasks
+- Add the complete named CSV/XLSX fixture suite and `README_TEST_MAPPING.txt` to the workspace, then run the 20-file parity and contamination validation matrix.
 
 8. Instruction sources
 - AGENTS.md

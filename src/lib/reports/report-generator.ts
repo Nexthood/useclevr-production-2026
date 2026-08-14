@@ -17,6 +17,7 @@ import { generatePdfReport } from './pdf-report-generator';
 // File-based storage path: use explicit temp directory to avoid broad project tracing in Next/Turbopack
 const REPORTS_DIR = process.env.TEMP_DIR || '/tmp/useclevr-reports';
 const REPORTS_FILE = path.join(REPORTS_DIR, 'reports.json');
+export const REPORT_RUNTIME_VERSION = "report-runtime-v2";
 
 debugLog('[REPORT] Reports file path:', REPORTS_FILE);
 
@@ -141,6 +142,48 @@ export interface ReportFinancials {
   }>;
 }
 
+export interface ReportSemanticContext {
+  datasetId: string;
+  datasetType: string;
+  mappings: Record<string, string | null>;
+  confidence: number;
+  dateField: string | null;
+  revenueField: string | null;
+  netProfitField: string | null;
+  costFields: string[];
+  expenseCategoryField: string | null;
+  expenseAmountField: string | null;
+  vendorField: string | null;
+}
+
+export interface ReportDiagnostics {
+  datasetId: string;
+  filename: string;
+  persistedRowCount: number;
+  loadedRowsLength: number;
+  analysisRowsLength: number;
+  rowCount: number;
+  rowsUsedForKpis: number;
+  rowsUsedForSummary: number;
+  reportRowsLength: number;
+  provenanceRowsLength: number;
+  dateField: string | null;
+  expenseCategoryField: string | null;
+  expenseAmountField: string | null;
+  vendorField: string | null;
+  revenueField: string | null;
+  netProfitField: string | null;
+  validDateCount: number;
+  validNetProfitCount: number;
+  validExpenseCategoryCount: number;
+  validExpenseAmountCount: number;
+  validVendorCount: number;
+  trendAvailable: boolean;
+  analysisObjectKeys: string[];
+  reportInputKeys: string[];
+  templateName: string;
+}
+
 export interface ReportRecommendation {
   issue: string;
   businessImpact: string;
@@ -161,6 +204,8 @@ export interface Report {
   userId?: string | null;
   workspaceId?: string | null;
   idempotencyKey?: string | null;
+  runtimeVersion?: string;
+  templateName?: string;
   
   // Timezone metadata
   timezone: string;
@@ -183,6 +228,8 @@ export interface Report {
   aiInsights: string[];
   predictions: string[];
   recommendations?: ReportRecommendation[];
+  semanticContext?: ReportSemanticContext;
+  diagnostics?: ReportDiagnostics;
   alerts: { type: string; message: string; severity: string }[];
   
   // Metadata
@@ -219,6 +266,8 @@ export async function generateReport(
     alerts?: { type: string; message: string; severity: string }[];
     financials?: ReportFinancials;
     recommendations?: ReportRecommendation[];
+    semanticContext?: ReportSemanticContext;
+    diagnostics?: ReportDiagnostics;
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;
@@ -266,6 +315,8 @@ export async function generateReport(
     userId: options.userId || null,
     workspaceId: options.workspaceId || options.userId || null,
     idempotencyKey: options.idempotencyKey || null,
+    runtimeVersion: REPORT_RUNTIME_VERSION,
+    templateName: analysisData.diagnostics?.templateName || "executive-bi-report",
     
     // Timezone metadata - stored internally
     timezone,
@@ -284,12 +335,38 @@ export async function generateReport(
     aiInsights: analysisData.aiInsights || [],
     predictions: (options.includePredictions !== false) ? (analysisData.predictions || []) : [],
     recommendations: analysisData.recommendations,
+    semanticContext: analysisData.semanticContext,
+    diagnostics: analysisData.diagnostics,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],
     
     // Metadata
     rowCount: analysisData.rowCount,
     columnCount: analysisData.columns.length
   };
+
+  if (report.diagnostics) {
+    debugLog("[REPORT] validated analysis diagnostics", report.diagnostics);
+  }
+
+  traceReportRuntime("generateReport", {
+    datasetId,
+    filename: datasetName,
+    persistedRowCount: report.diagnostics?.persistedRowCount ?? report.rowCount,
+    loadedRowsLength: report.diagnostics?.loadedRowsLength ?? null,
+    analysisRowsLength: report.diagnostics?.analysisRowsLength ?? null,
+    summaryRowsLength: report.diagnostics?.rowsUsedForSummary ?? null,
+    reportRowsLength: report.diagnostics?.reportRowsLength ?? report.rowCount,
+    provenanceRowsLength: report.diagnostics?.provenanceRowsLength ?? report.rowCount,
+    detectedDateField: report.semanticContext?.dateField ?? null,
+    detectedExpenseCategoryField: report.semanticContext?.expenseCategoryField ?? null,
+    detectedExpenseAmountField: report.semanticContext?.expenseAmountField ?? null,
+    detectedVendorField: report.semanticContext?.vendorField ?? null,
+    analysisObjectKeys: Object.keys(analysisData),
+    reportInputKeys: Object.keys(report),
+    templateName: report.templateName,
+  });
+
+  assertReportIntegrity(report);
   
   // Generate PDF report
   try {
@@ -309,6 +386,61 @@ export async function generateReport(
   debugLog(`[REPORT] Total reports in storage after save: ${getReports().size}`);
   
   return report;
+}
+
+export class ReportIntegrityError extends Error {
+  constructor(message: string, readonly details: Record<string, unknown>) {
+    super(message);
+    this.name = "ReportIntegrityError";
+  }
+}
+
+export function isCurrentReportRuntime(report: Report | null | undefined) {
+  if (!report) return false;
+  return (
+    report.runtimeVersion === REPORT_RUNTIME_VERSION &&
+    Boolean(report.semanticContext) &&
+    Boolean(report.diagnostics)
+  );
+}
+
+export function traceReportRuntime(moduleName: string, details: Record<string, unknown>) {
+  debugLog("[REPORT TRACE]", moduleName, details);
+}
+
+function assertReportIntegrity(report: Report) {
+  if (!report.diagnostics || !report.semanticContext) return;
+  const failures: string[] = [];
+  if (report.rowCount !== report.diagnostics.rowCount) failures.push("report.rowCount differs from diagnostics.rowCount");
+  if (report.diagnostics.rowsUsedForSummary !== report.diagnostics.rowCount) failures.push("summary row count differs from authoritative row count");
+  if (report.diagnostics.reportRowsLength !== report.diagnostics.rowCount) failures.push("report row count differs from authoritative row count");
+  if (report.diagnostics.provenanceRowsLength !== report.diagnostics.rowCount) failures.push("provenance row count differs from authoritative row count");
+  if (report.diagnostics.rowsUsedForKpis !== report.diagnostics.rowCount) failures.push("KPI row count differs from authoritative row count");
+  if (report.diagnostics.validDateCount > 0 && report.diagnostics.validNetProfitCount > 0 && !report.diagnostics.trendAvailable) {
+    failures.push("trend is unavailable despite valid date and net-profit values");
+  }
+  if (report.diagnostics.validExpenseCategoryCount > 0 && !report.semanticContext.expenseCategoryField) {
+    failures.push("expense categories exist but semantic context has no expense category field");
+  }
+  if (report.diagnostics.validExpenseAmountCount > 0 && !report.semanticContext.expenseAmountField) {
+    failures.push("expense amounts exist but semantic context has no expense amount field");
+  }
+  if (report.diagnostics.validVendorCount > 0 && !report.semanticContext.vendorField) {
+    failures.push("vendors exist but semantic context has no vendor field");
+  }
+  if (report.semanticContext.dateField !== report.diagnostics.dateField) failures.push("date semantic mapping changed before PDF rendering");
+  if (report.semanticContext.expenseCategoryField !== report.diagnostics.expenseCategoryField) failures.push("expense category mapping changed before PDF rendering");
+  if (report.semanticContext.expenseAmountField !== report.diagnostics.expenseAmountField) failures.push("expense amount mapping changed before PDF rendering");
+  if (report.semanticContext.vendorField !== report.diagnostics.vendorField) failures.push("vendor mapping changed before PDF rendering");
+  if (failures.length > 0) {
+    throw new ReportIntegrityError("Report data integrity check failed before PDF rendering.", {
+      reportId: report.id,
+      datasetId: report.datasetId,
+      failures,
+      diagnostics: report.diagnostics,
+      semanticContext: report.semanticContext,
+    });
+  }
 }
 
 /**

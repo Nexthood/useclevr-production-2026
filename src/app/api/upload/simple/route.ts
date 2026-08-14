@@ -7,6 +7,7 @@ import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
@@ -273,6 +274,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (isTemporaryUploadFileName(uploadFile.name)) {
+      return jsonError(
+        422,
+        "file_validated",
+        temporaryUploadFileMessage(),
+        false,
+        { code: "UPLOAD_TEMPORARY_FILE_REJECTED", requestId },
+      );
+    }
+
     let parsed;
     try {
       currentStage = "PARSE";
@@ -389,7 +400,7 @@ export async function POST(request: Request) {
       rowCount: parsed.rowCount,
       columnCount: parsed.columns.length,
       columns: parsed.columns,
-      data: parsedRows.slice(0, 100),
+      data: parsedRows,
       columnTypes: {},
       precomputedMetrics: parsed.aggregatedMetrics,
       datasetType: "standard",
