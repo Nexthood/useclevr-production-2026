@@ -5,7 +5,8 @@ import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-cat
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
-import type { ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext } from "@/lib/reports/report-generator"
+import type { ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis } from "@/lib/reports/report-generator"
+import { getReportProfile } from "@/lib/reports/report-profiles"
 
 type DatasetRecord = typeof datasets.$inferSelect
 type DataRow = Record<string, unknown>
@@ -82,6 +83,10 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
+  if ((reportModel === "local_retail" || reportModel === "ecommerce") && !columnMap.cogs && columnMap.cost) {
+    columnMap.cogs = columnMap.cost
+  }
+  const reportProfile = getReportProfile(reportModel)
   traceReportRuntime("buildSemanticContext", {
     datasetId: dataset.id,
     filename: dataset.fileName,
@@ -109,8 +114,9 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     templateName: "executive-bi-report",
   })
   const financials = buildGenericFinancials(rows, columnMap)
-  const kpis = buildKpis(reportModel, rows, columnMap, financials)
-  const charts = buildCharts(reportModel, rows, columnMap)
+  const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
+  const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis)
+  const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis)
   const canonicalRowCount = dataset.rowCount || rows.length
   if (rows.length !== canonicalRowCount) {
     throw new ReportIntegrityError("Report KPI row count does not match the authoritative dataset row count.", {
@@ -134,9 +140,11 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     detectedVendorField: semanticContext.vendorField,
     templateName: "executive-bi-report",
   })
-  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis)
+  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis, retailAnalysis)
   const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
-  const recommendations = buildDatasetRecommendations(columnMap, financials, bbsc)
+  const recommendations = reportModel === "local_retail" && retailAnalysis
+    ? buildRetailRecommendations(retailAnalysis, financials, columnMap)
+    : buildDatasetRecommendations(columnMap, financials, bbsc)
   const diagnostics = buildReportDiagnostics({
     dataset,
     rowCount: canonicalRowCount,
@@ -177,7 +185,10 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   return {
     businessModel,
     reportType: reportModel,
-    summary: buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
+    reportProfile,
+    summary: reportModel === "local_retail" && retailAnalysis
+      ? buildRetailSummary(dataset.name, canonicalRowCount, financials, retailAnalysis)
+      : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
     findings,
     kpis,
     charts,
@@ -185,6 +196,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     aiInsights: extractInsights(dataset.analysis),
     predictions: [],
     recommendations,
+    retailAnalysis,
     alerts: buildAlerts(reportModel, rows, columnMap),
     bbsc,
     semanticContext,
@@ -296,10 +308,12 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     periodTrends: periodTrendsFromMetrics(metrics),
   }
   const recommendations = buildProfitabilityRecommendations(financials, bbsc)
+  const reportProfile = getReportProfile("profitability")
 
   return {
     businessModel,
     reportType: "profitability" as const,
+    reportProfile,
     summary: buildProfitabilitySummary(dataset.name, financials, bbsc),
     financials,
     findings,
@@ -308,6 +322,7 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     aiInsights: extractInsights(dataset.analysis),
     predictions: [],
     recommendations,
+    retailAnalysis: undefined,
     alerts: buildProfitabilityAlerts(netMargin, metrics),
     bbsc,
     rowCount: dataset.rowCount || rows.length,
@@ -531,6 +546,208 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
     topCostCategories: buildTopCostCategories(rows, columns),
     periodTrends,
   }
+}
+
+function buildRetailAnalysis(rows: DataRow[], columns: ColumnMap): RetailReportAnalysis {
+  const currentStock = sumColumn(rows, columns.stock)
+  const quantity = sumColumn(rows, columns.quantity)
+  const revenue = sumColumn(rows, columns.revenue)
+  const orders = columns.order ? uniqueCount(rows, columns.order) : rows.length
+  const inventoryValue = retailInventoryValue(rows, columns)
+  const productCount = columns.product ? uniqueCount(rows, columns.product) : rows.length
+  const supplierCount = columns.vendor ? uniqueCount(rows, columns.vendor) : null
+  const lowStockItems = retailLowStockItems(rows, columns)
+  const outOfStockSkuCount = columns.stock ? uniqueCountWhere(rows, columns.product, (row) => (getNumber(row[columns.stock!]) ?? 0) <= 0) : null
+
+  return {
+    currentStock,
+    inventoryValue,
+    productCount,
+    lowStockSkuCount: lowStockItems.length,
+    reorderRequiredCount: lowStockItems.length,
+    outOfStockSkuCount,
+    averageTransactionValue: revenue !== null && orders > 0 ? round(revenue / orders) : null,
+    supplierCount,
+    topProductsByRevenue: groupedRetailChart(rows, columns.product, columns.revenue, "Unknown product"),
+    revenueByCategory: groupedRetailChart(rows, columns.category, columns.revenue, "Uncategorized"),
+    grossMarginByCategory: retailMarginByGroup(rows, columns.category, columns),
+    stockByCategory: groupedRetailChart(rows, columns.category, columns.stock, "Uncategorized"),
+    inventoryValueByProduct: retailInventoryValueByProduct(rows, columns),
+    supplierExposure: groupedRetailChart(rows, columns.vendor, columns.revenue, "Unknown supplier"),
+    lowStockItems,
+  }
+}
+
+function buildRetailSummary(datasetName: string, rowCount: number, financials: ReportFinancials, retail: RetailReportAnalysis) {
+  const parts: string[] = []
+  parts.push(`${datasetName} is analyzed as a retail dataset with ${rowCount.toLocaleString()} loaded rows.`)
+  if (financials.revenue !== null) parts.push(`Revenue is ${formatCurrencyForSummary(financials.revenue)}.`)
+  if (financials.grossProfit !== null && financials.grossMargin !== null) {
+    parts.push(`Gross profit is ${formatCurrencyForSummary(financials.grossProfit)} with gross margin of ${financials.grossMargin.toFixed(1)}%.`)
+  }
+  if (retail.currentStock !== null) parts.push(`Current stock is ${retail.currentStock.toLocaleString()} units across ${retail.productCount?.toLocaleString() || "recognized"} products or SKUs.`)
+  if (retail.reorderRequiredCount !== null && retail.reorderRequiredCount > 0) parts.push(`${retail.reorderRequiredCount.toLocaleString()} SKU${retail.reorderRequiredCount === 1 ? "" : "s"} are at or below reorder point.`)
+  if (retail.supplierExposure[0]) parts.push(`${retail.supplierExposure[0].name} is the largest detected supplier by revenue.`)
+  return parts.join(" ")
+}
+
+function buildRetailRecommendations(
+  retail: RetailReportAnalysis,
+  financials: ReportFinancials,
+  columns: ColumnMap,
+): ReportRecommendation[] {
+  const recommendations: ReportRecommendation[] = []
+  const topLowStock = retail.lowStockItems[0]
+  if (topLowStock) {
+    recommendations.push({
+      issue: `${topLowStock.product} is at or below reorder point.`,
+      businessImpact: "Stockout risk can interrupt retail sales and push customers to alternatives.",
+      recommendedAction: `Reorder ${topLowStock.product} and review the reorder point against recent unit sales.`,
+      estimatedImpact: "Protects near-term revenue from avoidable out-of-stock exposure.",
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  const lowMargin = retail.grossMarginByCategory.filter((item) => item.value < 25).sort((a, b) => a.value - b.value)[0]
+  if (lowMargin) {
+    recommendations.push({
+      issue: `${lowMargin.name} has a gross margin of ${lowMargin.value.toFixed(1)}%.`,
+      businessImpact: "Weak category margin reduces retail profit quality even when revenue is available.",
+      recommendedAction: `Review pricing, supplier terms, shrinkage, or promotion depth for ${lowMargin.name}.`,
+      estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of gross margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in gross profit.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  const supplier = retail.supplierExposure[0]
+  if (supplier && financials.revenue !== null && supplier.value >= financials.revenue * 0.4) {
+    recommendations.push({
+      issue: `${supplier.name} represents ${((supplier.value / financials.revenue) * 100).toFixed(1)}% of detected revenue.`,
+      businessImpact: "Supplier concentration raises availability and negotiating risk.",
+      recommendedAction: `Review backup supply, lead times, and purchase terms for ${supplier.name}.`,
+      estimatedImpact: null,
+      confidence: "Medium",
+      requiredData: [],
+    })
+  }
+  if (retail.inventoryValue !== null && financials.revenue !== null && retail.inventoryValue > financials.revenue * 0.5) {
+    recommendations.push({
+      issue: `Inventory value is ${formatCurrencyForSummary(retail.inventoryValue)} against ${formatCurrencyForSummary(financials.revenue)} revenue.`,
+      businessImpact: "High inventory cash exposure can limit buying flexibility and working capital.",
+      recommendedAction: "Prioritize sell-through analysis for slow-moving products and rebalance purchasing toward faster movers.",
+      estimatedImpact: null,
+      confidence: "Medium",
+      requiredData: [],
+    })
+  }
+  if (!columns.order && !columns.customer) {
+    recommendations.push({
+      issue: "Order and customer fields are not recognized.",
+      businessImpact: "Average order value, repeat behavior, and basket diagnostics are limited.",
+      recommendedAction: "Add order ID and customer ID fields to future retail uploads.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["Order ID", "Customer ID"],
+    })
+  }
+  if (!columns.reorderPoint || !columns.stock) {
+    recommendations.push({
+      issue: "Inventory control fields are incomplete.",
+      businessImpact: "Reorder, out-of-stock, dead-stock, and excess-stock actions cannot be fully ranked.",
+      recommendedAction: "Add stock-on-hand and reorder-point fields to future retail uploads.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["Stock on hand", "Reorder point"],
+    })
+  }
+  return recommendations.slice(0, 5)
+}
+
+function retailInventoryValue(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.stock || !columns.cost) return null
+  let total = 0
+  let found = false
+  for (const row of rows) {
+    const stock = getNumber(row[columns.stock])
+    const cost = getNumber(row[columns.cost])
+    if (stock === null || cost === null) continue
+    const quantity = columns.quantity ? getNumber(row[columns.quantity]) : null
+    const unitCost = quantity && quantity > 0 ? cost / quantity : cost
+    total += stock * unitCost
+    found = true
+  }
+  return found ? round(total) : null
+}
+
+function retailInventoryValueByProduct(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.product || !columns.stock || !columns.cost) return []
+  const grouped = new Map<string, number>()
+  for (const row of rows) {
+    const product = String(row[columns.product] || "Unknown product").trim() || "Unknown product"
+    const stock = getNumber(row[columns.stock])
+    const cost = getNumber(row[columns.cost])
+    if (stock === null || cost === null) continue
+    const quantity = columns.quantity ? getNumber(row[columns.quantity]) : null
+    const unitCost = quantity && quantity > 0 ? cost / quantity : cost
+    grouped.set(product, round((grouped.get(product) || 0) + stock * unitCost))
+  }
+  return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
+}
+
+function retailLowStockItems(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.stock || !columns.reorderPoint) return []
+  const items = new Map<string, { product: string; category?: string; supplier?: string; stock: number; reorderPoint: number; revenue: number }>()
+  for (const row of rows) {
+    const stock = getNumber(row[columns.stock])
+    const reorderPoint = getNumber(row[columns.reorderPoint])
+    if (stock === null || reorderPoint === null || stock > reorderPoint) continue
+    const product = columns.product ? String(row[columns.product] || "Unknown product").trim() : "Unknown product"
+    const key = product || "Unknown product"
+    const revenue = columns.revenue ? getNumber(row[columns.revenue]) || 0 : 0
+    const current = items.get(key)
+    if (!current || revenue > current.revenue) {
+      items.set(key, {
+        product: key,
+        category: columns.category ? String(row[columns.category] || "").trim() || undefined : undefined,
+        supplier: columns.vendor ? String(row[columns.vendor] || "").trim() || undefined : undefined,
+        stock,
+        reorderPoint,
+        revenue,
+      })
+    }
+  }
+  return Array.from(items.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 10).map(({ revenue: _revenue, ...item }) => item)
+}
+
+function groupedRetailChart(rows: DataRow[], groupColumn: string | undefined, valueColumn: string | undefined, fallback: string) {
+  if (!groupColumn || !valueColumn) return []
+  const grouped = new Map<string, number>()
+  for (const row of rows) {
+    const name = String(row[groupColumn] || fallback).trim() || fallback
+    const value = getNumber(row[valueColumn])
+    if (value === null) continue
+    grouped.set(name, round((grouped.get(name) || 0) + value))
+  }
+  return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
+}
+
+function retailMarginByGroup(rows: DataRow[], groupColumn: string | undefined, columns: ColumnMap) {
+  if (!groupColumn || !columns.revenue || !columns.cost) return []
+  const grouped = new Map<string, { revenue: number; cost: number }>()
+  for (const row of rows) {
+    const name = String(row[groupColumn] || "Uncategorized").trim() || "Uncategorized"
+    const revenue = getNumber(row[columns.revenue])
+    const cost = getNumber(row[columns.cost])
+    if (revenue === null || cost === null) continue
+    const current = grouped.get(name) || { revenue: 0, cost: 0 }
+    current.revenue += revenue
+    current.cost += cost
+    grouped.set(name, current)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({ name, value: value.revenue > 0 ? round(((value.revenue - value.cost) / value.revenue) * 100) : 0 }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
 }
 
 function buildTopCostCategories(rows: DataRow[], columns: ColumnMap) {
@@ -1017,9 +1234,11 @@ function buildReportDiagnostics(input: {
       "kpis",
       "charts",
       "financials",
+      "reportProfile",
       "aiInsights",
       "predictions",
       "recommendations",
+      "retailAnalysis",
       "alerts",
       "bbsc",
       "semanticContext",
@@ -1050,7 +1269,7 @@ function traceReportRuntime(moduleName: string, details: Record<string, unknown>
   debugLog("[REPORT TRACE]", moduleName, details)
 }
 
-function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials): ReportKpi[] {
+function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials, retail?: RetailReportAnalysis): ReportKpi[] {
   const revenue = financials.revenue ?? sumColumn(rows, columns.gmv)
   const cost = sumColumn(rows, columns.cost)
   const profit = financials.netProfit ?? financials.grossProfit
@@ -1063,9 +1282,18 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
   addKpi(kpis, "Profit", profit, "currency")
 
   if (model === "local_retail") {
-    addKpi(kpis, "Units sold", quantity, "number")
-    addKpi(kpis, "Inventory", sumColumn(rows, columns.stock), "number")
-    addKpi(kpis, "Low stock", countLowStock(rows, columns), "number")
+    kpis.length = 0
+    addKpi(kpis, "Revenue", financials.revenue, "currency")
+    addKpi(kpis, "Gross Profit", financials.grossProfit, "currency")
+    addKpi(kpis, "Gross Margin", financials.grossMargin, "percent")
+    addKpi(kpis, "Units Sold", quantity, "number")
+    addKpi(kpis, "Current Stock", retail?.currentStock ?? sumColumn(rows, columns.stock), "number")
+    addKpi(kpis, "Inventory Value", retail?.inventoryValue ?? null, "currency")
+    addKpi(kpis, "Products / SKUs", retail?.productCount ?? (columns.product ? uniqueCount(rows, columns.product) : null), "number")
+    addKpi(kpis, "Low Stock SKUs", retail?.lowStockSkuCount ?? countLowStock(rows, columns), "number")
+    addKpi(kpis, "Reorder Required", retail?.reorderRequiredCount ?? countLowStock(rows, columns), "number")
+    addKpi(kpis, "Out of Stock", retail?.outOfStockSkuCount ?? null, "number")
+    addKpi(kpis, "AOV", retail?.averageTransactionValue ?? null, "currency")
   } else if (model === "ecommerce") {
     addKpi(kpis, "Orders", orders, "number")
     addKpi(kpis, "Customers", customers, "number")
@@ -1110,8 +1338,15 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
   return kpis
 }
 
-function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap): ReportChart[] {
+function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, retail?: RetailReportAnalysis): ReportChart[] {
   const charts: ReportChart[] = []
+  if (model === "local_retail" && retail) {
+    if (retail.topProductsByRevenue.length > 0) charts.push({ type: "bar", title: "Top products by revenue", data: retail.topProductsByRevenue })
+    if (retail.revenueByCategory.length > 0) charts.push({ type: "bar", title: "Revenue by category", data: retail.revenueByCategory })
+    if (retail.supplierExposure.length > 0) charts.push({ type: "bar", title: "Supplier revenue exposure", data: retail.supplierExposure })
+    if (retail.stockByCategory.length > 0) charts.push({ type: "bar", title: "Stock by category", data: retail.stockByCategory })
+    return charts.slice(0, 4)
+  }
   const productChart = groupedChart(rows, columns.product || columns.category, columns.revenue || columns.quantity, "Top products or categories")
   if (productChart) charts.push(productChart)
 
@@ -1139,12 +1374,16 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap): R
   return charts.slice(0, 4)
 }
 
-function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[]) {
+function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis) {
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
-  if (!columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model !== "local_retail" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
-  if (model === "local_retail" && columns.stock) findings.push("Inventory and reorder-risk checks are included from stock columns.")
+  if (model === "local_retail") {
+    findings.push("Retail KPIs prioritize revenue, gross profit, gross margin, unit sales, inventory value, stock levels, reorder risk, products, categories, and suppliers.")
+    if (columns.stock) findings.push("Inventory and reorder-risk checks are included from stock columns.")
+    if (retail?.supplierExposure.length) findings.push("Supplier intelligence uses only supplier values present in the selected dataset.")
+  }
   if (model === "ecommerce" && columns.country) findings.push("Geography uses only country or region values present in this dataset.")
   if ((model === "saas" || model === "startup") && (columns.mrr || columns.arr)) findings.push("Recurring revenue metrics are included from MRR/ARR columns.")
   if (model === "investor" && columns.valuation) findings.push("Portfolio valuation and allocation metrics are included.")
@@ -1203,6 +1442,21 @@ function averageColumn(rows: DataRow[], column?: string) {
 
 function uniqueCount(rows: DataRow[], column: string) {
   return new Set(rows.map((row) => String(row[column] || "").trim()).filter(Boolean)).size
+}
+
+function uniqueCountWhere(rows: DataRow[], column: string | undefined, predicate: (row: DataRow) => boolean) {
+  const values = new Set<string>()
+  let fallbackCount = 0
+  for (const row of rows) {
+    if (!predicate(row)) continue
+    if (!column) {
+      fallbackCount += 1
+      continue
+    }
+    const value = String(row[column] || "").trim()
+    if (value) values.add(value)
+  }
+  return column ? values.size : fallbackCount
 }
 
 function churnRate(rows: DataRow[], column?: string) {

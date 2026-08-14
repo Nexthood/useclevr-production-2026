@@ -1,3 +1,35 @@
+## Dataset-Aware Executive Report Profiles
+
+1. Interaction title
+Dataset-aware executive report profiles.
+
+2. What was the user goal
+Add report-profile selection for generated dataset reports and ensure Standard Upload local retail reports render as Retail Executive Reports with retail KPIs, inventory intelligence, product/category/supplier intelligence, and retail recommendations instead of a generic P&L report.
+
+3. What changed
+Generated reports now carry report-profile metadata and use a new runtime version so older generic report artifacts are regenerated. The dataset report builder selects local retail, e-commerce, SaaS startup, marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, or accountancy ledger profiles. Local retail report input maps cost as COGS, derives revenue, COGS, gross profit, gross margin, units sold, current stock, inventory value, product or SKU count, low-stock SKUs, reorder-required SKUs, out-of-stock SKUs, average order value where supported, and supplier/category/product groupings. Local retail recommendations prioritize reorder, stockout, inventory cash exposure, weak margin, supplier concentration, and missing operational fields. The PDF renderer branches local retail reports into Retail Executive Summary, Sales & Margin Performance, Inventory Intelligence, Product / Category / Supplier Intelligence, and Retail Recommendations + Provenance pages.
+
+4. Problems marked
+- blocker: The workspace does not contain the requested numbered 20-fixture matrix or `01_local_retail.xlsx`; the available local retail XLSX has 5 rows, not 180 rows.
+- risk: Synthetic or future fixture files can broaden profile coverage for marketplace, professional services, profitability P&L, accountancy ledger, and generic business beyond the currently checked-in business-model fixtures.
+- improvement: Add the requested numbered CSV/XLSX fixture suite and mapping notes to the repository so the full 20-file regression can run without local fixture substitution.
+- observation: The available local retail fixture totals 5 rows, $4,455 revenue, $2,180 COGS from the cost field, $2,275 gross profit, and 51.07% gross margin.
+
+5. User learning
+Local retail generated reports must ask retail operating questions first: sales, margin, units, inventory value, stock status, reorder risk, products, categories, suppliers, and retail actions.
+
+6. AI-agent learning
+Dataset-aware report selection belongs in the deterministic report input so the PDF renderer and recommendation logic do not reinterpret the same dataset as a generic P&L artifact.
+
+7. Follow-up tasks
+- Add the numbered 10-family CSV and Excel fixture suite with `README_TEST_MAPPING.txt` so the full 20-file regression runs against the exact requested files. (labels: data, upload, testing)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Report Runtime Trace And Legacy Replay Invalidation
 
 1. Interaction title
