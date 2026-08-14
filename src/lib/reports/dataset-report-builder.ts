@@ -4,6 +4,7 @@ import { loadDatasetData } from "@/lib/data/dataset-access"
 import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
+import { ReportIntegrityError } from "@/lib/reports/report-generator"
 import type { ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext } from "@/lib/reports/report-generator"
 
 type DatasetRecord = typeof datasets.$inferSelect
@@ -81,15 +82,58 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
+  traceReportRuntime("buildSemanticContext", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    analysisObjectKeys: isRecord(dataset.analysis) ? Object.keys(dataset.analysis) : [],
+    templateName: "executive-bi-report",
+  })
   const semanticContext = buildSemanticContext({
     datasetId: dataset.id,
     datasetType,
     columnMap,
   })
+  traceReportRuntime("buildDeterministicAnalysis", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    analysisRowsLength: rows.length,
+    detectedDateField: semanticContext.dateField,
+    detectedExpenseCategoryField: semanticContext.expenseCategoryField,
+    detectedExpenseAmountField: semanticContext.expenseAmountField,
+    detectedVendorField: semanticContext.vendorField,
+    analysisObjectKeys: isRecord(dataset.analysis) ? Object.keys(dataset.analysis) : [],
+    templateName: "executive-bi-report",
+  })
   const financials = buildGenericFinancials(rows, columnMap)
   const kpis = buildKpis(reportModel, rows, columnMap, financials)
   const charts = buildCharts(reportModel, rows, columnMap)
   const canonicalRowCount = dataset.rowCount || rows.length
+  if (rows.length !== canonicalRowCount) {
+    throw new ReportIntegrityError("Report KPI row count does not match the authoritative dataset row count.", {
+      datasetId: dataset.id,
+      filename: dataset.fileName,
+      persistedRowCount: dataset.rowCount,
+      loadedRowsLength: rows.length,
+      rowsForKpis: rows.length,
+      authoritativeRowCount: canonicalRowCount,
+    })
+  }
+  traceReportRuntime("buildExecutiveSummary", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    summaryRowsLength: canonicalRowCount,
+    detectedDateField: semanticContext.dateField,
+    detectedExpenseCategoryField: semanticContext.expenseCategoryField,
+    detectedExpenseAmountField: semanticContext.expenseAmountField,
+    detectedVendorField: semanticContext.vendorField,
+    templateName: "executive-bi-report",
+  })
   const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis)
   const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
   const recommendations = buildDatasetRecommendations(columnMap, financials, bbsc)
@@ -102,6 +146,33 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   })
 
   debugLog("[REPORT_BUILDER] validated analysis object", diagnostics)
+  traceReportRuntime("buildCostIntelligence", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    analysisRowsLength: rows.length,
+    detectedDateField: semanticContext.dateField,
+    detectedExpenseCategoryField: semanticContext.expenseCategoryField,
+    detectedExpenseAmountField: semanticContext.expenseAmountField,
+    detectedVendorField: semanticContext.vendorField,
+    validExpenseCategoryCount: diagnostics.validExpenseCategoryCount,
+    validExpenseAmountCount: diagnostics.validExpenseAmountCount,
+    validVendorCount: diagnostics.validVendorCount,
+    templateName: diagnostics.templateName,
+  })
+  traceReportRuntime("buildTrendAnalysis", {
+    datasetId: dataset.id,
+    filename: dataset.fileName,
+    persistedRowCount: dataset.rowCount,
+    loadedRowsLength: rows.length,
+    detectedDateField: semanticContext.dateField,
+    detectedNetProfitField: semanticContext.netProfitField,
+    validDateCount: diagnostics.validDateCount,
+    validNetProfitCount: diagnostics.validNetProfitCount,
+    trendAvailable: diagnostics.trendAvailable,
+    templateName: diagnostics.templateName,
+  })
 
   return {
     businessModel,
@@ -913,19 +984,50 @@ function buildReportDiagnostics(input: {
   semanticContext: ReportSemanticContext
   financials: ReportFinancials
 }): ReportDiagnostics {
+  const analysisKeys = isRecord(input.dataset.analysis) ? Object.keys(input.dataset.analysis) : []
   return {
     datasetId: input.dataset.id,
     filename: input.dataset.fileName,
+    persistedRowCount: input.dataset.rowCount,
+    loadedRowsLength: input.rows.length,
+    analysisRowsLength: input.rows.length,
     rowCount: input.rowCount,
     rowsUsedForKpis: input.rows.length,
     rowsUsedForSummary: input.rowCount,
+    reportRowsLength: input.rowCount,
+    provenanceRowsLength: input.rowCount,
     dateField: input.semanticContext.dateField,
     expenseCategoryField: input.semanticContext.expenseCategoryField,
     expenseAmountField: input.semanticContext.expenseAmountField,
     vendorField: input.semanticContext.vendorField,
     revenueField: input.semanticContext.revenueField,
     netProfitField: input.semanticContext.netProfitField,
+    validDateCount: validValueCount(input.rows, input.semanticContext.dateField, isValidDateValue),
+    validNetProfitCount: validValueCount(input.rows, input.semanticContext.netProfitField, (value) => getNumber(value) !== null),
+    validExpenseCategoryCount: validValueCount(input.rows, input.semanticContext.expenseCategoryField, (value) => String(value || "").trim().length > 0),
+    validExpenseAmountCount: validValueCount(input.rows, input.semanticContext.expenseAmountField, (value) => getNumber(value) !== null),
+    validVendorCount: validValueCount(input.rows, input.semanticContext.vendorField, (value) => String(value || "").trim().length > 0),
     trendAvailable: hasTrendDataForDiagnostics(input.financials),
+    analysisObjectKeys: analysisKeys,
+    reportInputKeys: [
+      "businessModel",
+      "reportType",
+      "summary",
+      "findings",
+      "kpis",
+      "charts",
+      "financials",
+      "aiInsights",
+      "predictions",
+      "recommendations",
+      "alerts",
+      "bbsc",
+      "semanticContext",
+      "diagnostics",
+      "rowCount",
+      "columns",
+    ],
+    templateName: "executive-bi-report",
   }
 }
 
@@ -933,6 +1035,19 @@ function hasTrendDataForDiagnostics(financials: ReportFinancials) {
   const trends = financials.periodTrends || []
   const validNetProfitCount = trends.filter((trend) => trend.netProfit !== null).length
   return trends.length > 0 && validNetProfitCount > 0
+}
+
+function validValueCount(rows: DataRow[], column: string | null, predicate: (value: unknown) => boolean) {
+  if (!column) return 0
+  return rows.filter((row) => predicate(row[column])).length
+}
+
+function isValidDateValue(value: unknown) {
+  return Boolean(periodKey(value))
+}
+
+function traceReportRuntime(moduleName: string, details: Record<string, unknown>) {
+  debugLog("[REPORT TRACE]", moduleName, details)
 }
 
 function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials): ReportKpi[] {

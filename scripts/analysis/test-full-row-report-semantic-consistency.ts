@@ -150,6 +150,10 @@ async function main() {
   assert(!pdfText.includes("Date / Period Analyze cost trends Missing"), "PDF must not mark date missing")
   assert(!pdfText.includes("Vendor / Supplier Identify vendor opportunities Missing"), "PDF must not mark vendor missing")
 
+  const reportsRouteSource = fs.readFileSync("src/app/api/reports/route.ts", "utf8")
+  assert(reportsRouteSource.includes("isCurrentReportRuntime(existingReport)"), "Reports route must verify idempotent reports use the current runtime")
+  assert(reportsRouteSource.includes("legacyReportInvalidated"), "Reports route must invalidate legacy idempotent reports instead of replaying stale PDFs")
+
   if (report.pdfPath) fs.unlinkSync(report.pdfPath)
   deleteReport(report.id)
   fs.rmSync(process.env.TEMP_DIR, { recursive: true, force: true })

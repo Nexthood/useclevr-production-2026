@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
+import { debugLog } from "@/lib/utils/debug"
 import { and, eq } from "drizzle-orm"
 
 export type DatasetAccessResult = {
@@ -65,10 +66,29 @@ export async function findAccessibleDataset(
 export async function loadDatasetData(datasetId: string, dataset: typeof datasets.$inferSelect) {
   const storedData = Array.isArray(dataset.data) ? (dataset.data as Record<string, unknown>[]) : []
   const expectedRowCount = typeof dataset.rowCount === "number" ? dataset.rowCount : storedData.length
-  if (storedData.length > 0 && storedData.length >= expectedRowCount) return storedData
+  if (storedData.length > 0 && storedData.length >= expectedRowCount) {
+    debugLog("[REPORT TRACE]", "loadDatasetData", {
+      datasetId,
+      filename: dataset.fileName,
+      persistedRowCount: expectedRowCount,
+      loadedRowsLength: storedData.length,
+      source: "dataset.data",
+    })
+    return storedData
+  }
 
   const db = getDb()
-  if (!db) return storedData
+  if (!db) {
+    debugLog("[REPORT TRACE]", "loadDatasetData", {
+      datasetId,
+      filename: dataset.fileName,
+      persistedRowCount: expectedRowCount,
+      loadedRowsLength: storedData.length,
+      source: "dataset.data",
+      warning: "database unavailable for datasetRows fallback",
+    })
+    return storedData
+  }
 
   const rows = await db.query.datasetRows.findMany({
     where: eq(datasetRows.datasetId, datasetId),
@@ -77,5 +97,15 @@ export async function loadDatasetData(datasetId: string, dataset: typeof dataset
   })
 
   const normalizedRows = rows.map((row) => row.data as Record<string, unknown>)
-  return normalizedRows.length > 0 ? normalizedRows : storedData
+  const loadedRows = normalizedRows.length > 0 ? normalizedRows : storedData
+  debugLog("[REPORT TRACE]", "loadDatasetData", {
+    datasetId,
+    filename: dataset.fileName,
+    persistedRowCount: expectedRowCount,
+    inlineRowsLength: storedData.length,
+    datasetRowsLength: normalizedRows.length,
+    loadedRowsLength: loadedRows.length,
+    source: normalizedRows.length > 0 ? "datasetRows" : "dataset.data",
+  })
+  return loadedRows
 }

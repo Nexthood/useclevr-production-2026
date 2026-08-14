@@ -1,3 +1,35 @@
+## Report Runtime Trace And Legacy Replay Invalidation
+
+1. Interaction title
+Report runtime trace and legacy replay invalidation.
+
+2. What was the user goal
+Trace the actual production report-generation path for `UseClevr_Full_Report_Test_Dataset.xlsx`, identify the source of `100 loaded rows`, identify where semantic mappings disappear, and prevent misleading PDFs from being generated or replayed.
+
+3. What changed
+Report generation now logs `[REPORT TRACE]` diagnostics with dataset ID, filename, persisted row count, loaded row length, analysis row length, summary row length, report row length, provenance row length, detected semantic fields, analysis keys, report input keys, and template name at the route, data loader, semantic context, deterministic analysis, executive summary, trend analysis, Cost Intelligence, report generator, and PDF renderer transitions. The reports API checks idempotent reports for the current report runtime version, diagnostics, and semantic context; legacy report replays are invalidated and rebuilt instead of returning stale PDFs. Report generation stores a runtime version and template name. The report generator throws `ReportIntegrityError` before PDF rendering when row counts or semantic mappings contradict the validated analysis object, including a valid-date and valid-net-profit trend availability check. The full-row PDF regression verifies the trace path and source guards.
+
+4. Problems marked
+- blocker: none.
+- risk: Existing stale report files remain on disk until a matching idempotent request invalidates them or the user deletes/regenerates reports.
+- improvement: Add an admin cleanup tool for old generated report files if stale report storage needs bulk cleanup.
+- observation: The exact `100 loaded rows` text is produced by `buildDatasetSummary` from its row-count argument. The production persistence/replay path can keep serving a pre-fix report summary because `/api/reports` returned `findReportByIdempotencyKey` results before rebuilding report input. The semantic mappings disappeared because those legacy reports were generated before the report object carried `semanticContext` and before Cost Intelligence read that shared context.
+
+5. User learning
+Fixing the builder and PDF renderer is not sufficient when the report route can replay a previously generated PDF through idempotency; the runtime route must verify stored report shape before returning a report.
+
+6. AI-agent learning
+Runtime traces must include replay branches and storage/version checks, not only the fresh-build code path, when a generated artifact still shows pre-fix content.
+
+7. Follow-up tasks
+- Add an admin cleanup tool for old generated report files if stale report storage needs bulk cleanup. (labels: reports, data, workflow)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Full-Row Report Analysis And Semantic Mapping Consistency
 
 1. Interaction title
