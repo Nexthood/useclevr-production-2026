@@ -10,6 +10,8 @@ type DatasetReportInput = Awaited<ReturnType<typeof import("../../src/lib/report
 type BuildDatasetReportInput = typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]
 type GenerateReport = typeof import("../../src/lib/reports/report-generator")["generateReport"]
 type DeleteReport = typeof import("../../src/lib/reports/report-generator")["deleteReport"]
+type GeneratePdfReport = typeof import("../../src/lib/reports/pdf-report-generator")["generatePdfReport"]
+type GetReportProfile = typeof import("../../src/lib/reports/report-profiles")["getReportProfile"]
 type EcommerceReportInput = DatasetReportInput & {
   ecommerceAnalysis?: EcommerceReportAnalysis
   semanticContext?: ReportSemanticContext
@@ -60,7 +62,7 @@ async function main() {
   const { buildDatasetReportInput } = await import("../../src/lib/reports/dataset-report-builder")
   const { REPORT_RUNTIME_VERSION, deleteReport, generateReport } = await import("../../src/lib/reports/report-generator")
   const { generatePdfReport } = await import("../../src/lib/reports/pdf-report-generator")
-  const { listReportProfiles } = await import("../../src/lib/reports/report-profiles")
+  const { getReportProfile, listReportProfiles } = await import("../../src/lib/reports/report-profiles")
   assert(REPORT_RUNTIME_VERSION === "report-runtime-v5", "report runtime must invalidate pre-AOV-provenance reports")
 
   const profileIds = listReportProfiles().map((profile) => profile.id).sort()
@@ -208,7 +210,7 @@ async function main() {
           idempotencyKey: "dataset-aware-retail-profile",
         }, reportInput)
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "local retail PDF must generate")
-        const pdfText = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "RETAIL EXECUTIVE REPORT")
         assert(pdfText.includes("RETAIL EXECUTIVE REPORT"), "local retail PDF must identify the retail report")
         assert(pdfText.includes("SALES & MARGIN PERFORMANCE"), "local retail PDF must include sales and margin page")
         assert(pdfText.includes("INVENTORY INTELLIGENCE"), "local retail PDF must include inventory page")
@@ -233,7 +235,7 @@ async function main() {
           idempotencyKey: "dataset-aware-ecommerce-profile",
         }, reportInput)
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "ecommerce PDF must generate")
-        const pdfText = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "E-COMMERCE PERFORMANCE REPORT")
         const normalizedPdfText = pdfText.toLowerCase()
         assert(pdfText.includes("E-COMMERCE PERFORMANCE REPORT"), "ecommerce PDF must identify the e-commerce report")
         assert(pdfText.includes("Rows Analyzed"), "ecommerce PDF must include row provenance")
@@ -258,7 +260,20 @@ async function main() {
         deleteReport(report.id)
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
       } else {
-        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount })
+        const report = await generateReport(dataset.id, path.basename(filePath), {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: `dataset-aware-${fixture.family}-${extension}-profile`,
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), `${fixture.family}.${extension} PDF must generate`)
+        assertPdfLayoutBasics(report.pdfPath!, reportInput.reportProfile.title.toUpperCase())
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
       }
     }
   }
@@ -267,6 +282,8 @@ async function main() {
   assert(JSON.stringify(ecommerceParity.csv) === JSON.stringify(ecommerceParity.xlsx), "ecommerce CSV and XLSX outputs must match for semantic KPI results")
   await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport, generatePdfReport)
   await assertEcommerceReturnStatusRegressions(buildDatasetReportInput)
+  await assertSharedPdfPaginationRegression(generatePdfReport, getReportProfile)
+  const syntheticMandatoryPdfResults = await assertMissingRequiredProfilePdfRegressions(generatePdfReport, getReportProfile)
 
   const missingRequiredFixtures = requiredFixtureNames.flatMap((name) => {
     return ["csv", "xlsx"].map((extension) => `${name}.${extension}`).filter((fileName) => !fs.existsSync(path.join(fixtureRoot, fileName)))
@@ -282,6 +299,7 @@ async function main() {
       found: requiredFixtureNames.length * 2 - missingRequiredFixtures.length,
       missing: missingRequiredFixtures,
     },
+    syntheticMandatoryPdfResults,
   }, null, 2))
 }
 
@@ -321,6 +339,162 @@ async function assertEcommerceReturnStatusRegressions(buildDatasetReportInput: B
   })) as EcommerceReportInput
   assert(unknownInput.ecommerceAnalysis?.returnStatus === "not_available", "unknown return statuses must not fabricate availability")
   assert(unknownInput.ecommerceAnalysis?.returnRate === null, "unknown return statuses must not produce a return-rate percentage")
+}
+
+async function assertSharedPdfPaginationRegression(generatePdfReport: GeneratePdfReport, getReportProfile: GetReportProfile) {
+  const report = {
+    id: "shared-pagination-regression",
+    datasetId: "profile_shared_pdf_pagination",
+    datasetName: "shared_pdf_pagination.csv",
+    createdAt: new Date().toISOString(),
+    status: "ready",
+    reportType: "executive-bi-report",
+    businessModel: "generic",
+    userId: "synthetic_user",
+    workspaceId: "synthetic_user",
+    runtimeVersion: "report-runtime-v5",
+    templateName: "Executive BI Report",
+    reportProfile: getReportProfile("generic"),
+    timezone: "Europe/Amsterdam",
+    timezoneOffset: 0,
+    localTime: "2026-08-15 12:00",
+    visibility: "private",
+    summary: "Synthetic report used to validate shared PDF pagination for long tables.",
+    financials: {
+      reportingPeriod: "Synthetic",
+      dataConfidence: 100,
+      revenue: 100000,
+      cogs: 40000,
+      grossProfit: 60000,
+      operatingExpenses: 25000,
+      operatingProfit: 35000,
+      interestExpense: 1000,
+      taxExpense: 5000,
+      netProfit: 29000,
+      grossMargin: 60,
+      operatingMargin: 35,
+      netMargin: 29,
+      topCostCategories: Array.from({ length: 55 }, (_, index) => ({
+        name: `Overflow Category ${String(index + 1).padStart(3, "0")}`,
+        value: 1000 + index,
+      })),
+      periodTrends: [
+        { period: "2026-01", revenue: 20000, grossProfit: 12000, operatingProfit: 7000, netProfit: 6000 },
+        { period: "2026-02", revenue: 22000, grossProfit: 13200, operatingProfit: 7600, netProfit: 6400 },
+        { period: "2026-03", revenue: 25000, grossProfit: 15000, operatingProfit: 8900, netProfit: 7200 },
+      ],
+    },
+    findings: [],
+    kpis: [],
+    charts: [],
+    aiInsights: [],
+    predictions: [],
+    recommendations: [],
+    alerts: [],
+    rowCount: 55,
+    columnCount: 4,
+  } as Parameters<GeneratePdfReport>[0]
+
+  const pdfPath = await generatePdfReport(report)
+  const { pages, text } = assertPdfLayoutBasics(pdfPath, "EXECUTIVE BI REPORT")
+  assert(pages >= 5, "shared pagination regression must create continuation pages")
+  assert(text.includes("Overflow Category 055"), "long PDF table must preserve the final row instead of clipping or dropping it")
+  const pagesWithRepeatedCostHeader = text
+    .split("\f")
+    .filter((pageText) => pageText.includes("Category") && pageText.includes("Amount") && pageText.includes("Share") && pageText.includes("Notes"))
+    .length
+  assert(pagesWithRepeatedCostHeader >= 2, "long PDF table continuation pages must repeat the table header")
+  fs.unlinkSync(pdfPath)
+}
+
+async function assertMissingRequiredProfilePdfRegressions(generatePdfReport: GeneratePdfReport, getReportProfile: GetReportProfile) {
+  const syntheticProfiles = [
+    { baseName: "03_saas_startup", model: "saas" },
+    { baseName: "04_marketplace_startup", model: "marketplace" },
+    { baseName: "05_investor_portfolio", model: "investor" },
+    { baseName: "06_business_consulting", model: "business_consulting" },
+    { baseName: "07_professional_services", model: "professional_services" },
+    { baseName: "08_generic_business", model: "generic" },
+    { baseName: "09_profitability_pnl", model: "profitability" },
+    { baseName: "10_accountancy_ledger", model: "accountancy" },
+  ]
+  const results: Array<{ fixture: string; title: string; pages: number }> = []
+  for (const profile of syntheticProfiles) {
+    for (const extension of ["csv", "xlsx"] as const) {
+      const reportProfile = getReportProfile(profile.model)
+      const report = {
+        id: `synthetic-${profile.baseName}-${extension}`,
+        datasetId: `profile_${profile.baseName}_${extension}`,
+        datasetName: `${profile.baseName}.${extension}`,
+        createdAt: new Date().toISOString(),
+        status: "ready",
+        reportType: "executive-bi-report",
+        businessModel: profile.model,
+        userId: "synthetic_user",
+        workspaceId: "synthetic_user",
+        runtimeVersion: "report-runtime-v5",
+        templateName: reportProfile.title,
+        reportProfile,
+        timezone: "Europe/Amsterdam",
+        timezoneOffset: 0,
+        localTime: "2026-08-15 12:00",
+        visibility: "private",
+        summary: `${profile.baseName} synthetic layout report validates shared PDF pagination only.`,
+        financials: {
+          reportingPeriod: "Synthetic",
+          dataConfidence: 80,
+          revenue: 50000,
+          cogs: 20000,
+          grossProfit: 30000,
+          operatingExpenses: 12000,
+          operatingProfit: 18000,
+          interestExpense: 500,
+          taxExpense: 3000,
+          netProfit: 14500,
+          grossMargin: 60,
+          operatingMargin: 36,
+          netMargin: 29,
+          topCostCategories: Array.from({ length: 14 }, (_, index) => ({
+            name: `${profile.baseName} Category ${String(index + 1).padStart(2, "0")}`,
+            value: 500 + index * 25,
+          })),
+          periodTrends: [
+            { period: "2026-01", revenue: 14000, grossProfit: 8400, operatingProfit: 4800, netProfit: 3600 },
+            { period: "2026-02", revenue: 16000, grossProfit: 9600, operatingProfit: 5600, netProfit: 4200 },
+            { period: "2026-03", revenue: 20000, grossProfit: 12000, operatingProfit: 7600, netProfit: 5200 },
+          ],
+        },
+        findings: [],
+        kpis: [],
+        charts: [],
+        aiInsights: [],
+        predictions: [],
+        recommendations: [],
+        alerts: [],
+        rowCount: 14,
+        columnCount: 4,
+      } as Parameters<GeneratePdfReport>[0]
+      const pdfPath = await generatePdfReport(report)
+      const { pages } = assertPdfLayoutBasics(pdfPath, reportProfile.title.toUpperCase())
+      fs.unlinkSync(pdfPath)
+      results.push({ fixture: `${profile.baseName}.${extension}`, title: reportProfile.title, pages })
+    }
+  }
+  return results
+}
+
+function assertPdfLayoutBasics(pdfPath: string, expectedTitle: string) {
+  const info = execFileSync("pdfinfo", [pdfPath], { encoding: "utf8" })
+  const pagesMatch = info.match(/^Pages:\s+(\d+)/m)
+  const pages = pagesMatch ? Number(pagesMatch[1]) : 0
+  assert(pages > 0, `${path.basename(pdfPath)} must have at least one PDF page`)
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" })
+  const expectedTitlePrefix = expectedTitle.slice(0, 28)
+  assert(text.includes(expectedTitle) || text.includes(expectedTitlePrefix), `${path.basename(pdfPath)} must include ${expectedTitle}`)
+  assert(text.includes(`Page 1 of ${pages}`), `${path.basename(pdfPath)} must include first-page numbering`)
+  assert(text.includes(`Page ${pages} of ${pages}`), `${path.basename(pdfPath)} must include final-page numbering`)
+  assert(!/\bundefined\b|\bNaN\b/.test(text), `${path.basename(pdfPath)} must not render undefined or NaN layout text`)
+  return { pages, text }
 }
 
 function assertRetailCategoryReconciliation(reportInput: DatasetReportInput, label: string) {

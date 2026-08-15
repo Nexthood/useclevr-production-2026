@@ -27,6 +27,7 @@
 
 ### Fixed
 
+- Fix generated PDF reports so shared pagination keeps tables, KPI blocks, charts, recommendations, provenance, and narrative sections inside footer-safe page bounds with repeated table headers on continuation pages.
 - Fix E-commerce Return Rate so normalized returned statuses count at order level, negative or unknown status text stays out of returned orders, duplicate order line items count once, and unsupported return status values display as unavailable.
 - Fix E-commerce Performance Reports so shipping cost displays separately from COGS, product category stays out of expense analysis, operational metrics use order, customer, product, return, channel, and geography fields, and unsupported gross margin displays as unavailable.
 - Fix Retail Average Order Value so report downloads regenerate stale row-count PDFs, generated reports require denominator provenance, and dataset chat refuses AOV when no reliable order identifier exists.

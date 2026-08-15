@@ -3847,3 +3847,38 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Global PDF Pagination
+
+1. Interaction title
+Shared generated-report PDF pagination and table continuation.
+
+2. What was the user goal
+Fix PDF pagination globally for every generated report profile so content does not clip, overlap footers, split table rows, or leave section headings alone at the page bottom, with continuation tables repeating headers.
+
+3. What changed
+The shared PDF renderer now tracks the active page shell, safe content top and bottom bounds, and current report section for all generated reports. Section headings check enough following space before drawing, reusable component renderers move to a new page when needed, tables split by full rows across pages, and table headers repeat on continuation pages. KPI grids, text boxes, unavailable panels, charts, recommendation cards, provenance tables, scorecards, and narrative blocks now use the same footer-safe layout rules. PDF-side table row caps were removed so the renderer paginates all rows supplied by report analysis instead of silently dropping rows at render time.
+
+4. Problems marked
+blocker: the workspace still does not contain the exact numbered fixture files `03_saas_startup` through `10_accountancy_ledger`, so those file-backed CSV/XLSX regenerations cannot run from this checkout.
+risk: visual overlap validation remains text- and page-count based in automated tests; pixel-level PDF layout inspection is not available in the current harness.
+improvement: add the missing numbered fixtures so the file-backed mandatory profile matrix runs without synthetic profile reports.
+observation: actual available CSV/XLSX fixtures generate PDFs for local retail, e-commerce, SaaS startup, investor portfolio, and business consulting; synthetic profile PDFs cover the missing numbered profile names for shared renderer behavior.
+
+5. User learning
+The e-commerce Top Products overflow exposed a shared fixed-position rendering issue, so the fix belongs in the reusable PDF component layer rather than in the e-commerce report path.
+
+6. AI-agent learning
+For PDF report work, treat fixed Y increments after charts and tables as pagination risks and update the shared primitive to return the rendered cursor position.
+
+7. Follow-up tasks
+- Add the exact numbered CSV/XLSX fixtures for SaaS startup, marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
