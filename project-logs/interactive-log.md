@@ -3742,3 +3742,38 @@ For broad fixture-validation requests, verify the exact fixture inventory before
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Retail AOV Denominator Runtime Trace
+
+1. Interaction title
+Retail AOV denominator runtime trace and stale report invalidation.
+
+2. What was the user goal
+Identify the exact source of the `01_local_retail.xlsx` PDF Average Order Value denominator 180, prove the runtime path, and remove any remaining row-count AOV fallback only after root cause was established.
+
+3. What changed
+The checked-in local retail CSV and XLSX fixtures contain 5 rows with columns `date`, `store_id`, `product_id`, `category`, `units_sold`, `revenue`, `cost`, `stock_on_hand`, `reorder_point`, `supplier`, and `location`; neither contains a genuine order ID. The 180-row `01_local_retail.xlsx` case is produced by the report-profile regression fixture and also has no order ID. Temporary `[AOV TRACE]` instrumentation in `retailAverageOrderValue` proved the current PDF path maps `orderIdField` to null, `distinctOrderCount` to null, `totalRevenue` to 79799.99999999999, and `calculatedAov` to null before PDF rendering. The older denominator 180 came from `buildRetailAnalysis` using `columns.order ? uniqueCount(rows, columns.order) : rows.length`, then rendering `revenue / orders`. The report runtime version now invalidates earlier v3 generated reports so stale PDFs rebuild through the current AOV path. The dataset metric resolver now refuses AOV when no approved order identifier exists instead of using dataset rows as order records.
+
+4. Problems marked
+blocker: none.
+risk: existing downloaded PDF files outside the report idempotency path can remain stale until regenerated or deleted by the user.
+improvement: add an explicit report-runtime compatibility test around idempotent replay once route-level API test harness coverage exists.
+observation: parallel AOV calculators exist in the report builder, metric resolver, dataset intelligence engine, CSV analyzer, dashboard builder, POS integrations, and app dashboard; the PDF uses the report builder and PDF renderer path.
+
+5. User learning
+The 180 denominator is row count, not a distinct `record_id`, `id`, `product_id`, `sale_id`, or other source column.
+
+6. AI-agent learning
+For report accuracy regressions, trace persisted report replay and runtime version compatibility before changing calculator logic because stale generated artifacts can mask a corrected builder path.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

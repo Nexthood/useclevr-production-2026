@@ -18,7 +18,7 @@ import type { ReportProfile } from './report-profiles';
 // File-based storage path: use explicit temp directory to avoid broad project tracing in Next/Turbopack
 const REPORTS_DIR = process.env.TEMP_DIR || '/tmp/useclevr-reports';
 const REPORTS_FILE = path.join(REPORTS_DIR, 'reports.json');
-export const REPORT_RUNTIME_VERSION = "report-runtime-v3";
+export const REPORT_RUNTIME_VERSION = "report-runtime-v4";
 
 debugLog('[REPORT] Reports file path:', REPORTS_FILE);
 

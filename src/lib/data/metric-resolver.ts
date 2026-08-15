@@ -111,13 +111,16 @@ function totalRevenue(input: MetricInput): MetricResolutionResult {
 function averageOrderValue(input: MetricInput): MetricResolutionResult {
   const revenueColumn = requiredColumn(input.schema, "revenue");
   const orderColumn = findOrderColumn(input.columns);
+  if (!orderColumn) {
+    return unsupported(input.classification, input.schema, ["reliable order identifier"]);
+  }
   const revenue = sum(input.rows, revenueColumn);
-  const orderCount = orderColumn ? distinctCount(input.rows, orderColumn) : input.rows.length;
+  const orderCount = distinctCount(input.rows, orderColumn);
   const aov = orderCount === 0 ? 0 : revenue / orderCount;
   return success(input, {
     metricLabel: "Average Order Value",
     answer: `Average Order Value is ${formatValue(aov, input.schema.currencyCode)}.`,
-    insight: `Calculation: ${formatValue(revenue, input.schema.currencyCode)} revenue divided by ${orderCount.toLocaleString("en-US")} ${orderColumn ? "distinct orders" : "dataset rows used as order records"}.`,
+    insight: `Calculation: ${formatValue(revenue, input.schema.currencyCode)} revenue divided by ${orderCount.toLocaleString("en-US")} distinct orders from "${orderColumn}".`,
     takeaway: "AOV measures the average revenue per order, not total revenue.",
     nextQuestion: "Ask: Which customers have the highest average order value?",
     data: [
@@ -452,7 +455,10 @@ function requiredColumn(schema: SemanticSchema, field: SemanticField) {
 }
 
 function findOrderColumn(columns: string[]) {
-  return columns.find((column) => /(^|[_\s-])(order|transaction|invoice|receipt)([_\s-]|$)/i.test(column) || /order.*id|order.*number|transaction.*id|invoice.*number/i.test(column)) ?? null;
+  return columns.find((column) => {
+    const normalized = column.toLowerCase().trim().replace(/[\s-]+/g, "_");
+    return /^(order_id|order_number|transaction_id|transaction_number|sale_id|receipt_id|invoice_id|invoice_number)$/.test(normalized);
+  }) ?? null;
 }
 
 function sum(rows: Record<string, unknown>[], column: string) {

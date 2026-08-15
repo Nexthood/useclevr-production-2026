@@ -52,8 +52,9 @@ async function main() {
   fs.mkdirSync(process.env.TEMP_DIR, { recursive: true })
 
   const { buildDatasetReportInput } = await import("../../src/lib/reports/dataset-report-builder")
-  const { deleteReport, generateReport } = await import("../../src/lib/reports/report-generator")
+  const { REPORT_RUNTIME_VERSION, deleteReport, generateReport } = await import("../../src/lib/reports/report-generator")
   const { listReportProfiles } = await import("../../src/lib/reports/report-profiles")
+  assert(REPORT_RUNTIME_VERSION === "report-runtime-v4", "report runtime must invalidate pre-AOV-semantics reports")
 
   const profileIds = listReportProfiles().map((profile) => profile.id).sort()
   for (const expected of [
