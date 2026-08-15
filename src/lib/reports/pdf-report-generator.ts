@@ -182,7 +182,7 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       numberMetricCard("Customers", ecommerce.customers === null ? "Not available" : ecommerce.customers.toLocaleString(), ecommerce.customerField ? `Distinct values from ${ecommerce.customerField}.` : "Requires customer ID."),
       numberMetricCard("Units Sold", ecommerce.unitsSold === null ? "Not available" : ecommerce.unitsSold.toLocaleString(), "Recognized quantity field."),
       numberMetricCard("Products", ecommerce.products === null ? "Not available" : ecommerce.products.toLocaleString(), ecommerce.productField ? `Distinct values from ${ecommerce.productField}.` : "Requires product field."),
-      metricCard("Return Rate", ecommerce.returnRate, "percent", "missing", ecommerce.returnStatusField ? `Calculated from ${ecommerce.returnStatusField}.` : "Requires return status."),
+      metricCard("Return Rate", ecommerce.returnRate, "percent", "missing", ecommerce.returnStatus === "available" && ecommerce.returnStatusField ? `Calculated from ${ecommerce.returnStatusField}.` : "Return status values could not be normalized reliably."),
       { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "E-commerce field coverage." },
     ];
   }
@@ -412,7 +412,7 @@ function drawEcommerceCommercialIntelligence(doc: jsPDF, report: Report, financi
     ["Customers", ecommerce.customers === null ? "Not available" : ecommerce.customers.toLocaleString(), ecommerce.customers === null ? "Not available" : "Available", ecommerce.customerField ? `Distinct values from ${ecommerce.customerField}.` : "No customer identifier."],
     ["Orders per Customer", ecommerce.ordersPerCustomer === null ? "Not available" : ecommerce.ordersPerCustomer.toLocaleString(), ecommerce.ordersPerCustomer === null ? "Not available" : "Available", "Distinct orders divided by distinct customers."],
     ["Revenue per Customer", ecommerce.revenuePerCustomer === null ? "Not available" : formatCurrency(ecommerce.revenuePerCustomer), ecommerce.revenuePerCustomer === null ? "Not available" : "Available", "Revenue divided by distinct customers."],
-    ["Returns", ecommerce.returnRate === null ? "Not available" : formatPercent(ecommerce.returnRate), ecommerce.returnRate === null ? "Not available" : "Available", ecommerce.returnStatusField ? `Returned orders from ${ecommerce.returnStatusField}.` : "No return-status field."],
+    ["Returns", ecommerce.returnRate === null ? "Not available" : formatPercent(ecommerce.returnRate), ecommerce.returnRate === null ? "Not available" : "Available", ecommerce.returnStatus === "available" && ecommerce.returnStatusField ? `Returned orders from ${ecommerce.returnStatusField}.` : "Return status values could not be normalized reliably."],
   ], page.margin, y, [42, 35, 30, 67]) + 12;
 
   drawSectionTitle(doc, "Channel Performance", y);

@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-15
-- **Goal**: Enforce the existing E-commerce Performance Report profile end to end so shipping cost, category, orders, AOV, customers, returns, revenue trend, channels, and missing profitability semantics render correctly.
-- **Durable change**: E-commerce report generation keeps shipping and fulfillment cost separate from COGS, treats category as product/category performance, calculates operational metrics from e-commerce source fields, renders e-commerce-specific PDF pages, and restores the exact `02_ecommerce` CSV/XLSX regression fixtures.
+- **Goal**: Fix only E-commerce Return Rate semantics so `return_status` values normalize correctly, duplicate order line items count once, and unsupported return status values display as unavailable.
+- **Durable change**: E-commerce report generation calculates Return Rate from normalized order-level return statuses, excludes unknown statuses from the denominator, feeds overview, customer metrics, PDF evidence, and recommendations from one metric, and suppresses return recommendations for normal low rates.
 - **Verification**: `pnpm exec tsx scripts/analysis/test-dataset-aware-report-profiles.ts`, `pnpm exec tsc --noEmit --pretty false`, and `pnpm build` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -168,6 +168,10 @@ async function main() {
         nearlyEqual(ecommerce.shippingCostRate, 3.43, "ecommerce shipping cost rate must use revenue denominator", 0.01)
         assert(ecommerce.discounts !== null && ecommerce.discounts > 0, "ecommerce discounts must be available")
         assert(ecommerce.returnRate !== null && ecommerce.returnRate > 0, "ecommerce returns must be available")
+        assert(ecommerce.returnStatus === "available", "ecommerce return status must be available when values normalize")
+        assert(ecommerce.returnedOrders === 13, "ecommerce returned orders must count only positive return statuses")
+        assert(ecommerce.eligibleReturnOrders === 220, "ecommerce eligible return denominator must use normalized order statuses")
+        nearlyEqual(ecommerce.returnRate, 5.91, "ecommerce return rate must use returned orders over eligible orders", 0.01)
         assert(ecommerce.revenueTrend.length === 4, "ecommerce revenue trend must group order_date revenue by month")
         assert(ecommerceInput.diagnostics?.trendAvailable === true, "ecommerce diagnostics must mark revenue trend available without requiring net profit")
         assert(ecommerce?.channelPerformance.length === 5, "ecommerce channel performance must be available")
@@ -175,6 +179,7 @@ async function main() {
         assert(ecommerce?.geography.length === 5, "ecommerce geography must be available")
         const recommendationText = reportInput.recommendations?.map((item) => `${item.issue} ${item.recommendedAction}`).join(" ") || ""
         assert(!/^Add COGS, operating expenses, interest and tax/i.test(recommendationText), "ecommerce recommendations must not lead with generic P&L missing-field advice")
+        assert(!/Return rate is 5\.9%|Return rate is 100\.0%/i.test(recommendationText), "ecommerce recommendations must not overstate normal return-rate signals")
         ecommerceParity[extension] = {
           rows: ecommerceInput.rowCount,
           revenue: ecommerceInput.financials?.revenue ?? null,
@@ -246,6 +251,7 @@ async function main() {
         assert(normalizedPdfText.includes("revenue trend"), "ecommerce PDF must include revenue trend")
         assert(pdfText.includes("Shipping / Fulfillment Cost"), "ecommerce PDF must analyze shipping separately")
         assert(normalizedPdfText.includes("returns") || normalizedPdfText.includes("return rate"), "ecommerce PDF must include returns")
+        assert(!pdfText.includes("100.0%"), "ecommerce PDF must not show every non-empty return status as returned")
         assert(normalizedPdfText.includes("channel performance"), "ecommerce PDF must include channel intelligence")
         assert(pdfText.includes("E-COMMERCE RECOMMENDATIONS + PROVENANCE"), "ecommerce PDF must include e-commerce recommendations")
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
@@ -260,6 +266,7 @@ async function main() {
   assert(JSON.stringify(retailParity.csv) === JSON.stringify(retailParity.xlsx), "local retail CSV and XLSX outputs must match for financials, AOV status, inventory value, and reorder metrics")
   assert(JSON.stringify(ecommerceParity.csv) === JSON.stringify(ecommerceParity.xlsx), "ecommerce CSV and XLSX outputs must match for semantic KPI results")
   await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport, generatePdfReport)
+  await assertEcommerceReturnStatusRegressions(buildDatasetReportInput)
 
   const missingRequiredFixtures = requiredFixtureNames.flatMap((name) => {
     return ["csv", "xlsx"].map((extension) => `${name}.${extension}`).filter((fileName) => !fs.existsSync(path.join(fixtureRoot, fileName)))
@@ -276,6 +283,44 @@ async function main() {
       missing: missingRequiredFixtures,
     },
   }, null, 2))
+}
+
+async function assertEcommerceReturnStatusRegressions(buildDatasetReportInput: BuildDatasetReportInput) {
+  const rows = [
+    { order_id: "ORD-1", order_date: "2026-01-01", customer_id: "C1", product_id: "P1", product_name: "Lamp", category: "Home", quantity: 1, revenue: 100, return_status: "Returned", channel: "Shopify" },
+    { order_id: "ORD-1", order_date: "2026-01-01", customer_id: "C1", product_id: "P2", product_name: "Cable", category: "Home", quantity: 1, revenue: 25, return_status: "returned", channel: "Shopify" },
+    { order_id: "ORD-2", order_date: "2026-01-02", customer_id: "C2", product_id: "P3", product_name: "Mat", category: "Office", quantity: 2, revenue: 80, return_status: "Not Returned", channel: "Email" },
+    { order_id: "ORD-3", order_date: "2026-01-03", customer_id: "C3", product_id: "P4", product_name: "Bottle", category: "Sports", quantity: 1, revenue: 40, return_status: "False", channel: "Amazon" },
+    { order_id: "ORD-4", order_date: "2026-01-04", customer_id: "C4", product_id: "P5", product_name: "Serum", category: "Beauty", quantity: 1, revenue: 55, return_status: "Completed", channel: "Shopify" },
+    { order_id: "ORD-5", order_date: "2026-01-05", customer_id: "C5", product_id: "P6", product_name: "Scale", category: "Kitchen", quantity: 1, revenue: 60, return_status: "unexpected text", channel: "Google Shopping" },
+    { order_id: "ORD-6", order_date: "2026-01-06", customer_id: "C6", product_id: "P7", product_name: "Block", category: "Sports", quantity: 1, revenue: 35, return_status: "", channel: "Amazon" },
+    { order_id: "ORD-7", order_date: "2026-01-07", customer_id: "C7", product_id: "P8", product_name: "Stand", category: "Office", quantity: 1, revenue: 90, return_status: "return approved", channel: "Email" },
+  ]
+  const reportInput = await buildDatasetReportInput(buildDataset({
+    id: "profile_ecommerce_return_status_semantics",
+    filePath: path.join(process.cwd(), "test-fixtures", "business-models", "02_ecommerce.csv"),
+    rowCount: rows.length,
+    columns: Object.keys(rows[0] ?? {}),
+    rows,
+    businessModel: "ecommerce",
+  })) as EcommerceReportInput
+  const ecommerce = reportInput.ecommerceAnalysis
+  if (!ecommerce) throw new Error("ecommerce return regression analysis must be present")
+  assert(ecommerce.returnedOrders === 2, "return status normalization must count only returned and return-approved orders")
+  assert(ecommerce.eligibleReturnOrders === 5, "return denominator must exclude unknown statuses and avoid duplicate line-item counts")
+  nearlyEqual(ecommerce.returnRate, 40, "return rate must use order-level returned over eligible orders", 0.01)
+
+  const unknownRows = rows.map((row, index) => ({ ...row, order_id: `UNK-${index}`, return_status: index % 2 === 0 ? "" : "maybe later" }))
+  const unknownInput = await buildDatasetReportInput(buildDataset({
+    id: "profile_ecommerce_unknown_return_status",
+    filePath: path.join(process.cwd(), "test-fixtures", "business-models", "02_ecommerce.csv"),
+    rowCount: unknownRows.length,
+    columns: Object.keys(unknownRows[0] ?? {}),
+    rows: unknownRows,
+    businessModel: "ecommerce",
+  })) as EcommerceReportInput
+  assert(unknownInput.ecommerceAnalysis?.returnStatus === "not_available", "unknown return statuses must not fabricate availability")
+  assert(unknownInput.ecommerceAnalysis?.returnRate === null, "unknown return statuses must not produce a return-rate percentage")
 }
 
 function assertRetailCategoryReconciliation(reportInput: DatasetReportInput, label: string) {

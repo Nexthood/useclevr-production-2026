@@ -3812,3 +3812,38 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## E-commerce Return Rate Semantics
+
+1. Interaction title
+E-commerce return-rate normalization and order-level denominator.
+
+2. What was the user goal
+Fix only the E-commerce Return Rate semantics so `return_status` values classify as returned, not returned, or unknown, duplicate order line items count once, unknown-only datasets display unavailable, and normal low return rates do not trigger return-focused recommendations.
+
+3. What changed
+The e-commerce report builder now normalizes return-status values before calculating returns. Positive values include `returned`, `return`, `yes`, `true`, `1`, `refunded`, and `return approved`; negative values include `not returned`, `no`, `false`, `0`, `completed`, `delivered`, `kept`, and `not_returned`; all other values stay unknown. Return Rate now uses returned orders divided by eligible normalized orders, aggregates duplicate line items by `order_id`, and provides the same single metric to overview KPIs, customer metrics, PDF notes, and recommendations. Return-focused recommendations now require an elevated rate instead of appearing for ordinary low-rate data.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: keep future e-commerce return synonyms explicit so unsupported operational statuses stay unknown instead of silently changing denominator semantics.
+observation: the current `02_ecommerce` CSV/XLSX fixtures contain `returned` and `kept` values, so both formats validate the same 13 returned orders over 220 eligible orders.
+
+5. User learning
+The incorrect all-returned result came from treating broad or negative status text as returned evidence instead of using a closed normalization map with an unknown state.
+
+6. AI-agent learning
+For semantic KPI fixes, centralize the source metric in the report analysis object and route every PDF page or recommendation through that same value to avoid independent calculations.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

@@ -14,6 +14,7 @@ type ReportModel = BusinessModel | DatasetCategory | "business_consulting"
 type ReportKpi = { title: string; value: number; format: "currency" | "number" | "percent" }
 type MetricSource = "source_value" | "derived_value" | "unavailable"
 type FinancialMetric = { value: number | null; source: MetricSource; note: string }
+type NormalizedReturnStatus = "returned" | "not_returned" | "unknown"
 
 type ColumnMap = {
   revenue?: string
@@ -684,7 +685,7 @@ function buildEcommerceAnalysis(rows: DataRow[], columns: ColumnMap, financials:
   const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
   const shippingCost = sumColumn(rows, columns.shippingCost)
   const discounts = sumColumn(rows, columns.discount)
-  const returnedOrders = countReturnedOrders(rows, columns)
+  const returnMetrics = calculateReturnMetrics(rows, columns)
   return {
     orders,
     orderField: columns.order || null,
@@ -696,9 +697,11 @@ function buildEcommerceAnalysis(rows: DataRow[], columns: ColumnMap, financials:
     unitsSold: sumColumn(rows, columns.quantity),
     products: columns.product ? uniqueCount(rows, columns.product) : null,
     productField: columns.product || null,
-    returnRate: returnedOrders !== null && orders ? round((returnedOrders / orders) * 100) : null,
-    returnedOrders,
+    returnRate: returnMetrics.returnRate,
+    returnedOrders: returnMetrics.returnedOrders,
+    eligibleReturnOrders: returnMetrics.eligibleOrders,
     returnStatusField: columns.returnStatus || null,
+    returnStatus: returnMetrics.status,
     shippingCost,
     shippingCostRate: revenue !== null && revenue !== 0 && shippingCost !== null ? round((shippingCost / revenue) * 100) : null,
     averageShippingCostPerOrder: orders && shippingCost !== null ? round(shippingCost / orders) : null,
@@ -761,7 +764,7 @@ function buildEcommerceRecommendations(
       requiredData: [],
     })
   }
-  if (ecommerce.returnRate !== null && ecommerce.returnRate > 0) {
+  if (ecommerce.returnRate !== null && ecommerce.returnRate >= 10) {
     recommendations.push({
       issue: `Return rate is ${ecommerce.returnRate.toFixed(1)}%.`,
       businessImpact: "Returned orders can reduce realized revenue quality and customer satisfaction.",
@@ -881,16 +884,62 @@ function groupedRetailChart(rows: DataRow[], groupColumn: string | undefined, va
   return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
 }
 
-function countReturnedOrders(rows: DataRow[], columns: ColumnMap) {
-  if (!columns.returnStatus || !columns.order) return null
-  const returned = new Set<string>()
-  for (const row of rows) {
-    const status = String(row[columns.returnStatus] || "").trim().toLowerCase()
-    if (!/returned|return|refunded|refund|yes|true|1/.test(status)) continue
-    const orderId = String(row[columns.order] || "").trim()
-    if (orderId) returned.add(orderId)
+function calculateReturnMetrics(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.returnStatus) {
+    return {
+      returnedOrders: null,
+      eligibleOrders: null,
+      returnRate: null,
+      status: "not_available" as const,
+    }
   }
-  return returned.size
+  const statusesByOrder = new Map<string, NormalizedReturnStatus[]>()
+  rows.forEach((row, index) => {
+    const orderKey = columns.order ? String(row[columns.order] || "").trim() : `row_${index}`
+    if (!orderKey) return
+    const status = normalizeReturnStatus(row[columns.returnStatus!])
+    const statuses = statusesByOrder.get(orderKey) || []
+    statuses.push(status)
+    statusesByOrder.set(orderKey, statuses)
+  })
+  let returnedOrders = 0
+  let eligibleOrders = 0
+  for (const statuses of statusesByOrder.values()) {
+    const status = aggregateOrderReturnStatus(statuses)
+    if (status === "unknown") continue
+    eligibleOrders += 1
+    if (status === "returned") returnedOrders += 1
+  }
+  if (eligibleOrders === 0) {
+    return {
+      returnedOrders: null,
+      eligibleOrders: null,
+      returnRate: null,
+      status: "not_available" as const,
+    }
+  }
+  return {
+    returnedOrders,
+    eligibleOrders,
+    returnRate: round((returnedOrders / eligibleOrders) * 100),
+    status: "available" as const,
+  }
+}
+
+function normalizeReturnStatus(value: unknown): NormalizedReturnStatus {
+  if (value === null || value === undefined) return "unknown"
+  const raw = String(value).trim().toLowerCase()
+  if (!raw) return "unknown"
+  const normalized = raw.replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "")
+  if (["not_returned", "no", "false", "0", "completed", "delivered", "kept"].includes(normalized)) return "not_returned"
+  if (["returned", "return", "yes", "true", "1", "refunded", "return_approved"].includes(normalized)) return "returned"
+  return "unknown"
+}
+
+function aggregateOrderReturnStatus(statuses: NormalizedReturnStatus[]): NormalizedReturnStatus {
+  if (statuses.includes("returned")) return "returned"
+  if (statuses.includes("not_returned")) return "not_returned"
+  return "unknown"
 }
 
 function ecommerceRevenueTrend(rows: DataRow[], columns: ColumnMap) {

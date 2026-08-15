@@ -246,7 +246,9 @@ export interface EcommerceReportAnalysis {
   productField: string | null;
   returnRate: number | null;
   returnedOrders: number | null;
+  eligibleReturnOrders: number | null;
   returnStatusField: string | null;
+  returnStatus: "available" | "not_available";
   shippingCost: number | null;
   shippingCostRate: number | null;
   averageShippingCostPerOrder: number | null;
