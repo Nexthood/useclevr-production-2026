@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-15
-- **Goal**: Unify the main Dashboard with the dataset-aware semantic/profile engine used by generated reports.
-- **Durable change**: The Dashboard resolves the active dataset separately from workspace history, consumes generated-report semantic analysis for active profile KPIs and trends, displays detected business profile labels for upload history, and keeps default generic profiles from blocking stronger column-based classification.
-- **Verification**: Dashboard semantic regression, generated-report profile regression, TypeScript, changelog lint, secret lint, and production build pass.
+- **Goal**: Add one universal final Results Summary page to generated PDF reports.
+- **Durable change**: The shared PDF renderer appends a profile-aware final summary page that presents existing canonical KPIs, findings, recommendations, scorecard, data confidence, and provenance status without adding new business calculations or changing detailed report pages.
+- **Verification**: Generated-report profile regression passes for Retail, E-Commerce, SaaS, available CSV/XLSX fixtures, and synthetic mandatory profile PDFs with final-page summary and cross-profile contamination checks.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

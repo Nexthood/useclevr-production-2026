@@ -253,3 +253,5 @@
 - fixed: apply shared generated-PDF pagination rules so tables, KPI blocks, charts, recommendations, provenance, and narrative sections move to footer-safe pages, long tables continue with repeated headers, and all available CSV/XLSX report fixtures plus synthetic profile PDFs validate page numbering.
 - fixed: enforce SaaS Executive Report semantics with recurring-revenue, customer, churn, unit-economics, plan, geography, cash, runway, and SaaS trend sections from source SaaS fields.
 - fixed: unify the main Dashboard with the generated-report semantic profile path so active Standard Upload datasets render profile-aware SaaS, E-Commerce, and Retail metrics instead of stale workspace-level KPI grids.
+- fixed: keep generated-PDF section headings attached to meaningful following content so SaaS highlights and other report sections do not render as empty page-bottom headings.
+- added: append one profile-aware Results Summary page to every generated PDF report using existing canonical report KPIs, findings, recommendations, scorecard, confidence, and provenance status.
