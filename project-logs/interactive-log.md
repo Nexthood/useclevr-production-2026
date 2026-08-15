@@ -1,3 +1,35 @@
+## Dataset-Aware Executive Report Profiles
+
+1. Interaction title
+Dataset-aware executive report profiles.
+
+2. What was the user goal
+Add report-profile selection for generated dataset reports and ensure Standard Upload local retail reports render as Retail Executive Reports with retail KPIs, inventory intelligence, product/category/supplier intelligence, and retail recommendations instead of a generic P&L report.
+
+3. What changed
+Generated reports now carry report-profile metadata and use a new runtime version so older generic report artifacts are regenerated. The dataset report builder selects local retail, e-commerce, SaaS startup, marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, or accountancy ledger profiles. Local retail report input maps cost as COGS, derives revenue, COGS, gross profit, gross margin, units sold, current stock, inventory value, product or SKU count, low-stock SKUs, reorder-required SKUs, out-of-stock SKUs, average order value where supported, and supplier/category/product groupings. Local retail recommendations prioritize reorder, stockout, inventory cash exposure, weak margin, supplier concentration, and missing operational fields. The PDF renderer branches local retail reports into Retail Executive Summary, Sales & Margin Performance, Inventory Intelligence, Product / Category / Supplier Intelligence, and Retail Recommendations + Provenance pages.
+
+4. Problems marked
+- blocker: The workspace does not contain the requested numbered 20-fixture matrix or `01_local_retail.xlsx`; the available local retail XLSX has 5 rows, not 180 rows.
+- risk: Synthetic or future fixture files can broaden profile coverage for marketplace, professional services, profitability P&L, accountancy ledger, and generic business beyond the currently checked-in business-model fixtures.
+- improvement: Add the requested numbered CSV/XLSX fixture suite and mapping notes to the repository so the full 20-file regression can run without local fixture substitution.
+- observation: The available local retail fixture totals 5 rows, $4,455 revenue, $2,180 COGS from the cost field, $2,275 gross profit, and 51.07% gross margin.
+
+5. User learning
+Local retail generated reports must ask retail operating questions first: sales, margin, units, inventory value, stock status, reorder risk, products, categories, suppliers, and retail actions.
+
+6. AI-agent learning
+Dataset-aware report selection belongs in the deterministic report input so the PDF renderer and recommendation logic do not reinterpret the same dataset as a generic P&L artifact.
+
+7. Follow-up tasks
+- Add the numbered 10-family CSV and Excel fixture suite with `README_TEST_MAPPING.txt` so the full 20-file regression runs against the exact requested files. (labels: data, upload, testing)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Report Runtime Trace And Legacy Replay Invalidation
 
 1. Interaction title
@@ -907,6 +939,41 @@ Selected-dataset AI fixes must verify deterministic answers and provider-backed 
 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Retail Report Gross Margin and AOV Accuracy
+
+1. Interaction title
+Retail Report gross margin and AOV accuracy.
+
+2. What was the user goal
+Fix two Retail Executive Report accuracy issues: category gross margin must use reconciled revenue and COGS totals, and Average Order Value must require reliable order semantics instead of row count.
+
+3. What changed
+Retail report financials now derive COGS from `unit_cost` multiplied by the detected units-sold field when the cost source is per-unit, while explicit COGS or total cost fields remain direct sources. Category gross margin rows now store category, revenue, COGS, gross profit, gross margin, revenue source, and COGS source, and category totals must reconcile before margins render. Retail AOV now carries structured status, calculation method, source fields, and confidence, and reports show AOV only for recognized order identifiers. The PDF renderer now explains unavailable AOV semantics and prints category margin notes with revenue, COGS, and gross profit. Regression coverage includes CSV/XLSX parity, a 180-row unit-cost local retail case, PDF text checks, and a distinct-order positive AOV case.
+
+4. Problems marked
+blocker: none.
+risk: the exact `01_local_retail.csv` and `01_local_retail.xlsx` fixture files remain absent from the checkout, so the regression uses the available local-retail pair plus synthetic rows that match the reported metric shape.
+improvement: add the named 10-family fixture suite to the workspace so future retail accuracy checks run against the exact product fixture files.
+observation: the requested report failure comes from treating per-unit cost as row COGS and treating row count as order count.
+
+5. User learning
+Retail reports now mark AOV unavailable when no reliable order identifier exists and keep category margin mathematically tied to overall retail gross margin.
+
+6. AI-agent learning
+For retail report accuracy fixes, inspect cost-field semantics before using detected cost as COGS and render unavailable metrics when dataset grain is not proven.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; active/done work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
 ## Dataset AI Assistant Grounded Responses
 

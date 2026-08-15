@@ -13,11 +13,12 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { BusinessBalancedScorecard } from '@/lib/business/balanced-scorecard';
 import { generatePdfReport } from './pdf-report-generator';
+import type { ReportProfile } from './report-profiles';
 
 // File-based storage path: use explicit temp directory to avoid broad project tracing in Next/Turbopack
 const REPORTS_DIR = process.env.TEMP_DIR || '/tmp/useclevr-reports';
 const REPORTS_FILE = path.join(REPORTS_DIR, 'reports.json');
-export const REPORT_RUNTIME_VERSION = "report-runtime-v2";
+export const REPORT_RUNTIME_VERSION = "report-runtime-v3";
 
 debugLog('[REPORT] Reports file path:', REPORTS_FILE);
 
@@ -193,6 +194,42 @@ export interface ReportRecommendation {
   requiredData?: string[];
 }
 
+export interface RetailReportAnalysis {
+  currentStock: number | null;
+  inventoryValue: number | null;
+  productCount: number | null;
+  lowStockSkuCount: number | null;
+  reorderRequiredCount: number | null;
+  outOfStockSkuCount: number | null;
+  averageTransactionValue: number | null;
+  averageOrderValue?: {
+    metric: "average_order_value";
+    value: number | null;
+    status: "available" | "not_available";
+    calculationMethod: string;
+    sourceFields: string[];
+    confidence: "high" | "low";
+  };
+  supplierCount: number | null;
+  topProductsByRevenue: { name: string; value: number }[];
+  revenueByCategory: { name: string; value: number }[];
+  grossMarginByCategory: {
+    name: string;
+    category: string;
+    value: number;
+    revenue: number;
+    cogs: number;
+    grossProfit: number;
+    grossMargin: number;
+    revenueSource: string;
+    cogsSource: string;
+  }[];
+  stockByCategory: { name: string; value: number }[];
+  inventoryValueByProduct: { name: string; value: number }[];
+  supplierExposure: { name: string; value: number }[];
+  lowStockItems: { product: string; category?: string; supplier?: string; stock: number; reorderPoint: number }[];
+}
+
 export interface Report {
   id: string;
   datasetId: string;
@@ -206,6 +243,7 @@ export interface Report {
   idempotencyKey?: string | null;
   runtimeVersion?: string;
   templateName?: string;
+  reportProfile?: ReportProfile;
   
   // Timezone metadata
   timezone: string;
@@ -228,6 +266,7 @@ export interface Report {
   aiInsights: string[];
   predictions: string[];
   recommendations?: ReportRecommendation[];
+  retailAnalysis?: RetailReportAnalysis;
   semanticContext?: ReportSemanticContext;
   diagnostics?: ReportDiagnostics;
   alerts: { type: string; message: string; severity: string }[];
@@ -268,6 +307,8 @@ export async function generateReport(
     recommendations?: ReportRecommendation[];
     semanticContext?: ReportSemanticContext;
     diagnostics?: ReportDiagnostics;
+    reportProfile?: ReportProfile;
+    retailAnalysis?: RetailReportAnalysis;
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;
@@ -316,7 +357,8 @@ export async function generateReport(
     workspaceId: options.workspaceId || options.userId || null,
     idempotencyKey: options.idempotencyKey || null,
     runtimeVersion: REPORT_RUNTIME_VERSION,
-    templateName: analysisData.diagnostics?.templateName || "executive-bi-report",
+    templateName: analysisData.reportProfile?.title || analysisData.diagnostics?.templateName || "executive-bi-report",
+    reportProfile: analysisData.reportProfile,
     
     // Timezone metadata - stored internally
     timezone,
@@ -335,6 +377,7 @@ export async function generateReport(
     aiInsights: analysisData.aiInsights || [],
     predictions: (options.includePredictions !== false) ? (analysisData.predictions || []) : [],
     recommendations: analysisData.recommendations,
+    retailAnalysis: analysisData.retailAnalysis,
     semanticContext: analysisData.semanticContext,
     diagnostics: analysisData.diagnostics,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],
@@ -399,6 +442,7 @@ export function isCurrentReportRuntime(report: Report | null | undefined) {
   if (!report) return false;
   return (
     report.runtimeVersion === REPORT_RUNTIME_VERSION &&
+    Boolean(report.reportProfile) &&
     Boolean(report.semanticContext) &&
     Boolean(report.diagnostics)
   );

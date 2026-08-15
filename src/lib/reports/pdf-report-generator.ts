@@ -48,7 +48,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   doc.setProperties({
-    title: "UseClevr Executive BI Report",
+    title: `UseClevr ${report.reportProfile?.title || "Executive BI Report"}`,
     subject: "AI-assisted executive business intelligence report",
     author: "UseClevr",
     keywords: "AI-assisted analysis, deterministic calculations, selected dataset, missing data disclosure",
@@ -60,14 +60,25 @@ export async function generatePdfReport(report: Report): Promise<string> {
   tracePdfRuntime("renderPdf", report, financials);
 
   drawExecutiveOverview(doc, report, financials, datasetName);
-  addDocumentPage(doc, "Financial Performance", datasetName);
-  drawFinancialPerformance(doc, financials);
-  addDocumentPage(doc, "Cost Intelligence", datasetName);
-  drawCostIntelligence(doc, report, financials);
-  addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
-  drawBalancedScorecard(doc, report);
-  addDocumentPage(doc, "Executive Recommendations", datasetName);
-  drawRecommendationsAndProvenance(doc, report, financials);
+  if (report.reportProfile?.id === "local_retail" && report.retailAnalysis) {
+    addDocumentPage(doc, "Sales & Margin Performance", datasetName);
+    drawRetailSalesPerformance(doc, report, financials);
+    addDocumentPage(doc, "Inventory Intelligence", datasetName);
+    drawRetailInventoryIntelligence(doc, report);
+    addDocumentPage(doc, "Product / Category / Supplier Intelligence", datasetName);
+    drawRetailProductIntelligence(doc, report, financials);
+    addDocumentPage(doc, "Retail Recommendations + Provenance", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials, "Retail Recommendations");
+  } else {
+    addDocumentPage(doc, "Financial Performance", datasetName);
+    drawFinancialPerformance(doc, financials);
+    addDocumentPage(doc, "Cost Intelligence", datasetName);
+    drawCostIntelligence(doc, report, financials);
+    addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
+    drawBalancedScorecard(doc, report);
+    addDocumentPage(doc, "Executive Recommendations", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials);
+  }
 
   addFooters(doc, report);
 
@@ -113,7 +124,7 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
   doc.setFont("helvetica", "bold");
   doc.setFontSize(25);
   doc.setTextColor(...colors.ink);
-  doc.text("EXECUTIVE BI REPORT", page.margin, y);
+  doc.text(cleanText(report.reportProfile?.title || "Executive BI Report").toUpperCase(), page.margin, y);
   y += 9;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
@@ -134,9 +145,27 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
   y += 7;
   y = drawTextBox(doc, managementSummary(report, financials), page.margin, y, 174, 34) + 12;
 
-  drawSectionTitle(doc, "Key Financial / Business Highlights", y);
+  drawSectionTitle(doc, report.reportProfile?.id === "local_retail" ? "Retail Executive KPIs" : "Key Financial / Business Highlights", y);
   y += 7;
-  drawMetricGrid(doc, [
+  drawMetricGrid(doc, overviewMetricCards(report, financials, dataCompleteness), y);
+}
+
+function overviewMetricCards(report: Report, financials: ReportFinancials, dataCompleteness: number | null) {
+  if (report.reportProfile?.id === "local_retail" && report.retailAnalysis) {
+    const retail = report.retailAnalysis;
+    return [
+      metricCard("Revenue", financials.revenue, "currency", "neutral", sourceNote(financials, "revenue")),
+      metricCard("Gross Profit", financials.grossProfit, "currency", "missing", sourceNote(financials, "grossProfit")),
+      metricCard("Gross Margin", financials.grossMargin, "percent", "missing", sourceNote(financials, "grossMargin")),
+      numberMetricCard("Units Sold", report.kpis.find((kpi) => kpi.title === "Units Sold")?.value || "Not available", "Source retail quantity field."),
+      numberMetricCard("Current Stock", retail.currentStock === null ? "Not available" : retail.currentStock.toLocaleString(), "Stock on hand from inventory fields."),
+      metricCard("Inventory Value", retail.inventoryValue, "currency", "missing", "Stock multiplied by detected unit cost where available."),
+      numberMetricCard("Products / SKUs", retail.productCount === null ? "Not available" : retail.productCount.toLocaleString(), "Distinct detected product or SKU values."),
+      numberMetricCard("Reorder Required", retail.reorderRequiredCount === null ? "Not available" : retail.reorderRequiredCount.toLocaleString(), "SKUs at or below reorder point."),
+    ];
+  }
+
+  return [
     metricCard("Revenue", financials.revenue, "currency", "neutral", sourceNote(financials, "revenue")),
     metricCard("Gross Profit", financials.grossProfit, "currency", "missing", sourceNote(financials, "grossProfit")),
     metricCard("Operating Profit", financials.operatingProfit, "currency", "missing", sourceNote(financials, "operatingProfit")),
@@ -144,8 +173,136 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
     metricCard("Gross Margin", financials.grossMargin, "percent", "missing", sourceNote(financials, "grossMargin")),
     metricCard("Operating Margin", financials.operatingMargin, "percent", "missing", sourceNote(financials, "operatingMargin")),
     metricCard("Net Margin", financials.netMargin, "percent", "missing", sourceNote(financials, "netMargin")),
-    { title: "Data Completeness", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral", note: "Recognized financial-field coverage." },
+    { title: "Data Completeness", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Recognized financial-field coverage." },
+  ];
+}
+
+function drawRetailSalesPerformance(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  let y = 48;
+  const aov = report.retailAnalysis?.averageOrderValue;
+  drawSectionTitle(doc, "Retail Sales & Margin Performance", y);
+  y += 8;
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    financialRow(financials, "Revenue", "revenue", "currency"),
+    financialRow(financials, "COGS", "cogs", "currency"),
+    financialRow(financials, "Gross Profit", "grossProfit", "currency"),
+    financialRow(financials, "Gross Margin", "grossMargin", "percent"),
+    ["Units Sold", report.kpis.find((kpi) => kpi.title === "Units Sold")?.value || "Not available", "Available", "Recognized units-sold or quantity field."],
+    [
+      "Average Order Value",
+      aov?.status === "available" && aov.value !== null ? formatCurrency(aov.value) : "Not available",
+      aov?.status === "available" ? "Available" : "Not available",
+      aov?.status === "available" ? "Revenue / distinct order count." : "No reliable order identifier or order-level transaction grain detected.",
+    ],
+  ], page.margin, y, [38, 32, 34, 70]) + 12;
+
+  drawSectionTitle(doc, "Revenue and COGS", y);
+  y += 8;
+  if (financials.revenue !== null && financials.cogs !== null) {
+    drawBars(doc, [
+      { label: "Revenue", value: financials.revenue, color: colors.brandCyan },
+      { label: "COGS", value: financials.cogs, color: colors.brandPurple },
+      { label: "Gross Profit", value: financials.grossProfit, color: colors.green },
+    ], page.margin, y, 174, 38);
+  } else {
+    drawUnavailable(doc, "Sales and margin chart unavailable", "Revenue and COGS fields are required for a supported retail margin chart.", page.margin, y, 174, 28);
+  }
+  y += 48;
+
+  drawSectionTitle(doc, "Gross Margin by Category", y);
+  y += 8;
+  const margins = report.retailAnalysis?.grossMarginByCategory || [];
+  if (margins.length === 0) {
+    drawUnavailable(doc, "Category margin unavailable", "Category, revenue, and cost fields are required to calculate gross margin by category.", page.margin, y, 174, 28);
+  } else {
+    drawTable(doc, [
+      ["Category", "Gross Margin", "Status", "Notes"],
+      ...margins.slice(0, 8).map((item): TableRow => [
+        item.name,
+        formatPercent(item.value),
+        item.value < 25 ? "Risk" : "Available",
+        `${formatCurrency(item.grossProfit)} on ${formatCurrency(item.revenue)} revenue; COGS ${formatCurrency(item.cogs)}.`,
+      ]),
+    ], page.margin, y, [52, 34, 28, 60]);
+  }
+}
+
+function drawRetailInventoryIntelligence(doc: jsPDF, report: Report) {
+  const retail = report.retailAnalysis;
+  if (!retail) return;
+  let y = 48;
+  drawSectionTitle(doc, "Inventory Intelligence", y);
+  y += 8;
+  drawMetricGrid(doc, [
+    numberMetricCard("Current Stock", retail.currentStock === null ? "Not available" : retail.currentStock.toLocaleString(), "Stock units from source data."),
+    metricCard("Inventory Value", retail.inventoryValue, "currency", "missing", "Estimated from stock and unit cost."),
+    numberMetricCard("Low Stock SKUs", retail.lowStockSkuCount === null ? "Not available" : retail.lowStockSkuCount.toLocaleString(), "At or below reorder point."),
+    numberMetricCard("Out of Stock", retail.outOfStockSkuCount === null ? "Not available" : retail.outOfStockSkuCount.toLocaleString(), "Stock less than or equal to zero."),
   ], y);
+  y += 48;
+
+  drawSectionTitle(doc, "Low Stock / Reorder Required", y);
+  y += 8;
+  if (retail.lowStockItems.length === 0) {
+    y = drawUnavailable(doc, "No reorder exceptions detected", "No products are at or below detected reorder point in the loaded data.", page.margin, y, 174, 28) + 12;
+  } else {
+    y = drawTable(doc, [
+      ["Product", "Stock", "Reorder Point", "Supplier / Category"],
+      ...retail.lowStockItems.slice(0, 8).map((item): TableRow => [
+        item.product,
+        item.stock.toLocaleString(),
+        item.reorderPoint.toLocaleString(),
+        [item.supplier, item.category].filter(Boolean).join(" / ") || "Not available",
+      ]),
+    ], page.margin, y, [56, 24, 34, 60]) + 12;
+  }
+
+  drawSectionTitle(doc, "Stock by Category", y);
+  y += 8;
+  const stockRows = retail.stockByCategory.slice(0, 8);
+  if (stockRows.length === 0) {
+    drawUnavailable(doc, "Stock by category unavailable", "Category and stock fields are required for category inventory analysis.", page.margin, y, 174, 28);
+  } else {
+    drawTable(doc, [
+      ["Category", "Stock", "Status", "Notes"],
+      ...stockRows.map((item): TableRow => [item.name, item.value.toLocaleString(), "Available", "Source stock grouped by category."]),
+    ], page.margin, y, [58, 34, 28, 54]);
+  }
+}
+
+function drawRetailProductIntelligence(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  const retail = report.retailAnalysis;
+  if (!retail) return;
+  let y = 48;
+  drawSectionTitle(doc, "Product / Category / Supplier Intelligence", y);
+  y += 8;
+  const topProducts = retail.topProductsByRevenue.slice(0, 6);
+  if (topProducts.length > 0) {
+    y = drawTable(doc, [
+      ["Product / SKU", "Revenue", "Share", "Notes"],
+      ...topProducts.map((item): TableRow => [
+        item.name,
+        formatCurrency(item.value),
+        financials.revenue ? formatPercent((item.value / financials.revenue) * 100) : "Not available",
+        "Source revenue grouped by product.",
+      ]),
+    ], page.margin, y, [58, 34, 24, 58]) + 12;
+  } else {
+    y = drawUnavailable(doc, "Product revenue unavailable", "Product and revenue fields are required to rank products.", page.margin, y, 174, 28) + 12;
+  }
+
+  drawSectionTitle(doc, "Category and Supplier Exposure", y);
+  y += 8;
+  const category = retail.revenueByCategory[0];
+  const supplier = retail.supplierExposure[0];
+  drawTable(doc, [
+    ["Dimension", "Top Value", "Revenue / Value", "Notes"],
+    ["Category", category?.name || "Not available", category ? formatCurrency(category.value) : "Not available", "Highest revenue category from source fields."],
+    ["Supplier", supplier?.name || "Not available", supplier ? formatCurrency(supplier.value) : "Not available", "Highest revenue supplier from source fields."],
+    ["Inventory Value", retail.inventoryValueByProduct[0]?.name || "Not available", retail.inventoryValueByProduct[0] ? formatCurrency(retail.inventoryValueByProduct[0].value) : "Not available", "Highest detected inventory value by product."],
+    ["Supplier Count", retail.supplierCount === null ? "Not available" : retail.supplierCount.toLocaleString(), "Available", "Distinct recognized suppliers."],
+  ], page.margin, y, [36, 54, 34, 50]);
 }
 
 function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {
@@ -277,9 +434,9 @@ function drawBalancedScorecard(doc: jsPDF, report: Report) {
   drawTextBox(doc, `${bbsc.scoreExplanation} ${bbsc.confidenceNote}`, page.margin, y, 174, 34);
 }
 
-function drawRecommendationsAndProvenance(doc: jsPDF, report: Report, financials: ReportFinancials) {
+function drawRecommendationsAndProvenance(doc: jsPDF, report: Report, financials: ReportFinancials, title = "Executive Recommendations") {
   let y = 48;
-  drawSectionTitle(doc, "Executive Recommendations", y);
+  drawSectionTitle(doc, title, y);
   y += 8;
   const recommendations = normalizeRecommendations(report, financials);
   if (recommendations.length === 0) {
@@ -289,7 +446,7 @@ function drawRecommendationsAndProvenance(doc: jsPDF, report: Report, financials
       const priority = String(index + 1).padStart(2, "0");
       y = drawRecommendation(doc, priority, recommendation, y) + 7;
       if (y > 208 && index < recommendations.length - 1) {
-        addDocumentPage(doc, "Executive Recommendations", cleanText(report.datasetName));
+        addDocumentPage(doc, title, cleanText(report.datasetName));
         y = 48;
       }
     }
@@ -544,7 +701,7 @@ function addFooters(doc: jsPDF, report: Report) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(...colors.muted);
-    doc.text("UseClevr Executive BI Report", page.margin, page.height - 10);
+    doc.text(`UseClevr ${cleanText(report.reportProfile?.title || "Executive BI Report")}`, page.margin, page.height - 10);
     doc.text(`Page ${pageNumber} of ${totalPages}`, page.width - page.margin, page.height - 10, { align: "right" });
     doc.setFontSize(6.5);
     doc.text(`AI-assisted analysis | Selected dataset only | ${cleanText(report.id)}`, page.width / 2, page.height - 10, { align: "center" });
@@ -618,6 +775,15 @@ function metricCard(title: string, value: number | null, format: "currency" | "p
     title,
     value: value === null ? "Not available" : formatValue(value, format),
     status: value === null ? fallbackStatus : "neutral" as const,
+    note,
+  };
+}
+
+function numberMetricCard(title: string, value: string, note: string) {
+  return {
+    title,
+    value,
+    status: value === "Not available" ? "missing" as const : "neutral" as const,
     note,
   };
 }

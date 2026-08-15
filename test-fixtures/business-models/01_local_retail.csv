@@ -1,0 +1,6 @@
+date,store_id,product_id,category,units_sold,revenue,cost,stock_on_hand,reorder_point,supplier,location
+2026-07-01,AMS-01,sku-1001,Coffee,42,1680,840,18,25,North Roasters,Amsterdam
+2026-07-01,AMS-01,sku-1002,Pastry,35,875,420,9,20,Daily Bakery,Amsterdam
+2026-07-02,RTM-02,sku-1001,Coffee,31,1240,620,12,25,North Roasters,Rotterdam
+2026-07-02,RTM-02,sku-1003,Merchandise,4,180,90,48,10,Brand Supply,Rotterdam
+2026-07-03,UTR-03,sku-1004,Tea,16,480,210,6,15,Tea House,Utrecht
