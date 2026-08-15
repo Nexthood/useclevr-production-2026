@@ -47,6 +47,16 @@ const content = {
   width: page.width - page.margin * 2,
 };
 
+const layout = {
+  sectionHeadingWithSpacing: 8,
+  minimumNarrativeBlock: 24,
+  minimumUnavailableBlock: 28,
+  minimumTableStart: 24,
+  metricCardHeight: 33,
+  metricCardGap: 4,
+  recommendationCardHeight: 36,
+};
+
 const layoutContexts = new WeakMap<jsPDF, PdfLayoutContext>();
 
 export function getPdfPath(reportId: string, datasetName: string): string | null {
@@ -159,11 +169,14 @@ function ensureComponentFits(doc: jsPDF, y: number, height: number) {
   return y + height <= content.bottom ? y : addFlowPage(doc);
 }
 
-function drawSectionHeading(doc: jsPDF, title: string, y: number, minimumFollowingHeight = 16) {
-  const headingHeight = 7;
-  const nextY = ensureComponentFits(doc, y, headingHeight + minimumFollowingHeight);
+function ensureSectionStartSpace(doc: jsPDF, y: number, minimumFollowingHeight = layout.minimumNarrativeBlock) {
+  return ensureComponentFits(doc, y, layout.sectionHeadingWithSpacing + minimumFollowingHeight);
+}
+
+function drawSectionHeading(doc: jsPDF, title: string, y: number, minimumFollowingHeight = layout.minimumNarrativeBlock) {
+  const nextY = ensureSectionStartSpace(doc, y, minimumFollowingHeight);
   drawSectionTitle(doc, title, nextY);
-  return nextY + 8;
+  return nextY + layout.sectionHeadingWithSpacing;
 }
 
 function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFinancials, datasetName: string) {
@@ -192,11 +205,14 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
   ], y);
   y += 35;
 
-  y = drawSectionHeading(doc, "Executive Summary", y);
+  y = drawSectionHeading(doc, "Executive Summary", y, 34);
   y = drawTextBox(doc, managementSummary(report, financials), page.margin, y, 174, 34) + 12;
 
-  y = drawSectionHeading(doc, report.reportProfile?.id === "local_retail" ? "Retail Executive KPIs" : "Key Financial / Business Highlights", y);
-  drawMetricGrid(doc, overviewMetricCards(report, financials, dataCompleteness), y);
+  const overviewMetrics = overviewMetricCards(report, financials, dataCompleteness);
+  if (overviewMetrics.length > 0) {
+    y = drawSectionHeading(doc, report.reportProfile?.id === "local_retail" ? "Retail Executive KPIs" : "Key Financial / Business Highlights", y, layout.metricCardHeight);
+    drawMetricGrid(doc, overviewMetrics, y);
+  }
 }
 
 function overviewMetricCards(report: Report, financials: ReportFinancials, dataCompleteness: number | null) {
@@ -318,7 +334,7 @@ function drawRetailInventoryIntelligence(doc: jsPDF, report: Report) {
   const retail = report.retailAnalysis;
   if (!retail) return;
   let y = 48;
-  y = drawSectionHeading(doc, "Inventory Intelligence", y);
+  y = drawSectionHeading(doc, "Inventory Intelligence", y, layout.metricCardHeight);
   y = drawMetricGrid(doc, [
     numberMetricCard("Current Stock", retail.currentStock === null ? "Not available" : retail.currentStock.toLocaleString(), "Stock units from source data."),
     metricCard("Inventory Value", retail.inventoryValue, "currency", "missing", "Estimated from stock and unit cost."),
@@ -614,14 +630,14 @@ function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {
     financialRow(financials, "Net Margin", "netMargin", "percent"),
   ], page.margin, y, [38, 32, 34, 70]);
 
-  y += 12;
-  y = drawSectionHeading(doc, "Revenue vs Expenses", y);
   const expenseRows = [
     { label: "Revenue", value: financials.revenue, color: colors.brandCyan },
     { label: "COGS", value: financials.cogs, color: colors.brandPurple },
     { label: "Operating Expenses", value: financials.operatingExpenses, color: colors.brandBlue },
     { label: "Interest + Tax", value: financials.interestExpense !== null && financials.taxExpense !== null ? financials.interestExpense + financials.taxExpense : null, color: colors.brandLilac },
   ];
+  y += 12;
+  y = drawSectionHeading(doc, "Revenue vs Expenses", y, financials.revenue !== null && expenseRows.slice(1).some((row) => row.value !== null) ? 45 : layout.minimumUnavailableBlock);
   if (expenseRows.slice(1).some((row) => row.value !== null) && financials.revenue !== null) {
     y = drawBars(doc, expenseRows, page.margin, y, 174, 45);
   } else {
@@ -629,7 +645,7 @@ function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {
   }
 
   y += 10;
-  y = drawSectionHeading(doc, "Profit and Margin Trend", y);
+  y = drawSectionHeading(doc, "Profit and Margin Trend", y, 52);
   drawTrendPanel(doc, financials, page.margin, y, 174, 52);
 }
 
@@ -654,7 +670,7 @@ function drawCostIntelligence(doc: jsPDF, report: Report, financials: ReportFina
     ], page.margin, y, [50, 35, 28, 61]) + 12;
   }
 
-  y = drawSectionHeading(doc, "Management Interpretation", y);
+  y = drawSectionHeading(doc, "Management Interpretation", y, 26);
   const top = categories[0];
   const total = categories.reduce((sum, item) => sum + item.value, 0);
   const interpretation = top && total > 0
@@ -662,7 +678,7 @@ function drawCostIntelligence(doc: jsPDF, report: Report, financials: ReportFina
     : "Cost concentration cannot be assessed without categorized expense amounts.";
   y = drawTextBox(doc, interpretation, page.margin, y, 174, 26) + 11;
 
-  y = drawSectionHeading(doc, "Cost Optimization Opportunities", y);
+  y = drawSectionHeading(doc, "Cost Optimization Opportunities", y, 24);
   const opportunity = top && total > 0
     ? `Review ${top.name} contracts, vendors, staffing, or usage drivers first because it is the largest sourced cost category.`
     : "Add categorized expense data before ranking cost optimization opportunities.";
@@ -712,14 +728,14 @@ function drawBalancedScorecard(doc: jsPDF, report: Report) {
   ], page.margin, y, [49, 24, 35, 66]);
   y += 12;
 
-  y = drawSectionHeading(doc, "Score Semantics", y);
+  y = drawSectionHeading(doc, "Score Semantics", y, 34);
   drawTextBox(doc, `${bbsc.scoreExplanation} ${bbsc.confidenceNote}`, page.margin, y, 174, 34);
 }
 
 function drawRecommendationsAndProvenance(doc: jsPDF, report: Report, financials: ReportFinancials, title = "Executive Recommendations") {
   let y = 48;
-  y = drawSectionHeading(doc, title, y);
   const recommendations = normalizeRecommendations(report, financials);
+  y = drawSectionHeading(doc, title, y, recommendations.length > 0 ? layout.recommendationCardHeight : layout.minimumUnavailableBlock);
   if (recommendations.length === 0) {
     y = drawUnavailable(doc, "No grounded recommendations available", "The selected dataset does not contain enough supported signals for a management recommendation.", page.margin, y, 174, 28) + 12;
   } else {
@@ -739,7 +755,7 @@ function drawRecommendationsAndProvenance(doc: jsPDF, report: Report, financials
     ["Generated", cleanText(report.localTime), "Available", "Timestamp captured at report generation."],
   ], page.margin, y, [42, 45, 30, 57]) + 12;
 
-  y = drawSectionHeading(doc, "About This Report", y);
+  y = drawSectionHeading(doc, "About This Report", y, 28);
   drawTextBox(
     doc,
     "This report was generated automatically by UseClevr using the selected dataset. Metrics are derived from available source data. Missing or insufficient data is explicitly identified to reduce unsupported conclusions.",
@@ -788,34 +804,38 @@ function drawMetaGrid(doc: jsPDF, entries: string[][], y: number) {
 }
 
 function drawMetricGrid(doc: jsPDF, metrics: Array<{ title: string; value: string; status: "good" | "neutral" | "risk" | "missing"; note: string }>, y: number) {
-  const gap = 4;
+  if (metrics.length === 0) return y;
+  const gap = layout.metricCardGap;
   const cardWidth = (174 - gap * 3) / 4;
-  const cardHeight = 33;
+  const cardHeight = layout.metricCardHeight;
   const rows = Math.ceil(metrics.length / 4);
-  const gridHeight = rows * cardHeight + Math.max(0, rows - 1) * gap;
-  const startY = ensureComponentFits(doc, y, gridHeight);
-  metrics.forEach((item, index) => {
-    const x = page.margin + (index % 4) * (cardWidth + gap);
-    const cardY = startY + Math.floor(index / 4) * (cardHeight + gap);
-    doc.setFillColor(...colors.white);
-    doc.setDrawColor(...colors.line);
-    doc.roundedRect(x, cardY, cardWidth, cardHeight, 1.5, 1.5, "S");
-    doc.setFillColor(...statusColor(item.status));
-    doc.rect(x, cardY, 1.6, cardHeight, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.8);
-    doc.setTextColor(...colors.muted);
-    doc.text(item.title.toUpperCase(), x + 4, cardY + 7);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(item.value.length > 22 ? 8.8 : item.value.length > 15 ? 10 : 12);
-    doc.setTextColor(...colors.ink);
-    doc.text(doc.splitTextToSize(cleanText(item.value), cardWidth - 8).slice(0, 2), x + 4, cardY + 17);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.4);
-    doc.setTextColor(...colors.muted);
-    doc.text(doc.splitTextToSize(cleanText(item.note), cardWidth - 8).slice(0, 2), x + 4, cardY + 25);
-  });
-  return startY + gridHeight;
+  let cursorY = y;
+  for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+    const rowY = ensureComponentFits(doc, cursorY, cardHeight);
+    const row = metrics.slice(rowIndex * 4, rowIndex * 4 + 4);
+    row.forEach((item, index) => {
+      const x = page.margin + index * (cardWidth + gap);
+      doc.setFillColor(...colors.white);
+      doc.setDrawColor(...colors.line);
+      doc.roundedRect(x, rowY, cardWidth, cardHeight, 1.5, 1.5, "S");
+      doc.setFillColor(...statusColor(item.status));
+      doc.rect(x, rowY, 1.6, cardHeight, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.8);
+      doc.setTextColor(...colors.muted);
+      doc.text(item.title.toUpperCase(), x + 4, rowY + 7);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(item.value.length > 22 ? 8.8 : item.value.length > 15 ? 10 : 12);
+      doc.setTextColor(...colors.ink);
+      doc.text(doc.splitTextToSize(cleanText(item.value), cardWidth - 8).slice(0, 2), x + 4, rowY + 17);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.4);
+      doc.setTextColor(...colors.muted);
+      doc.text(doc.splitTextToSize(cleanText(item.note), cardWidth - 8).slice(0, 2), x + 4, rowY + 25);
+    });
+    cursorY = rowY + cardHeight + (rowIndex < rows - 1 ? gap : 0);
+  }
+  return cursorY;
 }
 
 function drawSectionTitle(doc: jsPDF, title: string, y: number) {
@@ -862,7 +882,8 @@ function drawTable(doc: jsPDF, rows: TableRow[], x: number, y: number, widths: n
   const tableWidth = widths.reduce((sum, width) => sum + width, 0);
   const header = rows[0];
   const bodyRows = rows.slice(1);
-  let cursorY = ensureComponentFits(doc, y, rowHeight * (bodyRows.length > 0 ? 2 : 1));
+  const minimumStartRows = bodyRows.length >= 2 ? 3 : bodyRows.length > 0 ? 2 : 1;
+  let cursorY = ensureComponentFits(doc, y, rowHeight * minimumStartRows);
   const drawRow = (row: TableRow, rowIndex: number, drawY: number) => {
     const isHeader = rowIndex === 0;
     let cellX = x;

@@ -370,6 +370,12 @@ async function main() {
         assert(pdfText.includes("SAAS EXECUTIVE REPORT"), "saas PDF must identify the SaaS report")
         assert(pdfText.includes("Rows Analyzed"), "saas PDF must include row provenance")
         assert(pdfText.includes("144"), "saas PDF must show all 144 rows")
+        assertSectionHasMeaningfulContent(
+          pdfText,
+          "KEY FINANCIAL / BUSINESS HIGHLIGHTS",
+          ["MRR", "ARR", "Customers", "New Customers", "Churn Rate", "CAC", "LTV", "Runway", "Data Confidence"],
+          "saas overview highlights heading must stay with its KPI cards",
+        )
         assert(pdfText.includes("MRR"), "saas PDF must include MRR")
         assert(pdfText.includes("ARR"), "saas PDF must include ARR")
         assert(pdfText.includes("Customers"), "saas PDF must include customers")
@@ -630,6 +636,16 @@ function assertPdfLayoutBasics(pdfPath: string, expectedTitle: string) {
   assert(text.includes(`Page ${pages} of ${pages}`), `${path.basename(pdfPath)} must include final-page numbering`)
   assert(!/\bundefined\b|\bNaN\b/.test(text), `${path.basename(pdfPath)} must not render undefined or NaN layout text`)
   return { pages, text }
+}
+
+function assertSectionHasMeaningfulContent(text: string, heading: string, requiredContent: string[], message: string) {
+  const pageTexts = text.split("\f")
+  const pageText = pageTexts.find((candidate) => candidate.includes(heading))
+  assert(Boolean(pageText), `${message}: missing heading ${heading}`)
+  assert(
+    requiredContent.some((content) => pageText?.includes(content)),
+    `${message}: heading appears without required following content on the same page`,
+  )
 }
 
 function assertRetailCategoryReconciliation(reportInput: DatasetReportInput, label: string) {

@@ -3069,6 +3069,40 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## PDF Section Heading Orphan Protection
+
+1. Interaction title
+Generated PDF section heading orphan protection.
+
+2. What was the user goal
+Fix the shared generated-PDF layout system so SaaS and all other report profiles do not render a section heading at the bottom of one page while the first meaningful content block starts on the next page.
+
+3. What changed
+The shared PDF renderer now reserves safe vertical space for a section heading plus the first meaningful content block before drawing the heading. KPI grids render row by row so a large highlight grid can continue on later pages while keeping the heading with the first KPI row. Table starts now reserve the table header plus two body rows when possible, while preserving footer-safe continuation pages with repeated table headers.
+
+4. Problems marked
+blocker: none.
+risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so the regression suite validates those shared renderer profiles with synthetic PDFs.
+observation: the current `03_saas_startup` fixture reports MRR 13494, ARR 161928, Customers 12, New Customers 12, Churn Rate 16.67%, CAC 591.5, LTV 5145, Runway 11.95 months, and Data Confidence 100; the layout fix leaves those canonical values unchanged.
+
+5. User learning
+The SaaS highlight heading orphan came from a section heading reserving only a small default following space while the KPI grid required a full first row and previously moved the entire grid as one block.
+
+6. AI-agent learning
+For generated PDF layout fixes, protect the section start in the shared heading helper and make reusable content components paginate at their natural row or block granularity.
+
+7. Follow-up tasks
+- Add the exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Retail Average Order Value Semantic Accuracy
 
 1. Interaction title
