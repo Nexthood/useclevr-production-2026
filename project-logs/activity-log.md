@@ -246,3 +246,4 @@
 - fixed: remove the Standard Upload success View Dataset action, keep Open in Dashboard as the primary CTA, and keep Upload Another File as the secondary action
 - blocked: full 20-file fixture validation cannot run because `01_local_retail` through `10_accountancy_ledger` CSV/XLSX files and `README_TEST_MAPPING.txt` are absent from the workspace; fixed temporary spreadsheet lock-file rejection in upload and parsing paths
 - fixed: calculate Retail Executive Report category gross margin from reconciled revenue and COGS totals, derive per-unit cost COGS from units sold, and show Average Order Value only when reliable order semantics exist
+- fixed: enforce conservative Retail Average Order Value semantics so only genuine order identifiers create AOV, `01_local_retail` reports AOV as unavailable, and generic row, record, product, SKU, date, or row-count denominators cannot appear as order value

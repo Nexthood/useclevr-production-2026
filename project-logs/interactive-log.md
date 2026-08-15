@@ -3069,6 +3069,38 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Retail Average Order Value Semantic Accuracy
+
+1. Interaction title
+Retail Average Order Value semantic accuracy.
+
+2. What was the user goal
+Fix only the Retail Executive Report Average Order Value semantic bug so rows, generic IDs, product IDs, SKUs, or dates cannot be treated as orders.
+
+3. What changed
+Retail report order-column detection now accepts only conservative commercial transaction identifiers: `order_id`, `order_number`, `transaction_id`, `transaction_number`, `sale_id`, and `receipt_id`. AOV remains unavailable when no reliable order denominator exists. The regression test verifies `01_local_retail.csv` and `01_local_retail.xlsx` keep AOV unavailable and their PDFs do not show `$443`; a positive multi-line order fixture calculates 240 revenue divided by 3 distinct orders as 80; an unsafe-ID fixture proves `record_id`, `product_id`, `sku`, and `transaction_date` do not expose AOV.
+
+4. Problems marked
+blocker: none.
+observation: The previous AOV denominator of 180 came from row-count fallback behavior in the retail report path. Current code prevents row count from serving as an AOV denominator unless a future explicit order-grain contract is added.
+
+5. User learning
+`01_local_retail` reports Average Order Value as Not available because the fixture has no genuine order identifier or explicit one-row-per-order grain.
+
+6. AI-agent learning
+For AOV, treat order identity as a high-confidence semantic role. Do not promote generic identifiers, product-level fields, dates, or record counts into order denominators.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: existing unreleased retail accuracy entry in `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Free Plan Standardization
 
 1. Interaction title
