@@ -22,6 +22,10 @@ moving work between states.
 - T-793. Add Docker HEALTHCHECK instruction to dist-root/Dockerfile and generated Dockerfile, checking /api/health every 30s with 3 retries. (labels: monitoring, deployment, stability; commit: worktree)
 - T-794. Add SIGTERM/SIGINT graceful shutdown handler to start-dist.cjs that forwards the signal to the child Next.js server process before exiting. (labels: monitoring, deployment, data; commit: worktree)
 
+## Label: reports
+
+- T-1008. Retail reports calculate category gross margin from reconciled revenue and COGS totals and show Average Order Value only when order semantics are reliable. (labels: reports, metrics, testing; commit: worktree)
+
 ## Label: mcp
 
 - T-839. Expose locked demo-account dataset metadata and stored insights through Payload Streamable HTTP MCP for ChatGPT developer-mode testing. (labels: mcp, auth, api, testing, security; commit: worktree)

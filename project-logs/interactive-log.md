@@ -940,6 +940,41 @@ Selected-dataset AI fixes must verify deterministic answers and provider-backed 
 9. Minimal destination
 Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Retail Report Gross Margin and AOV Accuracy
+
+1. Interaction title
+Retail Report gross margin and AOV accuracy.
+
+2. What was the user goal
+Fix two Retail Executive Report accuracy issues: category gross margin must use reconciled revenue and COGS totals, and Average Order Value must require reliable order semantics instead of row count.
+
+3. What changed
+Retail report financials now derive COGS from `unit_cost` multiplied by the detected units-sold field when the cost source is per-unit, while explicit COGS or total cost fields remain direct sources. Category gross margin rows now store category, revenue, COGS, gross profit, gross margin, revenue source, and COGS source, and category totals must reconcile before margins render. Retail AOV now carries structured status, calculation method, source fields, and confidence, and reports show AOV only for recognized order identifiers. The PDF renderer now explains unavailable AOV semantics and prints category margin notes with revenue, COGS, and gross profit. Regression coverage includes CSV/XLSX parity, a 180-row unit-cost local retail case, PDF text checks, and a distinct-order positive AOV case.
+
+4. Problems marked
+blocker: none.
+risk: the exact `01_local_retail.csv` and `01_local_retail.xlsx` fixture files remain absent from the checkout, so the regression uses the available local-retail pair plus synthetic rows that match the reported metric shape.
+improvement: add the named 10-family fixture suite to the workspace so future retail accuracy checks run against the exact product fixture files.
+observation: the requested report failure comes from treating per-unit cost as row COGS and treating row count as order count.
+
+5. User learning
+Retail reports now mark AOV unavailable when no reliable order identifier exists and keep category margin mathematically tied to overall retail gross margin.
+
+6. AI-agent learning
+For retail report accuracy fixes, inspect cost-field semantics before using detected cost as COGS and render unavailable metrics when dataset grain is not proven.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; active/done work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dataset AI Assistant Grounded Responses
 
 1. Interaction title

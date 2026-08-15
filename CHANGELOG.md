@@ -27,6 +27,7 @@
 
 ### Fixed
 
+- Fix Retail Executive Reports so category gross margin reconciles revenue, COGS, and gross profit from category totals, and Average Order Value appears only when reliable order semantics exist.
 - Fix Executive BI reports so row counts, KPI calculations, executive summaries, trend analysis, cost intelligence, and provenance use the same full-row dataset and semantic field mapping.
 - Fix report regeneration so legacy idempotent report replays without current diagnostics or semantic context are rebuilt instead of serving stale PDFs.
 - Fix CSV and Excel upload validation so temporary spreadsheet lock files are rejected before parsing or dataset creation.

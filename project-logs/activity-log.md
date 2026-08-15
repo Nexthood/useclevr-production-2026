@@ -245,3 +245,4 @@
 - changed: redesign Executive BI PDF reports as corporate documents, classify financial metrics as source values, valid derived values, or unavailable values, preserve selected-dataset-only generation, and verify missing values stay separate from explicit zero values
 - fixed: remove the Standard Upload success View Dataset action, keep Open in Dashboard as the primary CTA, and keep Upload Another File as the secondary action
 - blocked: full 20-file fixture validation cannot run because `01_local_retail` through `10_accountancy_ledger` CSV/XLSX files and `README_TEST_MAPPING.txt` are absent from the workspace; fixed temporary spreadsheet lock-file rejection in upload and parsing paths
+- fixed: calculate Retail Executive Report category gross margin from reconciled revenue and COGS totals, derive per-unit cost COGS from units sold, and show Average Order Value only when reliable order semantics exist

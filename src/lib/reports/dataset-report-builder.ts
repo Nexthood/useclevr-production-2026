@@ -463,7 +463,7 @@ function buildProfitabilityRecommendations(
 
 function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFinancials {
   const revenue = sourceMetric(sumColumn(rows, columns.revenue) ?? sumColumn(rows, columns.gmv), columns.revenue || columns.gmv)
-  const cogs = sourceMetric(sumColumn(rows, columns.cogs), columns.cogs)
+  const cogs = cogsMetric(sumCogs(rows, columns), columns)
   const operatingExpenses = sourceMetric(sumColumn(rows, columns.operatingExpenses), columns.operatingExpenses)
   const interestExpense = sourceMetric(sumColumn(rows, columns.interestExpense), columns.interestExpense)
   const taxExpense = sourceMetric(sumColumn(rows, columns.taxExpense), columns.taxExpense)
@@ -552,7 +552,7 @@ function buildRetailAnalysis(rows: DataRow[], columns: ColumnMap): RetailReportA
   const currentStock = sumColumn(rows, columns.stock)
   const quantity = sumColumn(rows, columns.quantity)
   const revenue = sumColumn(rows, columns.revenue)
-  const orders = columns.order ? uniqueCount(rows, columns.order) : rows.length
+  const averageOrderValue = retailAverageOrderValue(rows, columns, revenue)
   const inventoryValue = retailInventoryValue(rows, columns)
   const productCount = columns.product ? uniqueCount(rows, columns.product) : rows.length
   const supplierCount = columns.vendor ? uniqueCount(rows, columns.vendor) : null
@@ -566,7 +566,8 @@ function buildRetailAnalysis(rows: DataRow[], columns: ColumnMap): RetailReportA
     lowStockSkuCount: lowStockItems.length,
     reorderRequiredCount: lowStockItems.length,
     outOfStockSkuCount,
-    averageTransactionValue: revenue !== null && orders > 0 ? round(revenue / orders) : null,
+    averageTransactionValue: averageOrderValue.value,
+    averageOrderValue,
     supplierCount,
     topProductsByRevenue: groupedRetailChart(rows, columns.product, columns.revenue, "Unknown product"),
     revenueByCategory: groupedRetailChart(rows, columns.category, columns.revenue, "Uncategorized"),
@@ -669,10 +670,8 @@ function retailInventoryValue(rows: DataRow[], columns: ColumnMap) {
   let found = false
   for (const row of rows) {
     const stock = getNumber(row[columns.stock])
-    const cost = getNumber(row[columns.cost])
-    if (stock === null || cost === null) continue
-    const quantity = columns.quantity ? getNumber(row[columns.quantity]) : null
-    const unitCost = quantity && quantity > 0 ? cost / quantity : cost
+    const unitCost = rowUnitCost(row, columns)
+    if (stock === null || unitCost === null) continue
     total += stock * unitCost
     found = true
   }
@@ -685,10 +684,8 @@ function retailInventoryValueByProduct(rows: DataRow[], columns: ColumnMap) {
   for (const row of rows) {
     const product = String(row[columns.product] || "Unknown product").trim() || "Unknown product"
     const stock = getNumber(row[columns.stock])
-    const cost = getNumber(row[columns.cost])
-    if (stock === null || cost === null) continue
-    const quantity = columns.quantity ? getNumber(row[columns.quantity]) : null
-    const unitCost = quantity && quantity > 0 ? cost / quantity : cost
+    const unitCost = rowUnitCost(row, columns)
+    if (stock === null || unitCost === null) continue
     grouped.set(product, round((grouped.get(product) || 0) + stock * unitCost))
   }
   return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
@@ -732,22 +729,45 @@ function groupedRetailChart(rows: DataRow[], groupColumn: string | undefined, va
 }
 
 function retailMarginByGroup(rows: DataRow[], groupColumn: string | undefined, columns: ColumnMap) {
-  if (!groupColumn || !columns.revenue || !columns.cost) return []
-  const grouped = new Map<string, { revenue: number; cost: number }>()
+  if (!groupColumn || !columns.revenue || !columns.cogs) return []
+  const grouped = new Map<string, { revenue: number; cogs: number; grossProfit: number }>()
+  let totalRevenue = 0
+  let totalCogs = 0
+  let totalGrossProfit = 0
   for (const row of rows) {
     const name = String(row[groupColumn] || "Uncategorized").trim() || "Uncategorized"
     const revenue = getNumber(row[columns.revenue])
-    const cost = getNumber(row[columns.cost])
-    if (revenue === null || cost === null) continue
-    const current = grouped.get(name) || { revenue: 0, cost: 0 }
+    const cogs = rowCogs(row, columns)
+    if (revenue === null || cogs === null) continue
+    const grossProfit = revenue - cogs
+    const current = grouped.get(name) || { revenue: 0, cogs: 0, grossProfit: 0 }
     current.revenue += revenue
-    current.cost += cost
+    current.cogs += cogs
+    current.grossProfit += grossProfit
+    totalRevenue += revenue
+    totalCogs += cogs
+    totalGrossProfit += grossProfit
     grouped.set(name, current)
   }
+  if (grouped.size === 0 || !retailCategoryTotalsReconcile(rows, columns, { totalRevenue, totalCogs, totalGrossProfit })) return []
+  const revenueSource = columns.revenue
+  const cogsSource = cogsCalculationSource(columns)
   return Array.from(grouped.entries())
-    .map(([name, value]) => ({ name, value: value.revenue > 0 ? round(((value.revenue - value.cost) / value.revenue) * 100) : 0 }))
+    .map(([name, value]) => {
+      const grossMargin = value.revenue > 0 ? round((value.grossProfit / value.revenue) * 100) : 0
+      return {
+        name,
+        category: name,
+        value: grossMargin,
+        revenue: round(value.revenue),
+        cogs: round(value.cogs),
+        grossProfit: round(value.grossProfit),
+        grossMargin,
+        revenueSource,
+        cogsSource,
+      }
+    })
     .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
 }
 
 function buildTopCostCategories(rows: DataRow[], columns: ColumnMap) {
@@ -900,6 +920,16 @@ function reportingPeriodFromPeriodTrends(trends: NonNullable<ReportFinancials["p
 
 function sourceMetric(value: number | null, column?: string): FinancialMetric {
   return value !== null && column ? { value, source: "source_value", note: `Directly from source field: ${column}.` } : unavailableMetric()
+}
+
+function cogsMetric(value: number | null, columns: ColumnMap): FinancialMetric {
+  if (value === null || !columns.cogs) return unavailableMetric()
+  if (isUnitCostColumn(columns.cogs)) {
+    return columns.quantity
+      ? { value, source: "derived_value", note: `Calculated from ${columns.cogs} multiplied by ${columns.quantity}.` }
+      : unavailableMetric()
+  }
+  return sourceMetric(value, columns.cogs)
 }
 
 function calculatedMetric(value: number): FinancialMetric {
@@ -1293,7 +1323,7 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Low Stock SKUs", retail?.lowStockSkuCount ?? countLowStock(rows, columns), "number")
     addKpi(kpis, "Reorder Required", retail?.reorderRequiredCount ?? countLowStock(rows, columns), "number")
     addKpi(kpis, "Out of Stock", retail?.outOfStockSkuCount ?? null, "number")
-    addKpi(kpis, "AOV", retail?.averageTransactionValue ?? null, "currency")
+    addKpi(kpis, "AOV", retail?.averageOrderValue?.status === "available" ? retail.averageOrderValue.value : null, "currency")
   } else if (model === "ecommerce") {
     addKpi(kpis, "Orders", orders, "number")
     addKpi(kpis, "Customers", customers, "number")
@@ -1431,6 +1461,106 @@ function sumColumn(rows: DataRow[], column?: string) {
     found = true
   }
   return found ? total : null
+}
+
+function sumCogs(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.cogs) return null
+  let total = 0
+  let found = false
+  for (const row of rows) {
+    const value = rowCogs(row, columns)
+    if (value === null) continue
+    total += value
+    found = true
+  }
+  return found ? round(total) : null
+}
+
+function rowCogs(row: DataRow, columns: ColumnMap) {
+  if (!columns.cogs) return null
+  const cost = getNumber(row[columns.cogs])
+  if (cost === null) return null
+  if (!isUnitCostColumn(columns.cogs)) return cost
+  const quantity = columns.quantity ? getNumber(row[columns.quantity]) : null
+  return quantity !== null ? cost * quantity : null
+}
+
+function rowUnitCost(row: DataRow, columns: ColumnMap) {
+  if (!columns.cost) return null
+  const cost = getNumber(row[columns.cost])
+  if (cost === null) return null
+  if (isUnitCostColumn(columns.cost)) return cost
+  const quantity = columns.quantity ? getNumber(row[columns.quantity]) : null
+  return quantity && quantity > 0 ? cost / quantity : cost
+}
+
+function isUnitCostColumn(column: string) {
+  const normalized = column.toLowerCase().trim().replace(/[\s-]+/g, "_")
+  return /^(unit_cost|cost_per_unit|per_unit_cost|unit_purchase_cost|supplier_unit_cost|vendor_unit_cost)$/.test(normalized)
+}
+
+function cogsCalculationSource(columns: ColumnMap) {
+  if (!columns.cogs) return "unavailable"
+  if (isUnitCostColumn(columns.cogs)) {
+    return columns.quantity ? `${columns.cogs} x ${columns.quantity}` : `${columns.cogs} requires quantity`
+  }
+  return columns.cogs
+}
+
+function retailAverageOrderValue(rows: DataRow[], columns: ColumnMap, revenue: number | null) {
+  if (revenue === null || revenue <= 0) {
+    return {
+      metric: "average_order_value" as const,
+      value: null,
+      status: "not_available" as const,
+      calculationMethod: "requires positive total_revenue",
+      sourceFields: columns.revenue ? [columns.revenue] : [],
+      confidence: "low" as const,
+    }
+  }
+  if (columns.order && isOrderIdentifierColumn(columns.order)) {
+    const distinctOrders = uniqueCount(rows, columns.order)
+    if (distinctOrders > 0) {
+      return {
+        metric: "average_order_value" as const,
+        value: round(revenue / distinctOrders),
+        status: "available" as const,
+        calculationMethod: "total_revenue / distinct_order_id",
+        sourceFields: [columns.revenue, columns.order].filter((field): field is string => Boolean(field)),
+        confidence: "high" as const,
+      }
+    }
+  }
+  return {
+    metric: "average_order_value" as const,
+    value: null,
+    status: "not_available" as const,
+    calculationMethod: "No reliable order identifier or order-level transaction grain detected.",
+    sourceFields: columns.revenue ? [columns.revenue] : [],
+    confidence: "low" as const,
+  }
+}
+
+function isOrderIdentifierColumn(column: string) {
+  const normalized = column.toLowerCase().trim().replace(/[\s-]+/g, "_")
+  return /^(order_id|order_number|transaction_id|sale_id|receipt_id|invoice_id)$/.test(normalized)
+}
+
+function retailCategoryTotalsReconcile(
+  rows: DataRow[],
+  columns: ColumnMap,
+  totals: { totalRevenue: number; totalCogs: number; totalGrossProfit: number },
+) {
+  const totalRevenue = sumColumn(rows, columns.revenue) ?? 0
+  const totalCogs = sumCogs(rows, columns) ?? 0
+  const totalGrossProfit = totalRevenue - totalCogs
+  return withinTolerance(totals.totalRevenue, totalRevenue)
+    && withinTolerance(totals.totalCogs, totalCogs)
+    && withinTolerance(totals.totalGrossProfit, totalGrossProfit)
+}
+
+function withinTolerance(actual: number, expected: number) {
+  return Math.abs(actual - expected) < 0.01
 }
 
 function averageColumn(rows: DataRow[], column?: string) {

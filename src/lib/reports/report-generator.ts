@@ -202,10 +202,28 @@ export interface RetailReportAnalysis {
   reorderRequiredCount: number | null;
   outOfStockSkuCount: number | null;
   averageTransactionValue: number | null;
+  averageOrderValue?: {
+    metric: "average_order_value";
+    value: number | null;
+    status: "available" | "not_available";
+    calculationMethod: string;
+    sourceFields: string[];
+    confidence: "high" | "low";
+  };
   supplierCount: number | null;
   topProductsByRevenue: { name: string; value: number }[];
   revenueByCategory: { name: string; value: number }[];
-  grossMarginByCategory: { name: string; value: number }[];
+  grossMarginByCategory: {
+    name: string;
+    category: string;
+    value: number;
+    revenue: number;
+    cogs: number;
+    grossProfit: number;
+    grossMargin: number;
+    revenueSource: string;
+    cogsSource: string;
+  }[];
   stockByCategory: { name: string; value: number }[];
   inventoryValueByProduct: { name: string; value: number }[];
   supplierExposure: { name: string; value: number }[];
