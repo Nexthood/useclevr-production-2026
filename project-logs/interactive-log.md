@@ -3069,6 +3069,41 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Results Summary Finding Prioritization
+
+1. Interaction title
+Generated PDF Results Summary Top Findings business-priority selection.
+
+2. What was the user goal
+Keep the Universal Results Summary design and report calculations unchanged while making the final page Top Findings prioritize management-useful business intelligence over parser metadata such as loaded row counts or recognized source fields.
+
+3. What changed
+The shared PDF summary selector now collects candidate findings from existing recommendation issues and business impacts, existing chart leaders, and canonical report findings. It classifies each candidate into business risk, negative change, opportunity, positive performance, concentration, operational, missing-data unlock, or data observation, then sorts by that priority. Technical and provenance observations are excluded when any business candidate exists and remain fallback-only when no business finding is available.
+
+4. Problems marked
+blocker: none.
+risk: actual numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so the shared renderer continues to validate those mandatory profiles through synthetic PDF inputs.
+improvement: add exact numbered CSV/XLSX fixtures for the remaining mandatory profiles so file-backed final-page content can be verified across every profile.
+observation: Retail, E-Commerce, and SaaS final-page assertions inspect only the Results Summary Top Findings section so detailed report provenance remains available elsewhere.
+
+5. User learning
+The Top Findings section selected parser metadata because it took the first canonical findings in order; the summary needed a business-priority selection layer over existing report outputs.
+
+6. AI-agent learning
+For executive summaries, do not let provenance statements compete directly with business findings; keep provenance visible in its own section and rank summary findings by decision relevance.
+
+7. Follow-up tasks
+- Add exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Universal Report Results Summary
 
 1. Interaction title

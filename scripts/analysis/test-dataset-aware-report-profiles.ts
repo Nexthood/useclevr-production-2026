@@ -308,6 +308,7 @@ async function main() {
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "local retail PDF must generate")
         const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "RETAIL EXECUTIVE REPORT")
         assertResultsSummaryPage(pdfText, "RETAIL RESULTS SUMMARY", ["MRR", "ARR", "Churn Rate"], "retail", { requireKeyResults: true, requireActions: true })
+        assertRetailResultsSummaryFindings(pdfText)
         assert(pdfText.includes("RETAIL EXECUTIVE REPORT"), "local retail PDF must identify the retail report")
         assert(pdfText.includes("SALES & MARGIN PERFORMANCE"), "local retail PDF must include sales and margin page")
         assert(pdfText.includes("INVENTORY INTELLIGENCE"), "local retail PDF must include inventory page")
@@ -334,6 +335,7 @@ async function main() {
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "ecommerce PDF must generate")
         const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "E-COMMERCE PERFORMANCE REPORT")
         assertResultsSummaryPage(pdfText, "E-COMMERCE RESULTS SUMMARY", ["MRR", "ARR", "Churn Rate"], "ecommerce", { requireKeyResults: true, requireActions: true })
+        assertProfileResultsSummaryFindings(pdfText, "ecommerce", /order|customer|category|channel|shipping|return|cogs|gross margin|revenue trend/i, /sku|reorder|stockout/i)
         const normalizedPdfText = pdfText.toLowerCase()
         assert(pdfText.includes("E-COMMERCE PERFORMANCE REPORT"), "ecommerce PDF must identify the e-commerce report")
         assert(pdfText.includes("Rows Analyzed"), "ecommerce PDF must include row provenance")
@@ -370,6 +372,7 @@ async function main() {
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "saas PDF must generate")
         const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "SAAS EXECUTIVE REPORT")
         assertResultsSummaryPage(pdfText, "SAAS RESULTS SUMMARY", ["AOV", "Average Order Value", "Orders"], "saas", { requireKeyResults: true, requireActions: true })
+        assertProfileResultsSummaryFindings(pdfText, "saas", /mrr|arr|customer|churn|cac|ltv|runway|burn|plan|recurring/i, /sku|reorder|stockout|average order value/i)
         assert(pdfText.includes("SAAS EXECUTIVE REPORT"), "saas PDF must identify the SaaS report")
         assert(pdfText.includes("Rows Analyzed"), "saas PDF must include row provenance")
         assert(pdfText.includes("144"), "saas PDF must show all 144 rows")
@@ -680,6 +683,30 @@ function expectedResultsSummaryTitle(profileId: ReportProfileId) {
   if (profileId === "profitability_pnl") return "PROFITABILITY RESULTS SUMMARY"
   if (profileId === "accountancy_ledger") return "ACCOUNTANCY RESULTS SUMMARY"
   return "BUSINESS RESULTS SUMMARY"
+}
+
+function assertRetailResultsSummaryFindings(text: string) {
+  const finalPage = lastPdfPageText(text)
+  const topFindings = sectionText(finalPage, "TOP FINDINGS", "PRIORITY ACTIONS")
+  assert(topFindings.length > 0, "retail results summary must include a Top Findings section")
+  assert(!/loaded rows|recognized source field|retail KPIs prioritize|selected dataset only/i.test(topFindings), "retail results summary top findings must not prioritize parser or provenance observations")
+  assert(/reorder|stockout|inventory value|supplier|category|product/i.test(topFindings), "retail results summary top findings must prioritize business findings")
+}
+
+function assertProfileResultsSummaryFindings(text: string, label: string, requiredBusinessSignal: RegExp, forbiddenProfileSignal: RegExp) {
+  const finalPage = lastPdfPageText(text)
+  const topFindings = sectionText(finalPage, "TOP FINDINGS", "PRIORITY ACTIONS")
+  assert(topFindings.length > 0, `${label}: results summary must include a Top Findings section`)
+  assert(!/loaded rows|recognized source field|selected dataset only|classified as|kpis prioritize/i.test(topFindings), `${label}: results summary top findings must suppress technical metadata`)
+  assert(requiredBusinessSignal.test(topFindings), `${label}: results summary top findings must prioritize profile business findings`)
+  assert(!forbiddenProfileSignal.test(topFindings), `${label}: results summary top findings must not contain cross-profile findings`)
+}
+
+function sectionText(text: string, startHeading: string, endHeading: string) {
+  const start = text.indexOf(startHeading)
+  if (start < 0) return ""
+  const end = text.indexOf(endHeading, start + startHeading.length)
+  return (end < 0 ? text.slice(start) : text.slice(start, end)).trim()
 }
 
 function assertSectionHasMeaningfulContent(text: string, heading: string, requiredContent: string[], message: string) {
