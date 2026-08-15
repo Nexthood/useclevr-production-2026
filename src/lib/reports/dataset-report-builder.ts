@@ -1144,7 +1144,7 @@ function detectColumns(columns: string[]): ColumnMap {
     taxExpense: findColumn(columns, [/tax_expense/, /^tax$/, /taxes/]),
     profit: findColumn(columns, [/net_profit/, /gross_profit/, /operating_profit/, /^profit$/]),
     quantity: findColumn(columns, [/quantity/, /^qty$/, /units_sold/, /units/]),
-    order: findColumn(columns, [/order_id/, /^order$/, /transaction/, /invoice/]),
+    order: columns.find((column) => isOrderIdentifierColumn(column)),
     customer: findColumn(columns, [/customer_id/, /customer/, /client_id/, /client/]),
     country: findColumn(columns, [/country/, /region/, /location/]),
     channel: findColumn(columns, [/channel/, /source/]),
@@ -1543,7 +1543,7 @@ function retailAverageOrderValue(rows: DataRow[], columns: ColumnMap, revenue: n
 
 function isOrderIdentifierColumn(column: string) {
   const normalized = column.toLowerCase().trim().replace(/[\s-]+/g, "_")
-  return /^(order_id|order_number|transaction_id|sale_id|receipt_id|invoice_id)$/.test(normalized)
+  return /^(order_id|order_number|transaction_id|transaction_number|sale_id|receipt_id)$/.test(normalized)
 }
 
 function retailCategoryTotalsReconcile(

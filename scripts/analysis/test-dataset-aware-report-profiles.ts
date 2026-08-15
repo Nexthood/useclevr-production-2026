@@ -233,15 +233,11 @@ async function assertRetailUnitCostAndAovRegressions(
   deleteReport(report.id)
 
   const orderRows = [
-    { order_id: "ORDER-001", revenue: 30, unit_cost: 10, units_sold: 1, category: "Coffee", product_id: "SKU-1" },
-    { order_id: "ORDER-001", revenue: 40, unit_cost: 12, units_sold: 1, category: "Coffee", product_id: "SKU-2" },
-    { order_id: "ORDER-001", revenue: 50, unit_cost: 14, units_sold: 1, category: "Coffee", product_id: "SKU-3" },
-    { order_id: "ORDER-002", revenue: 60, unit_cost: 16, units_sold: 1, category: "Food", product_id: "SKU-4" },
-    { order_id: "ORDER-002", revenue: 70, unit_cost: 18, units_sold: 1, category: "Food", product_id: "SKU-5" },
-    { order_id: "ORDER-003", revenue: 80, unit_cost: 20, units_sold: 1, category: "Home", product_id: "SKU-6" },
-    { order_id: "ORDER-003", revenue: 90, unit_cost: 22, units_sold: 1, category: "Home", product_id: "SKU-7" },
-    { order_id: "ORDER-003", revenue: 100, unit_cost: 24, units_sold: 1, category: "Home", product_id: "SKU-8" },
-    { order_id: "ORDER-003", revenue: 110, unit_cost: 26, units_sold: 1, category: "Home", product_id: "SKU-9" },
+    { order_id: "ORDER-001", revenue: 50, unit_cost: 10, units_sold: 1, category: "Coffee", product_id: "SKU-1" },
+    { order_id: "ORDER-001", revenue: 30, unit_cost: 12, units_sold: 1, category: "Coffee", product_id: "SKU-2" },
+    { order_id: "ORDER-002", revenue: 100, unit_cost: 16, units_sold: 1, category: "Food", product_id: "SKU-3" },
+    { order_id: "ORDER-003", revenue: 20, unit_cost: 20, units_sold: 1, category: "Home", product_id: "SKU-4" },
+    { order_id: "ORDER-003", revenue: 40, unit_cost: 22, units_sold: 1, category: "Home", product_id: "SKU-5" },
   ]
   const orderReport = await buildDatasetReportInput(buildDataset({
     id: "profile_retail_distinct_order_aov",
@@ -253,8 +249,31 @@ async function assertRetailUnitCostAndAovRegressions(
   }))
   const aov = orderReport.retailAnalysis?.averageOrderValue
   assert(aov?.status === "available", "retail fixture with order ID must calculate AOV")
-  nearlyEqual(aov?.value, 210, "retail AOV must divide revenue by distinct order count")
+  nearlyEqual(aov?.value, 80, "retail AOV must divide revenue by distinct order count")
   assert(aov?.calculationMethod === "total_revenue / distinct_order_id", "retail AOV must expose distinct-order provenance")
+
+  const unsafeIdRows = orderRows.map((row, index) => ({
+    record_id: `ROW-${index + 1}`,
+    transaction_date: "2026-07-01",
+    product_id: row.product_id,
+    sku: row.product_id,
+    revenue: row.revenue,
+    unit_cost: row.unit_cost,
+    units_sold: row.units_sold,
+    category: row.category,
+  }))
+  const unsafeIdReport = await buildDatasetReportInput(buildDataset({
+    id: "profile_retail_unsafe_id_aov",
+    filePath: path.join(process.cwd(), "test-fixtures", "business-models", "01_local_retail.csv"),
+    rowCount: unsafeIdRows.length,
+    columns: Object.keys(unsafeIdRows[0] ?? {}),
+    rows: unsafeIdRows,
+    businessModel: "local_retail",
+  }))
+  const unsafeAov = unsafeIdReport.retailAnalysis?.averageOrderValue
+  assert(unsafeAov?.status === "not_available", "generic row IDs and product IDs must not count as order IDs")
+  assert(unsafeAov?.value === null, "generic row IDs must not produce an AOV value")
+  assert(!unsafeIdReport.kpis.some((kpi) => kpi.title === "AOV"), "generic row IDs must not expose an AOV KPI")
 }
 
 function buildSyntheticRetailRows() {
