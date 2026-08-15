@@ -3777,3 +3777,178 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## E-commerce Report Semantic Enforcement
+
+1. Interaction title
+E-commerce report semantic enforcement.
+
+2. What was the user goal
+Fix the existing E-commerce Performance Report path end to end so `shipping_cost` does not become COGS, product `category` does not become an expense category, operational e-commerce KPIs render in the PDF, and CSV/XLSX parity plus Retail regression pass.
+
+3. What changed
+The e-commerce report builder now keeps COGS limited to authoritative product-cost fields, analyzes shipping and fulfillment cost separately, maps product category as product/category performance, calculates orders and AOV from distinct `order_id`, calculates customer metrics from `customer_id`, calculates returns from `return_status`, builds monthly revenue and order trends from `order_date`, and carries an e-commerce analysis object through report generation. The PDF generator now uses the existing `ecommerce` report profile for e-commerce-specific sales, customer, channel, geography, commercial cost, recommendation, and provenance pages instead of generic cost-intelligence pages. The exact `02_ecommerce.csv` and `02_ecommerce.xlsx` regression fixtures now exist with 220 rows, $87,419.20 revenue, 220 distinct orders, and $397.36 AOV.
+
+4. Problems marked
+blocker: none.
+risk: the workspace still lacks the remaining exact numbered fixture families `03_saas_startup` through `10_accountancy_ledger`, so the unrelated full 20-file fixture matrix remains incomplete.
+improvement: add the remaining exact numbered fixtures so future profile-wide validation can cover every family with the same naming convention.
+observation: the older `ecommerce.csv` and `ecommerce.xlsx` fixtures remain as small legacy fixtures, while the report-profile regression uses the required `02_ecommerce` fixtures.
+
+5. User learning
+E-commerce profitability stays honest: shipping cost is visible as fulfillment cost, while COGS, gross profit, and gross margin stay unavailable without valid product-cost data.
+
+6. AI-agent learning
+For profile-specific reports, route final PDF generation through the resolved report profile and carry profile-specific semantic payloads through the report object before rendering.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## E-commerce Return Rate Semantics
+
+1. Interaction title
+E-commerce return-rate normalization and order-level denominator.
+
+2. What was the user goal
+Fix only the E-commerce Return Rate semantics so `return_status` values classify as returned, not returned, or unknown, duplicate order line items count once, unknown-only datasets display unavailable, and normal low return rates do not trigger return-focused recommendations.
+
+3. What changed
+The e-commerce report builder now normalizes return-status values before calculating returns. Positive values include `returned`, `return`, `yes`, `true`, `1`, `refunded`, and `return approved`; negative values include `not returned`, `no`, `false`, `0`, `completed`, `delivered`, `kept`, and `not_returned`; all other values stay unknown. Return Rate now uses returned orders divided by eligible normalized orders, aggregates duplicate line items by `order_id`, and provides the same single metric to overview KPIs, customer metrics, PDF notes, and recommendations. Return-focused recommendations now require an elevated rate instead of appearing for ordinary low-rate data.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: keep future e-commerce return synonyms explicit so unsupported operational statuses stay unknown instead of silently changing denominator semantics.
+observation: the current `02_ecommerce` CSV/XLSX fixtures contain `returned` and `kept` values, so both formats validate the same 13 returned orders over 220 eligible orders.
+
+5. User learning
+The incorrect all-returned result came from treating broad or negative status text as returned evidence instead of using a closed normalization map with an unknown state.
+
+6. AI-agent learning
+For semantic KPI fixes, centralize the source metric in the report analysis object and route every PDF page or recommendation through that same value to avoid independent calculations.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Global PDF Pagination
+
+1. Interaction title
+Shared generated-report PDF pagination and table continuation.
+
+2. What was the user goal
+Fix PDF pagination globally for every generated report profile so content does not clip, overlap footers, split table rows, or leave section headings alone at the page bottom, with continuation tables repeating headers.
+
+3. What changed
+The shared PDF renderer now tracks the active page shell, safe content top and bottom bounds, and current report section for all generated reports. Section headings check enough following space before drawing, reusable component renderers move to a new page when needed, tables split by full rows across pages, and table headers repeat on continuation pages. KPI grids, text boxes, unavailable panels, charts, recommendation cards, provenance tables, scorecards, and narrative blocks now use the same footer-safe layout rules. PDF-side table row caps were removed so the renderer paginates all rows supplied by report analysis instead of silently dropping rows at render time.
+
+4. Problems marked
+blocker: the workspace still does not contain the exact numbered fixture files `03_saas_startup` through `10_accountancy_ledger`, so those file-backed CSV/XLSX regenerations cannot run from this checkout.
+risk: visual overlap validation remains text- and page-count based in automated tests; pixel-level PDF layout inspection is not available in the current harness.
+improvement: add the missing numbered fixtures so the file-backed mandatory profile matrix runs without synthetic profile reports.
+observation: actual available CSV/XLSX fixtures generate PDFs for local retail, e-commerce, SaaS startup, investor portfolio, and business consulting; synthetic profile PDFs cover the missing numbered profile names for shared renderer behavior.
+
+5. User learning
+The e-commerce Top Products overflow exposed a shared fixed-position rendering issue, so the fix belongs in the reusable PDF component layer rather than in the e-commerce report path.
+
+6. AI-agent learning
+For PDF report work, treat fixed Y increments after charts and tables as pagination risks and update the shared primitive to return the rendered cursor position.
+
+7. Follow-up tasks
+- Add the exact numbered CSV/XLSX fixtures for SaaS startup, marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Startup Report Semantics
+
+1. Interaction title
+SaaS Startup Executive Report semantic enforcement.
+
+2. What was the user goal
+Fix the existing SaaS Startup report profile end to end so `03_saas_startup.csv` and `03_saas_startup.xlsx` generate SaaS-specific Executive Reports from 144-row source data without generic P&L fallbacks, fabricated revenue semantics, or zero confidence.
+
+3. What changed
+The report builder now detects SaaS fields, builds a SaaS analysis payload, bases data confidence on SaaS coverage, and routes KPIs, charts, findings, recommendations, diagnostics, and PDF rendering through the existing SaaS report profile. SaaS PDF output now includes Recurring Revenue & Growth, Customer & Unit Economics, Cash / Startup Health, Business Balanced Scorecard, recommendations, and provenance. The new numbered SaaS CSV/XLSX fixtures use monthly customer snapshot grain with 12 months and 12 distinct customers.
+
+4. Problems marked
+blocker: none.
+risk: the workspace still lacks the remaining exact numbered fixture families `04_marketplace_startup` through `10_accountancy_ledger`, so the regression suite uses synthetic PDFs for those shared renderer profiles.
+improvement: add the remaining exact numbered fixtures so every mandatory report profile validates from file-backed CSV and XLSX inputs.
+observation: SaaS MRR, ARR, expansion, contraction, active users, and support tickets use the latest period snapshot, while customers, new customers, and churn use distinct `customer_id` semantics with normalized boolean statuses.
+
+5. User learning
+The SaaS report selected the right profile title but lacked a SaaS-specific report payload and PDF branch, so it fell through to generic financial pages that expected Revenue, Gross Profit, and Net Profit.
+
+6. AI-agent learning
+For profile-specific reporting, keep classification, semantic analysis, diagnostics, PDF rendering, and fixtures connected through one existing profile path before adding any new report logic.
+
+7. Follow-up tasks
+- Add the exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Semantic Profile Unification
+
+1. Interaction title
+Dashboard active-dataset semantic profile unification.
+
+2. What was the user goal
+Make the main Dashboard consume the same dataset-aware semantic/profile intelligence as generated reports so Standard Upload datasets such as E-Commerce and SaaS show the correct active profile, KPIs, trends, recommendations, and dataset-history labels.
+
+3. What changed
+The Dashboard now loads workspace data for history and daily health, then scopes Command Center metrics to the selected dataset or latest dataset. Active dataset metrics and trends come from the generated-report semantic builder instead of the Dashboard's local alias-based calculations. Upload History displays the detected business profile label while preserving `datasetType` for upload/module routing. The shared business-model resolver treats default `generic` as a fallback rather than a sticky explicit profile so existing datasets can classify from their schema when stronger evidence exists.
+
+4. Problems marked
+blocker: none.
+risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so dashboard regression validates the available numbered Retail, E-Commerce, and SaaS fixtures and does not invent missing marketplace/investor/profile calculations.
+improvement: add the remaining exact numbered fixtures so dashboard profile regression can exercise every mandatory profile from file-backed uploads.
+observation: the current `02_ecommerce` fixture contains 96 distinct customers, 550 units, and 12 products, so dashboard parity follows the report builder values rather than stale approximate prompt values.
+
+5. User learning
+The Dashboard divergence came from flattening all datasets for KPIs and choosing a dominant workspace business model, while reports analyzed one selected dataset through a profile-specific semantic path.
+
+6. AI-agent learning
+For cross-surface semantic consistency, build Dashboard payloads from the same report-builder analysis object rather than adding page-level aliases or duplicate KPI formulas.
+
+7. Follow-up tasks
+- Add exact numbered dashboard/report fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

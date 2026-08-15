@@ -233,6 +233,88 @@ export interface RetailReportAnalysis {
   lowStockItems: { product: string; category?: string; supplier?: string; stock: number; reorderPoint: number }[];
 }
 
+export interface EcommerceReportAnalysis {
+  orders: number | null;
+  orderField: string | null;
+  customers: number | null;
+  customerField: string | null;
+  ordersPerCustomer: number | null;
+  revenuePerCustomer: number | null;
+  averageOrderValue: number | null;
+  unitsSold: number | null;
+  products: number | null;
+  productField: string | null;
+  returnRate: number | null;
+  returnedOrders: number | null;
+  eligibleReturnOrders: number | null;
+  returnStatusField: string | null;
+  returnStatus: "available" | "not_available";
+  shippingCost: number | null;
+  shippingCostRate: number | null;
+  averageShippingCostPerOrder: number | null;
+  discounts: number | null;
+  discountRate: number | null;
+  averageDiscountPerOrder: number | null;
+  revenueTrend: { name: string; value: number }[];
+  ordersTrend: { name: string; value: number }[];
+  categoryPerformance: { name: string; value: number }[];
+  topProducts: { name: string; value: number }[];
+  channelPerformance: { name: string; value: number; orders: number; aov: number | null; share: number | null }[];
+  geography: { name: string; value: number; orders: number; share: number | null }[];
+  paymentMethods: { name: string; value: number; orders: number }[];
+}
+
+export interface SaasReportAnalysis {
+  mrr: number | null;
+  mrrField: string | null;
+  arr: number | null;
+  arrField: string | null;
+  customers: number | null;
+  customerField: string | null;
+  newCustomers: number | null;
+  newCustomerField: string | null;
+  churnedCustomers: number | null;
+  eligibleChurnCustomers: number | null;
+  churnRate: number | null;
+  churnField: string | null;
+  expansionMrr: number | null;
+  expansionMrrField: string | null;
+  contractionMrr: number | null;
+  contractionMrrField: string | null;
+  netExpansionMrr: number | null;
+  cac: number | null;
+  cacField: string | null;
+  ltv: number | null;
+  ltvField: string | null;
+  ltvToCac: number | null;
+  activeUsers: number | null;
+  activeUsersField: string | null;
+  supportTickets: number | null;
+  supportTicketsField: string | null;
+  burn: number | null;
+  burnField: string | null;
+  cashBalance: number | null;
+  cashBalanceField: string | null;
+  runwayMonths: number | null;
+  runwayField: string | null;
+  periodField: string | null;
+  latestPeriod: string | null;
+  dataConfidence: number;
+  mrrTrend: { name: string; value: number }[];
+  arrTrend: { name: string; value: number }[];
+  customerTrend: { name: string; value: number }[];
+  newCustomerTrend: { name: string; value: number }[];
+  churnTrend: { name: string; value: number }[];
+  expansionTrend: { name: string; value: number }[];
+  contractionTrend: { name: string; value: number }[];
+  activeUserTrend: { name: string; value: number }[];
+  burnTrend: { name: string; value: number }[];
+  cashTrend: { name: string; value: number }[];
+  runwayTrend: { name: string; value: number }[];
+  planPerformance: { name: string; customers: number | null; mrr: number | null; arr: number | null; share: number | null }[];
+  geography: { name: string; customers: number | null; mrr: number | null; arr: number | null; share: number | null }[];
+}
+
 export interface Report {
   id: string;
   datasetId: string;
@@ -270,6 +352,8 @@ export interface Report {
   predictions: string[];
   recommendations?: ReportRecommendation[];
   retailAnalysis?: RetailReportAnalysis;
+  ecommerceAnalysis?: EcommerceReportAnalysis;
+  saasAnalysis?: SaasReportAnalysis;
   semanticContext?: ReportSemanticContext;
   diagnostics?: ReportDiagnostics;
   alerts: { type: string; message: string; severity: string }[];
@@ -312,6 +396,8 @@ export async function generateReport(
     diagnostics?: ReportDiagnostics;
     reportProfile?: ReportProfile;
     retailAnalysis?: RetailReportAnalysis;
+    ecommerceAnalysis?: EcommerceReportAnalysis;
+    saasAnalysis?: SaasReportAnalysis;
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;
@@ -381,6 +467,8 @@ export async function generateReport(
     predictions: (options.includePredictions !== false) ? (analysisData.predictions || []) : [],
     recommendations: analysisData.recommendations,
     retailAnalysis: analysisData.retailAnalysis,
+    ecommerceAnalysis: analysisData.ecommerceAnalysis,
+    saasAnalysis: analysisData.saasAnalysis,
     semanticContext: analysisData.semanticContext,
     diagnostics: analysisData.diagnostics,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],

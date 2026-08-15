@@ -5,7 +5,7 @@ import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-cat
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
-import type { ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis } from "@/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis } from "@/lib/reports/report-generator"
 import { getReportProfile } from "@/lib/reports/report-profiles"
 
 type DatasetRecord = typeof datasets.$inferSelect
@@ -14,6 +14,8 @@ type ReportModel = BusinessModel | DatasetCategory | "business_consulting"
 type ReportKpi = { title: string; value: number; format: "currency" | "number" | "percent" }
 type MetricSource = "source_value" | "derived_value" | "unavailable"
 type FinancialMetric = { value: number | null; source: MetricSource; note: string }
+type NormalizedReturnStatus = "returned" | "not_returned" | "unknown"
+type NormalizedBooleanStatus = "positive" | "negative" | "unknown"
 
 type ColumnMap = {
   revenue?: string
@@ -30,10 +32,15 @@ type ColumnMap = {
   order?: string
   customer?: string
   country?: string
+  region?: string
   channel?: string
   product?: string
   category?: string
   date?: string
+  shippingCost?: string
+  discount?: string
+  returnStatus?: string
+  paymentMethod?: string
   expenseCategory?: string
   expenseAmount?: string
   vendor?: string
@@ -41,11 +48,18 @@ type ColumnMap = {
   reorderPoint?: string
   mrr?: string
   arr?: string
+  newCustomer?: string
   churned?: string
+  expansionMrr?: string
+  contractionMrr?: string
   cac?: string
   ltv?: string
+  activeUsers?: string
+  supportTickets?: string
   burn?: string
+  cashBalance?: string
   runway?: string
+  plan?: string
   investedAmount?: string
   valuation?: string
   ownership?: string
@@ -83,7 +97,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
-  if ((reportModel === "local_retail" || reportModel === "ecommerce") && !columnMap.cogs && columnMap.cost) {
+  if (reportModel === "local_retail" && !columnMap.cogs && columnMap.cost) {
     columnMap.cogs = columnMap.cost
   }
   const reportProfile = getReportProfile(reportModel)
@@ -98,6 +112,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   const semanticContext = buildSemanticContext({
     datasetId: dataset.id,
     datasetType,
+    reportModel,
     columnMap,
   })
   traceReportRuntime("buildDeterministicAnalysis", {
@@ -115,8 +130,12 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   })
   const financials = buildGenericFinancials(rows, columnMap)
   const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
-  const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis)
-  const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis)
+  const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
+  const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap) : undefined
+  if (ecommerceAnalysis) financials.dataConfidence = ecommerceDataConfidence(columnMap)
+  if (saasAnalysis) financials.dataConfidence = saasAnalysis.dataConfidence
+  const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis, ecommerceAnalysis, saasAnalysis)
+  const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis, ecommerceAnalysis, saasAnalysis)
   const canonicalRowCount = dataset.rowCount || rows.length
   if (rows.length !== canonicalRowCount) {
     throw new ReportIntegrityError("Report KPI row count does not match the authoritative dataset row count.", {
@@ -140,17 +159,23 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     detectedVendorField: semanticContext.vendorField,
     templateName: "executive-bi-report",
   })
-  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis, retailAnalysis)
+  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis, retailAnalysis, ecommerceAnalysis, saasAnalysis)
   const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
   const recommendations = reportModel === "local_retail" && retailAnalysis
     ? buildRetailRecommendations(retailAnalysis, financials, columnMap)
-    : buildDatasetRecommendations(columnMap, financials, bbsc)
+    : reportModel === "ecommerce" && ecommerceAnalysis
+      ? buildEcommerceRecommendations(ecommerceAnalysis, financials, columnMap)
+      : saasAnalysis
+        ? buildSaasRecommendations(saasAnalysis, financials, columnMap)
+        : buildDatasetRecommendations(columnMap, financials, bbsc)
   const diagnostics = buildReportDiagnostics({
     dataset,
     rowCount: canonicalRowCount,
     rows,
+    reportModel,
     semanticContext,
     financials,
+    saasAnalysis,
   })
 
   debugLog("[REPORT_BUILDER] validated analysis object", diagnostics)
@@ -188,7 +213,11 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     reportProfile,
     summary: reportModel === "local_retail" && retailAnalysis
       ? buildRetailSummary(dataset.name, canonicalRowCount, financials, retailAnalysis)
-      : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
+      : reportModel === "ecommerce" && ecommerceAnalysis
+        ? buildEcommerceSummary(dataset.name, canonicalRowCount, financials, ecommerceAnalysis)
+        : saasAnalysis
+          ? buildSaasSummary(dataset.name, canonicalRowCount, saasAnalysis)
+          : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
     findings,
     kpis,
     charts,
@@ -197,6 +226,8 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     predictions: [],
     recommendations,
     retailAnalysis,
+    ecommerceAnalysis,
+    saasAnalysis,
     alerts: buildAlerts(reportModel, rows, columnMap),
     bbsc,
     semanticContext,
@@ -664,6 +695,463 @@ function buildRetailRecommendations(
   return recommendations.slice(0, 5)
 }
 
+function buildEcommerceAnalysis(rows: DataRow[], columns: ColumnMap, financials: ReportFinancials): EcommerceReportAnalysis {
+  const revenue = financials.revenue
+  const orders = columns.order ? uniqueCount(rows, columns.order) : null
+  const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
+  const shippingCost = sumColumn(rows, columns.shippingCost)
+  const discounts = sumColumn(rows, columns.discount)
+  const returnMetrics = calculateReturnMetrics(rows, columns)
+  return {
+    orders,
+    orderField: columns.order || null,
+    customers,
+    customerField: columns.customer || null,
+    ordersPerCustomer: orders !== null && customers ? round(orders / customers) : null,
+    revenuePerCustomer: revenue !== null && customers ? round(revenue / customers) : null,
+    averageOrderValue: revenue !== null && orders ? round(revenue / orders) : null,
+    unitsSold: sumColumn(rows, columns.quantity),
+    products: columns.product ? uniqueCount(rows, columns.product) : null,
+    productField: columns.product || null,
+    returnRate: returnMetrics.returnRate,
+    returnedOrders: returnMetrics.returnedOrders,
+    eligibleReturnOrders: returnMetrics.eligibleOrders,
+    returnStatusField: columns.returnStatus || null,
+    returnStatus: returnMetrics.status,
+    shippingCost,
+    shippingCostRate: revenue !== null && revenue !== 0 && shippingCost !== null ? round((shippingCost / revenue) * 100) : null,
+    averageShippingCostPerOrder: orders && shippingCost !== null ? round(shippingCost / orders) : null,
+    discounts,
+    discountRate: revenue !== null && revenue !== 0 && discounts !== null ? round((discounts / revenue) * 100) : null,
+    averageDiscountPerOrder: orders && discounts !== null ? round(discounts / orders) : null,
+    revenueTrend: ecommerceRevenueTrend(rows, columns),
+    ordersTrend: ecommerceOrdersTrend(rows, columns),
+    categoryPerformance: groupedRetailChart(rows, columns.category, columns.revenue, "Uncategorized"),
+    topProducts: groupedRetailChart(rows, columns.product, columns.revenue, "Unknown product"),
+    channelPerformance: ecommerceChannelPerformance(rows, columns, revenue),
+    geography: ecommerceGeography(rows, columns, revenue),
+    paymentMethods: ecommercePaymentMethods(rows, columns),
+  }
+}
+
+function ecommerceDataConfidence(columns: ColumnMap) {
+  const required = [
+    columns.revenue,
+    columns.order,
+    columns.date,
+    columns.customer,
+    columns.product,
+    columns.quantity,
+    columns.category,
+    columns.channel,
+    columns.returnStatus,
+  ]
+  const optional = [columns.country || columns.region, columns.shippingCost, columns.discount, columns.paymentMethod]
+  const availableRequired = required.filter(Boolean).length
+  const availableOptional = optional.filter(Boolean).length
+  return Math.round(((availableRequired / required.length) * 85) + ((availableOptional / optional.length) * 15))
+}
+
+function buildEcommerceRecommendations(
+  ecommerce: EcommerceReportAnalysis,
+  financials: ReportFinancials,
+  columns: ColumnMap,
+): ReportRecommendation[] {
+  const recommendations: ReportRecommendation[] = []
+  const topChannel = ecommerce.channelPerformance[0]
+  if (topChannel && topChannel.share !== null) {
+    recommendations.push({
+      issue: `${topChannel.name} contributes ${topChannel.share.toFixed(1)}% of e-commerce revenue.`,
+      businessImpact: topChannel.share >= 50 ? "Channel concentration can expose growth to platform or campaign volatility." : "Channel mix is measurable and can guide acquisition focus.",
+      recommendedAction: `Review conversion, merchandising, and traffic quality for ${topChannel.name}, then compare with lower-share channels.`,
+      estimatedImpact: financials.revenue !== null ? `One revenue-share point equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in this dataset.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  const topCategory = ecommerce.categoryPerformance[0]
+  if (topCategory && financials.revenue !== null) {
+    recommendations.push({
+      issue: `${topCategory.name} is the top product category by revenue.`,
+      businessImpact: "Category contribution identifies where assortment, pricing, and promotion decisions matter most.",
+      recommendedAction: `Review stock, pricing, returns, and campaign allocation for ${topCategory.name}.`,
+      estimatedImpact: `${topCategory.name} contributes ${((topCategory.value / financials.revenue) * 100).toFixed(1)}% of revenue.`,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (ecommerce.returnRate !== null && ecommerce.returnRate >= 10) {
+    recommendations.push({
+      issue: `Return rate is ${ecommerce.returnRate.toFixed(1)}%.`,
+      businessImpact: "Returned orders can reduce realized revenue quality and customer satisfaction.",
+      recommendedAction: "Review returned order reasons by product, category, and channel before changing refund assumptions.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (ecommerce.shippingCostRate !== null) {
+    recommendations.push({
+      issue: `Shipping and fulfillment cost is ${ecommerce.shippingCostRate.toFixed(1)}% of revenue.`,
+      businessImpact: "Fulfillment cost affects commercial efficiency but is not product COGS.",
+      recommendedAction: "Track shipping cost separately from product margin and compare it by channel and geography.",
+      estimatedImpact: ecommerce.shippingCost !== null ? `${formatCurrencyForSummary(ecommerce.shippingCost)} in shipping cost is visible in this dataset.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (financials.cogs === null) {
+    recommendations.push({
+      issue: "Product COGS is not available.",
+      businessImpact: "Gross profit and gross margin remain unavailable until product-cost data is added.",
+      recommendedAction: "Add cogs, cost_of_goods_sold, product_cost, or merchandise_cost when product profitability is needed.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["COGS or product cost"],
+    })
+  }
+  if (!columns.order || !columns.customer) {
+    recommendations.push({
+      issue: "Order or customer identifiers are incomplete.",
+      businessImpact: "AOV, customer economics, and order concentration depend on reliable identifiers.",
+      recommendedAction: "Include order_id and customer_id in future e-commerce uploads.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["Order ID", "Customer ID"],
+    })
+  }
+  return recommendations.slice(0, 5)
+}
+
+function buildEcommerceSummary(datasetName: string, rowCount: number, financials: ReportFinancials, ecommerce: EcommerceReportAnalysis) {
+  const parts: string[] = []
+  parts.push(`${datasetName} is analyzed as an e-commerce dataset with ${rowCount.toLocaleString()} loaded rows.`)
+  if (financials.revenue !== null) parts.push(`Revenue is ${formatCurrencyForSummary(financials.revenue)}.`)
+  if (ecommerce.orders !== null) parts.push(`${ecommerce.orders.toLocaleString()} distinct orders are recognized${ecommerce.orderField ? ` from ${ecommerce.orderField}` : ""}.`)
+  if (ecommerce.averageOrderValue !== null) parts.push(`Average Order Value is ${formatCurrencyForSummary(ecommerce.averageOrderValue)}.`)
+  if (ecommerce.customers !== null) parts.push(`${ecommerce.customers.toLocaleString()} distinct customers are recognized.`)
+  if (ecommerce.returnRate !== null) parts.push(`Return rate is ${ecommerce.returnRate.toFixed(1)}% from return-status values.`)
+  if (ecommerce.channelPerformance[0]) parts.push(`${ecommerce.channelPerformance[0].name} is the top revenue channel.`)
+  if (financials.grossProfit === null) parts.push("Gross profit and gross margin are not available because valid product COGS is missing.")
+  return parts.join(" ")
+}
+
+function buildSaasSummary(datasetName: string, rowCount: number, saas: SaasReportAnalysis) {
+  const parts: string[] = []
+  parts.push(`${datasetName} is analyzed as a SaaS startup dataset with ${rowCount.toLocaleString()} loaded rows.`)
+  if (saas.latestPeriod) parts.push(`Latest SaaS snapshot period is ${saas.latestPeriod}.`)
+  if (saas.mrr !== null) parts.push(`MRR is ${formatCurrencyForSummary(saas.mrr)} from ${saas.mrrField}.`)
+  if (saas.arr !== null) parts.push(`ARR is ${formatCurrencyForSummary(saas.arr)} from ${saas.arrField}.`)
+  if (saas.customers !== null) parts.push(`${saas.customers.toLocaleString()} distinct customers are recognized from ${saas.customerField}.`)
+  if (saas.churnRate !== null) parts.push(`Churn rate is ${saas.churnRate.toFixed(1)}% from normalized ${saas.churnField} values.`)
+  if (saas.netExpansionMrr !== null) parts.push(`Net Expansion MRR is ${formatCurrencyForSummary(saas.netExpansionMrr)}.`)
+  if (saas.runwayMonths !== null) parts.push(`Runway is ${saas.runwayMonths.toFixed(1)} months from explicit runway data.`)
+  return parts.join(" ")
+}
+
+function buildSaasRecommendations(
+  saas: SaasReportAnalysis,
+  _financials: ReportFinancials,
+  columns: ColumnMap,
+): ReportRecommendation[] {
+  const recommendations: ReportRecommendation[] = []
+  const mrrTrend = trendMovement(saas.mrrTrend)
+  if (mrrTrend) {
+    recommendations.push({
+      issue: `MRR changed by ${mrrTrend.percent.toFixed(1)}% across the available period trend.`,
+      businessImpact: mrrTrend.percent >= 0 ? "Recurring revenue growth is measurable from source MRR values." : "Recurring revenue contraction is visible in source MRR values.",
+      recommendedAction: "Review the latest MRR movement by plan and country before setting growth actions.",
+      estimatedImpact: `${formatCurrencyForSummary(mrrTrend.delta)} net MRR movement from first to latest period.`,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (saas.churnRate !== null) {
+    recommendations.push({
+      issue: `${saas.churnedCustomers?.toLocaleString() || "0"} churned customers produce a ${saas.churnRate.toFixed(1)}% churn rate.`,
+      businessImpact: "Customer churn affects recurring revenue durability and expansion capacity.",
+      recommendedAction: "Review churned customers by plan, country, active usage, and support tickets.",
+      estimatedImpact: saas.eligibleChurnCustomers !== null ? `Denominator: ${saas.eligibleChurnCustomers.toLocaleString()} customers with normalized churn status.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (saas.ltvToCac !== null) {
+    recommendations.push({
+      issue: `LTV/CAC is ${saas.ltvToCac.toFixed(2)}x.`,
+      businessImpact: "Unit economics are measurable because both LTV and CAC are available with compatible latest-period averaging.",
+      recommendedAction: "Compare LTV/CAC by acquisition segment before scaling spend.",
+      estimatedImpact: "Derived from LTV divided by CAC.",
+      confidence: "Medium",
+      requiredData: [],
+    })
+  }
+  if (saas.netExpansionMrr !== null) {
+    recommendations.push({
+      issue: `Net Expansion MRR is ${formatCurrencyForSummary(saas.netExpansionMrr)}.`,
+      businessImpact: "Expansion minus contraction shows whether existing accounts are growing or shrinking recurring revenue.",
+      recommendedAction: "Compare expansion and contraction by plan to identify upgrade and downgrade drivers.",
+      estimatedImpact: "Derived from Expansion MRR minus Contraction MRR.",
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (saas.runwayMonths !== null) {
+    recommendations.push({
+      issue: `Runway is ${saas.runwayMonths.toFixed(1)} months.`,
+      businessImpact: "Explicit runway data supports startup cash-planning decisions without deriving cash divided by burn.",
+      recommendedAction: "Track runway trend alongside burn and cash balance in the next monthly review.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (!columns.mrr && !columns.arr) {
+    recommendations.push({
+      issue: "Recurring revenue fields are missing.",
+      businessImpact: "SaaS growth quality cannot be measured without MRR or ARR.",
+      recommendedAction: "Add MRR or ARR fields to future SaaS uploads.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["MRR or ARR"],
+    })
+  }
+  return recommendations.slice(0, 5)
+}
+
+function trendMovement(trend: { name: string; value: number }[]) {
+  if (trend.length < 2) return null
+  const first = trend[0].value
+  const last = trend[trend.length - 1].value
+  if (!first) return null
+  return { delta: round(last - first), percent: round(((last - first) / first) * 100) }
+}
+
+function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnalysis {
+  const latestRows = latestPeriodRows(rows, columns.date)
+  const latestPeriod = latestRows.period
+  const snapshotRows = latestRows.rows
+  const mrr = sumColumn(snapshotRows, columns.mrr)
+  const arr = sumColumn(snapshotRows, columns.arr)
+  const expansionMrr = sumColumn(snapshotRows, columns.expansionMrr)
+  const contractionMrr = sumColumn(snapshotRows, columns.contractionMrr)
+  const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
+  const newCustomers = countDistinctPositiveStatus(rows, columns.customer, columns.newCustomer)
+  const churn = churnMetrics(rows, columns)
+  const cac = averageColumn(snapshotRows, columns.cac)
+  const ltv = averageColumn(snapshotRows, columns.ltv)
+  const activeUsers = sumColumn(snapshotRows, columns.activeUsers)
+  const supportTickets = sumColumn(snapshotRows, columns.supportTickets)
+  const burn = averageColumn(snapshotRows, columns.burn)
+  const cashBalance = averageColumn(snapshotRows, columns.cashBalance)
+  const runwayMonths = averageColumn(snapshotRows, columns.runway)
+  return {
+    mrr: mrr === null ? null : round(mrr),
+    mrrField: columns.mrr || null,
+    arr: arr === null ? null : round(arr),
+    arrField: columns.arr || null,
+    customers,
+    customerField: columns.customer || null,
+    newCustomers,
+    newCustomerField: columns.newCustomer || null,
+    churnedCustomers: churn.churnedCustomers,
+    eligibleChurnCustomers: churn.eligibleCustomers,
+    churnRate: churn.churnRate,
+    churnField: columns.churned || null,
+    expansionMrr: expansionMrr === null ? null : round(expansionMrr),
+    expansionMrrField: columns.expansionMrr || null,
+    contractionMrr: contractionMrr === null ? null : round(contractionMrr),
+    contractionMrrField: columns.contractionMrr || null,
+    netExpansionMrr: expansionMrr !== null && contractionMrr !== null ? round(expansionMrr - contractionMrr) : null,
+    cac: cac === null ? null : round(cac),
+    cacField: columns.cac || null,
+    ltv: ltv === null ? null : round(ltv),
+    ltvField: columns.ltv || null,
+    ltvToCac: ltv !== null && cac !== null && cac > 0 ? round(ltv / cac) : null,
+    activeUsers: activeUsers === null ? null : round(activeUsers),
+    activeUsersField: columns.activeUsers || null,
+    supportTickets: supportTickets === null ? null : round(supportTickets),
+    supportTicketsField: columns.supportTickets || null,
+    burn: burn === null ? null : round(burn),
+    burnField: columns.burn || null,
+    cashBalance: cashBalance === null ? null : round(cashBalance),
+    cashBalanceField: columns.cashBalance || null,
+    runwayMonths: runwayMonths === null ? null : round(runwayMonths),
+    runwayField: columns.runway || null,
+    periodField: columns.date || null,
+    latestPeriod,
+    dataConfidence: saasDataConfidence(columns),
+    mrrTrend: trendByPeriod(rows, columns.date, columns.mrr, "sum"),
+    arrTrend: trendByPeriod(rows, columns.date, columns.arr, "sum"),
+    customerTrend: customerTrendByPeriod(rows, columns),
+    newCustomerTrend: statusTrendByPeriod(rows, columns.date, columns.customer, columns.newCustomer),
+    churnTrend: statusTrendByPeriod(rows, columns.date, columns.customer, columns.churned),
+    expansionTrend: trendByPeriod(rows, columns.date, columns.expansionMrr, "sum"),
+    contractionTrend: trendByPeriod(rows, columns.date, columns.contractionMrr, "sum"),
+    activeUserTrend: trendByPeriod(rows, columns.date, columns.activeUsers, "sum"),
+    burnTrend: trendByPeriod(rows, columns.date, columns.burn, "average"),
+    cashTrend: trendByPeriod(rows, columns.date, columns.cashBalance, "average"),
+    runwayTrend: trendByPeriod(rows, columns.date, columns.runway, "average"),
+    planPerformance: saasSegmentPerformance(snapshotRows, columns.plan, columns, mrr),
+    geography: saasSegmentPerformance(snapshotRows, columns.country || columns.region, columns, mrr),
+  }
+}
+
+function saasDataConfidence(columns: ColumnMap) {
+  const fields = [
+    columns.date,
+    columns.customer,
+    columns.mrr,
+    columns.arr,
+    columns.newCustomer,
+    columns.churned,
+    columns.expansionMrr,
+    columns.contractionMrr,
+    columns.cac,
+    columns.ltv,
+    columns.activeUsers,
+    columns.supportTickets,
+    columns.burn,
+    columns.cashBalance,
+    columns.runway,
+    columns.plan,
+    columns.country || columns.region,
+  ]
+  return Math.round((fields.filter(Boolean).length / fields.length) * 100)
+}
+
+function latestPeriodRows(rows: DataRow[], periodColumn?: string) {
+  if (!periodColumn) return { period: null, rows }
+  const keyed = rows
+    .map((row) => ({ row, key: periodKey(row[periodColumn]) }))
+    .filter((item): item is { row: DataRow; key: string } => Boolean(item.key))
+  if (keyed.length === 0) return { period: null, rows }
+  const latest = keyed.map((item) => item.key).sort().at(-1) || null
+  return { period: latest, rows: latest ? keyed.filter((item) => item.key === latest).map((item) => item.row) : rows }
+}
+
+function countDistinctPositiveStatus(rows: DataRow[], idColumn?: string, statusColumn?: string) {
+  if (!idColumn || !statusColumn) return null
+  const values = new Set<string>()
+  rows.forEach((row, index) => {
+    if (normalizeBooleanStatus(row[statusColumn]) !== "positive") return
+    const key = String(row[idColumn] || "").trim() || `row_${index}`
+    values.add(key)
+  })
+  return values.size
+}
+
+function churnMetrics(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.churned) return { churnedCustomers: null, eligibleCustomers: null, churnRate: null }
+  const statusByCustomer = new Map<string, NormalizedBooleanStatus[]>()
+  rows.forEach((row, index) => {
+    const key = columns.customer ? String(row[columns.customer] || "").trim() : `row_${index}`
+    if (!key) return
+    const statuses = statusByCustomer.get(key) || []
+    statuses.push(normalizeBooleanStatus(row[columns.churned!]))
+    statusByCustomer.set(key, statuses)
+  })
+  let eligibleCustomers = 0
+  let churnedCustomers = 0
+  for (const statuses of statusByCustomer.values()) {
+    if (statuses.includes("positive")) {
+      churnedCustomers += 1
+      eligibleCustomers += 1
+    } else if (statuses.includes("negative")) {
+      eligibleCustomers += 1
+    }
+  }
+  if (eligibleCustomers === 0) return { churnedCustomers: null, eligibleCustomers: null, churnRate: null }
+  return {
+    churnedCustomers,
+    eligibleCustomers,
+    churnRate: round((churnedCustomers / eligibleCustomers) * 100),
+  }
+}
+
+function normalizeBooleanStatus(value: unknown): NormalizedBooleanStatus {
+  if (value === null || value === undefined) return "unknown"
+  const normalized = String(value).trim().toLowerCase().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "")
+  if (!normalized) return "unknown"
+  if (["true", "yes", "1", "y", "churned", "new", "new_customer"].includes(normalized)) return "positive"
+  if (["false", "no", "0", "n", "active", "retained", "existing", "not_churned", "not_new"].includes(normalized)) return "negative"
+  return "unknown"
+}
+
+function trendByPeriod(rows: DataRow[], periodColumn: string | undefined, valueColumn: string | undefined, mode: "sum" | "average") {
+  if (!periodColumn || !valueColumn) return []
+  const grouped = new Map<string, { total: number; count: number }>()
+  for (const row of rows) {
+    const key = periodKey(row[periodColumn])
+    const value = getNumber(row[valueColumn])
+    if (!key || value === null) continue
+    const current = grouped.get(key) || { total: 0, count: 0 }
+    current.total += value
+    current.count += 1
+    grouped.set(key, current)
+  }
+  return Array.from(grouped.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => ({ name, value: round(mode === "average" ? value.total / value.count : value.total) }))
+}
+
+function customerTrendByPeriod(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.date || !columns.customer) return []
+  const grouped = new Map<string, Set<string>>()
+  for (const row of rows) {
+    const key = periodKey(row[columns.date])
+    const customer = String(row[columns.customer] || "").trim()
+    if (!key || !customer) continue
+    const values = grouped.get(key) || new Set<string>()
+    values.add(customer)
+    grouped.set(key, values)
+  }
+  return Array.from(grouped.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, values]) => ({ name, value: values.size }))
+}
+
+function statusTrendByPeriod(rows: DataRow[], periodColumn: string | undefined, idColumn: string | undefined, statusColumn: string | undefined) {
+  if (!periodColumn || !idColumn || !statusColumn) return []
+  const grouped = new Map<string, Set<string>>()
+  rows.forEach((row, index) => {
+    const key = periodKey(row[periodColumn])
+    if (!key || normalizeBooleanStatus(row[statusColumn]) !== "positive") return
+    const id = String(row[idColumn] || "").trim() || `row_${index}`
+    const values = grouped.get(key) || new Set<string>()
+    values.add(id)
+    grouped.set(key, values)
+  })
+  return Array.from(grouped.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, values]) => ({ name, value: values.size }))
+}
+
+function saasSegmentPerformance(rows: DataRow[], groupColumn: string | undefined, columns: ColumnMap, totalMrr: number | null) {
+  if (!groupColumn) return []
+  const grouped = new Map<string, { customers: Set<string>; mrr: number; arr: number }>()
+  rows.forEach((row, index) => {
+    const name = String(row[groupColumn] || "").trim()
+    if (!name) return
+    const current = grouped.get(name) || { customers: new Set<string>(), mrr: 0, arr: 0 }
+    const customer = columns.customer ? String(row[columns.customer] || "").trim() : `row_${index}`
+    if (customer) current.customers.add(customer)
+    current.mrr += columns.mrr ? getNumber(row[columns.mrr]) || 0 : 0
+    current.arr += columns.arr ? getNumber(row[columns.arr]) || 0 : 0
+    grouped.set(name, current)
+  })
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({
+      name,
+      customers: value.customers.size || null,
+      mrr: columns.mrr ? round(value.mrr) : null,
+      arr: columns.arr ? round(value.arr) : null,
+      share: totalMrr && totalMrr > 0 ? round((value.mrr / totalMrr) * 100) : null,
+    }))
+    .sort((a, b) => (b.mrr || b.customers || 0) - (a.mrr || a.customers || 0))
+    .slice(0, 8)
+}
+
 function retailInventoryValue(rows: DataRow[], columns: ColumnMap) {
   if (!columns.stock || !columns.cost) return null
   let total = 0
@@ -726,6 +1214,165 @@ function groupedRetailChart(rows: DataRow[], groupColumn: string | undefined, va
     grouped.set(name, round((grouped.get(name) || 0) + value))
   }
   return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
+}
+
+function calculateReturnMetrics(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.returnStatus) {
+    return {
+      returnedOrders: null,
+      eligibleOrders: null,
+      returnRate: null,
+      status: "not_available" as const,
+    }
+  }
+  const statusesByOrder = new Map<string, NormalizedReturnStatus[]>()
+  rows.forEach((row, index) => {
+    const orderKey = columns.order ? String(row[columns.order] || "").trim() : `row_${index}`
+    if (!orderKey) return
+    const status = normalizeReturnStatus(row[columns.returnStatus!])
+    const statuses = statusesByOrder.get(orderKey) || []
+    statuses.push(status)
+    statusesByOrder.set(orderKey, statuses)
+  })
+  let returnedOrders = 0
+  let eligibleOrders = 0
+  for (const statuses of statusesByOrder.values()) {
+    const status = aggregateOrderReturnStatus(statuses)
+    if (status === "unknown") continue
+    eligibleOrders += 1
+    if (status === "returned") returnedOrders += 1
+  }
+  if (eligibleOrders === 0) {
+    return {
+      returnedOrders: null,
+      eligibleOrders: null,
+      returnRate: null,
+      status: "not_available" as const,
+    }
+  }
+  return {
+    returnedOrders,
+    eligibleOrders,
+    returnRate: round((returnedOrders / eligibleOrders) * 100),
+    status: "available" as const,
+  }
+}
+
+function normalizeReturnStatus(value: unknown): NormalizedReturnStatus {
+  if (value === null || value === undefined) return "unknown"
+  const raw = String(value).trim().toLowerCase()
+  if (!raw) return "unknown"
+  const normalized = raw.replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "")
+  if (["not_returned", "no", "false", "0", "completed", "delivered", "kept"].includes(normalized)) return "not_returned"
+  if (["returned", "return", "yes", "true", "1", "refunded", "return_approved"].includes(normalized)) return "returned"
+  return "unknown"
+}
+
+function aggregateOrderReturnStatus(statuses: NormalizedReturnStatus[]): NormalizedReturnStatus {
+  if (statuses.includes("returned")) return "returned"
+  if (statuses.includes("not_returned")) return "not_returned"
+  return "unknown"
+}
+
+function ecommerceRevenueTrend(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.date || !columns.revenue) return []
+  const grouped = new Map<string, number>()
+  for (const row of rows) {
+    const period = monthKey(row[columns.date])
+    const revenue = getNumber(row[columns.revenue])
+    if (!period || revenue === null) continue
+    grouped.set(period, round((grouped.get(period) || 0) + revenue))
+  }
+  return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }))
+}
+
+function ecommerceOrdersTrend(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.date || !columns.order) return []
+  const grouped = new Map<string, Set<string>>()
+  for (const row of rows) {
+    const period = monthKey(row[columns.date])
+    const orderId = String(row[columns.order] || "").trim()
+    if (!period || !orderId) continue
+    const orders = grouped.get(period) || new Set<string>()
+    orders.add(orderId)
+    grouped.set(period, orders)
+  }
+  return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([name, orders]) => ({ name, value: orders.size }))
+}
+
+function ecommerceChannelPerformance(rows: DataRow[], columns: ColumnMap, totalRevenue: number | null) {
+  if (!columns.channel || !columns.revenue) return []
+  const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
+  for (const row of rows) {
+    const name = String(row[columns.channel] || "Unknown channel").trim() || "Unknown channel"
+    const revenue = getNumber(row[columns.revenue])
+    if (revenue === null) continue
+    const current = grouped.get(name) || { revenue: 0, orders: new Set<string>() }
+    current.revenue += revenue
+    if (columns.order) {
+      const orderId = String(row[columns.order] || "").trim()
+      if (orderId) current.orders.add(orderId)
+    }
+    grouped.set(name, current)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({
+      name,
+      value: round(value.revenue),
+      orders: value.orders.size,
+      aov: value.orders.size > 0 ? round(value.revenue / value.orders.size) : null,
+      share: totalRevenue && totalRevenue > 0 ? round((value.revenue / totalRevenue) * 100) : null,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
+}
+
+function ecommerceGeography(rows: DataRow[], columns: ColumnMap, totalRevenue: number | null) {
+  const geographyColumn = columns.country || columns.region
+  if (!geographyColumn || !columns.revenue) return []
+  const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
+  for (const row of rows) {
+    const name = String(row[geographyColumn] || "Unknown geography").trim() || "Unknown geography"
+    const revenue = getNumber(row[columns.revenue])
+    if (revenue === null) continue
+    const current = grouped.get(name) || { revenue: 0, orders: new Set<string>() }
+    current.revenue += revenue
+    if (columns.order) {
+      const orderId = String(row[columns.order] || "").trim()
+      if (orderId) current.orders.add(orderId)
+    }
+    grouped.set(name, current)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({
+      name,
+      value: round(value.revenue),
+      orders: value.orders.size,
+      share: totalRevenue && totalRevenue > 0 ? round((value.revenue / totalRevenue) * 100) : null,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
+}
+
+function ecommercePaymentMethods(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.paymentMethod || !columns.revenue) return []
+  const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
+  for (const row of rows) {
+    const name = String(row[columns.paymentMethod] || "Unknown payment method").trim() || "Unknown payment method"
+    const revenue = getNumber(row[columns.revenue])
+    if (revenue === null) continue
+    const current = grouped.get(name) || { revenue: 0, orders: new Set<string>() }
+    current.revenue += revenue
+    if (columns.order) {
+      const orderId = String(row[columns.order] || "").trim()
+      if (orderId) current.orders.add(orderId)
+    }
+    grouped.set(name, current)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({ name, value: round(value.revenue), orders: value.orders.size }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
 }
 
 function retailMarginByGroup(rows: DataRow[], groupColumn: string | undefined, columns: ColumnMap) {
@@ -893,6 +1540,11 @@ function periodKey(value: unknown) {
   if (Number.isFinite(parsed.getTime())) return parsed.toISOString().slice(0, 10)
   if (/^\d{4}-\d{1,2}$/.test(text)) return text.replace(/-(\d)$/, "-0$1")
   return null
+}
+
+function monthKey(value: unknown) {
+  const period = periodKey(value)
+  return period ? period.slice(0, 7) : null
 }
 
 function XLSXDateToJSDate(serial: number) {
@@ -1134,11 +1786,11 @@ function reportModelLabel(model: ReportModel) {
 function detectColumns(columns: string[]): ColumnMap {
   return {
     revenue: findColumn(columns, [/revenue/, /^sales$/, /amount/, /turnover/, /income/]),
-    cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /shipping_cost/, /unit_cost/, /spend/]),
+    cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /unit_cost/, /spend/]),
     grossProfit: findColumn(columns, [/gross_profit/, /grossprofit/]),
     operatingProfit: findColumn(columns, [/operating_profit/, /operatingprofit/, /ebit\b/]),
     netProfit: findColumn(columns, [/net_profit/, /netprofit/, /^profit$/, /profit_loss/]),
-    cogs: findColumn(columns, [/^cogs$/, /cost_of_goods/, /cost_of_sales/]),
+    cogs: findColumn(columns, [/^cogs$/, /cost_of_goods_sold/, /cost_of_goods/, /cost_of_sales/, /product_cost/, /merchandise_cost/]),
     operatingExpenses: findColumn(columns, [/operating_expenses/, /^opex$/, /sg_a/, /sga/]),
     interestExpense: findColumn(columns, [/interest_expense/, /^interest$/]),
     taxExpense: findColumn(columns, [/tax_expense/, /^tax$/, /taxes/]),
@@ -1147,22 +1799,34 @@ function detectColumns(columns: string[]): ColumnMap {
     order: columns.find((column) => isOrderIdentifierColumn(column)),
     customer: findColumn(columns, [/customer_id/, /customer/, /client_id/, /client/]),
     country: findColumn(columns, [/country/, /region/, /location/]),
+    region: findColumn(columns, [/region/]),
     channel: findColumn(columns, [/channel/, /source/]),
-    product: findColumn(columns, [/product_id/, /product/, /^sku$/, /item/]),
+    product: findColumn(columns, [/product_id/, /product_name/, /product/, /^sku$/, /item/]),
     category: findColumn(columns, [/category/, /sector/, /industry/]),
     date: findColumn(columns, [/date/, /month/, /period/, /created_at/]),
+    shippingCost: findColumn(columns, [/shipping_cost/, /shipping/, /fulfillment_cost/, /delivery_cost/, /freight/]),
+    discount: findColumn(columns, [/discount/, /discount_amount/, /promo/]),
+    returnStatus: findColumn(columns, [/return_status/, /returned/, /return/]),
+    paymentMethod: findColumn(columns, [/payment_method/, /payment/]),
     expenseCategory: findColumn(columns, [/expense_category/, /expensecategory/, /cost_category/, /costcategory/, /category/]),
     expenseAmount: findColumn(columns, [/expense_amount/, /expenseamount/, /cost_amount/, /costamount/, /amount/]),
     vendor: findColumn(columns, [/vendor_supplier/, /vendorsupplier/, /^vendor$/, /supplier/, /merchant/]),
     stock: findColumn(columns, [/stock_on_hand/, /stock/, /inventory/]),
     reorderPoint: findColumn(columns, [/reorder_point/, /reorder/]),
-    mrr: findColumn(columns, [/^mrr$/]),
-    arr: findColumn(columns, [/^arr$/]),
+    mrr: findColumn(columns, [/^mrr$/, /monthly_recurring_revenue/]),
+    arr: findColumn(columns, [/^arr$/, /annual_recurring_revenue/]),
+    newCustomer: findColumn(columns, [/new_customer/, /newcustomer/, /new_logo/]),
     churned: findColumn(columns, [/churned/, /churn/]),
-    cac: findColumn(columns, [/^cac$/]),
-    ltv: findColumn(columns, [/^ltv$/]),
+    expansionMrr: findColumn(columns, [/expansion_mrr/, /expansion_recurring/, /upsell/]),
+    contractionMrr: findColumn(columns, [/contraction_mrr/, /contraction_recurring/, /downsell/]),
+    cac: findColumn(columns, [/^cac$/, /customer_acquisition_cost/]),
+    ltv: findColumn(columns, [/^ltv$/, /customer_lifetime_value/, /lifetime_value/]),
+    activeUsers: findColumn(columns, [/active_users/, /active_user/, /usage/]),
+    supportTickets: findColumn(columns, [/support_tickets/, /support_ticket/, /tickets/]),
     burn: findColumn(columns, [/burn/]),
+    cashBalance: findColumn(columns, [/cash_balance/, /^cash$/]),
     runway: findColumn(columns, [/runway/]),
+    plan: findColumn(columns, [/^plan$/, /subscription_plan/, /tier/]),
     investedAmount: findColumn(columns, [/invested_amount/, /invested_capital/, /investment/]),
     valuation: findColumn(columns, [/latest_valuation/, /valuation/]),
     ownership: findColumn(columns, [/ownership/]),
@@ -1186,8 +1850,11 @@ function detectColumns(columns: string[]): ColumnMap {
 function buildSemanticContext(input: {
   datasetId: string
   datasetType: string
+  reportModel: ReportModel
   columnMap: ColumnMap
 }): ReportSemanticContext {
+  const isEcommerce = input.reportModel === "ecommerce"
+  const isSaas = input.reportModel === "saas" || input.reportModel === "startup"
   const mappings: Record<string, string | null> = {
     date: input.columnMap.date || null,
     revenue: input.columnMap.revenue || input.columnMap.gmv || null,
@@ -1198,11 +1865,29 @@ function buildSemanticContext(input: {
     interestExpense: input.columnMap.interestExpense || null,
     taxExpense: input.columnMap.taxExpense || null,
     netProfit: input.columnMap.netProfit || null,
-    expenseCategory: input.columnMap.expenseCategory || null,
-    expenseAmount: input.columnMap.expenseAmount || null,
+    expenseCategory: isEcommerce || isSaas ? null : input.columnMap.expenseCategory || null,
+    expenseAmount: isEcommerce || isSaas ? null : input.columnMap.expenseAmount || null,
     vendor: input.columnMap.vendor || null,
+    mrr: input.columnMap.mrr || null,
+    arr: input.columnMap.arr || null,
+    customer: input.columnMap.customer || null,
+    newCustomer: input.columnMap.newCustomer || null,
+    churned: input.columnMap.churned || null,
+    expansionMrr: input.columnMap.expansionMrr || null,
+    contractionMrr: input.columnMap.contractionMrr || null,
+    cac: input.columnMap.cac || null,
+    ltv: input.columnMap.ltv || null,
+    activeUsers: input.columnMap.activeUsers || null,
+    supportTickets: input.columnMap.supportTickets || null,
+    burn: input.columnMap.burn || null,
+    cashBalance: input.columnMap.cashBalance || null,
+    runway: input.columnMap.runway || null,
+    plan: input.columnMap.plan || null,
+    country: input.columnMap.country || null,
   }
-  const required = ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
+  const required = isSaas
+    ? ["date", "mrr", "arr", "customer", "newCustomer", "churned", "expansionMrr", "contractionMrr", "cac", "ltv", "activeUsers", "supportTickets", "burn", "cashBalance", "runway", "plan", "country"]
+    : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
   const available = required.filter((key) => Boolean(mappings[key])).length
   return {
     datasetId: input.datasetId,
@@ -1228,8 +1913,10 @@ function buildReportDiagnostics(input: {
   dataset: DatasetRecord
   rowCount: number
   rows: DataRow[]
+  reportModel: ReportModel
   semanticContext: ReportSemanticContext
   financials: ReportFinancials
+  saasAnalysis?: SaasReportAnalysis
 }): ReportDiagnostics {
   const analysisKeys = isRecord(input.dataset.analysis) ? Object.keys(input.dataset.analysis) : []
   return {
@@ -1254,7 +1941,11 @@ function buildReportDiagnostics(input: {
     validExpenseCategoryCount: validValueCount(input.rows, input.semanticContext.expenseCategoryField, (value) => String(value || "").trim().length > 0),
     validExpenseAmountCount: validValueCount(input.rows, input.semanticContext.expenseAmountField, (value) => getNumber(value) !== null),
     validVendorCount: validValueCount(input.rows, input.semanticContext.vendorField, (value) => String(value || "").trim().length > 0),
-    trendAvailable: hasTrendDataForDiagnostics(input.financials),
+    trendAvailable: input.reportModel === "saas" || input.reportModel === "startup"
+      ? Boolean(input.saasAnalysis && hasSaasTrendForDiagnostics(input.saasAnalysis))
+      : input.reportModel === "ecommerce"
+      ? hasRevenueOrRecurringTrendForDiagnostics(input.financials)
+      : hasTrendDataForDiagnostics(input.financials),
     analysisObjectKeys: analysisKeys,
     reportInputKeys: [
       "businessModel",
@@ -1269,6 +1960,7 @@ function buildReportDiagnostics(input: {
       "predictions",
       "recommendations",
       "retailAnalysis",
+      "saasAnalysis",
       "alerts",
       "bbsc",
       "semanticContext",
@@ -1286,6 +1978,27 @@ function hasTrendDataForDiagnostics(financials: ReportFinancials) {
   return trends.length > 0 && validNetProfitCount > 0
 }
 
+function hasRevenueOrRecurringTrendForDiagnostics(financials: ReportFinancials) {
+  const trends = financials.periodTrends || []
+  return trends.filter((trend) => trend.revenue !== null).length >= 2
+}
+
+function hasSaasTrendForDiagnostics(saas: SaasReportAnalysis) {
+  return [
+    saas.mrrTrend,
+    saas.arrTrend,
+    saas.customerTrend,
+    saas.newCustomerTrend,
+    saas.churnTrend,
+    saas.expansionTrend,
+    saas.contractionTrend,
+    saas.activeUserTrend,
+    saas.burnTrend,
+    saas.cashTrend,
+    saas.runwayTrend,
+  ].some((trend) => trend.length >= 2)
+}
+
 function validValueCount(rows: DataRow[], column: string | null, predicate: (value: unknown) => boolean) {
   if (!column) return 0
   return rows.filter((row) => predicate(row[column])).length
@@ -1299,7 +2012,7 @@ function traceReportRuntime(moduleName: string, details: Record<string, unknown>
   debugLog("[REPORT TRACE]", moduleName, details)
 }
 
-function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials, retail?: RetailReportAnalysis): ReportKpi[] {
+function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis): ReportKpi[] {
   const revenue = financials.revenue ?? sumColumn(rows, columns.gmv)
   const cost = sumColumn(rows, columns.cost)
   const profit = financials.netProfit ?? financials.grossProfit
@@ -1325,19 +2038,40 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Out of Stock", retail?.outOfStockSkuCount ?? null, "number")
     addKpi(kpis, "AOV", retail?.averageOrderValue?.status === "available" ? retail.averageOrderValue.value : null, "currency")
   } else if (model === "ecommerce") {
-    addKpi(kpis, "Orders", orders, "number")
-    addKpi(kpis, "Customers", customers, "number")
-    addKpi(kpis, "AOV", revenue !== null && orders ? revenue / orders : null, "currency")
-    addKpi(kpis, "Shipping cost", sumColumn(rows, columns.cost), "currency")
+    kpis.length = 0
+    addKpi(kpis, "Revenue", revenue, "currency")
+    addKpi(kpis, "Orders", ecommerce?.orders ?? orders, "number")
+    addKpi(kpis, "AOV", ecommerce?.averageOrderValue ?? null, "currency")
+    addKpi(kpis, "Customers", ecommerce?.customers ?? customers, "number")
+    addKpi(kpis, "Orders per Customer", ecommerce?.ordersPerCustomer ?? null, "number")
+    addKpi(kpis, "Revenue per Customer", ecommerce?.revenuePerCustomer ?? null, "currency")
+    addKpi(kpis, "Units Sold", ecommerce?.unitsSold ?? quantity, "number")
+    addKpi(kpis, "Products", ecommerce?.products ?? null, "number")
+    addKpi(kpis, "Return Rate", ecommerce?.returnRate ?? null, "percent")
+    addKpi(kpis, "Shipping / Fulfillment Cost", ecommerce?.shippingCost ?? null, "currency")
+    addKpi(kpis, "Shipping Cost % of Revenue", ecommerce?.shippingCostRate ?? null, "percent")
+    addKpi(kpis, "Average Shipping Cost per Order", ecommerce?.averageShippingCostPerOrder ?? null, "currency")
+    addKpi(kpis, "Total Discounts", ecommerce?.discounts ?? null, "currency")
+    addKpi(kpis, "Discount % of Revenue", ecommerce?.discountRate ?? null, "percent")
   } else if (model === "saas" || model === "startup") {
-    addKpi(kpis, "MRR", sumColumn(rows, columns.mrr), "currency")
-    addKpi(kpis, "ARR", sumColumn(rows, columns.arr), "currency")
-    addKpi(kpis, "Churn", churnRate(rows, columns.churned), "percent")
-    addKpi(kpis, "CAC", averageColumn(rows, columns.cac), "currency")
-    addKpi(kpis, "LTV", averageColumn(rows, columns.ltv), "currency")
-    addKpi(kpis, "Burn", sumColumn(rows, columns.burn), "currency")
-    addKpi(kpis, "Runway", averageColumn(rows, columns.runway), "number")
-    addKpi(kpis, "Customers", customers, "number")
+    kpis.length = 0
+    addKpi(kpis, "MRR", saas?.mrr ?? null, "currency")
+    addKpi(kpis, "ARR", saas?.arr ?? null, "currency")
+    addKpi(kpis, "Customers", saas?.customers ?? customers, "number")
+    addKpi(kpis, "New Customers", saas?.newCustomers ?? null, "number")
+    addKpi(kpis, "Churned Customers", saas?.churnedCustomers ?? null, "number")
+    addKpi(kpis, "Churn Rate", saas?.churnRate ?? null, "percent")
+    addKpi(kpis, "Expansion MRR", saas?.expansionMrr ?? null, "currency")
+    addKpi(kpis, "Contraction MRR", saas?.contractionMrr ?? null, "currency")
+    addKpi(kpis, "Net Expansion MRR", saas?.netExpansionMrr ?? null, "currency")
+    addKpi(kpis, "CAC", saas?.cac ?? null, "currency")
+    addKpi(kpis, "LTV", saas?.ltv ?? null, "currency")
+    addKpi(kpis, "LTV/CAC", saas?.ltvToCac ?? null, "number")
+    addKpi(kpis, "Active Users", saas?.activeUsers ?? null, "number")
+    addKpi(kpis, "Support Tickets", saas?.supportTickets ?? null, "number")
+    addKpi(kpis, "Burn", saas?.burn ?? null, "currency")
+    addKpi(kpis, "Cash Balance", saas?.cashBalance ?? null, "currency")
+    addKpi(kpis, "Runway", saas?.runwayMonths ?? null, "number")
   } else if (model === "investor") {
     addKpi(kpis, "Invested capital", sumColumn(rows, columns.investedAmount), "currency")
     addKpi(kpis, "Portfolio valuation", sumColumn(rows, columns.valuation), "currency")
@@ -1368,7 +2102,7 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
   return kpis
 }
 
-function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, retail?: RetailReportAnalysis): ReportChart[] {
+function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis): ReportChart[] {
   const charts: ReportChart[] = []
   if (model === "local_retail" && retail) {
     if (retail.topProductsByRevenue.length > 0) charts.push({ type: "bar", title: "Top products by revenue", data: retail.topProductsByRevenue })
@@ -1381,10 +2115,15 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
   if (productChart) charts.push(productChart)
 
   if (model === "ecommerce") {
-    const channel = groupedChart(rows, columns.channel, columns.revenue || columns.quantity, "Channel performance")
-    const geography = groupedChart(rows, columns.country, columns.revenue || columns.quantity, "Geography")
-    if (channel) charts.push(channel)
-    if (geography) charts.push(geography)
+    if (ecommerce?.revenueTrend.length) charts.push({ type: "line", title: "Revenue Trend", data: ecommerce.revenueTrend })
+    if (ecommerce?.categoryPerformance.length) charts.push({ type: "bar", title: "Category Performance", data: ecommerce.categoryPerformance })
+    if (ecommerce?.channelPerformance.length) charts.push({ type: "bar", title: "Channel Performance", data: ecommerce.channelPerformance.map(({ name, value }) => ({ name, value })) })
+    if (ecommerce?.geography.length) charts.push({ type: "bar", title: "Geography", data: ecommerce.geography.map(({ name, value }) => ({ name, value })) })
+  } else if ((model === "saas" || model === "startup") && saas) {
+    if (saas.mrrTrend.length) charts.push({ type: "line", title: "MRR Trend", data: saas.mrrTrend })
+    if (saas.arrTrend.length) charts.push({ type: "line", title: "ARR Trend", data: saas.arrTrend })
+    if (saas.planPerformance.length) charts.push({ type: "bar", title: "MRR by Plan", data: saas.planPerformance.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
+    if (saas.geography.length) charts.push({ type: "bar", title: "MRR by Country", data: saas.geography.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
   } else if (model === "investor") {
     const sector = groupedChart(rows, columns.sector, columns.investedAmount || columns.valuation, "Sector allocation")
     const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
@@ -1404,18 +2143,33 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
   return charts.slice(0, 4)
 }
 
-function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis) {
+function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis) {
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
-  if (model !== "local_retail" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
   if (model === "local_retail") {
     findings.push("Retail KPIs prioritize revenue, gross profit, gross margin, unit sales, inventory value, stock levels, reorder risk, products, categories, and suppliers.")
     if (columns.stock) findings.push("Inventory and reorder-risk checks are included from stock columns.")
     if (retail?.supplierExposure.length) findings.push("Supplier intelligence uses only supplier values present in the selected dataset.")
   }
-  if (model === "ecommerce" && columns.country) findings.push("Geography uses only country or region values present in this dataset.")
-  if ((model === "saas" || model === "startup") && (columns.mrr || columns.arr)) findings.push("Recurring revenue metrics are included from MRR/ARR columns.")
+  if (model === "ecommerce") {
+    if (columns.order) findings.push("Orders and Average Order Value use distinct recognized order IDs.")
+    if (columns.customer) findings.push("Customer metrics use distinct customer identifiers from the selected dataset.")
+    if (columns.category) findings.push("Category is treated as product/category performance, not an expense category.")
+    if (columns.shippingCost) findings.push("Shipping and fulfillment cost is analyzed separately from COGS.")
+    if (columns.returnStatus && ecommerce?.returnRate !== null) findings.push("Returns are calculated from return-status values present in the dataset.")
+    if (columns.channel) findings.push("Channel performance uses only source channel values.")
+    if (!columns.cogs) findings.push("Gross profit and gross margin are unavailable because no authoritative product COGS field exists.")
+    if (columns.country || columns.region) findings.push("Geography uses only country or region values present in this dataset.")
+  }
+  if ((model === "saas" || model === "startup") && saas) {
+    if (saas.mrr !== null || saas.arr !== null) findings.push("Recurring revenue metrics are included from SaaS MRR/ARR columns.")
+    if (saas.customerField) findings.push("Customer metrics use distinct customer identifiers from the selected dataset.")
+    if (saas.periodField && saas.mrrTrend.length >= 2) findings.push("SaaS trend analysis uses the recognized period field and recurring-revenue metrics.")
+    if (columns.plan) findings.push("Plan is treated as subscription-plan segmentation, not an expense category.")
+    if (columns.country || columns.region) findings.push("SaaS geography uses only country or region values present in this dataset.")
+  }
   if (model === "investor" && columns.valuation) findings.push("Portfolio valuation and allocation metrics are included.")
   if (model === "marketplace" && (columns.gmv || columns.commission)) findings.push("Marketplace GMV, commission, seller, and buyer metrics are included where columns exist.")
   if (model === "business_consulting" && columns.billableHours) findings.push("Billable-hour and project-margin metrics are included.")
@@ -1600,8 +2354,10 @@ function uniqueCountWhere(rows: DataRow[], column: string | undefined, predicate
 
 function churnRate(rows: DataRow[], column?: string) {
   if (!column || rows.length === 0) return null
-  const churned = rows.filter((row) => ["true", "yes", "1", "churned"].includes(String(row[column]).toLowerCase())).length
-  return (churned / rows.length) * 100
+  const statuses = rows.map((row) => normalizeBooleanStatus(row[column])).filter((status) => status !== "unknown")
+  if (statuses.length === 0) return null
+  const churned = statuses.filter((status) => status === "positive").length
+  return round((churned / statuses.length) * 100)
 }
 
 function countLowStock(rows: DataRow[], columns: ColumnMap) {

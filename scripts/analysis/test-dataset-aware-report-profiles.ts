@@ -3,12 +3,21 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { parseCSVStreaming } from "../../src/lib/data/csvLoader"
 import type { ReportProfileId } from "../../src/lib/reports/report-profiles"
+import type { EcommerceReportAnalysis, ReportDiagnostics, ReportSemanticContext, SaasReportAnalysis } from "../../src/lib/reports/report-generator"
 
 type DatasetInput = Parameters<typeof import("../../src/lib/reports/dataset-report-builder").buildDatasetReportInput>[0]
 type DatasetReportInput = Awaited<ReturnType<typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]>>
 type BuildDatasetReportInput = typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]
 type GenerateReport = typeof import("../../src/lib/reports/report-generator")["generateReport"]
 type DeleteReport = typeof import("../../src/lib/reports/report-generator")["deleteReport"]
+type GeneratePdfReport = typeof import("../../src/lib/reports/pdf-report-generator")["generatePdfReport"]
+type GetReportProfile = typeof import("../../src/lib/reports/report-profiles")["getReportProfile"]
+type EcommerceReportInput = DatasetReportInput & {
+  ecommerceAnalysis?: EcommerceReportAnalysis
+  saasAnalysis?: SaasReportAnalysis
+  semanticContext?: ReportSemanticContext
+  diagnostics?: ReportDiagnostics
+}
 
 type FixtureCase = {
   family: string
@@ -19,8 +28,8 @@ type FixtureCase = {
 
 const availableFixtures: FixtureCase[] = [
   { family: "local_retail", baseName: "01_local_retail", businessModel: "local_retail", expectedProfile: "local_retail" },
-  { family: "ecommerce", baseName: "ecommerce", businessModel: "ecommerce", expectedProfile: "ecommerce" },
-  { family: "saas_startup", baseName: "startup-saas", businessModel: "saas", expectedProfile: "saas_startup" },
+  { family: "ecommerce", baseName: "02_ecommerce", businessModel: "ecommerce", expectedProfile: "ecommerce" },
+  { family: "saas_startup", baseName: "03_saas_startup", businessModel: "saas", expectedProfile: "saas_startup" },
   { family: "investor_portfolio", baseName: "investor-portfolio", businessModel: "investor", expectedProfile: "investor_portfolio" },
   { family: "business_consulting", baseName: "business-consulting", businessModel: "generic", expectedProfile: "business_consulting" },
 ]
@@ -54,7 +63,7 @@ async function main() {
   const { buildDatasetReportInput } = await import("../../src/lib/reports/dataset-report-builder")
   const { REPORT_RUNTIME_VERSION, deleteReport, generateReport } = await import("../../src/lib/reports/report-generator")
   const { generatePdfReport } = await import("../../src/lib/reports/pdf-report-generator")
-  const { listReportProfiles } = await import("../../src/lib/reports/report-profiles")
+  const { getReportProfile, listReportProfiles } = await import("../../src/lib/reports/report-profiles")
   assert(REPORT_RUNTIME_VERSION === "report-runtime-v5", "report runtime must invalidate pre-AOV-provenance reports")
 
   const profileIds = listReportProfiles().map((profile) => profile.id).sort()
@@ -76,6 +85,45 @@ async function main() {
   const fixtureRoot = path.join(process.cwd(), "test-fixtures", "business-models")
   const results: Array<{ fixture: string; profile: string; rows: number; pdfVerified?: boolean }> = []
   const retailParity: Record<string, { revenue: number | null; cogs: number | null; grossProfit: number | null; grossMargin: number | null; aovStatus?: string; inventoryValue: number | null; reorderRequiredCount: number | null }> = {}
+  const ecommerceParity: Record<string, {
+    rows: number
+    revenue: number | null
+    cogs: number | null
+    grossProfit: number | null
+    grossMargin: number | null
+    orders: number | null
+    aov: number | null
+    customers: number | null
+    shippingCost: number | null
+    returnRate: number | null
+    channelCount: number
+    categoryCount: number
+    trendCount: number
+  }> = {}
+  const saasParity: Record<string, {
+    rows: number
+    mrr: number | null
+    arr: number | null
+    customers: number | null
+    newCustomers: number | null
+    churnedCustomers: number | null
+    churnRate: number | null
+    expansionMrr: number | null
+    contractionMrr: number | null
+    netExpansionMrr: number | null
+    cac: number | null
+    ltv: number | null
+    ltvToCac: number | null
+    activeUsers: number | null
+    supportTickets: number | null
+    burn: number | null
+    cashBalance: number | null
+    runwayMonths: number | null
+    planCount: number
+    geographyCount: number
+    trendCount: number
+    dataConfidence: number | null
+  }> = {}
 
   for (const fixture of availableFixtures) {
     for (const extension of ["csv", "xlsx"] as const) {
@@ -122,6 +170,131 @@ async function main() {
         assert(!/interest|tax|operating expenses/i.test(recommendationText), "local retail recommendations must not lead with generic P&L missing-field advice")
       }
 
+      if (fixture.family === "ecommerce") {
+        const ecommerceInput = reportInput as EcommerceReportInput
+        const ecommerce = ecommerceInput.ecommerceAnalysis
+        assert(ecommerceInput.reportProfile.title === "E-commerce Performance Report", "ecommerce must use E-commerce Performance Report")
+        assert(ecommerceInput.rowCount === 220, "ecommerce fixture must analyze all 220 rows")
+        nearlyEqual(ecommerceInput.financials?.revenue, 87419.2, "ecommerce revenue must match fixture", 0.01)
+        assert(ecommerceInput.financials?.cogs === null, "ecommerce shipping_cost must not map to COGS")
+        assert(ecommerceInput.financials?.grossProfit === null, "ecommerce gross profit must be unavailable without COGS")
+        assert(ecommerceInput.financials?.grossMargin === null, "ecommerce gross margin must be unavailable without COGS")
+        assert(ecommerceInput.semanticContext?.mappings.cogs === null, "ecommerce semantic context must not map shipping_cost to COGS")
+        assert(ecommerceInput.semanticContext?.mappings.expenseCategory === null, "ecommerce category must not map to expense category")
+        assert(ecommerceInput.diagnostics?.expenseCategoryField === null, "ecommerce diagnostics must not expose product category as expense category")
+        if (!ecommerce) throw new Error("ecommerce analysis must be present")
+        assert(ecommerce.orderField === "order_id", "ecommerce orders must use order_id")
+        assert(ecommerce.orders === 220, "ecommerce orders must be distinct order_id")
+        nearlyEqual(ecommerce.averageOrderValue, 397.36, "ecommerce AOV must divide revenue by distinct order_id", 0.01)
+        assert(ecommerce.customers === 96, "ecommerce customers must use distinct customer_id")
+        assert(ecommerce.ordersPerCustomer !== null, "ecommerce orders per customer must be available")
+        assert(ecommerce.revenuePerCustomer !== null, "ecommerce revenue per customer must be available")
+        assert(ecommerce.unitsSold !== null && ecommerce.unitsSold > 0, "ecommerce units sold must be available")
+        assert(ecommerce.products === 12, "ecommerce products must use distinct product_id")
+        assert(ecommerce.shippingCost === 3000, "ecommerce shipping cost must be analyzed separately")
+        nearlyEqual(ecommerce.shippingCostRate, 3.43, "ecommerce shipping cost rate must use revenue denominator", 0.01)
+        assert(ecommerce.discounts !== null && ecommerce.discounts > 0, "ecommerce discounts must be available")
+        assert(ecommerce.returnRate !== null && ecommerce.returnRate > 0, "ecommerce returns must be available")
+        assert(ecommerce.returnStatus === "available", "ecommerce return status must be available when values normalize")
+        assert(ecommerce.returnedOrders === 13, "ecommerce returned orders must count only positive return statuses")
+        assert(ecommerce.eligibleReturnOrders === 220, "ecommerce eligible return denominator must use normalized order statuses")
+        nearlyEqual(ecommerce.returnRate, 5.91, "ecommerce return rate must use returned orders over eligible orders", 0.01)
+        assert(ecommerce.revenueTrend.length === 4, "ecommerce revenue trend must group order_date revenue by month")
+        assert(ecommerceInput.diagnostics?.trendAvailable === true, "ecommerce diagnostics must mark revenue trend available without requiring net profit")
+        assert(ecommerce?.channelPerformance.length === 5, "ecommerce channel performance must be available")
+        assert(ecommerce?.categoryPerformance.length === 6, "ecommerce category performance must be product/category performance")
+        assert(ecommerce?.geography.length === 5, "ecommerce geography must be available")
+        const recommendationText = reportInput.recommendations?.map((item) => `${item.issue} ${item.recommendedAction}`).join(" ") || ""
+        assert(!/^Add COGS, operating expenses, interest and tax/i.test(recommendationText), "ecommerce recommendations must not lead with generic P&L missing-field advice")
+        assert(!/Return rate is 5\.9%|Return rate is 100\.0%/i.test(recommendationText), "ecommerce recommendations must not overstate normal return-rate signals")
+        ecommerceParity[extension] = {
+          rows: ecommerceInput.rowCount,
+          revenue: ecommerceInput.financials?.revenue ?? null,
+          cogs: ecommerceInput.financials?.cogs ?? null,
+          grossProfit: ecommerceInput.financials?.grossProfit ?? null,
+          grossMargin: ecommerceInput.financials?.grossMargin ?? null,
+          orders: ecommerce?.orders ?? null,
+          aov: ecommerce?.averageOrderValue ?? null,
+          customers: ecommerce?.customers ?? null,
+          shippingCost: ecommerce?.shippingCost ?? null,
+          returnRate: ecommerce?.returnRate ?? null,
+          channelCount: ecommerce?.channelPerformance.length ?? 0,
+          categoryCount: ecommerce?.categoryPerformance.length ?? 0,
+          trendCount: ecommerce?.revenueTrend.length ?? 0,
+        }
+      }
+
+      if (fixture.family === "saas_startup") {
+        const saasInput = reportInput as EcommerceReportInput
+        const saas = saasInput.saasAnalysis
+        assert(saasInput.reportProfile.title === "SaaS Executive Report", "saas startup must use SaaS Executive Report")
+        assert(saasInput.rowCount === 144, "saas startup fixture must analyze all 144 rows")
+        if (!saas) throw new Error("saas analysis must be present")
+        assert(saas.periodField === "month", "saas period must map from month")
+        assert(saas.customerField === "customer_id", "saas customers must use customer_id")
+        assert(saas.mrrField === "mrr", "saas MRR must map from mrr")
+        assert(saas.arrField === "arr", "saas ARR must map from arr")
+        assert(saas.newCustomerField === "new_customer", "saas new customers must map from new_customer")
+        assert(saas.churnField === "churned", "saas churn must map from churned")
+        assert(saas.expansionMrrField === "expansion_mrr", "saas expansion MRR must map from expansion_mrr")
+        assert(saas.contractionMrrField === "contraction_mrr", "saas contraction MRR must map from contraction_mrr")
+        assert(saas.cacField === "cac", "saas CAC must map from cac")
+        assert(saas.ltvField === "ltv", "saas LTV must map from ltv")
+        assert(saas.activeUsersField === "active_users", "saas active users must map from active_users")
+        assert(saas.supportTicketsField === "support_tickets", "saas support tickets must map from support_tickets")
+        assert(saas.burnField === "burn", "saas burn must map from burn")
+        assert(saas.cashBalanceField === "cash_balance", "saas cash balance must map from cash_balance")
+        assert(saas.runwayField === "runway_months", "saas runway must map from runway_months")
+        assert(saas.mrr !== null && saas.mrr > 0, "saas MRR must be available")
+        assert(saas.arr !== null && saas.arr > 0, "saas ARR must be available")
+        assert(saas.customers !== null && saas.customers > 0, "saas customers must be available")
+        assert(saas.newCustomers !== null && saas.newCustomers > 0, "saas new customers must be available")
+        assert(saas.churnedCustomers !== null && saas.churnedCustomers > 0, "saas churned customers must be available")
+        assert(saas.churnRate !== null && saas.churnRate > 0, "saas churn rate must be available")
+        assert(saas.expansionMrr !== null && saas.expansionMrr >= 0, "saas expansion MRR must be available")
+        assert(saas.contractionMrr !== null && saas.contractionMrr >= 0, "saas contraction MRR must be available")
+        assert(saas.netExpansionMrr !== null, "saas net expansion MRR must be derived")
+        assert(saas.cac !== null && saas.cac > 0, "saas CAC must be available")
+        assert(saas.ltv !== null && saas.ltv > 0, "saas LTV must be available")
+        assert(saas.ltvToCac !== null && saas.ltvToCac > 0, "saas LTV/CAC must be available")
+        assert(saas.activeUsers !== null && saas.activeUsers > 0, "saas active users must be available")
+        assert(saas.supportTickets !== null && saas.supportTickets >= 0, "saas support tickets must be available")
+        assert(saas.burn !== null && saas.burn > 0, "saas burn must be available")
+        assert(saas.cashBalance !== null && saas.cashBalance > 0, "saas cash balance must be available")
+        assert(saas.runwayMonths !== null && saas.runwayMonths > 0, "saas runway must be available")
+        assert(saas.planPerformance.length > 0, "saas plan intelligence must be available")
+        assert(saas.geography.length > 0, "saas geography must be available")
+        assert(saas.mrrTrend.length >= 2, "saas MRR trend must be available")
+        assert(saas.dataConfidence > 0, "saas data confidence must not be zero")
+        assert(saasInput.diagnostics?.trendAvailable === true, "saas diagnostics must mark trend available without net profit")
+        const recommendationText = reportInput.recommendations?.map((item) => `${item.issue} ${item.recommendedAction}`).join(" ") || ""
+        assert(!/^Add COGS, operating expenses, interest and tax/i.test(recommendationText), "saas recommendations must not lead with generic P&L missing-field advice")
+        saasParity[extension] = {
+          rows: saasInput.rowCount,
+          mrr: saas.mrr,
+          arr: saas.arr,
+          customers: saas.customers,
+          newCustomers: saas.newCustomers,
+          churnedCustomers: saas.churnedCustomers,
+          churnRate: saas.churnRate,
+          expansionMrr: saas.expansionMrr,
+          contractionMrr: saas.contractionMrr,
+          netExpansionMrr: saas.netExpansionMrr,
+          cac: saas.cac,
+          ltv: saas.ltv,
+          ltvToCac: saas.ltvToCac,
+          activeUsers: saas.activeUsers,
+          supportTickets: saas.supportTickets,
+          burn: saas.burn,
+          cashBalance: saas.cashBalance,
+          runwayMonths: saas.runwayMonths,
+          planCount: saas.planPerformance.length,
+          geographyCount: saas.geography.length,
+          trendCount: saas.mrrTrend.length,
+          dataConfidence: saas.dataConfidence,
+        }
+      }
+
       if (fixture.family === "local_retail" && extension === "xlsx") {
         const report = await generateReport(dataset.id, "01_local_retail.xlsx", {
           visibility: "private",
@@ -133,7 +306,7 @@ async function main() {
           idempotencyKey: "dataset-aware-retail-profile",
         }, reportInput)
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "local retail PDF must generate")
-        const pdfText = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "RETAIL EXECUTIVE REPORT")
         assert(pdfText.includes("RETAIL EXECUTIVE REPORT"), "local retail PDF must identify the retail report")
         assert(pdfText.includes("SALES & MARGIN PERFORMANCE"), "local retail PDF must include sales and margin page")
         assert(pdfText.includes("INVENTORY INTELLIGENCE"), "local retail PDF must include inventory page")
@@ -147,14 +320,106 @@ async function main() {
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
         deleteReport(report.id)
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
+      } else if (fixture.family === "ecommerce" && extension === "xlsx") {
+        const report = await generateReport(dataset.id, "02_ecommerce.xlsx", {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: "dataset-aware-ecommerce-profile",
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "ecommerce PDF must generate")
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "E-COMMERCE PERFORMANCE REPORT")
+        const normalizedPdfText = pdfText.toLowerCase()
+        assert(pdfText.includes("E-COMMERCE PERFORMANCE REPORT"), "ecommerce PDF must identify the e-commerce report")
+        assert(pdfText.includes("Rows Analyzed"), "ecommerce PDF must include row provenance")
+        assert(pdfText.includes("220"), "ecommerce PDF must show all 220 rows")
+        assert(pdfText.includes("$87.4K") || pdfText.includes("$87,419"), "ecommerce PDF must show recognized revenue")
+        assert(pdfText.includes("SALES PERFORMANCE"), "ecommerce PDF must include sales performance page")
+        assert(pdfText.includes("CUSTOMER / CHANNEL / COMMERCIAL INTELLIGENCE"), "ecommerce PDF must include customer/channel/commercial page")
+        assert(pdfText.includes("Average Order Value"), "ecommerce PDF must include AOV")
+        assert(pdfText.includes("$397"), "ecommerce PDF must show AOV from distinct orders")
+        assert(pdfText.includes("COGS"), "ecommerce PDF must disclose COGS")
+        assert(pdfText.includes("Not available"), "ecommerce PDF must mark unsupported financial metrics unavailable")
+        assert(!pdfText.includes("Directly from source field: shipping_cost"), "ecommerce PDF must not source COGS from shipping_cost")
+        assert(!pdfText.includes("Expense Category"), "ecommerce PDF must not treat product category as expense category")
+        assert(!pdfText.includes("96.6%"), "ecommerce PDF must not show false gross margin")
+        assert(normalizedPdfText.includes("revenue trend"), "ecommerce PDF must include revenue trend")
+        assert(pdfText.includes("Shipping / Fulfillment Cost"), "ecommerce PDF must analyze shipping separately")
+        assert(normalizedPdfText.includes("returns") || normalizedPdfText.includes("return rate"), "ecommerce PDF must include returns")
+        assert(!pdfText.includes("100.0%"), "ecommerce PDF must not show every non-empty return status as returned")
+        assert(normalizedPdfText.includes("channel performance"), "ecommerce PDF must include channel intelligence")
+        assert(pdfText.includes("E-COMMERCE RECOMMENDATIONS + PROVENANCE"), "ecommerce PDF must include e-commerce recommendations")
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
+      } else if (fixture.family === "saas_startup" && extension === "xlsx") {
+        const report = await generateReport(dataset.id, "03_saas_startup.xlsx", {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: "dataset-aware-saas-profile",
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "saas PDF must generate")
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "SAAS EXECUTIVE REPORT")
+        assert(pdfText.includes("SAAS EXECUTIVE REPORT"), "saas PDF must identify the SaaS report")
+        assert(pdfText.includes("Rows Analyzed"), "saas PDF must include row provenance")
+        assert(pdfText.includes("144"), "saas PDF must show all 144 rows")
+        assert(pdfText.includes("MRR"), "saas PDF must include MRR")
+        assert(pdfText.includes("ARR"), "saas PDF must include ARR")
+        assert(pdfText.includes("Customers"), "saas PDF must include customers")
+        assert(pdfText.includes("New Customers"), "saas PDF must include new customers")
+        assert(pdfText.includes("Churn"), "saas PDF must include churn")
+        assert(pdfText.includes("Expansion MRR"), "saas PDF must include expansion MRR")
+        assert(pdfText.includes("Contraction MRR"), "saas PDF must include contraction MRR")
+        assert(pdfText.includes("CAC"), "saas PDF must include CAC")
+        assert(pdfText.includes("LTV"), "saas PDF must include LTV")
+        assert(pdfText.includes("Active Users"), "saas PDF must include active users")
+        assert(pdfText.includes("Support Tickets"), "saas PDF must include support tickets")
+        assert(pdfText.includes("Burn"), "saas PDF must include burn")
+        assert(pdfText.includes("Cash Balance"), "saas PDF must include cash balance")
+        assert(pdfText.includes("Runway"), "saas PDF must include runway")
+        assert(pdfText.includes("RECURRING REVENUE & GROWTH"), "saas PDF must include recurring revenue page")
+        assert(pdfText.includes("CUSTOMER & UNIT ECONOMICS"), "saas PDF must include customer economics page")
+        assert(pdfText.includes("CASH / STARTUP HEALTH"), "saas PDF must include cash health page")
+        assert(pdfText.includes("PLAN PERFORMANCE"), "saas PDF must include plan intelligence")
+        assert(pdfText.includes("Country") || pdfText.includes("COUNTRY SEGMENTATION"), "saas PDF must include geography")
+        assert(!pdfText.includes("COST INTELLIGENCE"), "saas PDF must not render generic cost intelligence as the default SaaS page")
+        assert(!pdfText.includes("Recognized financial-field coverage"), "saas PDF must not use generic financial-field confidence wording")
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
       } else {
-        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount })
+        const report = await generateReport(dataset.id, path.basename(filePath), {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: `dataset-aware-${fixture.family}-${extension}-profile`,
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), `${fixture.family}.${extension} PDF must generate`)
+        assertPdfLayoutBasics(report.pdfPath!, reportInput.reportProfile.title.toUpperCase())
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
       }
     }
   }
 
   assert(JSON.stringify(retailParity.csv) === JSON.stringify(retailParity.xlsx), "local retail CSV and XLSX outputs must match for financials, AOV status, inventory value, and reorder metrics")
+  assert(JSON.stringify(ecommerceParity.csv) === JSON.stringify(ecommerceParity.xlsx), "ecommerce CSV and XLSX outputs must match for semantic KPI results")
+  assert(JSON.stringify(saasParity.csv) === JSON.stringify(saasParity.xlsx), "saas startup CSV and XLSX outputs must match for semantic KPI results")
   await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport, generatePdfReport)
+  await assertEcommerceReturnStatusRegressions(buildDatasetReportInput)
+  await assertSharedPdfPaginationRegression(generatePdfReport, getReportProfile)
+  const syntheticMandatoryPdfResults = await assertMissingRequiredProfilePdfRegressions(generatePdfReport, getReportProfile)
 
   const missingRequiredFixtures = requiredFixtureNames.flatMap((name) => {
     return ["csv", "xlsx"].map((extension) => `${name}.${extension}`).filter((fileName) => !fs.existsSync(path.join(fixtureRoot, fileName)))
@@ -170,7 +435,201 @@ async function main() {
       found: requiredFixtureNames.length * 2 - missingRequiredFixtures.length,
       missing: missingRequiredFixtures,
     },
+    syntheticMandatoryPdfResults,
   }, null, 2))
+}
+
+async function assertEcommerceReturnStatusRegressions(buildDatasetReportInput: BuildDatasetReportInput) {
+  const rows = [
+    { order_id: "ORD-1", order_date: "2026-01-01", customer_id: "C1", product_id: "P1", product_name: "Lamp", category: "Home", quantity: 1, revenue: 100, return_status: "Returned", channel: "Shopify" },
+    { order_id: "ORD-1", order_date: "2026-01-01", customer_id: "C1", product_id: "P2", product_name: "Cable", category: "Home", quantity: 1, revenue: 25, return_status: "returned", channel: "Shopify" },
+    { order_id: "ORD-2", order_date: "2026-01-02", customer_id: "C2", product_id: "P3", product_name: "Mat", category: "Office", quantity: 2, revenue: 80, return_status: "Not Returned", channel: "Email" },
+    { order_id: "ORD-3", order_date: "2026-01-03", customer_id: "C3", product_id: "P4", product_name: "Bottle", category: "Sports", quantity: 1, revenue: 40, return_status: "False", channel: "Amazon" },
+    { order_id: "ORD-4", order_date: "2026-01-04", customer_id: "C4", product_id: "P5", product_name: "Serum", category: "Beauty", quantity: 1, revenue: 55, return_status: "Completed", channel: "Shopify" },
+    { order_id: "ORD-5", order_date: "2026-01-05", customer_id: "C5", product_id: "P6", product_name: "Scale", category: "Kitchen", quantity: 1, revenue: 60, return_status: "unexpected text", channel: "Google Shopping" },
+    { order_id: "ORD-6", order_date: "2026-01-06", customer_id: "C6", product_id: "P7", product_name: "Block", category: "Sports", quantity: 1, revenue: 35, return_status: "", channel: "Amazon" },
+    { order_id: "ORD-7", order_date: "2026-01-07", customer_id: "C7", product_id: "P8", product_name: "Stand", category: "Office", quantity: 1, revenue: 90, return_status: "return approved", channel: "Email" },
+  ]
+  const reportInput = await buildDatasetReportInput(buildDataset({
+    id: "profile_ecommerce_return_status_semantics",
+    filePath: path.join(process.cwd(), "test-fixtures", "business-models", "02_ecommerce.csv"),
+    rowCount: rows.length,
+    columns: Object.keys(rows[0] ?? {}),
+    rows,
+    businessModel: "ecommerce",
+  })) as EcommerceReportInput
+  const ecommerce = reportInput.ecommerceAnalysis
+  if (!ecommerce) throw new Error("ecommerce return regression analysis must be present")
+  assert(ecommerce.returnedOrders === 2, "return status normalization must count only returned and return-approved orders")
+  assert(ecommerce.eligibleReturnOrders === 5, "return denominator must exclude unknown statuses and avoid duplicate line-item counts")
+  nearlyEqual(ecommerce.returnRate, 40, "return rate must use order-level returned over eligible orders", 0.01)
+
+  const unknownRows = rows.map((row, index) => ({ ...row, order_id: `UNK-${index}`, return_status: index % 2 === 0 ? "" : "maybe later" }))
+  const unknownInput = await buildDatasetReportInput(buildDataset({
+    id: "profile_ecommerce_unknown_return_status",
+    filePath: path.join(process.cwd(), "test-fixtures", "business-models", "02_ecommerce.csv"),
+    rowCount: unknownRows.length,
+    columns: Object.keys(unknownRows[0] ?? {}),
+    rows: unknownRows,
+    businessModel: "ecommerce",
+  })) as EcommerceReportInput
+  assert(unknownInput.ecommerceAnalysis?.returnStatus === "not_available", "unknown return statuses must not fabricate availability")
+  assert(unknownInput.ecommerceAnalysis?.returnRate === null, "unknown return statuses must not produce a return-rate percentage")
+}
+
+async function assertSharedPdfPaginationRegression(generatePdfReport: GeneratePdfReport, getReportProfile: GetReportProfile) {
+  const report = {
+    id: "shared-pagination-regression",
+    datasetId: "profile_shared_pdf_pagination",
+    datasetName: "shared_pdf_pagination.csv",
+    createdAt: new Date().toISOString(),
+    status: "ready",
+    reportType: "executive-bi-report",
+    businessModel: "generic",
+    userId: "synthetic_user",
+    workspaceId: "synthetic_user",
+    runtimeVersion: "report-runtime-v5",
+    templateName: "Executive BI Report",
+    reportProfile: getReportProfile("generic"),
+    timezone: "Europe/Amsterdam",
+    timezoneOffset: 0,
+    localTime: "2026-08-15 12:00",
+    visibility: "private",
+    summary: "Synthetic report used to validate shared PDF pagination for long tables.",
+    financials: {
+      reportingPeriod: "Synthetic",
+      dataConfidence: 100,
+      revenue: 100000,
+      cogs: 40000,
+      grossProfit: 60000,
+      operatingExpenses: 25000,
+      operatingProfit: 35000,
+      interestExpense: 1000,
+      taxExpense: 5000,
+      netProfit: 29000,
+      grossMargin: 60,
+      operatingMargin: 35,
+      netMargin: 29,
+      topCostCategories: Array.from({ length: 55 }, (_, index) => ({
+        name: `Overflow Category ${String(index + 1).padStart(3, "0")}`,
+        value: 1000 + index,
+      })),
+      periodTrends: [
+        { period: "2026-01", revenue: 20000, grossProfit: 12000, operatingProfit: 7000, netProfit: 6000 },
+        { period: "2026-02", revenue: 22000, grossProfit: 13200, operatingProfit: 7600, netProfit: 6400 },
+        { period: "2026-03", revenue: 25000, grossProfit: 15000, operatingProfit: 8900, netProfit: 7200 },
+      ],
+    },
+    findings: [],
+    kpis: [],
+    charts: [],
+    aiInsights: [],
+    predictions: [],
+    recommendations: [],
+    alerts: [],
+    rowCount: 55,
+    columnCount: 4,
+  } as Parameters<GeneratePdfReport>[0]
+
+  const pdfPath = await generatePdfReport(report)
+  const { pages, text } = assertPdfLayoutBasics(pdfPath, "EXECUTIVE BI REPORT")
+  assert(pages >= 5, "shared pagination regression must create continuation pages")
+  assert(text.includes("Overflow Category 055"), "long PDF table must preserve the final row instead of clipping or dropping it")
+  const pagesWithRepeatedCostHeader = text
+    .split("\f")
+    .filter((pageText) => pageText.includes("Category") && pageText.includes("Amount") && pageText.includes("Share") && pageText.includes("Notes"))
+    .length
+  assert(pagesWithRepeatedCostHeader >= 2, "long PDF table continuation pages must repeat the table header")
+  fs.unlinkSync(pdfPath)
+}
+
+async function assertMissingRequiredProfilePdfRegressions(generatePdfReport: GeneratePdfReport, getReportProfile: GetReportProfile) {
+  const syntheticProfiles = [
+    { baseName: "04_marketplace_startup", model: "marketplace" },
+    { baseName: "05_investor_portfolio", model: "investor" },
+    { baseName: "06_business_consulting", model: "business_consulting" },
+    { baseName: "07_professional_services", model: "professional_services" },
+    { baseName: "08_generic_business", model: "generic" },
+    { baseName: "09_profitability_pnl", model: "profitability" },
+    { baseName: "10_accountancy_ledger", model: "accountancy" },
+  ]
+  const results: Array<{ fixture: string; title: string; pages: number }> = []
+  for (const profile of syntheticProfiles) {
+    for (const extension of ["csv", "xlsx"] as const) {
+      const reportProfile = getReportProfile(profile.model)
+      const report = {
+        id: `synthetic-${profile.baseName}-${extension}`,
+        datasetId: `profile_${profile.baseName}_${extension}`,
+        datasetName: `${profile.baseName}.${extension}`,
+        createdAt: new Date().toISOString(),
+        status: "ready",
+        reportType: "executive-bi-report",
+        businessModel: profile.model,
+        userId: "synthetic_user",
+        workspaceId: "synthetic_user",
+        runtimeVersion: "report-runtime-v5",
+        templateName: reportProfile.title,
+        reportProfile,
+        timezone: "Europe/Amsterdam",
+        timezoneOffset: 0,
+        localTime: "2026-08-15 12:00",
+        visibility: "private",
+        summary: `${profile.baseName} synthetic layout report validates shared PDF pagination only.`,
+        financials: {
+          reportingPeriod: "Synthetic",
+          dataConfidence: 80,
+          revenue: 50000,
+          cogs: 20000,
+          grossProfit: 30000,
+          operatingExpenses: 12000,
+          operatingProfit: 18000,
+          interestExpense: 500,
+          taxExpense: 3000,
+          netProfit: 14500,
+          grossMargin: 60,
+          operatingMargin: 36,
+          netMargin: 29,
+          topCostCategories: Array.from({ length: 14 }, (_, index) => ({
+            name: `${profile.baseName} Category ${String(index + 1).padStart(2, "0")}`,
+            value: 500 + index * 25,
+          })),
+          periodTrends: [
+            { period: "2026-01", revenue: 14000, grossProfit: 8400, operatingProfit: 4800, netProfit: 3600 },
+            { period: "2026-02", revenue: 16000, grossProfit: 9600, operatingProfit: 5600, netProfit: 4200 },
+            { period: "2026-03", revenue: 20000, grossProfit: 12000, operatingProfit: 7600, netProfit: 5200 },
+          ],
+        },
+        findings: [],
+        kpis: [],
+        charts: [],
+        aiInsights: [],
+        predictions: [],
+        recommendations: [],
+        alerts: [],
+        rowCount: 14,
+        columnCount: 4,
+      } as Parameters<GeneratePdfReport>[0]
+      const pdfPath = await generatePdfReport(report)
+      const { pages } = assertPdfLayoutBasics(pdfPath, reportProfile.title.toUpperCase())
+      fs.unlinkSync(pdfPath)
+      results.push({ fixture: `${profile.baseName}.${extension}`, title: reportProfile.title, pages })
+    }
+  }
+  return results
+}
+
+function assertPdfLayoutBasics(pdfPath: string, expectedTitle: string) {
+  const info = execFileSync("pdfinfo", [pdfPath], { encoding: "utf8" })
+  const pagesMatch = info.match(/^Pages:\s+(\d+)/m)
+  const pages = pagesMatch ? Number(pagesMatch[1]) : 0
+  assert(pages > 0, `${path.basename(pdfPath)} must have at least one PDF page`)
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" })
+  const expectedTitlePrefix = expectedTitle.slice(0, 28)
+  assert(text.includes(expectedTitle) || text.includes(expectedTitlePrefix), `${path.basename(pdfPath)} must include ${expectedTitle}`)
+  assert(text.includes(`Page 1 of ${pages}`), `${path.basename(pdfPath)} must include first-page numbering`)
+  assert(text.includes(`Page ${pages} of ${pages}`), `${path.basename(pdfPath)} must include final-page numbering`)
+  assert(!/\bundefined\b|\bNaN\b/.test(text), `${path.basename(pdfPath)} must not render undefined or NaN layout text`)
+  return { pages, text }
 }
 
 function assertRetailCategoryReconciliation(reportInput: DatasetReportInput, label: string) {
