@@ -3,7 +3,7 @@ import { debugLog } from "@/lib/utils/debug";
 import * as fs from "fs";
 import { jsPDF } from "jspdf";
 import * as path from "path";
-import type { Report, ReportFinancials, ReportRecommendation } from "./report-generator";
+import type { Report, ReportFinancials, ReportRecommendation, SaasReportAnalysis } from "./report-generator";
 
 const PDF_DIR = path.join(process.env.TEMP_DIR || "/tmp/useclevr-reports", "pdfs");
 const LOGO_PATH = path.join(process.cwd(), "src/assets/images/logos/useclevr-wordmark-dark.png");
@@ -91,6 +91,17 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "E-commerce Recommendations + Provenance", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials, "E-commerce Recommendations");
+  } else if (report.reportProfile?.id === "saas_startup" && report.saasAnalysis) {
+    addDocumentPage(doc, "Recurring Revenue & Growth", datasetName);
+    drawSaasRecurringRevenue(doc, report);
+    addDocumentPage(doc, "Customer & Unit Economics", datasetName);
+    drawSaasCustomerEconomics(doc, report);
+    addDocumentPage(doc, "Cash / Startup Health", datasetName);
+    drawSaasCashHealth(doc, report);
+    addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
+    drawBalancedScorecard(doc, report);
+    addDocumentPage(doc, "SaaS Recommendations + Provenance", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials, "SaaS Recommendations");
   } else {
     addDocumentPage(doc, "Financial Performance", datasetName);
     drawFinancialPerformance(doc, financials);
@@ -213,6 +224,20 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       numberMetricCard("Products", ecommerce.products === null ? "Not available" : ecommerce.products.toLocaleString(), ecommerce.productField ? `Distinct values from ${ecommerce.productField}.` : "Requires product field."),
       metricCard("Return Rate", ecommerce.returnRate, "percent", "missing", ecommerce.returnStatus === "available" && ecommerce.returnStatusField ? `Calculated from ${ecommerce.returnStatusField}.` : "Return status values could not be normalized reliably."),
       { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "E-commerce field coverage." },
+    ];
+  }
+  if (report.reportProfile?.id === "saas_startup" && report.saasAnalysis) {
+    const saas = report.saasAnalysis;
+    return [
+      metricCard("MRR", saas.mrr, "currency", "missing", saas.mrrField ? `Latest-period source value from ${saas.mrrField}.` : "Requires MRR field."),
+      metricCard("ARR", saas.arr, "currency", "missing", saas.arrField ? `Latest-period source value from ${saas.arrField}.` : "Requires ARR field."),
+      numberMetricCard("Customers", saas.customers === null ? "Not available" : saas.customers.toLocaleString(), saas.customerField ? `Distinct values from ${saas.customerField}.` : "Requires customer ID."),
+      numberMetricCard("New Customers", saas.newCustomers === null ? "Not available" : saas.newCustomers.toLocaleString(), saas.newCustomerField ? `Normalized positives from ${saas.newCustomerField}.` : "Requires new customer field."),
+      metricCard("Churn Rate", saas.churnRate, "percent", "missing", saas.churnField ? `Churned customers divided by eligible customers from ${saas.churnField}.` : "Requires churn field."),
+      metricCard("CAC", saas.cac, "currency", "missing", saas.cacField ? `Latest-period average from ${saas.cacField}.` : "Requires CAC field."),
+      metricCard("LTV", saas.ltv, "currency", "missing", saas.ltvField ? `Latest-period average from ${saas.ltvField}.` : "Requires LTV field."),
+      numberMetricCard("Runway", saas.runwayMonths === null ? "Not available" : `${saas.runwayMonths.toFixed(1)} months`, saas.runwayField ? `Latest-period average from ${saas.runwayField}.` : "Requires runway field."),
+      { title: "Data Confidence", value: `${saas.dataConfidence} / 100`, status: "neutral" as const, note: "SaaS field coverage." },
     ];
   }
 
@@ -464,6 +489,111 @@ function drawEcommerceCommercialIntelligence(doc: jsPDF, report: Report, financi
       ...ecommerce.paymentMethods.map((item): TableRow => [item.name, formatCurrency(item.value), item.orders.toLocaleString(), "Source revenue grouped by payment method."]),
     ], page.margin, y, [54, 34, 28, 58]);
   }
+}
+
+function drawSaasRecurringRevenue(doc: jsPDF, report: Report) {
+  const saas = report.saasAnalysis;
+  if (!saas) return;
+  let y = 48;
+  y = drawSectionHeading(doc, "Recurring Revenue Snapshot", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    saasRow("MRR", saas.mrr, "currency", saas.mrrField ? "Source value" : "Not available", saas.mrrField ? `Latest-period sum from ${saas.mrrField}.` : "No MRR field."),
+    saasRow("ARR", saas.arr, "currency", saas.arrField ? "Source value" : "Not available", saas.arrField ? `Latest-period sum from ${saas.arrField}.` : "No ARR field."),
+    saasRow("Expansion MRR", saas.expansionMrr, "currency", saas.expansionMrrField ? "Source value" : "Not available", saas.expansionMrrField ? `Latest-period sum from ${saas.expansionMrrField}.` : "No expansion MRR field."),
+    saasRow("Contraction MRR", saas.contractionMrr, "currency", saas.contractionMrrField ? "Source value" : "Not available", saas.contractionMrrField ? `Latest-period sum from ${saas.contractionMrrField}.` : "No contraction MRR field."),
+    saasRow("Net Expansion MRR", saas.netExpansionMrr, "currency", saas.netExpansionMrr !== null ? "Valid derived" : "Not available", "Expansion MRR minus Contraction MRR."),
+    ["Latest Period", saas.latestPeriod || "Not available", saas.latestPeriod ? "Available" : "Not available", saas.periodField ? `Mapped from ${saas.periodField}.` : "No period field."],
+  ], page.margin, y, [42, 35, 30, 67]) + 12;
+
+  y = drawSectionHeading(doc, "MRR Trend", y);
+  y = drawSaasTrendTable(doc, saas.mrrTrend, y, "MRR") + 12;
+
+  y = drawSectionHeading(doc, "Plan Performance", y);
+  if (saas.planPerformance.length === 0) {
+    drawUnavailable(doc, "Plan intelligence unavailable", "Plan and recurring-revenue fields are required for plan performance.", page.margin, y, 174, 28);
+  } else {
+    drawTable(doc, [
+      ["Plan", "MRR", "ARR", "Notes"],
+      ...saas.planPerformance.map((item): TableRow => [
+        item.name,
+        item.mrr === null ? "Not available" : formatCurrency(item.mrr),
+        item.arr === null ? "Not available" : formatCurrency(item.arr),
+        item.share === null ? `${item.customers ?? "Unknown"} customers.` : `${formatPercent(item.share)} of latest-period MRR; ${item.customers ?? "unknown"} customers.`,
+      ]),
+    ], page.margin, y, [45, 32, 32, 65]);
+  }
+}
+
+function drawSaasCustomerEconomics(doc: jsPDF, report: Report) {
+  const saas = report.saasAnalysis;
+  if (!saas) return;
+  let y = 48;
+  y = drawSectionHeading(doc, "Customer Metrics", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Customers", saas.customers === null ? "Not available" : saas.customers.toLocaleString(), saas.customers === null ? "Not available" : "Available", saas.customerField ? `Distinct values from ${saas.customerField}.` : "No customer ID."],
+    ["New Customers", saas.newCustomers === null ? "Not available" : saas.newCustomers.toLocaleString(), saas.newCustomers === null ? "Not available" : "Available", saas.newCustomerField ? `Distinct customers with normalized positive ${saas.newCustomerField}.` : "No new-customer field."],
+    ["Churned Customers", saas.churnedCustomers === null ? "Not available" : saas.churnedCustomers.toLocaleString(), saas.churnedCustomers === null ? "Not available" : "Available", saas.churnField ? `Distinct customers with normalized positive ${saas.churnField}.` : "No churn field."],
+    ["Churn Rate", saas.churnRate === null ? "Not available" : formatPercent(saas.churnRate), saas.churnRate === null ? "Not available" : "Valid derived", saas.eligibleChurnCustomers === null ? "Requires eligible normalized churn statuses." : `${saas.churnedCustomers} / ${saas.eligibleChurnCustomers} eligible customers.`],
+    saasRow("CAC", saas.cac, "currency", saas.cacField ? "Source value" : "Not available", saas.cacField ? `Latest-period average from ${saas.cacField}.` : "No CAC field."),
+    saasRow("LTV", saas.ltv, "currency", saas.ltvField ? "Source value" : "Not available", saas.ltvField ? `Latest-period average from ${saas.ltvField}.` : "No LTV field."),
+    ["LTV/CAC", saas.ltvToCac === null ? "Not available" : `${saas.ltvToCac.toFixed(2)}x`, saas.ltvToCac === null ? "Not available" : "Valid derived", "LTV divided by CAC when both latest-period averages are available."],
+    ["Active Users", saas.activeUsers === null ? "Not available" : saas.activeUsers.toLocaleString(), saas.activeUsers === null ? "Not available" : "Source value", saas.activeUsersField ? `Latest-period sum from ${saas.activeUsersField}.` : "No active users field."],
+    ["Support Tickets", saas.supportTickets === null ? "Not available" : saas.supportTickets.toLocaleString(), saas.supportTickets === null ? "Not available" : "Source value", saas.supportTicketsField ? `Latest-period sum from ${saas.supportTicketsField}.` : "No support tickets field."],
+  ], page.margin, y, [42, 35, 30, 67]) + 12;
+
+  y = drawSectionHeading(doc, "Country Segmentation", y);
+  if (saas.geography.length === 0) {
+    drawUnavailable(doc, "Geography unavailable", "Country or region fields are required for SaaS geography.", page.margin, y, 174, 28);
+  } else {
+    drawTable(doc, [
+      ["Country", "Customers", "MRR", "Notes"],
+      ...saas.geography.map((item): TableRow => [
+        item.name,
+        item.customers === null ? "Not available" : item.customers.toLocaleString(),
+        item.mrr === null ? "Not available" : formatCurrency(item.mrr),
+        item.share === null ? "MRR share unavailable." : `${formatPercent(item.share)} of latest-period MRR.`,
+      ]),
+    ], page.margin, y, [45, 32, 32, 65]);
+  }
+}
+
+function drawSaasCashHealth(doc: jsPDF, report: Report) {
+  const saas = report.saasAnalysis;
+  if (!saas) return;
+  let y = 48;
+  y = drawSectionHeading(doc, "Cash / Startup Health", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    saasRow("Burn", saas.burn, "currency", saas.burnField ? "Source value" : "Not available", saas.burnField ? `Latest-period average from ${saas.burnField}; not mapped to COGS or net loss.` : "No burn field."),
+    saasRow("Cash Balance", saas.cashBalance, "currency", saas.cashBalanceField ? "Source value" : "Not available", saas.cashBalanceField ? `Latest-period average from ${saas.cashBalanceField}; snapshots are not summed.` : "No cash balance field."),
+    ["Runway", saas.runwayMonths === null ? "Not available" : `${saas.runwayMonths.toFixed(1)} months`, saas.runwayMonths === null ? "Not available" : "Source value", saas.runwayField ? `Explicit latest-period average from ${saas.runwayField}.` : "No runway field."],
+  ], page.margin, y, [42, 35, 30, 67]) + 12;
+
+  y = drawSectionHeading(doc, "Burn / Cash / Runway Trends", y);
+  y = drawSaasTrendTable(doc, saas.burnTrend, y, "Burn") + 10;
+  y = drawSaasTrendTable(doc, saas.cashTrend, y, "Cash Balance") + 10;
+  drawSaasTrendTable(doc, saas.runwayTrend, y, "Runway");
+}
+
+function saasRow(label: string, value: number | null, format: "currency" | "number", status: string, note: string): TableRow {
+  return [
+    label,
+    value === null ? "Not available" : format === "currency" ? formatCurrency(value) : value.toLocaleString(),
+    value === null ? "Not available" : status,
+    note,
+  ];
+}
+
+function drawSaasTrendTable(doc: jsPDF, trend: { name: string; value: number }[], y: number, label: string) {
+  if (trend.length < 2) {
+    return drawUnavailable(doc, `${label} trend unavailable`, `At least two valid period values are required for ${label}.`, page.margin, y, 174, 26);
+  }
+  return drawTable(doc, [
+    ["Period", label, "Status", "Notes"],
+    ...trend.map((item): TableRow => [item.name, label === "Runway" ? `${item.value.toFixed(1)} months` : label === "Burn" || label === "Cash Balance" || label.includes("MRR") ? formatCurrency(item.value) : item.value.toLocaleString(), "Available", "Grouped by recognized SaaS period field."]),
+  ], page.margin, y, [42, 36, 30, 66]);
 }
 
 function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {
@@ -919,7 +1049,9 @@ function tracePdfRuntime(moduleName: string, report: Report, financials: ReportF
     validExpenseCategoryCount: report.diagnostics?.validExpenseCategoryCount ?? null,
     validExpenseAmountCount: report.diagnostics?.validExpenseAmountCount ?? null,
     validVendorCount: report.diagnostics?.validVendorCount ?? null,
-    trendAvailable: (financials.periodTrends || []).filter((trend) => trend.netProfit !== null).length > 0,
+    trendAvailable:
+      report.diagnostics?.trendAvailable ??
+      (financials.periodTrends || []).filter((trend) => trend.netProfit !== null).length > 0,
     analysisObjectKeys: report.diagnostics?.analysisObjectKeys ?? [],
     reportInputKeys: report.diagnostics?.reportInputKeys ?? Object.keys(report),
     templateName: report.templateName ?? "legacy-report",

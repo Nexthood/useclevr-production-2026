@@ -3882,3 +3882,38 @@ For PDF report work, treat fixed Y increments after charts and tables as paginat
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Startup Report Semantics
+
+1. Interaction title
+SaaS Startup Executive Report semantic enforcement.
+
+2. What was the user goal
+Fix the existing SaaS Startup report profile end to end so `03_saas_startup.csv` and `03_saas_startup.xlsx` generate SaaS-specific Executive Reports from 144-row source data without generic P&L fallbacks, fabricated revenue semantics, or zero confidence.
+
+3. What changed
+The report builder now detects SaaS fields, builds a SaaS analysis payload, bases data confidence on SaaS coverage, and routes KPIs, charts, findings, recommendations, diagnostics, and PDF rendering through the existing SaaS report profile. SaaS PDF output now includes Recurring Revenue & Growth, Customer & Unit Economics, Cash / Startup Health, Business Balanced Scorecard, recommendations, and provenance. The new numbered SaaS CSV/XLSX fixtures use monthly customer snapshot grain with 12 months and 12 distinct customers.
+
+4. Problems marked
+blocker: none.
+risk: the workspace still lacks the remaining exact numbered fixture families `04_marketplace_startup` through `10_accountancy_ledger`, so the regression suite uses synthetic PDFs for those shared renderer profiles.
+improvement: add the remaining exact numbered fixtures so every mandatory report profile validates from file-backed CSV and XLSX inputs.
+observation: SaaS MRR, ARR, expansion, contraction, active users, and support tickets use the latest period snapshot, while customers, new customers, and churn use distinct `customer_id` semantics with normalized boolean statuses.
+
+5. User learning
+The SaaS report selected the right profile title but lacked a SaaS-specific report payload and PDF branch, so it fell through to generic financial pages that expected Revenue, Gross Profit, and Net Profit.
+
+6. AI-agent learning
+For profile-specific reporting, keep classification, semantic analysis, diagnostics, PDF rendering, and fixtures connected through one existing profile path before adding any new report logic.
+
+7. Follow-up tasks
+- Add the exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

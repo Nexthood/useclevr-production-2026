@@ -3,7 +3,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { parseCSVStreaming } from "../../src/lib/data/csvLoader"
 import type { ReportProfileId } from "../../src/lib/reports/report-profiles"
-import type { EcommerceReportAnalysis, ReportDiagnostics, ReportSemanticContext } from "../../src/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, ReportDiagnostics, ReportSemanticContext, SaasReportAnalysis } from "../../src/lib/reports/report-generator"
 
 type DatasetInput = Parameters<typeof import("../../src/lib/reports/dataset-report-builder").buildDatasetReportInput>[0]
 type DatasetReportInput = Awaited<ReturnType<typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]>>
@@ -14,6 +14,7 @@ type GeneratePdfReport = typeof import("../../src/lib/reports/pdf-report-generat
 type GetReportProfile = typeof import("../../src/lib/reports/report-profiles")["getReportProfile"]
 type EcommerceReportInput = DatasetReportInput & {
   ecommerceAnalysis?: EcommerceReportAnalysis
+  saasAnalysis?: SaasReportAnalysis
   semanticContext?: ReportSemanticContext
   diagnostics?: ReportDiagnostics
 }
@@ -28,7 +29,7 @@ type FixtureCase = {
 const availableFixtures: FixtureCase[] = [
   { family: "local_retail", baseName: "01_local_retail", businessModel: "local_retail", expectedProfile: "local_retail" },
   { family: "ecommerce", baseName: "02_ecommerce", businessModel: "ecommerce", expectedProfile: "ecommerce" },
-  { family: "saas_startup", baseName: "startup-saas", businessModel: "saas", expectedProfile: "saas_startup" },
+  { family: "saas_startup", baseName: "03_saas_startup", businessModel: "saas", expectedProfile: "saas_startup" },
   { family: "investor_portfolio", baseName: "investor-portfolio", businessModel: "investor", expectedProfile: "investor_portfolio" },
   { family: "business_consulting", baseName: "business-consulting", businessModel: "generic", expectedProfile: "business_consulting" },
 ]
@@ -98,6 +99,30 @@ async function main() {
     channelCount: number
     categoryCount: number
     trendCount: number
+  }> = {}
+  const saasParity: Record<string, {
+    rows: number
+    mrr: number | null
+    arr: number | null
+    customers: number | null
+    newCustomers: number | null
+    churnedCustomers: number | null
+    churnRate: number | null
+    expansionMrr: number | null
+    contractionMrr: number | null
+    netExpansionMrr: number | null
+    cac: number | null
+    ltv: number | null
+    ltvToCac: number | null
+    activeUsers: number | null
+    supportTickets: number | null
+    burn: number | null
+    cashBalance: number | null
+    runwayMonths: number | null
+    planCount: number
+    geographyCount: number
+    trendCount: number
+    dataConfidence: number | null
   }> = {}
 
   for (const fixture of availableFixtures) {
@@ -199,6 +224,77 @@ async function main() {
         }
       }
 
+      if (fixture.family === "saas_startup") {
+        const saasInput = reportInput as EcommerceReportInput
+        const saas = saasInput.saasAnalysis
+        assert(saasInput.reportProfile.title === "SaaS Executive Report", "saas startup must use SaaS Executive Report")
+        assert(saasInput.rowCount === 144, "saas startup fixture must analyze all 144 rows")
+        if (!saas) throw new Error("saas analysis must be present")
+        assert(saas.periodField === "month", "saas period must map from month")
+        assert(saas.customerField === "customer_id", "saas customers must use customer_id")
+        assert(saas.mrrField === "mrr", "saas MRR must map from mrr")
+        assert(saas.arrField === "arr", "saas ARR must map from arr")
+        assert(saas.newCustomerField === "new_customer", "saas new customers must map from new_customer")
+        assert(saas.churnField === "churned", "saas churn must map from churned")
+        assert(saas.expansionMrrField === "expansion_mrr", "saas expansion MRR must map from expansion_mrr")
+        assert(saas.contractionMrrField === "contraction_mrr", "saas contraction MRR must map from contraction_mrr")
+        assert(saas.cacField === "cac", "saas CAC must map from cac")
+        assert(saas.ltvField === "ltv", "saas LTV must map from ltv")
+        assert(saas.activeUsersField === "active_users", "saas active users must map from active_users")
+        assert(saas.supportTicketsField === "support_tickets", "saas support tickets must map from support_tickets")
+        assert(saas.burnField === "burn", "saas burn must map from burn")
+        assert(saas.cashBalanceField === "cash_balance", "saas cash balance must map from cash_balance")
+        assert(saas.runwayField === "runway_months", "saas runway must map from runway_months")
+        assert(saas.mrr !== null && saas.mrr > 0, "saas MRR must be available")
+        assert(saas.arr !== null && saas.arr > 0, "saas ARR must be available")
+        assert(saas.customers !== null && saas.customers > 0, "saas customers must be available")
+        assert(saas.newCustomers !== null && saas.newCustomers > 0, "saas new customers must be available")
+        assert(saas.churnedCustomers !== null && saas.churnedCustomers > 0, "saas churned customers must be available")
+        assert(saas.churnRate !== null && saas.churnRate > 0, "saas churn rate must be available")
+        assert(saas.expansionMrr !== null && saas.expansionMrr >= 0, "saas expansion MRR must be available")
+        assert(saas.contractionMrr !== null && saas.contractionMrr >= 0, "saas contraction MRR must be available")
+        assert(saas.netExpansionMrr !== null, "saas net expansion MRR must be derived")
+        assert(saas.cac !== null && saas.cac > 0, "saas CAC must be available")
+        assert(saas.ltv !== null && saas.ltv > 0, "saas LTV must be available")
+        assert(saas.ltvToCac !== null && saas.ltvToCac > 0, "saas LTV/CAC must be available")
+        assert(saas.activeUsers !== null && saas.activeUsers > 0, "saas active users must be available")
+        assert(saas.supportTickets !== null && saas.supportTickets >= 0, "saas support tickets must be available")
+        assert(saas.burn !== null && saas.burn > 0, "saas burn must be available")
+        assert(saas.cashBalance !== null && saas.cashBalance > 0, "saas cash balance must be available")
+        assert(saas.runwayMonths !== null && saas.runwayMonths > 0, "saas runway must be available")
+        assert(saas.planPerformance.length > 0, "saas plan intelligence must be available")
+        assert(saas.geography.length > 0, "saas geography must be available")
+        assert(saas.mrrTrend.length >= 2, "saas MRR trend must be available")
+        assert(saas.dataConfidence > 0, "saas data confidence must not be zero")
+        assert(saasInput.diagnostics?.trendAvailable === true, "saas diagnostics must mark trend available without net profit")
+        const recommendationText = reportInput.recommendations?.map((item) => `${item.issue} ${item.recommendedAction}`).join(" ") || ""
+        assert(!/^Add COGS, operating expenses, interest and tax/i.test(recommendationText), "saas recommendations must not lead with generic P&L missing-field advice")
+        saasParity[extension] = {
+          rows: saasInput.rowCount,
+          mrr: saas.mrr,
+          arr: saas.arr,
+          customers: saas.customers,
+          newCustomers: saas.newCustomers,
+          churnedCustomers: saas.churnedCustomers,
+          churnRate: saas.churnRate,
+          expansionMrr: saas.expansionMrr,
+          contractionMrr: saas.contractionMrr,
+          netExpansionMrr: saas.netExpansionMrr,
+          cac: saas.cac,
+          ltv: saas.ltv,
+          ltvToCac: saas.ltvToCac,
+          activeUsers: saas.activeUsers,
+          supportTickets: saas.supportTickets,
+          burn: saas.burn,
+          cashBalance: saas.cashBalance,
+          runwayMonths: saas.runwayMonths,
+          planCount: saas.planPerformance.length,
+          geographyCount: saas.geography.length,
+          trendCount: saas.mrrTrend.length,
+          dataConfidence: saas.dataConfidence,
+        }
+      }
+
       if (fixture.family === "local_retail" && extension === "xlsx") {
         const report = await generateReport(dataset.id, "01_local_retail.xlsx", {
           visibility: "private",
@@ -259,6 +355,45 @@ async function main() {
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
         deleteReport(report.id)
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
+      } else if (fixture.family === "saas_startup" && extension === "xlsx") {
+        const report = await generateReport(dataset.id, "03_saas_startup.xlsx", {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: "dataset-aware-saas-profile",
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "saas PDF must generate")
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "SAAS EXECUTIVE REPORT")
+        assert(pdfText.includes("SAAS EXECUTIVE REPORT"), "saas PDF must identify the SaaS report")
+        assert(pdfText.includes("Rows Analyzed"), "saas PDF must include row provenance")
+        assert(pdfText.includes("144"), "saas PDF must show all 144 rows")
+        assert(pdfText.includes("MRR"), "saas PDF must include MRR")
+        assert(pdfText.includes("ARR"), "saas PDF must include ARR")
+        assert(pdfText.includes("Customers"), "saas PDF must include customers")
+        assert(pdfText.includes("New Customers"), "saas PDF must include new customers")
+        assert(pdfText.includes("Churn"), "saas PDF must include churn")
+        assert(pdfText.includes("Expansion MRR"), "saas PDF must include expansion MRR")
+        assert(pdfText.includes("Contraction MRR"), "saas PDF must include contraction MRR")
+        assert(pdfText.includes("CAC"), "saas PDF must include CAC")
+        assert(pdfText.includes("LTV"), "saas PDF must include LTV")
+        assert(pdfText.includes("Active Users"), "saas PDF must include active users")
+        assert(pdfText.includes("Support Tickets"), "saas PDF must include support tickets")
+        assert(pdfText.includes("Burn"), "saas PDF must include burn")
+        assert(pdfText.includes("Cash Balance"), "saas PDF must include cash balance")
+        assert(pdfText.includes("Runway"), "saas PDF must include runway")
+        assert(pdfText.includes("RECURRING REVENUE & GROWTH"), "saas PDF must include recurring revenue page")
+        assert(pdfText.includes("CUSTOMER & UNIT ECONOMICS"), "saas PDF must include customer economics page")
+        assert(pdfText.includes("CASH / STARTUP HEALTH"), "saas PDF must include cash health page")
+        assert(pdfText.includes("PLAN PERFORMANCE"), "saas PDF must include plan intelligence")
+        assert(pdfText.includes("Country") || pdfText.includes("COUNTRY SEGMENTATION"), "saas PDF must include geography")
+        assert(!pdfText.includes("COST INTELLIGENCE"), "saas PDF must not render generic cost intelligence as the default SaaS page")
+        assert(!pdfText.includes("Recognized financial-field coverage"), "saas PDF must not use generic financial-field confidence wording")
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
       } else {
         const report = await generateReport(dataset.id, path.basename(filePath), {
           visibility: "private",
@@ -280,6 +415,7 @@ async function main() {
 
   assert(JSON.stringify(retailParity.csv) === JSON.stringify(retailParity.xlsx), "local retail CSV and XLSX outputs must match for financials, AOV status, inventory value, and reorder metrics")
   assert(JSON.stringify(ecommerceParity.csv) === JSON.stringify(ecommerceParity.xlsx), "ecommerce CSV and XLSX outputs must match for semantic KPI results")
+  assert(JSON.stringify(saasParity.csv) === JSON.stringify(saasParity.xlsx), "saas startup CSV and XLSX outputs must match for semantic KPI results")
   await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport, generatePdfReport)
   await assertEcommerceReturnStatusRegressions(buildDatasetReportInput)
   await assertSharedPdfPaginationRegression(generatePdfReport, getReportProfile)
@@ -409,7 +545,6 @@ async function assertSharedPdfPaginationRegression(generatePdfReport: GeneratePd
 
 async function assertMissingRequiredProfilePdfRegressions(generatePdfReport: GeneratePdfReport, getReportProfile: GetReportProfile) {
   const syntheticProfiles = [
-    { baseName: "03_saas_startup", model: "saas" },
     { baseName: "04_marketplace_startup", model: "marketplace" },
     { baseName: "05_investor_portfolio", model: "investor" },
     { baseName: "06_business_consulting", model: "business_consulting" },
