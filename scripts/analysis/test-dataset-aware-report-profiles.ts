@@ -307,6 +307,7 @@ async function main() {
         }, reportInput)
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "local retail PDF must generate")
         const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "RETAIL EXECUTIVE REPORT")
+        assertResultsSummaryPage(pdfText, "RETAIL RESULTS SUMMARY", ["MRR", "ARR", "Churn Rate"], "retail", { requireKeyResults: true, requireActions: true })
         assert(pdfText.includes("RETAIL EXECUTIVE REPORT"), "local retail PDF must identify the retail report")
         assert(pdfText.includes("SALES & MARGIN PERFORMANCE"), "local retail PDF must include sales and margin page")
         assert(pdfText.includes("INVENTORY INTELLIGENCE"), "local retail PDF must include inventory page")
@@ -332,6 +333,7 @@ async function main() {
         }, reportInput)
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "ecommerce PDF must generate")
         const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "E-COMMERCE PERFORMANCE REPORT")
+        assertResultsSummaryPage(pdfText, "E-COMMERCE RESULTS SUMMARY", ["MRR", "ARR", "Churn Rate"], "ecommerce", { requireKeyResults: true, requireActions: true })
         const normalizedPdfText = pdfText.toLowerCase()
         assert(pdfText.includes("E-COMMERCE PERFORMANCE REPORT"), "ecommerce PDF must identify the e-commerce report")
         assert(pdfText.includes("Rows Analyzed"), "ecommerce PDF must include row provenance")
@@ -367,6 +369,7 @@ async function main() {
         }, reportInput)
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "saas PDF must generate")
         const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "SAAS EXECUTIVE REPORT")
+        assertResultsSummaryPage(pdfText, "SAAS RESULTS SUMMARY", ["AOV", "Average Order Value", "Orders"], "saas", { requireKeyResults: true, requireActions: true })
         assert(pdfText.includes("SAAS EXECUTIVE REPORT"), "saas PDF must identify the SaaS report")
         assert(pdfText.includes("Rows Analyzed"), "saas PDF must include row provenance")
         assert(pdfText.includes("144"), "saas PDF must show all 144 rows")
@@ -411,7 +414,8 @@ async function main() {
           idempotencyKey: `dataset-aware-${fixture.family}-${extension}-profile`,
         }, reportInput)
         assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), `${fixture.family}.${extension} PDF must generate`)
-        assertPdfLayoutBasics(report.pdfPath!, reportInput.reportProfile.title.toUpperCase())
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, reportInput.reportProfile.title.toUpperCase())
+        assertResultsSummaryPage(pdfText, expectedResultsSummaryTitle(reportInput.reportProfile.id), [], fixture.family, { requireKeyResults: true })
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
         deleteReport(report.id)
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
@@ -616,7 +620,8 @@ async function assertMissingRequiredProfilePdfRegressions(generatePdfReport: Gen
         columnCount: 4,
       } as Parameters<GeneratePdfReport>[0]
       const pdfPath = await generatePdfReport(report)
-      const { pages } = assertPdfLayoutBasics(pdfPath, reportProfile.title.toUpperCase())
+      const { pages, text } = assertPdfLayoutBasics(pdfPath, reportProfile.title.toUpperCase())
+      assertResultsSummaryPage(text, expectedResultsSummaryTitle(reportProfile.id), [], profile.baseName, { requireKeyResults: false, requireActions: false })
       fs.unlinkSync(pdfPath)
       results.push({ fixture: `${profile.baseName}.${extension}`, title: reportProfile.title, pages })
     }
@@ -636,6 +641,45 @@ function assertPdfLayoutBasics(pdfPath: string, expectedTitle: string) {
   assert(text.includes(`Page ${pages} of ${pages}`), `${path.basename(pdfPath)} must include final-page numbering`)
   assert(!/\bundefined\b|\bNaN\b/.test(text), `${path.basename(pdfPath)} must not render undefined or NaN layout text`)
   return { pages, text }
+}
+
+function assertResultsSummaryPage(
+  text: string,
+  expectedTitle: string,
+  forbiddenTerms: string[],
+  label: string,
+  options: { requireKeyResults?: boolean; requireActions?: boolean } = {},
+) {
+  const finalPage = lastPdfPageText(text)
+  assert(finalPage.includes(expectedTitle), `${label}: final PDF page must be ${expectedTitle}`)
+  if (options.requireKeyResults !== false) {
+    assert(finalPage.includes("KEY RESULTS"), `${label}: results summary must include key results`)
+  }
+  assert(finalPage.includes("BUSINESS HEALTH"), `${label}: results summary must include business health`)
+  if (options.requireActions !== false) {
+    assert(finalPage.includes("PRIORITY ACTIONS"), `${label}: results summary must include priority actions`)
+  }
+  assert(!/\bundefined\b|\bNaN\b/.test(finalPage), `${label}: results summary must not render undefined or NaN`)
+  for (const term of forbiddenTerms) {
+    assert(!finalPage.includes(term), `${label}: results summary must not include cross-profile metric ${term}`)
+  }
+}
+
+function lastPdfPageText(text: string) {
+  const pages = text.split("\f").map((pageText) => pageText.trim()).filter(Boolean)
+  return pages[pages.length - 1] || ""
+}
+
+function expectedResultsSummaryTitle(profileId: ReportProfileId) {
+  if (profileId === "local_retail") return "RETAIL RESULTS SUMMARY"
+  if (profileId === "ecommerce") return "E-COMMERCE RESULTS SUMMARY"
+  if (profileId === "saas_startup") return "SAAS RESULTS SUMMARY"
+  if (profileId === "marketplace_startup") return "MARKETPLACE RESULTS SUMMARY"
+  if (profileId === "investor_portfolio") return "PORTFOLIO RESULTS SUMMARY"
+  if (profileId === "professional_services") return "PROFESSIONAL SERVICES RESULTS SUMMARY"
+  if (profileId === "profitability_pnl") return "PROFITABILITY RESULTS SUMMARY"
+  if (profileId === "accountancy_ledger") return "ACCOUNTANCY RESULTS SUMMARY"
+  return "BUSINESS RESULTS SUMMARY"
 }
 
 function assertSectionHasMeaningfulContent(text: string, heading: string, requiredContent: string[], message: string) {

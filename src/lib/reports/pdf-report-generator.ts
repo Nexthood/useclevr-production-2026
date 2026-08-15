@@ -12,6 +12,8 @@ type Rgb = [number, number, number];
 type MetricKey = keyof NonNullable<ReportFinancials["metricSources"]>;
 type MetricSourceKind = "source_value" | "derived_value" | "unavailable";
 type TableRow = [string, string, string, string];
+type SummaryMetric = { title: string; value: string };
+type SummaryItem = { label: string; detail: string; tone?: "neutral" | "positive" | "risk" };
 type PdfLayoutContext = {
   title: string;
   datasetName: string;
@@ -122,6 +124,9 @@ export async function generatePdfReport(report: Report): Promise<string> {
     addDocumentPage(doc, "Executive Recommendations", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials);
   }
+
+  addDocumentPage(doc, resultsSummaryTitle(report), datasetName);
+  drawExecutiveResultsSummary(doc, report, financials);
 
   addFooters(doc, report);
 
@@ -764,6 +769,318 @@ function drawRecommendationsAndProvenance(doc: jsPDF, report: Report, financials
     174,
     28,
   );
+}
+
+function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  let y = 48;
+  const summary = buildResultsSummary(report, financials);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...colors.body);
+  doc.text(
+    "Final management snapshot from the canonical metrics, findings, recommendations, scorecard, and provenance in this report.",
+    page.margin,
+    y,
+    { maxWidth: 174 },
+  );
+  y += 8;
+
+  if (summary.metrics.length > 0) {
+    y = drawSectionHeading(doc, "Key Results", y, 38);
+    y = drawSummaryMetricGrid(doc, summary.metrics, y) + 5;
+  }
+
+  if (summary.highlights.length > 0) {
+    y = drawSectionHeading(doc, "Performance Highlights", y, 22);
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 11) + 5;
+  }
+
+  if (summary.health.length > 0) {
+    y = drawSectionHeading(doc, "Business Health", y, 20);
+    y = drawSummaryItems(doc, summary.health, y, 2, 10) + 5;
+  }
+
+  if (summary.findings.length > 0) {
+    y = drawSectionHeading(doc, "Top Findings", y, 33);
+    y = drawSummaryItems(doc, summary.findings, y, 3, 11) + 5;
+  }
+
+  if (summary.actions.length > 0) {
+    y = drawSectionHeading(doc, "Priority Actions", y, 33);
+    y = drawSummaryItems(doc, summary.actions, y, 3, 11) + 5;
+  }
+
+  if (summary.status.length > 0 && y < 255) {
+    y = drawSectionHeading(doc, "Data / Analysis Status", y, 10);
+    drawSummaryItems(doc, summary.status, y, 1, 10);
+  }
+}
+
+function buildResultsSummary(report: Report, financials: ReportFinancials) {
+  const recommendations = normalizeRecommendations(report, financials);
+  const confidence = profileDataConfidence(report, financials);
+  return {
+    metrics: selectSummaryMetrics(report),
+    highlights: selectPerformanceHighlights(report),
+    health: selectBusinessHealth(report, confidence),
+    findings: selectTopFindings(report),
+    actions: recommendations.slice(0, 4).map((recommendation, index): SummaryItem => ({
+      label: String(index + 1).padStart(2, "0"),
+      detail: [
+        recommendation.recommendedAction,
+        recommendation.businessImpact ? `Impact: ${recommendation.businessImpact}` : null,
+        recommendation.estimatedImpact ? `Estimated impact: ${recommendation.estimatedImpact}` : null,
+      ].filter(Boolean).join(" "),
+      tone: recommendation.confidence === "Low" ? "risk" : "neutral",
+    })),
+    status: selectDataStatus(report, financials, confidence),
+  };
+}
+
+function resultsSummaryTitle(report: Report) {
+  switch (report.reportProfile?.id) {
+    case "local_retail":
+      return "Retail Results Summary";
+    case "ecommerce":
+      return "E-commerce Results Summary";
+    case "saas_startup":
+      return "SaaS Results Summary";
+    case "marketplace_startup":
+      return "Marketplace Results Summary";
+    case "investor_portfolio":
+      return "Portfolio Results Summary";
+    case "professional_services":
+      return "Professional Services Results Summary";
+    case "profitability_pnl":
+      return "Profitability Results Summary";
+    case "accountancy_ledger":
+      return "Accountancy Results Summary";
+    case "business_consulting":
+    case "generic_business":
+    default:
+      return "Business Results Summary";
+  }
+}
+
+function selectSummaryMetrics(report: Report): SummaryMetric[] {
+  const available = report.kpis.filter((kpi) => isAvailableSummaryValue(kpi.value));
+  const priorities = [
+    ...(report.reportProfile?.primaryMetrics || []),
+    ...(report.reportProfile?.secondaryMetrics || []),
+    ...profileSummaryMetricAliases(report.reportProfile?.id),
+  ];
+  const selected: SummaryMetric[] = [];
+  for (const priority of priorities) {
+    const match = available.find((kpi) => matchesMetricPriority(kpi.title, priority) && !selected.some((item) => item.title === kpi.title));
+    if (match) selected.push({ title: match.title, value: match.value });
+    if (selected.length >= 8) return selected;
+  }
+  for (const kpi of available) {
+    if (!selected.some((item) => item.title === kpi.title)) selected.push({ title: kpi.title, value: kpi.value });
+    if (selected.length >= 8) break;
+  }
+  return selected;
+}
+
+function profileSummaryMetricAliases(profileId?: string): string[] {
+  if (profileId === "local_retail") return ["Units Sold", "Current Stock", "Low Stock SKUs", "AOV"];
+  if (profileId === "ecommerce") return ["AOV", "Average Order Value", "Units Sold", "Return Rate", "Shipping / Fulfillment Cost"];
+  if (profileId === "saas_startup") return ["MRR", "ARR", "Customers", "New Customers", "Churn Rate", "Net Expansion MRR", "CAC", "LTV", "Runway"];
+  if (profileId === "marketplace_startup") return ["GMV", "Commission", "Sellers", "Buyers"];
+  if (profileId === "investor_portfolio") return ["Invested capital", "Portfolio valuation", "Average ownership"];
+  if (profileId === "business_consulting" || profileId === "professional_services") return ["Billable hours", "Utilization revenue", "Project margin", "Client count"];
+  if (profileId === "profitability_pnl") return ["Revenue", "COGS", "Gross Profit", "Operating Profit", "Net Profit", "Gross Margin", "Net Margin"];
+  if (profileId === "accountancy_ledger") return ["Debit total", "Credit total", "Invoices / documents", "Accounts"];
+  return ["Revenue", "Gross Profit", "Gross Margin", "Operating Profit", "Net Profit", "Costs"];
+}
+
+function matchesMetricPriority(title: string, priority: string) {
+  const normalizedTitle = normalizeMetricName(title);
+  const normalizedPriority = normalizeMetricName(priority);
+  return normalizedTitle === normalizedPriority
+    || normalizedTitle.includes(normalizedPriority)
+    || normalizedPriority.includes(normalizedTitle);
+}
+
+function normalizeMetricName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function isAvailableSummaryValue(value: string) {
+  return Boolean(value && !/not available|undefined|nan/i.test(value));
+}
+
+function selectPerformanceHighlights(report: Report): SummaryItem[] {
+  const highlights: SummaryItem[] = [];
+  for (const chart of report.charts || []) {
+    const top = chart.data?.find((item) => Number.isFinite(item.value));
+    if (top) {
+      highlights.push({
+        label: truncate(chart.title, 32),
+        detail: `${truncate(top.name, 42)}: ${formatSummaryChartValue(top.value, chart.title)}`,
+      });
+    }
+    if (highlights.length >= 3) break;
+  }
+  for (const finding of report.findings || []) {
+    if (highlights.length >= 4) break;
+    highlights.push({ label: "Report result", detail: findingToneDetail(finding), tone: classifyFindingTone(finding) });
+  }
+  return dedupeSummaryItems(highlights).slice(0, 4);
+}
+
+function selectBusinessHealth(report: Report, confidence: number | null): SummaryItem[] {
+  const health: SummaryItem[] = [];
+  if (report.bbsc?.overallScore !== null && report.bbsc?.overallScore !== undefined) {
+    health.push({ label: "Balanced Scorecard", detail: `${report.bbsc.overallScore} / 100` });
+  }
+  if (confidence !== null) {
+    health.push({ label: "Data Confidence", detail: `${confidence} / 100` });
+  }
+  if (report.bbsc?.strongestPerspective) {
+    health.push({ label: "Strongest Perspective", detail: `${report.bbsc.strongestPerspective.shortTitle || report.bbsc.strongestPerspective.title}: ${report.bbsc.strongestPerspective.score ?? "Not available"} / 100`, tone: "positive" });
+  }
+  if (report.bbsc?.weakestPerspective) {
+    health.push({ label: "Priority Perspective", detail: `${report.bbsc.weakestPerspective.shortTitle || report.bbsc.weakestPerspective.title}: ${report.bbsc.weakestPerspective.score ?? "Not available"} / 100`, tone: "risk" });
+  }
+  return health.slice(0, 4);
+}
+
+function selectTopFindings(report: Report): SummaryItem[] {
+  return (report.findings || [])
+    .filter((finding) => cleanText(finding).length > 0)
+    .slice(0, 5)
+    .map((finding): SummaryItem => ({
+      label: findingToneLabel(finding),
+      detail: findingToneDetail(finding),
+      tone: classifyFindingTone(finding),
+    }));
+}
+
+function selectDataStatus(report: Report, financials: ReportFinancials, confidence: number | null): SummaryItem[] {
+  const status: SummaryItem[] = [];
+  const missing = [
+    ...(financials.missingFields || []),
+    ...Object.entries(financials.metricSources || {})
+      .filter(([, source]) => source?.kind === "unavailable")
+      .map(([key]) => labelFromCamelCase(key)),
+  ].filter((value, index, list) => value && list.indexOf(value) === index);
+  if (missing.length > 0) {
+    status.push({
+      label: "Missing Data Unlock",
+      detail: `${missing.slice(0, 4).join(", ")}: add supported source fields to unlock related analysis.`,
+      tone: "risk",
+    });
+  }
+  if (confidence !== null) {
+    status.push({ label: "Confidence", detail: `Summary uses the report confidence value of ${confidence} / 100.` });
+  }
+  if (report.semanticContext?.datasetId) {
+    status.push({ label: "Analysis Basis", detail: "Selected dataset only; no cross-dataset blending." });
+  }
+  return status.slice(0, 3);
+}
+
+function profileDataConfidence(report: Report, financials: ReportFinancials) {
+  if (report.saasAnalysis && Number.isFinite(report.saasAnalysis.dataConfidence)) return Math.round(report.saasAnalysis.dataConfidence);
+  if (typeof financials.dataConfidence === "number" && Number.isFinite(financials.dataConfidence)) return Math.round(financials.dataConfidence);
+  if (typeof report.semanticContext?.confidence === "number" && Number.isFinite(report.semanticContext.confidence)) return Math.round(report.semanticContext.confidence);
+  const score = completenessScore(financials);
+  return Number.isFinite(score) ? score : null;
+}
+
+function formatSummaryChartValue(value: number, title: string) {
+  return /margin|rate|share|percent|%/i.test(title) ? formatPercent(value) : formatCurrency(value);
+}
+
+function findingToneLabel(finding: string) {
+  const tone = classifyFindingTone(finding);
+  if (tone === "positive") return "Positive";
+  if (tone === "risk") return "Risk / gap";
+  return "Finding";
+}
+
+function findingToneDetail(finding: string) {
+  return truncate(cleanText(finding), 112);
+}
+
+function classifyFindingTone(finding: string): SummaryItem["tone"] {
+  if (/missing|cannot|risk|declin|low|weak|unavailable|insufficient/i.test(finding)) return "risk";
+  if (/available|strong|growth|highest|positive|improv|profitable/i.test(finding)) return "positive";
+  return "neutral";
+}
+
+function dedupeSummaryItems(items: SummaryItem[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.label}:${item.detail}`.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function labelFromCamelCase(value: string) {
+  return value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) {
+  const columns = 4;
+  const gap = 4;
+  const cardWidth = (174 - gap * (columns - 1)) / columns;
+  const cardHeight = 18;
+  let cursorY = y;
+  metrics.slice(0, 8).forEach((metric, index) => {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const rowY = ensureComponentFits(doc, cursorY + row * (cardHeight + gap), cardHeight);
+    if (rowY !== cursorY + row * (cardHeight + gap)) cursorY = rowY;
+    const x = page.margin + column * (cardWidth + gap);
+    const cardY = cursorY + Math.floor(index / columns) * (cardHeight + gap);
+    doc.setFillColor(...colors.white);
+    doc.setDrawColor(...colors.line);
+    doc.roundedRect(x, cardY, cardWidth, cardHeight, 1.5, 1.5, "S");
+    doc.setFillColor(...colors.brandCyan);
+    doc.rect(x, cardY, 1.4, cardHeight, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.2);
+    doc.setTextColor(...colors.muted);
+    doc.text(truncate(cleanText(metric.title).toUpperCase(), 22), x + 4, cardY + 5.4);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(metric.value.length > 15 ? 8.5 : 10);
+    doc.setTextColor(...colors.ink);
+    doc.text(doc.splitTextToSize(cleanText(metric.value), cardWidth - 8).slice(0, 1), x + 4, cardY + 13);
+  });
+  const rows = Math.ceil(Math.min(metrics.length, 8) / columns);
+  return cursorY + rows * cardHeight + Math.max(0, rows - 1) * gap;
+}
+
+function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: number, rowHeight: number) {
+  let cursorY = ensureComponentFits(doc, y, Math.min(items.length, limit) * rowHeight);
+  items.slice(0, limit).forEach((item, index) => {
+    const itemY = cursorY + index * rowHeight;
+    doc.setFillColor(...colors.white);
+    doc.setDrawColor(...colors.line);
+    doc.roundedRect(page.margin, itemY, 174, rowHeight - 2, 1.3, 1.3, "S");
+    doc.setFillColor(...summaryToneColor(item.tone));
+    doc.rect(page.margin, itemY, 1.4, rowHeight - 2, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
+    doc.setTextColor(...colors.ink);
+    doc.text(truncate(cleanText(item.label), 34), page.margin + 4, itemY + 4.8);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(...colors.body);
+    doc.text(doc.splitTextToSize(cleanText(item.detail), 126).slice(0, 1), page.margin + 44, itemY + 4.8);
+  });
+  return cursorY + Math.min(items.length, limit) * rowHeight;
+}
+
+function summaryToneColor(tone: SummaryItem["tone"]): Rgb {
+  if (tone === "positive") return colors.green;
+  if (tone === "risk") return colors.red;
+  return colors.brandPurple;
 }
 
 function drawLogo(doc: jsPDF, x: number, y: number, width: number) {

@@ -254,3 +254,4 @@
 - fixed: enforce SaaS Executive Report semantics with recurring-revenue, customer, churn, unit-economics, plan, geography, cash, runway, and SaaS trend sections from source SaaS fields.
 - fixed: unify the main Dashboard with the generated-report semantic profile path so active Standard Upload datasets render profile-aware SaaS, E-Commerce, and Retail metrics instead of stale workspace-level KPI grids.
 - fixed: keep generated-PDF section headings attached to meaningful following content so SaaS highlights and other report sections do not render as empty page-bottom headings.
+- added: append one profile-aware Results Summary page to every generated PDF report using existing canonical report KPIs, findings, recommendations, scorecard, confidence, and provenance status.

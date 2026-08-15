@@ -3069,6 +3069,40 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Universal Report Results Summary
+
+1. Interaction title
+Universal generated PDF Results Summary page.
+
+2. What was the user goal
+Add one final Results Summary page to every generated business PDF report so a reader can jump to the last page for a profile-aware management snapshot without changing calculations, semantic mappings, recommendations, provenance, Dashboard behavior, or detailed report pages.
+
+3. What changed
+The shared PDF renderer now appends a profile-aware final summary page after detailed analysis and provenance. The page selects available canonical report KPIs, existing report findings, existing recommendations, existing Business Balanced Scorecard values, existing data confidence, and existing missing-data/provenance state. The summary page uses one shared renderer and one profile-title/metric-priority adapter, not independent profile report engines.
+
+4. Problems marked
+blocker: none.
+risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so those mandatory profile names are validated through synthetic layout PDFs while semantic validation remains separate.
+observation: synthetic layout-only profile reports can have no KPI, finding, or recommendation payload, so the Results Summary renders only the canonical sections that exist instead of inventing missing key results.
+
+5. User learning
+The final summary can use the report object as the single canonical source: formatted KPIs, findings, recommendations, scorecard, confidence, and provenance status already exist before PDF rendering.
+
+6. AI-agent learning
+For report summary features, keep the final page as a presentation layer and make tests assert final-page placement, profile-specific titles, and forbidden cross-profile metrics rather than recalculating expected business values.
+
+7. Follow-up tasks
+- Add the exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## PDF Section Heading Orphan Protection
 
 1. Interaction title
