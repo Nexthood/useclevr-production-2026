@@ -252,3 +252,4 @@
 - fixed: calculate E-commerce Return Rate from normalized order-level return statuses, exclude unknown statuses from the denominator, prevent negative statuses from inflating returned orders, and suppress return recommendations for normal low rates.
 - fixed: apply shared generated-PDF pagination rules so tables, KPI blocks, charts, recommendations, provenance, and narrative sections move to footer-safe pages, long tables continue with repeated headers, and all available CSV/XLSX report fixtures plus synthetic profile PDFs validate page numbering.
 - fixed: enforce SaaS Executive Report semantics with recurring-revenue, customer, churn, unit-economics, plan, geography, cash, runway, and SaaS trend sections from source SaaS fields.
+- fixed: unify the main Dashboard with the generated-report semantic profile path so active Standard Upload datasets render profile-aware SaaS, E-Commerce, and Retail metrics instead of stale workspace-level KPI grids.

@@ -27,6 +27,7 @@
 
 ### Fixed
 
+- Fix the main Dashboard so active Standard Upload datasets use the same detected business profile and semantic metrics as generated reports, including SaaS and E-Commerce dashboards.
 - Fix SaaS Executive Reports so MRR, ARR, customer, churn, unit-economics, plan, geography, cash, runway, and SaaS trend metrics drive the report when SaaS fields are available.
 - Fix generated PDF reports so shared pagination keeps tables, KPI blocks, charts, recommendations, provenance, and narrative sections inside footer-safe page bounds with repeated table headers on continuation pages.
 - Fix E-commerce Return Rate so normalized returned statuses count at order level, negative or unknown status text stays out of returned orders, duplicate order line items count once, and unsupported return status values display as unavailable.

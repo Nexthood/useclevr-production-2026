@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-15
-- **Goal**: Fix the existing SaaS Startup report profile end to end so SaaS source fields drive the generated Executive Report.
-- **Durable change**: SaaS reports use the existing report-profile path with recurring-revenue, customer, churn, unit-economics, plan, geography, cash, runway, and SaaS trend analysis instead of generic P&L fallback semantics.
-- **Verification**: `pnpm exec tsx scripts/analysis/test-dataset-aware-report-profiles.ts`, `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:changelog`, `pnpm lint:secrets`, and `pnpm build` pass.
+- **Goal**: Unify the main Dashboard with the dataset-aware semantic/profile engine used by generated reports.
+- **Durable change**: The Dashboard resolves the active dataset separately from workspace history, consumes generated-report semantic analysis for active profile KPIs and trends, displays detected business profile labels for upload history, and keeps default generic profiles from blocking stronger column-based classification.
+- **Verification**: Dashboard semantic regression, generated-report profile regression, TypeScript, changelog lint, secret lint, and production build pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

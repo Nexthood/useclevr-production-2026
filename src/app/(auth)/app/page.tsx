@@ -5,6 +5,12 @@ import { GenerateReportAction } from "@/components/dashboard/generate-report-act
 import { auth } from "@/lib/auth/auth"
 import { calculateBusinessBalancedScorecard, type BusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
 import {
+  buildDashboardSemanticAnalysis,
+  type DashboardSemanticAnalysis,
+  type DashboardSemanticMetric,
+  type DashboardSemanticTrend,
+} from "@/lib/data/dashboard-semantic-profile"
+import {
   getBusinessModelKpiNames,
   getBusinessModelLabel,
   shouldRenderWorldMapForBusinessModel,
@@ -131,6 +137,7 @@ type ExecutiveMetrics = {
   recommendations: ExecutiveRecommendation[]
   businessModel: BusinessModel
   supportedKpis: string[]
+  semanticAnalysis: DashboardSemanticAnalysis | null
   businessHealth: {
     health: number | null
     aiConfidence: number | null
@@ -252,10 +259,10 @@ function emptyStats(): DashboardStats {
   }
 }
 
-function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): ExecutiveMetrics {
+function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticAnalysis: DashboardSemanticAnalysis | null = null): ExecutiveMetrics {
   if (stats.dashboardData.activeDatasetCount === 0) return emptyExecutiveMetrics(stats)
 
-  const businessModel = stats.dashboardData.dominantBusinessModel
+  const businessModel = semanticAnalysis?.businessProfile ?? stats.dashboardData.dominantBusinessModel
   const rows = stats.allDatasets.flatMap((dataset) =>
     dataset.data.map((row) => ({
       row,
@@ -270,7 +277,8 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): Executiv
   const costValues = activeRows.map(({ row }) => getNumber(row, columns.cost || columns.expense))
   const profitValues = activeRows.map(({ row }) => getNumber(row, columns.profit))
 
-  const totalRevenue = columns.revenue ? sum(revenueValues) : null
+  const semanticRevenue = semanticMetricValue(semanticAnalysis, ["Revenue", "MRR", "GMV"])
+  const totalRevenue = semanticRevenue ?? (columns.revenue ? sum(revenueValues) : null)
   const explicitProfit = columns.profit ? sum(profitValues) : null
   const totalCost = columns.cost || columns.expense ? sum(costValues) : null
   const totalProfit = explicitProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
@@ -295,7 +303,16 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): Executiv
   const uploadTrend = buildUploadSeries(stats.allDatasets, range)
   const regions = buildRegions(activeRows, columns)
   const aiInsightsGenerated = countAiInsights(stats.allDatasets) + stats.aiTraceCount
-  const recommendations = buildRecommendations({
+  const recommendations = semanticAnalysis?.recommendations.length
+    ? semanticAnalysis.recommendations.map((recommendation) => ({
+        title: recommendation.issue,
+        priority: normalizePriority(recommendation.confidence),
+        confidence: recommendation.confidence === "High" ? 90 : recommendation.confidence === "Medium" ? 76 : 62,
+        impact: recommendation.businessImpact,
+        action: recommendation.recommendedAction,
+        source: semanticAnalysis.datasetName,
+      }))
+    : buildRecommendations({
     stats,
     columns,
     profitMargin,
@@ -345,6 +362,7 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey): Executiv
     recommendations,
     businessModel,
     supportedKpis: getBusinessModelKpiNames(businessModel),
+    semanticAnalysis,
     businessHealth: {
       health: Math.round((readiness + aiConfidence + forecastConfidence + growthScore) / 4),
       aiConfidence,
@@ -384,6 +402,7 @@ function emptyExecutiveMetrics(stats: DashboardStats): ExecutiveMetrics {
     recommendations: [],
     businessModel: stats.dashboardData.dominantBusinessModel,
     supportedKpis: getBusinessModelKpiNames(stats.dashboardData.dominantBusinessModel),
+    semanticAnalysis: null,
     businessHealth: {
       health: null,
       aiConfidence: null,
@@ -759,12 +778,16 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const session = await auth()
   const userId = session?.user?.id ?? null
   const [stats, dailyBrief] = await Promise.all([
-    getStats(userId, selectedDatasetId),
+    getStats(userId, null),
     userId && !selectedDatasetId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
   ])
-  const selected = selectDashboardDataset(stats, selectedDatasetId)
+  const activeDatasetId = selectedDatasetId ?? stats.latestDataset?.id ?? null
+  const selected = selectDashboardDataset(stats, activeDatasetId)
   const dashboardStats = selected.stats
-  const metrics = buildExecutiveMetrics(dashboardStats, range)
+  const semanticAnalysis = selected.selectedDataset
+    ? await buildDashboardSemanticAnalysis(selected.selectedDataset).catch(() => null)
+    : null
+  const metrics = buildExecutiveMetrics(dashboardStats, range, semanticAnalysis)
   const companyName = dashboardStats.profile?.businessName || dashboardStats.profile?.companyName || "UseClevr"
   const hasRows = metrics.loadedRowCount > 0
   const canRenderWorldMap = shouldRenderWorldMapForBusinessModel({
@@ -780,7 +803,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
     selected.selectedDataset.status !== "deleted" &&
     (!selectedAnalysisStatus || new Set(["ready", "completed", "processed"]).has(selectedAnalysisStatus)),
   )
-  const dailyHealthReportDataset = selected.selectedDataset ?? dashboardStats.latestDataset
+  const dailyHealthReportDataset = selected.selectedDataset ?? stats.latestDataset
   const dailyHealthReportReady = isReportableDashboardDataset(dailyHealthReportDataset)
   const bbscPreview = selected.selectedDataset
     ? calculateBusinessBalancedScorecard({
@@ -840,10 +863,10 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
         </section>
 
         <ExecutiveDailyHealthSection
-          brief={dashboardStats.dashboardData.activeDatasetCount === 0 ? null : dailyBrief}
-          datasetId={dashboardStats.dashboardData.activeDatasetCount === 0 ? null : dailyHealthReportDataset?.id ?? null}
+          brief={stats.dashboardData.activeDatasetCount === 0 ? null : dailyBrief}
+          datasetId={stats.dashboardData.activeDatasetCount === 0 ? null : dailyHealthReportDataset?.id ?? null}
           reportDisabled={!dailyHealthReportReady}
-          hasActiveDatasets={dashboardStats.dashboardData.activeDatasetCount > 0}
+          hasActiveDatasets={stats.dashboardData.activeDatasetCount > 0}
         />
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
@@ -861,8 +884,9 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
         )}
 
         <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-          <TrendPanel title="Revenue Trend" metricLabel="Revenue" data={metrics.revenueTrend} format="currency" emptyLabel="Missing revenue/date columns." />
-          <TrendPanel title="Profit Trend" metricLabel="Profit" data={metrics.profitTrend} format="currency" emptyLabel="Missing profit or revenue/cost columns." />
+          {activeTrendPanels(metrics).map((trend) => (
+            <TrendPanel key={trend.title} title={trend.title} metricLabel={trend.metricLabel} data={trend.data} format={trend.format} emptyLabel={trend.emptyLabel} />
+          ))}
         </section>
 
         <DashboardSection icon={Brain} title="Top AI Recommendations" action={<DataCoverageNote metrics={metrics} />} compact>
@@ -885,10 +909,10 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
                 <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
                   <Card className="p-5">
-                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                    <PanelHeader title="Upload History" detail={`${formatNumber(stats.dashboardData.totalRows)} rows processed across ${formatNumber(stats.dashboardData.datasetCount)} dataset${stats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
                     <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                      <SourceMix dashboardData={dashboardStats.dashboardData} />
-                      <LatestDatasets datasets={dashboardStats.allDatasets.slice(0, 6)} />
+                      <SourceMix dashboardData={stats.dashboardData} />
+                      <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} activeDatasetId={selected.selectedDataset?.id ?? null} />
                     </div>
                   </Card>
                 </DashboardSection>
@@ -920,7 +944,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                   <Card className="p-5">
                     <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
                     <div className="mt-5 space-y-4">
-                      <ActivityList stats={dashboardStats} />
+                      <ActivityList stats={stats} />
                     </div>
                   </Card>
                 </DashboardSection>
@@ -959,6 +983,10 @@ type KpiDisplay = {
 }
 
 function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {
+  if (metrics.semanticAnalysis?.metrics.length) {
+    return metrics.semanticAnalysis.metrics.slice(0, 6).map((item) => semanticKpi(item))
+  }
+
   if (metrics.activeDatasets === 0) {
     return [
       kpi("Revenue", null, "currency", [], false, "Upload business data", CircleDollarSign, "cyan"),
@@ -1035,6 +1063,27 @@ function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {
         common[1],
       ]
   }
+}
+
+function semanticKpi(metric: DashboardSemanticMetric): KpiDisplay {
+  return kpi(
+    metric.label,
+    metric.value,
+    metric.format === "ratio" ? "number" : metric.format,
+    [],
+    metric.available,
+    `${metric.basis} Source: ${metric.source}.`,
+    iconForMetric(metric.label),
+    toneForMetric(metric.label),
+  )
+}
+
+function activeTrendPanels(metrics: ExecutiveMetrics): DashboardSemanticTrend[] {
+  if (metrics.semanticAnalysis?.trends.length) return metrics.semanticAnalysis.trends.slice(0, 2)
+  return [
+    { title: "Revenue Trend", metricLabel: "Revenue", data: metrics.revenueTrend, format: "currency", emptyLabel: "Missing revenue/date columns." },
+    { title: "Profit Trend", metricLabel: "Profit", data: metrics.profitTrend, format: "currency", emptyLabel: "Missing profit or revenue/cost columns." },
+  ]
 }
 
 function ExecutiveDailyHealthSection({
@@ -1293,7 +1342,7 @@ function InventoryDetail({ metrics }: { metrics: ExecutiveMetrics }) {
   )
 }
 
-function TrendPanel({ title, metricLabel, data, format, emptyLabel }: { title: string; metricLabel: string; data: SeriesPoint[]; format: "currency" | "number"; emptyLabel: string }) {
+function TrendPanel({ title, metricLabel, data, format, emptyLabel }: { title: string; metricLabel: string; data: SeriesPoint[]; format: "currency" | "number" | "percent"; emptyLabel: string }) {
   const total = data.reduce((value, point) => value + point.value, 0)
   return (
     <Card className="p-5">
@@ -1305,7 +1354,7 @@ function TrendPanel({ title, metricLabel, data, format, emptyLabel }: { title: s
   )
 }
 
-function AreaChart({ data, format }: { data: SeriesPoint[]; format: "currency" | "number" }) {
+function AreaChart({ data, format }: { data: SeriesPoint[]; format: "currency" | "number" | "percent" }) {
   const max = Math.max(...data.map((point) => point.value), 1)
   const width = 560
   const height = 210
@@ -1481,15 +1530,22 @@ function SourceMix({ dashboardData }: { dashboardData: NormalizedDashboardData }
   )
 }
 
-function LatestDatasets({ datasets: datasetList }: { datasets: DashboardDataset[] }) {
+function LatestDatasets({ datasets: datasetList, activeDatasetId }: { datasets: DashboardDataset[]; activeDatasetId: string | null }) {
   if (datasetList.length === 0) return <CompactEmpty label="No uploaded datasets yet." />
   return (
     <div className="space-y-2">
       {datasetList.map((dataset) => (
-        <Link key={dataset.id} href={`/app/datasets/${dataset.id}`} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background/60 px-3 py-3 transition hover:border-primary/35 hover:bg-primary/5">
+        <Link
+          key={dataset.id}
+          href={`/app?datasetId=${encodeURIComponent(dataset.id)}`}
+          className={[
+            "flex items-center justify-between gap-3 rounded-lg border px-3 py-3 transition hover:border-primary/35 hover:bg-primary/5",
+            activeDatasetId === dataset.id ? "border-cyan-300/35 bg-cyan-300/10" : "border-border bg-background/60",
+          ].join(" ")}
+        >
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium text-foreground">{dataset.name}</span>
-            <span className="mt-1 block text-xs text-muted-foreground">{formatNumber(dataset.rowCount)} rows · {dataset.datasetType || "standard"}</span>
+            <span className="mt-1 block text-xs text-muted-foreground">{formatNumber(dataset.rowCount)} rows · {getBusinessModelLabel(dataset.businessModel)}</span>
           </span>
           <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Link>
@@ -1718,7 +1774,7 @@ function percentChange(data: SeriesPoint[]) {
 }
 
 function formatNullable(value: number | null, format: "currency" | "number" | "percent") {
-  if (value === null || !Number.isFinite(value)) return "No data"
+  if (value === null || !Number.isFinite(value)) return "Not available"
   if (format === "currency") return formatCurrency(value)
   if (format === "percent") return formatPercent(value)
   return formatNumber(value)
@@ -1749,6 +1805,29 @@ function averageOrderValue(totalRevenue: number | null, ordersTrend: SeriesPoint
   const orderCount = sum(ordersTrend.map((item) => item.value))
   if (!totalRevenue || orderCount <= 0) return null
   return totalRevenue / orderCount
+}
+
+function semanticMetricValue(semanticAnalysis: DashboardSemanticAnalysis | null, labels: string[]) {
+  if (!semanticAnalysis) return null
+  const match = semanticAnalysis.metrics.find((metric) => labels.includes(metric.label) && metric.available)
+  return match?.value ?? null
+}
+
+function iconForMetric(label: string): React.ComponentType<{ className?: string }> {
+  if (/revenue|mrr|arr|gmv|cash|burn|ltv|cac|value|capital/i.test(label)) return CircleDollarSign
+  if (/order|unit|product|sku|ticket/i.test(label)) return Package
+  if (/stock|inventory|reorder/i.test(label)) return Warehouse
+  if (/margin|rate|churn|return|ratio/i.test(label)) return PieChart
+  if (/customer|user|merchant|seller|buyer|company/i.test(label)) return Database
+  return TrendingUp
+}
+
+function toneForMetric(label: string): Tone {
+  if (/churn|return|burn|risk|low/i.test(label)) return "rose"
+  if (/inventory|stock|cash|mrr|revenue|gmv/i.test(label)) return "cyan"
+  if (/customer|user|merchant|product/i.test(label)) return "violet"
+  if (/margin|rate|ratio|aov|ltv/i.test(label)) return "emerald"
+  return "slate"
 }
 
 function unique(values: string[]) {

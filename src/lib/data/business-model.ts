@@ -90,7 +90,7 @@ export function getBusinessModelLabel(value?: string | null) {
 
 export function resolveBusinessModel(input: BusinessModelResolutionInput): BusinessModel {
   const explicit = normalizeBusinessModel(input.explicit)
-  if (explicit) return explicit
+  if (explicit && explicit !== "generic") return explicit
 
   const analysisModel = extractBusinessModelFromAnalysis(input.analysis)
   if (analysisModel) return analysisModel
@@ -102,7 +102,7 @@ export function resolveBusinessModel(input: BusinessModelResolutionInput): Busin
   if (schemaModel !== "generic") return schemaModel
 
   const datasetModel = normalizeBusinessModel(input.datasetType)
-  return datasetModel || "generic"
+  return datasetModel && datasetModel !== "generic" ? datasetModel : "generic"
 }
 
 export function detectBusinessModelFromColumns(columns: string[], datasetName = ""): BusinessModel {
@@ -206,9 +206,9 @@ function extractBusinessModelFromAnalysis(analysis: unknown): BusinessModel | nu
   if (!analysis || typeof analysis !== "object") return null
   const record = analysis as Record<string, unknown>
   const direct = normalizeBusinessModel(record.businessModel as string | null)
-  if (direct) return direct
+  if (direct && direct !== "generic") return direct
   const snake = normalizeBusinessModel(record.business_model as string | null)
-  if (snake) return snake
+  if (snake && snake !== "generic") return snake
   return null
 }
 

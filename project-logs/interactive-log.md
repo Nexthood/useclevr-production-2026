@@ -3917,3 +3917,38 @@ For profile-specific reporting, keep classification, semantic analysis, diagnost
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Semantic Profile Unification
+
+1. Interaction title
+Dashboard active-dataset semantic profile unification.
+
+2. What was the user goal
+Make the main Dashboard consume the same dataset-aware semantic/profile intelligence as generated reports so Standard Upload datasets such as E-Commerce and SaaS show the correct active profile, KPIs, trends, recommendations, and dataset-history labels.
+
+3. What changed
+The Dashboard now loads workspace data for history and daily health, then scopes Command Center metrics to the selected dataset or latest dataset. Active dataset metrics and trends come from the generated-report semantic builder instead of the Dashboard's local alias-based calculations. Upload History displays the detected business profile label while preserving `datasetType` for upload/module routing. The shared business-model resolver treats default `generic` as a fallback rather than a sticky explicit profile so existing datasets can classify from their schema when stronger evidence exists.
+
+4. Problems marked
+blocker: none.
+risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so dashboard regression validates the available numbered Retail, E-Commerce, and SaaS fixtures and does not invent missing marketplace/investor/profile calculations.
+improvement: add the remaining exact numbered fixtures so dashboard profile regression can exercise every mandatory profile from file-backed uploads.
+observation: the current `02_ecommerce` fixture contains 96 distinct customers, 550 units, and 12 products, so dashboard parity follows the report builder values rather than stale approximate prompt values.
+
+5. User learning
+The Dashboard divergence came from flattening all datasets for KPIs and choosing a dominant workspace business model, while reports analyzed one selected dataset through a profile-specific semantic path.
+
+6. AI-agent learning
+For cross-surface semantic consistency, build Dashboard payloads from the same report-builder analysis object rather than adding page-level aliases or duplicate KPI formulas.
+
+7. Follow-up tasks
+- Add exact numbered dashboard/report fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
