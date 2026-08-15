@@ -13,7 +13,8 @@ import { isSuperAdminUserId } from '@/lib/auth/builtin-users'
 import { getDb } from '@/lib/db'
 import { datasets } from '@/lib/db/schema'
 import type { Report } from '@/lib/reports/report-generator'
-import { getReport, listReports } from '@/lib/reports/report-generator'
+import { getReport, isCurrentReportRuntime, listReports } from '@/lib/reports/report-generator'
+import { generatePdfReport } from '@/lib/reports/pdf-report-generator'
 import { and, eq } from 'drizzle-orm'
 import * as fs from 'fs'
 import type { NextRequest } from 'next/server'
@@ -85,9 +86,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
-// Check if PDF exists
-     if (report.pdfPath && fs.existsSync(report.pdfPath)) {
-      const fileBuffer = fs.readFileSync(report.pdfPath)
+    const pdfPath = await ensureCurrentPdf(report)
+    if (pdfPath && fs.existsSync(pdfPath)) {
+      const fileBuffer = fs.readFileSync(pdfPath)
       const filename = report.pdfFilename || `${report.datasetName.replace(/[^a-z0-9]/gi, '_')}_report_${report.id}.pdf`
       
       return new NextResponse(fileBuffer, {
@@ -165,6 +166,23 @@ export async function POST(request: NextRequest) {
       { success: false, error: 'Failed to generate report' },
       { status: 500 }
     )
+  }
+}
+
+async function ensureCurrentPdf(report: Report) {
+  if (report.pdfPath && fs.existsSync(report.pdfPath) && isCurrentReportRuntime(report)) {
+    return report.pdfPath
+  }
+
+  if (report.pdfPath && fs.existsSync(report.pdfPath)) {
+    fs.unlinkSync(report.pdfPath)
+  }
+
+  try {
+    return await generatePdfReport(report)
+  } catch (error) {
+    debugError('[DOWNLOAD] Failed to regenerate current PDF:', error)
+    return report.pdfPath && fs.existsSync(report.pdfPath) ? report.pdfPath : null
   }
 }
 

@@ -182,4 +182,19 @@ if (analyticalAov.status === "success") {
   assert.equal(analyticalAov.result.intent, "metric.average_order_value");
 }
 
+const noOrderAov = resolveQuestionMetric({
+  question: "What is the average order value?",
+  datasetId: "fixture:retail-no-order-id",
+  datasetType: "retail",
+  columns: ["date", "product_id", "category", "units_sold", "revenue"],
+  rows: [
+    { date: "2025-01-01", product_id: "SKU-1", category: "Coffee", units_sold: "4", revenue: "400" },
+    { date: "2025-01-02", product_id: "SKU-2", category: "Tea", units_sold: "3", revenue: "500" },
+  ],
+});
+assert.equal(noOrderAov.status, "unsupported", "AOV without an order identifier must not fall back to row count");
+if (noOrderAov.status === "unsupported") {
+  assert.deepEqual(noOrderAov.missingFields, ["reliable order identifier"]);
+}
+
 process.stdout.write(`ok - Question Intent Engine and Metric Resolver covered ${questionCases.length} business questions with 0 failed questions\n`);

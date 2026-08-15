@@ -1512,7 +1512,10 @@ function retailAverageOrderValue(rows: DataRow[], columns: ColumnMap, revenue: n
     return {
       metric: "average_order_value" as const,
       value: null,
+      aovStatus: "not_available" as const,
       status: "not_available" as const,
+      orderCount: null,
+      orderCountSource: null,
       calculationMethod: "requires positive total_revenue",
       sourceFields: columns.revenue ? [columns.revenue] : [],
       confidence: "low" as const,
@@ -1524,7 +1527,10 @@ function retailAverageOrderValue(rows: DataRow[], columns: ColumnMap, revenue: n
       return {
         metric: "average_order_value" as const,
         value: round(revenue / distinctOrders),
+        aovStatus: "available" as const,
         status: "available" as const,
+        orderCount: distinctOrders,
+        orderCountSource: "distinct_order_id" as const,
         calculationMethod: "total_revenue / distinct_order_id",
         sourceFields: [columns.revenue, columns.order].filter((field): field is string => Boolean(field)),
         confidence: "high" as const,
@@ -1534,7 +1540,10 @@ function retailAverageOrderValue(rows: DataRow[], columns: ColumnMap, revenue: n
   return {
     metric: "average_order_value" as const,
     value: null,
+    aovStatus: "not_available" as const,
     status: "not_available" as const,
+    orderCount: null,
+    orderCountSource: null,
     calculationMethod: "No reliable order identifier or order-level transaction grain detected.",
     sourceFields: columns.revenue ? [columns.revenue] : [],
     confidence: "low" as const,

@@ -180,6 +180,7 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
 function drawRetailSalesPerformance(doc: jsPDF, report: Report, financials: ReportFinancials) {
   let y = 48;
   const aov = report.retailAnalysis?.averageOrderValue;
+  const aovAvailable = isRenderableAverageOrderValue(aov);
   drawSectionTitle(doc, "Retail Sales & Margin Performance", y);
   y += 8;
   y = drawTable(doc, [
@@ -191,9 +192,9 @@ function drawRetailSalesPerformance(doc: jsPDF, report: Report, financials: Repo
     ["Units Sold", report.kpis.find((kpi) => kpi.title === "Units Sold")?.value || "Not available", "Available", "Recognized units-sold or quantity field."],
     [
       "Average Order Value",
-      aov?.status === "available" && aov.value !== null ? formatCurrency(aov.value) : "Not available",
-      aov?.status === "available" ? "Available" : "Not available",
-      aov?.status === "available" ? "Revenue / distinct order count." : "No reliable order identifier or order-level transaction grain detected.",
+      aovAvailable ? formatCurrency(aov!.value!) : "Not available",
+      aovAvailable ? "Available" : "Not available",
+      aovAvailable ? "Revenue / distinct order count." : "No reliable order identifier or order-level transaction grain detected.",
     ],
   ], page.margin, y, [38, 32, 34, 70]) + 12;
 
@@ -226,6 +227,18 @@ function drawRetailSalesPerformance(doc: jsPDF, report: Report, financials: Repo
       ]),
     ], page.margin, y, [52, 34, 28, 60]);
   }
+}
+
+function isRenderableAverageOrderValue(aov: NonNullable<Report["retailAnalysis"]>["averageOrderValue"] | undefined) {
+  if (!aov || typeof aov !== "object") return false;
+  const source = aov.orderCountSource;
+  return aov.status === "available"
+    && aov.aovStatus === "available"
+    && aov.value !== null
+    && Number.isFinite(aov.value)
+    && typeof aov.orderCount === "number"
+    && aov.orderCount > 0
+    && (source === "distinct_order_id" || source === "explicit_order_grain");
 }
 
 function drawRetailInventoryIntelligence(doc: jsPDF, report: Report) {

@@ -52,8 +52,10 @@ async function main() {
   fs.mkdirSync(process.env.TEMP_DIR, { recursive: true })
 
   const { buildDatasetReportInput } = await import("../../src/lib/reports/dataset-report-builder")
-  const { deleteReport, generateReport } = await import("../../src/lib/reports/report-generator")
+  const { REPORT_RUNTIME_VERSION, deleteReport, generateReport } = await import("../../src/lib/reports/report-generator")
+  const { generatePdfReport } = await import("../../src/lib/reports/pdf-report-generator")
   const { listReportProfiles } = await import("../../src/lib/reports/report-profiles")
+  assert(REPORT_RUNTIME_VERSION === "report-runtime-v5", "report runtime must invalidate pre-AOV-provenance reports")
 
   const profileIds = listReportProfiles().map((profile) => profile.id).sort()
   for (const expected of [
@@ -152,7 +154,7 @@ async function main() {
   }
 
   assert(JSON.stringify(retailParity.csv) === JSON.stringify(retailParity.xlsx), "local retail CSV and XLSX outputs must match for financials, AOV status, inventory value, and reorder metrics")
-  await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport)
+  await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport, generatePdfReport)
 
   const missingRequiredFixtures = requiredFixtureNames.flatMap((name) => {
     return ["csv", "xlsx"].map((extension) => `${name}.${extension}`).filter((fileName) => !fs.existsSync(path.join(fixtureRoot, fileName)))
@@ -188,6 +190,7 @@ async function assertRetailUnitCostAndAovRegressions(
   buildDatasetReportInput: BuildDatasetReportInput,
   generateReport: GenerateReport,
   deleteReport: DeleteReport,
+  generatePdfReport: typeof import("../../src/lib/reports/pdf-report-generator")["generatePdfReport"],
 ) {
   const rows = buildSyntheticRetailRows()
   const columns = Object.keys(rows[0] ?? {})
@@ -228,7 +231,29 @@ async function assertRetailUnitCostAndAovRegressions(
   assert(pdfText.includes("INVENTORY INTELLIGENCE"), "unit-cost retail PDF must keep inventory intelligence")
   assert(pdfText.includes("RETAIL RECOMMENDATIONS + PROVENANCE"), "unit-cost retail PDF must keep retail recommendations and provenance")
   assert(!pdfText.includes("$443"), "unit-cost retail PDF must not display revenue per row as AOV")
+  assert(pdfText.includes("Average Order Value"), "unit-cost retail PDF must include the AOV row")
+  assert(pdfText.includes("Not available"), "unit-cost retail PDF must render unavailable AOV")
   assert(!/9[0-2]\.[0-9]%/.test(pdfText), "unit-cost retail PDF must not render impossible 90-92% category margins")
+  const staleReport = {
+    ...report,
+    id: `${report.id}-stale-aov`,
+    retailAnalysis: {
+      ...report.retailAnalysis!,
+      averageOrderValue: {
+        metric: "average_order_value",
+        value: 443.33,
+        status: "available",
+        calculationMethod: "total_revenue / distinct_order_id",
+        sourceFields: ["revenue"],
+        confidence: "high",
+      },
+    },
+  } as Parameters<typeof generatePdfReport>[0]
+  const stalePdfPath = await generatePdfReport(staleReport)
+  const stalePdfText = execFileSync("pdftotext", [stalePdfPath, "-"], { encoding: "utf8" })
+  assert(!stalePdfText.includes("$443"), "PDF renderer must not display stale AOV without order-count provenance")
+  assert(stalePdfText.includes("No reliable order identifier"), "PDF renderer must explain suppressed stale AOV")
+  fs.unlinkSync(stalePdfPath)
   if (report.pdfPath) fs.unlinkSync(report.pdfPath)
   deleteReport(report.id)
 
@@ -250,6 +275,9 @@ async function assertRetailUnitCostAndAovRegressions(
   const aov = orderReport.retailAnalysis?.averageOrderValue
   assert(aov?.status === "available", "retail fixture with order ID must calculate AOV")
   nearlyEqual(aov?.value, 80, "retail AOV must divide revenue by distinct order count")
+  assert(aov?.aovStatus === "available", "retail AOV must expose renderable status provenance")
+  assert(aov?.orderCount === 3, "retail AOV must expose the distinct order denominator")
+  assert(aov?.orderCountSource === "distinct_order_id", "retail AOV must expose the order count source")
   assert(aov?.calculationMethod === "total_revenue / distinct_order_id", "retail AOV must expose distinct-order provenance")
 
   const unsafeIdRows = orderRows.map((row, index) => ({
