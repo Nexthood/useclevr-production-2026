@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-15
-- **Goal**: Trace the exact Retail Average Order Value denominator source for `01_local_retail.xlsx`, prove the PDF runtime path, and remove remaining row-count AOV fallback behavior.
-- **Durable change**: Retail report downloads regenerate stale PDFs when the stored report runtime is not current, generated reports carry AOV denominator provenance, and the PDF renderer prints AOV only when an available status, positive order count, and approved order-count source are present.
-- **Verification**: `pnpm exec node -r tsx/esm scripts/analysis/test-dataset-aware-report-profiles.ts` passes with the 180-row retail PDF rejecting `$443` and a stale `$443` AOV object suppressed by the renderer; `pnpm exec node -r tsx/esm scripts/analysis/test-question-intent-metric-resolver.ts`, `pnpm validate:types`, `pnpm lint:changelog`, `pnpm lint:secrets`, and `timeout 600 pnpm build` pass.
+- **Goal**: Enforce the existing E-commerce Performance Report profile end to end so shipping cost, category, orders, AOV, customers, returns, revenue trend, channels, and missing profitability semantics render correctly.
+- **Durable change**: E-commerce report generation keeps shipping and fulfillment cost separate from COGS, treats category as product/category performance, calculates operational metrics from e-commerce source fields, renders e-commerce-specific PDF pages, and restores the exact `02_ecommerce` CSV/XLSX regression fixtures.
+- **Verification**: `pnpm exec tsx scripts/analysis/test-dataset-aware-report-profiles.ts`, `pnpm exec tsc --noEmit --pretty false`, and `pnpm build` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

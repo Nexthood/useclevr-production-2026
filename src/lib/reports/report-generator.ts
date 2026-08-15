@@ -233,6 +233,35 @@ export interface RetailReportAnalysis {
   lowStockItems: { product: string; category?: string; supplier?: string; stock: number; reorderPoint: number }[];
 }
 
+export interface EcommerceReportAnalysis {
+  orders: number | null;
+  orderField: string | null;
+  customers: number | null;
+  customerField: string | null;
+  ordersPerCustomer: number | null;
+  revenuePerCustomer: number | null;
+  averageOrderValue: number | null;
+  unitsSold: number | null;
+  products: number | null;
+  productField: string | null;
+  returnRate: number | null;
+  returnedOrders: number | null;
+  returnStatusField: string | null;
+  shippingCost: number | null;
+  shippingCostRate: number | null;
+  averageShippingCostPerOrder: number | null;
+  discounts: number | null;
+  discountRate: number | null;
+  averageDiscountPerOrder: number | null;
+  revenueTrend: { name: string; value: number }[];
+  ordersTrend: { name: string; value: number }[];
+  categoryPerformance: { name: string; value: number }[];
+  topProducts: { name: string; value: number }[];
+  channelPerformance: { name: string; value: number; orders: number; aov: number | null; share: number | null }[];
+  geography: { name: string; value: number; orders: number; share: number | null }[];
+  paymentMethods: { name: string; value: number; orders: number }[];
+}
+
 export interface Report {
   id: string;
   datasetId: string;
@@ -270,6 +299,7 @@ export interface Report {
   predictions: string[];
   recommendations?: ReportRecommendation[];
   retailAnalysis?: RetailReportAnalysis;
+  ecommerceAnalysis?: EcommerceReportAnalysis;
   semanticContext?: ReportSemanticContext;
   diagnostics?: ReportDiagnostics;
   alerts: { type: string; message: string; severity: string }[];
@@ -312,6 +342,7 @@ export async function generateReport(
     diagnostics?: ReportDiagnostics;
     reportProfile?: ReportProfile;
     retailAnalysis?: RetailReportAnalysis;
+    ecommerceAnalysis?: EcommerceReportAnalysis;
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;
@@ -381,6 +412,7 @@ export async function generateReport(
     predictions: (options.includePredictions !== false) ? (analysisData.predictions || []) : [],
     recommendations: analysisData.recommendations,
     retailAnalysis: analysisData.retailAnalysis,
+    ecommerceAnalysis: analysisData.ecommerceAnalysis,
     semanticContext: analysisData.semanticContext,
     diagnostics: analysisData.diagnostics,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],

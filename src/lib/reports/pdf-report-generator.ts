@@ -69,6 +69,15 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawRetailProductIntelligence(doc, report, financials);
     addDocumentPage(doc, "Retail Recommendations + Provenance", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials, "Retail Recommendations");
+  } else if (report.reportProfile?.id === "ecommerce" && report.ecommerceAnalysis) {
+    addDocumentPage(doc, "Sales Performance", datasetName);
+    drawEcommerceSalesPerformance(doc, report, financials);
+    addDocumentPage(doc, "Customer / Channel / Commercial Intelligence", datasetName);
+    drawEcommerceCommercialIntelligence(doc, report, financials);
+    addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
+    drawBalancedScorecard(doc, report);
+    addDocumentPage(doc, "E-commerce Recommendations + Provenance", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials, "E-commerce Recommendations");
   } else {
     addDocumentPage(doc, "Financial Performance", datasetName);
     drawFinancialPerformance(doc, financials);
@@ -162,6 +171,19 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       metricCard("Inventory Value", retail.inventoryValue, "currency", "missing", "Stock multiplied by detected unit cost where available."),
       numberMetricCard("Products / SKUs", retail.productCount === null ? "Not available" : retail.productCount.toLocaleString(), "Distinct detected product or SKU values."),
       numberMetricCard("Reorder Required", retail.reorderRequiredCount === null ? "Not available" : retail.reorderRequiredCount.toLocaleString(), "SKUs at or below reorder point."),
+    ];
+  }
+  if (report.reportProfile?.id === "ecommerce" && report.ecommerceAnalysis) {
+    const ecommerce = report.ecommerceAnalysis;
+    return [
+      metricCard("Revenue", financials.revenue, "currency", "neutral", sourceNote(financials, "revenue")),
+      numberMetricCard("Orders", ecommerce.orders === null ? "Not available" : ecommerce.orders.toLocaleString(), ecommerce.orderField ? `Distinct values from ${ecommerce.orderField}.` : "Requires reliable order ID."),
+      metricCard("AOV", ecommerce.averageOrderValue, "currency", "missing", "Revenue divided by distinct order count."),
+      numberMetricCard("Customers", ecommerce.customers === null ? "Not available" : ecommerce.customers.toLocaleString(), ecommerce.customerField ? `Distinct values from ${ecommerce.customerField}.` : "Requires customer ID."),
+      numberMetricCard("Units Sold", ecommerce.unitsSold === null ? "Not available" : ecommerce.unitsSold.toLocaleString(), "Recognized quantity field."),
+      numberMetricCard("Products", ecommerce.products === null ? "Not available" : ecommerce.products.toLocaleString(), ecommerce.productField ? `Distinct values from ${ecommerce.productField}.` : "Requires product field."),
+      metricCard("Return Rate", ecommerce.returnRate, "percent", "missing", ecommerce.returnStatusField ? `Calculated from ${ecommerce.returnStatusField}.` : "Requires return status."),
+      { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "E-commerce field coverage." },
     ];
   }
 
@@ -316,6 +338,119 @@ function drawRetailProductIntelligence(doc: jsPDF, report: Report, financials: R
     ["Inventory Value", retail.inventoryValueByProduct[0]?.name || "Not available", retail.inventoryValueByProduct[0] ? formatCurrency(retail.inventoryValueByProduct[0].value) : "Not available", "Highest detected inventory value by product."],
     ["Supplier Count", retail.supplierCount === null ? "Not available" : retail.supplierCount.toLocaleString(), "Available", "Distinct recognized suppliers."],
   ], page.margin, y, [36, 54, 34, 50]);
+}
+
+function drawEcommerceSalesPerformance(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  const ecommerce = report.ecommerceAnalysis;
+  if (!ecommerce) return;
+  let y = 48;
+  drawSectionTitle(doc, "E-commerce Sales Performance", y);
+  y += 8;
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    financialRow(financials, "Revenue", "revenue", "currency"),
+    ["Orders", ecommerce.orders === null ? "Not available" : ecommerce.orders.toLocaleString(), ecommerce.orders === null ? "Not available" : "Available", ecommerce.orderField ? `Distinct order count from ${ecommerce.orderField}.` : "No reliable order identifier."],
+    ["Average Order Value", ecommerce.averageOrderValue === null ? "Not available" : formatCurrency(ecommerce.averageOrderValue), ecommerce.averageOrderValue === null ? "Not available" : "Available", "Revenue / distinct order count."],
+    ["Units Sold", ecommerce.unitsSold === null ? "Not available" : ecommerce.unitsSold.toLocaleString(), ecommerce.unitsSold === null ? "Not available" : "Available", "Recognized quantity field."],
+    financialRow(financials, "COGS", "cogs", "currency"),
+    financialRow(financials, "Gross Profit", "grossProfit", "currency"),
+    financialRow(financials, "Gross Margin", "grossMargin", "percent"),
+  ], page.margin, y, [38, 32, 34, 70]) + 12;
+
+  drawSectionTitle(doc, "Revenue Trend", y);
+  y += 8;
+  if (ecommerce.revenueTrend.length >= 2) {
+    y = drawTable(doc, [
+      ["Period", "Revenue", "Status", "Notes"],
+      ...ecommerce.revenueTrend.slice(-8).map((item): TableRow => [item.name, formatCurrency(item.value), "Available", "Grouped from order date and revenue."]),
+    ], page.margin, y, [38, 32, 34, 70]) + 12;
+  } else {
+    y = drawUnavailable(doc, "Revenue trend unavailable", "Order date and revenue fields are required for e-commerce revenue trend.", page.margin, y, 174, 28) + 12;
+  }
+
+  drawSectionTitle(doc, "Category Performance", y);
+  y += 8;
+  if (ecommerce.categoryPerformance.length > 0) {
+    y = drawTable(doc, [
+      ["Category", "Revenue", "Share", "Notes"],
+      ...ecommerce.categoryPerformance.slice(0, 7).map((item): TableRow => [
+        item.name,
+        formatCurrency(item.value),
+        financials.revenue ? formatPercent((item.value / financials.revenue) * 100) : "Not available",
+        "Product category revenue.",
+      ]),
+    ], page.margin, y, [52, 34, 28, 60]) + 12;
+  } else {
+    y = drawUnavailable(doc, "Category performance unavailable", "Product category and revenue fields are required.", page.margin, y, 174, 28) + 12;
+  }
+
+  drawSectionTitle(doc, "Top Products", y);
+  y += 8;
+  if (ecommerce.topProducts.length > 0) {
+    drawTable(doc, [
+      ["Product", "Revenue", "Share", "Notes"],
+      ...ecommerce.topProducts.slice(0, 7).map((item): TableRow => [
+        item.name,
+        formatCurrency(item.value),
+        financials.revenue ? formatPercent((item.value / financials.revenue) * 100) : "Not available",
+        "Source revenue grouped by product.",
+      ]),
+    ], page.margin, y, [58, 34, 24, 58]);
+  } else {
+    drawUnavailable(doc, "Top products unavailable", "Product and revenue fields are required.", page.margin, y, 174, 28);
+  }
+}
+
+function drawEcommerceCommercialIntelligence(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  const ecommerce = report.ecommerceAnalysis;
+  if (!ecommerce) return;
+  let y = 48;
+  drawSectionTitle(doc, "Customer Metrics", y);
+  y += 8;
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Customers", ecommerce.customers === null ? "Not available" : ecommerce.customers.toLocaleString(), ecommerce.customers === null ? "Not available" : "Available", ecommerce.customerField ? `Distinct values from ${ecommerce.customerField}.` : "No customer identifier."],
+    ["Orders per Customer", ecommerce.ordersPerCustomer === null ? "Not available" : ecommerce.ordersPerCustomer.toLocaleString(), ecommerce.ordersPerCustomer === null ? "Not available" : "Available", "Distinct orders divided by distinct customers."],
+    ["Revenue per Customer", ecommerce.revenuePerCustomer === null ? "Not available" : formatCurrency(ecommerce.revenuePerCustomer), ecommerce.revenuePerCustomer === null ? "Not available" : "Available", "Revenue divided by distinct customers."],
+    ["Returns", ecommerce.returnRate === null ? "Not available" : formatPercent(ecommerce.returnRate), ecommerce.returnRate === null ? "Not available" : "Available", ecommerce.returnStatusField ? `Returned orders from ${ecommerce.returnStatusField}.` : "No return-status field."],
+  ], page.margin, y, [42, 35, 30, 67]) + 12;
+
+  drawSectionTitle(doc, "Channel Performance", y);
+  y += 8;
+  if (ecommerce.channelPerformance.length > 0) {
+    y = drawTable(doc, [
+      ["Channel", "Revenue", "Orders / AOV", "Notes"],
+      ...ecommerce.channelPerformance.slice(0, 6).map((item): TableRow => [
+        item.name,
+        formatCurrency(item.value),
+        `${item.orders.toLocaleString()} / ${item.aov === null ? "Not available" : formatCurrency(item.aov)}`,
+        item.share === null ? "Revenue share unavailable." : `${formatPercent(item.share)} of revenue.`,
+      ]),
+    ], page.margin, y, [42, 34, 38, 60]) + 12;
+  } else {
+    y = drawUnavailable(doc, "Channel performance unavailable", "Channel and revenue fields are required.", page.margin, y, 174, 28) + 12;
+  }
+
+  drawSectionTitle(doc, "Geography / Commercial Costs", y);
+  y += 8;
+  const geography = ecommerce.geography[0];
+  drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Top Geography", geography?.name || "Not available", geography ? "Available" : "Not available", geography ? `${formatCurrency(geography.value)} revenue; ${geography.orders.toLocaleString()} orders.` : "Country or region field is missing."],
+    ["Shipping / Fulfillment Cost", ecommerce.shippingCost === null ? "Not available" : formatCurrency(ecommerce.shippingCost), ecommerce.shippingCost === null ? "Not available" : "Available", ecommerce.shippingCostRate === null ? "Tracked separately from COGS." : `${formatPercent(ecommerce.shippingCostRate)} of revenue; separate from COGS.`],
+    ["Avg Shipping Cost / Order", ecommerce.averageShippingCostPerOrder === null ? "Not available" : formatCurrency(ecommerce.averageShippingCostPerOrder), ecommerce.averageShippingCostPerOrder === null ? "Not available" : "Available", "Shipping cost divided by distinct order count."],
+    ["Total Discounts", ecommerce.discounts === null ? "Not available" : formatCurrency(ecommerce.discounts), ecommerce.discounts === null ? "Not available" : "Available", ecommerce.discountRate === null ? "Discount field missing or zero revenue." : `${formatPercent(ecommerce.discountRate)} of revenue.`],
+  ], page.margin, y, [44, 40, 30, 60]);
+
+  if (ecommerce.paymentMethods.length > 0) {
+    y += 48;
+    drawSectionTitle(doc, "Payment Method", y);
+    y += 8;
+    drawTable(doc, [
+      ["Payment Method", "Revenue", "Orders", "Notes"],
+      ...ecommerce.paymentMethods.slice(0, 5).map((item): TableRow => [item.name, formatCurrency(item.value), item.orders.toLocaleString(), "Source revenue grouped by payment method."]),
+    ], page.margin, y, [54, 34, 28, 58]);
+  }
 }
 
 function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {

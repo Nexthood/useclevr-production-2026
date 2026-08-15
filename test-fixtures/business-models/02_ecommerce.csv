@@ -1,0 +1,221 @@
+order_id,order_date,customer_id,country,region,product_id,product_name,category,quantity,unit_price,revenue,shipping_cost,discount,return_status,channel,payment_method
+ORD-00001,2026-01-01,CUS-0001,Netherlands,North Holland,P-1001,Smart Lamp,Electronics,1,405.36,397.36,14,8,returned,Shopify,Card
+ORD-00002,2026-01-02,CUS-0002,Germany,Bavaria,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Amazon,PayPal
+ORD-00003,2026-01-03,CUS-0003,France,Ile-de-France,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Email,Apple Pay
+ORD-00004,2026-01-04,CUS-0004,United Kingdom,England,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Google Shopping,Klarna
+ORD-00005,2026-01-05,CUS-0005,Belgium,Flanders,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Instagram,Card
+ORD-00006,2026-01-06,CUS-0006,Netherlands,North Holland,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Shopify,PayPal
+ORD-00007,2026-01-07,CUS-0007,Germany,Bavaria,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Amazon,Apple Pay
+ORD-00008,2026-01-08,CUS-0008,France,Ile-de-France,P-1008,Yoga Block,Home Office,4,100.59,397.36,14,5,kept,Email,Klarna
+ORD-00009,2026-01-09,CUS-0009,United Kingdom,England,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Google Shopping,Card
+ORD-00010,2026-01-10,CUS-0010,Belgium,Flanders,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Instagram,PayPal
+ORD-00011,2026-01-11,CUS-0011,Netherlands,North Holland,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Shopify,Apple Pay
+ORD-00012,2026-01-12,CUS-0012,Germany,Bavaria,P-1012,Desk Light,Apparel,4,101.34,397.36,14,8,kept,Amazon,Klarna
+ORD-00013,2026-01-13,CUS-0013,France,Ile-de-France,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Email,Card
+ORD-00014,2026-01-14,CUS-0014,United Kingdom,England,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Google Shopping,PayPal
+ORD-00015,2026-01-15,CUS-0015,Belgium,Flanders,P-1003,Cable Kit,Beauty,3,134.12,397.36,14,5,kept,Instagram,Apple Pay
+ORD-00016,2026-01-16,CUS-0016,Netherlands,North Holland,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Shopify,Klarna
+ORD-00017,2026-01-17,CUS-0017,Germany,Bavaria,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Amazon,Card
+ORD-00018,2026-01-18,CUS-0018,France,Ile-de-France,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,returned,Email,PayPal
+ORD-00019,2026-01-19,CUS-0019,United Kingdom,England,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Google Shopping,Apple Pay
+ORD-00020,2026-01-20,CUS-0020,Belgium,Flanders,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Instagram,Klarna
+ORD-00021,2026-01-21,CUS-0021,Netherlands,North Holland,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Shopify,Card
+ORD-00022,2026-01-22,CUS-0022,Germany,Bavaria,P-1010,Cotton Hoodie,Sports,2,201.18,397.36,14,5,kept,Amazon,PayPal
+ORD-00023,2026-01-23,CUS-0023,France,Ile-de-France,P-1011,Pantry Labels,Kitchen,3,135.12,397.36,14,8,kept,Email,Apple Pay
+ORD-00024,2026-01-24,CUS-0024,United Kingdom,England,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Google Shopping,Klarna
+ORD-00025,2026-01-25,CUS-0025,Belgium,Flanders,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Instagram,Card
+ORD-00026,2026-01-26,CUS-0026,Netherlands,North Holland,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Shopify,PayPal
+ORD-00027,2026-01-27,CUS-0027,Germany,Bavaria,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Amazon,Apple Pay
+ORD-00028,2026-01-28,CUS-0028,France,Ile-de-France,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Email,Klarna
+ORD-00029,2026-01-29,CUS-0029,United Kingdom,England,P-1005,Running Belt,Kitchen,1,402.36,397.36,14,5,kept,Google Shopping,Card
+ORD-00030,2026-01-30,CUS-0030,Belgium,Flanders,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Instagram,PayPal
+ORD-00031,2026-01-31,CUS-0031,Netherlands,North Holland,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Shopify,Apple Pay
+ORD-00032,2026-02-01,CUS-0032,Germany,Bavaria,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Amazon,Klarna
+ORD-00033,2026-02-02,CUS-0033,France,Ile-de-France,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Email,Card
+ORD-00034,2026-02-03,CUS-0034,United Kingdom,England,P-1010,Cotton Hoodie,Sports,2,202.68,397.36,14,8,kept,Google Shopping,PayPal
+ORD-00035,2026-02-04,CUS-0035,Belgium,Flanders,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,returned,Instagram,Apple Pay
+ORD-00036,2026-02-05,CUS-0036,Netherlands,North Holland,P-1012,Desk Light,Apparel,4,100.59,397.36,14,5,kept,Shopify,Klarna
+ORD-00037,2026-02-06,CUS-0037,Germany,Bavaria,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Amazon,Card
+ORD-00038,2026-02-07,CUS-0038,France,Ile-de-France,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Email,PayPal
+ORD-00039,2026-02-08,CUS-0039,United Kingdom,England,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Google Shopping,Apple Pay
+ORD-00040,2026-02-09,CUS-0040,Belgium,Flanders,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Instagram,Klarna
+ORD-00041,2026-02-10,CUS-0041,Netherlands,North Holland,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Shopify,Card
+ORD-00042,2026-02-11,CUS-0042,Germany,Bavaria,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Amazon,PayPal
+ORD-00043,2026-02-12,CUS-0043,France,Ile-de-France,P-1007,Face Serum,Electronics,3,134.12,397.36,14,5,kept,Email,Apple Pay
+ORD-00044,2026-02-13,CUS-0044,United Kingdom,England,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Google Shopping,Klarna
+ORD-00045,2026-02-14,CUS-0045,Belgium,Flanders,P-1009,Laptop Stand,Beauty,1,405.36,397.36,14,8,kept,Instagram,Card
+ORD-00046,2026-02-15,CUS-0046,Netherlands,North Holland,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Shopify,PayPal
+ORD-00047,2026-02-16,CUS-0047,Germany,Bavaria,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Amazon,Apple Pay
+ORD-00048,2026-02-17,CUS-0048,France,Ile-de-France,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Email,Klarna
+ORD-00049,2026-02-18,CUS-0049,United Kingdom,England,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Google Shopping,Card
+ORD-00050,2026-02-19,CUS-0050,Belgium,Flanders,P-1002,Desk Mat,Home Office,2,201.18,397.36,14,5,kept,Instagram,PayPal
+ORD-00051,2026-02-20,CUS-0051,Netherlands,North Holland,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Shopify,Apple Pay
+ORD-00052,2026-02-21,CUS-0052,Germany,Bavaria,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,returned,Amazon,Klarna
+ORD-00053,2026-02-22,CUS-0053,France,Ile-de-France,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Email,Card
+ORD-00054,2026-02-23,CUS-0054,United Kingdom,England,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Google Shopping,PayPal
+ORD-00055,2026-02-24,CUS-0055,Belgium,Flanders,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Instagram,Apple Pay
+ORD-00056,2026-02-25,CUS-0056,Netherlands,North Holland,P-1008,Yoga Block,Home Office,4,101.34,397.36,14,8,kept,Shopify,Klarna
+ORD-00057,2026-02-26,CUS-0057,Germany,Bavaria,P-1009,Laptop Stand,Beauty,1,402.36,397.36,14,5,kept,Amazon,Card
+ORD-00058,2026-02-27,CUS-0058,France,Ile-de-France,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Email,PayPal
+ORD-00059,2026-02-28,CUS-0059,United Kingdom,England,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Google Shopping,Apple Pay
+ORD-00060,2026-03-01,CUS-0060,Belgium,Flanders,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Instagram,Klarna
+ORD-00061,2026-03-02,CUS-0061,Netherlands,North Holland,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Shopify,Card
+ORD-00062,2026-03-03,CUS-0062,Germany,Bavaria,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Amazon,PayPal
+ORD-00063,2026-03-04,CUS-0063,France,Ile-de-France,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Email,Apple Pay
+ORD-00064,2026-03-05,CUS-0064,United Kingdom,England,P-1004,Travel Bottle,Sports,4,100.59,397.36,14,5,kept,Google Shopping,Klarna
+ORD-00065,2026-03-06,CUS-0065,Belgium,Flanders,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Instagram,Card
+ORD-00066,2026-03-07,CUS-0066,Netherlands,North Holland,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Shopify,PayPal
+ORD-00067,2026-03-08,CUS-0067,Germany,Bavaria,P-1007,Face Serum,Electronics,3,135.12,397.36,14,8,kept,Amazon,Apple Pay
+ORD-00068,2026-03-09,CUS-0068,France,Ile-de-France,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Email,Klarna
+ORD-00069,2026-03-10,CUS-0069,United Kingdom,England,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,returned,Google Shopping,Card
+ORD-00070,2026-03-11,CUS-0070,Belgium,Flanders,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Instagram,PayPal
+ORD-00071,2026-03-12,CUS-0071,Netherlands,North Holland,P-1011,Pantry Labels,Kitchen,3,134.12,397.36,14,5,kept,Shopify,Apple Pay
+ORD-00072,2026-03-13,CUS-0072,Germany,Bavaria,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Amazon,Klarna
+ORD-00073,2026-03-14,CUS-0073,France,Ile-de-France,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Email,Card
+ORD-00074,2026-03-15,CUS-0074,United Kingdom,England,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Google Shopping,PayPal
+ORD-00075,2026-03-16,CUS-0075,Belgium,Flanders,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Instagram,Apple Pay
+ORD-00076,2026-03-17,CUS-0076,Netherlands,North Holland,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Shopify,Klarna
+ORD-00077,2026-03-18,CUS-0077,Germany,Bavaria,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Amazon,Card
+ORD-00078,2026-03-19,CUS-0078,France,Ile-de-France,P-1006,Coffee Scale,Apparel,2,202.68,397.36,14,8,kept,Email,PayPal
+ORD-00079,2026-03-20,CUS-0079,United Kingdom,England,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Google Shopping,Apple Pay
+ORD-00080,2026-03-21,CUS-0080,Belgium,Flanders,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Instagram,Klarna
+ORD-00081,2026-03-22,CUS-0081,Netherlands,North Holland,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Shopify,Card
+ORD-00082,2026-03-23,CUS-0082,Germany,Bavaria,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Amazon,PayPal
+ORD-00083,2026-03-24,CUS-0083,France,Ile-de-France,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Email,Apple Pay
+ORD-00084,2026-03-25,CUS-0084,United Kingdom,England,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Google Shopping,Klarna
+ORD-00085,2026-03-26,CUS-0085,Belgium,Flanders,P-1001,Smart Lamp,Electronics,1,402.36,397.36,14,5,kept,Instagram,Card
+ORD-00086,2026-03-27,CUS-0086,Netherlands,North Holland,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,returned,Shopify,PayPal
+ORD-00087,2026-03-28,CUS-0087,Germany,Bavaria,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Amazon,Apple Pay
+ORD-00088,2026-03-29,CUS-0088,France,Ile-de-France,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Email,Klarna
+ORD-00089,2026-03-30,CUS-0089,United Kingdom,England,P-1005,Running Belt,Kitchen,1,405.36,397.36,14,8,kept,Google Shopping,Card
+ORD-00090,2026-03-31,CUS-0090,Belgium,Flanders,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Instagram,PayPal
+ORD-00091,2026-04-01,CUS-0091,Netherlands,North Holland,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Shopify,Apple Pay
+ORD-00092,2026-04-02,CUS-0092,Germany,Bavaria,P-1008,Yoga Block,Home Office,4,100.59,397.36,14,5,kept,Amazon,Klarna
+ORD-00093,2026-04-03,CUS-0093,France,Ile-de-France,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Email,Card
+ORD-00094,2026-04-04,CUS-0094,United Kingdom,England,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Google Shopping,PayPal
+ORD-00095,2026-04-05,CUS-0095,Belgium,Flanders,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Instagram,Apple Pay
+ORD-00096,2026-04-06,CUS-0096,Netherlands,North Holland,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Shopify,Klarna
+ORD-00097,2026-04-07,CUS-0001,Germany,Bavaria,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Amazon,Card
+ORD-00098,2026-04-08,CUS-0002,France,Ile-de-France,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Email,PayPal
+ORD-00099,2026-04-09,CUS-0003,United Kingdom,England,P-1003,Cable Kit,Beauty,3,134.12,397.36,14,5,kept,Google Shopping,Apple Pay
+ORD-00100,2026-04-10,CUS-0004,Belgium,Flanders,P-1004,Travel Bottle,Sports,4,101.34,397.36,14,8,kept,Instagram,Klarna
+ORD-00101,2026-04-11,CUS-0005,Netherlands,North Holland,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Shopify,Card
+ORD-00102,2026-04-12,CUS-0006,Germany,Bavaria,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Amazon,PayPal
+ORD-00103,2026-04-13,CUS-0007,France,Ile-de-France,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,returned,Email,Apple Pay
+ORD-00104,2026-04-14,CUS-0008,United Kingdom,England,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Google Shopping,Klarna
+ORD-00105,2026-04-15,CUS-0009,Belgium,Flanders,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Instagram,Card
+ORD-00106,2026-04-16,CUS-0010,Netherlands,North Holland,P-1010,Cotton Hoodie,Sports,2,201.18,397.36,14,5,kept,Shopify,PayPal
+ORD-00107,2026-04-17,CUS-0011,Germany,Bavaria,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Amazon,Apple Pay
+ORD-00108,2026-04-18,CUS-0012,France,Ile-de-France,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Email,Klarna
+ORD-00109,2026-04-19,CUS-0013,United Kingdom,England,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Google Shopping,Card
+ORD-00110,2026-04-20,CUS-0014,Belgium,Flanders,P-1002,Desk Mat,Home Office,2,198.68,397.36,14,0,kept,Instagram,PayPal
+ORD-00111,2026-04-21,CUS-0015,Netherlands,North Holland,P-1003,Cable Kit,Beauty,3,135.12,397.36,14,8,kept,Shopify,Apple Pay
+ORD-00112,2026-04-22,CUS-0016,Germany,Bavaria,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Amazon,Klarna
+ORD-00113,2026-04-23,CUS-0017,France,Ile-de-France,P-1005,Running Belt,Kitchen,1,402.36,397.36,14,5,kept,Email,Card
+ORD-00114,2026-04-24,CUS-0018,United Kingdom,England,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Google Shopping,PayPal
+ORD-00115,2026-04-25,CUS-0019,Belgium,Flanders,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Instagram,Apple Pay
+ORD-00116,2026-04-26,CUS-0020,Netherlands,North Holland,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Shopify,Klarna
+ORD-00117,2026-04-27,CUS-0021,Germany,Bavaria,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Amazon,Card
+ORD-00118,2026-04-28,CUS-0022,France,Ile-de-France,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Email,PayPal
+ORD-00119,2026-04-29,CUS-0023,United Kingdom,England,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Google Shopping,Apple Pay
+ORD-00120,2026-04-30,CUS-0024,Belgium,Flanders,P-1012,Desk Light,Apparel,4,100.59,397.36,14,5,returned,Instagram,Klarna
+ORD-00121,2026-01-01,CUS-0025,Netherlands,North Holland,P-1001,Smart Lamp,Electronics,1,397.36,397.36,14,0,kept,Shopify,Card
+ORD-00122,2026-01-02,CUS-0026,Germany,Bavaria,P-1002,Desk Mat,Home Office,2,202.68,397.36,14,8,kept,Amazon,PayPal
+ORD-00123,2026-01-03,CUS-0027,France,Ile-de-France,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Email,Apple Pay
+ORD-00124,2026-01-04,CUS-0028,United Kingdom,England,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Google Shopping,Klarna
+ORD-00125,2026-01-05,CUS-0029,Belgium,Flanders,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,kept,Instagram,Card
+ORD-00126,2026-01-06,CUS-0030,Netherlands,North Holland,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Shopify,PayPal
+ORD-00127,2026-01-07,CUS-0031,Germany,Bavaria,P-1007,Face Serum,Electronics,3,134.12,397.36,14,5,kept,Amazon,Apple Pay
+ORD-00128,2026-01-08,CUS-0032,France,Ile-de-France,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Email,Klarna
+ORD-00129,2026-01-09,CUS-0033,United Kingdom,England,P-1009,Laptop Stand,Beauty,1,397.36,397.36,14,0,kept,Google Shopping,Card
+ORD-00130,2026-01-10,CUS-0034,Belgium,Flanders,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,14,0,kept,Instagram,PayPal
+ORD-00131,2026-01-11,CUS-0035,Netherlands,North Holland,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,14,0,kept,Shopify,Apple Pay
+ORD-00132,2026-01-12,CUS-0036,Germany,Bavaria,P-1012,Desk Light,Apparel,4,99.34,397.36,14,0,kept,Amazon,Klarna
+ORD-00133,2026-01-13,CUS-0037,France,Ile-de-France,P-1001,Smart Lamp,Electronics,1,405.36,397.36,14,8,kept,Email,Card
+ORD-00134,2026-01-14,CUS-0038,United Kingdom,England,P-1002,Desk Mat,Home Office,2,201.18,397.36,14,5,kept,Google Shopping,PayPal
+ORD-00135,2026-01-15,CUS-0039,Belgium,Flanders,P-1003,Cable Kit,Beauty,3,132.45,397.36,14,0,kept,Instagram,Apple Pay
+ORD-00136,2026-01-16,CUS-0040,Netherlands,North Holland,P-1004,Travel Bottle,Sports,4,99.34,397.36,14,0,kept,Shopify,Klarna
+ORD-00137,2026-01-17,CUS-0041,Germany,Bavaria,P-1005,Running Belt,Kitchen,1,397.36,397.36,14,0,returned,Amazon,Card
+ORD-00138,2026-01-18,CUS-0042,France,Ile-de-France,P-1006,Coffee Scale,Apparel,2,198.68,397.36,14,0,kept,Email,PayPal
+ORD-00139,2026-01-19,CUS-0043,United Kingdom,England,P-1007,Face Serum,Electronics,3,132.45,397.36,14,0,kept,Google Shopping,Apple Pay
+ORD-00140,2026-01-20,CUS-0044,Belgium,Flanders,P-1008,Yoga Block,Home Office,4,99.34,397.36,14,0,kept,Instagram,Klarna
+ORD-00141,2026-01-21,CUS-0045,Netherlands,North Holland,P-1009,Laptop Stand,Beauty,1,402.36,397.36,13,5,kept,Shopify,Card
+ORD-00142,2026-01-22,CUS-0046,Germany,Bavaria,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,13,0,kept,Amazon,PayPal
+ORD-00143,2026-01-23,CUS-0047,France,Ile-de-France,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,13,0,kept,Email,Apple Pay
+ORD-00144,2026-01-24,CUS-0048,United Kingdom,England,P-1012,Desk Light,Apparel,4,101.34,397.36,13,8,kept,Google Shopping,Klarna
+ORD-00145,2026-01-25,CUS-0049,Belgium,Flanders,P-1001,Smart Lamp,Electronics,1,397.36,397.36,13,0,kept,Instagram,Card
+ORD-00146,2026-01-26,CUS-0050,Netherlands,North Holland,P-1002,Desk Mat,Home Office,2,198.68,397.36,13,0,kept,Shopify,PayPal
+ORD-00147,2026-01-27,CUS-0051,Germany,Bavaria,P-1003,Cable Kit,Beauty,3,132.45,397.36,13,0,kept,Amazon,Apple Pay
+ORD-00148,2026-01-28,CUS-0052,France,Ile-de-France,P-1004,Travel Bottle,Sports,4,100.59,397.36,13,5,kept,Email,Klarna
+ORD-00149,2026-01-29,CUS-0053,United Kingdom,England,P-1005,Running Belt,Kitchen,1,397.36,397.36,13,0,kept,Google Shopping,Card
+ORD-00150,2026-01-30,CUS-0054,Belgium,Flanders,P-1006,Coffee Scale,Apparel,2,198.68,397.36,13,0,kept,Instagram,PayPal
+ORD-00151,2026-01-31,CUS-0055,Netherlands,North Holland,P-1007,Face Serum,Electronics,3,132.45,397.36,13,0,kept,Shopify,Apple Pay
+ORD-00152,2026-02-01,CUS-0056,Germany,Bavaria,P-1008,Yoga Block,Home Office,4,99.34,397.36,13,0,kept,Amazon,Klarna
+ORD-00153,2026-02-02,CUS-0057,France,Ile-de-France,P-1009,Laptop Stand,Beauty,1,397.36,397.36,13,0,kept,Email,Card
+ORD-00154,2026-02-03,CUS-0058,United Kingdom,England,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,13,0,returned,Google Shopping,PayPal
+ORD-00155,2026-02-04,CUS-0059,Belgium,Flanders,P-1011,Pantry Labels,Kitchen,3,135.12,397.36,13,8,kept,Instagram,Apple Pay
+ORD-00156,2026-02-05,CUS-0060,Netherlands,North Holland,P-1012,Desk Light,Apparel,4,99.34,397.36,13,0,kept,Shopify,Klarna
+ORD-00157,2026-02-06,CUS-0061,Germany,Bavaria,P-1001,Smart Lamp,Electronics,1,397.36,397.36,13,0,kept,Amazon,Card
+ORD-00158,2026-02-07,CUS-0062,France,Ile-de-France,P-1002,Desk Mat,Home Office,2,198.68,397.36,13,0,kept,Email,PayPal
+ORD-00159,2026-02-08,CUS-0063,United Kingdom,England,P-1003,Cable Kit,Beauty,3,132.45,397.36,13,0,kept,Google Shopping,Apple Pay
+ORD-00160,2026-02-09,CUS-0064,Belgium,Flanders,P-1004,Travel Bottle,Sports,4,99.34,397.36,13,0,kept,Instagram,Klarna
+ORD-00161,2026-02-10,CUS-0065,Netherlands,North Holland,P-1005,Running Belt,Kitchen,1,397.36,397.36,13,0,kept,Shopify,Card
+ORD-00162,2026-02-11,CUS-0066,Germany,Bavaria,P-1006,Coffee Scale,Apparel,2,201.18,397.36,13,5,kept,Amazon,PayPal
+ORD-00163,2026-02-12,CUS-0067,France,Ile-de-France,P-1007,Face Serum,Electronics,3,132.45,397.36,13,0,kept,Email,Apple Pay
+ORD-00164,2026-02-13,CUS-0068,United Kingdom,England,P-1008,Yoga Block,Home Office,4,99.34,397.36,13,0,kept,Google Shopping,Klarna
+ORD-00165,2026-02-14,CUS-0069,Belgium,Flanders,P-1009,Laptop Stand,Beauty,1,397.36,397.36,13,0,kept,Instagram,Card
+ORD-00166,2026-02-15,CUS-0070,Netherlands,North Holland,P-1010,Cotton Hoodie,Sports,2,202.68,397.36,13,8,kept,Shopify,PayPal
+ORD-00167,2026-02-16,CUS-0071,Germany,Bavaria,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,13,0,kept,Amazon,Apple Pay
+ORD-00168,2026-02-17,CUS-0072,France,Ile-de-France,P-1012,Desk Light,Apparel,4,99.34,397.36,13,0,kept,Email,Klarna
+ORD-00169,2026-02-18,CUS-0073,United Kingdom,England,P-1001,Smart Lamp,Electronics,1,402.36,397.36,13,5,kept,Google Shopping,Card
+ORD-00170,2026-02-19,CUS-0074,Belgium,Flanders,P-1002,Desk Mat,Home Office,2,198.68,397.36,13,0,kept,Instagram,PayPal
+ORD-00171,2026-02-20,CUS-0075,Netherlands,North Holland,P-1003,Cable Kit,Beauty,3,132.45,397.36,13,0,returned,Shopify,Apple Pay
+ORD-00172,2026-02-21,CUS-0076,Germany,Bavaria,P-1004,Travel Bottle,Sports,4,99.34,397.36,13,0,kept,Amazon,Klarna
+ORD-00173,2026-02-22,CUS-0077,France,Ile-de-France,P-1005,Running Belt,Kitchen,1,397.36,397.36,13,0,kept,Email,Card
+ORD-00174,2026-02-23,CUS-0078,United Kingdom,England,P-1006,Coffee Scale,Apparel,2,198.68,397.36,13,0,kept,Google Shopping,PayPal
+ORD-00175,2026-02-24,CUS-0079,Belgium,Flanders,P-1007,Face Serum,Electronics,3,132.45,397.36,13,0,kept,Instagram,Apple Pay
+ORD-00176,2026-02-25,CUS-0080,Netherlands,North Holland,P-1008,Yoga Block,Home Office,4,100.59,397.36,13,5,kept,Shopify,Klarna
+ORD-00177,2026-02-26,CUS-0081,Germany,Bavaria,P-1009,Laptop Stand,Beauty,1,405.36,397.36,13,8,kept,Amazon,Card
+ORD-00178,2026-02-27,CUS-0082,France,Ile-de-France,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,13,0,kept,Email,PayPal
+ORD-00179,2026-02-28,CUS-0083,United Kingdom,England,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,13,0,kept,Google Shopping,Apple Pay
+ORD-00180,2026-03-01,CUS-0084,Belgium,Flanders,P-1012,Desk Light,Apparel,4,99.34,397.36,13,0,kept,Instagram,Klarna
+ORD-00181,2026-03-02,CUS-0085,Netherlands,North Holland,P-1001,Smart Lamp,Electronics,1,397.36,397.36,13,0,kept,Shopify,Card
+ORD-00182,2026-03-03,CUS-0086,Germany,Bavaria,P-1002,Desk Mat,Home Office,2,198.68,397.36,13,0,kept,Amazon,PayPal
+ORD-00183,2026-03-04,CUS-0087,France,Ile-de-France,P-1003,Cable Kit,Beauty,3,134.12,397.36,13,5,kept,Email,Apple Pay
+ORD-00184,2026-03-05,CUS-0088,United Kingdom,England,P-1004,Travel Bottle,Sports,4,99.34,397.36,13,0,kept,Google Shopping,Klarna
+ORD-00185,2026-03-06,CUS-0089,Belgium,Flanders,P-1005,Running Belt,Kitchen,1,397.36,397.36,13,0,kept,Instagram,Card
+ORD-00186,2026-03-07,CUS-0090,Netherlands,North Holland,P-1006,Coffee Scale,Apparel,2,198.68,397.36,13,0,kept,Shopify,PayPal
+ORD-00187,2026-03-08,CUS-0091,Germany,Bavaria,P-1007,Face Serum,Electronics,3,132.45,397.36,13,0,kept,Amazon,Apple Pay
+ORD-00188,2026-03-09,CUS-0092,France,Ile-de-France,P-1008,Yoga Block,Home Office,4,101.34,397.36,13,8,returned,Email,Klarna
+ORD-00189,2026-03-10,CUS-0093,United Kingdom,England,P-1009,Laptop Stand,Beauty,1,397.36,397.36,13,0,kept,Google Shopping,Card
+ORD-00190,2026-03-11,CUS-0094,Belgium,Flanders,P-1010,Cotton Hoodie,Sports,2,201.18,397.36,13,5,kept,Instagram,PayPal
+ORD-00191,2026-03-12,CUS-0095,Netherlands,North Holland,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,13,0,kept,Shopify,Apple Pay
+ORD-00192,2026-03-13,CUS-0096,Germany,Bavaria,P-1012,Desk Light,Apparel,4,99.34,397.36,13,0,kept,Amazon,Klarna
+ORD-00193,2026-03-14,CUS-0001,France,Ile-de-France,P-1001,Smart Lamp,Electronics,1,397.36,397.36,13,0,kept,Email,Card
+ORD-00194,2026-03-15,CUS-0002,United Kingdom,England,P-1002,Desk Mat,Home Office,2,198.68,397.36,13,0,kept,Google Shopping,PayPal
+ORD-00195,2026-03-16,CUS-0003,Belgium,Flanders,P-1003,Cable Kit,Beauty,3,132.45,397.36,13,0,kept,Instagram,Apple Pay
+ORD-00196,2026-03-17,CUS-0004,Netherlands,North Holland,P-1004,Travel Bottle,Sports,4,99.34,397.36,13,0,kept,Shopify,Klarna
+ORD-00197,2026-03-18,CUS-0005,Germany,Bavaria,P-1005,Running Belt,Kitchen,1,402.36,397.36,13,5,kept,Amazon,Card
+ORD-00198,2026-03-19,CUS-0006,France,Ile-de-France,P-1006,Coffee Scale,Apparel,2,198.68,397.36,13,0,kept,Email,PayPal
+ORD-00199,2026-03-20,CUS-0007,United Kingdom,England,P-1007,Face Serum,Electronics,3,135.12,397.36,13,8,kept,Google Shopping,Apple Pay
+ORD-00200,2026-03-21,CUS-0008,Belgium,Flanders,P-1008,Yoga Block,Home Office,4,99.34,397.36,13,0,kept,Instagram,Klarna
+ORD-00201,2026-03-22,CUS-0009,Netherlands,North Holland,P-1009,Laptop Stand,Beauty,1,397.36,397.36,13,0,kept,Shopify,Card
+ORD-00202,2026-03-23,CUS-0010,Germany,Bavaria,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,13,0,kept,Amazon,PayPal
+ORD-00203,2026-03-24,CUS-0011,France,Ile-de-France,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,13,0,kept,Email,Apple Pay
+ORD-00204,2026-03-25,CUS-0012,United Kingdom,England,P-1012,Desk Light,Apparel,4,100.59,397.36,13,5,kept,Google Shopping,Klarna
+ORD-00205,2026-03-26,CUS-0013,Belgium,Flanders,P-1001,Smart Lamp,Electronics,1,397.36,397.36,13,0,returned,Instagram,Card
+ORD-00206,2026-03-27,CUS-0014,Netherlands,North Holland,P-1002,Desk Mat,Home Office,2,198.68,397.36,13,0,kept,Shopify,PayPal
+ORD-00207,2026-03-28,CUS-0015,Germany,Bavaria,P-1003,Cable Kit,Beauty,3,132.45,397.36,13,0,kept,Amazon,Apple Pay
+ORD-00208,2026-03-29,CUS-0016,France,Ile-de-France,P-1004,Travel Bottle,Sports,4,99.34,397.36,13,0,kept,Email,Klarna
+ORD-00209,2026-03-30,CUS-0017,United Kingdom,England,P-1005,Running Belt,Kitchen,1,397.36,397.36,13,0,kept,Google Shopping,Card
+ORD-00210,2026-03-31,CUS-0018,Belgium,Flanders,P-1006,Coffee Scale,Apparel,2,202.68,397.36,13,8,kept,Instagram,PayPal
+ORD-00211,2026-04-01,CUS-0019,Netherlands,North Holland,P-1007,Face Serum,Electronics,3,134.12,397.36,13,5,kept,Shopify,Apple Pay
+ORD-00212,2026-04-02,CUS-0020,Germany,Bavaria,P-1008,Yoga Block,Home Office,4,99.34,397.36,13,0,kept,Amazon,Klarna
+ORD-00213,2026-04-03,CUS-0021,France,Ile-de-France,P-1009,Laptop Stand,Beauty,1,397.36,397.36,13,0,kept,Email,Card
+ORD-00214,2026-04-04,CUS-0022,United Kingdom,England,P-1010,Cotton Hoodie,Sports,2,198.68,397.36,13,0,kept,Google Shopping,PayPal
+ORD-00215,2026-04-05,CUS-0023,Belgium,Flanders,P-1011,Pantry Labels,Kitchen,3,132.45,397.36,13,0,kept,Instagram,Apple Pay
+ORD-00216,2026-04-06,CUS-0024,Netherlands,North Holland,P-1012,Desk Light,Apparel,4,99.34,397.36,13,0,kept,Shopify,Klarna
+ORD-00217,2026-04-07,CUS-0025,Germany,Bavaria,P-1001,Smart Lamp,Electronics,1,397.36,397.36,13,0,kept,Amazon,Card
+ORD-00218,2026-04-08,CUS-0026,France,Ile-de-France,P-1002,Desk Mat,Home Office,2,201.18,397.36,13,5,kept,Email,PayPal
+ORD-00219,2026-04-09,CUS-0027,United Kingdom,England,P-1003,Cable Kit,Beauty,3,132.45,397.36,13,0,kept,Google Shopping,Apple Pay
+ORD-00220,2026-04-10,CUS-0028,Belgium,Flanders,P-1004,Travel Bottle,Sports,4,99.34,397.36,13,0,kept,Instagram,Klarna

@@ -3,12 +3,18 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { parseCSVStreaming } from "../../src/lib/data/csvLoader"
 import type { ReportProfileId } from "../../src/lib/reports/report-profiles"
+import type { EcommerceReportAnalysis, ReportDiagnostics, ReportSemanticContext } from "../../src/lib/reports/report-generator"
 
 type DatasetInput = Parameters<typeof import("../../src/lib/reports/dataset-report-builder").buildDatasetReportInput>[0]
 type DatasetReportInput = Awaited<ReturnType<typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]>>
 type BuildDatasetReportInput = typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]
 type GenerateReport = typeof import("../../src/lib/reports/report-generator")["generateReport"]
 type DeleteReport = typeof import("../../src/lib/reports/report-generator")["deleteReport"]
+type EcommerceReportInput = DatasetReportInput & {
+  ecommerceAnalysis?: EcommerceReportAnalysis
+  semanticContext?: ReportSemanticContext
+  diagnostics?: ReportDiagnostics
+}
 
 type FixtureCase = {
   family: string
@@ -19,7 +25,7 @@ type FixtureCase = {
 
 const availableFixtures: FixtureCase[] = [
   { family: "local_retail", baseName: "01_local_retail", businessModel: "local_retail", expectedProfile: "local_retail" },
-  { family: "ecommerce", baseName: "ecommerce", businessModel: "ecommerce", expectedProfile: "ecommerce" },
+  { family: "ecommerce", baseName: "02_ecommerce", businessModel: "ecommerce", expectedProfile: "ecommerce" },
   { family: "saas_startup", baseName: "startup-saas", businessModel: "saas", expectedProfile: "saas_startup" },
   { family: "investor_portfolio", baseName: "investor-portfolio", businessModel: "investor", expectedProfile: "investor_portfolio" },
   { family: "business_consulting", baseName: "business-consulting", businessModel: "generic", expectedProfile: "business_consulting" },
@@ -76,6 +82,21 @@ async function main() {
   const fixtureRoot = path.join(process.cwd(), "test-fixtures", "business-models")
   const results: Array<{ fixture: string; profile: string; rows: number; pdfVerified?: boolean }> = []
   const retailParity: Record<string, { revenue: number | null; cogs: number | null; grossProfit: number | null; grossMargin: number | null; aovStatus?: string; inventoryValue: number | null; reorderRequiredCount: number | null }> = {}
+  const ecommerceParity: Record<string, {
+    rows: number
+    revenue: number | null
+    cogs: number | null
+    grossProfit: number | null
+    grossMargin: number | null
+    orders: number | null
+    aov: number | null
+    customers: number | null
+    shippingCost: number | null
+    returnRate: number | null
+    channelCount: number
+    categoryCount: number
+    trendCount: number
+  }> = {}
 
   for (const fixture of availableFixtures) {
     for (const extension of ["csv", "xlsx"] as const) {
@@ -122,6 +143,55 @@ async function main() {
         assert(!/interest|tax|operating expenses/i.test(recommendationText), "local retail recommendations must not lead with generic P&L missing-field advice")
       }
 
+      if (fixture.family === "ecommerce") {
+        const ecommerceInput = reportInput as EcommerceReportInput
+        const ecommerce = ecommerceInput.ecommerceAnalysis
+        assert(ecommerceInput.reportProfile.title === "E-commerce Performance Report", "ecommerce must use E-commerce Performance Report")
+        assert(ecommerceInput.rowCount === 220, "ecommerce fixture must analyze all 220 rows")
+        nearlyEqual(ecommerceInput.financials?.revenue, 87419.2, "ecommerce revenue must match fixture", 0.01)
+        assert(ecommerceInput.financials?.cogs === null, "ecommerce shipping_cost must not map to COGS")
+        assert(ecommerceInput.financials?.grossProfit === null, "ecommerce gross profit must be unavailable without COGS")
+        assert(ecommerceInput.financials?.grossMargin === null, "ecommerce gross margin must be unavailable without COGS")
+        assert(ecommerceInput.semanticContext?.mappings.cogs === null, "ecommerce semantic context must not map shipping_cost to COGS")
+        assert(ecommerceInput.semanticContext?.mappings.expenseCategory === null, "ecommerce category must not map to expense category")
+        assert(ecommerceInput.diagnostics?.expenseCategoryField === null, "ecommerce diagnostics must not expose product category as expense category")
+        if (!ecommerce) throw new Error("ecommerce analysis must be present")
+        assert(ecommerce.orderField === "order_id", "ecommerce orders must use order_id")
+        assert(ecommerce.orders === 220, "ecommerce orders must be distinct order_id")
+        nearlyEqual(ecommerce.averageOrderValue, 397.36, "ecommerce AOV must divide revenue by distinct order_id", 0.01)
+        assert(ecommerce.customers === 96, "ecommerce customers must use distinct customer_id")
+        assert(ecommerce.ordersPerCustomer !== null, "ecommerce orders per customer must be available")
+        assert(ecommerce.revenuePerCustomer !== null, "ecommerce revenue per customer must be available")
+        assert(ecommerce.unitsSold !== null && ecommerce.unitsSold > 0, "ecommerce units sold must be available")
+        assert(ecommerce.products === 12, "ecommerce products must use distinct product_id")
+        assert(ecommerce.shippingCost === 3000, "ecommerce shipping cost must be analyzed separately")
+        nearlyEqual(ecommerce.shippingCostRate, 3.43, "ecommerce shipping cost rate must use revenue denominator", 0.01)
+        assert(ecommerce.discounts !== null && ecommerce.discounts > 0, "ecommerce discounts must be available")
+        assert(ecommerce.returnRate !== null && ecommerce.returnRate > 0, "ecommerce returns must be available")
+        assert(ecommerce.revenueTrend.length === 4, "ecommerce revenue trend must group order_date revenue by month")
+        assert(ecommerceInput.diagnostics?.trendAvailable === true, "ecommerce diagnostics must mark revenue trend available without requiring net profit")
+        assert(ecommerce?.channelPerformance.length === 5, "ecommerce channel performance must be available")
+        assert(ecommerce?.categoryPerformance.length === 6, "ecommerce category performance must be product/category performance")
+        assert(ecommerce?.geography.length === 5, "ecommerce geography must be available")
+        const recommendationText = reportInput.recommendations?.map((item) => `${item.issue} ${item.recommendedAction}`).join(" ") || ""
+        assert(!/^Add COGS, operating expenses, interest and tax/i.test(recommendationText), "ecommerce recommendations must not lead with generic P&L missing-field advice")
+        ecommerceParity[extension] = {
+          rows: ecommerceInput.rowCount,
+          revenue: ecommerceInput.financials?.revenue ?? null,
+          cogs: ecommerceInput.financials?.cogs ?? null,
+          grossProfit: ecommerceInput.financials?.grossProfit ?? null,
+          grossMargin: ecommerceInput.financials?.grossMargin ?? null,
+          orders: ecommerce?.orders ?? null,
+          aov: ecommerce?.averageOrderValue ?? null,
+          customers: ecommerce?.customers ?? null,
+          shippingCost: ecommerce?.shippingCost ?? null,
+          returnRate: ecommerce?.returnRate ?? null,
+          channelCount: ecommerce?.channelPerformance.length ?? 0,
+          categoryCount: ecommerce?.categoryPerformance.length ?? 0,
+          trendCount: ecommerce?.revenueTrend.length ?? 0,
+        }
+      }
+
       if (fixture.family === "local_retail" && extension === "xlsx") {
         const report = await generateReport(dataset.id, "01_local_retail.xlsx", {
           visibility: "private",
@@ -147,6 +217,40 @@ async function main() {
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
         deleteReport(report.id)
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
+      } else if (fixture.family === "ecommerce" && extension === "xlsx") {
+        const report = await generateReport(dataset.id, "02_ecommerce.xlsx", {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: "dataset-aware-ecommerce-profile",
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "ecommerce PDF must generate")
+        const pdfText = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
+        const normalizedPdfText = pdfText.toLowerCase()
+        assert(pdfText.includes("E-COMMERCE PERFORMANCE REPORT"), "ecommerce PDF must identify the e-commerce report")
+        assert(pdfText.includes("Rows Analyzed"), "ecommerce PDF must include row provenance")
+        assert(pdfText.includes("220"), "ecommerce PDF must show all 220 rows")
+        assert(pdfText.includes("$87.4K") || pdfText.includes("$87,419"), "ecommerce PDF must show recognized revenue")
+        assert(pdfText.includes("SALES PERFORMANCE"), "ecommerce PDF must include sales performance page")
+        assert(pdfText.includes("CUSTOMER / CHANNEL / COMMERCIAL INTELLIGENCE"), "ecommerce PDF must include customer/channel/commercial page")
+        assert(pdfText.includes("Average Order Value"), "ecommerce PDF must include AOV")
+        assert(pdfText.includes("$397"), "ecommerce PDF must show AOV from distinct orders")
+        assert(pdfText.includes("COGS"), "ecommerce PDF must disclose COGS")
+        assert(pdfText.includes("Not available"), "ecommerce PDF must mark unsupported financial metrics unavailable")
+        assert(!pdfText.includes("Directly from source field: shipping_cost"), "ecommerce PDF must not source COGS from shipping_cost")
+        assert(!pdfText.includes("Expense Category"), "ecommerce PDF must not treat product category as expense category")
+        assert(!pdfText.includes("96.6%"), "ecommerce PDF must not show false gross margin")
+        assert(normalizedPdfText.includes("revenue trend"), "ecommerce PDF must include revenue trend")
+        assert(pdfText.includes("Shipping / Fulfillment Cost"), "ecommerce PDF must analyze shipping separately")
+        assert(normalizedPdfText.includes("returns") || normalizedPdfText.includes("return rate"), "ecommerce PDF must include returns")
+        assert(normalizedPdfText.includes("channel performance"), "ecommerce PDF must include channel intelligence")
+        assert(pdfText.includes("E-COMMERCE RECOMMENDATIONS + PROVENANCE"), "ecommerce PDF must include e-commerce recommendations")
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
       } else {
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount })
       }
@@ -154,6 +258,7 @@ async function main() {
   }
 
   assert(JSON.stringify(retailParity.csv) === JSON.stringify(retailParity.xlsx), "local retail CSV and XLSX outputs must match for financials, AOV status, inventory value, and reorder metrics")
+  assert(JSON.stringify(ecommerceParity.csv) === JSON.stringify(ecommerceParity.xlsx), "ecommerce CSV and XLSX outputs must match for semantic KPI results")
   await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport, generatePdfReport)
 
   const missingRequiredFixtures = requiredFixtureNames.flatMap((name) => {

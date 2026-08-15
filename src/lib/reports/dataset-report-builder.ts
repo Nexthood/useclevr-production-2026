@@ -5,7 +5,7 @@ import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-cat
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
-import type { ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis } from "@/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis } from "@/lib/reports/report-generator"
 import { getReportProfile } from "@/lib/reports/report-profiles"
 
 type DatasetRecord = typeof datasets.$inferSelect
@@ -30,10 +30,15 @@ type ColumnMap = {
   order?: string
   customer?: string
   country?: string
+  region?: string
   channel?: string
   product?: string
   category?: string
   date?: string
+  shippingCost?: string
+  discount?: string
+  returnStatus?: string
+  paymentMethod?: string
   expenseCategory?: string
   expenseAmount?: string
   vendor?: string
@@ -83,7 +88,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
-  if ((reportModel === "local_retail" || reportModel === "ecommerce") && !columnMap.cogs && columnMap.cost) {
+  if (reportModel === "local_retail" && !columnMap.cogs && columnMap.cost) {
     columnMap.cogs = columnMap.cost
   }
   const reportProfile = getReportProfile(reportModel)
@@ -98,6 +103,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   const semanticContext = buildSemanticContext({
     datasetId: dataset.id,
     datasetType,
+    reportModel,
     columnMap,
   })
   traceReportRuntime("buildDeterministicAnalysis", {
@@ -115,8 +121,10 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   })
   const financials = buildGenericFinancials(rows, columnMap)
   const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
-  const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis)
-  const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis)
+  const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
+  if (ecommerceAnalysis) financials.dataConfidence = ecommerceDataConfidence(columnMap)
+  const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis, ecommerceAnalysis)
+  const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis, ecommerceAnalysis)
   const canonicalRowCount = dataset.rowCount || rows.length
   if (rows.length !== canonicalRowCount) {
     throw new ReportIntegrityError("Report KPI row count does not match the authoritative dataset row count.", {
@@ -140,15 +148,18 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     detectedVendorField: semanticContext.vendorField,
     templateName: "executive-bi-report",
   })
-  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis, retailAnalysis)
+  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis, retailAnalysis, ecommerceAnalysis)
   const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
   const recommendations = reportModel === "local_retail" && retailAnalysis
     ? buildRetailRecommendations(retailAnalysis, financials, columnMap)
-    : buildDatasetRecommendations(columnMap, financials, bbsc)
+    : reportModel === "ecommerce" && ecommerceAnalysis
+      ? buildEcommerceRecommendations(ecommerceAnalysis, financials, columnMap)
+      : buildDatasetRecommendations(columnMap, financials, bbsc)
   const diagnostics = buildReportDiagnostics({
     dataset,
     rowCount: canonicalRowCount,
     rows,
+    reportModel,
     semanticContext,
     financials,
   })
@@ -188,6 +199,8 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     reportProfile,
     summary: reportModel === "local_retail" && retailAnalysis
       ? buildRetailSummary(dataset.name, canonicalRowCount, financials, retailAnalysis)
+      : reportModel === "ecommerce" && ecommerceAnalysis
+        ? buildEcommerceSummary(dataset.name, canonicalRowCount, financials, ecommerceAnalysis)
       : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
     findings,
     kpis,
@@ -197,6 +210,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     predictions: [],
     recommendations,
     retailAnalysis,
+    ecommerceAnalysis,
     alerts: buildAlerts(reportModel, rows, columnMap),
     bbsc,
     semanticContext,
@@ -664,6 +678,145 @@ function buildRetailRecommendations(
   return recommendations.slice(0, 5)
 }
 
+function buildEcommerceAnalysis(rows: DataRow[], columns: ColumnMap, financials: ReportFinancials): EcommerceReportAnalysis {
+  const revenue = financials.revenue
+  const orders = columns.order ? uniqueCount(rows, columns.order) : null
+  const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
+  const shippingCost = sumColumn(rows, columns.shippingCost)
+  const discounts = sumColumn(rows, columns.discount)
+  const returnedOrders = countReturnedOrders(rows, columns)
+  return {
+    orders,
+    orderField: columns.order || null,
+    customers,
+    customerField: columns.customer || null,
+    ordersPerCustomer: orders !== null && customers ? round(orders / customers) : null,
+    revenuePerCustomer: revenue !== null && customers ? round(revenue / customers) : null,
+    averageOrderValue: revenue !== null && orders ? round(revenue / orders) : null,
+    unitsSold: sumColumn(rows, columns.quantity),
+    products: columns.product ? uniqueCount(rows, columns.product) : null,
+    productField: columns.product || null,
+    returnRate: returnedOrders !== null && orders ? round((returnedOrders / orders) * 100) : null,
+    returnedOrders,
+    returnStatusField: columns.returnStatus || null,
+    shippingCost,
+    shippingCostRate: revenue !== null && revenue !== 0 && shippingCost !== null ? round((shippingCost / revenue) * 100) : null,
+    averageShippingCostPerOrder: orders && shippingCost !== null ? round(shippingCost / orders) : null,
+    discounts,
+    discountRate: revenue !== null && revenue !== 0 && discounts !== null ? round((discounts / revenue) * 100) : null,
+    averageDiscountPerOrder: orders && discounts !== null ? round(discounts / orders) : null,
+    revenueTrend: ecommerceRevenueTrend(rows, columns),
+    ordersTrend: ecommerceOrdersTrend(rows, columns),
+    categoryPerformance: groupedRetailChart(rows, columns.category, columns.revenue, "Uncategorized"),
+    topProducts: groupedRetailChart(rows, columns.product, columns.revenue, "Unknown product"),
+    channelPerformance: ecommerceChannelPerformance(rows, columns, revenue),
+    geography: ecommerceGeography(rows, columns, revenue),
+    paymentMethods: ecommercePaymentMethods(rows, columns),
+  }
+}
+
+function ecommerceDataConfidence(columns: ColumnMap) {
+  const required = [
+    columns.revenue,
+    columns.order,
+    columns.date,
+    columns.customer,
+    columns.product,
+    columns.quantity,
+    columns.category,
+    columns.channel,
+    columns.returnStatus,
+  ]
+  const optional = [columns.country || columns.region, columns.shippingCost, columns.discount, columns.paymentMethod]
+  const availableRequired = required.filter(Boolean).length
+  const availableOptional = optional.filter(Boolean).length
+  return Math.round(((availableRequired / required.length) * 85) + ((availableOptional / optional.length) * 15))
+}
+
+function buildEcommerceRecommendations(
+  ecommerce: EcommerceReportAnalysis,
+  financials: ReportFinancials,
+  columns: ColumnMap,
+): ReportRecommendation[] {
+  const recommendations: ReportRecommendation[] = []
+  const topChannel = ecommerce.channelPerformance[0]
+  if (topChannel && topChannel.share !== null) {
+    recommendations.push({
+      issue: `${topChannel.name} contributes ${topChannel.share.toFixed(1)}% of e-commerce revenue.`,
+      businessImpact: topChannel.share >= 50 ? "Channel concentration can expose growth to platform or campaign volatility." : "Channel mix is measurable and can guide acquisition focus.",
+      recommendedAction: `Review conversion, merchandising, and traffic quality for ${topChannel.name}, then compare with lower-share channels.`,
+      estimatedImpact: financials.revenue !== null ? `One revenue-share point equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in this dataset.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  const topCategory = ecommerce.categoryPerformance[0]
+  if (topCategory && financials.revenue !== null) {
+    recommendations.push({
+      issue: `${topCategory.name} is the top product category by revenue.`,
+      businessImpact: "Category contribution identifies where assortment, pricing, and promotion decisions matter most.",
+      recommendedAction: `Review stock, pricing, returns, and campaign allocation for ${topCategory.name}.`,
+      estimatedImpact: `${topCategory.name} contributes ${((topCategory.value / financials.revenue) * 100).toFixed(1)}% of revenue.`,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (ecommerce.returnRate !== null && ecommerce.returnRate > 0) {
+    recommendations.push({
+      issue: `Return rate is ${ecommerce.returnRate.toFixed(1)}%.`,
+      businessImpact: "Returned orders can reduce realized revenue quality and customer satisfaction.",
+      recommendedAction: "Review returned order reasons by product, category, and channel before changing refund assumptions.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (ecommerce.shippingCostRate !== null) {
+    recommendations.push({
+      issue: `Shipping and fulfillment cost is ${ecommerce.shippingCostRate.toFixed(1)}% of revenue.`,
+      businessImpact: "Fulfillment cost affects commercial efficiency but is not product COGS.",
+      recommendedAction: "Track shipping cost separately from product margin and compare it by channel and geography.",
+      estimatedImpact: ecommerce.shippingCost !== null ? `${formatCurrencyForSummary(ecommerce.shippingCost)} in shipping cost is visible in this dataset.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (financials.cogs === null) {
+    recommendations.push({
+      issue: "Product COGS is not available.",
+      businessImpact: "Gross profit and gross margin remain unavailable until product-cost data is added.",
+      recommendedAction: "Add cogs, cost_of_goods_sold, product_cost, or merchandise_cost when product profitability is needed.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["COGS or product cost"],
+    })
+  }
+  if (!columns.order || !columns.customer) {
+    recommendations.push({
+      issue: "Order or customer identifiers are incomplete.",
+      businessImpact: "AOV, customer economics, and order concentration depend on reliable identifiers.",
+      recommendedAction: "Include order_id and customer_id in future e-commerce uploads.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["Order ID", "Customer ID"],
+    })
+  }
+  return recommendations.slice(0, 5)
+}
+
+function buildEcommerceSummary(datasetName: string, rowCount: number, financials: ReportFinancials, ecommerce: EcommerceReportAnalysis) {
+  const parts: string[] = []
+  parts.push(`${datasetName} is analyzed as an e-commerce dataset with ${rowCount.toLocaleString()} loaded rows.`)
+  if (financials.revenue !== null) parts.push(`Revenue is ${formatCurrencyForSummary(financials.revenue)}.`)
+  if (ecommerce.orders !== null) parts.push(`${ecommerce.orders.toLocaleString()} distinct orders are recognized${ecommerce.orderField ? ` from ${ecommerce.orderField}` : ""}.`)
+  if (ecommerce.averageOrderValue !== null) parts.push(`Average Order Value is ${formatCurrencyForSummary(ecommerce.averageOrderValue)}.`)
+  if (ecommerce.customers !== null) parts.push(`${ecommerce.customers.toLocaleString()} distinct customers are recognized.`)
+  if (ecommerce.returnRate !== null) parts.push(`Return rate is ${ecommerce.returnRate.toFixed(1)}% from return-status values.`)
+  if (ecommerce.channelPerformance[0]) parts.push(`${ecommerce.channelPerformance[0].name} is the top revenue channel.`)
+  if (financials.grossProfit === null) parts.push("Gross profit and gross margin are not available because valid product COGS is missing.")
+  return parts.join(" ")
+}
+
 function retailInventoryValue(rows: DataRow[], columns: ColumnMap) {
   if (!columns.stock || !columns.cost) return null
   let total = 0
@@ -726,6 +879,119 @@ function groupedRetailChart(rows: DataRow[], groupColumn: string | undefined, va
     grouped.set(name, round((grouped.get(name) || 0) + value))
   }
   return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
+}
+
+function countReturnedOrders(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.returnStatus || !columns.order) return null
+  const returned = new Set<string>()
+  for (const row of rows) {
+    const status = String(row[columns.returnStatus] || "").trim().toLowerCase()
+    if (!/returned|return|refunded|refund|yes|true|1/.test(status)) continue
+    const orderId = String(row[columns.order] || "").trim()
+    if (orderId) returned.add(orderId)
+  }
+  return returned.size
+}
+
+function ecommerceRevenueTrend(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.date || !columns.revenue) return []
+  const grouped = new Map<string, number>()
+  for (const row of rows) {
+    const period = monthKey(row[columns.date])
+    const revenue = getNumber(row[columns.revenue])
+    if (!period || revenue === null) continue
+    grouped.set(period, round((grouped.get(period) || 0) + revenue))
+  }
+  return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }))
+}
+
+function ecommerceOrdersTrend(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.date || !columns.order) return []
+  const grouped = new Map<string, Set<string>>()
+  for (const row of rows) {
+    const period = monthKey(row[columns.date])
+    const orderId = String(row[columns.order] || "").trim()
+    if (!period || !orderId) continue
+    const orders = grouped.get(period) || new Set<string>()
+    orders.add(orderId)
+    grouped.set(period, orders)
+  }
+  return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([name, orders]) => ({ name, value: orders.size }))
+}
+
+function ecommerceChannelPerformance(rows: DataRow[], columns: ColumnMap, totalRevenue: number | null) {
+  if (!columns.channel || !columns.revenue) return []
+  const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
+  for (const row of rows) {
+    const name = String(row[columns.channel] || "Unknown channel").trim() || "Unknown channel"
+    const revenue = getNumber(row[columns.revenue])
+    if (revenue === null) continue
+    const current = grouped.get(name) || { revenue: 0, orders: new Set<string>() }
+    current.revenue += revenue
+    if (columns.order) {
+      const orderId = String(row[columns.order] || "").trim()
+      if (orderId) current.orders.add(orderId)
+    }
+    grouped.set(name, current)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({
+      name,
+      value: round(value.revenue),
+      orders: value.orders.size,
+      aov: value.orders.size > 0 ? round(value.revenue / value.orders.size) : null,
+      share: totalRevenue && totalRevenue > 0 ? round((value.revenue / totalRevenue) * 100) : null,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
+}
+
+function ecommerceGeography(rows: DataRow[], columns: ColumnMap, totalRevenue: number | null) {
+  const geographyColumn = columns.country || columns.region
+  if (!geographyColumn || !columns.revenue) return []
+  const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
+  for (const row of rows) {
+    const name = String(row[geographyColumn] || "Unknown geography").trim() || "Unknown geography"
+    const revenue = getNumber(row[columns.revenue])
+    if (revenue === null) continue
+    const current = grouped.get(name) || { revenue: 0, orders: new Set<string>() }
+    current.revenue += revenue
+    if (columns.order) {
+      const orderId = String(row[columns.order] || "").trim()
+      if (orderId) current.orders.add(orderId)
+    }
+    grouped.set(name, current)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({
+      name,
+      value: round(value.revenue),
+      orders: value.orders.size,
+      share: totalRevenue && totalRevenue > 0 ? round((value.revenue / totalRevenue) * 100) : null,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
+}
+
+function ecommercePaymentMethods(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.paymentMethod || !columns.revenue) return []
+  const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
+  for (const row of rows) {
+    const name = String(row[columns.paymentMethod] || "Unknown payment method").trim() || "Unknown payment method"
+    const revenue = getNumber(row[columns.revenue])
+    if (revenue === null) continue
+    const current = grouped.get(name) || { revenue: 0, orders: new Set<string>() }
+    current.revenue += revenue
+    if (columns.order) {
+      const orderId = String(row[columns.order] || "").trim()
+      if (orderId) current.orders.add(orderId)
+    }
+    grouped.set(name, current)
+  }
+  return Array.from(grouped.entries())
+    .map(([name, value]) => ({ name, value: round(value.revenue), orders: value.orders.size }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
 }
 
 function retailMarginByGroup(rows: DataRow[], groupColumn: string | undefined, columns: ColumnMap) {
@@ -893,6 +1159,11 @@ function periodKey(value: unknown) {
   if (Number.isFinite(parsed.getTime())) return parsed.toISOString().slice(0, 10)
   if (/^\d{4}-\d{1,2}$/.test(text)) return text.replace(/-(\d)$/, "-0$1")
   return null
+}
+
+function monthKey(value: unknown) {
+  const period = periodKey(value)
+  return period ? period.slice(0, 7) : null
 }
 
 function XLSXDateToJSDate(serial: number) {
@@ -1134,11 +1405,11 @@ function reportModelLabel(model: ReportModel) {
 function detectColumns(columns: string[]): ColumnMap {
   return {
     revenue: findColumn(columns, [/revenue/, /^sales$/, /amount/, /turnover/, /income/]),
-    cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /shipping_cost/, /unit_cost/, /spend/]),
+    cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /unit_cost/, /spend/]),
     grossProfit: findColumn(columns, [/gross_profit/, /grossprofit/]),
     operatingProfit: findColumn(columns, [/operating_profit/, /operatingprofit/, /ebit\b/]),
     netProfit: findColumn(columns, [/net_profit/, /netprofit/, /^profit$/, /profit_loss/]),
-    cogs: findColumn(columns, [/^cogs$/, /cost_of_goods/, /cost_of_sales/]),
+    cogs: findColumn(columns, [/^cogs$/, /cost_of_goods_sold/, /cost_of_goods/, /cost_of_sales/, /product_cost/, /merchandise_cost/]),
     operatingExpenses: findColumn(columns, [/operating_expenses/, /^opex$/, /sg_a/, /sga/]),
     interestExpense: findColumn(columns, [/interest_expense/, /^interest$/]),
     taxExpense: findColumn(columns, [/tax_expense/, /^tax$/, /taxes/]),
@@ -1147,10 +1418,15 @@ function detectColumns(columns: string[]): ColumnMap {
     order: columns.find((column) => isOrderIdentifierColumn(column)),
     customer: findColumn(columns, [/customer_id/, /customer/, /client_id/, /client/]),
     country: findColumn(columns, [/country/, /region/, /location/]),
+    region: findColumn(columns, [/region/]),
     channel: findColumn(columns, [/channel/, /source/]),
-    product: findColumn(columns, [/product_id/, /product/, /^sku$/, /item/]),
+    product: findColumn(columns, [/product_id/, /product_name/, /product/, /^sku$/, /item/]),
     category: findColumn(columns, [/category/, /sector/, /industry/]),
     date: findColumn(columns, [/date/, /month/, /period/, /created_at/]),
+    shippingCost: findColumn(columns, [/shipping_cost/, /shipping/, /fulfillment_cost/, /delivery_cost/, /freight/]),
+    discount: findColumn(columns, [/discount/, /discount_amount/, /promo/]),
+    returnStatus: findColumn(columns, [/return_status/, /returned/, /return/]),
+    paymentMethod: findColumn(columns, [/payment_method/, /payment/]),
     expenseCategory: findColumn(columns, [/expense_category/, /expensecategory/, /cost_category/, /costcategory/, /category/]),
     expenseAmount: findColumn(columns, [/expense_amount/, /expenseamount/, /cost_amount/, /costamount/, /amount/]),
     vendor: findColumn(columns, [/vendor_supplier/, /vendorsupplier/, /^vendor$/, /supplier/, /merchant/]),
@@ -1186,8 +1462,10 @@ function detectColumns(columns: string[]): ColumnMap {
 function buildSemanticContext(input: {
   datasetId: string
   datasetType: string
+  reportModel: ReportModel
   columnMap: ColumnMap
 }): ReportSemanticContext {
+  const isEcommerce = input.reportModel === "ecommerce"
   const mappings: Record<string, string | null> = {
     date: input.columnMap.date || null,
     revenue: input.columnMap.revenue || input.columnMap.gmv || null,
@@ -1198,8 +1476,8 @@ function buildSemanticContext(input: {
     interestExpense: input.columnMap.interestExpense || null,
     taxExpense: input.columnMap.taxExpense || null,
     netProfit: input.columnMap.netProfit || null,
-    expenseCategory: input.columnMap.expenseCategory || null,
-    expenseAmount: input.columnMap.expenseAmount || null,
+    expenseCategory: isEcommerce ? null : input.columnMap.expenseCategory || null,
+    expenseAmount: isEcommerce ? null : input.columnMap.expenseAmount || null,
     vendor: input.columnMap.vendor || null,
   }
   const required = ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
@@ -1228,6 +1506,7 @@ function buildReportDiagnostics(input: {
   dataset: DatasetRecord
   rowCount: number
   rows: DataRow[]
+  reportModel: ReportModel
   semanticContext: ReportSemanticContext
   financials: ReportFinancials
 }): ReportDiagnostics {
@@ -1254,7 +1533,9 @@ function buildReportDiagnostics(input: {
     validExpenseCategoryCount: validValueCount(input.rows, input.semanticContext.expenseCategoryField, (value) => String(value || "").trim().length > 0),
     validExpenseAmountCount: validValueCount(input.rows, input.semanticContext.expenseAmountField, (value) => getNumber(value) !== null),
     validVendorCount: validValueCount(input.rows, input.semanticContext.vendorField, (value) => String(value || "").trim().length > 0),
-    trendAvailable: hasTrendDataForDiagnostics(input.financials),
+    trendAvailable: input.reportModel === "ecommerce"
+      ? hasEcommerceRevenueTrendForDiagnostics(input.financials)
+      : hasTrendDataForDiagnostics(input.financials),
     analysisObjectKeys: analysisKeys,
     reportInputKeys: [
       "businessModel",
@@ -1286,6 +1567,11 @@ function hasTrendDataForDiagnostics(financials: ReportFinancials) {
   return trends.length > 0 && validNetProfitCount > 0
 }
 
+function hasEcommerceRevenueTrendForDiagnostics(financials: ReportFinancials) {
+  const trends = financials.periodTrends || []
+  return trends.filter((trend) => trend.revenue !== null).length >= 2
+}
+
 function validValueCount(rows: DataRow[], column: string | null, predicate: (value: unknown) => boolean) {
   if (!column) return 0
   return rows.filter((row) => predicate(row[column])).length
@@ -1299,7 +1585,7 @@ function traceReportRuntime(moduleName: string, details: Record<string, unknown>
   debugLog("[REPORT TRACE]", moduleName, details)
 }
 
-function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials, retail?: RetailReportAnalysis): ReportKpi[] {
+function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis): ReportKpi[] {
   const revenue = financials.revenue ?? sumColumn(rows, columns.gmv)
   const cost = sumColumn(rows, columns.cost)
   const profit = financials.netProfit ?? financials.grossProfit
@@ -1325,10 +1611,21 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Out of Stock", retail?.outOfStockSkuCount ?? null, "number")
     addKpi(kpis, "AOV", retail?.averageOrderValue?.status === "available" ? retail.averageOrderValue.value : null, "currency")
   } else if (model === "ecommerce") {
-    addKpi(kpis, "Orders", orders, "number")
-    addKpi(kpis, "Customers", customers, "number")
-    addKpi(kpis, "AOV", revenue !== null && orders ? revenue / orders : null, "currency")
-    addKpi(kpis, "Shipping cost", sumColumn(rows, columns.cost), "currency")
+    kpis.length = 0
+    addKpi(kpis, "Revenue", revenue, "currency")
+    addKpi(kpis, "Orders", ecommerce?.orders ?? orders, "number")
+    addKpi(kpis, "AOV", ecommerce?.averageOrderValue ?? null, "currency")
+    addKpi(kpis, "Customers", ecommerce?.customers ?? customers, "number")
+    addKpi(kpis, "Orders per Customer", ecommerce?.ordersPerCustomer ?? null, "number")
+    addKpi(kpis, "Revenue per Customer", ecommerce?.revenuePerCustomer ?? null, "currency")
+    addKpi(kpis, "Units Sold", ecommerce?.unitsSold ?? quantity, "number")
+    addKpi(kpis, "Products", ecommerce?.products ?? null, "number")
+    addKpi(kpis, "Return Rate", ecommerce?.returnRate ?? null, "percent")
+    addKpi(kpis, "Shipping / Fulfillment Cost", ecommerce?.shippingCost ?? null, "currency")
+    addKpi(kpis, "Shipping Cost % of Revenue", ecommerce?.shippingCostRate ?? null, "percent")
+    addKpi(kpis, "Average Shipping Cost per Order", ecommerce?.averageShippingCostPerOrder ?? null, "currency")
+    addKpi(kpis, "Total Discounts", ecommerce?.discounts ?? null, "currency")
+    addKpi(kpis, "Discount % of Revenue", ecommerce?.discountRate ?? null, "percent")
   } else if (model === "saas" || model === "startup") {
     addKpi(kpis, "MRR", sumColumn(rows, columns.mrr), "currency")
     addKpi(kpis, "ARR", sumColumn(rows, columns.arr), "currency")
@@ -1368,7 +1665,7 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
   return kpis
 }
 
-function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, retail?: RetailReportAnalysis): ReportChart[] {
+function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis): ReportChart[] {
   const charts: ReportChart[] = []
   if (model === "local_retail" && retail) {
     if (retail.topProductsByRevenue.length > 0) charts.push({ type: "bar", title: "Top products by revenue", data: retail.topProductsByRevenue })
@@ -1381,10 +1678,10 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
   if (productChart) charts.push(productChart)
 
   if (model === "ecommerce") {
-    const channel = groupedChart(rows, columns.channel, columns.revenue || columns.quantity, "Channel performance")
-    const geography = groupedChart(rows, columns.country, columns.revenue || columns.quantity, "Geography")
-    if (channel) charts.push(channel)
-    if (geography) charts.push(geography)
+    if (ecommerce?.revenueTrend.length) charts.push({ type: "line", title: "Revenue Trend", data: ecommerce.revenueTrend })
+    if (ecommerce?.categoryPerformance.length) charts.push({ type: "bar", title: "Category Performance", data: ecommerce.categoryPerformance })
+    if (ecommerce?.channelPerformance.length) charts.push({ type: "bar", title: "Channel Performance", data: ecommerce.channelPerformance.map(({ name, value }) => ({ name, value })) })
+    if (ecommerce?.geography.length) charts.push({ type: "bar", title: "Geography", data: ecommerce.geography.map(({ name, value }) => ({ name, value })) })
   } else if (model === "investor") {
     const sector = groupedChart(rows, columns.sector, columns.investedAmount || columns.valuation, "Sector allocation")
     const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
@@ -1404,17 +1701,26 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
   return charts.slice(0, 4)
 }
 
-function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis) {
+function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis) {
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
-  if (model !== "local_retail" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model !== "local_retail" && model !== "ecommerce" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
   if (model === "local_retail") {
     findings.push("Retail KPIs prioritize revenue, gross profit, gross margin, unit sales, inventory value, stock levels, reorder risk, products, categories, and suppliers.")
     if (columns.stock) findings.push("Inventory and reorder-risk checks are included from stock columns.")
     if (retail?.supplierExposure.length) findings.push("Supplier intelligence uses only supplier values present in the selected dataset.")
   }
-  if (model === "ecommerce" && columns.country) findings.push("Geography uses only country or region values present in this dataset.")
+  if (model === "ecommerce") {
+    if (columns.order) findings.push("Orders and Average Order Value use distinct recognized order IDs.")
+    if (columns.customer) findings.push("Customer metrics use distinct customer identifiers from the selected dataset.")
+    if (columns.category) findings.push("Category is treated as product/category performance, not an expense category.")
+    if (columns.shippingCost) findings.push("Shipping and fulfillment cost is analyzed separately from COGS.")
+    if (columns.returnStatus && ecommerce?.returnRate !== null) findings.push("Returns are calculated from return-status values present in the dataset.")
+    if (columns.channel) findings.push("Channel performance uses only source channel values.")
+    if (!columns.cogs) findings.push("Gross profit and gross margin are unavailable because no authoritative product COGS field exists.")
+    if (columns.country || columns.region) findings.push("Geography uses only country or region values present in this dataset.")
+  }
   if ((model === "saas" || model === "startup") && (columns.mrr || columns.arr)) findings.push("Recurring revenue metrics are included from MRR/ARR columns.")
   if (model === "investor" && columns.valuation) findings.push("Portfolio valuation and allocation metrics are included.")
   if (model === "marketplace" && (columns.gmv || columns.commission)) findings.push("Marketplace GMV, commission, seller, and buyer metrics are included where columns exist.")

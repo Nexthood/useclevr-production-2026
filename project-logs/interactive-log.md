@@ -3777,3 +3777,38 @@ None.
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## E-commerce Report Semantic Enforcement
+
+1. Interaction title
+E-commerce report semantic enforcement.
+
+2. What was the user goal
+Fix the existing E-commerce Performance Report path end to end so `shipping_cost` does not become COGS, product `category` does not become an expense category, operational e-commerce KPIs render in the PDF, and CSV/XLSX parity plus Retail regression pass.
+
+3. What changed
+The e-commerce report builder now keeps COGS limited to authoritative product-cost fields, analyzes shipping and fulfillment cost separately, maps product category as product/category performance, calculates orders and AOV from distinct `order_id`, calculates customer metrics from `customer_id`, calculates returns from `return_status`, builds monthly revenue and order trends from `order_date`, and carries an e-commerce analysis object through report generation. The PDF generator now uses the existing `ecommerce` report profile for e-commerce-specific sales, customer, channel, geography, commercial cost, recommendation, and provenance pages instead of generic cost-intelligence pages. The exact `02_ecommerce.csv` and `02_ecommerce.xlsx` regression fixtures now exist with 220 rows, $87,419.20 revenue, 220 distinct orders, and $397.36 AOV.
+
+4. Problems marked
+blocker: none.
+risk: the workspace still lacks the remaining exact numbered fixture families `03_saas_startup` through `10_accountancy_ledger`, so the unrelated full 20-file fixture matrix remains incomplete.
+improvement: add the remaining exact numbered fixtures so future profile-wide validation can cover every family with the same naming convention.
+observation: the older `ecommerce.csv` and `ecommerce.xlsx` fixtures remain as small legacy fixtures, while the report-profile regression uses the required `02_ecommerce` fixtures.
+
+5. User learning
+E-commerce profitability stays honest: shipping cost is visible as fulfillment cost, while COGS, gross profit, and gross margin stay unavailable without valid product-cost data.
+
+6. AI-agent learning
+For profile-specific reports, route final PDF generation through the resolved report profile and carry profile-specific semantic payloads through the report object before rendering.
+
+7. Follow-up tasks
+None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
