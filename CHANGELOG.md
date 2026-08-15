@@ -27,7 +27,7 @@
 
 ### Fixed
 
-- Fix Retail Average Order Value so regenerated reports invalidate earlier row-count PDFs and dataset chat refuses AOV when no reliable order identifier exists.
+- Fix Retail Average Order Value so report downloads regenerate stale row-count PDFs, generated reports require denominator provenance, and dataset chat refuses AOV when no reliable order identifier exists.
 - Fix Retail Executive Reports so category gross margin reconciles revenue, COGS, and gross profit from category totals, and Average Order Value appears only when reliable order semantics exist.
 - Fix Executive BI reports so row counts, KPI calculations, executive summaries, trend analysis, cost intelligence, and provenance use the same full-row dataset and semantic field mapping.
 - Fix report regeneration so legacy idempotent report replays without current diagnostics or semantic context are rebuilt instead of serving stale PDFs.

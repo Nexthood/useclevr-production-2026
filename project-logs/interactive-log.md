@@ -3752,19 +3752,19 @@ Retail AOV denominator runtime trace and stale report invalidation.
 Identify the exact source of the `01_local_retail.xlsx` PDF Average Order Value denominator 180, prove the runtime path, and remove any remaining row-count AOV fallback only after root cause was established.
 
 3. What changed
-The checked-in local retail CSV and XLSX fixtures contain 5 rows with columns `date`, `store_id`, `product_id`, `category`, `units_sold`, `revenue`, `cost`, `stock_on_hand`, `reorder_point`, `supplier`, and `location`; neither contains a genuine order ID. The 180-row `01_local_retail.xlsx` case is produced by the report-profile regression fixture and also has no order ID. Temporary `[AOV TRACE]` instrumentation in `retailAverageOrderValue` proved the current PDF path maps `orderIdField` to null, `distinctOrderCount` to null, `totalRevenue` to 79799.99999999999, and `calculatedAov` to null before PDF rendering. The older denominator 180 came from `buildRetailAnalysis` using `columns.order ? uniqueCount(rows, columns.order) : rows.length`, then rendering `revenue / orders`. The report runtime version now invalidates earlier v3 generated reports so stale PDFs rebuild through the current AOV path. The dataset metric resolver now refuses AOV when no approved order identifier exists instead of using dataset rows as order records.
+The checked-in local retail CSV and XLSX fixtures contain 5 rows with columns `date`, `store_id`, `product_id`, `category`, `units_sold`, `revenue`, `cost`, `stock_on_hand`, `reorder_point`, `supplier`, and `location`; neither contains a genuine order ID. The 180-row `01_local_retail.xlsx` case is produced by the report-profile regression fixture and also has no order ID. Temporary `[AOV_RUNTIME_TRACE]` instrumentation in `retailAverageOrderValue` proved the current builder path maps `orderIdField` to null, `distinctOrderCount` to null, `totalRevenue` to 79799.99999999999, and `calculatedAov` to null before PDF rendering. The older denominator 180 came from `buildRetailAnalysis` using `columns.order ? uniqueCount(rows, columns.order) : rows.length`, then rendering `revenue / orders`. The visible stale PDF persisted because `/api/reports/download` served existing `report.pdfPath` files without running the builder or renderer. Report downloads now regenerate PDFs when stored reports are not current, generated AOV objects include `aovStatus`, `orderCount`, and `orderCountSource`, and the PDF renderer prints AOV only with approved denominator provenance. The dataset metric resolver refuses AOV when no approved order identifier exists instead of using dataset rows as order records.
 
 4. Problems marked
 blocker: none.
-risk: existing downloaded PDF files outside the report idempotency path can remain stale until regenerated or deleted by the user.
+risk: none.
 improvement: add an explicit report-runtime compatibility test around idempotent replay once route-level API test harness coverage exists.
-observation: parallel AOV calculators exist in the report builder, metric resolver, dataset intelligence engine, CSV analyzer, dashboard builder, POS integrations, and app dashboard; the PDF uses the report builder and PDF renderer path.
+observation: parallel AOV calculators exist in the report builder, metric resolver, dataset intelligence engine, CSV analyzer, dashboard builder, POS integrations, and app dashboard; the Retail PDF download uses stored report data and the PDF renderer unless the generation endpoint rebuilds the report.
 
 5. User learning
 The 180 denominator is row count, not a distinct `record_id`, `id`, `product_id`, `sale_id`, or other source column.
 
 6. AI-agent learning
-For report accuracy regressions, trace persisted report replay and runtime version compatibility before changing calculator logic because stale generated artifacts can mask a corrected builder path.
+For report accuracy regressions, trace persisted report replay, download-by-report-ID behavior, and runtime version compatibility before changing calculator logic because stale generated PDFs can mask a corrected builder path.
 
 7. Follow-up tasks
 None.

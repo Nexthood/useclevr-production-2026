@@ -18,7 +18,7 @@ import type { ReportProfile } from './report-profiles';
 // File-based storage path: use explicit temp directory to avoid broad project tracing in Next/Turbopack
 const REPORTS_DIR = process.env.TEMP_DIR || '/tmp/useclevr-reports';
 const REPORTS_FILE = path.join(REPORTS_DIR, 'reports.json');
-export const REPORT_RUNTIME_VERSION = "report-runtime-v4";
+export const REPORT_RUNTIME_VERSION = "report-runtime-v5";
 
 debugLog('[REPORT] Reports file path:', REPORTS_FILE);
 
@@ -205,7 +205,10 @@ export interface RetailReportAnalysis {
   averageOrderValue?: {
     metric: "average_order_value";
     value: number | null;
+    aovStatus?: "available" | "not_available";
     status: "available" | "not_available";
+    orderCount: number | null;
+    orderCountSource: "distinct_order_id" | "explicit_order_grain" | null;
     calculationMethod: string;
     sourceFields: string[];
     confidence: "high" | "low";
