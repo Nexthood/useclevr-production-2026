@@ -3069,6 +3069,41 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Dashboard Generate Report Deduplication
+
+1. Interaction title
+Dashboard Generate Report button deduplication.
+
+2. What was the user goal
+Remove only the duplicate Generate Report button from the Dashboard Command Center header and keep the Executive Daily Health Generate Report button working through the existing report generation flow.
+
+3. What changed
+The Dashboard page no longer renders the Command Center header `GenerateReportAction` call site. The Executive Daily Health section still renders `GenerateReportAction` with the selected dashboard dataset or latest reportable dataset fallback. The shared client component still posts to the existing `/api/reports` route with its idempotency key, stores the generated report ID in session storage, and navigates to the existing downloads redirect.
+
+4. Problems marked
+blocker: none.
+risk: browser-level authenticated acceptance testing was not run in this local session; static inspection verifies the active-dataset prop wiring and TypeScript validates the changed page.
+improvement: add a Dashboard UI regression that asserts only one visible default Generate Report action appears when a dataset is selected.
+observation: the Business Balanced Scorecard preview still has its separate `View full BBSC report` action, which uses the same report component but does not render as a duplicate `Generate Report` button.
+
+5. User learning
+Both visible Dashboard Generate Report buttons used the same shared client component and existing API path; the duplicate lived only in the Command Center header.
+
+6. AI-agent learning
+For UI deduplication, trace component props before removal so the remaining visible action keeps the authoritative selected-dataset route.
+
+7. Follow-up tasks
+- Add a Dashboard UI regression that checks selected E-Commerce and SaaS datasets expose one default Generate Report action.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Results Summary Finding Prioritization
 
 1. Interaction title

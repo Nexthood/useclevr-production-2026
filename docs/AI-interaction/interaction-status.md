@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-08-15
-- **Goal**: Prioritize business intelligence in the final Results Summary Top Findings section.
-- **Durable change**: The shared PDF summary selector ranks existing recommendation issues, business impacts, chart leaders, and canonical findings so risks, opportunities, segment performance, and operational findings appear before technical dataset observations.
-- **Verification**: Generated-report profile regression passes for Retail, E-Commerce, SaaS, available CSV/XLSX fixtures, and synthetic mandatory profile PDFs with final-page business-finding and cross-profile contamination checks; TypeScript passes.
+- **Date**: 2026-08-16
+- **Goal**: Remove the duplicate Dashboard Command Center Generate Report button while keeping Executive Daily Health as the single visible generated-report action.
+- **Durable change**: The Dashboard header no longer renders its duplicate Generate Report action; the Executive Daily Health action still uses the existing shared report-generation component and selected-dataset wiring.
+- **Verification**: TypeScript passes, and static inspection confirms the Command Center header call site is removed while Executive Daily Health still renders the default Generate Report action.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
