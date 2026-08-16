@@ -141,6 +141,17 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Marketplace Recommendations + Provenance", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials, "Marketplace Recommendations");
+  } else if (report.reportProfile?.id === "investor_portfolio" && report.investorAnalysis) {
+    addDocumentPage(doc, "Investment & Valuation Performance", datasetName);
+    drawInvestorInvestmentPerformance(doc, report, financials);
+    addDocumentPage(doc, "Portfolio Company Performance", datasetName);
+    drawInvestorCompanyPerformance(doc, report);
+    addDocumentPage(doc, "Sector & Stage Allocation", datasetName);
+    drawInvestorSectorStage(doc, report);
+    addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
+    drawBalancedScorecard(doc, report);
+    addDocumentPage(doc, "Investor Recommendations + Provenance", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials, "Investor Recommendations");
   } else {
     renderedGenericFinancialPages = true;
     addDocumentPage(doc, "Financial Performance", datasetName);
@@ -157,6 +168,12 @@ export async function generatePdfReport(report: Report): Promise<string> {
     assert(
       !renderedGenericFinancialPages,
       "Marketplace report must not render generic Financial Performance or Cost Intelligence pages",
+    );
+  }
+  if (report.reportProfile?.id === "investor_portfolio" && report.investorAnalysis) {
+    assert(
+      !renderedGenericFinancialPages,
+      "Investor report must not render generic Financial Performance or Cost Intelligence pages",
     );
   }
 
@@ -1809,4 +1826,68 @@ function cleanText(value: string) {
 
 function truncate(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
+}
+
+function drawInvestorInvestmentPerformance(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  const investor = report.investorAnalysis;
+  if (!investor) return;
+  let y = 48;
+  
+  const kpis: TableRow[] = [
+    ["Portfolio Companies", investor.portfolioCompanies?.toString() || "Not available", "Source value", "Distinct portfolio company IDs."],
+    ["Total Invested", investor.totalInvested ? formatCurrency(investor.totalInvested) : "Not available", "Source value", "Sum of invested amounts."],
+    ["Total Valuation", investor.totalValuation ? formatCurrency(investor.totalValuation) : "Not available", "Source value", "Sum of latest valuations."],
+    ["Average Ownership", investor.avgOwnership ? `${investor.avgOwnership.toFixed(1)}%` : "Not available", "Derived", "Average ownership across portfolio."],
+  ];
+  y = drawTable(doc, kpis, page.margin, y, [55, 40, 30, 40]);
+  
+  if (investor.companiesByStatus.length > 0) {
+    y += 8;
+    y = drawSectionHeading(doc, "Portfolio Status", y);
+    const statusData: TableRow[] = investor.companiesByStatus.map(s => [s.status, s.count.toString(), "Source value", "Company count by status."]);
+    y = drawTable(doc, [["Status", "Companies", "Type", "Notes"], ...statusData], page.margin, y, [80, 30, 30, 30]);
+  }
+}
+
+function drawInvestorCompanyPerformance(doc: jsPDF, report: Report) {
+  const investor = report.investorAnalysis;
+  if (!investor) return;
+  let y = 48;
+  
+  y = drawSectionHeading(doc, "Top Companies by Revenue", y);
+  if (investor.revenueByCompany.length > 0) {
+    const revenueData: TableRow[] = investor.revenueByCompany.map(c => [c.name, formatCurrency(c.revenue), "Source value", "Annual revenue."]);
+    y = drawTable(doc, [["Company", "Revenue", "Type", "Notes"], ...revenueData], page.margin, y, [80, 35, 25, 30]);
+  } else {
+    y = drawUnavailable(doc, "Revenue data not available", "Revenue field not found in dataset.", page.margin, y, 174, 20);
+  }
+  
+  if (investor.runwayRisk !== null && investor.runwayRisk > 0) {
+    y += 8;
+    y = drawSectionHeading(doc, "Portfolio Risk", y);
+    y = drawTable(doc, [["Risk Type", "Count", "Type", "Notes"], [`Low Runway (<12mo)`, investor.runwayRisk.toString(), "Source value", "Companies with runway under 12 months."]], page.margin, y, [80, 30, 25, 40]);
+  }
+  
+  if (investor.highBurn !== null && investor.highBurn > 0) {
+    y = drawTable(doc, [["Risk Type", "Count", "Type", "Notes"], [`High Monthly Burn`, investor.highBurn.toString(), "Source value", "Companies with high burn rates."]], page.margin, y, [80, 30, 25, 40]);
+  }
+}
+
+function drawInvestorSectorStage(doc: jsPDF, report: Report) {
+  const investor = report.investorAnalysis;
+  if (!investor) return;
+  let y = 48;
+  
+  if (investor.companiesBySector.length > 0) {
+    y = drawSectionHeading(doc, "Investment by Sector", y);
+    const sectorData: TableRow[] = investor.companiesBySector.slice(0, 8).map(s => [s.sector, formatCurrency(s.invested), s.count.toString(), "Source value"]);
+    y = drawTable(doc, [["Sector", "Invested", "Companies", "Type"], ...sectorData], page.margin, y, [50, 35, 25, 30]);
+  }
+  
+  if (investor.companiesByStage.length > 0) {
+    y += 8;
+    y = drawSectionHeading(doc, "Investment by Stage", y);
+    const stageData: TableRow[] = investor.companiesByStage.map(s => [s.stage, formatCurrency(s.invested), s.count.toString(), "Source value"]);
+    y = drawTable(doc, [["Stage", "Invested", "Companies", "Type"], ...stageData], page.margin, y, [50, 35, 25, 30]);
+  }
 }

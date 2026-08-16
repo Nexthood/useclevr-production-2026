@@ -351,6 +351,20 @@ export interface MarketplaceReportAnalysis {
   geography: { name: string; value: number }[];
 }
 
+export interface InvestorReportAnalysis {
+  portfolioCompanies: number | null;
+  totalInvested: number | null;
+  totalValuation: number | null;
+  avgOwnership: number | null;
+  companiesByStatus: { status: string; count: number }[];
+  companiesBySector: { sector: string; invested: number; valuation: number; count: number }[];
+  companiesByStage: { stage: string; invested: number; valuation: number; count: number }[];
+  revenueByCompany: { name: string; revenue: number }[];
+  runwayRisk: number | null;
+  highBurn: number | null;
+  dataConfidence: number | null;
+}
+
 export interface Report {
   id: string;
   datasetId: string;
@@ -391,6 +405,7 @@ export interface Report {
   ecommerceAnalysis?: EcommerceReportAnalysis;
   saasAnalysis?: SaasReportAnalysis;
   marketplaceAnalysis?: MarketplaceReportAnalysis;
+  investorAnalysis?: InvestorReportAnalysis;
   semanticContext?: ReportSemanticContext;
   diagnostics?: ReportDiagnostics;
   alerts: { type: string; message: string; severity: string }[];
