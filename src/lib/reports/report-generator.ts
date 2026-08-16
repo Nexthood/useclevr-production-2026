@@ -451,6 +451,7 @@ export async function generateReport(
     ecommerceAnalysis?: EcommerceReportAnalysis;
     saasAnalysis?: SaasReportAnalysis;
     marketplaceAnalysis?: MarketplaceReportAnalysis;
+    investorAnalysis?: InvestorReportAnalysis;
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;
@@ -523,6 +524,7 @@ export async function generateReport(
     ecommerceAnalysis: analysisData.ecommerceAnalysis,
     saasAnalysis: analysisData.saasAnalysis,
     marketplaceAnalysis: analysisData.marketplaceAnalysis,
+    investorAnalysis: analysisData.investorAnalysis,
     semanticContext: analysisData.semanticContext,
     diagnostics: analysisData.diagnostics,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],
