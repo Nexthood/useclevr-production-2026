@@ -252,7 +252,7 @@ const COLUMN_SYNONYMS: Array<{
 
 const MODEL_PATTERNS: Record<Exclude<SemanticBusinessModel, "Generic">, RegExp[]> = {
   Retail: [/\bretail\b|\bstore\b|\bshop\b/, /\bsku\b|\bproduct\b|\bitem\b/, /\binventory\b|\bstock\b|\breorder\b/, /\bsupplier\b|\bvendor\b/],
-  Marketplace: [/\bmarketplace\b|\bgmv\b|\bgross_merchandise_value\b/, /\bseller\b|\bbuyer\b/, /\bplatform_fee\b|\bcommission\b|\btake_rate\b/, /\blisting\b/],
+  Marketplace: [/\bmarketplace\b|\bgmv\b|\bgross_merchandise_value\b|\bgross_merchandise\b/, /\bseller\b|\bbuyer\b/, /\bplatform_fee\b|\bcommission\b|\btake_rate\b/, /\blisting\b/],
   POS: [/\bpos\b|\btill\b|\bcashier\b/, /\breceipt\b|\btransaction\b/, /\bstore\b|\bterminal\b/],
   Inventory: [/\binventory\b|\bstock\b|\bwarehouse\b/, /\breorder\b|\blead_time\b/, /\bsku\b|\bitem\b/],
   Accounting: [/\bledger\b|\bjournal\b|\bdebit\b|\bcredit\b/, /\binvoice\b|\bpayment\b/, /\btax\b|\bvat\b|\bgst\b/],

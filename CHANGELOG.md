@@ -2,7 +2,7 @@
 
 ### Added
 
-- Add a final Results Summary page to generated PDF reports so users can jump to the last page for profile-aware key results, findings, health, actions, and data-status context.
+- Add Marketplace startup profile end-to-end with GMV, platform revenue, take rate, seller payout, refunds, buyer/seller intelligence, category and geography performance, balanced scorecard, PDF sections, dashboard command center metrics, and dataset-aware report profile routing.
 - Add dataset-aware executive report profiles so standard generated reports select retail, e-commerce, SaaS, marketplace, investor, consulting, services, generic, profitability, or ledger framing and retail reports prioritize sales, margin, inventory, product, category, supplier, and reorder actions.
 - Add Generate Report to the Executive Daily Health dashboard header so users can create the active dataset report beside the full daily brief action.
 - Add yearly billing selection for Pro and Business so customers can review monthly or yearly paid plans by market before Stripe Checkout opens.

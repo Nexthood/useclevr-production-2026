@@ -5,7 +5,7 @@ import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-cat
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
-import type { EcommerceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis } from "@/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, MarketplaceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis } from "@/lib/reports/report-generator"
 import { getReportProfile } from "@/lib/reports/report-profiles"
 
 type DatasetRecord = typeof datasets.$inferSelect
@@ -77,6 +77,13 @@ type ColumnMap = {
   debit?: string
   credit?: string
   invoice?: string
+  refund?: string
+  sellerPayout?: string
+  newBuyer?: string
+  newSeller?: string
+  activeSellers?: string
+  listingCount?: string
+  completed?: string
 }
 
 export async function buildDatasetReportInput(dataset: DatasetRecord) {
@@ -132,10 +139,12 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
   const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
   const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap) : undefined
+  const marketplaceAnalysis = reportModel === "marketplace" ? buildMarketplaceAnalysis(rows, columnMap) : undefined
   if (ecommerceAnalysis) financials.dataConfidence = ecommerceDataConfidence(columnMap)
   if (saasAnalysis) financials.dataConfidence = saasAnalysis.dataConfidence
-  const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis, ecommerceAnalysis, saasAnalysis)
-  const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis, ecommerceAnalysis, saasAnalysis)
+  if (marketplaceAnalysis) financials.dataConfidence = marketplaceDataConfidence(columnMap)
+  const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
+  const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
   const canonicalRowCount = dataset.rowCount || rows.length
   if (rows.length !== canonicalRowCount) {
     throw new ReportIntegrityError("Report KPI row count does not match the authoritative dataset row count.", {
@@ -159,7 +168,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     detectedVendorField: semanticContext.vendorField,
     templateName: "executive-bi-report",
   })
-  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis, retailAnalysis, ecommerceAnalysis, saasAnalysis)
+  const findings = buildFindings(reportModel, canonicalRowCount, columnMap, kpis, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
   const bbsc = calculateBusinessBalancedScorecard({ rows, columns, businessModel: reportModel })
   const recommendations = reportModel === "local_retail" && retailAnalysis
     ? buildRetailRecommendations(retailAnalysis, financials, columnMap)
@@ -215,19 +224,30 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
       ? buildRetailSummary(dataset.name, canonicalRowCount, financials, retailAnalysis)
       : reportModel === "ecommerce" && ecommerceAnalysis
         ? buildEcommerceSummary(dataset.name, canonicalRowCount, financials, ecommerceAnalysis)
-        : saasAnalysis
-          ? buildSaasSummary(dataset.name, canonicalRowCount, saasAnalysis)
-          : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
+        : reportModel === "marketplace" && marketplaceAnalysis
+          ? buildMarketplaceSummary(dataset.name, canonicalRowCount, columnMap, financials, marketplaceAnalysis)
+          : saasAnalysis
+            ? buildSaasSummary(dataset.name, canonicalRowCount, saasAnalysis)
+            : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
     findings,
     kpis,
     charts,
     financials,
     aiInsights: extractInsights(dataset.analysis),
     predictions: [],
-    recommendations,
+    recommendations: reportModel === "local_retail" && retailAnalysis
+      ? buildRetailRecommendations(retailAnalysis, financials, columnMap)
+      : reportModel === "ecommerce" && ecommerceAnalysis
+        ? buildEcommerceRecommendations(ecommerceAnalysis, financials, columnMap)
+        : reportModel === "marketplace" && marketplaceAnalysis
+          ? buildMarketplaceRecommendations(marketplaceAnalysis, financials, columnMap, bbsc)
+          : saasAnalysis
+            ? buildSaasRecommendations(saasAnalysis, financials, columnMap)
+            : buildDatasetRecommendations(columnMap, financials, bbsc),
     retailAnalysis,
     ecommerceAnalysis,
     saasAnalysis,
+    marketplaceAnalysis,
     alerts: buildAlerts(reportModel, rows, columnMap),
     bbsc,
     semanticContext,
@@ -734,6 +754,75 @@ function buildEcommerceAnalysis(rows: DataRow[], columns: ColumnMap, financials:
   }
 }
 
+function buildMarketplaceAnalysis(rows: DataRow[], columns: ColumnMap): MarketplaceReportAnalysis {
+  const gmv = sumColumn(rows, columns.gmv)
+  const marketplaceRevenue = sumColumn(rows, columns.commission)
+  const sellerPayout = sumColumn(rows, columns.sellerPayout)
+  const refunds = sumColumn(rows, columns.refund)
+  const transactions = columns.order ? uniqueCount(rows, columns.order) : rows.length
+  const buyers = columns.buyer ? uniqueCount(rows, columns.buyer) : null
+  const sellers = columns.seller ? uniqueCount(rows, columns.seller) : null
+  const newBuyers = columns.newBuyer ? countDistinctPositiveStatus(rows, columns.buyer, columns.newBuyer) : null
+  const newSellers = columns.newSeller ? countDistinctPositiveStatus(rows, columns.seller, columns.newSeller) : null
+  const activeSellers = columns.activeSellers ? sumColumn(rows, columns.activeSellers) : null
+  const listings = columns.listingCount ? sumColumn(rows, columns.listingCount) : null
+  const completedTransactions = countDistinctPositiveStatus(rows, columns.order, columns.completed)
+  const completionRate = transactions > 0 && completedTransactions !== null ? round((completedTransactions / transactions) * 100) : null
+  const takeRate = gmv !== null && marketplaceRevenue !== null && gmv > 0 ? round((marketplaceRevenue / gmv) * 100) : null
+  const refundRate = gmv !== null && refunds !== null && gmv > 0 ? round((refunds / gmv) * 100) : null
+  const averageTransactionValue = gmv !== null && transactions > 0 ? round(gmv / transactions) : null
+
+  return {
+    gmv,
+    gmvField: columns.gmv || null,
+    marketplaceRevenue,
+    marketplaceRevenueField: columns.commission || null,
+    takeRate,
+    sellerPayout,
+    sellerPayoutField: columns.sellerPayout || null,
+    refunds,
+    refundsField: columns.refund || null,
+    refundRate,
+    transactions,
+    transactionField: columns.order || null,
+    averageTransactionValue,
+    buyers,
+    buyerField: columns.buyer || null,
+    sellers,
+    sellerField: columns.seller || null,
+    newBuyers,
+    newBuyerField: columns.newBuyer || null,
+    newSellers,
+    newSellerField: columns.newSeller || null,
+    activeSellers,
+    activeSellersField: columns.activeSellers || null,
+    listings,
+    listingsField: columns.listingCount || null,
+    completionRate,
+    gmvTrend: marketplaceValueTrend(rows, columns.date, columns.gmv, "GMV"),
+    marketplaceRevenueTrend: marketplaceValueTrend(rows, columns.date, columns.commission, "Marketplace Revenue"),
+    refundTrend: marketplaceValueTrend(rows, columns.date, columns.refund, "Refunds"),
+    categoryPerformance: groupedRetailChart(rows, columns.category, columns.gmv || columns.commission, "Uncategorized"),
+    geography: groupedRetailChart(rows, columns.country, columns.gmv || columns.commission, "Unknown geography"),
+  }
+}
+
+function marketplaceDataConfidence(columns: ColumnMap) {
+  const required = [
+    columns.gmv,
+    columns.commission,
+    columns.order,
+    columns.buyer,
+    columns.seller,
+    columns.date,
+    columns.refund,
+  ]
+  const optional = [columns.sellerPayout, columns.newBuyer, columns.newSeller, columns.activeSellers, columns.listingCount, columns.category, columns.country, columns.completed]
+  const availableRequired = required.filter(Boolean).length
+  const availableOptional = optional.filter(Boolean).length
+  return Math.round(((availableRequired / required.length) * 85) + ((availableOptional / optional.length) * 15))
+}
+
 function ecommerceDataConfidence(columns: ColumnMap) {
   const required = [
     columns.revenue,
@@ -834,6 +923,72 @@ function buildEcommerceSummary(datasetName: string, rowCount: number, financials
   if (ecommerce.channelPerformance[0]) parts.push(`${ecommerce.channelPerformance[0].name} is the top revenue channel.`)
   if (financials.grossProfit === null) parts.push("Gross profit and gross margin are not available because valid product COGS is missing.")
   return parts.join(" ")
+}
+
+function buildMarketplaceSummary(datasetName: string, rowCount: number, columns: ColumnMap, financials: ReportFinancials, marketplace: MarketplaceReportAnalysis) {
+  const parts: string[] = []
+  parts.push(`${datasetName} is analyzed as a marketplace dataset with ${rowCount.toLocaleString()} loaded rows.`)
+  if (marketplace.gmv !== null) parts.push(`GMV is ${formatCurrencyForSummary(marketplace.gmv)} from ${marketplace.gmvField}.`)
+  if (marketplace.marketplaceRevenue !== null) parts.push(`Marketplace Revenue is ${formatCurrencyForSummary(marketplace.marketplaceRevenue)} from ${marketplace.marketplaceRevenueField}.`)
+  if (marketplace.takeRate !== null) parts.push(`Take Rate is ${marketplace.takeRate.toFixed(2)}% from marketplace revenue divided by GMV.`)
+  if (marketplace.transactions !== null) parts.push(`${marketplace.transactions.toLocaleString()} transactions are recognized from ${marketplace.transactionField || "row count"}.`)
+  if (marketplace.averageTransactionValue !== null) parts.push(`Average Transaction Value is ${formatCurrencyForSummary(marketplace.averageTransactionValue)} from GMV divided by transactions.`)
+  if (marketplace.buyers !== null) parts.push(`${marketplace.buyers.toLocaleString()} buyers are recognized from ${marketplace.buyerField}.`)
+  if (marketplace.sellers !== null) parts.push(`${marketplace.sellers.toLocaleString()} sellers are recognized from ${marketplace.sellerField}.`)
+  if (marketplace.refundRate !== null) parts.push(`Refund Rate is ${marketplace.refundRate.toFixed(2)}% from refund amount divided by GMV.`)
+  if (marketplace.completionRate !== null) parts.push(`Completion Rate is ${marketplace.completionRate.toFixed(1)}% from completed transaction status.`)
+  if (financials.revenue === null && marketplace.marketplaceRevenue !== null) parts.push("Generic company revenue is not available; marketplace economics are used instead.")
+  return parts.join(" ")
+}
+
+function buildMarketplaceRecommendations(
+  marketplace: MarketplaceReportAnalysis,
+  financials: ReportFinancials,
+  columns: ColumnMap,
+  bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+): ReportRecommendation[] {
+  const recommendations: ReportRecommendation[] = []
+  if (marketplace.takeRate !== null) {
+    recommendations.push({
+      issue: `Take rate is ${marketplace.takeRate.toFixed(2)}% across the dataset.`,
+      businessImpact: "Take rate measures platform monetization efficiency relative to gross merchandise value.",
+      recommendedAction: "Review take rate by category, seller, and geography to identify monetization optimization opportunities.",
+      estimatedImpact: marketplace.gmv !== null ? `Each 1 percentage point of take rate equals ${formatCurrencyForSummary(marketplace.gmv * 0.01)} in marketplace revenue.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (marketplace.refundRate !== null && marketplace.refundRate >= 5) {
+    recommendations.push({
+      issue: `Refund rate is ${marketplace.refundRate.toFixed(2)}% of GMV.`,
+      businessImpact: "High refund rates reduce buyer trust and effective marketplace revenue.",
+      recommendedAction: "Investigate refund patterns by seller, category, and country before the next seller onboarding review.",
+      estimatedImpact: marketplace.refunds !== null ? `${formatCurrencyForSummary(marketplace.refunds)} in refunds is visible in this dataset.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (!columns.buyer || !columns.seller) {
+    recommendations.push({
+      issue: "Buyer or seller identifiers are incomplete.",
+      businessImpact: "Marketplace liquidity, concentration, and two-sided growth metrics are limited without both sides.",
+      recommendedAction: "Include buyer_id and seller_id in future marketplace uploads.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["Buyer ID", "Seller ID"],
+    })
+  }
+  if (bbsc.weakestPerspective && bbsc.availablePerspectiveCount >= 2) {
+    recommendations.push({
+      issue: `${bbsc.weakestPerspective.title} is the weakest available perspective at ${bbsc.weakestPerspective.score}/100.`,
+      businessImpact: "The weakest scored perspective limits the overall business score.",
+      recommendedAction: bbsc.weakestPerspective.recommendedActions[0] || "Track the missing drivers and review the perspective monthly.",
+      estimatedImpact: null,
+      confidence: bbsc.weakestPerspective.dataConfidence >= 70 ? "High" : "Medium",
+      requiredData: [],
+    })
+  }
+  return recommendations.slice(0, 5)
 }
 
 function buildSaasSummary(datasetName: string, rowCount: number, saas: SaasReportAnalysis) {
@@ -1282,6 +1437,18 @@ function ecommerceRevenueTrend(rows: DataRow[], columns: ColumnMap) {
     const revenue = getNumber(row[columns.revenue])
     if (!period || revenue === null) continue
     grouped.set(period, round((grouped.get(period) || 0) + revenue))
+  }
+  return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }))
+}
+
+function marketplaceValueTrend(rows: DataRow[], dateColumn: string | undefined, valueColumn: string | undefined, label: string) {
+  if (!dateColumn || !valueColumn) return []
+  const grouped = new Map<string, number>()
+  for (const row of rows) {
+    const period = monthKey(row[dateColumn])
+    const value = getNumber(row[valueColumn])
+    if (!period || value === null) continue
+    grouped.set(period, round((grouped.get(period) || 0) + value))
   }
   return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }))
 }
@@ -1795,7 +1962,7 @@ function detectColumns(columns: string[]): ColumnMap {
     interestExpense: findColumn(columns, [/interest_expense/, /^interest$/]),
     taxExpense: findColumn(columns, [/tax_expense/, /^tax$/, /taxes/]),
     profit: findColumn(columns, [/net_profit/, /gross_profit/, /operating_profit/, /^profit$/]),
-    quantity: findColumn(columns, [/quantity/, /^qty$/, /units_sold/, /units/]),
+    quantity: findColumn(columns, [/quantity/, /^qty$/, /units_sold/, /units/, /volume/]),
     order: columns.find((column) => isOrderIdentifierColumn(column)),
     customer: findColumn(columns, [/customer_id/, /customer/, /client_id/, /client/]),
     country: findColumn(columns, [/country/, /region/, /location/]),
@@ -1844,6 +2011,13 @@ function detectColumns(columns: string[]): ColumnMap {
     debit: findColumn(columns, [/debit/]),
     credit: findColumn(columns, [/credit/]),
     invoice: findColumn(columns, [/invoice/, /receipt/]),
+    refund: findColumn(columns, [/refund/, /return_amount/]),
+    sellerPayout: findColumn(columns, [/seller_payout/, /merchant_payout/, /payout/]),
+    newBuyer: findColumn(columns, [/new_buyer/, /newbuyer/]),
+    newSeller: findColumn(columns, [/new_seller/, /newseller/]),
+    activeSellers: findColumn(columns, [/active_sellers/, /active_seller/]),
+    listingCount: findColumn(columns, [/listing_count/, /listing/]),
+    completed: findColumn(columns, [/completed/, /completion_status/]),
   }
 }
 
@@ -1855,6 +2029,7 @@ function buildSemanticContext(input: {
 }): ReportSemanticContext {
   const isEcommerce = input.reportModel === "ecommerce"
   const isSaas = input.reportModel === "saas" || input.reportModel === "startup"
+  const isMarketplace = input.reportModel === "marketplace"
   const mappings: Record<string, string | null> = {
     date: input.columnMap.date || null,
     revenue: input.columnMap.revenue || input.columnMap.gmv || null,
@@ -1884,10 +2059,24 @@ function buildSemanticContext(input: {
     runway: input.columnMap.runway || null,
     plan: input.columnMap.plan || null,
     country: input.columnMap.country || null,
+    gmv: input.columnMap.gmv || null,
+    commission: input.columnMap.commission || null,
+    refund: input.columnMap.refund || null,
+    sellerPayout: input.columnMap.sellerPayout || null,
+    buyer: input.columnMap.buyer || null,
+    seller: input.columnMap.seller || null,
+    order: input.columnMap.order || null,
+    activeSellers: input.columnMap.activeSellers || null,
+    listingCount: input.columnMap.listingCount || null,
+    newBuyer: input.columnMap.newBuyer || null,
+    newSeller: input.columnMap.newSeller || null,
+    completed: input.columnMap.completed || null,
   }
   const required = isSaas
     ? ["date", "mrr", "arr", "customer", "newCustomer", "churned", "expansionMrr", "contractionMrr", "cac", "ltv", "activeUsers", "supportTickets", "burn", "cashBalance", "runway", "plan", "country"]
-    : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
+    : isMarketplace
+      ? ["date", "gmv", "commission", "order", "buyer", "seller", "refund"]
+      : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
   const available = required.filter((key) => Boolean(mappings[key])).length
   return {
     datasetId: input.datasetId,
@@ -2012,7 +2201,7 @@ function traceReportRuntime(moduleName: string, details: Record<string, unknown>
   debugLog("[REPORT TRACE]", moduleName, details)
 }
 
-function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis): ReportKpi[] {
+function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, financials: ReportFinancials, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis, marketplace?: MarketplaceReportAnalysis): ReportKpi[] {
   const revenue = financials.revenue ?? sumColumn(rows, columns.gmv)
   const cost = sumColumn(rows, columns.cost)
   const profit = financials.netProfit ?? financials.grossProfit
@@ -2102,7 +2291,7 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
   return kpis
 }
 
-function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis): ReportChart[] {
+function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis, marketplace?: MarketplaceReportAnalysis): ReportChart[] {
   const charts: ReportChart[] = []
   if (model === "local_retail" && retail) {
     if (retail.topProductsByRevenue.length > 0) charts.push({ type: "bar", title: "Top products by revenue", data: retail.topProductsByRevenue })
@@ -2129,8 +2318,13 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
     if (sector) charts.push(sector)
     if (stage) charts.push(stage)
-  } else if (model === "marketplace") {
-    const seller = groupedChart(rows, columns.seller, columns.gmv || columns.revenue, "Seller performance")
+  } else if (model === "marketplace" && marketplace) {
+    if (marketplace.gmvTrend.length) charts.push({ type: "line", title: "GMV Trend", data: marketplace.gmvTrend })
+    if (marketplace.marketplaceRevenueTrend.length) charts.push({ type: "line", title: "Marketplace Revenue Trend", data: marketplace.marketplaceRevenueTrend })
+    if (marketplace.refundTrend.length) charts.push({ type: "line", title: "Refund Trend", data: marketplace.refundTrend })
+    if (marketplace.categoryPerformance.length) charts.push({ type: "bar", title: "GMV by Category", data: marketplace.categoryPerformance })
+    if (marketplace.geography.length) charts.push({ type: "bar", title: "GMV by Country", data: marketplace.geography })
+    const seller = groupedChart(rows, columns.seller, columns.gmv || columns.commission, "Seller performance")
     if (seller) charts.push(seller)
   } else if (model === "business_consulting") {
     const clients = groupedChart(rows, columns.customer, columns.revenue || columns.billableHours, "Client profitability")
@@ -2143,7 +2337,7 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
   return charts.slice(0, 4)
 }
 
-function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis) {
+function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis, marketplace?: MarketplaceReportAnalysis) {
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
   if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
@@ -2170,8 +2364,15 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
     if (columns.plan) findings.push("Plan is treated as subscription-plan segmentation, not an expense category.")
     if (columns.country || columns.region) findings.push("SaaS geography uses only country or region values present in this dataset.")
   }
+  if (model === "marketplace" && marketplace) {
+    findings.push("Marketplace KPIs use GMV, platform revenue, take rate, seller payout, refunds, transactions, buyers, sellers, and marketplace economics where columns exist.")
+    if (columns.gmv) findings.push("GMV is recognized from gross merchandise value columns.")
+    if (columns.commission) findings.push("Marketplace revenue is recognized from platform fee or commission columns.")
+    if (columns.refund) findings.push("Refunds are treated as refund economics, not revenue.")
+    if (columns.buyer && columns.seller) findings.push("Buyer and seller sides are analyzed separately.")
+    if (columns.category || columns.country) findings.push("Category and geography segmentation use marketplace economics.")
+  }
   if (model === "investor" && columns.valuation) findings.push("Portfolio valuation and allocation metrics are included.")
-  if (model === "marketplace" && (columns.gmv || columns.commission)) findings.push("Marketplace GMV, commission, seller, and buyer metrics are included where columns exist.")
   if (model === "business_consulting" && columns.billableHours) findings.push("Billable-hour and project-margin metrics are included.")
   if ((model === "accountancy" || model === "prebookkeeping") && (columns.debit || columns.credit)) findings.push("Ledger debit and credit totals are included from accounting columns.")
   return findings
