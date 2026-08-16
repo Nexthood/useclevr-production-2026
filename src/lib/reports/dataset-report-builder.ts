@@ -107,6 +107,11 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   if (reportModel === "local_retail" && !columnMap.cogs && columnMap.cost) {
     columnMap.cogs = columnMap.cost
   }
+  if (reportModel === "marketplace") {
+    columnMap.revenue = undefined
+    columnMap.expenseCategory = undefined
+    columnMap.expenseAmount = undefined
+  }
   const reportProfile = getReportProfile(reportModel)
   traceReportRuntime("buildSemanticContext", {
     datasetId: dataset.id,
@@ -136,6 +141,15 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     templateName: "executive-bi-report",
   })
   const financials = buildGenericFinancials(rows, columnMap)
+  if (reportModel === "marketplace" && financials.revenue !== null && columnMap.gmv && financials.metricSources?.revenue?.note?.includes(columnMap.gmv)) {
+    financials.revenue = null
+    financials.grossProfit = null
+    financials.operatingProfit = null
+    financials.netProfit = null
+    financials.grossMargin = null
+    financials.operatingMargin = null
+    financials.netMargin = null
+  }
   const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
   const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
   const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap) : undefined
@@ -936,7 +950,7 @@ function buildMarketplaceSummary(datasetName: string, rowCount: number, columns:
   if (marketplace.buyers !== null) parts.push(`${marketplace.buyers.toLocaleString()} buyers are recognized from ${marketplace.buyerField}.`)
   if (marketplace.sellers !== null) parts.push(`${marketplace.sellers.toLocaleString()} sellers are recognized from ${marketplace.sellerField}.`)
   if (marketplace.refundRate !== null) parts.push(`Refund Rate is ${marketplace.refundRate.toFixed(2)}% from refund amount divided by GMV.`)
-  if (marketplace.completionRate !== null) parts.push(`Completion Rate is ${marketplace.completionRate.toFixed(1)}% from completed transaction status.`)
+  if (marketplace.completionRate !== null) parts.push(`Completion Rate is ${Math.round(marketplace.completionRate)}% from completed transaction status.`)
   if (financials.revenue === null && marketplace.marketplaceRevenue !== null) parts.push("Generic company revenue is not available; marketplace economics are used instead.")
   return parts.join(" ")
 }
@@ -1952,7 +1966,7 @@ function reportModelLabel(model: ReportModel) {
 
 function detectColumns(columns: string[]): ColumnMap {
   return {
-    revenue: findColumn(columns, [/revenue/, /^sales$/, /amount/, /turnover/, /income/]),
+    revenue: findColumn(columns, [/revenue/, /^sales$/, /turnover/, /income/]),
     cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /unit_cost/, /spend/]),
     grossProfit: findColumn(columns, [/gross_profit/, /grossprofit/]),
     operatingProfit: findColumn(columns, [/operating_profit/, /operatingprofit/, /ebit\b/]),
@@ -1975,8 +1989,8 @@ function detectColumns(columns: string[]): ColumnMap {
     discount: findColumn(columns, [/discount/, /discount_amount/, /promo/]),
     returnStatus: findColumn(columns, [/return_status/, /returned/, /return/]),
     paymentMethod: findColumn(columns, [/payment_method/, /payment/]),
-    expenseCategory: findColumn(columns, [/expense_category/, /expensecategory/, /cost_category/, /costcategory/, /category/]),
-    expenseAmount: findColumn(columns, [/expense_amount/, /expenseamount/, /cost_amount/, /costamount/, /amount/]),
+    expenseCategory: findColumn(columns, [/expense_category/, /expensecategory/, /cost_category/, /costcategory/]),
+    expenseAmount: findColumn(columns, [/expense_amount/, /expenseamount/, /cost_amount/, /costamount/]),
     vendor: findColumn(columns, [/vendor_supplier/, /vendorsupplier/, /^vendor$/, /supplier/, /merchant/]),
     stock: findColumn(columns, [/stock_on_hand/, /stock/, /inventory/]),
     reorderPoint: findColumn(columns, [/reorder_point/, /reorder/]),
@@ -1997,7 +2011,7 @@ function detectColumns(columns: string[]): ColumnMap {
     investedAmount: findColumn(columns, [/invested_amount/, /invested_capital/, /investment/]),
     valuation: findColumn(columns, [/latest_valuation/, /valuation/]),
     ownership: findColumn(columns, [/ownership/]),
-    sector: findColumn(columns, [/sector/]),
+    sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
     seller: findColumn(columns, [/seller/, /vendor/, /merchant/]),
     buyer: findColumn(columns, [/buyer/]),
@@ -2032,7 +2046,7 @@ function buildSemanticContext(input: {
   const isMarketplace = input.reportModel === "marketplace"
   const mappings: Record<string, string | null> = {
     date: input.columnMap.date || null,
-    revenue: input.columnMap.revenue || input.columnMap.gmv || null,
+    revenue: isMarketplace ? null : input.columnMap.revenue || input.columnMap.gmv || null,
     cogs: input.columnMap.cogs || null,
     grossProfit: input.columnMap.grossProfit || null,
     operatingExpenses: input.columnMap.operatingExpenses || null,
@@ -2040,8 +2054,8 @@ function buildSemanticContext(input: {
     interestExpense: input.columnMap.interestExpense || null,
     taxExpense: input.columnMap.taxExpense || null,
     netProfit: input.columnMap.netProfit || null,
-    expenseCategory: isEcommerce || isSaas ? null : input.columnMap.expenseCategory || null,
-    expenseAmount: isEcommerce || isSaas ? null : input.columnMap.expenseAmount || null,
+    expenseCategory: isEcommerce || isSaas || isMarketplace ? null : input.columnMap.expenseCategory || null,
+    expenseAmount: isEcommerce || isSaas || isMarketplace ? null : input.columnMap.expenseAmount || null,
     vendor: input.columnMap.vendor || null,
     mrr: input.columnMap.mrr || null,
     arr: input.columnMap.arr || null,
