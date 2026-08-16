@@ -505,6 +505,7 @@ export async function generateReport(
     retailAnalysis: analysisData.retailAnalysis,
     ecommerceAnalysis: analysisData.ecommerceAnalysis,
     saasAnalysis: analysisData.saasAnalysis,
+    marketplaceAnalysis: analysisData.marketplaceAnalysis,
     semanticContext: analysisData.semanticContext,
     diagnostics: analysisData.diagnostics,
     alerts: (options.includeAlerts !== false) ? (analysisData.alerts || []) : [],

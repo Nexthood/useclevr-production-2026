@@ -3,7 +3,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { parseCSVStreaming } from "../../src/lib/data/csvLoader"
 import type { ReportProfileId } from "../../src/lib/reports/report-profiles"
-import type { EcommerceReportAnalysis, ReportDiagnostics, ReportSemanticContext, SaasReportAnalysis } from "../../src/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, MarketplaceReportAnalysis, ReportDiagnostics, ReportSemanticContext, SaasReportAnalysis } from "../../src/lib/reports/report-generator"
 
 type DatasetInput = Parameters<typeof import("../../src/lib/reports/dataset-report-builder").buildDatasetReportInput>[0]
 type DatasetReportInput = Awaited<ReturnType<typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]>>
@@ -15,6 +15,11 @@ type GetReportProfile = typeof import("../../src/lib/reports/report-profiles")["
 type EcommerceReportInput = DatasetReportInput & {
   ecommerceAnalysis?: EcommerceReportAnalysis
   saasAnalysis?: SaasReportAnalysis
+  semanticContext?: ReportSemanticContext
+  diagnostics?: ReportDiagnostics
+}
+type MarketplaceReportInput = DatasetReportInput & {
+  marketplaceAnalysis?: MarketplaceReportAnalysis
   semanticContext?: ReportSemanticContext
   diagnostics?: ReportDiagnostics
 }
@@ -30,6 +35,7 @@ const availableFixtures: FixtureCase[] = [
   { family: "local_retail", baseName: "01_local_retail", businessModel: "local_retail", expectedProfile: "local_retail" },
   { family: "ecommerce", baseName: "02_ecommerce", businessModel: "ecommerce", expectedProfile: "ecommerce" },
   { family: "saas_startup", baseName: "03_saas_startup", businessModel: "saas", expectedProfile: "saas_startup" },
+  { family: "marketplace_startup", baseName: "04_marketplace_startup", businessModel: "marketplace", expectedProfile: "marketplace_startup" },
   { family: "investor_portfolio", baseName: "investor-portfolio", businessModel: "investor", expectedProfile: "investor_portfolio" },
   { family: "business_consulting", baseName: "business-consulting", businessModel: "generic", expectedProfile: "business_consulting" },
 ]
@@ -123,6 +129,18 @@ async function main() {
     geographyCount: number
     trendCount: number
     dataConfidence: number | null
+  }> = {}
+  const marketplaceParity: Record<string, {
+    rows: number
+    gmv: number | null
+    revenue: number | null
+    commission: number | null
+    takeRate: number | null
+    transactions: number | null
+    buyers: number | null
+    sellers: number | null
+    refunds: number | null
+    refundRate: number | null
   }> = {}
 
   for (const fixture of availableFixtures) {
@@ -292,6 +310,49 @@ async function main() {
           geographyCount: saas.geography.length,
           trendCount: saas.mrrTrend.length,
           dataConfidence: saas.dataConfidence,
+         }
+       }
+
+      if (fixture.family === "marketplace_startup") {
+        const marketplaceInput = reportInput as MarketplaceReportInput
+        const marketplace = marketplaceInput.marketplaceAnalysis
+        assert(reportInput.reportProfile.title === "Marketplace Performance Report", "marketplace must use Marketplace Performance Report")
+        assert(reportInput.rowCount === 180, "marketplace fixture must analyze all 180 rows")
+        if (!marketplace) throw new Error("marketplace analysis must be present")
+        nearlyEqual(marketplace.gmv, 83778.17, "marketplace GMV must match fixture", 0.02)
+        nearlyEqual(marketplace.marketplaceRevenue, 11049.51, "marketplace revenue must match fixture", 0.02)
+        nearlyEqual(marketplace.takeRate, 13.19, "marketplace take rate must be marketplace revenue / GMV", 0.02)
+        assert(marketplace.transactions === 180, "marketplace transactions must use distinct transaction_id")
+        assert(marketplace.buyers === 100, "marketplace buyers must use distinct buyer_id")
+        assert(marketplace.sellers === 58, "marketplace sellers must use distinct seller_id")
+        nearlyEqual(marketplace.refunds, 1660.33, "marketplace refunds must match fixture", 0.02)
+        nearlyEqual(marketplace.refundRate, 1.98, "marketplace refund rate must be refunds / GMV", 0.02)
+        nearlyEqual(marketplace.averageTransactionValue, 465.43, "marketplace ATV must be GMV / transactions", 0.02)
+        assert(marketplace.gmvField === "gross_merchandise_value", "marketplace GMV field must be gross_merchandise_value")
+        assert(marketplace.marketplaceRevenueField === "platform_fee", "marketplace revenue field must be platform_fee")
+        assert(reportInput.financials?.revenue === null, "marketplace must null generic revenue so GMV is not labeled Revenue")
+        assert(!reportInput.kpis.some((kpi) => kpi.title === "Revenue"), "marketplace KPIs must not include generic Revenue")
+        assert(reportInput.kpis.some((kpi) => kpi.title === "GMV"), "marketplace KPIs must include GMV")
+        assert(reportInput.kpis.some((kpi) => kpi.title === "Marketplace Revenue"), "marketplace KPIs must include Marketplace Revenue")
+        assert(reportInput.kpis.some((kpi) => kpi.title === "Take Rate"), "marketplace KPIs must include Take Rate")
+        assert(reportInput.kpis.some((kpi) => kpi.title === "Transactions"), "marketplace KPIs must include Transactions")
+        assert(reportInput.kpis.some((kpi) => kpi.title === "Buyers"), "marketplace KPIs must include Buyers")
+        assert(reportInput.kpis.some((kpi) => kpi.title === "Sellers"), "marketplace KPIs must include Sellers")
+        assert(reportInput.kpis.some((kpi) => kpi.title === "Refund Rate"), "marketplace KPIs must include Refund Rate")
+        assert(reportInput.bbsc?.perspectives.financial.kpis?.some((kpi) => kpi.label === "GMV"), "marketplace BBSC financial perspective must include GMV")
+        assert(!reportInput.bbsc?.perspectives.financial.kpis?.some((kpi) => kpi.label === "Revenue"), "marketplace BBSC financial perspective must not include generic Revenue")
+        assert(reportInput.bbsc?.perspectives.financial.kpis?.some((kpi) => kpi.label === "Marketplace Revenue"), "marketplace BBSC financial perspective must include Marketplace Revenue")
+        marketplaceParity[extension] = {
+          rows: reportInput.rowCount,
+          gmv: marketplace.gmv,
+          revenue: marketplace.marketplaceRevenue,
+          commission: marketplace.marketplaceRevenue,
+          takeRate: marketplace.takeRate,
+          transactions: marketplace.transactions,
+          buyers: marketplace.buyers,
+          sellers: marketplace.sellers,
+          refunds: marketplace.refunds,
+          refundRate: marketplace.refundRate,
         }
       }
 
@@ -406,6 +467,44 @@ async function main() {
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
         deleteReport(report.id)
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
+      } else if (fixture.family === "marketplace_startup" && extension === "xlsx") {
+        const report = await generateReport(dataset.id, "04_marketplace_startup.xlsx", {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: "dataset-aware-marketplace-profile",
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "marketplace PDF must generate")
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "MARKETPLACE PERFORMANCE REPORT")
+        assertResultsSummaryPage(pdfText, "MARKETPLACE RESULTS SUMMARY", ["MRR", "ARR", "Churn Rate", "AOV", "Average Order Value"], "marketplace", { requireKeyResults: true, requireActions: true })
+        assertProfileResultsSummaryFindings(pdfText, "marketplace", /gmv|take rate|marketplace revenue|commission|transaction|buyer|seller|refund/i, /reorder|stockout|average order value|churn rate|mrr/i)
+        assert(pdfText.includes("MARKETPLACE PERFORMANCE REPORT"), "marketplace PDF must identify the marketplace report")
+        assert(pdfText.includes("MARKETPLACE ECONOMICS"), "marketplace PDF must include marketplace economics page")
+        assert(pdfText.includes("GMV TREND") || pdfText.includes("GMV"), "marketplace PDF must include GMV")
+        assert(pdfText.includes("$83.8K") || pdfText.includes("$83,8"), "marketplace PDF must show recognized GMV value")
+        assert(pdfText.includes("Marketplace Revenue"), "marketplace PDF must include marketplace revenue")
+        assert(pdfText.includes("Take Rate"), "marketplace PDF must include take rate")
+        assert(pdfText.includes("Transactions"), "marketplace PDF must include transactions")
+        assert(pdfText.includes("Average Transaction Value"), "marketplace PDF must include average transaction value")
+        assert(pdfText.includes("Buyers"), "marketplace PDF must include buyers")
+        assert(pdfText.includes("Sellers"), "marketplace PDF must include sellers")
+        assert(pdfText.includes("Refund Rate"), "marketplace PDF must include refund rate")
+        assert(pdfText.includes("BUYER & SELLER INTELLIGENCE"), "marketplace PDF must include buyer & seller intelligence page")
+        assert(pdfText.includes("CATEGORY & GEOGRAPHY PERFORMANCE"), "marketplace PDF must include category & geography page")
+        assert(pdfText.includes("MARKETPLACE RECOMMENDATIONS + PROVENANCE"), "marketplace PDF must include marketplace recommendations")
+        assert(!pdfText.includes("FINANCIAL PERFORMANCE"), "marketplace PDF must not render generic Financial Performance page")
+        assert(!pdfText.includes("PROFIT AND MARGIN TREND"), "marketplace PDF must not render generic Profit and Margin Trend page")
+        assert(!pdfText.includes("COST INTELLIGENCE"), "marketplace PDF must not render generic Cost Intelligence page")
+        assert(!pdfText.includes("TOP COST CATEGORIES"), "marketplace PDF must not render generic Top Cost Categories")
+        assert(!pdfText.includes("$83.8K\n\n\nMARKETPLACE REVENUE"), "marketplace PDF must not show GMV value directly under Marketplace Revenue label")
+assert(pdfText.includes("GMV"), "marketplace PDF must include GMV label")
+assert(pdfText.includes("$83.8K"), "marketplace PDF must show GMV value $83.8K")
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
       } else {
         const report = await generateReport(dataset.id, path.basename(filePath), {
           visibility: "private",
@@ -429,6 +528,7 @@ async function main() {
   assert(JSON.stringify(retailParity.csv) === JSON.stringify(retailParity.xlsx), "local retail CSV and XLSX outputs must match for financials, AOV status, inventory value, and reorder metrics")
   assert(JSON.stringify(ecommerceParity.csv) === JSON.stringify(ecommerceParity.xlsx), "ecommerce CSV and XLSX outputs must match for semantic KPI results")
   assert(JSON.stringify(saasParity.csv) === JSON.stringify(saasParity.xlsx), "saas startup CSV and XLSX outputs must match for semantic KPI results")
+  assert(JSON.stringify(marketplaceParity.csv) === JSON.stringify(marketplaceParity.xlsx), "marketplace CSV and XLSX outputs must match for semantic KPI results")
   await assertRetailUnitCostAndAovRegressions(buildDatasetReportInput, generateReport, deleteReport, generatePdfReport)
   await assertEcommerceReturnStatusRegressions(buildDatasetReportInput)
   await assertSharedPdfPaginationRegression(generatePdfReport, getReportProfile)

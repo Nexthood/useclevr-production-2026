@@ -227,7 +227,9 @@ function buildMetrics(
   const metrics: Metric[] = []
 
   if (key === "financial") {
-    addMetric(metrics, "Revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue || columns.gmv, "Revenue is available as a financial performance input.", undefined, "Review revenue trend monthly.")
+    if (model !== "marketplace") {
+      addMetric(metrics, "Revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue || columns.gmv, "Revenue is available as a financial performance input.", undefined, "Review revenue trend monthly.")
+    }
     addMetric(metrics, "Gross profit", profit, "currency", scoreMargin(margin), columns.profit || columns.cost, "Profitability is calculated from profit or revenue/cost fields.", margin !== null && margin < 10 ? "Margin is below 10%." : undefined, "Review pricing, COGS, and operating costs.")
     addMetric(metrics, "Margin", margin, "percent", scoreMargin(margin), columns.margin || columns.profit || columns.cost, "Margin is included in the financial score.", margin !== null && margin < 10 ? "Low margin limits reinvestment capacity." : undefined, "Set margin targets by product, service, or channel.")
     if (model === "saas" || model === "startup") {

@@ -2280,10 +2280,16 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Portfolio valuation", sumColumn(rows, columns.valuation), "currency")
     addKpi(kpis, "Average ownership", averageColumn(rows, columns.ownership), "percent")
   } else if (model === "marketplace") {
-    addKpi(kpis, "GMV", sumColumn(rows, columns.gmv) ?? revenue, "currency")
-    addKpi(kpis, "Commission", sumColumn(rows, columns.commission), "currency")
-    addKpi(kpis, "Sellers", columns.seller ? uniqueCount(rows, columns.seller) : null, "number")
-    addKpi(kpis, "Buyers", columns.buyer ? uniqueCount(rows, columns.buyer) : customers, "number")
+    kpis.length = 0
+    addKpi(kpis, "GMV", marketplace?.gmv ?? null, "currency")
+    addKpi(kpis, "Marketplace Revenue", marketplace?.marketplaceRevenue ?? null, "currency")
+    addKpi(kpis, "Take Rate", marketplace?.takeRate ?? null, "percent")
+    addKpi(kpis, "Transactions", marketplace?.transactions ?? null, "number")
+    addKpi(kpis, "Average Transaction Value", marketplace?.averageTransactionValue ?? null, "currency")
+    addKpi(kpis, "Buyers", marketplace?.buyers ?? null, "number")
+    addKpi(kpis, "Sellers", marketplace?.sellers ?? null, "number")
+    addKpi(kpis, "Refund Amount", marketplace?.refunds ?? null, "currency")
+    addKpi(kpis, "Refund Rate", marketplace?.refundRate ?? null, "percent")
   } else if (model === "business_consulting") {
     addKpi(kpis, "Billable hours", sumColumn(rows, columns.billableHours), "number")
     addKpi(kpis, "Utilization revenue", revenue, "currency")
