@@ -339,8 +339,10 @@ export interface MarketplaceReportAnalysis {
   newSellerField: string | null;
   activeSellers: number | null;
   activeSellersField: string | null;
+  activeSellersAggregation: "sum" | "latest_snapshot";
   listings: number | null;
   listingsField: string | null;
+  listingsAggregation: "sum" | "latest_snapshot";
   completionRate: number | null;
   gmvTrend: { name: string; value: number }[];
   marketplaceRevenueTrend: { name: string; value: number }[];
