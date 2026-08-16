@@ -302,8 +302,10 @@ function buildMetrics(
       const totalTransactions = columns.order ? uniqueCount(rows, columns.order) : sumColumn(rows, columns.quantity)
       const completionRate = totalTransactions !== null && totalTransactions > 0 && completedTransactions !== null ? (completedTransactions / totalTransactions) * 100 : null
       addMetric(metrics, "Completion rate", completionRate, "percent", scoreTarget(completionRate, 95, true), columns.completed, "Completion rate is calculated from completed transaction statuses.", completionRate !== null && completionRate < 90 ? "Completion rate is below 90%." : undefined, "Investigate incomplete transactions by seller and category.")
-      addMetric(metrics, "Active sellers", sumColumn(rows, columns.activeSellers), "number", scorePositiveValue(sumColumn(rows, columns.activeSellers)), columns.activeSellers, "Active sellers are included for marketplace process coverage.")
-      addMetric(metrics, "Listings", sumColumn(rows, columns.listingCount), "number", scorePositiveValue(sumColumn(rows, columns.listingCount)), columns.listingCount, "Listings are included for marketplace process coverage.")
+      const activeSellersResult = columns.activeSellers ? snapshotColumn(rows, columns.activeSellers, columns.date) : { value: null, latest: false }
+      const listingsResult = columns.listingCount ? snapshotColumn(rows, columns.listingCount, columns.date) : { value: null, latest: false }
+      addMetric(metrics, "Active sellers", activeSellersResult.value, "number", scorePositiveValue(activeSellersResult.value), columns.activeSellers, activeSellersResult.latest ? "Active sellers uses the latest snapshot from " + (columns.date || "source row") + ", not a row sum." : "Active sellers are included for marketplace process coverage.")
+      addMetric(metrics, "Listings", listingsResult.value, "number", scorePositiveValue(listingsResult.value), columns.listingCount, listingsResult.latest ? "Listings uses the latest snapshot from " + (columns.date || "source row") + ", not a row sum." : "Listings are included for marketplace process coverage.")
     } else {
       addMetric(metrics, "Process volume", orders, "number", scorePositiveValue(orders), columns.order || columns.quantity, "Operational volume is included from order or quantity fields.")
     }
@@ -504,6 +506,63 @@ function sumColumn(rows: DataRow[], column?: string) {
     found = true
   }
   return found ? total : null
+}
+
+function snapshotColumn(rows: DataRow[], column: string, dateColumn?: string): { value: number | null; latest: boolean } {
+  if (!column) return { value: null, latest: false }
+  let found = false
+  let sum = 0
+  let max = -Infinity
+  const distinct = new Set<number>()
+  for (const row of rows) {
+    const value = getNumber(row[column])
+    if (value === null) continue
+    found = true
+    sum += value
+    if (value > max) max = value
+    distinct.add(value)
+  }
+  if (!found) return { value: null, latest: false }
+  const isSnapshot = distinct.size < rows.length / 2 && sum > max * (rows.length / Math.max(distinct.size, 1))
+  if (!isSnapshot) return { value: sum, latest: false }
+  let snapshotValue = max
+  const periodRows = dateColumn ? latestPeriodRowsBbsc(rows, dateColumn) : rows
+  let lastPeriodValue: number | null = null
+  for (let i = periodRows.length - 1; i >= 0; i--) {
+    const value = getNumber(periodRows[i][column])
+    if (value !== null) {
+      lastPeriodValue = value
+      break
+    }
+  }
+  if (lastPeriodValue !== null) snapshotValue = lastPeriodValue
+  for (const row of periodRows) {
+    const value = getNumber(row[column])
+    if (value !== null && value > snapshotValue) snapshotValue = value
+  }
+  return { value: snapshotValue, latest: true }
+}
+
+function latestPeriodRowsBbsc(rows: DataRow[], periodColumn: string) {
+  const keyed: { row: DataRow; key: string }[] = []
+  for (const row of rows) {
+    const key = periodKeyBbsc(row[periodColumn])
+    if (key) keyed.push({ row, key })
+  }
+  if (keyed.length === 0) return rows
+  const latest = keyed.map((item) => item.key).sort().at(-1) || ""
+  return keyed.filter((item) => item.key === latest).map((item) => item.row)
+}
+
+function periodKeyBbsc(value: unknown) {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString().slice(0, 10)
+  if (typeof value === "number" && Number.isFinite(value)) return null
+  const text = String(value || "").trim()
+  if (!text) return null
+  const parsed = new Date(text)
+  if (Number.isFinite(parsed.getTime())) return parsed.toISOString().slice(0, 10)
+  if (/^\d{4}-\d{1,2}$/.test(text)) return text.replace(/-(\d)$/, "-0$1")
+  return null
 }
 
 function averageColumn(rows: DataRow[], column?: string) {

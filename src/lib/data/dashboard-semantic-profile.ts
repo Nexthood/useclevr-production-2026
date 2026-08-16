@@ -191,8 +191,8 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
       metric("Sellers", marketplace.sellers, "number", marketplace.sellerField, "Distinct recognized seller IDs."),
       metric("New Buyers", marketplace.newBuyers, "number", marketplace.newBuyerField, "Normalized positive new buyer statuses."),
       metric("New Sellers", marketplace.newSellers, "number", marketplace.newSellerField, "Normalized positive new seller statuses."),
-      metric("Active Sellers", marketplace.activeSellers, "number", marketplace.activeSellersField, "Sum of recognized active sellers field."),
-      metric("Listings", marketplace.listings, "number", marketplace.listingsField, "Sum of recognized listing count field."),
+      metric("Active Sellers", marketplace.activeSellers, "number", marketplace.activeSellersField, marketplace.activeSellersAggregation === "latest_snapshot" ? "Latest snapshot from recognized active sellers field." : "Sum of recognized active sellers field."),
+      metric("Listings", marketplace.listings, "number", marketplace.listingsField, marketplace.listingsAggregation === "latest_snapshot" ? "Latest snapshot from recognized listing count field." : "Sum of recognized listing count field."),
       metric("Completion Rate", marketplace.completionRate, "percent", "completed / transactions", "Completed transactions divided by total transactions."),
     ].filter((item) => item.available)
   }

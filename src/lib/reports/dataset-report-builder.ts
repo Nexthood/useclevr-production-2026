@@ -778,8 +778,10 @@ function buildMarketplaceAnalysis(rows: DataRow[], columns: ColumnMap): Marketpl
   const sellers = columns.seller ? uniqueCount(rows, columns.seller) : null
   const newBuyers = columns.newBuyer ? countDistinctPositiveStatus(rows, columns.buyer, columns.newBuyer) : null
   const newSellers = columns.newSeller ? countDistinctPositiveStatus(rows, columns.seller, columns.newSeller) : null
-  const activeSellers = columns.activeSellers ? sumColumn(rows, columns.activeSellers) : null
-  const listings = columns.listingCount ? sumColumn(rows, columns.listingCount) : null
+  const activeSellersResult = columns.activeSellers ? snapshotColumn(rows, columns.activeSellers, columns.date) : { value: null, latest: false }
+  const activeSellers = activeSellersResult.value
+  const listingsResult = columns.listingCount ? snapshotColumn(rows, columns.listingCount, columns.date) : { value: null, latest: false }
+  const listings = listingsResult.value
   const completedTransactions = countDistinctPositiveStatus(rows, columns.order, columns.completed)
   const completionRate = transactions > 0 && completedTransactions !== null ? round((completedTransactions / transactions) * 100) : null
   const takeRate = gmv !== null && marketplaceRevenue !== null && gmv > 0 ? round((marketplaceRevenue / gmv) * 100) : null
@@ -810,8 +812,10 @@ function buildMarketplaceAnalysis(rows: DataRow[], columns: ColumnMap): Marketpl
     newSellerField: columns.newSeller || null,
     activeSellers,
     activeSellersField: columns.activeSellers || null,
+    activeSellersAggregation: activeSellersResult.latest ? "latest_snapshot" : "sum",
     listings,
     listingsField: columns.listingCount || null,
+    listingsAggregation: listingsResult.latest ? "latest_snapshot" : "sum",
     completionRate,
     gmvTrend: marketplaceValueTrend(rows, columns.date, columns.gmv, "GMV"),
     marketplaceRevenueTrend: marketplaceValueTrend(rows, columns.date, columns.commission, "Marketplace Revenue"),
@@ -2436,6 +2440,39 @@ function sumColumn(rows: DataRow[], column?: string) {
     found = true
   }
   return found ? total : null
+}
+
+function snapshotColumn(rows: DataRow[], column: string, dateColumn?: string): { value: number | null; latest: boolean } {
+  if (!column) return { value: null, latest: false }
+  let found = false
+  let sum = 0
+  let max = -Infinity
+  const distinct = new Set<number>()
+  for (const row of rows) {
+    const value = getNumber(row[column])
+    if (value === null) continue
+    found = true
+    sum += value
+    if (value > max) max = value
+    distinct.add(value)
+  }
+  if (!found) return { value: null, latest: false }
+  const isSnapshot = distinct.size < rows.length / 2 && sum > max * (rows.length / Math.max(distinct.size, 1))
+  if (!isSnapshot) return { value: sum, latest: false }
+  const periodRows = dateColumn ? latestPeriodRows(rows, dateColumn).rows : rows
+  let snapshotValue = max
+  for (let i = periodRows.length - 1; i >= 0; i--) {
+    const value = getNumber(periodRows[i][column])
+    if (value !== null) {
+      snapshotValue = value
+      break
+    }
+  }
+  for (const row of periodRows) {
+    const value = getNumber(row[column])
+    if (value !== null && value > snapshotValue) snapshotValue = value
+  }
+  return { value: snapshotValue, latest: true }
 }
 
 function sumCogs(rows: DataRow[], columns: ColumnMap) {

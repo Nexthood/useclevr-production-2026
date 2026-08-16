@@ -141,6 +141,11 @@ async function main() {
     sellers: number | null
     refunds: number | null
     refundRate: number | null
+    activeSellers: number | null
+    listings: number | null
+    activeSellersAggregation: string
+    listingsAggregation: string
+    refundTrendValues: number[]
   }> = {}
 
   for (const fixture of availableFixtures) {
@@ -327,9 +332,23 @@ async function main() {
         assert(marketplace.sellers === 58, "marketplace sellers must use distinct seller_id")
         nearlyEqual(marketplace.refunds, 1660.33, "marketplace refunds must match fixture", 0.02)
         nearlyEqual(marketplace.refundRate, 1.98, "marketplace refund rate must be refunds / GMV", 0.02)
-        nearlyEqual(marketplace.averageTransactionValue, 465.43, "marketplace ATV must be GMV / transactions", 0.02)
-        assert(marketplace.gmvField === "gross_merchandise_value", "marketplace GMV field must be gross_merchandise_value")
-        assert(marketplace.marketplaceRevenueField === "platform_fee", "marketplace revenue field must be platform_fee")
+         nearlyEqual(marketplace.averageTransactionValue, 465.43, "marketplace ATV must be GMV / transactions", 0.02)
+         assert(marketplace.gmvField === "gross_merchandise_value", "marketplace GMV field must be gross_merchandise_value")
+         assert(marketplace.marketplaceRevenueField === "platform_fee", "marketplace revenue field must be platform_fee")
+         assert(reportInput.financials?.revenue === null, "marketplace must null generic revenue so GMV is not labeled Revenue")
+         assert(marketplace.newBuyers === 40, "marketplace new buyers must count distinct positive new_buyer rows from source: 40")
+         assert(marketplace.newSellers === 20, "marketplace new sellers must count distinct positive new_seller rows from source: 20")
+         assert(marketplace.newBuyerField === "new_buyer", "marketplace new buyer field must be new_buyer")
+         assert(marketplace.newSellerField === "new_seller", "marketplace new seller field must be new_seller")
+         assert(marketplace.activeSellers === 5, "marketplace active sellers must use latest snapshot, not row sum: source cycles 1-5 across 180 rows")
+         assert(marketplace.activeSellersAggregation === "latest_snapshot", "marketplace active sellers must be detected as snapshot, not summed")
+         assert(marketplace.activeSellersField === "active_sellers", "marketplace active sellers field must be active_sellers")
+         assert(marketplace.listings === 10, "marketplace listings must use latest snapshot, not row sum: source cycles 1-10 across 180 rows")
+         assert(marketplace.listingsAggregation === "latest_snapshot", "marketplace listings must be detected as snapshot, not summed")
+         assert(marketplace.listingsField === "listing_count", "marketplace listing count field must be listing_count")
+         assert(marketplace.refundTrend.length === 4, "marketplace refund trend must group by month")
+         assert(marketplace.refundTrend[0].value > 0, "marketplace refund trend January must be non-zero: source truth is $414.90")
+         assert(marketplace.refundTrend.every((t) => t.value > 0), "marketplace refund trend must not report $0 for any month with refunds in source")
         assert(reportInput.financials?.revenue === null, "marketplace must null generic revenue so GMV is not labeled Revenue")
         assert(!reportInput.kpis.some((kpi) => kpi.title === "Revenue"), "marketplace KPIs must not include generic Revenue")
         assert(reportInput.kpis.some((kpi) => kpi.title === "GMV"), "marketplace KPIs must include GMV")
@@ -353,6 +372,11 @@ async function main() {
           sellers: marketplace.sellers,
           refunds: marketplace.refunds,
           refundRate: marketplace.refundRate,
+          activeSellers: marketplace.activeSellers,
+          listings: marketplace.listings,
+          activeSellersAggregation: marketplace.activeSellersAggregation,
+          listingsAggregation: marketplace.listingsAggregation,
+          refundTrendValues: marketplace.refundTrend.map((t) => t.value),
         }
       }
 
@@ -492,6 +516,10 @@ async function main() {
         assert(pdfText.includes("Buyers"), "marketplace PDF must include buyers")
         assert(pdfText.includes("Sellers"), "marketplace PDF must include sellers")
         assert(pdfText.includes("Refund Rate"), "marketplace PDF must include refund rate")
+        assert(pdfText.includes("New Buyers"), "marketplace PDF must include new buyers")
+        assert(pdfText.includes("New Sellers"), "marketplace PDF must include new sellers")
+        assert(pdfText.includes("Active Sellers"), "marketplace PDF must include active sellers")
+        assert(pdfText.includes("Listings"), "marketplace PDF must include listings")
         assert(pdfText.includes("BUYER & SELLER INTELLIGENCE"), "marketplace PDF must include buyer & seller intelligence page")
         assert(pdfText.includes("CATEGORY & GEOGRAPHY PERFORMANCE"), "marketplace PDF must include category & geography page")
         assert(pdfText.includes("MARKETPLACE RECOMMENDATIONS + PROVENANCE"), "marketplace PDF must include marketplace recommendations")
@@ -500,6 +528,10 @@ async function main() {
         assert(!pdfText.includes("COST INTELLIGENCE"), "marketplace PDF must not render generic Cost Intelligence page")
         assert(!pdfText.includes("TOP COST CATEGORIES"), "marketplace PDF must not render generic Top Cost Categories")
         assert(!pdfText.includes("$83.8K\n\n\nMARKETPLACE REVENUE"), "marketplace PDF must not show GMV value directly under Marketplace Revenue label")
+        assert(pdfText.includes("Latest snapshot"), "marketplace PDF must show latest snapshot provenance for active sellers")
+        assert(pdfText.includes("Sum of") === false || pdfText.includes("Sum of active_sellers.") === false, "marketplace PDF must not say 'Sum of active_sellers' for snapshot metrics")
+        assert(pdfText.includes("Refund Trend"), "marketplace PDF must include refund trend in results summary")
+        assert(!pdfText.includes("Refund Trend: 2026-01 leads at $0"), "marketplace PDF must not report $0 for refund trend when source has refunds")
 assert(pdfText.includes("GMV"), "marketplace PDF must include GMV label")
 assert(pdfText.includes("$83.8K"), "marketplace PDF must show GMV value $83.8K")
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
