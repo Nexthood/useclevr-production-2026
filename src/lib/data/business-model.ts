@@ -62,8 +62,9 @@ const modelKeywordPatterns: Record<Exclude<BusinessModel, "generic">, RegExp[]> 
     /\bvaluation\b|\binvestor\b|\bcohort\b/,
   ],
   investor: [
-    /\bportfolio\b|\bportfolio[\s_-]?company\b|\binvested[\s_-]?capital\b/,
+    /\bportfolio\b|\bportfolio[\s_-]?company\b|\binvested[\s_-]?capital\b|\binvested[\s_-]?amount\b/,
     /\bvaluation\b|\bownership\b|\bstage\b|\bsector\b|\bfund\b|\birr\b|\bmoic\b/,
+    /\bcompany[\s_-]?id\b|\bcompany[\s_-]?name\b/,
   ],
   marketplace: [
     /\bmarketplace\b|\bgmv\b|\bgross_merchandise\b|\bcommission\b|\btake[\s_-]?rate\b|\bplatform_fee\b/,

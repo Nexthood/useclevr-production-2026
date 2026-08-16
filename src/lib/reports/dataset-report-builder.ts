@@ -5,7 +5,7 @@ import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-cat
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
-import type { EcommerceReportAnalysis, MarketplaceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis } from "@/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, InvestorReportAnalysis, MarketplaceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis } from "@/lib/reports/report-generator"
 import { getReportProfile } from "@/lib/reports/report-profiles"
 
 type DatasetRecord = typeof datasets.$inferSelect
@@ -65,6 +65,10 @@ type ColumnMap = {
   ownership?: string
   sector?: string
   stage?: string
+  companyId?: string
+  companyName?: string
+  status?: string
+  growthRate?: string
   seller?: string
   buyer?: string
   gmv?: string
@@ -154,9 +158,11 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
   const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap) : undefined
   const marketplaceAnalysis = reportModel === "marketplace" ? buildMarketplaceAnalysis(rows, columnMap) : undefined
+  const investorAnalysis = reportModel === "investor" ? buildInvestorAnalysis(rows, columnMap) : undefined
   if (ecommerceAnalysis) financials.dataConfidence = ecommerceDataConfidence(columnMap)
-  if (saasAnalysis) financials.dataConfidence = saasAnalysis.dataConfidence
+  if (saasAnalysis) financials.dataConfidence = saasDataConfidence(columnMap)
   if (marketplaceAnalysis) financials.dataConfidence = marketplaceDataConfidence(columnMap)
+  if (investorAnalysis) financials.dataConfidence = investorDataConfidence(columnMap)
   const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
   const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
   const canonicalRowCount = dataset.rowCount || rows.length
@@ -255,13 +261,16 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
         ? buildEcommerceRecommendations(ecommerceAnalysis, financials, columnMap)
         : reportModel === "marketplace" && marketplaceAnalysis
           ? buildMarketplaceRecommendations(marketplaceAnalysis, financials, columnMap, bbsc)
-          : saasAnalysis
-            ? buildSaasRecommendations(saasAnalysis, financials, columnMap)
-            : buildDatasetRecommendations(columnMap, financials, bbsc),
+          : reportModel === "investor" && investorAnalysis
+            ? buildInvestorRecommendations(investorAnalysis, financials, columnMap)
+            : saasAnalysis
+              ? buildSaasRecommendations(saasAnalysis, financials, columnMap)
+              : buildDatasetRecommendations(columnMap, financials, bbsc),
     retailAnalysis,
     ecommerceAnalysis,
     saasAnalysis,
     marketplaceAnalysis,
+    investorAnalysis,
     alerts: buildAlerts(reportModel, rows, columnMap),
     bbsc,
     semanticContext,
@@ -776,8 +785,8 @@ function buildMarketplaceAnalysis(rows: DataRow[], columns: ColumnMap): Marketpl
   const transactions = columns.order ? uniqueCount(rows, columns.order) : rows.length
   const buyers = columns.buyer ? uniqueCount(rows, columns.buyer) : null
   const sellers = columns.seller ? uniqueCount(rows, columns.seller) : null
-  const newBuyers = columns.newBuyer ? countDistinctPositiveStatus(rows, columns.buyer, columns.newBuyer) : null
-  const newSellers = columns.newSeller ? countDistinctPositiveStatus(rows, columns.seller, columns.newSeller) : null
+  const newBuyers = columns.newBuyer ? countPositiveRows(rows, columns.newBuyer) : null
+  const newSellers = columns.newSeller ? countPositiveRows(rows, columns.newSeller) : null
   const activeSellersResult = columns.activeSellers ? snapshotColumn(rows, columns.activeSellers, columns.date) : { value: null, latest: false }
   const activeSellers = activeSellersResult.value
   const listingsResult = columns.listingCount ? snapshotColumn(rows, columns.listingCount, columns.date) : { value: null, latest: false }
@@ -823,6 +832,164 @@ function buildMarketplaceAnalysis(rows: DataRow[], columns: ColumnMap): Marketpl
     categoryPerformance: groupedRetailChart(rows, columns.category, columns.gmv || columns.commission, "Uncategorized"),
     geography: groupedRetailChart(rows, columns.country, columns.gmv || columns.commission, "Unknown geography"),
   }
+}
+
+function buildInvestorAnalysis(rows: DataRow[], columns: ColumnMap): InvestorReportAnalysis {
+  const portfolioCompanies = columns.companyId ? uniqueCount(rows, columns.companyId) : rows.length
+  const totalInvested = columns.investedAmount ? sumColumn(rows, columns.investedAmount) : null
+  const totalValuation = columns.valuation ? sumColumn(rows, columns.valuation) : null
+  
+  let avgOwnership: number | null = null
+  if (columns.ownership) {
+    const values = rows.map(r => getNumber(r[columns.ownership!])).filter((v): v is number => v !== null)
+    if (values.length > 0) {
+      avgOwnership = values.reduce((a, b) => a + b, 0) / values.length
+    }
+  }
+  
+  const companiesByStatus = groupByCount(rows, columns.status)
+  const companiesBySector = groupBySector(rows, columns.sector, columns.investedAmount, columns.valuation)
+  const companiesByStage = groupByStage(rows, columns.stage, columns.investedAmount, columns.valuation)
+  const revenueByCompany = columns.revenue ? getTopRevenueByCompany(rows, columns.companyName, columns.revenue) : []
+  const runwayRisk = columns.runway ? countLowRunway(rows, columns.runway) : null
+  const highBurn = columns.burn ? countHighBurn(rows, columns.burn) : null
+  
+  return {
+    portfolioCompanies,
+    totalInvested,
+    totalValuation,
+    avgOwnership,
+    companiesByStatus,
+    companiesBySector,
+    companiesByStage,
+    revenueByCompany,
+    runwayRisk,
+    highBurn,
+    dataConfidence: null,
+  }
+}
+
+function investorDataConfidence(columns: ColumnMap) {
+  const required = [
+    columns.companyId,
+    columns.investedAmount,
+    columns.ownership,
+    columns.valuation,
+  ]
+  const optional = [
+    columns.sector,
+    columns.stage,
+    columns.status,
+    columns.revenue,
+    columns.growthRate,
+    columns.runway,
+    columns.burn,
+  ]
+  const availableRequired = required.filter(Boolean).length
+  const availableOptional = optional.filter(Boolean).length
+  return Math.round(((availableRequired / required.length) * 85) + ((availableOptional / optional.length) * 15))
+}
+
+function groupByCount(rows: DataRow[], column?: string): { status: string; count: number }[] {
+  if (!column) return []
+  const counts = new Map<string, number>()
+  rows.forEach(row => {
+    const val = String(row[column] || "Unknown").trim()
+    counts.set(val, (counts.get(val) || 0) + 1)
+  })
+  return Array.from(counts.entries()).map(([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count)
+}
+
+function groupBySector(rows: DataRow[], sectorCol?: string, investedCol?: string, valuationCol?: string): { sector: string; invested: number; valuation: number; count: number }[] {
+  if (!sectorCol) return []
+  const sectors = new Map<string, { invested: number; valuation: number; count: number }>()
+  rows.forEach(row => {
+    const sector = String(row[sectorCol] || "Unknown").trim()
+    const invested = getNumber(row[investedCol!]) || 0
+    const valuation = getNumber(row[valuationCol!]) || 0
+    const current = sectors.get(sector) || { invested: 0, valuation: 0, count: 0 }
+    current.invested += invested
+    current.valuation += valuation
+    current.count += 1
+    sectors.set(sector, current)
+  })
+  return Array.from(sectors.entries()).map(([sector, data]) => ({ sector, ...data })).sort((a, b) => b.invested - a.invested)
+}
+
+function groupByStage(rows: DataRow[], stageCol?: string, investedCol?: string, valuationCol?: string): { stage: string; invested: number; valuation: number; count: number }[] {
+  if (!stageCol) return []
+  const stages = new Map<string, { invested: number; valuation: number; count: number }>()
+  rows.forEach(row => {
+    const stage = String(row[stageCol] || "Unknown").trim()
+    const invested = getNumber(row[investedCol!]) || 0
+    const valuation = getNumber(row[valuationCol!]) || 0
+    const current = stages.get(stage) || { invested: 0, valuation: 0, count: 0 }
+    current.invested += invested
+    current.valuation += valuation
+    current.count += 1
+    stages.set(stage, current)
+  })
+  return Array.from(stages.entries()).map(([stage, data]) => ({ stage, ...data })).sort((a, b) => b.invested - a.invested)
+}
+
+function getTopRevenueByCompany(rows: DataRow[], nameCol?: string, revenueCol?: string): { name: string; revenue: number }[] {
+  if (!nameCol || !revenueCol) return []
+  const revenues = new Map<string, number>()
+  rows.forEach(row => {
+    const name = String(row[nameCol] || "Unknown").trim()
+    const revenue = getNumber(row[revenueCol]) || 0
+    revenues.set(name, (revenues.get(name) || 0) + revenue)
+  })
+  return Array.from(revenues.entries()).map(([name, revenue]) => ({ name, revenue })).sort((a, b) => b.revenue - a.revenue).slice(0, 10)
+}
+
+function countLowRunway(rows: DataRow[], runwayCol: string): number {
+  let count = 0
+  rows.forEach(row => {
+    const runway = getNumber(row[runwayCol])
+    if (runway !== null && runway < 12) count++
+  })
+  return count
+}
+
+function countHighBurn(rows: DataRow[], burnCol: string): number {
+  let count = 0
+  rows.forEach(row => {
+    const burn = getNumber(row[burnCol])
+    if (burn !== null && burn > 100000) count++
+  })
+  return count
+}
+
+function buildInvestorRecommendations(analysis: InvestorReportAnalysis, financials: ReportFinancials, columns: ColumnMap): ReportRecommendation[] {
+  const recs: ReportRecommendation[] = []
+  
+  if (analysis.companiesByStatus.find(s => s.status.toLowerCase().includes("watchlist"))) {
+    recs.push({ issue: "Review Watchlist companies for investment decisions.", businessImpact: "Active monitoring of watchlist companies is critical for portfolio risk management.", recommendedAction: "Schedule review meetings for watchlist companies." })
+  }
+  
+  if (analysis.runwayRisk && analysis.runwayRisk > 0) {
+    recs.push({ issue: `${analysis.runwayRisk} companies have runway under 12 months.`, businessImpact: "Low runway indicates urgent need for follow-on funding or exit planning.", recommendedAction: "Assess runway and plan follow-on investments or exits." })
+  }
+  
+  if (analysis.highBurn && analysis.highBurn > 0) {
+    recs.push({ issue: `${analysis.highBurn} companies show high monthly burn rates.`, businessImpact: "High burn companies require careful monitoring and potential intervention.", recommendedAction: "Monitor burn rates and engage with portfolio company management." })
+  }
+  
+  if (analysis.companiesBySector.length > 0) {
+    const topSector = analysis.companiesBySector[0]
+    recs.push({ issue: `Portfolio concentration in ${topSector.sector} sector at ${Math.round((topSector.invested / (analysis.totalInvested || 1)) * 100)}% of invested capital.`, businessImpact: "Consider sector diversification to reduce portfolio risk.", recommendedAction: "Evaluate new investments in underrepresented sectors." })
+  }
+  
+  if (analysis.companiesByStage.length > 1) {
+    recs.push({ issue: "Portfolio spans multiple investment stages.", businessImpact: "Stage diversification provides natural risk mitigation across portfolio companies.", recommendedAction: "Maintain current stage diversification strategy." })
+  }
+  
+  if (recs.length === 0) {
+    recs.push({ issue: "Portfolio analysis is complete with available data.", businessImpact: "All available portfolio metrics have been analyzed.", recommendedAction: "No action required." })
+  }
+  
+  return recs
 }
 
 function marketplaceDataConfidence(columns: ColumnMap) {
@@ -1212,6 +1379,17 @@ function countDistinctPositiveStatus(rows: DataRow[], idColumn?: string, statusC
     values.add(key)
   })
   return values.size
+}
+
+function countPositiveRows(rows: DataRow[], statusColumn?: string) {
+  if (!statusColumn) return null
+  let count = 0
+  rows.forEach((row) => {
+    if (normalizeBooleanStatus(row[statusColumn]) === "positive") {
+      count++
+    }
+  })
+  return count
 }
 
 function churnMetrics(rows: DataRow[], columns: ColumnMap) {
@@ -2017,6 +2195,10 @@ function detectColumns(columns: string[]): ColumnMap {
     ownership: findColumn(columns, [/ownership/]),
     sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
+    companyId: findColumn(columns, [/company_id/, /companyid/]),
+    companyName: findColumn(columns, [/company_name/, /companyname/]),
+    status: findColumn(columns, [/status/, /portfolio_status/]),
+    growthRate: findColumn(columns, [/growth_rate/, /growth/]),
     seller: findColumn(columns, [/seller/, /vendor/, /merchant/]),
     buyer: findColumn(columns, [/buyer/]),
     gmv: findColumn(columns, [/^gmv$/, /gross_merchandise/]),
