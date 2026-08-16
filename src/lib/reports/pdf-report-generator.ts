@@ -1,6 +1,7 @@
 import { debugLog } from "@/lib/utils/debug";
 
 import * as fs from "fs";
+import assert from "node:assert";
 import { jsPDF } from "jspdf";
 import * as path from "path";
 import type { Report, ReportFinancials, ReportRecommendation, SaasReportAnalysis } from "./report-generator";
@@ -99,6 +100,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
   tracePdfRuntime("renderPdf", report, financials);
 
   drawExecutiveOverview(doc, report, financials, datasetName);
+  let renderedGenericFinancialPages = false;
   if (report.reportProfile?.id === "local_retail" && report.retailAnalysis) {
     addDocumentPage(doc, "Sales & Margin Performance", datasetName);
     drawRetailSalesPerformance(doc, report, financials);
@@ -140,6 +142,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
     addDocumentPage(doc, "Marketplace Recommendations + Provenance", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials, "Marketplace Recommendations");
   } else {
+    renderedGenericFinancialPages = true;
     addDocumentPage(doc, "Financial Performance", datasetName);
     drawFinancialPerformance(doc, financials);
     addDocumentPage(doc, "Cost Intelligence", datasetName);
@@ -148,6 +151,13 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Executive Recommendations", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials);
+  }
+
+  if (report.reportProfile?.id === "marketplace_startup" && report.marketplaceAnalysis) {
+    assert(
+      !renderedGenericFinancialPages,
+      "Marketplace report must not render generic Financial Performance or Cost Intelligence pages",
+    );
   }
 
   addDocumentPage(doc, resultsSummaryTitle(report), datasetName);
@@ -240,7 +250,7 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
 
   const overviewMetrics = overviewMetricCards(report, financials, dataCompleteness);
   if (overviewMetrics.length > 0) {
-    y = drawSectionHeading(doc, report.reportProfile?.id === "local_retail" ? "Retail Executive KPIs" : "Key Financial / Business Highlights", y, layout.metricCardHeight);
+    y = drawSectionHeading(doc, report.reportProfile?.id === "local_retail" ? "Retail Executive KPIs" : report.reportProfile?.id === "marketplace_startup" ? "Marketplace KPIs" : "Key Financial / Business Highlights", y, layout.metricCardHeight);
     drawMetricGrid(doc, overviewMetrics, y);
   }
 }
@@ -1027,7 +1037,7 @@ function profileSummaryMetricAliases(profileId?: string): string[] {
   if (profileId === "local_retail") return ["Units Sold", "Current Stock", "Low Stock SKUs", "AOV"];
   if (profileId === "ecommerce") return ["AOV", "Average Order Value", "Units Sold", "Return Rate", "Shipping / Fulfillment Cost"];
   if (profileId === "saas_startup") return ["MRR", "ARR", "Customers", "New Customers", "Churn Rate", "Net Expansion MRR", "CAC", "LTV", "Runway"];
-  if (profileId === "marketplace_startup") return ["GMV", "Commission", "Sellers", "Buyers"];
+  if (profileId === "marketplace_startup") return ["GMV", "Marketplace Revenue", "Take Rate", "Seller Payout", "Refund Amount", "Transactions", "Buyers", "Sellers"];
   if (profileId === "investor_portfolio") return ["Invested capital", "Portfolio valuation", "Average ownership"];
   if (profileId === "business_consulting" || profileId === "professional_services") return ["Billable hours", "Utilization revenue", "Project margin", "Client count"];
   if (profileId === "profitability_pnl") return ["Revenue", "COGS", "Gross Profit", "Operating Profit", "Net Profit", "Gross Margin", "Net Margin"];
