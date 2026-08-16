@@ -14,6 +14,20 @@ type MetricSourceKind = "source_value" | "derived_value" | "unavailable";
 type TableRow = [string, string, string, string];
 type SummaryMetric = { title: string; value: string };
 type SummaryItem = { label: string; detail: string; tone?: "neutral" | "positive" | "risk" };
+type FindingPriority =
+  | "business_risk"
+  | "negative_change"
+  | "opportunity"
+  | "positive_performance"
+  | "concentration"
+  | "operational"
+  | "missing_data_unlock"
+  | "data_observation";
+type FindingCandidate = {
+  text: string;
+  priority: FindingPriority;
+  sourceOrder: number;
+};
 type PdfLayoutContext = {
   title: string;
   datasetName: string;
@@ -948,14 +962,119 @@ function selectBusinessHealth(report: Report, confidence: number | null): Summar
 }
 
 function selectTopFindings(report: Report): SummaryItem[] {
-  return (report.findings || [])
-    .filter((finding) => cleanText(finding).length > 0)
-    .slice(0, 5)
-    .map((finding): SummaryItem => ({
-      label: findingToneLabel(finding),
-      detail: findingToneDetail(finding),
-      tone: classifyFindingTone(finding),
-    }));
+  const candidates = collectSummaryFindingCandidates(report)
+    .filter((candidate) => cleanText(candidate.text).length > 0)
+    .sort((a, b) => findingPriorityRank(a.priority) - findingPriorityRank(b.priority) || a.sourceOrder - b.sourceOrder);
+  const businessCandidates = candidates.filter((candidate) => candidate.priority !== "data_observation");
+  const selected = businessCandidates.length > 0 ? businessCandidates : candidates;
+  return dedupeSummaryItems(
+    selected.map((candidate): SummaryItem => ({
+      label: findingPriorityLabel(candidate.priority),
+      detail: findingToneDetail(candidate.text),
+      tone: classifyFindingTone(candidate.text),
+    })),
+  ).slice(0, 5);
+}
+
+function collectSummaryFindingCandidates(report: Report): FindingCandidate[] {
+  const candidates: FindingCandidate[] = [];
+  let sourceOrder = 0;
+  const add = (text: string | null | undefined, sourceBias = 0) => {
+    const cleaned = cleanText(text || "");
+    if (!cleaned) return;
+    candidates.push({
+      text: cleaned,
+      priority: classifyFindingPriority(cleaned),
+      sourceOrder: sourceOrder + sourceBias,
+    });
+    sourceOrder += 1;
+  };
+
+  for (const recommendation of report.recommendations || []) {
+    add(summaryRecommendationFinding(recommendation), -200);
+  }
+
+  for (const chart of report.charts || []) {
+    const top = chart.data?.find((item) => Number.isFinite(item.value));
+    if (top) add(`${truncate(chart.title, 48)}: ${truncate(top.name, 48)} leads at ${formatSummaryChartValue(top.value, chart.title)}.`, -100);
+  }
+
+  for (const finding of report.findings || []) {
+    add(finding);
+  }
+
+  return candidates;
+}
+
+function summaryRecommendationFinding(recommendation: ReportRecommendation) {
+  return [
+    recommendation.issue,
+    recommendation.businessImpact ? `Business impact: ${recommendation.businessImpact}` : null,
+  ].filter(Boolean).join(" ");
+}
+
+function classifyFindingPriority(finding: string): FindingPriority {
+  const text = finding.toLowerCase();
+  if (isTechnicalFinding(text)) return "data_observation";
+  if (/missing|unavailable|insufficient|limited|cannot|no recognized|without|incomplete/.test(text)) {
+    return /field|source|data|column|identifier|order|customer|cogs|cost|expense|date|period/.test(text)
+      ? "missing_data_unlock"
+      : "business_risk";
+  }
+  if (/risk|exposure|stockout|reorder|below|low|weak|declin|drop|fall|decrease|loss|refund|return|churn|burn|runway|cash|overdue|uncategorized|duplicate/.test(text)) {
+    return "business_risk";
+  }
+  if (/opportun|unlock|upsell|cross-sell|expand|improve|rebalance|prioritize|focus|protect|recover/.test(text)) {
+    return "opportunity";
+  }
+  if (/concentration|largest|top supplier|supplier|merchant|customer share|dependency|allocation|portfolio|sector|stage/.test(text)) {
+    return "concentration";
+  }
+  if (/highest|strongest|leads|growth|profitable|positive|above|best|top product|top category|revenue category/.test(text)) {
+    return "positive_performance";
+  }
+  if (/inventory|stock|sku|product|category|channel|shipping|fulfillment|orders|customers|margin|revenue|gross profit|mrr|arr|gmv|take rate|billable|utilization|ledger|debit|credit/.test(text)) {
+    return "operational";
+  }
+  if (/trend|material|performance|change/.test(text)) return "negative_change";
+  return "data_observation";
+}
+
+function isTechnicalFinding(text: string) {
+  return /loaded rows|recognized source field|source field was recognized|classified as|analyzed as|selected dataset only|uses only source|uses only .* values|from recognized source data|kpis prioritize|included from .* columns|treated as .* not an expense category|calculated from .* values present|geography uses only|distinct recognized|source channel values|data confidence|analysis basis/.test(text);
+}
+
+function findingPriorityRank(priority: FindingPriority) {
+  switch (priority) {
+    case "business_risk":
+      return 1;
+    case "negative_change":
+      return 2;
+    case "opportunity":
+      return 3;
+    case "positive_performance":
+      return 4;
+    case "concentration":
+      return 5;
+    case "operational":
+      return 6;
+    case "missing_data_unlock":
+      return 7;
+    case "data_observation":
+    default:
+      return 8;
+  }
+}
+
+function findingPriorityLabel(priority: FindingPriority) {
+  if (priority === "business_risk") return "Risk / gap";
+  if (priority === "negative_change") return "Negative change";
+  if (priority === "opportunity") return "Opportunity";
+  if (priority === "positive_performance") return "Positive";
+  if (priority === "concentration") return "Exposure";
+  if (priority === "operational") return "Operational";
+  if (priority === "missing_data_unlock") return "Data unlock";
+  return "Finding";
 }
 
 function selectDataStatus(report: Report, financials: ReportFinancials, confidence: number | null): SummaryItem[] {

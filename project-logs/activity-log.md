@@ -255,3 +255,5 @@
 - fixed: unify the main Dashboard with the generated-report semantic profile path so active Standard Upload datasets render profile-aware SaaS, E-Commerce, and Retail metrics instead of stale workspace-level KPI grids.
 - fixed: keep generated-PDF section headings attached to meaningful following content so SaaS highlights and other report sections do not render as empty page-bottom headings.
 - added: append one profile-aware Results Summary page to every generated PDF report using existing canonical report KPIs, findings, recommendations, scorecard, confidence, and provenance status.
+- fixed: prioritize business risks, opportunities, segment performance, and operational signals in generated PDF Results Summary Top Findings while suppressing parser metadata unless no business finding exists.
+- fixed: remove the duplicate Dashboard Command Center Generate Report button while keeping Executive Daily Health as the single visible generated-report action.

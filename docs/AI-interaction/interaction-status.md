@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-08-15
-- **Goal**: Add one universal final Results Summary page to generated PDF reports.
-- **Durable change**: The shared PDF renderer appends a profile-aware final summary page that presents existing canonical KPIs, findings, recommendations, scorecard, data confidence, and provenance status without adding new business calculations or changing detailed report pages.
-- **Verification**: Generated-report profile regression passes for Retail, E-Commerce, SaaS, available CSV/XLSX fixtures, and synthetic mandatory profile PDFs with final-page summary and cross-profile contamination checks.
+- **Date**: 2026-08-16
+- **Goal**: Remove the duplicate Dashboard Command Center Generate Report button while keeping Executive Daily Health as the single visible generated-report action.
+- **Durable change**: The Dashboard header no longer renders its duplicate Generate Report action; the Executive Daily Health action still uses the existing shared report-generation component and selected-dataset wiring.
+- **Verification**: TypeScript passes, and static inspection confirms the Command Center header call site is removed while Executive Daily Health still renders the default Generate Report action.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -855,9 +855,6 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                   </Link>
                 ))}
               </div>
-              {selected.selectedDataset && (
-                <GenerateReportAction datasetId={selected.selectedDataset.id} disabled={!selectedDatasetReady} />
-              )}
             </div>
           </div>
         </section>
