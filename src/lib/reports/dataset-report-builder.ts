@@ -776,8 +776,8 @@ function buildMarketplaceAnalysis(rows: DataRow[], columns: ColumnMap): Marketpl
   const transactions = columns.order ? uniqueCount(rows, columns.order) : rows.length
   const buyers = columns.buyer ? uniqueCount(rows, columns.buyer) : null
   const sellers = columns.seller ? uniqueCount(rows, columns.seller) : null
-  const newBuyers = columns.newBuyer ? countDistinctPositiveStatus(rows, columns.buyer, columns.newBuyer) : null
-  const newSellers = columns.newSeller ? countDistinctPositiveStatus(rows, columns.seller, columns.newSeller) : null
+  const newBuyers = columns.newBuyer ? countPositiveRows(rows, columns.newBuyer) : null
+  const newSellers = columns.newSeller ? countPositiveRows(rows, columns.newSeller) : null
   const activeSellersResult = columns.activeSellers ? snapshotColumn(rows, columns.activeSellers, columns.date) : { value: null, latest: false }
   const activeSellers = activeSellersResult.value
   const listingsResult = columns.listingCount ? snapshotColumn(rows, columns.listingCount, columns.date) : { value: null, latest: false }
@@ -1212,6 +1212,17 @@ function countDistinctPositiveStatus(rows: DataRow[], idColumn?: string, statusC
     values.add(key)
   })
   return values.size
+}
+
+function countPositiveRows(rows: DataRow[], statusColumn?: string) {
+  if (!statusColumn) return null
+  let count = 0
+  rows.forEach((row) => {
+    if (normalizeBooleanStatus(row[statusColumn]) === "positive") {
+      count++
+    }
+  })
+  return count
 }
 
 function churnMetrics(rows: DataRow[], columns: ColumnMap) {

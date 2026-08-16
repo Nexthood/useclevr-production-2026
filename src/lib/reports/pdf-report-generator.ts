@@ -1131,7 +1131,8 @@ function collectSummaryFindingCandidates(report: Report): FindingCandidate[] {
   }
 
   for (const chart of report.charts || []) {
-    const top = chart.data?.find((item) => Number.isFinite(item.value));
+    const validData = chart.data?.filter((item) => Number.isFinite(item.value)) || [];
+    const top = validData.length > 0 ? validData.reduce((max, item) => item.value > max.value ? item : max, validData[0]) : null;
     if (top) add(`${truncate(chart.title, 48)}: ${truncate(top.name, 48)} leads at ${formatSummaryChartValue(top.value, chart.title)}.`, -100);
   }
 
