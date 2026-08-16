@@ -239,6 +239,20 @@ function buildMetrics(
       addMetric(metrics, "Invested capital", sumColumn(rows, columns.investedAmount), "currency", 70, columns.investedAmount, "Invested capital is available for portfolio scoring.")
       addMetric(metrics, "Latest valuation", sumColumn(rows, columns.valuation), "currency", scorePositiveValue(sumColumn(rows, columns.valuation)), columns.valuation, "Portfolio valuation is included in financial performance.")
     }
+    if (model === "marketplace") {
+      const marketplaceRevenue = sumColumn(rows, columns.commission)
+      const takeRate = revenue !== null && marketplaceRevenue !== null && revenue > 0 ? (marketplaceRevenue / revenue) * 100 : null
+      addMetric(metrics, "GMV", revenue, "currency", scorePositiveValue(revenue), columns.gmv, "GMV is included for marketplace financial performance.")
+      addMetric(metrics, "Marketplace Revenue", marketplaceRevenue, "currency", scorePositiveValue(marketplaceRevenue), columns.commission, "Marketplace revenue is included from platform fee or commission fields.")
+      addMetric(metrics, "Take Rate", takeRate, "percent", scorePositiveValue(takeRate), columns.commission && columns.gmv ? columns.commission : undefined, "Take rate is calculated from marketplace revenue divided by GMV.")
+      addMetric(metrics, "Seller Payout", sumColumn(rows, columns.sellerPayout), "currency", scorePositiveValue(sumColumn(rows, columns.sellerPayout)), columns.sellerPayout, "Seller payout is included for marketplace financial performance.")
+      const refunds = sumColumn(rows, columns.refund)
+      if (revenue !== null) {
+        addMetric(metrics, "Refunds", refunds, "currency", scoreLowerIsBetter(refunds, revenue * 0.05, revenue * 0.2), columns.refund, "Refunds are included for marketplace financial performance.")
+      } else if (refunds !== null) {
+        addMetric(metrics, "Refunds", refunds, "currency", scoreLowerIsBetter(refunds, 0, 0), columns.refund, "Refunds are included for marketplace financial performance.")
+      }
+    }
   }
 
   if (key === "customer") {
@@ -252,6 +266,14 @@ function buildMetrics(
     }
     if (model === "business_consulting") {
       addMetric(metrics, "Client concentration", concentrationScore(rows, columns.customer, columns.revenue), "percent", concentrationScore(rows, columns.customer, columns.revenue), columns.customer && columns.revenue ? columns.customer : undefined, "Client concentration uses revenue distribution by client.", undefined, "Reduce dependency on the largest client.")
+    }
+    if (model === "marketplace") {
+      const buyers = columns.buyer ? uniqueCount(rows, columns.buyer) : null
+      const sellers = columns.seller ? uniqueCount(rows, columns.seller) : null
+      addMetric(metrics, "Buyers", buyers, "number", scorePositiveValue(buyers), columns.buyer, "Buyer count is available for marketplace customer performance.")
+      addMetric(metrics, "Sellers", sellers, "number", scorePositiveValue(sellers), columns.seller, "Seller count is available for marketplace customer performance.")
+      addMetric(metrics, "New buyers", countDistinctPositiveStatus(rows, columns.buyer, columns.newBuyer), "number", scorePositiveValue(countDistinctPositiveStatus(rows, columns.buyer, columns.newBuyer)), columns.newBuyer, "New buyer count is calculated from normalized new-buyer statuses.")
+      addMetric(metrics, "New sellers", countDistinctPositiveStatus(rows, columns.seller, columns.newSeller), "number", scorePositiveValue(countDistinctPositiveStatus(rows, columns.seller, columns.newSeller)), columns.newSeller, "New seller count is calculated from normalized new-seller statuses.")
     }
   }
 
@@ -273,6 +295,13 @@ function buildMetrics(
     } else if (model === "business_consulting") {
       addMetric(metrics, "Billable utilization", sumColumn(rows, columns.billableHours), "number", scorePositiveValue(sumColumn(rows, columns.billableHours)), columns.billableHours, "Billable hours are included for utilization.")
       addMetric(metrics, "Cost efficiency", ratioPercent(cost, revenue), "percent", scoreLowerIsBetter(ratioPercent(cost, revenue), 50, 85), columns.cost, "Cost efficiency uses cost as a percentage of revenue.")
+    } else if (model === "marketplace") {
+      const completedTransactions = countDistinctPositiveStatus(rows, columns.order, columns.completed)
+      const totalTransactions = columns.order ? uniqueCount(rows, columns.order) : sumColumn(rows, columns.quantity)
+      const completionRate = totalTransactions !== null && totalTransactions > 0 && completedTransactions !== null ? (completedTransactions / totalTransactions) * 100 : null
+      addMetric(metrics, "Completion rate", completionRate, "percent", scoreTarget(completionRate, 95, true), columns.completed, "Completion rate is calculated from completed transaction statuses.", completionRate !== null && completionRate < 90 ? "Completion rate is below 90%." : undefined, "Investigate incomplete transactions by seller and category.")
+      addMetric(metrics, "Active sellers", sumColumn(rows, columns.activeSellers), "number", scorePositiveValue(sumColumn(rows, columns.activeSellers)), columns.activeSellers, "Active sellers are included for marketplace process coverage.")
+      addMetric(metrics, "Listings", sumColumn(rows, columns.listingCount), "number", scorePositiveValue(sumColumn(rows, columns.listingCount)), columns.listingCount, "Listings are included for marketplace process coverage.")
     } else {
       addMetric(metrics, "Process volume", orders, "number", scorePositiveValue(orders), columns.order || columns.quantity, "Operational volume is included from order or quantity fields.")
     }
@@ -289,7 +318,10 @@ function buildMetrics(
       addMetric(metrics, "Stage diversification", diversificationScore(rows, columns.stage), "number", diversificationScore(rows, columns.stage), columns.stage, "Stage diversification is included for follow-on opportunity review.")
     } else if (model === "saas" || model === "startup") {
       addMetric(metrics, "Expansion MRR", sumColumn(rows, columns.expansionMrr), "currency", scorePositiveValue(sumColumn(rows, columns.expansionMrr)), columns.expansionMrr, "Expansion MRR is included where available.")
-      addMetric(metrics, "Scalability", averageColumn(rows, columns.usage), "number", scorePositiveValue(averageColumn(rows, columns.usage)), columns.usage, "Usage/adoption supports scalability scoring.")
+      addMetric(metrics, "Scalability", averageColumn(rows, columns.usage), "number", scorePositiveValue(averageColumn(rows, columns.usage)), columns.usage, "Usage/adoption is included where available.")
+    } else if (model === "marketplace") {
+      addMetric(metrics, "Market expansion", groupedCount(rows, columns.country), "number", scorePositiveValue(groupedCount(rows, columns.country)), columns.country, "Country coverage is included for marketplace growth.")
+      addMetric(metrics, "Category breadth", groupedCount(rows, columns.category), "number", scorePositiveValue(groupedCount(rows, columns.category)), columns.category, "Category breadth is included for marketplace growth.")
     }
   }
 
@@ -331,6 +363,16 @@ function detectBbscColumns(columns: string[]) {
     sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
     billableHours: findColumn(columns, [/billable_hours/, /hours/]),
+    commission: findColumn(columns, [/commission/, /take_rate/, /platform_fee/]),
+    sellerPayout: findColumn(columns, [/seller_payout/, /merchant_payout/, /payout/]),
+    refund: findColumn(columns, [/refund/, /return_amount/]),
+    seller: findColumn(columns, [/seller/, /vendor/, /merchant/]),
+    buyer: findColumn(columns, [/buyer/]),
+    newBuyer: findColumn(columns, [/new_buyer/, /newbuyer/]),
+    newSeller: findColumn(columns, [/new_seller/, /newseller/]),
+    activeSellers: findColumn(columns, [/active_sellers/, /active_seller/]),
+    listingCount: findColumn(columns, [/listing_count/, /listing/]),
+    completed: findColumn(columns, [/completed/, /completion_status/]),
   }
 }
 
@@ -347,7 +389,23 @@ function requiredFieldsFor(key: BbscPerspectiveKey, model: BbscReportModel) {
   if ((model === "saas" || model === "startup") && key === "customer") return ["customer", "churn", "retention", "LTV"]
   if (model === "investor" && key === "financial") return ["invested capital", "latest valuation", "ownership"]
   if (model === "business_consulting" && key === "processes") return ["billable hours", "cost", "project delivery", "revenue"]
+  if (model === "marketplace" && key === "financial") return ["GMV", "platform revenue", "seller payout", "refunds"]
+  if (model === "marketplace" && key === "customer") return ["buyer", "seller", "transactions"]
+  if (model === "marketplace" && key === "processes") return ["completion status", "active sellers", "listings"]
+  if (model === "marketplace" && key === "growth") return ["date", "category", "country"]
   return common[key]
+}
+
+function countDistinctPositiveStatus(rows: DataRow[], idColumn?: string, statusColumn?: string): number | null {
+  if (!idColumn || !statusColumn) return null
+  const values = new Set<string>()
+  rows.forEach((row) => {
+    const id = String(row[idColumn] || "").trim()
+    const status = String(row[statusColumn] || "").trim().toLowerCase()
+    if (!id) return
+    if (["true", "1", "yes", "completed", "success", "active"].includes(status)) values.add(id)
+  })
+  return values.size > 0 ? values.size : null
 }
 
 function normalizeReportModel(value: string): BbscReportModel {

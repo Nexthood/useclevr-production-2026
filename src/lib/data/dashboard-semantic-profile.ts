@@ -2,6 +2,7 @@ import { buildDatasetReportInput } from "@/lib/reports/dataset-report-builder"
 import type { BusinessModel } from "@/lib/data/business-model"
 import type {
   EcommerceReportAnalysis,
+  MarketplaceReportAnalysis,
   ReportRecommendation,
   RetailReportAnalysis,
   SaasReportAnalysis,
@@ -33,6 +34,7 @@ type DashboardReportInput = Awaited<ReturnType<typeof buildDatasetReportInput>> 
   retailAnalysis?: RetailReportAnalysis
   ecommerceAnalysis?: EcommerceReportAnalysis
   saasAnalysis?: SaasReportAnalysis
+  marketplaceAnalysis?: MarketplaceReportAnalysis
   semanticContext?: {
     confidence?: number | null
     revenueField?: string | null
@@ -79,6 +81,7 @@ export type DashboardSemanticAnalysis = {
   retailAnalysis?: RetailReportAnalysis
   ecommerceAnalysis?: EcommerceReportAnalysis
   saasAnalysis?: SaasReportAnalysis
+  marketplaceAnalysis?: MarketplaceReportAnalysis
 }
 
 export async function buildDashboardSemanticAnalysis(dataset: DashboardDatasetInput): Promise<DashboardSemanticAnalysis> {
@@ -121,6 +124,7 @@ export async function buildDashboardSemanticAnalysis(dataset: DashboardDatasetIn
     retailAnalysis: reportInput.retailAnalysis,
     ecommerceAnalysis: reportInput.ecommerceAnalysis,
     saasAnalysis: reportInput.saasAnalysis,
+    marketplaceAnalysis: reportInput.marketplaceAnalysis,
   }
 }
 
@@ -172,6 +176,27 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
     ].filter((item) => item.available)
   }
 
+  if (reportInput.reportProfile?.id === "marketplace_startup" && reportInput.marketplaceAnalysis) {
+    const marketplace = reportInput.marketplaceAnalysis
+    return [
+      metric("GMV", marketplace.gmv, "currency", marketplace.gmvField, "Sum of recognized GMV field."),
+      metric("Marketplace Revenue", marketplace.marketplaceRevenue, "currency", marketplace.marketplaceRevenueField, "Sum of recognized platform fee or commission field."),
+      metric("Take Rate", marketplace.takeRate, "percent", "marketplace revenue / gmv", "Marketplace Revenue divided by GMV."),
+      metric("Seller Payout", marketplace.sellerPayout, "currency", marketplace.sellerPayoutField, "Sum of recognized seller payout field."),
+      metric("Refund Amount", marketplace.refunds, "currency", marketplace.refundsField, "Sum of recognized refund field."),
+      metric("Refund Rate", marketplace.refundRate, "percent", "refunds / gmv", "Refund Amount divided by GMV."),
+      metric("Transactions", marketplace.transactions, "number", marketplace.transactionField, "Distinct recognized transaction IDs or row count."),
+      metric("Average Transaction Value", marketplace.averageTransactionValue, "currency", "gmv / transactions", "GMV divided by transactions."),
+      metric("Buyers", marketplace.buyers, "number", marketplace.buyerField, "Distinct recognized buyer IDs."),
+      metric("Sellers", marketplace.sellers, "number", marketplace.sellerField, "Distinct recognized seller IDs."),
+      metric("New Buyers", marketplace.newBuyers, "number", marketplace.newBuyerField, "Normalized positive new buyer statuses."),
+      metric("New Sellers", marketplace.newSellers, "number", marketplace.newSellerField, "Normalized positive new seller statuses."),
+      metric("Active Sellers", marketplace.activeSellers, "number", marketplace.activeSellersField, "Sum of recognized active sellers field."),
+      metric("Listings", marketplace.listings, "number", marketplace.listingsField, "Sum of recognized listing count field."),
+      metric("Completion Rate", marketplace.completionRate, "percent", "completed / transactions", "Completed transactions divided by total transactions."),
+    ].filter((item) => item.available)
+  }
+
   return reportInput.kpis
     .map((item) => metric(item.title, parseDisplayNumber(item.value), inferMetricFormat(item.title, item.value), item.title, "Canonical report KPI."))
     .filter((item) => item.available)
@@ -193,6 +218,15 @@ function buildSemanticTrends(reportInput: DashboardReportInput): DashboardSemant
       trend("Customer Trend", "Customers", "number", saas.customerTrend, "Missing customer/month columns."),
       trend("Churn Trend", "Churned Customers", "number", saas.churnTrend, "Missing churn/month columns."),
       trend("Runway Trend", "Runway", "number", saas.runwayTrend, "Missing runway/month columns."),
+    ].filter((item) => item.data.length > 0)
+  }
+
+  if (reportInput.reportProfile?.id === "marketplace_startup" && reportInput.marketplaceAnalysis) {
+    const marketplace = reportInput.marketplaceAnalysis
+    return [
+      trend("GMV Trend", "GMV", "currency", marketplace.gmvTrend, "Missing GMV/date columns."),
+      trend("Marketplace Revenue Trend", "Marketplace Revenue", "currency", marketplace.marketplaceRevenueTrend, "Missing marketplace revenue/date columns."),
+      trend("Refund Trend", "Refund Amount", "currency", marketplace.refundTrend, "Missing refund/date columns."),
     ].filter((item) => item.data.length > 0)
   }
 

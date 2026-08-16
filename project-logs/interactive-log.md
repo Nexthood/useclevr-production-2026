@@ -30,6 +30,38 @@ Dataset-aware report selection belongs in the deterministic report input so the 
 - ai-chat-behavior.config.ts
 - gemini-behavior.config.ts
 
+## Marketplace Startup Profile End-to-End Fix
+
+1. Interaction title
+Marketplace startup profile end-to-end fix.
+
+2. What was the user goal
+Fix the Marketplace startup profile (`04_marketplace_startup`) end-to-end so it is classified from dataset semantics (buyer + seller + GMV + platform economics) instead of falling back to E-Commerce, and ensure all downstream reporting uses strict Marketplace semantics.
+
+3. What changed
+The dataset-intelligence engine and legacy column classifier now detect Marketplace from strong column signals (`gross_merchandise_value`, `platform_fee`, `seller_payout`, `buyer_id`, `seller_id`, etc.) and override generic E-Commerce signals when Marketplace core signals are present without E-Commerce core signals. The report builder generates `MarketplaceReportAnalysis` with GMV, Marketplace Revenue, Take Rate, Seller Payout, Refunds, Transactions, Buyers, Sellers, New Buyers, New Sellers, Active Sellers, Listings, Completion Rate, and trends. The PDF generator renders Marketplace-specific sections: Marketplace Economics, Buyer & Seller Intelligence, Category & Geography Performance, Business Balanced Scorecard, and Marketplace Recommendations + Provenance. The dashboard semantic profile surfaces Marketplace Command Center metrics with GMV, Marketplace Revenue, Take Rate, Seller Payout, Refund Amount, Refund Rate, Transactions, Average Transaction Value, Buyers, Sellers, New Buyers, New Sellers, Active Sellers, Listings, Completion Rate, and trends. The balanced scorecard includes Marketplace financial (GMV, Marketplace Revenue, Take Rate, Seller Payout, Refunds), customer (Buyers, Sellers, New buyers, New sellers), process (Completion rate, Active sellers, Listings), and growth (Market expansion, Category breadth) perspectives. Test fixtures were generated at `test-fixtures/business-models/04_marketplace_startup.csv` and `.xlsx` with 180 rows and exact target sums (GMV $83,778.17, Platform Revenue $11,049.51, Seller Payout $71,068.33, Refund $1,660.33, 100 Buyers, 58 Sellers, 40 New Buyers, 20 New Sellers).
+
+4. Problems marked
+- blocker: none.
+- risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` are partially present; dashboard regression validates the available numbered Retail, E-Commerce, and SaaS fixtures and does not invent missing marketplace/investor/profile calculations.
+- improvement: add the remaining exact numbered fixtures so dashboard profile regression can exercise every mandatory profile from file-backed uploads.
+- observation: the SaaS fixture `03_saas_startup` contains `customer_id` which matches E-Commerce keyword patterns; the SaaS keyword pattern was missing `churned`, causing a pre-existing classification regression that was fixed alongside the Marketplace work.
+
+5. User learning
+Marketplace datasets must be classified by platform economics columns, not generic E-Commerce order/shipping columns. Strict Marketplace semantics keep GMV, platform revenue, seller payout, and refunds separate from ordinary revenue and COGS.
+
+6. AI-agent learning
+When fixing business-model classification, verify keyword-pattern precedence against all existing fixtures because adding stronger Marketplace signals can expose latent SaaS/E-Commerce pattern collisions in fixtures that were previously classified by dataset-type fallback.
+
+7. Follow-up tasks
+- Add the remaining exact numbered fixtures (`05_investor_portfolio` through `10_accountancy_ledger`) as CSV/XLSX so the full 20-file regression can run without synthetic substitution. (labels: data, upload, testing)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Report Runtime Trace And Legacy Replay Invalidation
 
 1. Interaction title

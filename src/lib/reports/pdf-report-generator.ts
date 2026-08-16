@@ -128,6 +128,17 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "SaaS Recommendations + Provenance", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials, "SaaS Recommendations");
+  } else if (report.reportProfile?.id === "marketplace_startup" && report.marketplaceAnalysis) {
+    addDocumentPage(doc, "Marketplace Economics", datasetName);
+    drawMarketplaceEconomics(doc, report, financials);
+    addDocumentPage(doc, "Buyer & Seller Intelligence", datasetName);
+    drawMarketplaceBuyerSellerIntelligence(doc, report, financials);
+    addDocumentPage(doc, "Category & Geography Performance", datasetName);
+    drawMarketplaceCategoryGeography(doc, report, financials);
+    addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
+    drawBalancedScorecard(doc, report);
+    addDocumentPage(doc, "Marketplace Recommendations + Provenance", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials, "Marketplace Recommendations");
   } else {
     addDocumentPage(doc, "Financial Performance", datasetName);
     drawFinancialPerformance(doc, financials);
@@ -273,6 +284,27 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       metricCard("LTV", saas.ltv, "currency", "missing", saas.ltvField ? `Latest-period average from ${saas.ltvField}.` : "Requires LTV field."),
       numberMetricCard("Runway", saas.runwayMonths === null ? "Not available" : `${saas.runwayMonths.toFixed(1)} months`, saas.runwayField ? `Latest-period average from ${saas.runwayField}.` : "Requires runway field."),
       { title: "Data Confidence", value: `${saas.dataConfidence} / 100`, status: "neutral" as const, note: "SaaS field coverage." },
+    ];
+  }
+  if (report.reportProfile?.id === "marketplace_startup" && report.marketplaceAnalysis) {
+    const marketplace = report.marketplaceAnalysis;
+    return [
+      metricCard("GMV", marketplace.gmv, "currency", "neutral", marketplace.gmvField ? `Sum of ${marketplace.gmvField}.` : "No GMV field."),
+      metricCard("Marketplace Revenue", marketplace.marketplaceRevenue, "currency", "neutral", marketplace.marketplaceRevenueField ? `Sum of ${marketplace.marketplaceRevenueField}.` : "No marketplace revenue field."),
+      metricCard("Take Rate", marketplace.takeRate, "percent", "missing", "Marketplace Revenue divided by GMV."),
+      metricCard("Seller Payout", marketplace.sellerPayout, "currency", "neutral", marketplace.sellerPayoutField ? `Sum of ${marketplace.sellerPayoutField}.` : "No seller payout field."),
+      metricCard("Refund Amount", marketplace.refunds, "currency", "neutral", marketplace.refundsField ? `Sum of ${marketplace.refundsField}.` : "No refund field."),
+      metricCard("Refund Rate", marketplace.refundRate, "percent", "missing", "Refund Amount divided by GMV."),
+      numberMetricCard("Transactions", marketplace.transactions === null ? "Not available" : marketplace.transactions.toLocaleString(), marketplace.transactionField ? `Distinct values from ${marketplace.transactionField}.` : "Row count used as transaction proxy."),
+      metricCard("Average Transaction Value", marketplace.averageTransactionValue, "currency", "missing", "GMV divided by transactions."),
+      numberMetricCard("Buyers", marketplace.buyers === null ? "Not available" : marketplace.buyers.toLocaleString(), marketplace.buyerField ? `Distinct values from ${marketplace.buyerField}.` : "No buyer field."),
+      numberMetricCard("Sellers", marketplace.sellers === null ? "Not available" : marketplace.sellers.toLocaleString(), marketplace.sellerField ? `Distinct values from ${marketplace.sellerField}.` : "No seller field."),
+      numberMetricCard("New Buyers", marketplace.newBuyers === null ? "Not available" : marketplace.newBuyers.toLocaleString(), marketplace.newBuyerField ? `Normalized positives from ${marketplace.newBuyerField}.` : "No new buyer field."),
+      numberMetricCard("New Sellers", marketplace.newSellers === null ? "Not available" : marketplace.newSellers.toLocaleString(), marketplace.newSellerField ? `Normalized positives from ${marketplace.newSellerField}.` : "No new seller field."),
+      numberMetricCard("Active Sellers", marketplace.activeSellers === null ? "Not available" : marketplace.activeSellers.toLocaleString(), marketplace.activeSellersField ? `Sum of ${marketplace.activeSellersField}.` : "No active sellers field."),
+      numberMetricCard("Listings", marketplace.listings === null ? "Not available" : marketplace.listings.toLocaleString(), marketplace.listingsField ? `Sum of ${marketplace.listingsField}.` : "No listing count field."),
+      metricCard("Completion Rate", marketplace.completionRate, "percent", "missing", "Completed transactions divided by total transactions."),
+      { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Marketplace field coverage." },
     ];
   }
 
@@ -629,6 +661,100 @@ function drawSaasTrendTable(doc: jsPDF, trend: { name: string; value: number }[]
     ["Period", label, "Status", "Notes"],
     ...trend.map((item): TableRow => [item.name, label === "Runway" ? `${item.value.toFixed(1)} months` : label === "Burn" || label === "Cash Balance" || label.includes("MRR") ? formatCurrency(item.value) : item.value.toLocaleString(), "Available", "Grouped by recognized SaaS period field."]),
   ], page.margin, y, [42, 36, 30, 66]);
+}
+
+function drawMarketplaceEconomics(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  const marketplace = report.marketplaceAnalysis;
+  if (!marketplace) return;
+  let y = 48;
+  y = drawSectionHeading(doc, "Marketplace Economics", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["GMV", marketplace.gmv === null ? "Not available" : formatCurrency(marketplace.gmv), marketplace.gmv === null ? "Not available" : "Source value", marketplace.gmvField ? `Sum of ${marketplace.gmvField}.` : "No GMV field."],
+    ["Marketplace Revenue", marketplace.marketplaceRevenue === null ? "Not available" : formatCurrency(marketplace.marketplaceRevenue), marketplace.marketplaceRevenue === null ? "Not available" : "Source value", marketplace.marketplaceRevenueField ? `Sum of ${marketplace.marketplaceRevenueField}.` : "No marketplace revenue field."],
+    ["Take Rate", marketplace.takeRate === null ? "Not available" : `${marketplace.takeRate.toFixed(2)}%`, marketplace.takeRate === null ? "Not available" : "Derived", "Marketplace Revenue divided by GMV."],
+    ["Seller Payout", marketplace.sellerPayout === null ? "Not available" : formatCurrency(marketplace.sellerPayout), marketplace.sellerPayout === null ? "Not available" : "Source value", marketplace.sellerPayoutField ? `Sum of ${marketplace.sellerPayoutField}.` : "No seller payout field."],
+    ["Refund Amount", marketplace.refunds === null ? "Not available" : formatCurrency(marketplace.refunds), marketplace.refunds === null ? "Not available" : "Source value", marketplace.refundsField ? `Sum of ${marketplace.refundsField}.` : "No refund field."],
+    ["Refund Rate", marketplace.refundRate === null ? "Not available" : `${marketplace.refundRate.toFixed(2)}%`, marketplace.refundRate === null ? "Not available" : "Derived", "Refund Amount divided by GMV."],
+  ], page.margin, y, [42, 35, 30, 67]) + 12;
+
+  y = drawSectionHeading(doc, "GMV and Revenue Trends", y);
+  y = drawMarketplaceTrendTable(doc, marketplace.gmvTrend, y, "GMV") + 10;
+  drawMarketplaceTrendTable(doc, marketplace.marketplaceRevenueTrend, y, "Marketplace Revenue");
+}
+
+function drawMarketplaceBuyerSellerIntelligence(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  const marketplace = report.marketplaceAnalysis;
+  if (!marketplace) return;
+  let y = 48;
+  y = drawSectionHeading(doc, "Buyer & Seller Intelligence", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Transactions", marketplace.transactions === null ? "Not available" : marketplace.transactions.toLocaleString(), marketplace.transactions === null ? "Not available" : "Source value", marketplace.transactionField ? `Distinct values from ${marketplace.transactionField}.` : "Row count used as transaction proxy."],
+    ["Average Transaction Value", marketplace.averageTransactionValue === null ? "Not available" : formatCurrency(marketplace.averageTransactionValue), marketplace.averageTransactionValue === null ? "Not available" : "Derived", "GMV divided by transactions."],
+    ["Buyers", marketplace.buyers === null ? "Not available" : marketplace.buyers.toLocaleString(), marketplace.buyers === null ? "Not available" : "Source value", marketplace.buyerField ? `Distinct values from ${marketplace.buyerField}.` : "No buyer field."],
+    ["Sellers", marketplace.sellers === null ? "Not available" : marketplace.sellers.toLocaleString(), marketplace.sellers === null ? "Not available" : "Source value", marketplace.sellerField ? `Distinct values from ${marketplace.sellerField}.` : "No seller field."],
+    ["New Buyers", marketplace.newBuyers === null ? "Not available" : marketplace.newBuyers.toLocaleString(), marketplace.newBuyers === null ? "Not available" : "Derived", marketplace.newBuyerField ? `Normalized positives from ${marketplace.newBuyerField}.` : "No new buyer field."],
+    ["New Sellers", marketplace.newSellers === null ? "Not available" : marketplace.newSellers.toLocaleString(), marketplace.newSellers === null ? "Not available" : "Derived", marketplace.newSellerField ? `Normalized positives from ${marketplace.newSellerField}.` : "No new seller field."],
+    ["Active Sellers", marketplace.activeSellers === null ? "Not available" : marketplace.activeSellers.toLocaleString(), marketplace.activeSellers === null ? "Not available" : "Source value", marketplace.activeSellersField ? `Sum of ${marketplace.activeSellersField}.` : "No active sellers field."],
+    ["Listings", marketplace.listings === null ? "Not available" : marketplace.listings.toLocaleString(), marketplace.listings === null ? "Not available" : "Source value", marketplace.listingsField ? `Sum of ${marketplace.listingsField}.` : "No listing count field."],
+    ["Completion Rate", marketplace.completionRate === null ? "Not available" : `${marketplace.completionRate.toFixed(1)}%`, marketplace.completionRate === null ? "Not available" : "Derived", "Completed transactions divided by total transactions."],
+  ], page.margin, y, [55, 32, 28, 59]);
+}
+
+function drawMarketplaceCategoryGeography(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  const marketplace = report.marketplaceAnalysis;
+  if (!marketplace) return;
+  let y = 48;
+  y = drawSectionHeading(doc, "Category & Geography Performance", y);
+  if (marketplace.categoryPerformance.length > 0) {
+    y = drawSectionHeading(doc, "GMV by Category", y);
+    y = drawTable(doc, [
+      ["Category", "GMV", "Share", "Notes"],
+      ...marketplace.categoryPerformance.slice(0, 8).map((item): TableRow => [
+        item.name,
+        formatCurrency(item.value),
+        marketplace.gmv && marketplace.gmv > 0 ? formatPercent((item.value / marketplace.gmv) * 100) : "Not available",
+        "Source value from category and GMV fields.",
+      ]),
+    ], page.margin, y, [55, 35, 28, 56]) + 12;
+  } else {
+    y = drawUnavailable(doc, "Category performance unavailable", "No category field found in the selected dataset.", page.margin, y, 174, 26) + 12;
+  }
+
+  if (marketplace.geography.length > 0) {
+    y = drawSectionHeading(doc, "GMV by Country", y);
+    drawTable(doc, [
+      ["Country", "GMV", "Share", "Notes"],
+      ...marketplace.geography.slice(0, 8).map((item): TableRow => [
+        item.name,
+        formatCurrency(item.value),
+        marketplace.gmv && marketplace.gmv > 0 ? formatPercent((item.value / marketplace.gmv) * 100) : "Not available",
+        "Source value from country and GMV fields.",
+      ]),
+    ], page.margin, y, [55, 35, 28, 56]);
+  } else {
+    y = drawUnavailable(doc, "Geography performance unavailable", "No country field found in the selected dataset.", page.margin, y, 174, 26);
+  }
+}
+
+function drawMarketplaceTrendTable(doc: jsPDF, trend: { name: string; value: number }[], y: number, label: string) {
+  if (trend.length < 2) {
+    return drawUnavailable(doc, `${label} trend unavailable`, `At least two valid period values are required for ${label}.`, page.margin, y, 174, 26);
+  }
+  return drawTable(doc, [
+    ["Period", label, "Status", "Notes"],
+    ...trend.map((item): TableRow => [item.name, formatCurrency(item.value), "Available", "Grouped by recognized date field."]),
+  ], page.margin, y, [42, 36, 30, 66]);
+}
+
+function marketplaceRow(label: string, value: number | null, format: "currency" | "number", status: string, note: string): TableRow {
+  return [
+    label,
+    value === null ? "Not available" : format === "currency" ? formatCurrency(value) : value.toLocaleString(),
+    value === null ? "Not available" : status,
+    note,
+  ];
 }
 
 function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {

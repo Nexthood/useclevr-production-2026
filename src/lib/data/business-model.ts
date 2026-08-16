@@ -53,7 +53,7 @@ const modelKeywordPatterns: Record<Exclude<BusinessModel, "generic">, RegExp[]> 
   ],
   saas: [
     /\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b|\bplan\b|\bseat\b/,
-    /\bchurn\b|\bretention\b|\brenewal\b|\btrial\b|\bactivation\b/,
+    /\bchurn\b|\bchurned\b|\bretention\b|\brenewal\b|\btrial\b|\bactivation\b/,
     /\bcac\b|\bltv\b|\barpa\b|\bactive[\s_-]?user\b/,
   ],
   startup: [
@@ -66,8 +66,8 @@ const modelKeywordPatterns: Record<Exclude<BusinessModel, "generic">, RegExp[]> 
     /\bvaluation\b|\bownership\b|\bstage\b|\bsector\b|\bfund\b|\birr\b|\bmoic\b/,
   ],
   marketplace: [
-    /\bmarketplace\b|\bgmv\b|\bcommission\b|\btake[\s_-]?rate\b/,
-    /\bseller\b|\bbuyer\b|\bvendor\b|\blisting\b|\bmerchant\b/,
+    /\bmarketplace\b|\bgmv\b|\bgross_merchandise\b|\bcommission\b|\btake[\s_-]?rate\b|\bplatform_fee\b/,
+    /\bseller\b|\bbuyer\b|\bvendor\b|\blisting\b|\bmerchant\b|\bseller_payout\b/,
   ],
 }
 
@@ -106,7 +106,7 @@ export function resolveBusinessModel(input: BusinessModelResolutionInput): Busin
 }
 
 export function detectBusinessModelFromColumns(columns: string[], datasetName = ""): BusinessModel {
-  const text = [datasetName, ...columns].join(" ").toLowerCase()
+  const text = [datasetName, ...columns].join(" ").toLowerCase().replace(/_/g, " ")
   const ranked = Object.entries(modelKeywordPatterns)
     .map(([model, patterns]) => ({
       model: model as Exclude<BusinessModel, "generic">,
@@ -116,6 +116,11 @@ export function detectBusinessModelFromColumns(columns: string[], datasetName = 
 
   const best = ranked[0]
   if (!best || best.score === 0) return "generic"
+
+  const hasMarketplaceCore = /seller|buyer|listing|gmv|gross_merchandise|platform_fee|commission|take_rate/.test(text)
+  const hasEcommerceCore = /order|order_id|cart|checkout|shopify|woocommerce|online_shop|shipping|channel|customer|aov/.test(text)
+  if (best.model === "ecommerce" && hasMarketplaceCore && !hasEcommerceCore) return "marketplace"
+  if (best.model === "marketplace" && hasEcommerceCore && hasMarketplaceCore) return "marketplace"
 
   const ecommerceGeo = /country|country_code|shipping|channel|online|shopify|woocommerce|order/.test(text)
   const localInventory = /store|branch|pos|inventory|stock|reorder|sku|supplier/.test(text)

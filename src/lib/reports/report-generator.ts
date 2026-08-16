@@ -315,6 +315,40 @@ export interface SaasReportAnalysis {
   geography: { name: string; customers: number | null; mrr: number | null; arr: number | null; share: number | null }[];
 }
 
+export interface MarketplaceReportAnalysis {
+  gmv: number | null;
+  gmvField: string | null;
+  marketplaceRevenue: number | null;
+  marketplaceRevenueField: string | null;
+  takeRate: number | null;
+  sellerPayout: number | null;
+  sellerPayoutField: string | null;
+  refunds: number | null;
+  refundsField: string | null;
+  refundRate: number | null;
+  transactions: number | null;
+  transactionField: string | null;
+  averageTransactionValue: number | null;
+  buyers: number | null;
+  buyerField: string | null;
+  sellers: number | null;
+  sellerField: string | null;
+  newBuyers: number | null;
+  newBuyerField: string | null;
+  newSellers: number | null;
+  newSellerField: string | null;
+  activeSellers: number | null;
+  activeSellersField: string | null;
+  listings: number | null;
+  listingsField: string | null;
+  completionRate: number | null;
+  gmvTrend: { name: string; value: number }[];
+  marketplaceRevenueTrend: { name: string; value: number }[];
+  refundTrend: { name: string; value: number }[];
+  categoryPerformance: { name: string; value: number }[];
+  geography: { name: string; value: number }[];
+}
+
 export interface Report {
   id: string;
   datasetId: string;
@@ -354,6 +388,7 @@ export interface Report {
   retailAnalysis?: RetailReportAnalysis;
   ecommerceAnalysis?: EcommerceReportAnalysis;
   saasAnalysis?: SaasReportAnalysis;
+  marketplaceAnalysis?: MarketplaceReportAnalysis;
   semanticContext?: ReportSemanticContext;
   diagnostics?: ReportDiagnostics;
   alerts: { type: string; message: string; severity: string }[];
@@ -398,6 +433,7 @@ export async function generateReport(
     retailAnalysis?: RetailReportAnalysis;
     ecommerceAnalysis?: EcommerceReportAnalysis;
     saasAnalysis?: SaasReportAnalysis;
+    marketplaceAnalysis?: MarketplaceReportAnalysis;
     reportType?: string;
     businessModel?: string;
     bbsc?: BusinessBalancedScorecard;

@@ -61,7 +61,7 @@ function main() {
   )
   assert.equal(
     getBusinessModelRedirect({ datasetType: "standard", businessModel: "ecommerce", datasetId: "ds_2" }),
-    "/app/datasets/ds_2/analyze?businessModel=ecommerce",
+    "/app/dashboard?datasetId=ds_2",
   )
 
   assert.ok(getBusinessModelKpiNames("local_retail").includes("Low Stock"))
