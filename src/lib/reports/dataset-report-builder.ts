@@ -2506,6 +2506,15 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     if (retail.stockByCategory.length > 0) charts.push({ type: "bar", title: "Stock by category", data: retail.stockByCategory })
     return charts.slice(0, 4)
   }
+  if (model === "investor") {
+    const sectorRevenue = groupedChart(rows, columns.sector, columns.revenue, "Top Sector by Portfolio Revenue")
+    const sectorInvested = groupedChart(rows, columns.sector, columns.investedAmount || columns.valuation, "Top Sector by Invested Capital")
+    const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
+    if (sectorRevenue) charts.push(sectorRevenue)
+    if (sectorInvested) charts.push(sectorInvested)
+    if (stage) charts.push(stage)
+    return charts.slice(0, 4)
+  }
   const productChart = groupedChart(rows, columns.product || columns.category, columns.revenue || columns.quantity, "Top products or categories")
   if (productChart) charts.push(productChart)
 
@@ -2519,11 +2528,6 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     if (saas.arrTrend.length) charts.push({ type: "line", title: "ARR Trend", data: saas.arrTrend })
     if (saas.planPerformance.length) charts.push({ type: "bar", title: "MRR by Plan", data: saas.planPerformance.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
     if (saas.geography.length) charts.push({ type: "bar", title: "MRR by Country", data: saas.geography.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
-  } else if (model === "investor") {
-    const sector = groupedChart(rows, columns.sector, columns.investedAmount || columns.valuation, "Sector allocation")
-    const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
-    if (sector) charts.push(sector)
-    if (stage) charts.push(stage)
   } else if (model === "marketplace" && marketplace) {
     if (marketplace.gmvTrend.length) charts.push({ type: "line", title: "GMV Trend", data: marketplace.gmvTrend })
     if (marketplace.marketplaceRevenueTrend.length) charts.push({ type: "line", title: "Marketplace Revenue Trend", data: marketplace.marketplaceRevenueTrend })
