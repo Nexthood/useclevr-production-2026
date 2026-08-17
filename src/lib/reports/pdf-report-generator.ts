@@ -65,26 +65,15 @@ const content = {
 };
 
 const layout = {
-  sectionHeadingWithSpacing: 6,
-  minimumNarrativeBlock: 16,
-  minimumUnavailableBlock: 20,
-  minimumTableStart: 16,
-  metricCardHeight: 28,
-  metricCardGap: 3,
-  recommendationCardHeight: 26,
+  sectionHeadingWithSpacing: 8,
+  minimumNarrativeBlock: 24,
+  minimumUnavailableBlock: 28,
+  minimumTableStart: 24,
+  metricCardHeight: 33,
+  metricCardGap: 4,
+  recommendationCardHeight: 36,
   sectionGap: 6,
-  cardPadding: 2,
-  lineHeightFactor: 1.15,
 };
-
-function measureTextLines(doc: jsPDF, text: string, maxWidth: number, fontSize: number): string[] {
-  doc.setFontSize(fontSize);
-  return doc.splitTextToSize(text, maxWidth);
-}
-
-function getTextHeight(doc: jsPDF, lines: string[], fontSize: number): number {
-  return lines.length * fontSize * layout.lineHeightFactor;
-}
 
 const layoutContexts = new WeakMap<jsPDF, PdfLayoutContext>();
 
@@ -975,38 +964,38 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
   doc.setFontSize(9);
   doc.setTextColor(...colors.body);
   const introLines = doc.splitTextToSize(introText, 174);
-  const introHeight = introLines.length * 9 * layout.lineHeightFactor;
+  const introHeight = introLines.length * 9 * 1.15;
   doc.text(introLines, page.margin, y);
   y += introHeight + layout.sectionGap;
 
   if (summary.metrics.length > 0) {
-    y = drawSectionHeading(doc, "Key Results", y, 20);
+    y = drawSectionHeading(doc, "Key Results", y, 38);
     y = drawSummaryMetricGrid(doc, summary.metrics, y) + layout.sectionGap;
   }
 
   if (summary.highlights.length > 0) {
-    y = drawSectionHeading(doc, "Performance Highlights", y, 14);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 7) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Performance Highlights", y, 22);
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 11) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
-    y = drawSectionHeading(doc, "Business Health", y, 12);
-    y = drawSummaryItems(doc, summary.health, y, 2, 6) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Business Health", y, 20);
+    y = drawSummaryItems(doc, summary.health, y, 2, 10) + layout.sectionGap;
   }
 
   if (summary.findings.length > 0) {
-    y = drawSectionHeading(doc, "Top Findings", y, 18);
-    y = drawSummaryItems(doc, summary.findings, y, 3, 7) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Top Findings", y, 33);
+    y = drawSummaryItems(doc, summary.findings, y, 3, 11) + layout.sectionGap;
   }
 
   if (summary.actions.length > 0) {
-    y = drawSectionHeading(doc, "Priority Actions", y, 18);
-    y = drawSummaryItems(doc, summary.actions, y, 3, 7) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Priority Actions", y, 33);
+    y = drawSummaryItems(doc, summary.actions, y, 3, 11) + layout.sectionGap;
   }
 
-  if (summary.status.length > 0 && y < 260) {
-    y = drawSectionHeading(doc, "Data / Analysis Status", y, 6);
-    drawSummaryItems(doc, summary.status, y, 1, 6);
+  if (summary.status.length > 0 && y < 255) {
+    y = drawSectionHeading(doc, "Data / Analysis Status", y, 10);
+    drawSummaryItems(doc, summary.status, y, 1, 10);
   }
 }
 
@@ -1330,75 +1319,33 @@ function labelFromCamelCase(value: string) {
 
 function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) {
   const columns = 4;
-  const gap = 3;
+  const gap = 4;
   const cardWidth = (174 - gap * (columns - 1)) / columns;
-  const padding = 2.5;
-  const labelFontSize = 6.2;
-  const valueFontSize = 10;
-  const lineHeight = 1.2;
-
-  const getCardHeight = (metric: SummaryMetric) => {
-    const labelText = cleanText(metric.title).toUpperCase();
-    const labelLines = doc.splitTextToSize(labelText, cardWidth - padding * 2);
-    const labelHeight = labelLines.length * labelFontSize * lineHeight;
-
-    const valueText = cleanText(metric.value);
-    const valueLines = doc.splitTextToSize(valueText, cardWidth - padding * 2);
-    const valueHeight = valueLines.length * valueFontSize * lineHeight;
-
-    const totalHeight = labelHeight + valueHeight + padding * 3;
-    return Math.max(14, totalHeight);
-  };
-
-  const metricsSubset = metrics.slice(0, 8);
-  const rowHeights: number[] = [];
-  for (let row = 0; row < Math.ceil(metricsSubset.length / columns); row++) {
-    const rowMetrics = metricsSubset.slice(row * columns, (row + 1) * columns);
-    const maxHeight = Math.max(...rowMetrics.map(getCardHeight));
-    rowHeights.push(maxHeight);
-  }
-
+  const cardHeight = 18;
   let cursorY = y;
-  metricsSubset.forEach((metric, index) => {
+  metrics.slice(0, 8).forEach((metric, index) => {
     const row = Math.floor(index / columns);
     const column = index % columns;
-    const cardHeight = rowHeights[row];
     const rowY = ensureComponentFits(doc, cursorY + row * (cardHeight + gap), cardHeight);
     if (rowY !== cursorY + row * (cardHeight + gap)) cursorY = rowY;
     const x = page.margin + column * (cardWidth + gap);
-    const cardY = cursorY + row * (cardHeight + gap);
-
+    const cardY = cursorY + Math.floor(index / columns) * (cardHeight + gap);
     doc.setFillColor(...colors.white);
     doc.setDrawColor(...colors.line);
     doc.roundedRect(x, cardY, cardWidth, cardHeight, 1.5, 1.5, "S");
     doc.setFillColor(...colors.brandCyan);
     doc.rect(x, cardY, 1.4, cardHeight, "F");
-
-    const labelText = cleanText(metric.title).toUpperCase();
-    const labelLines = doc.splitTextToSize(labelText, cardWidth - padding * 2);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(labelFontSize);
+    doc.setFontSize(6.2);
     doc.setTextColor(...colors.muted);
-    let labelY = cardY + padding;
-    labelLines.forEach((line: string) => {
-      doc.text(line, x + padding, labelY);
-      labelY += labelFontSize * lineHeight;
-    });
-
-    const valueText = cleanText(metric.value);
-    const valueLines = doc.splitTextToSize(valueText, cardWidth - padding * 2);
+    doc.text(truncate(cleanText(metric.title).toUpperCase(), 22), x + 4, cardY + 5.4);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(valueFontSize);
+    doc.setFontSize(metric.value.length > 15 ? 8.5 : 10);
     doc.setTextColor(...colors.ink);
-    let valueY = labelY + padding * 0.3;
-    valueLines.forEach((line: string) => {
-      doc.text(line, x + padding, valueY);
-      valueY += valueFontSize * lineHeight;
-    });
+    doc.text(doc.splitTextToSize(cleanText(metric.value), cardWidth - 8).slice(0, 1), x + 4, cardY + 13);
   });
-
   const rows = Math.ceil(Math.min(metrics.length, 8) / columns);
-  return cursorY + rowHeights.reduce((sum, h) => sum + h, 0) + Math.max(0, rows - 1) * gap;
+  return cursorY + rows * cardHeight + Math.max(0, rows - 1) * gap;
 }
 
 function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: number, minRowHeight: number) {
@@ -1506,11 +1453,11 @@ function drawMetricGrid(doc: jsPDF, metrics: Array<{ title: string; value: strin
   if (metrics.length === 0) return y;
   const gap = layout.metricCardGap;
   const cardWidth = (174 - gap * 3) / 4;
-  const padding = layout.cardPadding;
+  const padding = 4;
   const titleFontSize = 6.8;
   const valueFontSize = 12;
   const noteFontSize = 6.4;
-  const lineHeightFactor = layout.lineHeightFactor;
+  const lineHeightFactor = 1.25;
   const titleLineHeight = titleFontSize * lineHeightFactor;
   const valueLineHeight = valueFontSize * lineHeightFactor;
   const noteLineHeight = noteFontSize * lineHeightFactor;
@@ -1525,7 +1472,7 @@ function drawMetricGrid(doc: jsPDF, metrics: Array<{ title: string; value: strin
     const noteLines = doc.splitTextToSize(cleanText(item.note), cardWidth - padding * 2);
     const noteHeight = noteLines.length * noteLineHeight;
 
-    const contentHeight = titleHeight + valueHeight + noteHeight + padding * 2.5;
+    const contentHeight = titleHeight + valueHeight + noteHeight + padding * 3;
     return Math.max(layout.metricCardHeight, contentHeight);
   };
 
@@ -1603,16 +1550,7 @@ function drawTextBox(doc: jsPDF, text: string, x: number, y: number, width: numb
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...colors.body);
-  const fontSize = 9;
-  const lineHeight = fontSize * layout.lineHeightFactor;
-  const maxLines = Math.floor(height / lineHeight);
-  const textLines = doc.splitTextToSize(cleanText(text), width - 8);
-  const renderLines = textLines.slice(0, maxLines);
-  let textY = startY + 7;
-  renderLines.forEach((line: string) => {
-    doc.text(line, x + 4, textY);
-    textY += lineHeight;
-  });
+  doc.text(doc.splitTextToSize(cleanText(text), width - 8).slice(0, Math.floor(height / 4.5)), x + 4, startY + 7);
   return startY + height;
 }
 
@@ -1628,78 +1566,47 @@ function drawUnavailable(doc: jsPDF, title: string, text: string, x: number, y: 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.2);
   doc.setTextColor(...colors.body);
-  const fontSize = 8.2;
-  const lineHeight = fontSize * layout.lineHeightFactor;
-  const maxLines = Math.floor(height / lineHeight);
-  const textLines = doc.splitTextToSize(cleanText(text), width - 8);
-  const renderLines = textLines.slice(0, maxLines);
-  let textY = startY + 15;
-  renderLines.forEach((line: string) => {
-    doc.text(line, x + 4, textY);
-    textY += lineHeight;
-  });
+  doc.text(doc.splitTextToSize(cleanText(text), width - 8).slice(0, 3), x + 4, startY + 15);
   return startY + height;
 }
 
 function drawTable(doc: jsPDF, rows: TableRow[], x: number, y: number, widths: number[]) {
+  const rowHeight = 8;
   if (rows.length === 0) return y;
   const tableWidth = widths.reduce((sum, width) => sum + width, 0);
   const header = rows[0];
   const bodyRows = rows.slice(1);
-  const fontSize = 7.5;
-  const lineHeight = 1.2;
-
-  const getRowHeight = (row: TableRow) => {
-    let maxLines = 1;
-    row.forEach((cell, cellIndex) => {
-      const cellLines = doc.splitTextToSize(cleanText(cell), widths[cellIndex] - 4);
-      if (cellLines.length > maxLines) maxLines = cellLines.length;
-    });
-    return maxLines * fontSize * lineHeight + 1.5;
-  };
-
-  const headerHeight = getRowHeight(header);
-  const bodyRowHeights = bodyRows.map(getRowHeight);
-
   const minimumStartRows = bodyRows.length >= 2 ? 3 : bodyRows.length > 0 ? 2 : 1;
-  const minHeight = Math.min(...bodyRowHeights, headerHeight) * minimumStartRows;
-  let cursorY = ensureComponentFits(doc, y, minHeight);
-
-  const drawRow = (row: TableRow, rowIndex: number, drawY: number, rowH: number) => {
+  let cursorY = ensureComponentFits(doc, y, rowHeight * minimumStartRows);
+  const drawRow = (row: TableRow, rowIndex: number, drawY: number) => {
     const isHeader = rowIndex === 0;
-    const actualLineHeight = fontSize * lineHeight;
     let cellX = x;
     doc.setFillColor(...(isHeader ? colors.faint : colors.white));
     doc.setDrawColor(...colors.line);
-    doc.rect(x, drawY, tableWidth, rowH, "FD");
+    doc.rect(x, drawY, tableWidth, rowHeight, "FD");
     row.forEach((cell, cellIndex) => {
       doc.setFont("helvetica", isHeader ? "bold" : "normal");
       doc.setFontSize(isHeader ? 7.2 : 7.5);
       doc.setTextColor(...(isHeader ? colors.ink : statusTextColor(cellIndex === 2 ? cell : "")));
-      const textLines = doc.splitTextToSize(cleanText(cell), widths[cellIndex] - 4);
-      let textY = drawY + actualLineHeight * 0.8;
-      textLines.forEach((line: string) => {
-        doc.text(line, cellX + 2, textY);
-        textY += actualLineHeight;
-      });
+      const text = doc.splitTextToSize(cleanText(cell), widths[cellIndex] - 4).slice(0, 1);
+      doc.text(text, cellX + 2, drawY + 5.3);
       cellX += widths[cellIndex];
       if (cellIndex < widths.length - 1) {
         doc.setDrawColor(...colors.line);
-        doc.line(cellX, drawY, cellX, drawY + rowH);
+        doc.line(cellX, drawY, cellX, drawY + rowHeight);
       }
     });
   };
-  drawRow(header, 0, cursorY, headerHeight);
-  cursorY += headerHeight;
-  bodyRows.forEach((row, index) => {
-    const rowH = bodyRowHeights[index];
-    if (cursorY + rowH > content.bottom) {
+  drawRow(header, 0, cursorY);
+  cursorY += rowHeight;
+  bodyRows.forEach((row) => {
+    if (cursorY + rowHeight > content.bottom) {
       cursorY = addFlowPage(doc);
-      drawRow(header, 0, cursorY, headerHeight);
-      cursorY += headerHeight;
+      drawRow(header, 0, cursorY);
+      cursorY += rowHeight;
     }
-    drawRow(row, 1, cursorY, rowH);
-    cursorY += rowH;
+    drawRow(row, 1, cursorY);
+    cursorY += rowHeight;
   });
   return cursorY;
 }
@@ -1773,8 +1680,19 @@ function drawTrendPanel(doc: jsPDF, financials: ReportFinancials, x: number, y: 
 }
 
 function drawRecommendation(doc: jsPDF, priority: string, recommendation: ReportRecommendation, y: number) {
-  const fontSize = 7.6;
-  const lineHeight = fontSize * layout.lineHeightFactor;
+  const height = 36;
+  const startY = ensureComponentFits(doc, y, height);
+  doc.setDrawColor(...colors.line);
+  doc.roundedRect(page.margin, startY, 174, height, 1.5, 1.5, "S");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...colors.brandPurple);
+  doc.text(priority, page.margin + 5, startY + 9);
+  doc.setTextColor(...colors.ink);
+  doc.text(cleanText(recommendation.issue), page.margin + 18, startY + 8);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.6);
+  doc.setTextColor(...colors.body);
   const detail = [
     `Reason: ${recommendation.businessImpact}`,
     `Action: ${recommendation.recommendedAction}`,
@@ -1782,27 +1700,7 @@ function drawRecommendation(doc: jsPDF, priority: string, recommendation: Report
     `Effort: ${recommendation.requiredData?.length ? "Medium" : "Low"}`,
     `Confidence: ${recommendation.confidence || "High"}`,
   ].filter(Boolean).join("  ");
-  const detailLines = doc.splitTextToSize(cleanText(detail), 150);
-  const detailHeight = detailLines.length * lineHeight;
-  const height = Math.max(layout.recommendationCardHeight, 8 + 3 + detailHeight + 3);
-
-  const startY = ensureComponentFits(doc, y, height);
-  doc.setDrawColor(...colors.line);
-  doc.roundedRect(page.margin, startY, 174, height, 1.5, 1.5, "S");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(...colors.brandPurple);
-  doc.text(priority, page.margin + 5, startY + 8);
-  doc.setTextColor(...colors.ink);
-  doc.text(cleanText(recommendation.issue), page.margin + 18, startY + 7);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(fontSize);
-  doc.setTextColor(...colors.body);
-  let detailY = startY + 14;
-  detailLines.forEach((line: string) => {
-    doc.text(line, page.margin + 18, detailY);
-    detailY += lineHeight;
-  });
+  doc.text(doc.splitTextToSize(cleanText(detail), 150).slice(0, 4), page.margin + 18, startY + 16);
   return startY + height;
 }
 
