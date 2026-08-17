@@ -72,6 +72,7 @@ const layout = {
   metricCardHeight: 33,
   metricCardGap: 4,
   recommendationCardHeight: 36,
+  sectionGap: 6,
 };
 
 const layoutContexts = new WeakMap<jsPDF, PdfLayoutContext>();
@@ -971,27 +972,27 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
 
   if (summary.metrics.length > 0) {
     y = drawSectionHeading(doc, "Key Results", y, 38);
-    y = drawSummaryMetricGrid(doc, summary.metrics, y) + 5;
+    y = drawSummaryMetricGrid(doc, summary.metrics, y) + layout.sectionGap;
   }
 
   if (summary.highlights.length > 0) {
     y = drawSectionHeading(doc, "Performance Highlights", y, 22);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 11) + 5;
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 11) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
     y = drawSectionHeading(doc, "Business Health", y, 20);
-    y = drawSummaryItems(doc, summary.health, y, 2, 10) + 5;
+    y = drawSummaryItems(doc, summary.health, y, 2, 10) + layout.sectionGap;
   }
 
   if (summary.findings.length > 0) {
     y = drawSectionHeading(doc, "Top Findings", y, 33);
-    y = drawSummaryItems(doc, summary.findings, y, 3, 11) + 5;
+    y = drawSummaryItems(doc, summary.findings, y, 3, 11) + layout.sectionGap;
   }
 
   if (summary.actions.length > 0) {
     y = drawSectionHeading(doc, "Priority Actions", y, 33);
-    y = drawSummaryItems(doc, summary.actions, y, 3, 11) + 5;
+    y = drawSummaryItems(doc, summary.actions, y, 3, 11) + layout.sectionGap;
   }
 
   if (summary.status.length > 0 && y < 255) {
