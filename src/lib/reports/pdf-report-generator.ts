@@ -65,15 +65,15 @@ const content = {
 };
 
 const layout = {
-  sectionHeadingWithSpacing: 8,
-  minimumNarrativeBlock: 20,
-  minimumUnavailableBlock: 24,
-  minimumTableStart: 20,
-  metricCardHeight: 33,
-  metricCardGap: 4,
-  recommendationCardHeight: 30,
-  sectionGap: 8,
-  cardPadding: 3,
+  sectionHeadingWithSpacing: 6,
+  minimumNarrativeBlock: 16,
+  minimumUnavailableBlock: 20,
+  minimumTableStart: 16,
+  metricCardHeight: 28,
+  metricCardGap: 3,
+  recommendationCardHeight: 26,
+  sectionGap: 6,
+  cardPadding: 2,
   lineHeightFactor: 1.15,
 };
 
@@ -980,33 +980,33 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
   y += introHeight + layout.sectionGap;
 
   if (summary.metrics.length > 0) {
-    y = drawSectionHeading(doc, "Key Results", y, 28);
+    y = drawSectionHeading(doc, "Key Results", y, 20);
     y = drawSummaryMetricGrid(doc, summary.metrics, y) + layout.sectionGap;
   }
 
   if (summary.highlights.length > 0) {
-    y = drawSectionHeading(doc, "Performance Highlights", y, 18);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 9) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Performance Highlights", y, 14);
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 7) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
-    y = drawSectionHeading(doc, "Business Health", y, 16);
-    y = drawSummaryItems(doc, summary.health, y, 2, 8) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Business Health", y, 12);
+    y = drawSummaryItems(doc, summary.health, y, 2, 6) + layout.sectionGap;
   }
 
   if (summary.findings.length > 0) {
-    y = drawSectionHeading(doc, "Top Findings", y, 24);
-    y = drawSummaryItems(doc, summary.findings, y, 3, 9) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Top Findings", y, 18);
+    y = drawSummaryItems(doc, summary.findings, y, 3, 7) + layout.sectionGap;
   }
 
   if (summary.actions.length > 0) {
-    y = drawSectionHeading(doc, "Priority Actions", y, 24);
-    y = drawSummaryItems(doc, summary.actions, y, 3, 9) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Priority Actions", y, 18);
+    y = drawSummaryItems(doc, summary.actions, y, 3, 7) + layout.sectionGap;
   }
 
-  if (summary.status.length > 0 && y < 255) {
-    y = drawSectionHeading(doc, "Data / Analysis Status", y, 8);
-    drawSummaryItems(doc, summary.status, y, 1, 8);
+  if (summary.status.length > 0 && y < 260) {
+    y = drawSectionHeading(doc, "Data / Analysis Status", y, 6);
+    drawSummaryItems(doc, summary.status, y, 1, 6);
   }
 }
 
@@ -1332,23 +1332,22 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
   const columns = 4;
   const gap = 3;
   const cardWidth = (174 - gap * (columns - 1)) / columns;
-  const padding = layout.cardPadding;
+  const padding = 2.5;
   const labelFontSize = 6.2;
   const valueFontSize = 10;
-  const labelLineHeight = labelFontSize * layout.lineHeightFactor;
-  const valueLineHeight = valueFontSize * layout.lineHeightFactor;
+  const lineHeight = 1.2;
 
   const getCardHeight = (metric: SummaryMetric) => {
     const labelText = cleanText(metric.title).toUpperCase();
     const labelLines = doc.splitTextToSize(labelText, cardWidth - padding * 2);
-    const labelHeight = labelLines.length * labelLineHeight;
+    const labelHeight = labelLines.length * labelFontSize * lineHeight;
 
     const valueText = cleanText(metric.value);
     const valueLines = doc.splitTextToSize(valueText, cardWidth - padding * 2);
-    const valueHeight = valueLines.length * valueLineHeight;
+    const valueHeight = valueLines.length * valueFontSize * lineHeight;
 
-    const totalHeight = labelHeight + valueHeight + padding * 2.5;
-    return Math.max(16, totalHeight);
+    const totalHeight = labelHeight + valueHeight + padding * 3;
+    return Math.max(14, totalHeight);
   };
 
   const metricsSubset = metrics.slice(0, 8);
@@ -1383,7 +1382,7 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
     let labelY = cardY + padding;
     labelLines.forEach((line: string) => {
       doc.text(line, x + padding, labelY);
-      labelY += labelLineHeight;
+      labelY += labelFontSize * lineHeight;
     });
 
     const valueText = cleanText(metric.value);
@@ -1391,10 +1390,10 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(valueFontSize);
     doc.setTextColor(...colors.ink);
-    let valueY = labelY + padding * 0.5;
+    let valueY = labelY + padding * 0.3;
     valueLines.forEach((line: string) => {
       doc.text(line, x + padding, valueY);
-      valueY += valueLineHeight;
+      valueY += valueFontSize * lineHeight;
     });
   });
 
@@ -1404,17 +1403,17 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
 
 function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: number, minRowHeight: number) {
   const itemsSubset = items.slice(0, limit);
-  const padding = layout.cardPadding;
+  const padding = 2;
   const labelColumnWidth = 36;
   const detailWidth = 174 - labelColumnWidth - padding * 2;
   const fontSize = 6.8;
-  const lineHeight = fontSize * layout.lineHeightFactor;
+  const lineHeight = 1.2;
 
   const getItemHeight = (item: SummaryItem) => {
     const labelLines = doc.splitTextToSize(cleanText(item.label), labelColumnWidth - padding);
     const detailLines = doc.splitTextToSize(cleanText(item.detail), detailWidth);
     const maxLines = Math.max(labelLines.length, detailLines.length);
-    const contentHeight = maxLines * lineHeight;
+    const contentHeight = maxLines * fontSize * lineHeight;
     return Math.max(minRowHeight, contentHeight + padding * 2);
   };
 
@@ -1648,7 +1647,7 @@ function drawTable(doc: jsPDF, rows: TableRow[], x: number, y: number, widths: n
   const header = rows[0];
   const bodyRows = rows.slice(1);
   const fontSize = 7.5;
-  const lineHeight = fontSize * layout.lineHeightFactor;
+  const lineHeight = 1.2;
 
   const getRowHeight = (row: TableRow) => {
     let maxLines = 1;
@@ -1656,7 +1655,7 @@ function drawTable(doc: jsPDF, rows: TableRow[], x: number, y: number, widths: n
       const cellLines = doc.splitTextToSize(cleanText(cell), widths[cellIndex] - 4);
       if (cellLines.length > maxLines) maxLines = cellLines.length;
     });
-    return maxLines * lineHeight + 2;
+    return maxLines * fontSize * lineHeight + 1.5;
   };
 
   const headerHeight = getRowHeight(header);
@@ -1668,6 +1667,7 @@ function drawTable(doc: jsPDF, rows: TableRow[], x: number, y: number, widths: n
 
   const drawRow = (row: TableRow, rowIndex: number, drawY: number, rowH: number) => {
     const isHeader = rowIndex === 0;
+    const actualLineHeight = fontSize * lineHeight;
     let cellX = x;
     doc.setFillColor(...(isHeader ? colors.faint : colors.white));
     doc.setDrawColor(...colors.line);
@@ -1677,10 +1677,10 @@ function drawTable(doc: jsPDF, rows: TableRow[], x: number, y: number, widths: n
       doc.setFontSize(isHeader ? 7.2 : 7.5);
       doc.setTextColor(...(isHeader ? colors.ink : statusTextColor(cellIndex === 2 ? cell : "")));
       const textLines = doc.splitTextToSize(cleanText(cell), widths[cellIndex] - 4);
-      let textY = drawY + lineHeight;
+      let textY = drawY + actualLineHeight * 0.8;
       textLines.forEach((line: string) => {
         doc.text(line, cellX + 2, textY);
-        textY += lineHeight;
+        textY += actualLineHeight;
       });
       cellX += widths[cellIndex];
       if (cellIndex < widths.length - 1) {
