@@ -962,42 +962,39 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...colors.body);
-  doc.text(
-    "Final management snapshot from the canonical metrics, findings, recommendations, scorecard, and provenance in this report.",
-    page.margin,
-    y,
-    { maxWidth: 174 },
-  );
-  y += 8;
+  const introText = "Final management snapshot from the canonical metrics, findings, recommendations, scorecard, and provenance in this report.";
+  const introLines = doc.splitTextToSize(introText, 174);
+  doc.text(introLines, page.margin, y);
+  y += introLines.length * 10 + 8;
 
   if (summary.metrics.length > 0) {
-    y = drawSectionHeading(doc, "Key Results", y, 38);
+    y = drawSectionHeading(doc, "Key Results", y, 30);
     y = drawSummaryMetricGrid(doc, summary.metrics, y) + layout.sectionGap;
   }
 
   if (summary.highlights.length > 0) {
-    y = drawSectionHeading(doc, "Performance Highlights", y, 22);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 11) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Performance Highlights", y, 16);
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 8) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
-    y = drawSectionHeading(doc, "Business Health", y, 20);
-    y = drawSummaryItems(doc, summary.health, y, 2, 10) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Business Health", y, 14);
+    y = drawSummaryItems(doc, summary.health, y, 2, 8) + layout.sectionGap;
   }
 
   if (summary.findings.length > 0) {
-    y = drawSectionHeading(doc, "Top Findings", y, 33);
-    y = drawSummaryItems(doc, summary.findings, y, 3, 11) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Top Findings", y, 24);
+    y = drawSummaryItems(doc, summary.findings, y, 3, 8) + layout.sectionGap;
   }
 
   if (summary.actions.length > 0) {
-    y = drawSectionHeading(doc, "Priority Actions", y, 33);
-    y = drawSummaryItems(doc, summary.actions, y, 3, 11) + layout.sectionGap;
+    y = drawSectionHeading(doc, "Priority Actions", y, 24);
+    y = drawSummaryItems(doc, summary.actions, y, 3, 8) + layout.sectionGap;
   }
 
-  if (summary.status.length > 0 && y < 255) {
-    y = drawSectionHeading(doc, "Data / Analysis Status", y, 10);
-    drawSummaryItems(doc, summary.status, y, 1, 10);
+  if (summary.status.length > 0 && y < 250) {
+    y = drawSectionHeading(doc, "Data / Analysis Status", y, 8);
+    drawSummaryItems(doc, summary.status, y, 1, 8);
   }
 }
 
@@ -1296,7 +1293,7 @@ function findingToneLabel(finding: string) {
 }
 
 function findingToneDetail(finding: string) {
-  return truncate(cleanText(finding), 112);
+  return cleanText(finding);
 }
 
 function classifyFindingTone(finding: string): SummaryItem["tone"] {
@@ -1323,15 +1320,40 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
   const columns = 4;
   const gap = 4;
   const cardWidth = (174 - gap * (columns - 1)) / columns;
-  const cardHeight = 18;
-  let cursorY = y;
-  metrics.slice(0, 8).forEach((metric, index) => {
+  const baseCardHeight = 22;
+  const labelMaxWidth = cardWidth - 8;
+  const valueMaxWidth = cardWidth - 8;
+  const labelLineHeight = 6;
+  const valueLineHeight = 7;
+
+  const getCardHeight = (metric: SummaryMetric) => {
+    const labelLines = doc.splitTextToSize(cleanText(metric.title).toUpperCase(), labelMaxWidth);
+    const valueLines = doc.splitTextToSize(cleanText(metric.value), valueMaxWidth);
+    const labelHeight = labelLines.length * labelLineHeight;
+    const valueHeight = valueLines.length * valueLineHeight;
+    return Math.max(baseCardHeight, labelHeight + valueHeight + 6);
+  };
+
+  const metricsSubset = metrics.slice(0, 8);
+  const cardHeights = metricsSubset.map(getCardHeight);
+  const rowHeights = [0, 1].map(row => {
+    const rowMetrics = cardHeights.slice(row * 4, row * 4 + 4);
+    return rowMetrics.length > 0 ? Math.max(...rowMetrics) : 0;
+  });
+
+  const totalHeight = rowHeights[0] + rowHeights[1] + gap;
+  let cursorY = ensureComponentFits(doc, y, totalHeight);
+
+  metricsSubset.forEach((metric, index) => {
     const row = Math.floor(index / columns);
     const column = index % columns;
-    const rowY = ensureComponentFits(doc, cursorY + row * (cardHeight + gap), cardHeight);
-    if (rowY !== cursorY + row * (cardHeight + gap)) cursorY = rowY;
+    const cardHeight = cardHeights[index];
+    const rowHeight = rowHeights[row];
     const x = page.margin + column * (cardWidth + gap);
-    const cardY = cursorY + Math.floor(index / columns) * (cardHeight + gap);
+    let cardY = cursorY;
+    for (let r = 0; r < row; r++) {
+      cardY += rowHeights[r] + gap;
+    }
     doc.setFillColor(...colors.white);
     doc.setDrawColor(...colors.line);
     doc.roundedRect(x, cardY, cardWidth, cardHeight, 1.5, 1.5, "S");
@@ -1340,19 +1362,29 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.2);
     doc.setTextColor(...colors.muted);
-    doc.text(truncate(cleanText(metric.title).toUpperCase(), 22), x + 4, cardY + 5.4);
+    const labelLines = doc.splitTextToSize(cleanText(metric.title).toUpperCase(), labelMaxWidth);
+    let labelY = cardY + 4;
+    labelLines.forEach((line: string) => {
+      doc.text(line, x + 4, labelY);
+      labelY += labelLineHeight;
+    });
     doc.setFont("helvetica", "bold");
     doc.setFontSize(metric.value.length > 15 ? 8.5 : 10);
     doc.setTextColor(...colors.ink);
-    doc.text(doc.splitTextToSize(cleanText(metric.value), cardWidth - 8).slice(0, 1), x + 4, cardY + 13);
+    const valueLines = doc.splitTextToSize(cleanText(metric.value), valueMaxWidth);
+    let valueY = labelY + 2;
+    valueLines.forEach((line: string) => {
+      doc.text(line, x + 4, valueY);
+      valueY += valueLineHeight;
+    });
   });
-  const rows = Math.ceil(Math.min(metrics.length, 8) / columns);
-  return cursorY + rows * cardHeight + Math.max(0, rows - 1) * gap;
+
+  return cursorY + totalHeight;
 }
 
 function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: number, rowHeight: number) {
   const fontSize = 6.8;
-  const lineHeight = 8.5;
+  const lineHeight = 7.5;
   const labelColumnWidth = 38;
   const detailWidth = 174 - labelColumnWidth - 8;
 
