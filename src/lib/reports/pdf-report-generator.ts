@@ -72,6 +72,7 @@ const layout = {
   metricCardHeight: 33,
   metricCardGap: 4,
   recommendationCardHeight: 36,
+  sectionGap: 6,
 };
 
 const layoutContexts = new WeakMap<jsPDF, PdfLayoutContext>();
@@ -267,7 +268,7 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
 
   const overviewMetrics = overviewMetricCards(report, financials, dataCompleteness);
   if (overviewMetrics.length > 0) {
-    y = drawSectionHeading(doc, report.reportProfile?.id === "local_retail" ? "Retail Executive KPIs" : report.reportProfile?.id === "marketplace_startup" ? "Marketplace KPIs" : "Key Financial / Business Highlights", y, layout.metricCardHeight);
+    y = drawSectionHeading(doc, report.reportProfile?.id === "local_retail" ? "Retail Executive KPIs" : report.reportProfile?.id === "marketplace_startup" ? "Marketplace KPIs" : report.reportProfile?.id === "investor_portfolio" ? "Portfolio Highlights" : "Key Financial / Business Highlights", y, layout.metricCardHeight);
     drawMetricGrid(doc, overviewMetrics, y);
   }
 }
@@ -332,6 +333,22 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       numberMetricCard("Listings", marketplace.listings === null ? "Not available" : marketplace.listings.toLocaleString(), marketplace.listingsField ? (marketplace.listingsAggregation === "latest_snapshot" ? `Latest snapshot from ${marketplace.listingsField}.` : `Sum of ${marketplace.listingsField}.`) : "No listing count field."),
       metricCard("Completion Rate", marketplace.completionRate, "percent", "missing", "Completed transactions divided by total transactions."),
       { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Marketplace field coverage." },
+    ];
+  }
+  if (report.reportProfile?.id === "investor_portfolio" && report.investorAnalysis) {
+    const investor = report.investorAnalysis;
+    const activeCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "active")?.count || 0;
+    const exitedCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "exited")?.count || 0;
+    const watchlistCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "watchlist")?.count || 0;
+    return [
+      numberMetricCard("Portfolio Companies", investor.portfolioCompanies === null ? "Not available" : investor.portfolioCompanies.toLocaleString(), investor.portfolioCompanies !== null ? "Count of distinct portfolio company IDs." : "Requires company_id field."),
+      metricCard("Total Invested", investor.totalInvested, "currency", "neutral", investor.totalInvested !== null ? "Sum of invested_amount across portfolio." : "Requires invested_amount field."),
+      metricCard("Aggregate Company Valuations", investor.totalValuation, "currency", "neutral", investor.totalValuation !== null ? "Sum of latest_valuation across portfolio." : "Requires valuation field."),
+      metricCard("Average Ownership", investor.avgOwnership, "percent", "neutral", investor.avgOwnership !== null ? "Average ownership percentage across portfolio." : "Requires ownership or stake field."),
+      numberMetricCard("Active Companies", activeCount.toString(), "Source value"),
+      numberMetricCard("Exited Companies", exitedCount.toString(), "Source value"),
+      numberMetricCard("Watchlist", watchlistCount.toString(), "Source value"),
+      { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Investor portfolio field coverage." },
     ];
   }
 
@@ -955,27 +972,27 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
 
   if (summary.metrics.length > 0) {
     y = drawSectionHeading(doc, "Key Results", y, 38);
-    y = drawSummaryMetricGrid(doc, summary.metrics, y) + 5;
+    y = drawSummaryMetricGrid(doc, summary.metrics, y) + layout.sectionGap;
   }
 
   if (summary.highlights.length > 0) {
     y = drawSectionHeading(doc, "Performance Highlights", y, 22);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 11) + 5;
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 11) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
     y = drawSectionHeading(doc, "Business Health", y, 20);
-    y = drawSummaryItems(doc, summary.health, y, 2, 10) + 5;
+    y = drawSummaryItems(doc, summary.health, y, 2, 10) + layout.sectionGap;
   }
 
   if (summary.findings.length > 0) {
     y = drawSectionHeading(doc, "Top Findings", y, 33);
-    y = drawSummaryItems(doc, summary.findings, y, 3, 11) + 5;
+    y = drawSummaryItems(doc, summary.findings, y, 3, 11) + layout.sectionGap;
   }
 
   if (summary.actions.length > 0) {
     y = drawSectionHeading(doc, "Priority Actions", y, 33);
-    y = drawSummaryItems(doc, summary.actions, y, 3, 11) + 5;
+    y = drawSummaryItems(doc, summary.actions, y, 3, 11) + layout.sectionGap;
   }
 
   if (summary.status.length > 0 && y < 255) {
@@ -1233,18 +1250,22 @@ function findingPriorityLabel(priority: FindingPriority) {
 
 function selectDataStatus(report: Report, financials: ReportFinancials, confidence: number | null): SummaryItem[] {
   const status: SummaryItem[] = [];
-  const missing = [
-    ...(financials.missingFields || []),
-    ...Object.entries(financials.metricSources || {})
-      .filter(([, source]) => source?.kind === "unavailable")
-      .map(([key]) => labelFromCamelCase(key)),
-  ].filter((value, index, list) => value && list.indexOf(value) === index);
-  if (missing.length > 0) {
-    status.push({
-      label: "Missing Data Unlock",
-      detail: `${missing.slice(0, 4).join(", ")}: add supported source fields to unlock related analysis.`,
-      tone: "risk",
-    });
+  if (report.reportProfile?.id === "investor_portfolio") {
+    status.push({ label: "Data Coverage", detail: "Investor portfolio fields sufficiently covered for current analysis." });
+  } else {
+    const missing = [
+      ...(financials.missingFields || []),
+      ...Object.entries(financials.metricSources || {})
+        .filter(([, source]) => source?.kind === "unavailable")
+        .map(([key]) => labelFromCamelCase(key)),
+    ].filter((value, index, list) => value && list.indexOf(value) === index);
+    if (missing.length > 0) {
+      status.push({
+        label: "Missing Data Unlock",
+        detail: `${missing.slice(0, 4).join(", ")}: add supported source fields to unlock related analysis.`,
+        tone: "risk",
+      });
+    }
   }
   if (confidence !== null) {
     status.push({ label: "Confidence", detail: `Summary uses the report confidence value of ${confidence} / 100.` });
@@ -1730,6 +1751,23 @@ function statusTextColor(value: string): Rgb {
 function managementSummary(report: Report, financials: ReportFinancials) {
   const guarded = cleanText(report.summary || "");
   if (guarded && !/\b0(?:\.0)?%|\$0\b/.test(guarded)) return guarded;
+  if (report.reportProfile?.id === "investor_portfolio" && report.investorAnalysis) {
+    const investor = report.investorAnalysis;
+    const parts: string[] = [];
+    if (investor.portfolioCompanies !== null) {
+      parts.push(`The portfolio contains ${investor.portfolioCompanies} companies with ${formatCurrency(investor.totalInvested || 0)} in invested capital.`);
+    }
+    if (investor.totalValuation !== null) {
+      parts.push(`Aggregate latest company valuations total ${formatCurrency(investor.totalValuation)}.`);
+    }
+    const activeCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "active")?.count || 0;
+    const exitedCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "exited")?.count || 0;
+    const watchlistCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "watchlist")?.count || 0;
+    if (activeCount + exitedCount + watchlistCount > 0) {
+      parts.push(`The portfolio includes ${activeCount} Active, ${exitedCount} Exited, and ${watchlistCount} Watchlist companies.`);
+    }
+    return parts.join(" ") || "Portfolio analysis complete.";
+  }
   return [
     financials.revenue === null
       ? "Revenue is not available from recognized source fields in the selected dataset."

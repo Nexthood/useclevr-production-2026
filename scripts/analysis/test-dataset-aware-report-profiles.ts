@@ -3,7 +3,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { parseCSVStreaming } from "../../src/lib/data/csvLoader"
 import type { ReportProfileId } from "../../src/lib/reports/report-profiles"
-import type { EcommerceReportAnalysis, MarketplaceReportAnalysis, ReportDiagnostics, ReportSemanticContext, SaasReportAnalysis } from "../../src/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, InvestorReportAnalysis, MarketplaceReportAnalysis, ReportDiagnostics, ReportSemanticContext, SaasReportAnalysis } from "../../src/lib/reports/report-generator"
 
 type DatasetInput = Parameters<typeof import("../../src/lib/reports/dataset-report-builder").buildDatasetReportInput>[0]
 type DatasetReportInput = Awaited<ReturnType<typeof import("../../src/lib/reports/dataset-report-builder")["buildDatasetReportInput"]>>
@@ -20,6 +20,11 @@ type EcommerceReportInput = DatasetReportInput & {
 }
 type MarketplaceReportInput = DatasetReportInput & {
   marketplaceAnalysis?: MarketplaceReportAnalysis
+  semanticContext?: ReportSemanticContext
+  diagnostics?: ReportDiagnostics
+}
+type InvestorReportInput = DatasetReportInput & {
+  investorAnalysis?: InvestorReportAnalysis
   semanticContext?: ReportSemanticContext
   diagnostics?: ReportDiagnostics
 }
@@ -535,6 +540,34 @@ async function main() {
         assert(!pdfText.includes("Refund Trend: 2026-01 leads at $0"), "marketplace PDF must not report $0 for refund trend when source has refunds")
 assert(pdfText.includes("GMV"), "marketplace PDF must include GMV label")
 assert(pdfText.includes("$83.8K"), "marketplace PDF must show GMV value $83.8K")
+        if (report.pdfPath) fs.unlinkSync(report.pdfPath)
+        deleteReport(report.id)
+        results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })
+      } else if (fixture.family === "investor_portfolio") {
+        const investorInput = reportInput as unknown as InvestorReportInput
+        const investor = investorInput.investorAnalysis
+        assert(reportInput.reportProfile.title === "Investor Portfolio Report", "investor must use Investor Portfolio Report")
+        assert(reportInput.rowCount === 5, "investor fixture must analyze all 5 rows")
+        assert(investor !== undefined, "investor analysis must be present")
+        const report = await generateReport(dataset.id, path.basename(filePath), {
+          visibility: "private",
+          status: "ready",
+          reportType: reportInput.reportType,
+          businessModel: reportInput.businessModel,
+          userId: "synthetic_user",
+          workspaceId: "synthetic_user",
+          idempotencyKey: `dataset-aware-investor-profile`,
+        }, reportInput)
+        assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "investor PDF must generate")
+        const { text: pdfText } = assertPdfLayoutBasics(report.pdfPath!, "INVESTOR PORTFOLIO REPORT")
+        assert(!pdfText.includes("FINANCIAL PERFORMANCE"), "investor PDF must not render generic Financial Performance page")
+        assert(!pdfText.includes("PROFIT AND MARGIN TREND"), "investor PDF must not render generic Profit and Margin Trend page")
+        assert(!pdfText.includes("COST INTELLIGENCE"), "investor PDF must not render generic Cost Intelligence page")
+        assert(!pdfText.includes("TOP COST CATEGORIES"), "investor PDF must not render generic Top Cost Categories")
+        assert(pdfText.includes("INVESTMENT & VALUATION PERFORMANCE"), "investor PDF must include Investment & Valuation Performance page")
+        assert(pdfText.includes("PORTFOLIO COMPANY PERFORMANCE"), "investor PDF must include Portfolio Company Performance page")
+        assert(pdfText.includes("SECTOR & STAGE ALLOCATION"), "investor PDF must include Sector & Stage Allocation page")
+        assert(pdfText.includes("INVESTOR RECOMMENDATIONS"), "investor PDF must include Investor Recommendations")
         if (report.pdfPath) fs.unlinkSync(report.pdfPath)
         deleteReport(report.id)
         results.push({ fixture: `${fixture.baseName}.${extension}`, profile: reportInput.reportProfile.id, rows: reportInput.rowCount, pdfVerified: true })

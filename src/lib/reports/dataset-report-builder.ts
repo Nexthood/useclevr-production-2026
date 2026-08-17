@@ -246,9 +246,11 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
         ? buildEcommerceSummary(dataset.name, canonicalRowCount, financials, ecommerceAnalysis)
         : reportModel === "marketplace" && marketplaceAnalysis
           ? buildMarketplaceSummary(dataset.name, canonicalRowCount, columnMap, financials, marketplaceAnalysis)
-          : saasAnalysis
-            ? buildSaasSummary(dataset.name, canonicalRowCount, saasAnalysis)
-            : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
+          : reportModel === "investor" && investorAnalysis
+            ? buildInvestorSummary(dataset.name, investorAnalysis)
+            : saasAnalysis
+              ? buildSaasSummary(dataset.name, canonicalRowCount, saasAnalysis)
+              : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
     findings,
     kpis,
     charts,
@@ -1186,6 +1188,30 @@ function buildSaasSummary(datasetName: string, rowCount: number, saas: SaasRepor
   if (saas.churnRate !== null) parts.push(`Churn rate is ${saas.churnRate.toFixed(1)}% from normalized ${saas.churnField} values.`)
   if (saas.netExpansionMrr !== null) parts.push(`Net Expansion MRR is ${formatCurrencyForSummary(saas.netExpansionMrr)}.`)
   if (saas.runwayMonths !== null) parts.push(`Runway is ${saas.runwayMonths.toFixed(1)} months from explicit runway data.`)
+  return parts.join(" ")
+}
+
+function buildInvestorSummary(datasetName: string, investor: InvestorReportAnalysis) {
+  const parts: string[] = []
+  parts.push(`${datasetName} is analyzed as an investor portfolio dataset.`)
+  if (investor.portfolioCompanies !== null) {
+    parts.push(`The portfolio contains ${investor.portfolioCompanies} companies.`)
+  }
+  if (investor.totalInvested !== null) {
+    parts.push(`Total invested capital is ${formatCurrencyForSummary(investor.totalInvested)}.`)
+  }
+  if (investor.totalValuation !== null) {
+    parts.push(`Aggregate latest company valuations total ${formatCurrencyForSummary(investor.totalValuation)}.`)
+  }
+  if (investor.avgOwnership !== null) {
+    parts.push(`Average ownership across the portfolio is ${investor.avgOwnership.toFixed(1)}%.`)
+  }
+  const activeCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "active")?.count || 0
+  const exitedCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "exited")?.count || 0
+  const watchlistCount = investor.companiesByStatus.find((s) => s.status.toLowerCase() === "watchlist")?.count || 0
+  if (activeCount + exitedCount + watchlistCount > 0) {
+    parts.push(`The portfolio includes ${activeCount} active companies, ${exitedCount} exited, and ${watchlistCount} on watchlist.`)
+  }
   return parts.join(" ")
 }
 
@@ -2506,6 +2532,15 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     if (retail.stockByCategory.length > 0) charts.push({ type: "bar", title: "Stock by category", data: retail.stockByCategory })
     return charts.slice(0, 4)
   }
+  if (model === "investor") {
+    const sectorRevenue = groupedChart(rows, columns.sector, columns.revenue, "Top Sector by Portfolio Revenue")
+    const sectorInvested = groupedChart(rows, columns.sector, columns.investedAmount || columns.valuation, "Top Sector by Invested Capital")
+    const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
+    if (sectorRevenue) charts.push(sectorRevenue)
+    if (sectorInvested) charts.push(sectorInvested)
+    if (stage) charts.push(stage)
+    return charts.slice(0, 4)
+  }
   const productChart = groupedChart(rows, columns.product || columns.category, columns.revenue || columns.quantity, "Top products or categories")
   if (productChart) charts.push(productChart)
 
@@ -2519,11 +2554,6 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     if (saas.arrTrend.length) charts.push({ type: "line", title: "ARR Trend", data: saas.arrTrend })
     if (saas.planPerformance.length) charts.push({ type: "bar", title: "MRR by Plan", data: saas.planPerformance.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
     if (saas.geography.length) charts.push({ type: "bar", title: "MRR by Country", data: saas.geography.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
-  } else if (model === "investor") {
-    const sector = groupedChart(rows, columns.sector, columns.investedAmount || columns.valuation, "Sector allocation")
-    const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
-    if (sector) charts.push(sector)
-    if (stage) charts.push(stage)
   } else if (model === "marketplace" && marketplace) {
     if (marketplace.gmvTrend.length) charts.push({ type: "line", title: "GMV Trend", data: marketplace.gmvTrend })
     if (marketplace.marketplaceRevenueTrend.length) charts.push({ type: "line", title: "Marketplace Revenue Trend", data: marketplace.marketplaceRevenueTrend })
