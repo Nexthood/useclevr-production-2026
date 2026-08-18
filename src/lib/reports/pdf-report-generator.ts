@@ -1363,6 +1363,25 @@ function selectDataStatus(report: Report, financials: ReportFinancials, confiden
     if (optional.length > 0) {
       status.push({ label: "Optional for Deeper Analysis", detail: `${optional.join(", ")}: add to extend from gross to operating/net profitability.` });
     }
+  } else if (report.reportProfile?.id === "professional_services") {
+    const available: string[] = [];
+    const optional: string[] = [];
+    if (financials.revenue !== null) available.push("Revenue");
+    if (financials.freelancerCost !== null) available.push("Freelancer Cost");
+    if (financials.adSpend !== null) available.push("Ad Spend");
+    if (financials.grossProfit !== null) available.push("Gross Profit");
+    if (financials.grossMargin !== null) available.push("Gross Margin");
+    if (financials.operatingExpenses === null) optional.push("Operating Expenses");
+    if (financials.operatingProfit === null) optional.push("Operating Profit");
+    if (financials.interestExpense === null) optional.push("Interest Expense");
+    if (financials.taxExpense === null) optional.push("Tax Expense");
+    if (financials.netProfit === null) optional.push("Net Profit");
+    if (available.length > 0) {
+      status.push({ label: "Available", detail: `${available.join(", ")}.` });
+    }
+    if (optional.length > 0) {
+      status.push({ label: "Optional for Deeper Analysis", detail: `${optional.join(", ")}: add to extend from gross to operating/net profitability.` });
+    }
   } else {
     const missing = [
       ...(financials.missingFields || []),
@@ -1964,6 +1983,22 @@ function managementSummary(report: Report, financials: ReportFinancials) {
       parts.push("Trend analysis uses available project date data.");
     }
     return parts.join(" ") || "Business consulting analysis complete.";
+  }
+  if (report.reportProfile?.id === "professional_services") {
+    const parts: string[] = [];
+    if (financials.revenue !== null) {
+      parts.push(`Revenue is ${formatCurrency(financials.revenue)} from recognized source data.`);
+    }
+    if (financials.grossProfit !== null) {
+      parts.push(`Gross profit is ${formatCurrency(financials.grossProfit)} with a gross margin of ${financials.grossMargin?.toFixed(1)}%.`);
+    }
+    if (financials.netProfit === null) {
+      parts.push("Operating and net profitability require additional inputs (operating expenses, interest, tax).");
+    }
+    if (hasTrendData(financials)) {
+      parts.push("Trend analysis uses available date data.");
+    }
+    return parts.join(" ") || "Professional services analysis complete.";
   }
   return [
     financials.revenue === null

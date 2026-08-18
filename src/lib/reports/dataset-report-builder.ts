@@ -2871,7 +2871,7 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
 function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis, marketplace?: MarketplaceReportAnalysis) {
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
-  if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && model !== "business_consulting" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && model !== "business_consulting" && model !== "professional_services" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
   if (model === "business_consulting" && !columns.consultantCost && !columns.otherCost) findings.push("Project cost analysis is limited because consultant_cost and other_cost fields are not recognized.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
   if (model === "local_retail") {
@@ -2908,6 +2908,7 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
   if (model === "business_consulting" && columns.billableHours) findings.push("Billable-hour and project-margin metrics are included.")
   if (model === "business_consulting" && (columns.consultantCost || columns.otherCost)) findings.push("Project costs are recognized from consultant_cost and other_cost fields.")
   if (model === "business_consulting" && (columns.projectStart || columns.projectEnd)) findings.push("Reporting period is derived from project_start and project_end dates.")
+  if (model === "professional_services" && (columns.freelancerCost || columns.adSpend)) findings.push("Direct costs are recognized from freelancer_cost and ad_spend fields. Gross profitability is available.")
   if (model === "professional_services" && columns.campaignId) findings.push("Campaign-based analysis is included from campaign_id field.")
   if (model === "professional_services" && (columns.freelancerCost || columns.adSpend)) findings.push("Direct costs are recognized from freelancer_cost and ad_spend fields.")
   if (model === "professional_services" && columns.serviceLine) findings.push("Service line segmentation is available from service_line field.")
