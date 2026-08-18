@@ -974,16 +974,16 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
 
   if (summary.highlights.length > 0) {
     y = drawSectionHeading(doc, "Performance Highlights", y, 16);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 8) + layout.sectionGap;
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 8, 55) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
     y = drawSectionHeading(doc, "Business Health", y, 14);
-    y = drawSummaryItems(doc, summary.health, y, 2, 8) + layout.sectionGap;
+    y = drawSummaryItems(doc, summary.health, y, 2, 8, 55) + layout.sectionGap;
   }
 
   if (summary.findings.length > 0) {
-    y = drawSectionHeading(doc, "Top Findings", y, 24);
+    y = drawSectionHeading(doc, "Top Findings", y, 35);
     y = drawSummaryItems(doc, summary.findings, y, 3, 8) + layout.sectionGap;
   }
 
@@ -1382,10 +1382,10 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
   return cursorY + totalHeight;
 }
 
-function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: number, rowHeight: number) {
+function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: number, rowHeight: number, labelWidth = 38) {
   const fontSize = 6.8;
   const lineHeight = 7.5;
-  const labelColumnWidth = 38;
+  const labelColumnWidth = labelWidth;
   const detailWidth = 174 - labelColumnWidth - 8;
 
   const getItemHeight = (item: SummaryItem) => {
@@ -1428,7 +1428,7 @@ function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: nu
     doc.setTextColor(...colors.body);
     let detailY = itemY + 4;
     detailLines.forEach((line: string) => {
-      doc.text(line, page.margin + labelColumnWidth, detailY);
+      doc.text(line, page.margin + labelColumnWidth + 4, detailY);
       detailY += lineHeight;
     });
 
