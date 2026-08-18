@@ -177,6 +177,22 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     financials.totalProjectCost = financials.consultantCost !== null && financials.otherCost !== null
       ? financials.consultantCost + financials.otherCost
       : financials.consultantCost ?? financials.otherCost ?? null
+    if (columnMap.projectStart || columnMap.projectEnd) {
+      const starts = rows.map(r => r[columnMap.projectStart!]).filter(Boolean).map(d => new Date(String(d)).getTime()).filter(t => !isNaN(t))
+      const ends = rows.map(r => r[columnMap.projectEnd!]).filter(Boolean).map(d => new Date(String(d)).getTime()).filter(t => !isNaN(t))
+      if (starts.length > 0 && ends.length > 0) {
+        const minStart = new Date(Math.min(...starts))
+        const maxEnd = new Date(Math.max(...ends))
+        const fmt = (d: Date) => d.toISOString().split('T')[0]
+        financials.reportingPeriod = `${fmt(minStart)} to ${fmt(maxEnd)}`
+      } else if (starts.length > 0) {
+        const minStart = new Date(Math.min(...starts))
+        financials.reportingPeriod = minStart.toISOString().split('T')[0]
+      } else if (ends.length > 0) {
+        const maxEnd = new Date(Math.max(...ends))
+        financials.reportingPeriod = maxEnd.toISOString().split('T')[0]
+      }
+    }
   }
   const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
   const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)

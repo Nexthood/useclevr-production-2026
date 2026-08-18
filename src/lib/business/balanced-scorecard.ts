@@ -314,7 +314,10 @@ function buildMetrics(
   if (key === "growth") {
     addMetric(metrics, "Growth trend", growthRate, "percent", scoreGrowth(growthRate), columns.date, "Growth trend is calculated from dated values.", growthRate !== null && growthRate < 0 ? "Recent trend is negative." : undefined, "Review the drivers behind the latest trend.")
     addMetric(metrics, "Product expansion", groupedCount(rows, columns.product || columns.category), "number", scorePositiveValue(groupedCount(rows, columns.product || columns.category)), columns.product || columns.category, "Product/category breadth is included as a growth input.")
-    if (model === "ecommerce") {
+    if (model === "business_consulting") {
+      addMetric(metrics, "Industry diversity", groupedCount(rows, columns.sector), "number", scorePositiveValue(groupedCount(rows, columns.sector)), columns.sector, "Industry diversity is available from industry field.")
+      addMetric(metrics, "Pipeline coverage", groupedCount(rows, columns.pipelineStage), "number", scorePositiveValue(groupedCount(rows, columns.pipelineStage)), columns.pipelineStage, "Pipeline stage coverage indicates business development activity.")
+    } else if (model === "ecommerce") {
       addMetric(metrics, "Market expansion", groupedCount(rows, columns.country), "number", scorePositiveValue(groupedCount(rows, columns.country)), columns.country, "Country/region coverage is included for market expansion.")
       addMetric(metrics, "Channel growth", groupedCount(rows, columns.channel), "number", scorePositiveValue(groupedCount(rows, columns.channel)), columns.channel, "Channel breadth is included for ecommerce growth.")
     } else if (model === "investor") {
@@ -367,6 +370,7 @@ function detectBbscColumns(columns: string[]) {
     sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
     billableHours: findColumn(columns, [/billable_hours/, /hours/]),
+    pipelineStage: findColumn(columns, [/pipeline_stage/]),
     commission: findColumn(columns, [/commission/, /take_rate/, /platform_fee/]),
     sellerPayout: findColumn(columns, [/seller_payout/, /merchant_payout/, /payout/]),
     refund: findColumn(columns, [/refund/, /return_amount/]),
@@ -393,6 +397,7 @@ function requiredFieldsFor(key: BbscPerspectiveKey, model: BbscReportModel) {
   if ((model === "saas" || model === "startup") && key === "customer") return ["customer", "churn", "retention", "LTV"]
   if (model === "investor" && key === "financial") return ["invested capital", "latest valuation", "ownership"]
   if (model === "business_consulting" && key === "processes") return ["billable hours", "cost", "project delivery", "revenue"]
+  if (model === "business_consulting" && key === "growth") return ["project dates", "industry", "pipeline stage", "consultant activity"]
   if (model === "marketplace" && key === "financial") return ["GMV", "platform revenue", "seller payout", "refunds"]
   if (model === "marketplace" && key === "customer") return ["buyer", "seller", "transactions"]
   if (model === "marketplace" && key === "processes") return ["completion status", "active sellers", "listings"]
