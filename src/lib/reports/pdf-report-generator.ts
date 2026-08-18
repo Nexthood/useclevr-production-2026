@@ -974,7 +974,7 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
 
   if (summary.highlights.length > 0) {
     y = drawSectionHeading(doc, "Performance Highlights", y, 16);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 8, 55) + layout.sectionGap;
+    y = drawSummaryItems(doc, summary.highlights, y, 2, 8, 70) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
@@ -983,7 +983,7 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
   }
 
   if (summary.findings.length > 0) {
-    y = drawSectionHeading(doc, "Top Findings", y, 35);
+    y = drawSectionHeading(doc, "Top Findings", y, 50);
     y = drawSummaryItems(doc, summary.findings, y, 3, 8) + layout.sectionGap;
   }
 
