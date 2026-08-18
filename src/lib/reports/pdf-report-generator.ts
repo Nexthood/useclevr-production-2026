@@ -243,11 +243,20 @@ function drawExecutiveOverview(doc: jsPDF, report: Report, financials: ReportFin
   drawLogo(doc, page.margin, 16, 28);
 
   let y = 48;
+  const title = cleanText(report.reportProfile?.title || "Executive BI Report").toUpperCase();
   doc.setFont("helvetica", "bold");
   doc.setFontSize(25);
   doc.setTextColor(...colors.ink);
-  doc.text(cleanText(report.reportProfile?.title || "Executive BI Report").toUpperCase(), page.margin, y);
-  y += 9;
+  const titleWidth = doc.getTextWidth(title);
+  if (titleWidth > 170) {
+    doc.setFontSize(18);
+    const wrappedTitle = doc.splitTextToSize(title, 170);
+    doc.text(wrappedTitle, page.margin, y);
+    y += wrappedTitle.length * 8;
+  } else {
+    doc.text(title, page.margin, y);
+    y += 9;
+  }
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   doc.setTextColor(...colors.body);
