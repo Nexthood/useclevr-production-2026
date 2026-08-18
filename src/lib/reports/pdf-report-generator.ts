@@ -160,6 +160,13 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Executive Recommendations", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials);
+  } else if (report.reportProfile?.id === "professional_services") {
+    addDocumentPage(doc, "Professional Services Financials", datasetName);
+    drawProfessionalServicesFinancials(doc, report, financials);
+    addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
+    drawBalancedScorecard(doc, report);
+    addDocumentPage(doc, "Executive Recommendations", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials);
   } else {
     renderedGenericFinancialPages = true;
     addDocumentPage(doc, "Financial Performance", datasetName);
@@ -850,6 +857,42 @@ function drawBusinessConsultingFinancials(doc: jsPDF, report: Report, financials
     y = drawBars(doc, costRows, page.margin, y, 174, 45);
   } else {
     y = drawUnavailable(doc, "Chart unavailable", "Revenue and cost data are required for project cost visualization.", page.margin, y, 174, 32) + 12;
+  }
+}
+
+function drawProfessionalServicesFinancials(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  let y = 48;
+  y = drawSectionHeading(doc, "Professional Services Financials", y);
+  const freelancerCost = financials.freelancerCost ?? null;
+  const adSpend = financials.adSpend ?? null;
+  const totalDirectCost = financials.totalDirectCost ?? null;
+  const grossProfit = financials.grossProfit ?? null;
+  const grossMargin = financials.grossMargin ?? null;
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Revenue", financials.revenue === null ? "Not available" : formatCurrency(financials.revenue), financials.revenue !== null ? "Available" : "Missing", "Source field: revenue"],
+    ["Freelancer Cost", freelancerCost === null ? "Not available" : formatCurrency(freelancerCost), freelancerCost !== null ? "Available" : "Missing", "Source field: freelancer_cost"],
+    ["Ad Spend", adSpend === null ? "Not available" : formatCurrency(adSpend), adSpend !== null ? "Available" : "Missing", "Source field: ad_spend"],
+    ["Total Direct Cost", totalDirectCost === null ? "Not available" : formatCurrency(totalDirectCost), totalDirectCost !== null ? "Derived" : "N/A", "Freelancer Cost + Ad Spend"],
+    ["Gross Profit", grossProfit === null ? "Not available" : formatCurrency(grossProfit), grossProfit !== null ? "Available" : "Missing", "Revenue - Total Direct Cost"],
+    ["Gross Margin", grossMargin === null ? "Not available" : formatPercent(grossMargin), grossMargin !== null ? "Available" : "Missing", "Gross Profit / Revenue"],
+    ["Operating Expenses", financials.operatingExpenses === null ? "Not available" : formatCurrency(financials.operatingExpenses), "Not available", "Operating expense data not supplied"],
+    ["Operating Profit", financials.operatingProfit === null ? "Not available" : formatCurrency(financials.operatingProfit), "Not available", "Requires operating expenses"],
+    ["Net Profit", financials.netProfit === null ? "Not available" : formatCurrency(financials.netProfit), "Not available", "Requires operating expenses, interest, tax"],
+  ], page.margin, y, [50, 35, 30, 59]) + 12;
+
+  y = drawSectionHeading(doc, "Direct Cost Breakdown", y, 45);
+  const costRows: { label: string; value: number | null; color: Rgb }[] = [
+    { label: "Revenue", value: financials.revenue, color: colors.brandCyan },
+    { label: "Freelancer Cost", value: freelancerCost, color: colors.brandPurple },
+    { label: "Ad Spend", value: adSpend, color: colors.brandBlue },
+    { label: "Gross Profit", value: grossProfit, color: colors.green },
+  ].filter((row): row is { label: string; value: number; color: Rgb } => row.value !== null);
+
+  if (costRows.length >= 2 && financials.revenue !== null) {
+    y = drawBars(doc, costRows, page.margin, y, 174, 45);
+  } else {
+    y = drawUnavailable(doc, "Chart unavailable", "Revenue and cost data are required for direct cost visualization.", page.margin, y, 174, 32) + 12;
   }
 }
 

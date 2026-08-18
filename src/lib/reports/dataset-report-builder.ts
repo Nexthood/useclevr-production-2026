@@ -10,7 +10,7 @@ import { getReportProfile } from "@/lib/reports/report-profiles"
 
 type DatasetRecord = typeof datasets.$inferSelect
 type DataRow = Record<string, unknown>
-type ReportModel = BusinessModel | DatasetCategory | "business_consulting"
+type ReportModel = BusinessModel | DatasetCategory | "business_consulting" | "professional_services"
 type ReportKpi = { title: string; value: number; format: "currency" | "number" | "percent" }
 type MetricSource = "source_value" | "derived_value" | "unavailable"
 type FinancialMetric = { value: number | null; source: MetricSource; note: string }
@@ -84,6 +84,12 @@ type ColumnMap = {
   consultantId?: string
   industry?: string
   pipelineStage?: string
+  freelancerCost?: string
+  adSpend?: string
+  campaignId?: string
+  serviceLine?: string
+  leadCount?: string
+  conversionCount?: string
   account?: string
   debit?: string
   credit?: string
@@ -191,6 +197,23 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
       } else if (ends.length > 0) {
         const maxEnd = new Date(Math.max(...ends))
         financials.reportingPeriod = maxEnd.toISOString().split('T')[0]
+      }
+    }
+  }
+  if (reportModel === "professional_services") {
+    financials.dataConfidence = professionalServicesDataConfidence(columnMap)
+    financials.freelancerCost = sumColumn(rows, columnMap.freelancerCost)
+    financials.adSpend = sumColumn(rows, columnMap.adSpend)
+    financials.totalDirectCost = financials.freelancerCost !== null && financials.adSpend !== null
+      ? financials.freelancerCost + financials.adSpend
+      : financials.freelancerCost ?? financials.adSpend ?? null
+    if (columnMap.date) {
+      const dates = rows.map(r => r[columnMap.date!]).filter(Boolean).map(d => new Date(String(d)).getTime()).filter(t => !isNaN(t))
+      if (dates.length > 0) {
+        const minDate = new Date(Math.min(...dates))
+        const maxDate = new Date(Math.max(...dates))
+        const fmt = (d: Date) => d.toISOString().split('T')[0]
+        financials.reportingPeriod = `${fmt(minDate)} to ${fmt(maxDate)}`
       }
     }
   }
@@ -941,6 +964,28 @@ function businessConsultingDataConfidence(columns: ColumnMap) {
     columns.otherCost,
     columns.status,
     columns.pipelineStage,
+  ]
+  const availableRequired = required.filter(Boolean).length
+  const availableOptional = optional.filter(Boolean).length
+  return Math.round(((availableRequired / required.length) * 85) + ((availableOptional / optional.length) * 15))
+}
+
+function professionalServicesDataConfidence(columns: ColumnMap) {
+  const required = [
+    columns.campaignId,
+    columns.serviceLine,
+    columns.revenue,
+    columns.freelancerCost,
+  ]
+  const optional = [
+    columns.adSpend,
+    columns.channel,
+    columns.billableHours,
+    columns.hourlyRate,
+    columns.leadCount,
+    columns.conversionCount,
+    columns.status,
+    columns.date,
   ]
   const availableRequired = required.filter(Boolean).length
   const availableOptional = optional.filter(Boolean).length
@@ -2089,6 +2134,27 @@ function buildDatasetSummary(
     }
     return parts.join(" ")
   }
+  if (model === "professional_services") {
+    const parts: string[] = []
+    if (financials.revenue !== null) {
+      parts.push(`${datasetName} contains ${formatCurrencyForSummary(financials.revenue)} in recognized revenue across ${rowCount.toLocaleString()} loaded rows.`)
+    } else {
+      parts.push(`${datasetName} has ${rowCount.toLocaleString()} loaded rows, but revenue is not available from recognized source fields.`)
+    }
+    if (financials.grossProfit !== null) {
+      parts.push(`Gross profit is ${formatCurrencyForSummary(financials.grossProfit)} with a gross margin of ${financials.grossMargin?.toFixed(1)}%.`)
+    } else if (financials.revenue !== null && (columns.freelancerCost || columns.adSpend)) {
+      parts.push("Gross profitability cannot be calculated because freelancer_cost and/or ad_spend data is incomplete.")
+    }
+    if (financials.netProfit === null) {
+      parts.push("Operating and net profitability require additional inputs (operating expenses, interest, tax).")
+    }
+    parts.push(hasTrendFields(columns) ? "Trend analysis can use the recognized date or period field." : "Trend analysis is unavailable because no valid date or period field is recognized.")
+    if (bbsc.availablePerspectiveCount < 2) {
+      parts.push("Balanced Scorecard comparison is unavailable because fewer than two perspectives have comparable source data.")
+    }
+    return parts.join(" ")
+  }
   const parts: string[] = []
   if (financials.revenue !== null) {
     parts.push(`${datasetName} contains ${formatCurrencyForSummary(financials.revenue)} in recognized revenue across ${rowCount.toLocaleString()} loaded rows.`)
@@ -2146,6 +2212,41 @@ function buildDatasetRecommendations(
         estimatedImpact: "Medium",
         confidence: "High",
         requiredData: ["Project Start", "Project End"],
+      })
+    }
+    return recommendations.slice(0, 4)
+  }
+  const isProfessionalServices = columns.freelancerCost !== undefined || columns.adSpend !== undefined || columns.campaignId !== undefined
+  if (isProfessionalServices) {
+    const recommendations: ReportRecommendation[] = []
+    if (financials.grossProfit === null && financials.revenue !== null) {
+      recommendations.push({
+        issue: "Add direct cost data to calculate gross profit.",
+        businessImpact: "Revenue is available, but freelancer_cost and/or ad_spend fields are missing for direct cost analysis.",
+        recommendedAction: "Add freelancer_cost and ad_spend fields to enable gross profit and margin analysis.",
+        estimatedImpact: "High",
+        confidence: "High",
+        requiredData: ["Freelancer Cost", "Ad Spend"],
+      })
+    }
+    if (financials.revenue !== null && financials.netProfit === null) {
+      recommendations.push({
+        issue: "Add operating expense data to extend profitability analysis.",
+        businessImpact: "Gross profitability is available, but operating and net profitability require operating expenses, interest, and tax inputs.",
+        recommendedAction: "Add operating expenses, interest, and tax data to extend analysis from gross to operating and net profitability.",
+        estimatedImpact: "Medium",
+        confidence: "High",
+        requiredData: ["Operating Expenses", "Interest Expense", "Tax Expense"],
+      })
+    }
+    if (!columns.leadCount || !columns.conversionCount) {
+      recommendations.push({
+        issue: "Lead and conversion tracking is incomplete.",
+        businessImpact: "Campaign effectiveness metrics are limited without lead_count and conversion_count data.",
+        recommendedAction: "Add lead_count and conversion_count fields to enable campaign performance analysis.",
+        estimatedImpact: "Medium",
+        confidence: "High",
+        requiredData: ["Lead Count", "Conversion Count"],
       })
     }
     return recommendations.slice(0, 4)
@@ -2256,6 +2357,7 @@ function buildProfitabilityAlerts(netMargin: number | null, metrics: Record<stri
 
 function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {
   if (datasetType === "profitability" || datasetType === "accountancy" || datasetType === "prebookkeeping") return datasetType
+  if (detectProfessionalServices(columns, datasetName)) return "professional_services"
   if (detectBusinessConsulting(columns, datasetName)) return "business_consulting"
   return businessModel
 }
@@ -2269,6 +2371,21 @@ function detectBusinessConsulting(columns: string[], datasetName: string) {
   return /billable|hourly_rate|consultant_cost|project_margin|gross_margin|client_id|project_id/.test(text)
 }
 
+function detectProfessionalServices(columns: string[], datasetName: string) {
+  const text = [datasetName, ...columns].join(" ").toLowerCase()
+  const hasFreelancerCost = /freelancer_cost/.test(text)
+  const hasAdSpend = /ad_spend/.test(text)
+  const hasCampaignId = /campaign_id/.test(text)
+  const hasServiceLine = /service_line/.test(text)
+  const hasLeadCount = /lead_count/.test(text)
+  const hasConversionCount = /conversion_count/.test(text)
+  const hasChannel = /channel/.test(text)
+  if (hasFreelancerCost && hasAdSpend) return true
+  if (hasCampaignId && hasServiceLine && hasLeadCount && hasConversionCount) return true
+  if (hasCampaignId && hasFreelancerCost && hasAdSpend) return true
+  return false
+}
+
 function reportModelLabel(model: ReportModel) {
   if (model === "local_retail") return "Local retail"
   if (model === "ecommerce") return "E-commerce"
@@ -2277,6 +2394,7 @@ function reportModelLabel(model: ReportModel) {
   if (model === "investor") return "Investor portfolio"
   if (model === "marketplace") return "Marketplace"
   if (model === "business_consulting") return "Business consulting"
+  if (model === "professional_services") return "Professional services"
   if (model === "profitability") return "Profitability"
   if (model === "accountancy") return "Accountancy"
   if (model === "prebookkeeping") return "Pre-bookkeeping"
@@ -2362,6 +2480,12 @@ function detectColumns(columns: string[]): ColumnMap {
     activeSellers: findColumn(columns, [/active_sellers/, /active_seller/]),
     listingCount: findColumn(columns, [/listing_count/, /listing/]),
     completed: findColumn(columns, [/completed/, /completion_status/]),
+    freelancerCost: findColumn(columns, [/freelancer_cost/]),
+    adSpend: findColumn(columns, [/ad_spend/]),
+    campaignId: findColumn(columns, [/campaign_id/]),
+    serviceLine: findColumn(columns, [/service_line/]),
+    leadCount: findColumn(columns, [/lead_count/]),
+    conversionCount: findColumn(columns, [/conversion_count/]),
   }
 }
 
@@ -2375,18 +2499,19 @@ function buildSemanticContext(input: {
   const isSaas = input.reportModel === "saas" || input.reportModel === "startup"
   const isMarketplace = input.reportModel === "marketplace"
   const isBusinessConsulting = input.reportModel === "business_consulting"
+  const isProfessionalServices = input.reportModel === "professional_services"
   const mappings: Record<string, string | null> = {
     date: isBusinessConsulting ? ((input.columnMap.projectStart || input.columnMap.projectEnd) ?? null) : (input.columnMap.date ?? null),
-    revenue: isBusinessConsulting ? (input.columnMap.revenue ?? null) : (isMarketplace ? null : (input.columnMap.revenue || input.columnMap.gmv || null)),
-    cogs: isBusinessConsulting ? null : (input.columnMap.cogs ?? null),
-    grossProfit: isBusinessConsulting ? (input.columnMap.grossProfit ?? null) : (input.columnMap.grossProfit ?? null),
+    revenue: isBusinessConsulting || isProfessionalServices ? (input.columnMap.revenue ?? null) : (isMarketplace ? null : (input.columnMap.revenue || input.columnMap.gmv || null)),
+    cogs: isBusinessConsulting || isProfessionalServices ? null : (input.columnMap.cogs ?? null),
+    grossProfit: isBusinessConsulting || isProfessionalServices ? (input.columnMap.grossProfit ?? null) : (input.columnMap.grossProfit ?? null),
     operatingExpenses: input.columnMap.operatingExpenses ?? null,
     operatingProfit: input.columnMap.operatingProfit ?? null,
     interestExpense: input.columnMap.interestExpense ?? null,
     taxExpense: input.columnMap.taxExpense ?? null,
     netProfit: input.columnMap.netProfit ?? null,
-    expenseCategory: isEcommerce || isSaas || isMarketplace || isBusinessConsulting ? null : input.columnMap.expenseCategory || null,
-    expenseAmount: isEcommerce || isSaas || isMarketplace || isBusinessConsulting ? null : input.columnMap.expenseAmount || null,
+    expenseCategory: isEcommerce || isSaas || isMarketplace || isBusinessConsulting || isProfessionalServices ? null : input.columnMap.expenseCategory || null,
+    expenseAmount: isEcommerce || isSaas || isMarketplace || isBusinessConsulting || isProfessionalServices ? null : input.columnMap.expenseAmount || null,
     vendor: input.columnMap.vendor || null,
     mrr: input.columnMap.mrr || null,
     arr: input.columnMap.arr || null,
@@ -2403,7 +2528,7 @@ function buildSemanticContext(input: {
     cashBalance: input.columnMap.cashBalance || null,
     runway: input.columnMap.runway || null,
     plan: input.columnMap.plan || null,
-    country: input.columnMap.country || null,
+    country: input.columnMap.country ?? null,
     gmv: input.columnMap.gmv || null,
     commission: input.columnMap.commission || null,
     refund: input.columnMap.refund || null,
@@ -2420,7 +2545,7 @@ function buildSemanticContext(input: {
     otherCost: isBusinessConsulting ? input.columnMap.otherCost || null : null,
     projectStart: isBusinessConsulting ? input.columnMap.projectStart || null : null,
     projectEnd: isBusinessConsulting ? input.columnMap.projectEnd || null : null,
-    billableHours: isBusinessConsulting ? input.columnMap.billableHours || null : null,
+    billableHours: isBusinessConsulting || isProfessionalServices ? input.columnMap.billableHours || null : null,
   }
   const required = isSaas
     ? ["date", "mrr", "arr", "customer", "newCustomer", "churned", "expansionMrr", "contractionMrr", "cac", "ltv", "activeUsers", "supportTickets", "burn", "cashBalance", "runway", "plan", "country"]
@@ -2428,7 +2553,9 @@ function buildSemanticContext(input: {
       ? ["date", "gmv", "commission", "order", "buyer", "seller", "refund"]
       : isBusinessConsulting
         ? ["date", "revenue", "grossProfit", "consultantCost", "projectStart", "projectEnd"]
-        : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
+        : isProfessionalServices
+          ? ["date", "revenue", "grossProfit"]
+          : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
   const available = required.filter((key) => Boolean(mappings[key])).length
   return {
     datasetId: input.datasetId,
@@ -2440,12 +2567,14 @@ function buildSemanticContext(input: {
     netProfitField: mappings.netProfit,
     costFields: isBusinessConsulting
       ? [input.columnMap.consultantCost, input.columnMap.otherCost].filter((field): field is string => Boolean(field))
-      : [
-          input.columnMap.cogs,
-          input.columnMap.operatingExpenses,
-          input.columnMap.interestExpense,
-          input.columnMap.taxExpense,
-        ].filter((field): field is string => Boolean(field)),
+      : isProfessionalServices
+        ? [input.columnMap.freelancerCost, input.columnMap.adSpend].filter((field): field is string => Boolean(field))
+        : [
+            input.columnMap.cogs,
+            input.columnMap.operatingExpenses,
+            input.columnMap.interestExpense,
+            input.columnMap.taxExpense,
+          ].filter((field): field is string => Boolean(field)),
     expenseCategoryField: mappings.expenseCategory,
     expenseAmountField: mappings.expenseAmount,
     vendorField: mappings.vendor,
@@ -2647,6 +2776,29 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Clients", columns.customer ? uniqueCount(rows, columns.customer) : customers, "number")
     addKpi(kpis, "Consultants", columns.consultantId ? uniqueCount(rows, columns.consultantId) : null, "number")
     addKpi(kpis, "Billable Hours", sumColumn(rows, columns.billableHours), "number")
+  } else if (model === "professional_services") {
+    const freelancerCost = sumColumn(rows, columns.freelancerCost)
+    const adSpend = sumColumn(rows, columns.adSpend)
+    const totalDirectCost = freelancerCost !== null && adSpend !== null ? freelancerCost + adSpend : freelancerCost ?? adSpend
+    const grossProfitVal = financials.grossProfit ?? (revenue !== null && totalDirectCost !== null ? revenue - totalDirectCost : null)
+    const grossMarginVal = financials.grossMargin ?? (revenue !== null && grossProfitVal !== null ? (grossProfitVal / revenue) * 100 : null)
+    const hours = sumColumn(rows, columns.billableHours)
+    const leads = sumColumn(rows, columns.leadCount)
+    const conversions = sumColumn(rows, columns.conversionCount)
+    const conversionRate = leads !== null && conversions !== null && leads > 0 ? (conversions / leads) * 100 : null
+    kpis.length = 0
+    addKpi(kpis, "Revenue", revenue, "currency")
+    addKpi(kpis, "Freelancer Cost", freelancerCost, "currency")
+    addKpi(kpis, "Ad Spend", adSpend, "currency")
+    addKpi(kpis, "Total Direct Cost", totalDirectCost, "currency")
+    addKpi(kpis, "Gross Profit", grossProfitVal, "currency")
+    addKpi(kpis, "Gross Margin", grossMarginVal, "percent")
+    addKpi(kpis, "Campaigns", columns.campaignId ? uniqueCount(rows, columns.campaignId) : rows.length, "number")
+    addKpi(kpis, "Clients", columns.customer ? uniqueCount(rows, columns.customer) : null, "number")
+    addKpi(kpis, "Hours", hours, "number")
+    addKpi(kpis, "Leads", leads, "number")
+    addKpi(kpis, "Conversions", conversions, "number")
+    addKpi(kpis, "Conversion Rate", conversionRate, "percent")
   } else if (model === "profitability") {
     addKpi(kpis, "Costs", cost, "currency")
     addKpi(kpis, "Gross margin", profit !== null && revenue ? (profit / revenue) * 100 : null, "percent")
@@ -2756,6 +2908,11 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
   if (model === "business_consulting" && columns.billableHours) findings.push("Billable-hour and project-margin metrics are included.")
   if (model === "business_consulting" && (columns.consultantCost || columns.otherCost)) findings.push("Project costs are recognized from consultant_cost and other_cost fields.")
   if (model === "business_consulting" && (columns.projectStart || columns.projectEnd)) findings.push("Reporting period is derived from project_start and project_end dates.")
+  if (model === "professional_services" && columns.campaignId) findings.push("Campaign-based analysis is included from campaign_id field.")
+  if (model === "professional_services" && (columns.freelancerCost || columns.adSpend)) findings.push("Direct costs are recognized from freelancer_cost and ad_spend fields.")
+  if (model === "professional_services" && columns.serviceLine) findings.push("Service line segmentation is available from service_line field.")
+  if (model === "professional_services" && columns.channel) findings.push("Channel performance is tracked from channel field.")
+  if (model === "professional_services" && (columns.leadCount || columns.conversionCount)) findings.push("Lead and conversion metrics are available for campaign effectiveness analysis.")
   if ((model === "accountancy" || model === "prebookkeeping") && (columns.debit || columns.credit)) findings.push("Ledger debit and credit totals are included from accounting columns.")
   return findings
 }
