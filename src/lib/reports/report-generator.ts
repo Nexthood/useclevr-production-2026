@@ -144,6 +144,9 @@ export interface ReportFinancials {
   consultantCost?: number | null;
   otherCost?: number | null;
   totalProjectCost?: number | null;
+  freelancerCost?: number | null;
+  adSpend?: number | null;
+  totalDirectCost?: number | null;
 }
 
 export interface ReportSemanticContext {

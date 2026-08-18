@@ -1,0 +1,132 @@
+date,client_id,campaign_id,service_line,channel,hours,billable_rate,revenue,freelancer_cost,ad_spend,gross_profit,lead_count,conversion_count,status
+2026-01-02,CL-001,CMP-001,Strategy Consulting,Direct,38,135,5130,3600,500,1030,7,1,active
+2026-01-05,CL-002,CMP-002,Digital Transformation,Referral,48,145,6960,4900,750,1310,10,2,completed
+2026-01-08,CL-003,CMP-003,IT Consulting,LinkedIn,35,130,4550,3300,400,850,5,1,active
+2026-01-10,CL-004,CMP-001,Strategy Consulting,Direct,44,135,5940,4200,600,1140,8,1,active
+2026-01-12,CL-005,CMP-004,Marketing Services,Google Ads,52,125,6500,4700,1000,800,14,2,completed
+2026-01-15,CL-006,CMP-005,Data Analytics,Direct,42,145,6090,4300,550,1240,8,1,active
+2026-01-18,CL-007,CMP-002,Digital Transformation,Referral,46,145,6670,4700,750,1220,11,2,active
+2026-01-20,CL-008,CMP-006,Cloud Services,Website,37,145,5365,3700,400,1265,6,1,completed
+2026-01-22,CL-009,CMP-007,Strategy Consulting,Direct,68,140,9520,6800,1200,1520,16,3,active
+2026-01-25,CL-010,CMP-008,IT Consulting,Referral,32,135,4320,3000,350,970,5,1,active
+2026-01-28,CL-011,CMP-009,Marketing Services,Facebook,50,120,6000,4300,750,950,12,2,completed
+2026-01-30,CL-012,CMP-010,Digital Transformation,Direct,44,145,6380,4500,650,1230,9,1,active
+2026-02-02,CL-001,CMP-001,Strategy Consulting,Direct,40,135,5400,3800,550,1050,7,1,active
+2026-02-05,CL-013,CMP-011,IT Consulting,LinkedIn,37,135,4995,3500,450,1045,6,1,active
+2026-02-08,CL-014,CMP-012,Data Analytics,Direct,46,150,6900,4900,600,1400,10,2,completed
+2026-02-10,CL-015,CMP-013,Cloud Services,Website,35,145,5075,3500,350,1225,6,1,active
+2026-02-12,CL-009,CMP-007,Strategy Consulting,Direct,70,140,9800,7000,1300,1500,18,3,active
+2026-02-15,CL-016,CMP-014,Marketing Services,Google Ads,55,125,6875,5000,1100,775,16,3,completed
+2026-02-18,CL-017,CMP-015,IT Consulting,Referral,42,135,5670,4000,550,1120,8,1,active
+2026-02-20,CL-018,CMP-016,Digital Transformation,Direct,38,145,5510,3900,550,1060,7,1,completed
+2026-02-22,CL-019,CMP-017,Strategy Consulting,LinkedIn,48,135,6480,4600,750,1130,10,2,active
+2026-02-25,CL-020,CMP-018,Data Analytics,Website,37,145,5365,3700,400,1265,6,1,active
+2026-02-28,CL-021,CMP-019,Cloud Services,Direct,32,145,4640,3200,300,1140,4,1,completed
+2026-03-02,CL-022,CMP-020,IT Consulting,Referral,44,135,5940,4200,600,1140,9,1,active
+2026-03-05,CL-009,CMP-007,Strategy Consulting,Direct,72,140,10080,7200,1400,1480,20,4,active
+2026-03-08,CL-023,CMP-021,Marketing Services,Facebook,57,120,6840,5000,1150,690,18,3,completed
+2026-03-10,CL-024,CMP-022,Digital Transformation,Direct,40,145,5800,4100,600,1100,8,1,active
+2026-03-12,CL-025,CMP-023,Data Analytics,LinkedIn,44,150,6600,4700,550,1350,8,1,completed
+2026-03-15,CL-026,CMP-024,IT Consulting,Website,38,140,5320,3800,450,1070,7,1,active
+2026-03-18,CL-027,CMP-025,Strategy Consulting,Direct,50,140,7000,5000,800,1200,11,2,active
+2026-03-20,CL-028,CMP-026,Cloud Services,Referral,33,145,4785,3300,350,1135,5,1,completed
+2026-03-22,CL-029,CMP-027,Marketing Services,Google Ads,53,125,6625,4800,1000,825,14,2,active
+2026-03-25,CL-001,CMP-001,Strategy Consulting,Direct,42,135,5670,4000,550,1120,8,1,active
+2026-03-28,CL-002,CMP-002,Digital Transformation,Referral,50,145,7250,5100,800,1350,11,2,completed
+2026-03-30,CL-003,CMP-003,IT Consulting,LinkedIn,35,130,4550,3300,400,850,5,1,active
+2026-04-02,CL-009,CMP-007,Strategy Consulting,Direct,75,145,10875,7800,1500,1575,22,4,active
+2026-04-05,CL-004,CMP-001,Strategy Consulting,Direct,44,135,5940,4200,600,1140,8,1,active
+2026-04-08,CL-005,CMP-004,Marketing Services,Google Ads,60,130,7800,5600,1250,950,19,3,completed
+2026-04-10,CL-006,CMP-005,Data Analytics,Direct,42,145,6090,4300,550,1240,8,1,active
+2026-01-04,CL-030,CMP-028,IT Consulting,Direct,37,135,4995,3500,450,1045,6,1,active
+2026-01-06,CL-031,CMP-029,Digital Transformation,Referral,44,145,6380,4500,650,1230,9,1,completed
+2026-01-08,CL-032,CMP-030,Cloud Services,Website,33,145,4785,3300,350,1135,5,1,active
+2026-01-10,CL-033,CMP-031,Strategy Consulting,Direct,40,135,5400,3800,550,1050,7,1,active
+2026-01-12,CL-034,CMP-032,Marketing Services,Facebook,48,120,5760,4200,650,910,11,2,completed
+2026-01-14,CL-035,CMP-033,IT Consulting,LinkedIn,37,135,4995,3500,450,1045,6,1,active
+2026-01-16,CL-036,CMP-034,Data Analytics,Website,42,145,6090,4300,550,1240,8,1,completed
+2026-01-18,CL-037,CMP-035,Cloud Services,Referral,35,145,5075,3500,350,1225,6,1,active
+2026-01-20,CL-038,CMP-036,Strategy Consulting,Direct,38,135,5130,3600,500,1030,7,1,active
+2026-01-22,CL-039,CMP-037,Marketing Services,Google Ads,51,125,6375,4600,950,825,13,2,completed
+2026-01-24,CL-040,CMP-038,IT Consulting,LinkedIn,40,135,5400,3800,550,1050,7,1,active
+2026-01-26,CL-041,CMP-039,Digital Transformation,Website,44,145,6380,4500,650,1230,9,1,completed
+2026-01-28,CL-042,CMP-040,Data Analytics,Direct,42,145,6090,4300,550,1240,8,1,active
+2026-01-30,CL-043,CMP-041,Cloud Services,Referral,33,145,4785,3300,350,1135,5,1,completed
+2026-02-01,CL-044,CMP-042,Strategy Consulting,Facebook,46,135,6210,4400,700,1110,9,1,active
+2026-02-03,CL-045,CMP-043,Marketing Services,Google Ads,53,125,6625,4800,1000,825,14,2,completed
+2026-02-05,CL-046,CMP-044,IT Consulting,LinkedIn,38,135,5130,3600,500,1030,7,1,active
+2026-02-07,CL-047,CMP-045,Digital Transformation,Website,46,145,6670,4700,750,1220,10,2,completed
+2026-02-09,CL-048,CMP-046,Data Analytics,Direct,44,145,6380,4500,650,1230,9,1,active
+2026-02-11,CL-049,CMP-047,Cloud Services,Direct,32,145,4640,3200,300,1140,4,1,completed
+2026-02-13,CL-050,CMP-048,Strategy Consulting,Website,40,135,5400,3800,550,1050,7,1,active
+2026-02-15,CL-051,CMP-049,Marketing Services,Facebook,51,120,6120,4400,850,870,13,2,completed
+2026-02-17,CL-052,CMP-050,IT Consulting,Google Ads,37,135,4995,3500,450,1045,6,1,active
+2026-02-19,CL-053,CMP-051,Digital Transformation,LinkedIn,44,145,6380,4500,650,1230,9,1,completed
+2026-02-21,CL-054,CMP-052,Data Analytics,Direct,42,145,6090,4300,550,1240,8,1,active
+2026-02-23,CL-055,CMP-053,Cloud Services,Referral,35,145,5075,3500,350,1225,6,1,completed
+2026-02-25,CL-056,CMP-054,Strategy Consulting,Direct,42,135,5670,4000,550,1120,8,1,active
+2026-02-27,CL-057,CMP-055,Marketing Services,Google Ads,55,125,6875,5000,1100,775,16,3,completed
+2026-03-01,CL-058,CMP-056,IT Consulting,LinkedIn,40,135,5400,3800,550,1050,7,1,active
+2026-03-03,CL-059,CMP-057,Digital Transformation,Website,44,145,6380,4500,650,1230,9,1,completed
+2026-03-05,CL-060,CMP-058,Data Analytics,Direct,42,145,6090,4300,550,1240,8,1,active
+2026-03-07,CL-061,CMP-059,Cloud Services,Referral,33,145,4785,3300,350,1135,5,1,completed
+2026-03-09,CL-062,CMP-060,Strategy Consulting,Facebook,48,135,6480,4600,750,1130,10,2,active
+2026-03-11,CL-063,CMP-061,Marketing Services,Google Ads,53,125,6625,4800,1000,825,14,2,completed
+2026-03-13,CL-064,CMP-062,IT Consulting,LinkedIn,38,135,5130,3600,500,1030,7,1,active
+2026-03-15,CL-065,CMP-063,Digital Transformation,Website,46,145,6670,4700,750,1220,10,2,completed
+2026-03-17,CL-066,CMP-064,Data Analytics,Direct,44,145,6380,4500,650,1230,9,1,active
+2026-03-19,CL-067,CMP-065,Cloud Services,Referral,35,145,5075,3500,350,1225,6,1,completed
+2026-03-21,CL-068,CMP-066,Strategy Consulting,Direct,42,140,5880,4100,600,1180,8,1,active
+2026-03-23,CL-069,CMP-067,Marketing Services,Facebook,55,125,6875,5000,1100,775,16,3,completed
+2026-03-25,CL-070,CMP-068,IT Consulting,Google Ads,40,135,5400,3800,550,1050,7,1,active
+2026-03-27,CL-071,CMP-069,Digital Transformation,LinkedIn,46,145,6670,4700,750,1220,10,2,completed
+2026-03-29,CL-072,CMP-070,Data Analytics,Direct,42,145,6090,4300,550,1240,8,1,active
+2026-03-31,CL-073,CMP-071,Cloud Services,Referral,33,145,4785,3300,350,1135,5,1,completed
+2026-04-02,CL-074,CMP-072,Strategy Consulting,Direct,44,140,6160,4300,650,1210,9,1,active
+2026-04-04,CL-075,CMP-073,Marketing Services,Google Ads,53,125,6625,4800,1000,825,14,2,completed
+2026-04-06,CL-076,CMP-074,IT Consulting,LinkedIn,40,135,5400,3800,550,1050,7,1,active
+2026-04-08,CL-077,CMP-075,Digital Transformation,Website,46,145,6670,4700,750,1220,10,2,completed
+2026-04-10,CL-078,CMP-076,Data Analytics,Direct,44,145,6380,4500,650,1230,9,1,active
+2026-01-03,CL-079,CMP-077,Cloud Services,Direct,32,145,4640,3200,300,1140,4,1,completed
+2026-01-07,CL-080,CMP-078,Strategy Consulting,Website,38,135,5130,3600,500,1030,7,1,active
+2026-01-09,CL-081,CMP-079,Marketing Services,Facebook,49,120,5880,4300,700,880,11,2,completed
+2026-01-11,CL-082,CMP-080,IT Consulting,Referral,37,135,4995,3500,450,1045,6,1,active
+2026-01-13,CL-083,CMP-081,Digital Transformation,LinkedIn,44,145,6380,4500,650,1230,9,1,completed
+2026-01-15,CL-084,CMP-082,Data Analytics,Website,42,145,6090,4300,550,1240,8,1,active
+2026-01-17,CL-085,CMP-083,Cloud Services,Google Ads,35,145,5075,3500,350,1225,6,1,completed
+2026-01-19,CL-086,CMP-084,Strategy Consulting,Direct,40,135,5400,3800,550,1050,7,1,active
+2026-01-21,CL-087,CMP-085,Marketing Services,Facebook,51,120,6120,4400,850,870,13,2,completed
+2026-01-23,CL-088,CMP-086,IT Consulting,LinkedIn,38,135,5130,3600,500,1030,7,1,active
+2026-01-25,CL-089,CMP-087,Digital Transformation,Website,46,145,6670,4700,750,1220,10,2,completed
+2026-01-27,CL-090,CMP-088,Data Analytics,Direct,44,145,6380,4500,650,1230,9,1,active
+2026-01-29,CL-091,CMP-089,Cloud Services,Referral,33,145,4785,3300,350,1135,5,1,completed
+2026-01-31,CL-092,CMP-090,Strategy Consulting,Facebook,48,135,6480,4600,750,1130,10,2,active
+2026-02-02,CL-093,CMP-091,Marketing Services,Google Ads,53,125,6625,4800,1000,825,14,2,completed
+2026-02-04,CL-094,CMP-092,IT Consulting,LinkedIn,40,135,5400,3800,550,1050,7,1,active
+2026-02-06,CL-095,CMP-093,Digital Transformation,Website,46,145,6670,4700,750,1220,10,2,completed
+2026-02-08,CL-096,CMP-094,Data Analytics,Direct,44,145,6380,4500,650,1230,9,1,active
+2026-02-10,CL-097,CMP-095,Cloud Services,Referral,35,145,5075,3500,350,1225,6,1,completed
+2026-02-12,CL-098,CMP-096,Strategy Consulting,Direct,42,140,5880,4100,600,1180,8,1,active
+2026-02-14,CL-099,CMP-097,Marketing Services,Facebook,55,125,6875,5000,1100,775,16,3,completed
+2026-02-16,CL-100,CMP-098,IT Consulting,Google Ads,40,135,5400,3800,550,1050,7,1,active
+2026-02-18,CL-101,CMP-099,Digital Transformation,LinkedIn,46,145,6670,4700,750,1220,10,2,completed
+2026-02-20,CL-102,CMP-100,Data Analytics,Direct,44,145,6380,4500,650,1230,9,1,active
+2026-02-22,CL-103,CMP-101,Cloud Services,Website,33,145,4785,3300,350,1135,5,1,completed
+2026-02-24,CL-104,CMP-102,Strategy Consulting,Direct,44,140,6160,4300,650,1210,9,1,active
+2026-02-26,CL-105,CMP-103,Marketing Services,Google Ads,53,125,6625,4800,1000,825,14,2,completed
+2026-02-28,CL-106,CMP-104,IT Consulting,LinkedIn,40,135,5400,3800,550,1050,7,1,active
+2026-03-02,CL-001,CMP-001,Strategy Consulting,Direct,39,135,5265,3700,520,1045,7,1,active
+2026-03-04,CL-002,CMP-002,Digital Transformation,Referral,47,145,6815,4800,750,1265,10,2,completed
+2026-03-06,CL-003,CMP-003,IT Consulting,LinkedIn,36,130,4680,3400,420,860,5,1,active
+2026-03-08,CL-009,CMP-007,Strategy Consulting,Direct,71,140,9940,7100,1350,1490,19,4,active
+2026-03-10,CL-004,CMP-001,Strategy Consulting,Direct,43,135,5805,4100,590,1115,8,1,active
+2026-03-12,CL-005,CMP-004,Marketing Services,Google Ads,54,125,6750,4900,1050,800,15,3,completed
+2026-03-14,CL-006,CMP-005,Data Analytics,Direct,41,145,5945,4200,540,1205,8,1,active
+2026-03-16,CL-007,CMP-002,Digital Transformation,Referral,45,145,6525,4600,730,1195,10,2,active
+2026-03-18,CL-008,CMP-006,Cloud Services,Website,36,145,5220,3600,390,1230,6,1,completed
+2026-03-20,CL-009,CMP-007,Strategy Consulting,Direct,73,145,10585,7550,1450,1585,21,4,active
+2026-03-22,CL-010,CMP-008,IT Consulting,Referral,33,135,4455,3100,380,975,5,1,active
+2026-03-24,CL-011,CMP-009,Marketing Services,Facebook,52,120,6240,4500,780,960,13,2,completed
+2026-03-26,CL-012,CMP-010,Digital Transformation,Direct,43,145,6235,4400,630,1205,9,1,active
+2026-03-28,CL-001,CMP-001,Strategy Consulting,Direct,41,140,5740,4000,580,1160,8,1,active
+2026-03-30,CL-002,CMP-002,Digital Transformation,Referral,49,150,7350,5150,820,1380,11,2,completed
