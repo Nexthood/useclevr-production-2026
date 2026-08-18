@@ -820,26 +820,31 @@ function marketplaceRow(label: string, value: number | null, format: "currency" 
 function drawBusinessConsultingFinancials(doc: jsPDF, report: Report, financials: ReportFinancials) {
   let y = 48;
   y = drawSectionHeading(doc, "Business Consulting Financials", y);
+  const consultantCost = financials.consultantCost ?? null;
+  const otherCost = financials.otherCost ?? null;
+  const totalProjectCost = financials.totalProjectCost ?? null;
+  const grossProfit = financials.grossProfit ?? null;
+  const grossMargin = financials.grossMargin ?? null;
   y = drawTable(doc, [
     ["Metric", "Value", "Status", "Source / Notes"],
     ["Revenue", financials.revenue === null ? "Not available" : formatCurrency(financials.revenue), financials.revenue !== null ? "Available" : "Missing", "Source field: revenue"],
-    ["Consultant Cost", financials.consultantCost === null ? "Not available" : formatCurrency(financials.consultantCost), financials.consultantCost !== null ? "Available" : "Missing", "Source field: consultant_cost"],
-    ["Other Cost", financials.otherCost === null ? "Not available" : formatCurrency(financials.otherCost), financials.otherCost !== null ? "Available" : "Missing", "Source field: other_cost"],
-    ["Total Project Cost", financials.totalProjectCost === null ? "Not available" : formatCurrency(financials.totalProjectCost), financials.totalProjectCost !== null ? "Derived" : "N/A", "Consultant Cost + Other Cost"],
-    ["Gross Profit", financials.grossProfit === null ? "Not available" : formatCurrency(financials.grossProfit), financials.grossProfit !== null ? "Available" : "Missing", "Revenue - Total Project Cost"],
-    ["Gross Margin", financials.grossMargin === null ? "Not available" : formatPercent(financials.grossMargin), financials.grossMargin !== null ? "Available" : "Missing", "Gross Profit / Revenue"],
+    ["Consultant Cost", consultantCost === null ? "Not available" : formatCurrency(consultantCost), consultantCost !== null ? "Available" : "Missing", "Source field: consultant_cost"],
+    ["Other Cost", otherCost === null ? "Not available" : formatCurrency(otherCost), otherCost !== null ? "Available" : "Missing", "Source field: other_cost"],
+    ["Total Project Cost", totalProjectCost === null ? "Not available" : formatCurrency(totalProjectCost), totalProjectCost !== null ? "Derived" : "N/A", "Consultant Cost + Other Cost"],
+    ["Gross Profit", grossProfit === null ? "Not available" : formatCurrency(grossProfit), grossProfit !== null ? "Available" : "Missing", "Revenue - Total Project Cost"],
+    ["Gross Margin", grossMargin === null ? "Not available" : formatPercent(grossMargin), grossMargin !== null ? "Available" : "Missing", "Gross Profit / Revenue"],
     ["Operating Expenses", financials.operatingExpenses === null ? "Not available" : formatCurrency(financials.operatingExpenses), "Not available", "Operating expense data not supplied"],
     ["Operating Profit", financials.operatingProfit === null ? "Not available" : formatCurrency(financials.operatingProfit), "Not available", "Requires operating expenses"],
     ["Net Profit", financials.netProfit === null ? "Not available" : formatCurrency(financials.netProfit), "Not available", "Requires operating expenses, interest, tax"],
   ], page.margin, y, [50, 35, 30, 59]) + 12;
 
   y = drawSectionHeading(doc, "Project Cost Breakdown", y, 45);
-  const costRows = [
+  const costRows: { label: string; value: number | null; color: Rgb }[] = [
     { label: "Revenue", value: financials.revenue, color: colors.brandCyan },
-    { label: "Consultant Cost", value: financials.consultantCost, color: colors.brandPurple },
-    { label: "Other Cost", value: financials.otherCost, color: colors.brandBlue },
-    { label: "Gross Profit", value: financials.grossProfit, color: colors.green },
-  ].filter((row) => row.value !== null);
+    { label: "Consultant Cost", value: consultantCost, color: colors.brandPurple },
+    { label: "Other Cost", value: otherCost, color: colors.brandBlue },
+    { label: "Gross Profit", value: grossProfit, color: colors.green },
+  ].filter((row): row is { label: string; value: number; color: Rgb } => row.value !== null);
 
   if (costRows.length >= 2 && financials.revenue !== null) {
     y = drawBars(doc, costRows, page.margin, y, 174, 45);
