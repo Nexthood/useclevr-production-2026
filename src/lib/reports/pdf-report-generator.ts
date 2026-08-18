@@ -153,6 +153,13 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Investor Recommendations + Provenance", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials, "Investor Recommendations");
+  } else if (report.reportProfile?.id === "business_consulting") {
+    addDocumentPage(doc, "Business Consulting Financials", datasetName);
+    drawBusinessConsultingFinancials(doc, report, financials);
+    addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
+    drawBalancedScorecard(doc, report);
+    addDocumentPage(doc, "Executive Recommendations", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials);
   } else {
     renderedGenericFinancialPages = true;
     addDocumentPage(doc, "Financial Performance", datasetName);
@@ -810,6 +817,37 @@ function marketplaceRow(label: string, value: number | null, format: "currency" 
   ];
 }
 
+function drawBusinessConsultingFinancials(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  let y = 48;
+  y = drawSectionHeading(doc, "Business Consulting Financials", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Revenue", financials.revenue === null ? "Not available" : formatCurrency(financials.revenue), financials.revenue !== null ? "Available" : "Missing", "Source field: revenue"],
+    ["Consultant Cost", financials.consultantCost === null ? "Not available" : formatCurrency(financials.consultantCost), financials.consultantCost !== null ? "Available" : "Missing", "Source field: consultant_cost"],
+    ["Other Cost", financials.otherCost === null ? "Not available" : formatCurrency(financials.otherCost), financials.otherCost !== null ? "Available" : "Missing", "Source field: other_cost"],
+    ["Total Project Cost", financials.totalProjectCost === null ? "Not available" : formatCurrency(financials.totalProjectCost), financials.totalProjectCost !== null ? "Derived" : "N/A", "Consultant Cost + Other Cost"],
+    ["Gross Profit", financials.grossProfit === null ? "Not available" : formatCurrency(financials.grossProfit), financials.grossProfit !== null ? "Available" : "Missing", "Revenue - Total Project Cost"],
+    ["Gross Margin", financials.grossMargin === null ? "Not available" : formatPercent(financials.grossMargin), financials.grossMargin !== null ? "Available" : "Missing", "Gross Profit / Revenue"],
+    ["Operating Expenses", financials.operatingExpenses === null ? "Not available" : formatCurrency(financials.operatingExpenses), "Not available", "Operating expense data not supplied"],
+    ["Operating Profit", financials.operatingProfit === null ? "Not available" : formatCurrency(financials.operatingProfit), "Not available", "Requires operating expenses"],
+    ["Net Profit", financials.netProfit === null ? "Not available" : formatCurrency(financials.netProfit), "Not available", "Requires operating expenses, interest, tax"],
+  ], page.margin, y, [50, 35, 30, 59]) + 12;
+
+  y = drawSectionHeading(doc, "Project Cost Breakdown", y, 45);
+  const costRows = [
+    { label: "Revenue", value: financials.revenue, color: colors.brandCyan },
+    { label: "Consultant Cost", value: financials.consultantCost, color: colors.brandPurple },
+    { label: "Other Cost", value: financials.otherCost, color: colors.brandBlue },
+    { label: "Gross Profit", value: financials.grossProfit, color: colors.green },
+  ].filter((row) => row.value !== null);
+
+  if (costRows.length >= 2 && financials.revenue !== null) {
+    y = drawBars(doc, costRows, page.margin, y, 174, 45);
+  } else {
+    y = drawUnavailable(doc, "Chart unavailable", "Revenue and cost data are required for project cost visualization.", page.margin, y, 174, 32) + 12;
+  }
+}
+
 function drawFinancialPerformance(doc: jsPDF, financials: ReportFinancials) {
   let y = 48;
   y = drawSectionHeading(doc, "Financial Performance", y);
@@ -1258,6 +1296,25 @@ function selectDataStatus(report: Report, financials: ReportFinancials, confiden
   const status: SummaryItem[] = [];
   if (report.reportProfile?.id === "investor_portfolio") {
     status.push({ label: "Data Coverage", detail: "Investor portfolio fields sufficiently covered for current analysis." });
+  } else if (report.reportProfile?.id === "business_consulting") {
+    const available: string[] = [];
+    const optional: string[] = [];
+    if (financials.revenue !== null) available.push("Revenue");
+    if (financials.consultantCost !== null) available.push("Consultant Cost");
+    if (financials.otherCost !== null) available.push("Other Cost");
+    if (financials.grossProfit !== null) available.push("Gross Profit");
+    if (financials.grossMargin !== null) available.push("Gross Margin");
+    if (financials.operatingExpenses === null) optional.push("Operating Expenses");
+    if (financials.operatingProfit === null) optional.push("Operating Profit");
+    if (financials.interestExpense === null) optional.push("Interest Expense");
+    if (financials.taxExpense === null) optional.push("Tax Expense");
+    if (financials.netProfit === null) optional.push("Net Profit");
+    if (available.length > 0) {
+      status.push({ label: "Available", detail: `${available.join(", ")}.` });
+    }
+    if (optional.length > 0) {
+      status.push({ label: "Optional for Deeper Analysis", detail: `${optional.join(", ")}: add to extend from gross to operating/net profitability.` });
+    }
   } else {
     const missing = [
       ...(financials.missingFields || []),
@@ -1844,6 +1901,22 @@ function managementSummary(report: Report, financials: ReportFinancials) {
     }
     return parts.join(" ") || "Portfolio analysis complete.";
   }
+  if (report.reportProfile?.id === "business_consulting") {
+    const parts: string[] = [];
+    if (financials.revenue !== null) {
+      parts.push(`Revenue is ${formatCurrency(financials.revenue)} from recognized source data.`);
+    }
+    if (financials.grossProfit !== null) {
+      parts.push(`Gross profit is ${formatCurrency(financials.grossProfit)} with a gross margin of ${financials.grossMargin?.toFixed(1)}%.`);
+    }
+    if (financials.netProfit === null) {
+      parts.push("Operating and net profitability require additional inputs (operating expenses, interest, tax).");
+    }
+    if (hasTrendData(financials)) {
+      parts.push("Trend analysis uses available project date data.");
+    }
+    return parts.join(" ") || "Business consulting analysis complete.";
+  }
   return [
     financials.revenue === null
       ? "Revenue is not available from recognized source fields in the selected dataset."
@@ -1865,7 +1938,43 @@ function normalizeRecommendations(report: Report, financials: ReportFinancials):
   });
   if (recommendations.length > 0) return recommendations.slice(0, 4);
 
+  const isBusinessConsulting = report.reportProfile?.id === "business_consulting";
   const fallback: ReportRecommendation[] = [];
+
+  if (isBusinessConsulting) {
+    if (financials.grossProfit === null && financials.revenue !== null) {
+      fallback.push({
+        issue: "Add project cost data to calculate gross profit.",
+        businessImpact: "Revenue is available, but consultant_cost and other_cost fields are missing for project cost analysis.",
+        recommendedAction: "Add consultant_cost and other_cost fields to enable gross profit and margin analysis.",
+        estimatedImpact: "High",
+        confidence: "High",
+        requiredData: ["Consultant Cost", "Other Cost"],
+      });
+    }
+    if (financials.revenue !== null && financials.netProfit === null) {
+      fallback.push({
+        issue: "Add operating expense data to extend profitability analysis.",
+        businessImpact: "Gross profitability is available, but operating and net profitability require operating expenses, interest, and tax inputs.",
+        recommendedAction: "Add operating expenses, interest, and tax data to extend analysis from gross to operating and net profitability.",
+        estimatedImpact: "Medium",
+        confidence: "High",
+        requiredData: ["Operating Expenses", "Interest Expense", "Tax Expense"],
+      });
+    }
+    if (!hasTrendData(financials)) {
+      fallback.push({
+        issue: "Add project date data to enable trend analysis.",
+        businessImpact: "Project start and end dates are missing, preventing revenue and profitability trend analysis.",
+        recommendedAction: "Add project_start and project_end fields to enable project-based trend analysis.",
+        estimatedImpact: "Medium",
+        confidence: "High",
+        requiredData: ["Project Start", "Project End"],
+      });
+    }
+    return fallback.slice(0, 4);
+  }
+
   if (financials.revenue !== null && financials.netProfit === null) {
     fallback.push({
       issue: "Validate profitability before making margin decisions.",
