@@ -295,7 +295,7 @@ function buildMetrics(
       addMetric(metrics, "Portfolio monitoring", groupedCount(rows, columns.stage), "number", scorePositiveValue(groupedCount(rows, columns.stage)), columns.stage, "Stage coverage supports portfolio monitoring.")
       addMetric(metrics, "Risk exposure", concentrationScore(rows, columns.sector, columns.valuation || columns.investedAmount), "percent", concentrationScore(rows, columns.sector, columns.valuation || columns.investedAmount), columns.sector, "Sector concentration is included as risk-management input.", undefined, "Review concentration by sector and stage.")
     } else if (model === "business_consulting") {
-      addMetric(metrics, "Billable utilization", sumColumn(rows, columns.billableHours), "number", scorePositiveValue(sumColumn(rows, columns.billableHours)), columns.billableHours, "Billable hours are included for utilization.")
+      addMetric(metrics, "Billable hours", sumColumn(rows, columns.billableHours), "number", scorePositiveValue(sumColumn(rows, columns.billableHours)), columns.billableHours, "Billable hours provide project-delivery activity coverage.")
       addMetric(metrics, "Cost efficiency", ratioPercent(cost, revenue), "percent", scoreLowerIsBetter(ratioPercent(cost, revenue), 50, 85), columns.cost, "Cost efficiency uses cost as a percentage of revenue.")
     } else if (model === "marketplace") {
       const completedTransactions = countDistinctPositiveStatus(rows, columns.order, columns.completed)

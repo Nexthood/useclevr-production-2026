@@ -76,7 +76,14 @@ type ColumnMap = {
   billableHours?: string
   hourlyRate?: string
   consultantCost?: string
+  otherCost?: string
   grossMargin?: string
+  projectStart?: string
+  projectEnd?: string
+  projectId?: string
+  consultantId?: string
+  industry?: string
+  pipelineStage?: string
   account?: string
   debit?: string
   credit?: string
@@ -163,6 +170,14 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   if (saasAnalysis) financials.dataConfidence = saasDataConfidence(columnMap)
   if (marketplaceAnalysis) financials.dataConfidence = marketplaceDataConfidence(columnMap)
   if (investorAnalysis) financials.dataConfidence = investorDataConfidence(columnMap)
+  if (reportModel === "business_consulting") {
+    financials.dataConfidence = businessConsultingDataConfidence(columnMap)
+    financials.consultantCost = sumColumn(rows, columnMap.consultantCost)
+    financials.otherCost = sumColumn(rows, columnMap.otherCost)
+    financials.totalProjectCost = financials.consultantCost !== null && financials.otherCost !== null
+      ? financials.consultantCost + financials.otherCost
+      : financials.consultantCost ?? financials.otherCost ?? null
+  }
   const kpis = buildKpis(reportModel, rows, columnMap, financials, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
   const charts = buildCharts(reportModel, rows, columnMap, retailAnalysis, ecommerceAnalysis, saasAnalysis, marketplaceAnalysis)
   const canonicalRowCount = dataset.rowCount || rows.length
@@ -886,6 +901,30 @@ function investorDataConfidence(columns: ColumnMap) {
     columns.growthRate,
     columns.runway,
     columns.burn,
+  ]
+  const availableRequired = required.filter(Boolean).length
+  const availableOptional = optional.filter(Boolean).length
+  return Math.round(((availableRequired / required.length) * 85) + ((availableOptional / optional.length) * 15))
+}
+
+function businessConsultingDataConfidence(columns: ColumnMap) {
+  const required = [
+    columns.projectId,
+    columns.customer,
+    columns.revenue,
+    columns.consultantCost,
+    columns.grossMargin,
+  ]
+  const optional = [
+    columns.consultantId,
+    columns.industry,
+    columns.projectStart,
+    columns.projectEnd,
+    columns.billableHours,
+    columns.hourlyRate,
+    columns.otherCost,
+    columns.status,
+    columns.pipelineStage,
   ]
   const availableRequired = required.filter(Boolean).length
   const availableOptional = optional.filter(Boolean).length
@@ -2013,6 +2052,27 @@ function buildDatasetSummary(
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
 ) {
+  if (model === "business_consulting") {
+    const parts: string[] = []
+    if (financials.revenue !== null) {
+      parts.push(`${datasetName} contains ${formatCurrencyForSummary(financials.revenue)} in recognized revenue across ${rowCount.toLocaleString()} loaded rows.`)
+    } else {
+      parts.push(`${datasetName} has ${rowCount.toLocaleString()} loaded rows, but revenue is not available from recognized source fields.`)
+    }
+    if (financials.grossProfit !== null) {
+      parts.push(`Gross profit is ${formatCurrencyForSummary(financials.grossProfit)} with a gross margin of ${financials.grossMargin?.toFixed(1)}%.`)
+    } else if (financials.revenue !== null && (columns.consultantCost || columns.otherCost)) {
+      parts.push("Gross profitability cannot be calculated because consultant_cost and/or other_cost data is incomplete.")
+    }
+    if (financials.netProfit === null) {
+      parts.push("Operating and net profitability require additional inputs (operating expenses, interest, tax).")
+    }
+    parts.push(hasTrendFields(columns) ? "Trend analysis can use the recognized date or period field." : "Trend analysis is unavailable because no valid date or period field is recognized.")
+    if (bbsc.availablePerspectiveCount < 2) {
+      parts.push("Balanced Scorecard comparison is unavailable because fewer than two perspectives have comparable source data.")
+    }
+    return parts.join(" ")
+  }
   const parts: string[] = []
   if (financials.revenue !== null) {
     parts.push(`${datasetName} contains ${formatCurrencyForSummary(financials.revenue)} in recognized revenue across ${rowCount.toLocaleString()} loaded rows.`)
@@ -2039,6 +2099,41 @@ function buildDatasetRecommendations(
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
 ): ReportRecommendation[] {
+  const isBusinessConsulting = columns.consultantCost !== undefined || columns.otherCost !== undefined
+  if (isBusinessConsulting) {
+    const recommendations: ReportRecommendation[] = []
+    if (financials.grossProfit === null && financials.revenue !== null) {
+      recommendations.push({
+        issue: "Add project cost data to calculate gross profit.",
+        businessImpact: "Revenue is available, but consultant_cost and other_cost fields are missing for project cost analysis.",
+        recommendedAction: "Add consultant_cost and other_cost fields to enable gross profit and margin analysis.",
+        estimatedImpact: "High",
+        confidence: "High",
+        requiredData: ["Consultant Cost", "Other Cost"],
+      })
+    }
+    if (financials.revenue !== null && financials.netProfit === null) {
+      recommendations.push({
+        issue: "Add operating expense data to extend profitability analysis.",
+        businessImpact: "Gross profitability is available, but operating and net profitability require operating expenses, interest, and tax inputs.",
+        recommendedAction: "Add operating expenses, interest, and tax data to extend analysis from gross to operating and net profitability.",
+        estimatedImpact: "Medium",
+        confidence: "High",
+        requiredData: ["Operating Expenses", "Interest Expense", "Tax Expense"],
+      })
+    }
+    if (!hasTrendFields(columns)) {
+      recommendations.push({
+        issue: "Add project date data to enable trend analysis.",
+        businessImpact: "Project start and end dates are missing, preventing revenue and profitability trend analysis.",
+        recommendedAction: "Add project_start and project_end fields to enable project-based trend analysis.",
+        estimatedImpact: "Medium",
+        confidence: "High",
+        requiredData: ["Project Start", "Project End"],
+      })
+    }
+    return recommendations.slice(0, 4)
+  }
   const recommendations: ReportRecommendation[] = []
   if (financials.revenue !== null && financials.netProfit === null) {
     recommendations.push({
@@ -2191,8 +2286,8 @@ function detectColumns(columns: string[]): ColumnMap {
     region: findColumn(columns, [/region/]),
     channel: findColumn(columns, [/channel/, /source/]),
     product: findColumn(columns, [/product_id/, /product_name/, /product/, /^sku$/, /item/]),
-    category: findColumn(columns, [/category/, /sector/, /industry/]),
-    date: findColumn(columns, [/date/, /month/, /period/, /created_at/]),
+    category: findColumn(columns, [/category/]),
+    date: findColumn(columns, [/date/, /month/, /period/, /created_at/, /project_start/, /project_end/]),
     shippingCost: findColumn(columns, [/shipping_cost/, /shipping/, /fulfillment_cost/, /delivery_cost/, /freight/]),
     discount: findColumn(columns, [/discount/, /discount_amount/, /promo/]),
     returnStatus: findColumn(columns, [/return_status/, /returned/, /return/]),
@@ -2232,7 +2327,14 @@ function detectColumns(columns: string[]): ColumnMap {
     billableHours: findColumn(columns, [/billable_hours/, /hours/]),
     hourlyRate: findColumn(columns, [/hourly_rate/, /rate/]),
     consultantCost: findColumn(columns, [/consultant_cost/]),
+    otherCost: findColumn(columns, [/other_cost/]),
     grossMargin: findColumn(columns, [/gross_margin/, /project_margin/]),
+    projectStart: findColumn(columns, [/project_start/]),
+    projectEnd: findColumn(columns, [/project_end/]),
+    projectId: findColumn(columns, [/project_id/]),
+    consultantId: findColumn(columns, [/consultant_id/]),
+    industry: findColumn(columns, [/industry/]),
+    pipelineStage: findColumn(columns, [/pipeline_stage/]),
     account: findColumn(columns, [/account/, /ledger/]),
     debit: findColumn(columns, [/debit/]),
     credit: findColumn(columns, [/credit/]),
@@ -2256,18 +2358,19 @@ function buildSemanticContext(input: {
   const isEcommerce = input.reportModel === "ecommerce"
   const isSaas = input.reportModel === "saas" || input.reportModel === "startup"
   const isMarketplace = input.reportModel === "marketplace"
+  const isBusinessConsulting = input.reportModel === "business_consulting"
   const mappings: Record<string, string | null> = {
-    date: input.columnMap.date || null,
-    revenue: isMarketplace ? null : input.columnMap.revenue || input.columnMap.gmv || null,
-    cogs: input.columnMap.cogs || null,
-    grossProfit: input.columnMap.grossProfit || null,
-    operatingExpenses: input.columnMap.operatingExpenses || null,
-    operatingProfit: input.columnMap.operatingProfit || null,
-    interestExpense: input.columnMap.interestExpense || null,
-    taxExpense: input.columnMap.taxExpense || null,
-    netProfit: input.columnMap.netProfit || null,
-    expenseCategory: isEcommerce || isSaas || isMarketplace ? null : input.columnMap.expenseCategory || null,
-    expenseAmount: isEcommerce || isSaas || isMarketplace ? null : input.columnMap.expenseAmount || null,
+    date: isBusinessConsulting ? ((input.columnMap.projectStart || input.columnMap.projectEnd) ?? null) : (input.columnMap.date ?? null),
+    revenue: isBusinessConsulting ? (input.columnMap.revenue ?? null) : (isMarketplace ? null : (input.columnMap.revenue || input.columnMap.gmv || null)),
+    cogs: isBusinessConsulting ? null : (input.columnMap.cogs ?? null),
+    grossProfit: isBusinessConsulting ? (input.columnMap.grossProfit ?? null) : (input.columnMap.grossProfit ?? null),
+    operatingExpenses: input.columnMap.operatingExpenses ?? null,
+    operatingProfit: input.columnMap.operatingProfit ?? null,
+    interestExpense: input.columnMap.interestExpense ?? null,
+    taxExpense: input.columnMap.taxExpense ?? null,
+    netProfit: input.columnMap.netProfit ?? null,
+    expenseCategory: isEcommerce || isSaas || isMarketplace || isBusinessConsulting ? null : input.columnMap.expenseCategory || null,
+    expenseAmount: isEcommerce || isSaas || isMarketplace || isBusinessConsulting ? null : input.columnMap.expenseAmount || null,
     vendor: input.columnMap.vendor || null,
     mrr: input.columnMap.mrr || null,
     arr: input.columnMap.arr || null,
@@ -2297,12 +2400,19 @@ function buildSemanticContext(input: {
     newBuyer: input.columnMap.newBuyer || null,
     newSeller: input.columnMap.newSeller || null,
     completed: input.columnMap.completed || null,
+    consultantCost: isBusinessConsulting ? input.columnMap.consultantCost || null : null,
+    otherCost: isBusinessConsulting ? input.columnMap.otherCost || null : null,
+    projectStart: isBusinessConsulting ? input.columnMap.projectStart || null : null,
+    projectEnd: isBusinessConsulting ? input.columnMap.projectEnd || null : null,
+    billableHours: isBusinessConsulting ? input.columnMap.billableHours || null : null,
   }
   const required = isSaas
     ? ["date", "mrr", "arr", "customer", "newCustomer", "churned", "expansionMrr", "contractionMrr", "cac", "ltv", "activeUsers", "supportTickets", "burn", "cashBalance", "runway", "plan", "country"]
     : isMarketplace
       ? ["date", "gmv", "commission", "order", "buyer", "seller", "refund"]
-      : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
+      : isBusinessConsulting
+        ? ["date", "revenue", "grossProfit", "consultantCost", "projectStart", "projectEnd"]
+        : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
   const available = required.filter((key) => Boolean(mappings[key])).length
   return {
     datasetId: input.datasetId,
@@ -2312,12 +2422,14 @@ function buildSemanticContext(input: {
     dateField: mappings.date,
     revenueField: mappings.revenue,
     netProfitField: mappings.netProfit,
-    costFields: [
-      input.columnMap.cogs,
-      input.columnMap.operatingExpenses,
-      input.columnMap.interestExpense,
-      input.columnMap.taxExpense,
-    ].filter((field): field is string => Boolean(field)),
+    costFields: isBusinessConsulting
+      ? [input.columnMap.consultantCost, input.columnMap.otherCost].filter((field): field is string => Boolean(field))
+      : [
+          input.columnMap.cogs,
+          input.columnMap.operatingExpenses,
+          input.columnMap.interestExpense,
+          input.columnMap.taxExpense,
+        ].filter((field): field is string => Boolean(field)),
     expenseCategoryField: mappings.expenseCategory,
     expenseAmountField: mappings.expenseAmount,
     vendorField: mappings.vendor,
@@ -2503,10 +2615,22 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Refund Amount", marketplace?.refunds ?? null, "currency")
     addKpi(kpis, "Refund Rate", marketplace?.refundRate ?? null, "percent")
   } else if (model === "business_consulting") {
-    addKpi(kpis, "Billable hours", sumColumn(rows, columns.billableHours), "number")
-    addKpi(kpis, "Utilization revenue", revenue, "currency")
-    addKpi(kpis, "Project margin", sumColumn(rows, columns.grossMargin) ?? profit, "currency")
-    addKpi(kpis, "Client count", customers, "number")
+    const consultantCost = sumColumn(rows, columns.consultantCost)
+    const otherCost = sumColumn(rows, columns.otherCost)
+    const totalProjectCost = consultantCost !== null && otherCost !== null ? consultantCost + otherCost : consultantCost ?? otherCost
+    const grossProfitVal = financials.grossProfit ?? (revenue !== null && totalProjectCost !== null ? revenue - totalProjectCost : null)
+    const grossMarginVal = financials.grossMargin ?? (revenue !== null && grossProfitVal !== null ? (grossProfitVal / revenue) * 100 : null)
+    kpis.length = 0
+    addKpi(kpis, "Revenue", revenue, "currency")
+    addKpi(kpis, "Consultant Cost", consultantCost, "currency")
+    addKpi(kpis, "Other Cost", otherCost, "currency")
+    addKpi(kpis, "Total Project Cost", totalProjectCost, "currency")
+    addKpi(kpis, "Gross Profit", grossProfitVal, "currency")
+    addKpi(kpis, "Gross Margin", grossMarginVal, "percent")
+    addKpi(kpis, "Projects", columns.projectId ? uniqueCount(rows, columns.projectId) : rows.length, "number")
+    addKpi(kpis, "Clients", columns.customer ? uniqueCount(rows, columns.customer) : customers, "number")
+    addKpi(kpis, "Consultants", columns.consultantId ? uniqueCount(rows, columns.consultantId) : null, "number")
+    addKpi(kpis, "Billable Hours", sumColumn(rows, columns.billableHours), "number")
   } else if (model === "profitability") {
     addKpi(kpis, "Costs", cost, "currency")
     addKpi(kpis, "Gross margin", profit !== null && revenue ? (profit / revenue) * 100 : null, "percent")
@@ -2563,8 +2687,11 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     const seller = groupedChart(rows, columns.seller, columns.gmv || columns.commission, "Seller performance")
     if (seller) charts.push(seller)
   } else if (model === "business_consulting") {
-    const clients = groupedChart(rows, columns.customer, columns.revenue || columns.billableHours, "Client profitability")
+    const industryChart = groupedChart(rows, columns.industry, columns.revenue, "Top Industry by Revenue")
+    if (industryChart) charts.push(industryChart)
+    const clients = groupedChart(rows, columns.customer, columns.revenue, "Top Client by Revenue")
     if (clients) charts.push(clients)
+    return charts.slice(0, 4)
   } else if (model === "accountancy" || model === "prebookkeeping") {
     const accounts = groupedChart(rows, columns.account, columns.debit || columns.credit || columns.revenue, "Account activity")
     if (accounts) charts.push(accounts)
@@ -2576,7 +2703,8 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
 function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap, kpis: ReportKpi[], retail?: RetailReportAnalysis, ecommerce?: EcommerceReportAnalysis, saas?: SaasReportAnalysis, marketplace?: MarketplaceReportAnalysis) {
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
-  if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && model !== "business_consulting" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model === "business_consulting" && !columns.consultantCost && !columns.otherCost) findings.push("Project cost analysis is limited because consultant_cost and other_cost fields are not recognized.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
   if (model === "local_retail") {
     findings.push("Retail KPIs prioritize revenue, gross profit, gross margin, unit sales, inventory value, stock levels, reorder risk, products, categories, and suppliers.")
@@ -2610,6 +2738,8 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
   }
   if (model === "investor" && columns.valuation) findings.push("Portfolio valuation and allocation metrics are included.")
   if (model === "business_consulting" && columns.billableHours) findings.push("Billable-hour and project-margin metrics are included.")
+  if (model === "business_consulting" && (columns.consultantCost || columns.otherCost)) findings.push("Project costs are recognized from consultant_cost and other_cost fields.")
+  if (model === "business_consulting" && (columns.projectStart || columns.projectEnd)) findings.push("Reporting period is derived from project_start and project_end dates.")
   if ((model === "accountancy" || model === "prebookkeeping") && (columns.debit || columns.credit)) findings.push("Ledger debit and credit totals are included from accounting columns.")
   return findings
 }
@@ -2856,7 +2986,7 @@ function groupedChart(rows: DataRow[], groupColumn: string | undefined, valueCol
 }
 
 function hasTrendFields(columns: ColumnMap) {
-  return Boolean(columns.date)
+  return Boolean(columns.date || columns.projectStart || columns.projectEnd)
 }
 
 function getNumber(value: unknown) {

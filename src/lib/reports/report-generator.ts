@@ -141,6 +141,9 @@ export interface ReportFinancials {
     operatingMargin?: number | null;
     netMargin?: number | null;
   }>;
+  consultantCost?: number | null;
+  otherCost?: number | null;
+  totalProjectCost?: number | null;
 }
 
 export interface ReportSemanticContext {
