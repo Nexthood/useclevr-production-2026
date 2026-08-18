@@ -597,7 +597,7 @@ function drawEcommerceCommercialIntelligence(doc: jsPDF, report: Report, financi
       ...ecommerce.channelPerformance.map((item): TableRow => [
         item.name,
         formatCurrency(item.value),
-        `${item.orders.toLocaleString()} / ${item.aov === null ? "Not available" : formatCurrency(item.aov)}`,
+        `${item.orders === null ? "Not available" : item.orders.toLocaleString()} / ${item.aov === null ? "Not available" : formatCurrency(item.aov)}`,
         item.share === null ? "Revenue share unavailable." : `${formatPercent(item.share)} of revenue.`,
       ]),
     ], page.margin, y, [42, 34, 38, 60]) + 12;
@@ -609,7 +609,7 @@ function drawEcommerceCommercialIntelligence(doc: jsPDF, report: Report, financi
   const geography = ecommerce.geography[0];
   y = drawTable(doc, [
     ["Metric", "Value", "Status", "Source / Notes"],
-    ["Top Geography", geography?.name || "Not available", geography ? "Available" : "Not available", geography ? `${formatCurrency(geography.value)} revenue; ${geography.orders.toLocaleString()} orders.` : "Country or region field is missing."],
+    ["Top Geography", geography?.name || "Not available", geography ? "Available" : "Not available", geography ? `${formatCurrency(geography.value)} revenue; ${geography.orders === null ? "order count not available" : geography.orders.toLocaleString() + " orders"}.` : "Country or region field is missing."],
     ["Shipping / Fulfillment Cost", ecommerce.shippingCost === null ? "Not available" : formatCurrency(ecommerce.shippingCost), ecommerce.shippingCost === null ? "Not available" : "Available", ecommerce.shippingCostRate === null ? "Tracked separately from COGS." : `${formatPercent(ecommerce.shippingCostRate)} of revenue; separate from COGS.`],
     ["Avg Shipping Cost / Order", ecommerce.averageShippingCostPerOrder === null ? "Not available" : formatCurrency(ecommerce.averageShippingCostPerOrder), ecommerce.averageShippingCostPerOrder === null ? "Not available" : "Available", "Shipping cost divided by distinct order count."],
     ["Total Discounts", ecommerce.discounts === null ? "Not available" : formatCurrency(ecommerce.discounts), ecommerce.discounts === null ? "Not available" : "Available", ecommerce.discountRate === null ? "Discount field missing or zero revenue." : `${formatPercent(ecommerce.discountRate)} of revenue.`],
@@ -620,7 +620,7 @@ function drawEcommerceCommercialIntelligence(doc: jsPDF, report: Report, financi
     y = drawSectionHeading(doc, "Payment Method", y);
     drawTable(doc, [
       ["Payment Method", "Revenue", "Orders", "Notes"],
-      ...ecommerce.paymentMethods.map((item): TableRow => [item.name, formatCurrency(item.value), item.orders.toLocaleString(), "Source revenue grouped by payment method."]),
+      ...ecommerce.paymentMethods.map((item): TableRow => [item.name, formatCurrency(item.value), item.orders === null ? "Not available" : item.orders.toLocaleString(), "Source revenue grouped by payment method."]),
     ], page.margin, y, [54, 34, 28, 58]);
   }
 }

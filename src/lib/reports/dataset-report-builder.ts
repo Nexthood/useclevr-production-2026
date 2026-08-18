@@ -1186,14 +1186,23 @@ function buildEcommerceRecommendations(
       requiredData: ["COGS or product cost"],
     })
   }
-  if (!columns.order || !columns.customer) {
+  if (!columns.order) {
     recommendations.push({
-      issue: "Order or customer identifiers are incomplete.",
-      businessImpact: "AOV, customer economics, and order concentration depend on reliable identifiers.",
-      recommendedAction: "Include order_id and customer_id in future e-commerce uploads.",
+      issue: "Reliable order identifier is not available.",
+      businessImpact: "Order count, AOV, orders per customer, and order-level concentration require a reliable order identifier.",
+      recommendedAction: "Include order_id or an equivalent unique order identifier in future e-commerce uploads.",
       estimatedImpact: null,
       confidence: "High",
-      requiredData: ["Order ID", "Customer ID"],
+      requiredData: ["Order ID"],
+    })
+  } else if (!columns.customer) {
+    recommendations.push({
+      issue: "Customer identifier is not available.",
+      businessImpact: "Customer analytics, repeat purchase rates, and customer lifetime value require customer identification.",
+      recommendedAction: "Include customer_id in future e-commerce uploads to enable customer-centric analysis.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["Customer ID"],
     })
   }
   return recommendations.slice(0, 5)
@@ -1791,6 +1800,7 @@ function ecommerceOrdersTrend(rows: DataRow[], columns: ColumnMap) {
 
 function ecommerceChannelPerformance(rows: DataRow[], columns: ColumnMap, totalRevenue: number | null) {
   if (!columns.channel || !columns.revenue) return []
+  const hasOrderColumn = Boolean(columns.order)
   const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
   for (const row of rows) {
     const name = String(row[columns.channel] || "Unknown channel").trim() || "Unknown channel"
@@ -1808,7 +1818,7 @@ function ecommerceChannelPerformance(rows: DataRow[], columns: ColumnMap, totalR
     .map(([name, value]) => ({
       name,
       value: round(value.revenue),
-      orders: value.orders.size,
+      orders: hasOrderColumn && value.orders.size > 0 ? value.orders.size : null,
       aov: value.orders.size > 0 ? round(value.revenue / value.orders.size) : null,
       share: totalRevenue && totalRevenue > 0 ? round((value.revenue / totalRevenue) * 100) : null,
     }))
@@ -1819,6 +1829,7 @@ function ecommerceChannelPerformance(rows: DataRow[], columns: ColumnMap, totalR
 function ecommerceGeography(rows: DataRow[], columns: ColumnMap, totalRevenue: number | null) {
   const geographyColumn = columns.country || columns.region
   if (!geographyColumn || !columns.revenue) return []
+  const hasOrderColumn = Boolean(columns.order)
   const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
   for (const row of rows) {
     const name = String(row[geographyColumn] || "Unknown geography").trim() || "Unknown geography"
@@ -1836,7 +1847,7 @@ function ecommerceGeography(rows: DataRow[], columns: ColumnMap, totalRevenue: n
     .map(([name, value]) => ({
       name,
       value: round(value.revenue),
-      orders: value.orders.size,
+      orders: hasOrderColumn && value.orders.size > 0 ? value.orders.size : null,
       share: totalRevenue && totalRevenue > 0 ? round((value.revenue / totalRevenue) * 100) : null,
     }))
     .sort((a, b) => b.value - a.value)
@@ -1845,6 +1856,7 @@ function ecommerceGeography(rows: DataRow[], columns: ColumnMap, totalRevenue: n
 
 function ecommercePaymentMethods(rows: DataRow[], columns: ColumnMap) {
   if (!columns.paymentMethod || !columns.revenue) return []
+  const hasOrderColumn = Boolean(columns.order)
   const grouped = new Map<string, { revenue: number; orders: Set<string> }>()
   for (const row of rows) {
     const name = String(row[columns.paymentMethod] || "Unknown payment method").trim() || "Unknown payment method"
@@ -1859,7 +1871,7 @@ function ecommercePaymentMethods(rows: DataRow[], columns: ColumnMap) {
     grouped.set(name, current)
   }
   return Array.from(grouped.entries())
-    .map(([name, value]) => ({ name, value: round(value.revenue), orders: value.orders.size }))
+    .map(([name, value]) => ({ name, value: round(value.revenue), orders: hasOrderColumn && value.orders.size > 0 ? value.orders.size : null }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 8)
 }
@@ -2693,7 +2705,7 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
   const cost = sumColumn(rows, columns.cost)
   const profit = financials.netProfit ?? financials.grossProfit
   const quantity = sumColumn(rows, columns.quantity)
-  const orders = columns.order ? uniqueCount(rows, columns.order) : quantity
+  const orders = columns.order ? uniqueCount(rows, columns.order) : null
   const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
   const kpis: ReportKpi[] = []
 
