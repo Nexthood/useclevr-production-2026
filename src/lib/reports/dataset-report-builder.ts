@@ -2380,9 +2380,13 @@ function detectProfessionalServices(columns: string[], datasetName: string) {
   const hasLeadCount = /lead_count/.test(text)
   const hasConversionCount = /conversion_count/.test(text)
   const hasChannel = /channel/.test(text)
+  const nameHasProfessionalServices = /professional_services/.test(text)
+  if (nameHasProfessionalServices) return true
   if (hasFreelancerCost && hasAdSpend) return true
   if (hasCampaignId && hasServiceLine && hasLeadCount && hasConversionCount) return true
   if (hasCampaignId && hasFreelancerCost && hasAdSpend) return true
+  if (hasCampaignId && hasChannel && (hasFreelancerCost || hasAdSpend)) return true
+  if (hasServiceLine && hasChannel && (hasFreelancerCost || hasAdSpend)) return true
   return false
 }
 
