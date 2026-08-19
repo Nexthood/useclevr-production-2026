@@ -173,7 +173,9 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawFinancialPerformance(doc, financials);
     addDocumentPage(doc, "Cost Intelligence", datasetName);
     drawCostIntelligence(doc, report, financials);
-    if (report.reportProfile?.id === "profitability_pnl" && (financials.departmentProfitability?.length ?? 0) > 0) {
+    const profileId = report.reportProfile?.id as string | undefined;
+    const isProfitabilityReport = profileId === "profitability_pnl" || profileId === "profitability";
+    if (isProfitabilityReport && (financials.departmentProfitability?.length ?? 0) > 0) {
       addDocumentPage(doc, "Department Profitability", datasetName);
       drawDepartmentProfitability(doc, financials);
     }
@@ -1237,28 +1239,50 @@ function isAvailableSummaryValue(value: string) {
 
 function selectPerformanceHighlights(report: Report, financials: ReportFinancials): SummaryItem[] {
   const highlights: SummaryItem[] = [];
-  if (report.reportProfile?.id === "profitability_pnl" && financials.departmentProfitability && financials.departmentProfitability.length > 0) {
-    const depts = financials.departmentProfitability;
-    const highestNetProfit = depts.reduce((max, dept) => dept.netProfit > max.netProfit ? dept : max, depts[0]);
-    const highestNetMargin = depts.reduce((max, dept) => (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, depts[0]);
-    const lowestNetMargin = depts.reduce((min, dept) => (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, depts[0]);
-    if (highestNetProfit) {
+  const profileId = report.reportProfile?.id as string | undefined;
+  const isProfitabilityReport = profileId === "profitability_pnl" || profileId === "profitability" || report.reportType === "profitability";
+  if (isProfitabilityReport) {
+    if (financials.netMargin !== null) {
       highlights.push({
-        label: "Highest Net Profit",
-        detail: `${highestNetProfit.name}: ${formatCurrency(highestNetProfit.netProfit)}`,
+        label: "Net Margin",
+        detail: `${financials.netMargin.toFixed(1)}%`,
       });
     }
-    if (highestNetMargin && highestNetMargin.name !== highestNetProfit.name) {
+    if (financials.revenueGrowth !== null && financials.revenueGrowth !== undefined) {
       highlights.push({
-        label: "Highest Net Margin",
-        detail: `${highestNetMargin.name}: ${highestNetMargin.netMargin}%`,
+        label: "Revenue Growth",
+        detail: `${financials.revenueGrowth > 0 ? "+" : ""}${financials.revenueGrowth.toFixed(1)}%`,
       });
     }
-    if (lowestNetMargin && lowestNetMargin.name !== highestNetMargin.name && lowestNetMargin.name !== highestNetProfit.name) {
+    if (financials.netProfit !== null) {
       highlights.push({
-        label: "Weakest Net Margin",
-        detail: `${lowestNetMargin.name}: ${lowestNetMargin.netMargin}%`,
+        label: "Net Profit",
+        detail: formatCurrency(financials.netProfit),
       });
+    }
+    if (financials.operatingMargin !== null && financials.grossMargin !== null) {
+      highlights.push({
+        label: "Margin Gap",
+        detail: `Gross ${financials.grossMargin.toFixed(1)}% vs Operating ${financials.operatingMargin.toFixed(1)}%`,
+      });
+    }
+    if (financials.departmentProfitability && financials.departmentProfitability.length > 0) {
+      const depts = financials.departmentProfitability;
+      const highestNetProfit = depts.reduce((max, dept) => dept.netProfit > max.netProfit ? dept : max, depts[0]);
+      const highestNetMargin = depts.reduce((max, dept) => (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, depts[0]);
+      const lowestNetMargin = depts.reduce((min, dept) => (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, depts[0]);
+      if (highestNetProfit) {
+        highlights.push({
+          label: "Highest Net Profit",
+          detail: `${highestNetProfit.name}: ${formatCurrency(highestNetProfit.netProfit)}`,
+        });
+      }
+      if (highestNetMargin && highestNetMargin.name !== highestNetProfit.name) {
+        highlights.push({
+          label: "Highest Net Margin",
+          detail: `${highestNetMargin.name}: ${highestNetMargin.netMargin}%`,
+        });
+      }
     }
   }
   for (const chart of report.charts || []) {
@@ -1273,7 +1297,8 @@ function selectPerformanceHighlights(report: Report, financials: ReportFinancial
   }
   for (const finding of report.findings || []) {
     if (highlights.length >= 4) break;
-    if (!finding.toLowerCase().includes("loaded rows")) {
+    const lowerFinding = finding.toLowerCase();
+    if (!lowerFinding.includes("loaded rows") && !lowerFinding.includes("available from") && !lowerFinding.includes("recognized source")) {
       highlights.push({ label: "Report result", detail: findingToneDetail(finding), tone: classifyFindingTone(finding) });
     }
   }
