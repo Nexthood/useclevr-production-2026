@@ -173,6 +173,10 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawFinancialPerformance(doc, financials);
     addDocumentPage(doc, "Cost Intelligence", datasetName);
     drawCostIntelligence(doc, report, financials);
+    if (report.reportProfile?.id === "profitability_pnl" && (financials.departmentProfitability?.length ?? 0) > 0) {
+      addDocumentPage(doc, "Department Profitability", datasetName);
+      drawDepartmentProfitability(doc, financials);
+    }
     addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Executive Recommendations", datasetName);
@@ -982,6 +986,50 @@ function drawCostIntelligence(doc: jsPDF, report: Report, financials: ReportFina
   ], page.margin, y, [42, 55, 28, 49]);
 }
 
+function drawDepartmentProfitability(doc: jsPDF, financials: ReportFinancials) {
+  tracePdfRuntime("drawDepartmentProfitability", {} as Report, financials);
+  let y = 48;
+  const departments = financials.departmentProfitability || [];
+  if (departments.length === 0) {
+    drawUnavailable(doc, "Department Profitability unavailable", "No department field found in the selected dataset.", page.margin, y, 174, 28);
+    return;
+  }
+  y = drawSectionHeading(doc, "DEPARTMENT PROFITABILITY", y);
+  y = drawTable(doc, [
+    ["Department", "Revenue", "Net Profit", "Net Margin"],
+    ...departments.map((dept): TableRow => [
+      dept.name,
+      formatCurrency(dept.revenue),
+      formatCurrency(dept.netProfit),
+      dept.netMargin !== null ? formatPercent(dept.netMargin) : "N/A",
+    ]),
+  ], page.margin, y, [55, 40, 40, 39]) + 12;
+
+  y = drawTable(doc, [
+    ["Department", "Gross Profit", "Operating Profit", "Notes"],
+    ...departments.map((dept): TableRow => [
+      dept.name,
+      formatCurrency(dept.grossProfit),
+      formatCurrency(dept.operatingProfit),
+      "Source values from dataset",
+    ]),
+  ], page.margin, y, [55, 40, 40, 39]) + 12;
+
+  const highestNetProfit = departments.reduce((max, dept) => dept.netProfit > max.netProfit ? dept : max, departments[0]);
+  const highestNetMargin = departments.reduce((max, dept) => (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, departments[0]);
+  const lowestNetMargin = departments.reduce((min, dept) => (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, departments[0]);
+
+  y = drawSectionHeading(doc, "Key Findings", y);
+  const findings = [
+    `Highest Net Profit: ${highestNetProfit.name} (${formatCurrency(highestNetProfit.netProfit)})`,
+    highestNetProfit.name !== highestNetMargin.name ? `Highest Net Margin: ${highestNetMargin.name} (${highestNetMargin.netMargin}%)` : null,
+    lowestNetMargin.name !== highestNetMargin.name && lowestNetMargin.name !== highestNetProfit.name ? `Weakest Net Margin: ${lowestNetMargin.name} (${lowestNetMargin.netMargin}%)` : null,
+  ].filter(Boolean);
+  for (const finding of findings) {
+    y = drawTextBox(doc, finding!, page.margin, y, 174, 20) + 8;
+  }
+}
+
 function drawBalancedScorecard(doc: jsPDF, report: Report) {
   let y = 48;
   const bbsc = report.bbsc;
@@ -1098,7 +1146,7 @@ function buildResultsSummary(report: Report, financials: ReportFinancials) {
   const confidence = profileDataConfidence(report, financials);
   return {
     metrics: selectSummaryMetrics(report),
-    highlights: selectPerformanceHighlights(report),
+    highlights: selectPerformanceHighlights(report, financials),
     health: selectBusinessHealth(report, confidence),
     findings: selectTopFindings(report),
     actions: recommendations.slice(0, 4).map((recommendation, index): SummaryItem => ({
@@ -1187,9 +1235,34 @@ function isAvailableSummaryValue(value: string) {
   return Boolean(value && !/not available|undefined|nan/i.test(value));
 }
 
-function selectPerformanceHighlights(report: Report): SummaryItem[] {
+function selectPerformanceHighlights(report: Report, financials: ReportFinancials): SummaryItem[] {
   const highlights: SummaryItem[] = [];
+  if (report.reportProfile?.id === "profitability_pnl" && financials.departmentProfitability && financials.departmentProfitability.length > 0) {
+    const depts = financials.departmentProfitability;
+    const highestNetProfit = depts.reduce((max, dept) => dept.netProfit > max.netProfit ? dept : max, depts[0]);
+    const highestNetMargin = depts.reduce((max, dept) => (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, depts[0]);
+    const lowestNetMargin = depts.reduce((min, dept) => (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, depts[0]);
+    if (highestNetProfit) {
+      highlights.push({
+        label: "Highest Net Profit",
+        detail: `${highestNetProfit.name}: ${formatCurrency(highestNetProfit.netProfit)}`,
+      });
+    }
+    if (highestNetMargin && highestNetMargin.name !== highestNetProfit.name) {
+      highlights.push({
+        label: "Highest Net Margin",
+        detail: `${highestNetMargin.name}: ${highestNetMargin.netMargin}%`,
+      });
+    }
+    if (lowestNetMargin && lowestNetMargin.name !== highestNetMargin.name && lowestNetMargin.name !== highestNetProfit.name) {
+      highlights.push({
+        label: "Weakest Net Margin",
+        detail: `${lowestNetMargin.name}: ${lowestNetMargin.netMargin}%`,
+      });
+    }
+  }
   for (const chart of report.charts || []) {
+    if (highlights.length >= 4) break;
     const top = chart.data?.find((item) => Number.isFinite(item.value));
     if (top) {
       highlights.push({
@@ -1197,11 +1270,12 @@ function selectPerformanceHighlights(report: Report): SummaryItem[] {
         detail: `${truncate(top.name, 42)}: ${formatSummaryChartValue(top.value, chart.title)}`,
       });
     }
-    if (highlights.length >= 3) break;
   }
   for (const finding of report.findings || []) {
     if (highlights.length >= 4) break;
-    highlights.push({ label: "Report result", detail: findingToneDetail(finding), tone: classifyFindingTone(finding) });
+    if (!finding.toLowerCase().includes("loaded rows")) {
+      highlights.push({ label: "Report result", detail: findingToneDetail(finding), tone: classifyFindingTone(finding) });
+    }
   }
   return dedupeSummaryItems(highlights).slice(0, 4);
 }
