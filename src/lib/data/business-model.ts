@@ -215,6 +215,12 @@ function extractBusinessModelFromAnalysis(analysis: unknown): BusinessModel | nu
   if (direct && direct !== "generic") return direct
   const snake = normalizeBusinessModel(record.business_model as string | null)
   if (snake && snake !== "generic") return snake
+
+  const detectedType = record.datasetType as string | null
+  if (detectedType === "generic_business_data") {
+    return "generic"
+  }
+
   return null
 }
 

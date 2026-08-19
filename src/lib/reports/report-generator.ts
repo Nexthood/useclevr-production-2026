@@ -265,9 +265,9 @@ export interface EcommerceReportAnalysis {
   ordersTrend: { name: string; value: number }[];
   categoryPerformance: { name: string; value: number }[];
   topProducts: { name: string; value: number }[];
-  channelPerformance: { name: string; value: number; orders: number; aov: number | null; share: number | null }[];
-  geography: { name: string; value: number; orders: number; share: number | null }[];
-  paymentMethods: { name: string; value: number; orders: number }[];
+  channelPerformance: { name: string; value: number; orders: number | null; aov: number | null; share: number | null }[];
+  geography: { name: string; value: number; orders: number | null; share: number | null }[];
+  paymentMethods: { name: string; value: number; orders: number | null }[];
 }
 
 export interface SaasReportAnalysis {
