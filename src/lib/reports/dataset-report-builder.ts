@@ -2427,7 +2427,7 @@ function buildDatasetRecommendations(
       requiredData: ["Expense Category", "COGS", "Operating Expenses"],
     })
   }
-  if (!columns.customer && !columns.order) {
+  if (!isPnlReport && !columns.customer && !columns.order) {
     recommendations.push({
       issue: "Customer and order fields are not recognized.",
       businessImpact: "Customer performance, concentration, retention, and order-value analysis are unavailable.",
