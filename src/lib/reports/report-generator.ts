@@ -147,6 +147,16 @@ export interface ReportFinancials {
   freelancerCost?: number | null;
   adSpend?: number | null;
   totalDirectCost?: number | null;
+  departmentProfitability?: DepartmentProfitability[];
+}
+
+export interface DepartmentProfitability {
+  name: string;
+  revenue: number;
+  grossProfit: number;
+  operatingProfit: number;
+  netProfit: number;
+  netMargin: number | null;
 }
 
 export interface ReportSemanticContext {

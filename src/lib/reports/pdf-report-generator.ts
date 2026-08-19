@@ -167,12 +167,23 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Executive Recommendations", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials);
+  } else if (report.reportProfile?.id === "accountancy_ledger") {
+    addDocumentPage(doc, "Accountancy Ledger Summary", datasetName);
+    drawAccountancyLedgerSummary(doc, report, financials);
+    addDocumentPage(doc, "Ledger Recommendations + Provenance", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials, "Ledger Recommendations");
   } else {
     renderedGenericFinancialPages = true;
     addDocumentPage(doc, "Financial Performance", datasetName);
     drawFinancialPerformance(doc, financials);
     addDocumentPage(doc, "Cost Intelligence", datasetName);
     drawCostIntelligence(doc, report, financials);
+    const profileId = report.reportProfile?.id as string | undefined;
+    const isProfitabilityReport = profileId === "profitability_pnl" || profileId === "profitability";
+    if (isProfitabilityReport && (financials.departmentProfitability?.length ?? 0) > 0) {
+      addDocumentPage(doc, "Department Profitability", datasetName);
+      drawDepartmentProfitability(doc, financials);
+    }
     addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Executive Recommendations", datasetName);
@@ -372,6 +383,21 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       numberMetricCard("Exited Companies", exitedCount.toString(), "Source value"),
       numberMetricCard("Watchlist", watchlistCount.toString(), "Source value"),
       { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Investor portfolio field coverage." },
+    ];
+  }
+  if (report.reportProfile?.id === "accountancy_ledger") {
+    const debitTotal = report.kpis.find(k => k.title === "Debit total")?.value;
+    const creditTotal = report.kpis.find(k => k.title === "Credit total")?.value;
+    const invoices = report.kpis.find(k => k.title === "Invoices / documents")?.value;
+    const accounts = report.kpis.find(k => k.title === "Accounts")?.value;
+    const netMovement: number | null = (typeof debitTotal === 'number' && typeof creditTotal === 'number') ? debitTotal - creditTotal : null;
+    return [
+      metricCard("Total Debits", typeof debitTotal === 'number' ? debitTotal : null, "currency", "neutral", "Sum of debit column from ledger."),
+      metricCard("Total Credits", typeof creditTotal === 'number' ? creditTotal : null, "currency", "neutral", "Sum of credit column from ledger."),
+      metricCard("Net Movement", netMovement, "currency", "neutral", "Total Debits - Total Credits."),
+      numberMetricCard("Invoices / Documents", typeof invoices === 'number' ? String(invoices) : "Not available", "Count of distinct invoice or document references."),
+      numberMetricCard("Accounts", typeof accounts === 'number' ? String(accounts) : "Not available", "Count of distinct account entries."),
+      { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Ledger field coverage." },
     ];
   }
 
@@ -982,6 +1008,50 @@ function drawCostIntelligence(doc: jsPDF, report: Report, financials: ReportFina
   ], page.margin, y, [42, 55, 28, 49]);
 }
 
+function drawDepartmentProfitability(doc: jsPDF, financials: ReportFinancials) {
+  tracePdfRuntime("drawDepartmentProfitability", {} as Report, financials);
+  let y = 48;
+  const departments = financials.departmentProfitability || [];
+  if (departments.length === 0) {
+    drawUnavailable(doc, "Department Profitability unavailable", "No department field found in the selected dataset.", page.margin, y, 174, 28);
+    return;
+  }
+  y = drawSectionHeading(doc, "DEPARTMENT PROFITABILITY", y);
+  y = drawTable(doc, [
+    ["Department", "Revenue", "Net Profit", "Net Margin"],
+    ...departments.map((dept): TableRow => [
+      dept.name,
+      formatCurrency(dept.revenue),
+      formatCurrency(dept.netProfit),
+      dept.netMargin !== null ? formatPercent(dept.netMargin) : "N/A",
+    ]),
+  ], page.margin, y, [55, 40, 40, 39]) + 12;
+
+  y = drawTable(doc, [
+    ["Department", "Gross Profit", "Operating Profit", "Notes"],
+    ...departments.map((dept): TableRow => [
+      dept.name,
+      formatCurrency(dept.grossProfit),
+      formatCurrency(dept.operatingProfit),
+      "Source values from dataset",
+    ]),
+  ], page.margin, y, [55, 40, 40, 39]) + 12;
+
+  const highestNetProfit = departments.reduce((max, dept) => dept.netProfit > max.netProfit ? dept : max, departments[0]);
+  const highestNetMargin = departments.reduce((max, dept) => (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, departments[0]);
+  const lowestNetMargin = departments.reduce((min, dept) => (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, departments[0]);
+
+  y = drawSectionHeading(doc, "Key Findings", y);
+  const findings = [
+    `Highest Net Profit: ${highestNetProfit.name} (${formatCurrency(highestNetProfit.netProfit)})`,
+    highestNetProfit.name !== highestNetMargin.name ? `Highest Net Margin: ${highestNetMargin.name} (${highestNetMargin.netMargin}%)` : null,
+    lowestNetMargin.name !== highestNetMargin.name && lowestNetMargin.name !== highestNetProfit.name ? `Weakest Net Margin: ${lowestNetMargin.name} (${lowestNetMargin.netMargin}%)` : null,
+  ].filter(Boolean);
+  for (const finding of findings) {
+    y = drawTextBox(doc, finding!, page.margin, y, 174, 20) + 8;
+  }
+}
+
 function drawBalancedScorecard(doc: jsPDF, report: Report) {
   let y = 48;
   const bbsc = report.bbsc;
@@ -1098,7 +1168,7 @@ function buildResultsSummary(report: Report, financials: ReportFinancials) {
   const confidence = profileDataConfidence(report, financials);
   return {
     metrics: selectSummaryMetrics(report),
-    highlights: selectPerformanceHighlights(report),
+    highlights: selectPerformanceHighlights(report, financials),
     health: selectBusinessHealth(report, confidence),
     findings: selectTopFindings(report),
     actions: recommendations.slice(0, 4).map((recommendation, index): SummaryItem => ({
@@ -1187,9 +1257,56 @@ function isAvailableSummaryValue(value: string) {
   return Boolean(value && !/not available|undefined|nan/i.test(value));
 }
 
-function selectPerformanceHighlights(report: Report): SummaryItem[] {
+function selectPerformanceHighlights(report: Report, financials: ReportFinancials): SummaryItem[] {
   const highlights: SummaryItem[] = [];
+  const profileId = report.reportProfile?.id as string | undefined;
+  const isProfitabilityReport = profileId === "profitability_pnl" || profileId === "profitability" || report.reportType === "profitability";
+  if (isProfitabilityReport) {
+    if (financials.netMargin !== null) {
+      highlights.push({
+        label: "Net Margin",
+        detail: `${financials.netMargin.toFixed(1)}%`,
+      });
+    }
+    if (financials.revenueGrowth !== null && financials.revenueGrowth !== undefined) {
+      highlights.push({
+        label: "Revenue Growth",
+        detail: `${financials.revenueGrowth > 0 ? "+" : ""}${financials.revenueGrowth.toFixed(1)}%`,
+      });
+    }
+    if (financials.netProfit !== null) {
+      highlights.push({
+        label: "Net Profit",
+        detail: formatCurrency(financials.netProfit),
+      });
+    }
+    if (financials.operatingMargin !== null && financials.grossMargin !== null) {
+      highlights.push({
+        label: "Margin Gap",
+        detail: `Gross ${financials.grossMargin.toFixed(1)}% vs Operating ${financials.operatingMargin.toFixed(1)}%`,
+      });
+    }
+    if (financials.departmentProfitability && financials.departmentProfitability.length > 0) {
+      const depts = financials.departmentProfitability;
+      const highestNetProfit = depts.reduce((max, dept) => dept.netProfit > max.netProfit ? dept : max, depts[0]);
+      const highestNetMargin = depts.reduce((max, dept) => (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, depts[0]);
+      const lowestNetMargin = depts.reduce((min, dept) => (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, depts[0]);
+      if (highestNetProfit) {
+        highlights.push({
+          label: "Highest Net Profit",
+          detail: `${highestNetProfit.name}: ${formatCurrency(highestNetProfit.netProfit)}`,
+        });
+      }
+      if (highestNetMargin && highestNetMargin.name !== highestNetProfit.name) {
+        highlights.push({
+          label: "Highest Net Margin",
+          detail: `${highestNetMargin.name}: ${highestNetMargin.netMargin}%`,
+        });
+      }
+    }
+  }
   for (const chart of report.charts || []) {
+    if (highlights.length >= 4) break;
     const top = chart.data?.find((item) => Number.isFinite(item.value));
     if (top) {
       highlights.push({
@@ -1197,11 +1314,13 @@ function selectPerformanceHighlights(report: Report): SummaryItem[] {
         detail: `${truncate(top.name, 42)}: ${formatSummaryChartValue(top.value, chart.title)}`,
       });
     }
-    if (highlights.length >= 3) break;
   }
   for (const finding of report.findings || []) {
     if (highlights.length >= 4) break;
-    highlights.push({ label: "Report result", detail: findingToneDetail(finding), tone: classifyFindingTone(finding) });
+    const lowerFinding = finding.toLowerCase();
+    if (!lowerFinding.includes("loaded rows") && !lowerFinding.includes("available from") && !lowerFinding.includes("recognized source")) {
+      highlights.push({ label: "Report result", detail: findingToneDetail(finding), tone: classifyFindingTone(finding) });
+    }
   }
   return dedupeSummaryItems(highlights).slice(0, 4);
 }
@@ -2197,4 +2316,38 @@ function drawInvestorSectorStage(doc: jsPDF, report: Report) {
     const stageData: TableRow[] = investor.companiesByStage.map(s => [s.stage, formatCurrency(s.invested), s.count.toString(), "Source value"]);
     y = drawTable(doc, [["Stage", "Invested", "Companies", "Type"], ...stageData], page.margin, y, [50, 35, 25, 30]);
   }
+}
+
+function drawAccountancyLedgerSummary(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  let y = 48;
+  y = drawSectionHeading(doc, "Ledger Summary", y);
+  const debitKpi = report.kpis.find(k => k.title === "Debit total");
+  const creditKpi = report.kpis.find(k => k.title === "Credit total");
+  const invoicesKpi = report.kpis.find(k => k.title === "Invoices / documents");
+  const accountsKpi = report.kpis.find(k => k.title === "Accounts");
+  const debitVal = debitKpi && typeof debitKpi.value === 'number' ? debitKpi.value : null;
+  const creditVal = creditKpi && typeof creditKpi.value === 'number' ? creditKpi.value : null;
+  const netMovement = (debitVal !== null && creditVal !== null) ? debitVal - creditVal : null;
+  const invoicesVal = invoicesKpi && typeof invoicesKpi.value === 'number' ? invoicesKpi.value : null;
+  const accountsVal = accountsKpi && typeof accountsKpi.value === 'number' ? accountsKpi.value : null;
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Total Debits", debitVal !== null ? formatCurrency(debitVal) : "Not available", debitVal !== null ? "Available" : "Missing", "Sum of debit column from ledger."],
+    ["Total Credits", creditVal !== null ? formatCurrency(creditVal) : "Not available", creditVal !== null ? "Available" : "Missing", "Sum of credit column from ledger."],
+    ["Net Movement", netMovement !== null ? formatCurrency(netMovement) : "Not available", netMovement !== null ? "Available" : "Missing", "Total Debits - Total Credits."],
+    ["Invoices / Documents", invoicesVal !== null ? String(invoicesVal) : "Not available", invoicesVal !== null ? "Available" : "Missing", "Count of distinct invoice or document references."],
+    ["Accounts", accountsVal !== null ? String(accountsVal) : "Not available", accountsVal !== null ? "Available" : "Missing", "Count of distinct account entries."],
+  ], page.margin, y, [50, 35, 25, 60]) + 12;
+
+  y = drawSectionHeading(doc, "Profitability Metrics", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Revenue", "Not available", "N/A", "Revenue cannot be derived from general ledger debit/credit alone."],
+    ["Gross Profit", "Not available", "N/A", "Requires explicit revenue and COGS fields."],
+    ["Operating Profit", "Not available", "N/A", "Requires explicit operating profit field or proper account classification."],
+    ["Net Profit", "Not available", "N/A", "Requires explicit net profit field or proper account classification."],
+    ["Gross Margin", "Not available", "N/A", "Requires revenue and gross profit fields."],
+    ["Operating Margin", "Not available", "N/A", "Requires operating profit field."],
+    ["Net Margin", "Not available", "N/A", "Requires net profit field."],
+  ], page.margin, y, [50, 35, 25, 60]);
 }

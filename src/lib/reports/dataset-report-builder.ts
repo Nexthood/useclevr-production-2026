@@ -5,7 +5,7 @@ import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-cat
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
-import type { EcommerceReportAnalysis, InvestorReportAnalysis, MarketplaceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis } from "@/lib/reports/report-generator"
+import type { EcommerceReportAnalysis, InvestorReportAnalysis, MarketplaceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis, DepartmentProfitability } from "@/lib/reports/report-generator"
 import { getReportProfile } from "@/lib/reports/report-profiles"
 
 type DatasetRecord = typeof datasets.$inferSelect
@@ -36,6 +36,7 @@ type ColumnMap = {
   channel?: string
   product?: string
   category?: string
+  department?: string
   date?: string
   shippingCost?: string
   discount?: string
@@ -167,6 +168,33 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     financials.operatingMargin = null
     financials.netMargin = null
   }
+  if (reportModel === "accountancy" || reportModel === "prebookkeeping") {
+    financials.revenue = null
+    financials.cogs = null
+    financials.grossProfit = null
+    financials.operatingExpenses = null
+    financials.operatingProfit = null
+    financials.interestExpense = null
+    financials.taxExpense = null
+    financials.netProfit = null
+    financials.grossMargin = null
+    financials.operatingMargin = null
+    financials.netMargin = null
+    financials.metricSources = {
+      ...financials.metricSources,
+      revenue: { kind: "unavailable" as const, note: "Revenue cannot be derived from general ledger debit/credit alone." },
+      cogs: { kind: "unavailable" as const, note: "COGS not available for accountancy ledger." },
+      grossProfit: { kind: "unavailable" as const, note: "Requires explicit revenue and COGS fields." },
+      operatingExpenses: { kind: "unavailable" as const, note: "Operating expenses not available for accountancy ledger." },
+      operatingProfit: { kind: "unavailable" as const, note: "Cannot be derived from ledger debit/credit - requires account classification." },
+      interestExpense: { kind: "unavailable" as const, note: "Interest expense not available for accountancy ledger." },
+      taxExpense: { kind: "unavailable" as const, note: "Tax expense not available for accountancy ledger." },
+      netProfit: { kind: "unavailable" as const, note: "Cannot be derived from ledger debit/credit - requires account classification." },
+      grossMargin: { kind: "unavailable" as const, note: "Requires revenue and gross profit fields." },
+      operatingMargin: { kind: "unavailable" as const, note: "Requires operating profit field." },
+      netMargin: { kind: "unavailable" as const, note: "Requires net profit field." },
+    }
+  }
   const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
   const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
   const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap) : undefined
@@ -250,7 +278,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
       ? buildEcommerceRecommendations(ecommerceAnalysis, financials, columnMap)
       : saasAnalysis
         ? buildSaasRecommendations(saasAnalysis, financials, columnMap)
-        : buildDatasetRecommendations(columnMap, financials, bbsc)
+        : buildDatasetRecommendations(columnMap, financials, bbsc, reportModel)
   const diagnostics = buildReportDiagnostics({
     dataset,
     rowCount: canonicalRowCount,
@@ -436,8 +464,10 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     missingFields,
     topCostCategories: topCostCategories?.data || [],
     periodTrends: periodTrendsFromMetrics(metrics),
+    departmentProfitability: buildDepartmentProfitability(rows, detectColumns(columns)),
   }
-  const recommendations = buildProfitabilityRecommendations(financials, bbsc)
+  const columnMap = detectColumns(columns)
+  const recommendations = buildProfitabilityRecommendations(financials, bbsc, columnMap)
   const reportProfile = getReportProfile("profitability")
 
   return {
@@ -544,8 +574,56 @@ function reportingPeriodFromMetrics(metrics: Record<string, unknown>) {
 function buildProfitabilityRecommendations(
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+  columns?: ColumnMap,
 ): ReportRecommendation[] {
   const recommendations: ReportRecommendation[] = []
+  if (financials.netMargin !== null && financials.netMargin < 10) {
+    recommendations.push({
+      issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
+      businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
+      recommendedAction: "Prioritize margin expansion through pricing, COGS review, and operating-expense controls.",
+      estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of net margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in net profit.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (financials.grossMargin !== null && financials.operatingMargin !== null && financials.operatingMargin < financials.grossMargin - 15) {
+    recommendations.push({
+      issue: `Operating margin (${financials.operatingMargin.toFixed(1)}%) is significantly below gross margin (${financials.grossMargin.toFixed(1)}%).`,
+      businessImpact: "Operating expenses are consuming a large share of gross profit, reducing operational efficiency.",
+      recommendedAction: "Review operating expenses for efficiency gains or cost reduction opportunities.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (financials.departmentProfitability && financials.departmentProfitability.length > 0) {
+    const depts = financials.departmentProfitability
+    const weakestDept = depts.reduce((min, dept) => 
+      (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, depts[0])
+    const strongestDept = depts.reduce((max, dept) => 
+      (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, depts[0])
+    if (weakestDept.netMargin !== null && strongestDept.netMargin !== null && strongestDept.name !== weakestDept.name) {
+      recommendations.push({
+        issue: `${weakestDept.name} has the lowest net margin at ${weakestDept.netMargin}% vs. ${strongestDept.name} at ${strongestDept.netMargin}%.`,
+        businessImpact: "Department margin disparity indicates uneven resource allocation or cost efficiency.",
+        recommendedAction: `Investigate ${weakestDept.name} for cost drivers and compare practices with ${strongestDept.name}.`,
+        estimatedImpact: null,
+        confidence: "High",
+        requiredData: [],
+      })
+    }
+  }
+  if (financials.revenueGrowth !== null && financials.revenueGrowth !== undefined && financials.revenueGrowth < 0) {
+    recommendations.push({
+      issue: `Revenue has declined by ${Math.abs(financials.revenueGrowth).toFixed(1)}% over the reporting period.`,
+      businessImpact: "Revenue decline signals potential market share loss or demand issues.",
+      recommendedAction: "Analyze sales channels, customer churn, and market conditions to identify decline drivers.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
   const topCost = financials.topCostCategories?.[0]
   const totalCost = financials.topCostCategories?.reduce((total, item) => total + item.value, 0) || 0
   if (topCost && totalCost > 0) {
@@ -559,33 +637,28 @@ function buildProfitabilityRecommendations(
       requiredData: [],
     })
   }
-  if (financials.netMargin !== null && financials.netMargin < 10) {
-    recommendations.push({
-      issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
-      businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
-      recommendedAction: "Prioritize margin expansion through pricing, COGS review, and operating-expense controls.",
-      estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of net margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in net profit.` : null,
-      confidence: "High",
-      requiredData: [],
-    })
-  }
-  if (bbsc.weakestPerspective) {
-    recommendations.push({
-      issue: `${bbsc.weakestPerspective.title} is the weakest available perspective at ${bbsc.weakestPerspective.score}/100.`,
-      businessImpact: "The weakest scored perspective limits the overall business score.",
-      recommendedAction: bbsc.weakestPerspective.recommendedActions[0] || "Track the missing drivers and review the perspective monthly.",
-      estimatedImpact: null,
-      confidence: bbsc.weakestPerspective.dataConfidence >= 70 ? "High" : "Medium",
-      requiredData: bbsc.weakestPerspective.status === "available" ? [] : bbsc.weakestPerspective.requiredFields,
-    })
-  }
   if ((financials.missingFields || []).length > 0) {
+    const hasFinancialMissing = (financials.missingFields || []).some(f => 
+      ["Revenue", "COGS", "Gross Profit", "Operating Expenses", "Operating Profit", "Interest", "Tax", "Net Profit"].some(keyword => f.toLowerCase().includes(keyword.toLowerCase()))
+    )
+    if (hasFinancialMissing) {
+      recommendations.push({
+        issue: `Missing financial fields: ${financials.missingFields!.slice(0, 4).join(", ")}.`,
+        businessImpact: "Unavailable financial fields prevent complete profitability analysis.",
+        recommendedAction: "Add the missing financial fields to enable full P&L analysis.",
+        estimatedImpact: null,
+        requiredData: financials.missingFields,
+      })
+    }
+  }
+  if (columns && !columns.customer && !columns.order) {
     recommendations.push({
-      issue: `Missing fields limit report completeness: ${financials.missingFields!.slice(0, 4).join(", ")}.`,
-      businessImpact: "Unavailable source fields reduce confidence and prevent some KPI calculations.",
-      recommendedAction: "Add the missing financial fields to the next Revenue and Expenses upload.",
+      issue: "Customer and order fields are not recognized.",
+      businessImpact: "Customer performance analysis is unavailable without identifiers.",
+      recommendedAction: "Add customer, account, order, or transaction identifiers to unlock customer performance analysis.",
       estimatedImpact: null,
-      requiredData: financials.missingFields,
+      confidence: "Medium",
+      requiredData: ["Customer ID", "Order ID"],
     })
   }
   return recommendations.slice(0, 5)
@@ -675,6 +748,7 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
     }, {}),
     topCostCategories: buildTopCostCategories(rows, columns),
     periodTrends,
+    departmentProfitability: buildDepartmentProfitability(rows, columns),
   }
 }
 
@@ -1933,6 +2007,45 @@ function buildTopCostCategories(rows: DataRow[], columns: ColumnMap) {
     .slice(0, 8)
 }
 
+function buildDepartmentProfitability(rows: DataRow[], columns: ColumnMap): DepartmentProfitability[] {
+  if (!columns.department) return []
+  const grouped = new Map<string, { revenue: number; cogs: number; operatingExpenses: number; interestExpense: number; taxExpense: number }>()
+  for (const row of rows) {
+    const dept = String(row[columns.department] || "").trim()
+    if (!dept) continue
+    const existing = grouped.get(dept) || { revenue: 0, cogs: 0, operatingExpenses: 0, interestExpense: 0, taxExpense: 0 }
+    const revenue = getNumber(row[columns.revenue || columns.gmv || ""]) ?? 0
+    const cogs = getNumber(row[columns.cogs ?? ""]) ?? 0
+    const operatingExpenses = getNumber(row[columns.operatingExpenses ?? ""]) ?? 0
+    const interestExpense = getNumber(row[columns.interestExpense ?? ""]) ?? 0
+    const taxExpense = getNumber(row[columns.taxExpense ?? ""]) ?? 0
+    grouped.set(dept, {
+      revenue: existing.revenue + revenue,
+      cogs: existing.cogs + cogs,
+      operatingExpenses: existing.operatingExpenses + operatingExpenses,
+      interestExpense: existing.interestExpense + interestExpense,
+      taxExpense: existing.taxExpense + taxExpense,
+    })
+  }
+  return Array.from(grouped.entries())
+    .map(([name, data]) => {
+      const grossProfit = data.revenue - data.cogs
+      const operatingProfit = grossProfit - data.operatingExpenses
+      const netProfit = operatingProfit - data.interestExpense - data.taxExpense
+      const netMargin = data.revenue !== 0 ? round((netProfit / data.revenue) * 100) : null
+      return {
+        name,
+        revenue: round(data.revenue),
+        grossProfit: round(grossProfit),
+        operatingProfit: round(operatingProfit),
+        netProfit: round(netProfit),
+        netMargin,
+      }
+    })
+    .filter((dept) => dept.revenue > 0)
+    .sort((a, b) => b.netProfit - a.netProfit)
+}
+
 function buildPeriodTrends(rows: DataRow[], columns: ColumnMap): NonNullable<ReportFinancials["periodTrends"]> {
   if (!columns.date) return []
   const valueColumns = [
@@ -2192,7 +2305,9 @@ function buildDatasetRecommendations(
   columns: ColumnMap,
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+  reportModel?: string,
 ): ReportRecommendation[] {
+  const isPnlReport = reportModel === "profitability" || reportModel === "profitability_pnl" || reportModel === "pnl"
   const isBusinessConsulting = columns.consultantCost !== undefined || columns.otherCost !== undefined
   if (isBusinessConsulting) {
     const recommendations: ReportRecommendation[] = []
@@ -2264,6 +2379,54 @@ function buildDatasetRecommendations(
     return recommendations.slice(0, 4)
   }
   const recommendations: ReportRecommendation[] = []
+  if (isPnlReport) {
+    if (financials.netMargin !== null && financials.netMargin < 10) {
+      recommendations.push({
+        issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
+        businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
+        recommendedAction: "Prioritize margin expansion through pricing, COGS review, and operating-expense controls.",
+        estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of net margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in net profit.` : null,
+        confidence: "High",
+        requiredData: [],
+      })
+    }
+    if (financials.grossMargin !== null && financials.operatingMargin !== null && financials.operatingMargin < financials.grossMargin - 15) {
+      recommendations.push({
+        issue: `Operating margin (${financials.operatingMargin.toFixed(1)}%) is significantly below gross margin (${financials.grossMargin.toFixed(1)}%).`,
+        businessImpact: "Operating expenses are consuming a large share of gross profit, reducing operational efficiency.",
+        recommendedAction: "Review operating expenses for efficiency gains or cost reduction opportunities.",
+        estimatedImpact: null,
+        confidence: "High",
+        requiredData: [],
+      })
+    }
+    if (financials.departmentProfitability && financials.departmentProfitability.length > 0) {
+      const weakestDept = financials.departmentProfitability.reduce((min, dept) => 
+        (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, financials.departmentProfitability[0])
+      const strongestDept = financials.departmentProfitability.reduce((max, dept) => 
+        (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, financials.departmentProfitability[0])
+      if (weakestDept.netMargin !== null && strongestDept.netMargin !== null && strongestDept.name !== weakestDept.name) {
+        recommendations.push({
+          issue: `${weakestDept.name} has the lowest net margin at ${weakestDept.netMargin}% vs. ${strongestDept.name} at ${strongestDept.netMargin}%.`,
+          businessImpact: "Department margin disparity indicates uneven resource allocation or cost efficiency.",
+          recommendedAction: `Investigate ${weakestDept.name} for cost drivers and compare practices with ${strongestDept.name}.`,
+          estimatedImpact: null,
+          confidence: "High",
+          requiredData: [],
+        })
+      }
+    }
+    if (financials.revenueGrowth !== null && financials.revenueGrowth !== undefined && financials.revenueGrowth < 0) {
+      recommendations.push({
+        issue: `Revenue has declined by ${Math.abs(financials.revenueGrowth).toFixed(1)}% over the reporting period.`,
+        businessImpact: "Revenue decline signals potential market share loss or demand issues.",
+        recommendedAction: "Analyze sales channels, customer churn, and market conditions to identify decline drivers.",
+        estimatedImpact: null,
+        confidence: "High",
+        requiredData: [],
+      })
+    }
+  }
   if (financials.revenue !== null && financials.netProfit === null) {
     recommendations.push({
       issue: "Revenue is available, but profitability inputs are incomplete.",
@@ -2291,7 +2454,7 @@ function buildDatasetRecommendations(
       requiredData: ["Expense Category", "COGS", "Operating Expenses"],
     })
   }
-  if (!columns.customer && !columns.order) {
+  if (!isPnlReport && !columns.customer && !columns.order) {
     recommendations.push({
       issue: "Customer and order fields are not recognized.",
       businessImpact: "Customer performance, concentration, retention, and order-value analysis are unavailable.",
@@ -2300,7 +2463,7 @@ function buildDatasetRecommendations(
       requiredData: ["Customer ID", "Order ID"],
     })
   }
-  if (financials.netMargin !== null && financials.netMargin < 10) {
+  if (!isPnlReport && financials.netMargin !== null && financials.netMargin < 10) {
     recommendations.push({
       issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
       businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
@@ -2437,6 +2600,7 @@ function detectColumns(columns: string[]): ColumnMap {
     channel: findColumn(columns, [/channel/, /source/]),
     product: findColumn(columns, [/product_id/, /product_name/, /product/, /^sku$/, /item/]),
     category: findColumn(columns, [/category/]),
+    department: findColumn(columns, [/department/]),
     date: findColumn(columns, [/date/, /month/, /period/, /created_at/, /project_start/, /project_end/]),
     shippingCost: findColumn(columns, [/shipping_cost/, /shipping/, /fulfillment_cost/, /delivery_cost/, /freight/]),
     discount: findColumn(columns, [/discount/, /discount_amount/, /promo/]),
