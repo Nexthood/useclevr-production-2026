@@ -249,6 +249,19 @@ export async function POST(request: Request) {
     });
 
     const reportInput = await buildDatasetReportInput(access.dataset);
+    
+    // DIAGNOSTIC LOGGING FOR ACCOUNTANCY LEDGER FIX VERIFICATION
+    if (access.dataset.name?.toLowerCase().includes("accountancy") || access.dataset.name?.toLowerCase().includes("ledger")) {
+      debugLog('[DIAG] Accountancy Ledger Report Input:', {
+        datasetName: access.dataset.name,
+        datasetType: access.dataset.datasetType,
+        reportModel: (reportInput as any).reportModel,
+        reportProfileId: (reportInput as any).reportProfile?.id,
+        financials: (reportInput as any).financials,
+        kpis: (reportInput as any).kpis?.map((k: any) => ({ title: k.title, value: k.value })),
+      });
+    }
+
     const tracedReportInput = reportInput as typeof reportInput & {
       diagnostics?: ReportDiagnostics;
       semanticContext?: ReportSemanticContext;

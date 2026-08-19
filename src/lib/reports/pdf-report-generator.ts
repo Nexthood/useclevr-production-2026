@@ -84,6 +84,23 @@ export function getPdfPath(reportId: string, datasetName: string): string | null
 }
 
 export async function generatePdfReport(report: Report): Promise<string> {
+  // DIAGNOSTIC LOGGING FOR ACCOUNTANCY LEDGER FIX VERIFICATION
+  if (report.reportProfile?.id === "accountancy_ledger" || report.datasetName?.toLowerCase().includes("accountancy") || report.datasetName?.toLowerCase().includes("ledger")) {
+    debugLog('[DIAG] Accountancy Ledger PDF Generation:', {
+      gitCommit: process.env.VERCEL_GIT_COMMIT_SHA || 'local-dev',
+      datasetName: report.datasetName,
+      reportProfileId: report.reportProfile?.id,
+      revenue: report.financials?.revenue,
+      operatingProfit: report.financials?.operatingProfit,
+      grossProfit: report.financials?.grossProfit,
+      netProfit: report.financials?.netProfit,
+      debitTotal: report.kpis?.find(k => k.title === "Debit total")?.value,
+      creditTotal: report.kpis?.find(k => k.title === "Credit total")?.value,
+      kpis: report.kpis?.map(k => ({ title: k.title, value: k.value })),
+      financialsMetricSources: report.financials?.metricSources,
+    });
+  }
+
   ensurePdfDir();
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
