@@ -437,8 +437,10 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     missingFields,
     topCostCategories: topCostCategories?.data || [],
     periodTrends: periodTrendsFromMetrics(metrics),
+    departmentProfitability: buildDepartmentProfitability(rows, detectColumns(columns)),
   }
-  const recommendations = buildProfitabilityRecommendations(financials, bbsc)
+  const columnMap = detectColumns(columns)
+  const recommendations = buildProfitabilityRecommendations(financials, bbsc, columnMap)
   const reportProfile = getReportProfile("profitability")
 
   return {
@@ -545,8 +547,56 @@ function reportingPeriodFromMetrics(metrics: Record<string, unknown>) {
 function buildProfitabilityRecommendations(
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+  columns?: ColumnMap,
 ): ReportRecommendation[] {
   const recommendations: ReportRecommendation[] = []
+  if (financials.netMargin !== null && financials.netMargin < 10) {
+    recommendations.push({
+      issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
+      businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
+      recommendedAction: "Prioritize margin expansion through pricing, COGS review, and operating-expense controls.",
+      estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of net margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in net profit.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (financials.grossMargin !== null && financials.operatingMargin !== null && financials.operatingMargin < financials.grossMargin - 15) {
+    recommendations.push({
+      issue: `Operating margin (${financials.operatingMargin.toFixed(1)}%) is significantly below gross margin (${financials.grossMargin.toFixed(1)}%).`,
+      businessImpact: "Operating expenses are consuming a large share of gross profit, reducing operational efficiency.",
+      recommendedAction: "Review operating expenses for efficiency gains or cost reduction opportunities.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (financials.departmentProfitability && financials.departmentProfitability.length > 0) {
+    const depts = financials.departmentProfitability
+    const weakestDept = depts.reduce((min, dept) => 
+      (dept.netMargin ?? 999) < (min.netMargin ?? 999) ? dept : min, depts[0])
+    const strongestDept = depts.reduce((max, dept) => 
+      (dept.netMargin ?? -999) > (max.netMargin ?? -999) ? dept : max, depts[0])
+    if (weakestDept.netMargin !== null && strongestDept.netMargin !== null && strongestDept.name !== weakestDept.name) {
+      recommendations.push({
+        issue: `${weakestDept.name} has the lowest net margin at ${weakestDept.netMargin}% vs. ${strongestDept.name} at ${strongestDept.netMargin}%.`,
+        businessImpact: "Department margin disparity indicates uneven resource allocation or cost efficiency.",
+        recommendedAction: `Investigate ${weakestDept.name} for cost drivers and compare practices with ${strongestDept.name}.`,
+        estimatedImpact: null,
+        confidence: "High",
+        requiredData: [],
+      })
+    }
+  }
+  if (financials.revenueGrowth !== null && financials.revenueGrowth !== undefined && financials.revenueGrowth < 0) {
+    recommendations.push({
+      issue: `Revenue has declined by ${Math.abs(financials.revenueGrowth).toFixed(1)}% over the reporting period.`,
+      businessImpact: "Revenue decline signals potential market share loss or demand issues.",
+      recommendedAction: "Analyze sales channels, customer churn, and market conditions to identify decline drivers.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
   const topCost = financials.topCostCategories?.[0]
   const totalCost = financials.topCostCategories?.reduce((total, item) => total + item.value, 0) || 0
   if (topCost && totalCost > 0) {
@@ -560,33 +610,28 @@ function buildProfitabilityRecommendations(
       requiredData: [],
     })
   }
-  if (financials.netMargin !== null && financials.netMargin < 10) {
-    recommendations.push({
-      issue: `Net margin is ${financials.netMargin.toFixed(1)}%.`,
-      businessImpact: "Low net margin leaves limited room for pricing, demand, or cost shocks.",
-      recommendedAction: "Prioritize margin expansion through pricing, COGS review, and operating-expense controls.",
-      estimatedImpact: financials.revenue !== null ? `Each 1 percentage point of net margin equals ${formatCurrencyForSummary(financials.revenue * 0.01)} in net profit.` : null,
-      confidence: "High",
-      requiredData: [],
-    })
-  }
-  if (bbsc.weakestPerspective) {
-    recommendations.push({
-      issue: `${bbsc.weakestPerspective.title} is the weakest available perspective at ${bbsc.weakestPerspective.score}/100.`,
-      businessImpact: "The weakest scored perspective limits the overall business score.",
-      recommendedAction: bbsc.weakestPerspective.recommendedActions[0] || "Track the missing drivers and review the perspective monthly.",
-      estimatedImpact: null,
-      confidence: bbsc.weakestPerspective.dataConfidence >= 70 ? "High" : "Medium",
-      requiredData: bbsc.weakestPerspective.status === "available" ? [] : bbsc.weakestPerspective.requiredFields,
-    })
-  }
   if ((financials.missingFields || []).length > 0) {
+    const hasFinancialMissing = (financials.missingFields || []).some(f => 
+      ["Revenue", "COGS", "Gross Profit", "Operating Expenses", "Operating Profit", "Interest", "Tax", "Net Profit"].some(keyword => f.toLowerCase().includes(keyword.toLowerCase()))
+    )
+    if (hasFinancialMissing) {
+      recommendations.push({
+        issue: `Missing financial fields: ${financials.missingFields!.slice(0, 4).join(", ")}.`,
+        businessImpact: "Unavailable financial fields prevent complete profitability analysis.",
+        recommendedAction: "Add the missing financial fields to enable full P&L analysis.",
+        estimatedImpact: null,
+        requiredData: financials.missingFields,
+      })
+    }
+  }
+  if (columns && !columns.customer && !columns.order) {
     recommendations.push({
-      issue: `Missing fields limit report completeness: ${financials.missingFields!.slice(0, 4).join(", ")}.`,
-      businessImpact: "Unavailable source fields reduce confidence and prevent some KPI calculations.",
-      recommendedAction: "Add the missing financial fields to the next Revenue and Expenses upload.",
+      issue: "Customer and order fields are not recognized.",
+      businessImpact: "Customer performance analysis is unavailable without identifiers.",
+      recommendedAction: "Add customer, account, order, or transaction identifiers to unlock customer performance analysis.",
       estimatedImpact: null,
-      requiredData: financials.missingFields,
+      confidence: "Medium",
+      requiredData: ["Customer ID", "Order ID"],
     })
   }
   return recommendations.slice(0, 5)
