@@ -167,6 +167,11 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Executive Recommendations", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials);
+  } else if (report.reportProfile?.id === "accountancy_ledger") {
+    addDocumentPage(doc, "Accountancy Ledger Summary", datasetName);
+    drawAccountancyLedgerSummary(doc, report, financials);
+    addDocumentPage(doc, "Ledger Recommendations + Provenance", datasetName);
+    drawRecommendationsAndProvenance(doc, report, financials, "Ledger Recommendations");
   } else {
     renderedGenericFinancialPages = true;
     addDocumentPage(doc, "Financial Performance", datasetName);
@@ -378,6 +383,21 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       numberMetricCard("Exited Companies", exitedCount.toString(), "Source value"),
       numberMetricCard("Watchlist", watchlistCount.toString(), "Source value"),
       { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Investor portfolio field coverage." },
+    ];
+  }
+  if (report.reportProfile?.id === "accountancy_ledger") {
+    const debitTotal = report.kpis.find(k => k.title === "Debit total")?.value;
+    const creditTotal = report.kpis.find(k => k.title === "Credit total")?.value;
+    const invoices = report.kpis.find(k => k.title === "Invoices / documents")?.value;
+    const accounts = report.kpis.find(k => k.title === "Accounts")?.value;
+    const netMovement: number | null = (typeof debitTotal === 'number' && typeof creditTotal === 'number') ? debitTotal - creditTotal : null;
+    return [
+      metricCard("Total Debits", typeof debitTotal === 'number' ? debitTotal : null, "currency", "neutral", "Sum of debit column from ledger."),
+      metricCard("Total Credits", typeof creditTotal === 'number' ? creditTotal : null, "currency", "neutral", "Sum of credit column from ledger."),
+      metricCard("Net Movement", netMovement, "currency", "neutral", "Total Debits - Total Credits."),
+      numberMetricCard("Invoices / Documents", typeof invoices === 'number' ? String(invoices) : "Not available", "Count of distinct invoice or document references."),
+      numberMetricCard("Accounts", typeof accounts === 'number' ? String(accounts) : "Not available", "Count of distinct account entries."),
+      { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Ledger field coverage." },
     ];
   }
 
@@ -2296,4 +2316,38 @@ function drawInvestorSectorStage(doc: jsPDF, report: Report) {
     const stageData: TableRow[] = investor.companiesByStage.map(s => [s.stage, formatCurrency(s.invested), s.count.toString(), "Source value"]);
     y = drawTable(doc, [["Stage", "Invested", "Companies", "Type"], ...stageData], page.margin, y, [50, 35, 25, 30]);
   }
+}
+
+function drawAccountancyLedgerSummary(doc: jsPDF, report: Report, financials: ReportFinancials) {
+  let y = 48;
+  y = drawSectionHeading(doc, "Ledger Summary", y);
+  const debitKpi = report.kpis.find(k => k.title === "Debit total");
+  const creditKpi = report.kpis.find(k => k.title === "Credit total");
+  const invoicesKpi = report.kpis.find(k => k.title === "Invoices / documents");
+  const accountsKpi = report.kpis.find(k => k.title === "Accounts");
+  const debitVal = debitKpi && typeof debitKpi.value === 'number' ? debitKpi.value : null;
+  const creditVal = creditKpi && typeof creditKpi.value === 'number' ? creditKpi.value : null;
+  const netMovement = (debitVal !== null && creditVal !== null) ? debitVal - creditVal : null;
+  const invoicesVal = invoicesKpi && typeof invoicesKpi.value === 'number' ? invoicesKpi.value : null;
+  const accountsVal = accountsKpi && typeof accountsKpi.value === 'number' ? accountsKpi.value : null;
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Total Debits", debitVal !== null ? formatCurrency(debitVal) : "Not available", debitVal !== null ? "Available" : "Missing", "Sum of debit column from ledger."],
+    ["Total Credits", creditVal !== null ? formatCurrency(creditVal) : "Not available", creditVal !== null ? "Available" : "Missing", "Sum of credit column from ledger."],
+    ["Net Movement", netMovement !== null ? formatCurrency(netMovement) : "Not available", netMovement !== null ? "Available" : "Missing", "Total Debits - Total Credits."],
+    ["Invoices / Documents", invoicesVal !== null ? String(invoicesVal) : "Not available", invoicesVal !== null ? "Available" : "Missing", "Count of distinct invoice or document references."],
+    ["Accounts", accountsVal !== null ? String(accountsVal) : "Not available", accountsVal !== null ? "Available" : "Missing", "Count of distinct account entries."],
+  ], page.margin, y, [50, 35, 25, 60]) + 12;
+
+  y = drawSectionHeading(doc, "Profitability Metrics", y);
+  y = drawTable(doc, [
+    ["Metric", "Value", "Status", "Source / Notes"],
+    ["Revenue", "Not available", "N/A", "Revenue cannot be derived from general ledger debit/credit alone."],
+    ["Gross Profit", "Not available", "N/A", "Requires explicit revenue and COGS fields."],
+    ["Operating Profit", "Not available", "N/A", "Requires explicit operating profit field or proper account classification."],
+    ["Net Profit", "Not available", "N/A", "Requires explicit net profit field or proper account classification."],
+    ["Gross Margin", "Not available", "N/A", "Requires revenue and gross profit fields."],
+    ["Operating Margin", "Not available", "N/A", "Requires operating profit field."],
+    ["Net Margin", "Not available", "N/A", "Requires net profit field."],
+  ], page.margin, y, [50, 35, 25, 60]);
 }

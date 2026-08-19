@@ -168,6 +168,33 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     financials.operatingMargin = null
     financials.netMargin = null
   }
+  if (reportModel === "accountancy" || reportModel === "prebookkeeping") {
+    financials.revenue = null
+    financials.cogs = null
+    financials.grossProfit = null
+    financials.operatingExpenses = null
+    financials.operatingProfit = null
+    financials.interestExpense = null
+    financials.taxExpense = null
+    financials.netProfit = null
+    financials.grossMargin = null
+    financials.operatingMargin = null
+    financials.netMargin = null
+    financials.metricSources = {
+      ...financials.metricSources,
+      revenue: { kind: "unavailable" as const, note: "Revenue cannot be derived from general ledger debit/credit alone." },
+      cogs: { kind: "unavailable" as const, note: "COGS not available for accountancy ledger." },
+      grossProfit: { kind: "unavailable" as const, note: "Requires explicit revenue and COGS fields." },
+      operatingExpenses: { kind: "unavailable" as const, note: "Operating expenses not available for accountancy ledger." },
+      operatingProfit: { kind: "unavailable" as const, note: "Cannot be derived from ledger debit/credit - requires account classification." },
+      interestExpense: { kind: "unavailable" as const, note: "Interest expense not available for accountancy ledger." },
+      taxExpense: { kind: "unavailable" as const, note: "Tax expense not available for accountancy ledger." },
+      netProfit: { kind: "unavailable" as const, note: "Cannot be derived from ledger debit/credit - requires account classification." },
+      grossMargin: { kind: "unavailable" as const, note: "Requires revenue and gross profit fields." },
+      operatingMargin: { kind: "unavailable" as const, note: "Requires operating profit field." },
+      netMargin: { kind: "unavailable" as const, note: "Requires net profit field." },
+    }
+  }
   const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
   const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
   const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap) : undefined
