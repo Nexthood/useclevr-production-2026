@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix Investor Portfolio reports so Total Invested sums invested amount fields, Aggregate Company Valuations sums latest valuation fields, and ownership uses an average.
 - Fix Accountancy Ledger report routing so standard uploads with debit, credit, and account or journal columns show ledger totals and keep P&L metrics unavailable when revenue and account classification are missing.
 - Fix generated PDF Results Summary findings so executive summaries prioritize business risks, opportunities, segment performance, and operational signals over parser metadata.
 - Fix generated PDF reports so section headings stay with meaningful following content instead of rendering alone at page bottoms.

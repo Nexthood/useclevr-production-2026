@@ -2642,8 +2642,8 @@ function detectColumns(columns: string[]): ColumnMap {
     cashBalance: findColumn(columns, [/cash_balance/, /^cash$/]),
     runway: findColumn(columns, [/runway/]),
     plan: findColumn(columns, [/^plan$/, /subscription_plan/, /tier/]),
-    investedAmount: findColumn(columns, [/invested_amount/, /invested_capital/, /investment/]),
-    valuation: findColumn(columns, [/latest_valuation/, /valuation/]),
+    investedAmount: findInvestorInvestedAmountColumn(columns),
+    valuation: findInvestorLatestValuationColumn(columns),
     ownership: findColumn(columns, [/ownership/]),
     sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
@@ -3135,6 +3135,43 @@ function extractInsights(analysis: unknown): string[] {
 
 function findColumn(columns: string[], patterns: RegExp[]) {
   return columns.find((column) => patterns.some((pattern) => pattern.test(column.toLowerCase().trim().replace(/[\s-]+/g, "_"))))
+}
+
+function normalizeColumnName(column: string) {
+  return column.toLowerCase().trim().replace(/[\s-]+/g, "_")
+}
+
+function findInvestorInvestedAmountColumn(columns: string[]) {
+  return findByNormalizedColumnName(columns, [
+    /^invested_amount$/,
+    /^amount_invested$/,
+    /^total_invested$/,
+    /^invested_capital$/,
+    /^investment_amount$/,
+    /^investment_value$/,
+    /^capital_invested$/,
+    /^paid_in_capital$/,
+  ])
+}
+
+function findInvestorLatestValuationColumn(columns: string[]) {
+  return findByNormalizedColumnName(columns, [
+    /^latest_valuation$/,
+    /^latest_company_valuation$/,
+    /^current_valuation$/,
+    /^current_company_valuation$/,
+    /^company_latest_valuation$/,
+    /^post_money_valuation$/,
+    /^portfolio_company_valuation$/,
+    /^valuation$/,
+  ])
+}
+
+function findByNormalizedColumnName(columns: string[], patterns: RegExp[]) {
+  return columns.find((column) => {
+    const normalized = normalizeColumnName(column)
+    return patterns.some((pattern) => pattern.test(normalized))
+  })
 }
 
 function addKpi(kpis: ReportKpi[], title: string, value: number | null, format: ReportKpi["format"]) {

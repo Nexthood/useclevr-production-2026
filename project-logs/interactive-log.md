@@ -4192,3 +4192,38 @@ For cross-surface semantic consistency, build Dashboard payloads from the same r
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio Aggregation
+
+1. Interaction title
+Investor Portfolio total investment and valuation aggregation.
+
+2. What was the user goal
+Fix `05_investor_portfolio` so generated Investor Portfolio reports sum `invested_amount` and `latest_valuation` across all 45 portfolio rows, preserve existing correct ownership, status, company-count, and revenue metrics, regenerate the PDF, then commit and push.
+
+3. What changed
+`dataset-report-builder` now resolves investor invested amount and latest valuation through exact amount/value column aliases instead of broad `investment` or `valuation` matches. The focused regression script builds a 45-row investor fixture with `investment_date` before `invested_amount` and `entry_valuation` before `latest_valuation`, asserts the canonical totals before PDF generation, checks ownership/status/revenue preservation, and verifies the generated PDF text contains `$21.25M` and `$440.81M` without the old `$91.1K` or `$188.72M` values. Product requirements, release notes, and TODO state record the current contract.
+
+4. Problems marked
+blocker: none.
+risk: the exact source XLSX for `05_investor_portfolio` is absent from the workspace, so the regression uses a source-equivalent synthetic fixture with the confirmed totals and misleading column order.
+improvement: add the exact numbered investor CSV/XLSX fixture to `test-fixtures/business-models` when the source file is available.
+observation: the wrong Total Invested value matches summing years from `investment_date`; the wrong Aggregate Company Valuations value matches selecting an earlier valuation field instead of `latest_valuation`.
+
+5. User learning
+The aggregation code already summed rows correctly; the canonical field resolver selected the wrong source columns before summation.
+
+6. AI-agent learning
+Investor canonical metric tests must include distractor columns such as investment dates and entry valuations so source-order matching cannot silently change metric semantics.
+
+7. Follow-up tasks
+- Add the exact numbered investor portfolio CSV/XLSX fixture to file-backed profile validation when the source file is available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
