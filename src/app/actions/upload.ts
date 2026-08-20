@@ -594,6 +594,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
                   dataQualityNotes: profitabilityData.dataQualityNotes,
                   missingColumns: profitabilityData.missingColumns,
                   unavailableMetrics: profitabilityData.unavailableMetrics,
+                  metricSources: profitabilityData.metricSources,
                   periodComparison: profitabilityData.periodComparison,
                   hasBothFiles: profitabilityData.hasBothFiles,
                   hasRevenue: profitabilityData.hasRevenue,

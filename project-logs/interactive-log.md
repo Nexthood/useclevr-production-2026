@@ -4292,6 +4292,41 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Operating Profit
+
+1. Interaction title
+Paired Profitability source-aware operating profit.
+
+2. What was the user goal
+Fix the paired Revenue plus Expenses Profitability report so `useclevr_expense_large_test` derives Operating Profit and Operating Margin from source-backed revenue and complete operating expenses while keeping COGS, Gross Profit, Gross Margin, Interest Expense, Tax Expense, Net Profit, and Net Margin unavailable without source inputs.
+
+3. What changed
+`two-file-analysis` stops converting missing operating, interest, and tax rows into fallback zeros, records metric provenance, and derives Operating Profit as Revenue minus source-backed Operating Expenses only when COGS is absent from the paired Profitability input contract. `dataset-report-builder` preserves analyzer provenance, summarizes operating profitability separately from unavailable gross and net profitability, and stops recommending Operating Profit as an upload field when it is already derived. `upload` persists paired Profitability `metricSources`. `pdf-report-generator` marks Expense Category, Expense Amount, and Date / Period available from the same canonical paired expense state used by Cost Intelligence. The focused regression script covers operating-expense-only paired inputs, explicit zero interest/tax rows, standard COGS P&L, missing revenue, and extracted PDF text.
+
+4. Problems marked
+blocker: none.
+risk: the local downloaded large fixtures total Revenue `$16,327,920` and Operating Expenses `$6,121,332`, which differ slightly from the prompt's unrounded internal examples but render to the expected `$16.33M` and `$6.12M` PDF values.
+improvement: add the exact paired large Profitability CSV fixtures to tracked regression fixtures when they are safe to store.
+observation: the prior report skipped operating profitability because canonical paired metrics required Gross Profit before Operating Profit and treated missing interest/tax as source-backed zero, while the PDF Data Requirements table used semantic row fields instead of paired metric availability.
+
+5. User learning
+The paired Profitability report needs a source-aware P&L contract: operating expenses are not COGS, but complete operating expenses can support Operating Profit when COGS is absent.
+
+6. AI-agent learning
+For paired upload reports, carry metric provenance through analyzer, persistence, builder, and PDF rendering; re-detecting fields from the persisted expense dataset can contradict the selected two-file analysis state.
+
+7. Follow-up tasks
+- Add the exact paired large Profitability CSV fixtures to file-backed regression coverage when privacy rules allow it.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Generic Business Canonical Field Resolution
 
 1. Interaction title

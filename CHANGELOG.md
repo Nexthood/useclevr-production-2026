@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix paired Profitability reports so revenue plus complete operating-expense uploads derive operating profit and margin while COGS, gross profitability, interest, tax, and net profitability stay unavailable when their source inputs are absent.
 - Fix Retail Executive Reports so current stock, reorder status, inventory value, and stock by category use latest store-product inventory snapshots while sales and margin metrics use transaction rows.
 - Fix Generic Business report executive summaries so available gross profit and gross margin are stated separately from unavailable operating and net profitability inputs.
 - Fix Generic Business reports so invoice IDs provide transaction counts and AOV, exact cost fields provide cost totals, and explicit profit fields provide profit and margin without net-profit labeling.
