@@ -2530,8 +2530,9 @@ function buildProfitabilityAlerts(netMargin: number | null, metrics: Record<stri
   return alerts
 }
 
-function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {
+export function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {
   if (datasetType === "profitability" || datasetType === "accountancy" || datasetType === "prebookkeeping") return datasetType
+  if (detectAccountancyLedger(columns, datasetName)) return "accountancy"
   if (detectProfessionalServices(columns, datasetName)) return "professional_services"
   if (detectBusinessConsulting(columns, datasetName)) return "business_consulting"
   return businessModel
@@ -2544,6 +2545,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function detectBusinessConsulting(columns: string[], datasetName: string) {
   const text = [datasetName, ...columns].join(" ").toLowerCase()
   return /billable|hourly_rate|consultant_cost|project_margin|gross_margin|client_id|project_id/.test(text)
+}
+
+function detectAccountancyLedger(columns: string[], datasetName: string) {
+  void datasetName
+  const normalized = columns.map((column) => column.toLowerCase().trim())
+  const hasDebit = normalized.some((column) => column === "debit" || column.includes("debit"))
+  const hasCredit = normalized.some((column) => column === "credit" || column.includes("credit"))
+  const hasAccount = normalized.some((column) =>
+    column === "account" ||
+    column === "account_name" ||
+    column === "account_code" ||
+    column.includes("ledger")
+  )
+  const hasJournal = normalized.some((column) => column === "journal_id" || column.includes("journal"))
+
+  return hasDebit && hasCredit && (hasAccount || hasJournal)
 }
 
 function detectProfessionalServices(columns: string[], datasetName: string) {
@@ -2625,8 +2642,8 @@ function detectColumns(columns: string[]): ColumnMap {
     cashBalance: findColumn(columns, [/cash_balance/, /^cash$/]),
     runway: findColumn(columns, [/runway/]),
     plan: findColumn(columns, [/^plan$/, /subscription_plan/, /tier/]),
-    investedAmount: findColumn(columns, [/invested_amount/, /invested_capital/, /investment/]),
-    valuation: findColumn(columns, [/latest_valuation/, /valuation/]),
+    investedAmount: findInvestorInvestedAmountColumn(columns),
+    valuation: findInvestorLatestValuationColumn(columns),
     ownership: findColumn(columns, [/ownership/]),
     sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
@@ -3118,6 +3135,43 @@ function extractInsights(analysis: unknown): string[] {
 
 function findColumn(columns: string[], patterns: RegExp[]) {
   return columns.find((column) => patterns.some((pattern) => pattern.test(column.toLowerCase().trim().replace(/[\s-]+/g, "_"))))
+}
+
+function normalizeColumnName(column: string) {
+  return column.toLowerCase().trim().replace(/[\s-]+/g, "_")
+}
+
+function findInvestorInvestedAmountColumn(columns: string[]) {
+  return findByNormalizedColumnName(columns, [
+    /^invested_amount$/,
+    /^amount_invested$/,
+    /^total_invested$/,
+    /^invested_capital$/,
+    /^investment_amount$/,
+    /^investment_value$/,
+    /^capital_invested$/,
+    /^paid_in_capital$/,
+  ])
+}
+
+function findInvestorLatestValuationColumn(columns: string[]) {
+  return findByNormalizedColumnName(columns, [
+    /^latest_valuation$/,
+    /^latest_company_valuation$/,
+    /^current_valuation$/,
+    /^current_company_valuation$/,
+    /^company_latest_valuation$/,
+    /^post_money_valuation$/,
+    /^portfolio_company_valuation$/,
+    /^valuation$/,
+  ])
+}
+
+function findByNormalizedColumnName(columns: string[], patterns: RegExp[]) {
+  return columns.find((column) => {
+    const normalized = normalizeColumnName(column)
+    return patterns.some((pattern) => pattern.test(normalized))
+  })
 }
 
 function addKpi(kpis: ReportKpi[], title: string, value: number | null, format: ReportKpi["format"]) {

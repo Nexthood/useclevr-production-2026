@@ -3136,6 +3136,41 @@ For generated-report PDFs, preserve raw KPI numbers separately from formatted di
 9. Minimal destination
 Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Accountancy Ledger Model Resolution
+
+1. Interaction title
+Accountancy Ledger generated-report model resolution.
+
+2. What was the user goal
+Fix the upstream generated-report model resolver so `10_accountancy_ledger` resolves to `reportModel = accountancy` from strict ledger schema evidence before financial metrics and PDF rendering run.
+
+3. What changed
+The report builder now detects accountancy ledger schemas from debit, credit, and account or journal columns when the incoming dataset type is standard. `resolveReportModel` returns `accountancy` for this strong ledger signature before professional services, business consulting, or generic business fallbacks. A focused regression imports `resolveReportModel`, asserts the standard ledger schema returns `accountancy`, asserts a normal standard dataset with only one unrelated `credit` field does not become accountancy, builds a generated report input for `10_accountancy_ledger`, and verifies the generated PDF enters the Accountancy Ledger Summary branch with Total Debits, Total Credits, and Net Movement.
+
+4. Problems marked
+blocker: none.
+risk: the retained generated PDF uses a focused synthetic one-row ledger payload because the exact numbered fixture file is not present in the workspace.
+improvement: add the real `10_accountancy_ledger` CSV/XLSX fixture to the tracked fixture set so the focused regression can run from the exact source file.
+observation: accountancy financial nulling now executes upstream because `reportModel` resolves to `accountancy` before `buildGenericFinancials` results are finalized.
+
+5. User learning
+The root cause is model resolution, not PDF rendering: standard ledger-shaped uploads need schema-based accountancy routing before the report builder decides financial semantics.
+
+6. AI-agent learning
+For report routing defects, test the private branch decision through an exported resolver and the full report-builder pipeline so downstream renderer success cannot hide an upstream classification miss.
+
+7. Follow-up tasks
+- T-1010 completed.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dashboard Generate Report Deduplication
 
 1. Interaction title
@@ -4157,3 +4192,38 @@ For cross-surface semantic consistency, build Dashboard payloads from the same r
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio Aggregation
+
+1. Interaction title
+Investor Portfolio total investment and valuation aggregation.
+
+2. What was the user goal
+Fix `05_investor_portfolio` so generated Investor Portfolio reports sum `invested_amount` and `latest_valuation` across all 45 portfolio rows, preserve existing correct ownership, status, company-count, and revenue metrics, regenerate the PDF, then commit and push.
+
+3. What changed
+`dataset-report-builder` now resolves investor invested amount and latest valuation through exact amount/value column aliases instead of broad `investment` or `valuation` matches. The focused regression script builds a 45-row investor fixture with `investment_date` before `invested_amount` and `entry_valuation` before `latest_valuation`, asserts the canonical totals before PDF generation, checks ownership/status/revenue preservation, and verifies the generated PDF text contains `$21.25M` and `$440.81M` without the old `$91.1K` or `$188.72M` values. Product requirements, release notes, and TODO state record the current contract.
+
+4. Problems marked
+blocker: none.
+risk: the exact source XLSX for `05_investor_portfolio` is absent from the workspace, so the regression uses a source-equivalent synthetic fixture with the confirmed totals and misleading column order.
+improvement: add the exact numbered investor CSV/XLSX fixture to `test-fixtures/business-models` when the source file is available.
+observation: the wrong Total Invested value matches summing years from `investment_date`; the wrong Aggregate Company Valuations value matches selecting an earlier valuation field instead of `latest_valuation`.
+
+5. User learning
+The aggregation code already summed rows correctly; the canonical field resolver selected the wrong source columns before summation.
+
+6. AI-agent learning
+Investor canonical metric tests must include distractor columns such as investment dates and entry valuations so source-order matching cannot silently change metric semantics.
+
+7. Follow-up tasks
+- Add the exact numbered investor portfolio CSV/XLSX fixture to file-backed profile validation when the source file is available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
