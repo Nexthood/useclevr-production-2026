@@ -24,7 +24,7 @@ moving work between states.
 
 ## Label: reports
 
-- T-1011. Investor portfolio reports resolve invested amount and latest valuation source columns to amount fields before summing portfolio totals. (labels: reports, metrics, testing; commit: worktree)
+- T-1011. Investor portfolio reports resolve invested amount and latest valuation source columns to amount fields before summing portfolio totals. (labels: reports, metrics, testing; commit: a12bb8ac)
 - T-1008. Retail reports calculate category gross margin from reconciled revenue and COGS totals and show Average Order Value only when order semantics are reliable. (labels: reports, metrics, testing; commit: worktree)
 - T-1009. Route accountancy ledger PDF generation into ledger KPIs and keep P&L metrics unavailable for debit-credit source datasets. (labels: reports, testing, data; commit: 8655ab35)
 - T-1010. Detect strict accountancy ledger schemas during generated-report model resolution so standard uploads with debit, credit, and account or journal evidence route to ledger reporting. (labels: reports, data, testing; commit: 3e747a47)
