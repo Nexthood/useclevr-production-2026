@@ -3101,6 +3101,41 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Accountancy Ledger PDF Branch Routing
+
+1. Interaction title
+Accountancy Ledger generated PDF branch routing.
+
+2. What was the user goal
+Fix only the generated PDF report branch selection for `10_accountancy_ledger` so debit and credit ledger data enters the ledger renderer instead of the generic Executive BI financial renderer.
+
+3. What changed
+The PDF generator resolves the branch from `reportType`, `reportProfile.id`, and available model metadata, logs the resolved values before rendering, asserts ledger PDFs keep Operating Profit null plus finite debit and credit totals, and enters the accountancy ledger renderer for `reportType: accountancy`. Generated reports preserve raw KPI numbers for PDF rendering while keeping display-formatted KPIs. The accountancy ledger PDF table reads raw or formatted ledger KPIs and renders Total Debits, Total Credits, Net Movement, invoice/document count, and account count. The report route diagnostic logs `reportType` instead of the nonexistent `reportModel`.
+
+4. Problems marked
+blocker: none.
+risk: the broad dataset-aware report-profile script still stops on an unrelated local-retail Results Summary assertion before reaching all synthetic profile checks.
+improvement: keep the exact numbered `10_accountancy_ledger` fixture in the workspace so future verification can run from the real file instead of a focused generated-report payload.
+observation: the skipped ledger branch came from a profile-only condition that ignored `reportType: accountancy` when stored or regenerated reports did not carry `reportProfile.id`.
+
+5. User learning
+The semantic fix from `5e091540f` already nulled P&L metrics for accountancy inputs; the rendered PDF failed because branch selection did not use the same resolved type value.
+
+6. AI-agent learning
+For generated-report PDFs, preserve raw KPI numbers separately from formatted display strings before passing the report object into renderer-specific pages.
+
+7. Follow-up tasks
+- T-1009 completed.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dashboard Generate Report Deduplication
 
 1. Interaction title

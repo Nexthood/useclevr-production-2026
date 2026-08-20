@@ -33,6 +33,11 @@ type PdfLayoutContext = {
   title: string;
   datasetName: string;
 };
+type PdfBranchResolution = {
+  resolvedReportType: string | null;
+  resolvedModel: string | null;
+  isAccountancyLedger: boolean;
+};
 
 const colors = {
   ink: [17, 24, 39] as Rgb,
@@ -77,6 +82,38 @@ const layout = {
 
 const layoutContexts = new WeakMap<jsPDF, PdfLayoutContext>();
 
+function resolvePdfBranch(report: Report): PdfBranchResolution {
+  const resolvedReportType = normalizeBranchValue(report.reportType) || normalizeBranchValue(report.reportProfile?.id);
+  const resolvedModel = normalizeBranchValue(report.reportProfile?.id) || normalizeBranchValue(report.businessModel);
+  const branchValues = [resolvedReportType, resolvedModel];
+  return {
+    resolvedReportType,
+    resolvedModel,
+    isAccountancyLedger: branchValues.some((value) => value === "accountancy" || value === "accountancy_ledger"),
+  };
+}
+
+function normalizeBranchValue(value?: string | null) {
+  const normalized = (value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return normalized || null;
+}
+
+function kpiNumber(report: Report, title: string): number | null {
+  const rawValue = report.kpiRawValues?.[title];
+  if (typeof rawValue === "number" && Number.isFinite(rawValue)) return rawValue;
+
+  const value = report.kpis.find((kpi) => kpi.title === title)?.value;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+
+  const trimmed = value.trim();
+  if (!trimmed || /not available|undefined|nan/i.test(trimmed)) return null;
+
+  const multiplier = /k$/i.test(trimmed) ? 1_000 : /m$/i.test(trimmed) ? 1_000_000 : 1;
+  const numeric = Number(trimmed.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(numeric) ? numeric * multiplier : null;
+}
+
 export function getPdfPath(reportId: string, datasetName: string): string | null {
   const filename = `${datasetName.replace(/[^a-z0-9]/gi, "_")}_report_${reportId}.pdf`;
   const filepath = path.join(PDF_DIR, filename);
@@ -97,6 +134,33 @@ export async function generatePdfReport(report: Report): Promise<string> {
 
   const datasetName = cleanText(report.datasetName || "Selected dataset");
   const financials = normalizeFinancials(report);
+  const branch = resolvePdfBranch(report);
+  const totalDebits = kpiNumber(report, "Debit total");
+  const totalCredits = kpiNumber(report, "Credit total");
+  const operatingProfit = financials.operatingProfit;
+  if (branch.isAccountancyLedger || report.datasetName?.toLowerCase().includes("accountancy") || report.datasetName?.toLowerCase().includes("ledger")) {
+    debugLog("[DIAG] Accountancy Ledger PDF Branch Resolution:", {
+      gitCommit: process.env.VERCEL_GIT_COMMIT_SHA || "local-dev",
+      datasetName: report.datasetName,
+      reportType: report.reportType,
+      businessModel: report.businessModel,
+      reportProfileId: report.reportProfile?.id,
+      resolvedReportType: branch.resolvedReportType,
+      resolvedModel: branch.resolvedModel,
+      enteredAccountancyLedgerBranch: branch.isAccountancyLedger,
+      operatingProfit,
+      totalDebits,
+      totalCredits,
+      kpis: report.kpis?.map(k => ({ title: k.title, value: k.value })),
+      kpiRawValues: report.kpiRawValues,
+      financialsMetricSources: report.financials?.metricSources,
+    });
+  }
+  if (branch.isAccountancyLedger) {
+    assert.strictEqual(operatingProfit, null, "Accountancy ledger PDFs must not render operating profit from debit/credit columns");
+    assert(Number.isFinite(totalDebits), "Accountancy ledger PDFs require a finite debit total before rendering");
+    assert(Number.isFinite(totalCredits), "Accountancy ledger PDFs require a finite credit total before rendering");
+  }
   layoutContexts.set(doc, { title: report.reportProfile?.title || "Executive BI Report", datasetName });
   tracePdfRuntime("renderPdf", report, financials);
 
@@ -167,7 +231,7 @@ export async function generatePdfReport(report: Report): Promise<string> {
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "Executive Recommendations", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials);
-  } else if (report.reportProfile?.id === "accountancy_ledger") {
+  } else if (branch.isAccountancyLedger) {
     addDocumentPage(doc, "Accountancy Ledger Summary", datasetName);
     drawAccountancyLedgerSummary(doc, report, financials);
     addDocumentPage(doc, "Ledger Recommendations + Provenance", datasetName);
@@ -385,18 +449,18 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Investor portfolio field coverage." },
     ];
   }
-  if (report.reportProfile?.id === "accountancy_ledger") {
-    const debitTotal = report.kpis.find(k => k.title === "Debit total")?.value;
-    const creditTotal = report.kpis.find(k => k.title === "Credit total")?.value;
-    const invoices = report.kpis.find(k => k.title === "Invoices / documents")?.value;
-    const accounts = report.kpis.find(k => k.title === "Accounts")?.value;
-    const netMovement: number | null = (typeof debitTotal === 'number' && typeof creditTotal === 'number') ? debitTotal - creditTotal : null;
+  if (resolvePdfBranch(report).isAccountancyLedger) {
+    const debitTotal = kpiNumber(report, "Debit total");
+    const creditTotal = kpiNumber(report, "Credit total");
+    const invoices = kpiNumber(report, "Invoices / documents");
+    const accounts = kpiNumber(report, "Accounts");
+    const netMovement: number | null = debitTotal !== null && creditTotal !== null ? debitTotal - creditTotal : null;
     return [
-      metricCard("Total Debits", typeof debitTotal === 'number' ? debitTotal : null, "currency", "neutral", "Sum of debit column from ledger."),
-      metricCard("Total Credits", typeof creditTotal === 'number' ? creditTotal : null, "currency", "neutral", "Sum of credit column from ledger."),
+      metricCard("Total Debits", debitTotal, "currency", "neutral", "Sum of debit column from ledger."),
+      metricCard("Total Credits", creditTotal, "currency", "neutral", "Sum of credit column from ledger."),
       metricCard("Net Movement", netMovement, "currency", "neutral", "Total Debits - Total Credits."),
-      numberMetricCard("Invoices / Documents", typeof invoices === 'number' ? String(invoices) : "Not available", "Count of distinct invoice or document references."),
-      numberMetricCard("Accounts", typeof accounts === 'number' ? String(accounts) : "Not available", "Count of distinct account entries."),
+      numberMetricCard("Invoices / Documents", invoices !== null ? String(invoices) : "Not available", "Count of distinct invoice or document references."),
+      numberMetricCard("Accounts", accounts !== null ? String(accounts) : "Not available", "Count of distinct account entries."),
       { title: "Data Confidence", value: dataCompleteness === null ? "Not available" : `${dataCompleteness} / 100`, status: "neutral" as const, note: "Ledger field coverage." },
     ];
   }
@@ -1185,6 +1249,8 @@ function buildResultsSummary(report: Report, financials: ReportFinancials) {
 }
 
 function resultsSummaryTitle(report: Report) {
+  if (resolvePdfBranch(report).isAccountancyLedger) return "Accountancy Results Summary";
+
   switch (report.reportProfile?.id) {
     case "local_retail":
       return "Retail Results Summary";
@@ -2217,8 +2283,9 @@ function formatValue(value: number, format: "currency" | "percent") {
 
 function formatCurrency(value: number) {
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
@@ -2321,15 +2388,11 @@ function drawInvestorSectorStage(doc: jsPDF, report: Report) {
 function drawAccountancyLedgerSummary(doc: jsPDF, report: Report, financials: ReportFinancials) {
   let y = 48;
   y = drawSectionHeading(doc, "Ledger Summary", y);
-  const debitKpi = report.kpis.find(k => k.title === "Debit total");
-  const creditKpi = report.kpis.find(k => k.title === "Credit total");
-  const invoicesKpi = report.kpis.find(k => k.title === "Invoices / documents");
-  const accountsKpi = report.kpis.find(k => k.title === "Accounts");
-  const debitVal = debitKpi && typeof debitKpi.value === 'number' ? debitKpi.value : null;
-  const creditVal = creditKpi && typeof creditKpi.value === 'number' ? creditKpi.value : null;
+  const debitVal = kpiNumber(report, "Debit total");
+  const creditVal = kpiNumber(report, "Credit total");
   const netMovement = (debitVal !== null && creditVal !== null) ? debitVal - creditVal : null;
-  const invoicesVal = invoicesKpi && typeof invoicesKpi.value === 'number' ? invoicesKpi.value : null;
-  const accountsVal = accountsKpi && typeof accountsKpi.value === 'number' ? accountsKpi.value : null;
+  const invoicesVal = kpiNumber(report, "Invoices / documents");
+  const accountsVal = kpiNumber(report, "Accounts");
   y = drawTable(doc, [
     ["Metric", "Value", "Status", "Source / Notes"],
     ["Total Debits", debitVal !== null ? formatCurrency(debitVal) : "Not available", debitVal !== null ? "Available" : "Missing", "Sum of debit column from ledger."],

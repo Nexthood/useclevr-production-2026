@@ -736,13 +736,78 @@ async function assertMissingRequiredProfilePdfRegressions(generatePdfReport: Gen
   for (const profile of syntheticProfiles) {
     for (const extension of ["csv", "xlsx"] as const) {
       const reportProfile = getReportProfile(profile.model)
+      const isAccountancyLedger = profile.model === "accountancy"
+      const financials = isAccountancyLedger
+        ? {
+            reportingPeriod: "Synthetic",
+            dataConfidence: 80,
+            revenue: null,
+            cogs: null,
+            grossProfit: null,
+            operatingExpenses: null,
+            operatingProfit: null,
+            interestExpense: null,
+            taxExpense: null,
+            netProfit: null,
+            grossMargin: null,
+            operatingMargin: null,
+            netMargin: null,
+            topCostCategories: [],
+            periodTrends: [],
+            metricSources: {
+              revenue: { kind: "unavailable" as const, note: "Revenue cannot be derived from general ledger debit/credit alone." },
+              grossProfit: { kind: "unavailable" as const, note: "Requires explicit revenue and COGS fields." },
+              operatingProfit: { kind: "unavailable" as const, note: "Cannot be derived from ledger debit/credit - requires account classification." },
+              netProfit: { kind: "unavailable" as const, note: "Cannot be derived from ledger debit/credit - requires account classification." },
+            },
+          }
+        : {
+            reportingPeriod: "Synthetic",
+            dataConfidence: 80,
+            revenue: 50000,
+            cogs: 20000,
+            grossProfit: 30000,
+            operatingExpenses: 12000,
+            operatingProfit: 18000,
+            interestExpense: 500,
+            taxExpense: 3000,
+            netProfit: 14500,
+            grossMargin: 60,
+            operatingMargin: 36,
+            netMargin: 29,
+            topCostCategories: Array.from({ length: 14 }, (_, index) => ({
+              name: `${profile.baseName} Category ${String(index + 1).padStart(2, "0")}`,
+              value: 500 + index * 25,
+            })),
+            periodTrends: [
+              { period: "2026-01", revenue: 14000, grossProfit: 8400, operatingProfit: 4800, netProfit: 3600 },
+              { period: "2026-02", revenue: 16000, grossProfit: 9600, operatingProfit: 5600, netProfit: 4200 },
+              { period: "2026-03", revenue: 20000, grossProfit: 12000, operatingProfit: 7600, netProfit: 5200 },
+            ],
+          }
+      const kpis = isAccountancyLedger
+        ? [
+            { title: "Debit total", value: "$407.4K" },
+            { title: "Credit total", value: "$414.9K" },
+            { title: "Invoices / documents", value: "200" },
+            { title: "Accounts", value: "12" },
+          ]
+        : []
+      const kpiRawValues = isAccountancyLedger
+        ? {
+            "Debit total": 407365.82,
+            "Credit total": 414876.69,
+            "Invoices / documents": 200,
+            Accounts: 12,
+          }
+        : {}
       const report = {
         id: `synthetic-${profile.baseName}-${extension}`,
         datasetId: `profile_${profile.baseName}_${extension}`,
         datasetName: `${profile.baseName}.${extension}`,
         createdAt: new Date().toISOString(),
         status: "ready",
-        reportType: "executive-bi-report",
+        reportType: isAccountancyLedger ? "accountancy" : "executive-bi-report",
         businessModel: profile.model,
         userId: "synthetic_user",
         workspaceId: "synthetic_user",
@@ -754,32 +819,10 @@ async function assertMissingRequiredProfilePdfRegressions(generatePdfReport: Gen
         localTime: "2026-08-15 12:00",
         visibility: "private",
         summary: `${profile.baseName} synthetic layout report validates shared PDF pagination only.`,
-        financials: {
-          reportingPeriod: "Synthetic",
-          dataConfidence: 80,
-          revenue: 50000,
-          cogs: 20000,
-          grossProfit: 30000,
-          operatingExpenses: 12000,
-          operatingProfit: 18000,
-          interestExpense: 500,
-          taxExpense: 3000,
-          netProfit: 14500,
-          grossMargin: 60,
-          operatingMargin: 36,
-          netMargin: 29,
-          topCostCategories: Array.from({ length: 14 }, (_, index) => ({
-            name: `${profile.baseName} Category ${String(index + 1).padStart(2, "0")}`,
-            value: 500 + index * 25,
-          })),
-          periodTrends: [
-            { period: "2026-01", revenue: 14000, grossProfit: 8400, operatingProfit: 4800, netProfit: 3600 },
-            { period: "2026-02", revenue: 16000, grossProfit: 9600, operatingProfit: 5600, netProfit: 4200 },
-            { period: "2026-03", revenue: 20000, grossProfit: 12000, operatingProfit: 7600, netProfit: 5200 },
-          ],
-        },
+        financials,
         findings: [],
-        kpis: [],
+        kpis,
+        kpiRawValues,
         charts: [],
         aiInsights: [],
         predictions: [],
@@ -791,6 +834,16 @@ async function assertMissingRequiredProfilePdfRegressions(generatePdfReport: Gen
       const pdfPath = await generatePdfReport(report)
       const { pages, text } = assertPdfLayoutBasics(pdfPath, reportProfile.title.toUpperCase())
       assertResultsSummaryPage(text, expectedResultsSummaryTitle(reportProfile.id), [], profile.baseName, { requireKeyResults: false, requireActions: false })
+      if (isAccountancyLedger) {
+        assert(text.includes("Total Debits"), "accountancy ledger PDF must render total debits")
+        assert(text.includes("$407.4K"), "accountancy ledger PDF must render debit total")
+        assert(text.includes("Total Credits"), "accountancy ledger PDF must render total credits")
+        assert(text.includes("$414.9K"), "accountancy ledger PDF must render credit total")
+        assert(text.includes("Net Movement"), "accountancy ledger PDF must render net movement")
+        assert(text.includes("-$7.5K"), "accountancy ledger PDF must render debit-credit net movement")
+        assert(!text.includes("Operating Profit $407.4K"), "accountancy ledger PDF must not render debit as operating profit")
+        assert(!text.includes("Directly from source field: debit"), "accountancy ledger PDF must not use debit as a P&L metric source")
+      }
       fs.unlinkSync(pdfPath)
       results.push({ fixture: `${profile.baseName}.${extension}`, title: reportProfile.title, pages })
     }

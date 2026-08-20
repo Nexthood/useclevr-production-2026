@@ -413,6 +413,7 @@ export interface Report {
   bbsc?: BusinessBalancedScorecard;
   findings: string[];
   kpis: { title: string; value: string }[];
+  kpiRawValues?: Record<string, number>;
   charts: ReportChart[];
   aiInsights: string[];
   predictions: string[];
@@ -503,6 +504,11 @@ export async function generateReport(
     title: kpi.title,
     value: formatKPIValue(kpi.value, kpi.format)
   }));
+  const kpiRawValues = Object.fromEntries(
+    (analysisData.kpis || [])
+      .filter((kpi) => typeof kpi.value === "number" && Number.isFinite(kpi.value))
+      .map((kpi) => [kpi.title, kpi.value]),
+  );
   
   const report: Report = {
     id: reportId,
@@ -532,6 +538,7 @@ export async function generateReport(
     bbsc: analysisData.bbsc,
     findings: analysisData.findings || [],
     kpis: formattedKPIs,
+    kpiRawValues,
     charts: analysisData.charts || [],
     aiInsights: analysisData.aiInsights || [],
     predictions: (options.includePredictions !== false) ? (analysisData.predictions || []) : [],
