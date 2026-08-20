@@ -2530,8 +2530,9 @@ function buildProfitabilityAlerts(netMargin: number | null, metrics: Record<stri
   return alerts
 }
 
-function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {
+export function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {
   if (datasetType === "profitability" || datasetType === "accountancy" || datasetType === "prebookkeeping") return datasetType
+  if (detectAccountancyLedger(columns, datasetName)) return "accountancy"
   if (detectProfessionalServices(columns, datasetName)) return "professional_services"
   if (detectBusinessConsulting(columns, datasetName)) return "business_consulting"
   return businessModel
@@ -2544,6 +2545,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function detectBusinessConsulting(columns: string[], datasetName: string) {
   const text = [datasetName, ...columns].join(" ").toLowerCase()
   return /billable|hourly_rate|consultant_cost|project_margin|gross_margin|client_id|project_id/.test(text)
+}
+
+function detectAccountancyLedger(columns: string[], datasetName: string) {
+  void datasetName
+  const normalized = columns.map((column) => column.toLowerCase().trim())
+  const hasDebit = normalized.some((column) => column === "debit" || column.includes("debit"))
+  const hasCredit = normalized.some((column) => column === "credit" || column.includes("credit"))
+  const hasAccount = normalized.some((column) =>
+    column === "account" ||
+    column === "account_name" ||
+    column === "account_code" ||
+    column.includes("ledger")
+  )
+  const hasJournal = normalized.some((column) => column === "journal_id" || column.includes("journal"))
+
+  return hasDebit && hasCredit && (hasAccount || hasJournal)
 }
 
 function detectProfessionalServices(columns: string[], datasetName: string) {

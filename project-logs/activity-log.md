@@ -259,3 +259,4 @@
 - fixed: prioritize business risks, opportunities, segment performance, and operational signals in generated PDF Results Summary Top Findings while suppressing parser metadata unless no business finding exists.
 - fixed: remove the duplicate Dashboard Command Center Generate Report button while keeping Executive Daily Health as the single visible generated-report action.
 - fixed: route Accountancy Ledger generated PDFs through the ledger branch when the resolved report type is `accountancy`, preserve raw debit and credit KPI values for PDF rendering, and verify `10_accountancy_ledger` shows Total Debits, Total Credits, and Net Movement without treating debit as Operating Profit.
+- fixed: resolve standard uploads with debit, credit, and account or journal columns as Accountancy Ledger reports before financial metric construction, and verify a single unrelated credit field does not trigger accountancy routing.
