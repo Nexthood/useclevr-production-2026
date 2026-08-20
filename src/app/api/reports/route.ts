@@ -255,7 +255,8 @@ export async function POST(request: Request) {
       debugLog('[DIAG] Accountancy Ledger Report Input:', {
         datasetName: access.dataset.name,
         datasetType: access.dataset.datasetType,
-        reportModel: (reportInput as any).reportModel,
+        reportType: (reportInput as any).reportType,
+        businessModel: (reportInput as any).businessModel,
         reportProfileId: (reportInput as any).reportProfile?.id,
         financials: (reportInput as any).financials,
         kpis: (reportInput as any).kpis?.map((k: any) => ({ title: k.title, value: k.value })),
