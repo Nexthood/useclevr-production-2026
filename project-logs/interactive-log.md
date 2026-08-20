@@ -1,3 +1,35 @@
+## Local Retail Inventory Snapshot Semantics
+
+1. Interaction title
+Local Retail inventory snapshot semantics.
+
+2. What was the user goal
+Fix `01_local_retail` so generated reports calculate inventory metrics from current store-product snapshots instead of summing historical `stock_on_hand` transaction rows.
+
+3. What changed
+Local retail report analysis now detects `store_id` and builds an inventory snapshot set from the latest valid dated row per `store_id + product_id`. Current Stock, reorder-required count, out-of-stock count, inventory value, stock by category, inventory value by product, low-stock rows, and inventory recommendations consume that snapshot set. Revenue, COGS, gross profit, gross margin, units sold, category gross margin, supplier exposure, and product count continue to use transaction-row semantics. The `01_local_retail` CSV and XLSX fixtures carry 180 rows with a historical stock sum of 10,643 and latest snapshot current stock of 6,341. A focused regression validates CSV, XLSX, generated PDF text, and the same-store same-product 100 to 70 to 40 case.
+
+4. Problems marked
+- blocker: none.
+- risk: The broad dataset-aware report-profile script contains unrelated profile Results Summary assertions that can fail outside this local-retail inventory path, so focused validation uses the new local-retail snapshot regression.
+- improvement: Keep fixture-generation logic centralized if more numbered fixture files need deterministic regeneration.
+- observation: The previous retail analysis summed `stock_on_hand`, inventory value, low-stock rows, and stock-by-category directly from all transaction rows; low-stock count was also capped by the displayed top-10 rows.
+
+5. User learning
+Retail sales metrics and inventory metrics can have different grains in the same dataset: transaction-period rows for sales, latest store-product snapshots for current inventory state.
+
+6. AI-agent learning
+Generated report tests should assert the historical-stock sum guard alongside the current snapshot total so a regression cannot silently reintroduce transaction-row inventory sums.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Generic Business Executive Summary Profitability Split
 
 1. Interaction title

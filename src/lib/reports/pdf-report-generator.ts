@@ -382,7 +382,7 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
       numberMetricCard("Current Stock", retail.currentStock === null ? "Not available" : retail.currentStock.toLocaleString(), "Stock on hand from inventory fields."),
       metricCard("Inventory Value", retail.inventoryValue, "currency", "missing", "Stock multiplied by detected unit cost where available."),
       numberMetricCard("Products / SKUs", retail.productCount === null ? "Not available" : retail.productCount.toLocaleString(), "Distinct detected product or SKU values."),
-      numberMetricCard("Reorder Required", retail.reorderRequiredCount === null ? "Not available" : retail.reorderRequiredCount.toLocaleString(), "SKUs at or below reorder point."),
+      numberMetricCard("Reorder Required", retail.reorderRequiredCount === null ? "Not available" : retail.reorderRequiredCount.toLocaleString(), "Inventory positions at or below reorder point."),
     ];
   }
   if (report.reportProfile?.id === "ecommerce" && report.ecommerceAnalysis) {
@@ -546,7 +546,7 @@ function drawRetailInventoryIntelligence(doc: jsPDF, report: Report) {
   y = drawMetricGrid(doc, [
     numberMetricCard("Current Stock", retail.currentStock === null ? "Not available" : retail.currentStock.toLocaleString(), "Stock units from source data."),
     metricCard("Inventory Value", retail.inventoryValue, "currency", "missing", "Estimated from stock and unit cost."),
-    numberMetricCard("Low Stock SKUs", retail.lowStockSkuCount === null ? "Not available" : retail.lowStockSkuCount.toLocaleString(), "At or below reorder point."),
+    numberMetricCard("Low Stock Positions", retail.lowStockSkuCount === null ? "Not available" : retail.lowStockSkuCount.toLocaleString(), "At or below reorder point."),
     numberMetricCard("Out of Stock", retail.outOfStockSkuCount === null ? "Not available" : retail.outOfStockSkuCount.toLocaleString(), "Stock less than or equal to zero."),
   ], y);
   y += 10;
@@ -1296,7 +1296,7 @@ function selectSummaryMetrics(report: Report): SummaryMetric[] {
 }
 
 function profileSummaryMetricAliases(profileId?: string): string[] {
-  if (profileId === "local_retail") return ["Units Sold", "Current Stock", "Low Stock SKUs", "AOV"];
+  if (profileId === "local_retail") return ["Units Sold", "Current Stock", "Low Stock Positions", "AOV"];
   if (profileId === "ecommerce") return ["AOV", "Average Order Value", "Units Sold", "Return Rate", "Shipping / Fulfillment Cost"];
   if (profileId === "saas_startup") return ["MRR", "ARR", "Customers", "New Customers", "Churn Rate", "Net Expansion MRR", "CAC", "LTV", "Runway"];
   if (profileId === "marketplace_startup") return ["GMV", "Marketplace Revenue", "Take Rate", "Seller Payout", "Refund Amount", "Transactions", "Buyers", "Sellers"];

@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix Retail Executive Reports so current stock, reorder status, inventory value, and stock by category use latest store-product inventory snapshots while sales and margin metrics use transaction rows.
 - Fix Generic Business report executive summaries so available gross profit and gross margin are stated separately from unavailable operating and net profitability inputs.
 - Fix Generic Business reports so invoice IDs provide transaction counts and AOV, exact cost fields provide cost totals, and explicit profit fields provide profit and margin without net-profit labeling.
 - Fix Investor Portfolio reports so Total Invested sums invested amount fields, Aggregate Company Valuations sums latest valuation fields, and ownership uses an average.

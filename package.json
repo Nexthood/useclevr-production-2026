@@ -51,6 +51,7 @@
     "test:csv-edge-cases": "node -r tsx/esm scripts/analysis/test-csv-edge-cases.ts",
     "test:bbsc": "node -r tsx/esm scripts/analysis/test-bbsc.ts",
     "test:generic-business-canonical-resolution": "node -r tsx/esm scripts/analysis/test-generic-business-canonical-resolution.ts",
+    "test:local-retail-inventory-snapshots": "node -r tsx/esm scripts/analysis/test-local-retail-inventory-snapshots.ts",
     "test:investor-portfolio-aggregation": "node -r tsx/esm scripts/analysis/test-investor-portfolio-aggregation.ts",
     "test:profitability-two-file": "node -r tsx/esm scripts/analysis/test-profitability-two-file.ts",
     "test:report-accuracy": "node -r tsx/esm scripts/analysis/test-report-accuracy-missing-data.ts",

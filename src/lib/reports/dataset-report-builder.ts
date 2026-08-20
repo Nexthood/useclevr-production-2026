@@ -35,6 +35,7 @@ type ColumnMap = {
   region?: string
   channel?: string
   product?: string
+  store?: string
   category?: string
   department?: string
   date?: string
@@ -759,15 +760,16 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
 }
 
 function buildRetailAnalysis(rows: DataRow[], columns: ColumnMap): RetailReportAnalysis {
-  const currentStock = sumColumn(rows, columns.stock)
+  const inventorySnapshots = retailInventorySnapshots(rows, columns)
+  const currentStock = inventorySnapshots.length > 0 ? round(inventorySnapshots.reduce((total, snapshot) => total + snapshot.stock, 0)) : sumColumn(rows, columns.stock)
   const quantity = sumColumn(rows, columns.quantity)
   const revenue = sumColumn(rows, columns.revenue)
   const averageOrderValue = retailAverageOrderValue(rows, columns, revenue)
-  const inventoryValue = retailInventoryValue(rows, columns)
+  const inventoryValue = retailInventoryValue(inventorySnapshots, columns)
   const productCount = columns.product ? uniqueCount(rows, columns.product) : rows.length
   const supplierCount = columns.vendor ? uniqueCount(rows, columns.vendor) : null
-  const lowStockItems = retailLowStockItems(rows, columns)
-  const outOfStockSkuCount = columns.stock ? uniqueCountWhere(rows, columns.product, (row) => (getNumber(row[columns.stock!]) ?? 0) <= 0) : null
+  const lowStockItems = retailLowStockItems(inventorySnapshots, columns)
+  const outOfStockSkuCount = inventorySnapshots.length > 0 ? inventorySnapshots.filter((snapshot) => snapshot.stock <= 0).length : columns.stock ? uniqueCountWhere(rows, columns.product, (row) => (getNumber(row[columns.stock!]) ?? 0) <= 0) : null
 
   return {
     currentStock,
@@ -782,8 +784,8 @@ function buildRetailAnalysis(rows: DataRow[], columns: ColumnMap): RetailReportA
     topProductsByRevenue: groupedRetailChart(rows, columns.product, columns.revenue, "Unknown product"),
     revenueByCategory: groupedRetailChart(rows, columns.category, columns.revenue, "Uncategorized"),
     grossMarginByCategory: retailMarginByGroup(rows, columns.category, columns),
-    stockByCategory: groupedRetailChart(rows, columns.category, columns.stock, "Uncategorized"),
-    inventoryValueByProduct: retailInventoryValueByProduct(rows, columns),
+    stockByCategory: retailStockByCategory(inventorySnapshots, columns),
+    inventoryValueByProduct: retailInventoryValueByProduct(inventorySnapshots, columns),
     supplierExposure: groupedRetailChart(rows, columns.vendor, columns.revenue, "Unknown supplier"),
     lowStockItems,
   }
@@ -797,7 +799,7 @@ function buildRetailSummary(datasetName: string, rowCount: number, financials: R
     parts.push(`Gross profit is ${formatCurrencyForSummary(financials.grossProfit)} with gross margin of ${financials.grossMargin.toFixed(1)}%.`)
   }
   if (retail.currentStock !== null) parts.push(`Current stock is ${retail.currentStock.toLocaleString()} units across ${retail.productCount?.toLocaleString() || "recognized"} products or SKUs.`)
-  if (retail.reorderRequiredCount !== null && retail.reorderRequiredCount > 0) parts.push(`${retail.reorderRequiredCount.toLocaleString()} SKU${retail.reorderRequiredCount === 1 ? "" : "s"} are at or below reorder point.`)
+  if (retail.reorderRequiredCount !== null && retail.reorderRequiredCount > 0) parts.push(`${retail.reorderRequiredCount.toLocaleString()} inventory position${retail.reorderRequiredCount === 1 ? "" : "s"} are at or below reorder point.`)
   if (retail.supplierExposure[0]) parts.push(`${retail.supplierExposure[0].name} is the largest detected supplier by revenue.`)
   return parts.join(" ")
 }
@@ -810,10 +812,11 @@ function buildRetailRecommendations(
   const recommendations: ReportRecommendation[] = []
   const topLowStock = retail.lowStockItems[0]
   if (topLowStock) {
+    const lowStockLabel = topLowStock.product
     recommendations.push({
-      issue: `${topLowStock.product} is at or below reorder point.`,
+      issue: `${lowStockLabel} is at or below reorder point.`,
       businessImpact: "Stockout risk can interrupt retail sales and push customers to alternatives.",
-      recommendedAction: `Reorder ${topLowStock.product} and review the reorder point against recent unit sales.`,
+      recommendedAction: `Reorder ${lowStockLabel} and review the reorder point against recent unit sales.`,
       estimatedImpact: "Protects near-term revenue from avoidable out-of-stock exposure.",
       confidence: "High",
       requiredData: [],
@@ -1718,56 +1721,107 @@ function saasSegmentPerformance(rows: DataRow[], groupColumn: string | undefined
     .slice(0, 8)
 }
 
-function retailInventoryValue(rows: DataRow[], columns: ColumnMap) {
+type RetailInventorySnapshot = {
+  row: DataRow
+  product: string
+  store?: string
+  category?: string
+  supplier?: string
+  stock: number
+  reorderPoint: number | null
+  unitCost: number | null
+  dateTime: number | null
+  index: number
+}
+
+function retailInventorySnapshots(rows: DataRow[], columns: ColumnMap): RetailInventorySnapshot[] {
+  if (!columns.stock) return []
+  const snapshots = new Map<string, RetailInventorySnapshot>()
+  rows.forEach((row, index) => {
+    const stock = getNumber(row[columns.stock!])
+    if (stock === null) return
+    const product = columns.product ? String(row[columns.product] || "").trim() : ""
+    const store = columns.store ? String(row[columns.store] || "").trim() : ""
+    const keyProduct = product || `row_${index}`
+    const key = `${store || "all_stores"}::${keyProduct}`
+    const rawDate = columns.date ? row[columns.date] : null
+    const dateTime = rawDate ? new Date(String(rawDate)).getTime() : NaN
+    const snapshot: RetailInventorySnapshot = {
+      row,
+      product: product || "Unknown product",
+      store: store || undefined,
+      category: columns.category ? String(row[columns.category] || "").trim() || undefined : undefined,
+      supplier: columns.vendor ? String(row[columns.vendor] || "").trim() || undefined : undefined,
+      stock,
+      reorderPoint: columns.reorderPoint ? getNumber(row[columns.reorderPoint]) : null,
+      unitCost: rowUnitCost(row, columns),
+      dateTime: Number.isFinite(dateTime) ? dateTime : null,
+      index,
+    }
+    const current = snapshots.get(key)
+    if (!current || isLaterRetailSnapshot(snapshot, current)) snapshots.set(key, snapshot)
+  })
+  return Array.from(snapshots.values())
+}
+
+function isLaterRetailSnapshot(candidate: RetailInventorySnapshot, current: RetailInventorySnapshot) {
+  if (candidate.dateTime !== null && current.dateTime !== null) {
+    return candidate.dateTime > current.dateTime || (candidate.dateTime === current.dateTime && candidate.index > current.index)
+  }
+  if (candidate.dateTime !== null && current.dateTime === null) return true
+  if (candidate.dateTime === null && current.dateTime !== null) return false
+  return candidate.index > current.index
+}
+
+function retailInventoryValue(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
   if (!columns.stock || !columns.cost) return null
   let total = 0
   let found = false
-  for (const row of rows) {
-    const stock = getNumber(row[columns.stock])
-    const unitCost = rowUnitCost(row, columns)
-    if (stock === null || unitCost === null) continue
-    total += stock * unitCost
+  for (const snapshot of snapshots) {
+    if (snapshot.unitCost === null) continue
+    total += snapshot.stock * snapshot.unitCost
     found = true
   }
   return found ? round(total) : null
 }
 
-function retailInventoryValueByProduct(rows: DataRow[], columns: ColumnMap) {
+function retailInventoryValueByProduct(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
   if (!columns.product || !columns.stock || !columns.cost) return []
   const grouped = new Map<string, number>()
-  for (const row of rows) {
-    const product = String(row[columns.product] || "Unknown product").trim() || "Unknown product"
-    const stock = getNumber(row[columns.stock])
-    const unitCost = rowUnitCost(row, columns)
-    if (stock === null || unitCost === null) continue
-    grouped.set(product, round((grouped.get(product) || 0) + stock * unitCost))
+  for (const snapshot of snapshots) {
+    if (snapshot.unitCost === null) continue
+    grouped.set(snapshot.product, round((grouped.get(snapshot.product) || 0) + snapshot.stock * snapshot.unitCost))
   }
   return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
 }
 
-function retailLowStockItems(rows: DataRow[], columns: ColumnMap) {
+function retailLowStockItems(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
   if (!columns.stock || !columns.reorderPoint) return []
-  const items = new Map<string, { product: string; category?: string; supplier?: string; stock: number; reorderPoint: number; revenue: number }>()
-  for (const row of rows) {
-    const stock = getNumber(row[columns.stock])
-    const reorderPoint = getNumber(row[columns.reorderPoint])
-    if (stock === null || reorderPoint === null || stock > reorderPoint) continue
-    const product = columns.product ? String(row[columns.product] || "Unknown product").trim() : "Unknown product"
-    const key = product || "Unknown product"
-    const revenue = columns.revenue ? getNumber(row[columns.revenue]) || 0 : 0
-    const current = items.get(key)
-    if (!current || revenue > current.revenue) {
-      items.set(key, {
-        product: key,
-        category: columns.category ? String(row[columns.category] || "").trim() || undefined : undefined,
-        supplier: columns.vendor ? String(row[columns.vendor] || "").trim() || undefined : undefined,
-        stock,
-        reorderPoint,
-        revenue,
-      })
-    }
+  const items: { product: string; store?: string; category?: string; supplier?: string; stock: number; reorderPoint: number; revenue: number }[] = []
+  for (const snapshot of snapshots) {
+    if (snapshot.reorderPoint === null || snapshot.stock > snapshot.reorderPoint) continue
+    const revenue = columns.revenue ? getNumber(snapshot.row[columns.revenue]) || 0 : 0
+    items.push({
+      product: snapshot.store ? `${snapshot.store} / ${snapshot.product}` : snapshot.product,
+      store: snapshot.store,
+      category: snapshot.category,
+      supplier: snapshot.supplier,
+      stock: snapshot.stock,
+      reorderPoint: snapshot.reorderPoint,
+      revenue,
+    })
   }
-  return Array.from(items.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 10).map(({ revenue: _revenue, ...item }) => item)
+  return items.sort((a, b) => b.revenue - a.revenue).map(({ revenue: _revenue, ...item }) => item)
+}
+
+function retailStockByCategory(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
+  if (!columns.category || !columns.stock) return []
+  const grouped = new Map<string, number>()
+  for (const snapshot of snapshots) {
+    const name = snapshot.category || "Uncategorized"
+    grouped.set(name, round((grouped.get(name) || 0) + snapshot.stock))
+  }
+  return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
 }
 
 function groupedRetailChart(rows: DataRow[], groupColumn: string | undefined, valueColumn: string | undefined, fallback: string) {
@@ -2666,6 +2720,7 @@ function detectColumns(columns: string[]): ColumnMap {
     region: findColumn(columns, [/region/]),
     channel: findColumn(columns, [/channel/, /source/]),
     product: findColumn(columns, [/product_id/, /product_name/, /product/, /^sku$/, /item/]),
+    store: findColumn(columns, [/store_id/, /^store$/, /branch_id/, /^branch$/, /location_id/]),
     category: findColumn(columns, [/category/]),
     department: findColumn(columns, [/department/]),
     date: findColumn(columns, [/date/, /month/, /period/, /created_at/, /project_start/, /project_end/]),
@@ -2952,7 +3007,7 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Current Stock", retail?.currentStock ?? sumColumn(rows, columns.stock), "number")
     addKpi(kpis, "Inventory Value", retail?.inventoryValue ?? null, "currency")
     addKpi(kpis, "Products / SKUs", retail?.productCount ?? (columns.product ? uniqueCount(rows, columns.product) : null), "number")
-    addKpi(kpis, "Low Stock SKUs", retail?.lowStockSkuCount ?? countLowStock(rows, columns), "number")
+    addKpi(kpis, "Low Stock Positions", retail?.lowStockSkuCount ?? countLowStock(rows, columns), "number")
     addKpi(kpis, "Reorder Required", retail?.reorderRequiredCount ?? countLowStock(rows, columns), "number")
     addKpi(kpis, "Out of Stock", retail?.outOfStockSkuCount ?? null, "number")
     addKpi(kpis, "AOV", retail?.averageOrderValue?.status === "available" ? retail.averageOrderValue.value : null, "currency")
@@ -3486,11 +3541,7 @@ function churnRate(rows: DataRow[], column?: string) {
 
 function countLowStock(rows: DataRow[], columns: ColumnMap) {
   if (!columns.stock || !columns.reorderPoint) return null
-  return rows.filter((row) => {
-    const stock = getNumber(row[columns.stock!])
-    const reorder = getNumber(row[columns.reorderPoint!])
-    return stock !== null && reorder !== null && stock <= reorder
-  }).length
+  return retailInventorySnapshots(rows, columns).filter((snapshot) => snapshot.reorderPoint !== null && snapshot.stock <= snapshot.reorderPoint).length
 }
 
 function groupedChart(rows: DataRow[], groupColumn: string | undefined, valueColumn: string | undefined, title: string): ReportChart | null {

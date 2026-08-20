@@ -246,7 +246,7 @@ export interface RetailReportAnalysis {
   stockByCategory: { name: string; value: number }[];
   inventoryValueByProduct: { name: string; value: number }[];
   supplierExposure: { name: string; value: number }[];
-  lowStockItems: { product: string; category?: string; supplier?: string; stock: number; reorderPoint: number }[];
+  lowStockItems: { product: string; store?: string; category?: string; supplier?: string; stock: number; reorderPoint: number }[];
 }
 
 export interface EcommerceReportAnalysis {
