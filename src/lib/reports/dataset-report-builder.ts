@@ -35,6 +35,7 @@ type ColumnMap = {
   region?: string
   channel?: string
   product?: string
+  store?: string
   category?: string
   department?: string
   date?: string
@@ -125,6 +126,9 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   if (reportModel === "local_retail" && !columnMap.cogs && columnMap.cost) {
     columnMap.cogs = columnMap.cost
   }
+  if (reportModel === "generic") {
+    applyGenericBusinessCanonicalFallbacks(columnMap, columns, rows)
+  }
   if (reportModel === "marketplace") {
     columnMap.revenue = undefined
     columnMap.expenseCategory = undefined
@@ -159,6 +163,9 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     templateName: "executive-bi-report",
   })
   const financials = buildGenericFinancials(rows, columnMap)
+  if (reportModel === "generic") {
+    annotateGenericBusinessFinancials(financials, columnMap)
+  }
   if (reportModel === "marketplace" && financials.revenue !== null && columnMap.gmv && financials.metricSources?.revenue?.note?.includes(columnMap.gmv)) {
     financials.revenue = null
     financials.grossProfit = null
@@ -332,7 +339,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
             ? buildInvestorSummary(dataset.name, investorAnalysis)
             : saasAnalysis
               ? buildSaasSummary(dataset.name, canonicalRowCount, saasAnalysis)
-              : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
+              : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc, reportProfile.id),
     findings,
     kpis,
     charts,
@@ -753,15 +760,16 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
 }
 
 function buildRetailAnalysis(rows: DataRow[], columns: ColumnMap): RetailReportAnalysis {
-  const currentStock = sumColumn(rows, columns.stock)
+  const inventorySnapshots = retailInventorySnapshots(rows, columns)
+  const currentStock = inventorySnapshots.length > 0 ? round(inventorySnapshots.reduce((total, snapshot) => total + snapshot.stock, 0)) : sumColumn(rows, columns.stock)
   const quantity = sumColumn(rows, columns.quantity)
   const revenue = sumColumn(rows, columns.revenue)
   const averageOrderValue = retailAverageOrderValue(rows, columns, revenue)
-  const inventoryValue = retailInventoryValue(rows, columns)
+  const inventoryValue = retailInventoryValue(inventorySnapshots, columns)
   const productCount = columns.product ? uniqueCount(rows, columns.product) : rows.length
   const supplierCount = columns.vendor ? uniqueCount(rows, columns.vendor) : null
-  const lowStockItems = retailLowStockItems(rows, columns)
-  const outOfStockSkuCount = columns.stock ? uniqueCountWhere(rows, columns.product, (row) => (getNumber(row[columns.stock!]) ?? 0) <= 0) : null
+  const lowStockItems = retailLowStockItems(inventorySnapshots, columns)
+  const outOfStockSkuCount = inventorySnapshots.length > 0 ? inventorySnapshots.filter((snapshot) => snapshot.stock <= 0).length : columns.stock ? uniqueCountWhere(rows, columns.product, (row) => (getNumber(row[columns.stock!]) ?? 0) <= 0) : null
 
   return {
     currentStock,
@@ -776,8 +784,8 @@ function buildRetailAnalysis(rows: DataRow[], columns: ColumnMap): RetailReportA
     topProductsByRevenue: groupedRetailChart(rows, columns.product, columns.revenue, "Unknown product"),
     revenueByCategory: groupedRetailChart(rows, columns.category, columns.revenue, "Uncategorized"),
     grossMarginByCategory: retailMarginByGroup(rows, columns.category, columns),
-    stockByCategory: groupedRetailChart(rows, columns.category, columns.stock, "Uncategorized"),
-    inventoryValueByProduct: retailInventoryValueByProduct(rows, columns),
+    stockByCategory: retailStockByCategory(inventorySnapshots, columns),
+    inventoryValueByProduct: retailInventoryValueByProduct(inventorySnapshots, columns),
     supplierExposure: groupedRetailChart(rows, columns.vendor, columns.revenue, "Unknown supplier"),
     lowStockItems,
   }
@@ -791,7 +799,7 @@ function buildRetailSummary(datasetName: string, rowCount: number, financials: R
     parts.push(`Gross profit is ${formatCurrencyForSummary(financials.grossProfit)} with gross margin of ${financials.grossMargin.toFixed(1)}%.`)
   }
   if (retail.currentStock !== null) parts.push(`Current stock is ${retail.currentStock.toLocaleString()} units across ${retail.productCount?.toLocaleString() || "recognized"} products or SKUs.`)
-  if (retail.reorderRequiredCount !== null && retail.reorderRequiredCount > 0) parts.push(`${retail.reorderRequiredCount.toLocaleString()} SKU${retail.reorderRequiredCount === 1 ? "" : "s"} are at or below reorder point.`)
+  if (retail.reorderRequiredCount !== null && retail.reorderRequiredCount > 0) parts.push(`${retail.reorderRequiredCount.toLocaleString()} inventory position${retail.reorderRequiredCount === 1 ? "" : "s"} are at or below reorder point.`)
   if (retail.supplierExposure[0]) parts.push(`${retail.supplierExposure[0].name} is the largest detected supplier by revenue.`)
   return parts.join(" ")
 }
@@ -804,10 +812,11 @@ function buildRetailRecommendations(
   const recommendations: ReportRecommendation[] = []
   const topLowStock = retail.lowStockItems[0]
   if (topLowStock) {
+    const lowStockLabel = topLowStock.product
     recommendations.push({
-      issue: `${topLowStock.product} is at or below reorder point.`,
+      issue: `${lowStockLabel} is at or below reorder point.`,
       businessImpact: "Stockout risk can interrupt retail sales and push customers to alternatives.",
-      recommendedAction: `Reorder ${topLowStock.product} and review the reorder point against recent unit sales.`,
+      recommendedAction: `Reorder ${lowStockLabel} and review the reorder point against recent unit sales.`,
       estimatedImpact: "Protects near-term revenue from avoidable out-of-stock exposure.",
       confidence: "High",
       requiredData: [],
@@ -1712,56 +1721,107 @@ function saasSegmentPerformance(rows: DataRow[], groupColumn: string | undefined
     .slice(0, 8)
 }
 
-function retailInventoryValue(rows: DataRow[], columns: ColumnMap) {
+type RetailInventorySnapshot = {
+  row: DataRow
+  product: string
+  store?: string
+  category?: string
+  supplier?: string
+  stock: number
+  reorderPoint: number | null
+  unitCost: number | null
+  dateTime: number | null
+  index: number
+}
+
+function retailInventorySnapshots(rows: DataRow[], columns: ColumnMap): RetailInventorySnapshot[] {
+  if (!columns.stock) return []
+  const snapshots = new Map<string, RetailInventorySnapshot>()
+  rows.forEach((row, index) => {
+    const stock = getNumber(row[columns.stock!])
+    if (stock === null) return
+    const product = columns.product ? String(row[columns.product] || "").trim() : ""
+    const store = columns.store ? String(row[columns.store] || "").trim() : ""
+    const keyProduct = product || `row_${index}`
+    const key = `${store || "all_stores"}::${keyProduct}`
+    const rawDate = columns.date ? row[columns.date] : null
+    const dateTime = rawDate ? new Date(String(rawDate)).getTime() : NaN
+    const snapshot: RetailInventorySnapshot = {
+      row,
+      product: product || "Unknown product",
+      store: store || undefined,
+      category: columns.category ? String(row[columns.category] || "").trim() || undefined : undefined,
+      supplier: columns.vendor ? String(row[columns.vendor] || "").trim() || undefined : undefined,
+      stock,
+      reorderPoint: columns.reorderPoint ? getNumber(row[columns.reorderPoint]) : null,
+      unitCost: rowUnitCost(row, columns),
+      dateTime: Number.isFinite(dateTime) ? dateTime : null,
+      index,
+    }
+    const current = snapshots.get(key)
+    if (!current || isLaterRetailSnapshot(snapshot, current)) snapshots.set(key, snapshot)
+  })
+  return Array.from(snapshots.values())
+}
+
+function isLaterRetailSnapshot(candidate: RetailInventorySnapshot, current: RetailInventorySnapshot) {
+  if (candidate.dateTime !== null && current.dateTime !== null) {
+    return candidate.dateTime > current.dateTime || (candidate.dateTime === current.dateTime && candidate.index > current.index)
+  }
+  if (candidate.dateTime !== null && current.dateTime === null) return true
+  if (candidate.dateTime === null && current.dateTime !== null) return false
+  return candidate.index > current.index
+}
+
+function retailInventoryValue(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
   if (!columns.stock || !columns.cost) return null
   let total = 0
   let found = false
-  for (const row of rows) {
-    const stock = getNumber(row[columns.stock])
-    const unitCost = rowUnitCost(row, columns)
-    if (stock === null || unitCost === null) continue
-    total += stock * unitCost
+  for (const snapshot of snapshots) {
+    if (snapshot.unitCost === null) continue
+    total += snapshot.stock * snapshot.unitCost
     found = true
   }
   return found ? round(total) : null
 }
 
-function retailInventoryValueByProduct(rows: DataRow[], columns: ColumnMap) {
+function retailInventoryValueByProduct(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
   if (!columns.product || !columns.stock || !columns.cost) return []
   const grouped = new Map<string, number>()
-  for (const row of rows) {
-    const product = String(row[columns.product] || "Unknown product").trim() || "Unknown product"
-    const stock = getNumber(row[columns.stock])
-    const unitCost = rowUnitCost(row, columns)
-    if (stock === null || unitCost === null) continue
-    grouped.set(product, round((grouped.get(product) || 0) + stock * unitCost))
+  for (const snapshot of snapshots) {
+    if (snapshot.unitCost === null) continue
+    grouped.set(snapshot.product, round((grouped.get(snapshot.product) || 0) + snapshot.stock * snapshot.unitCost))
   }
   return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
 }
 
-function retailLowStockItems(rows: DataRow[], columns: ColumnMap) {
+function retailLowStockItems(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
   if (!columns.stock || !columns.reorderPoint) return []
-  const items = new Map<string, { product: string; category?: string; supplier?: string; stock: number; reorderPoint: number; revenue: number }>()
-  for (const row of rows) {
-    const stock = getNumber(row[columns.stock])
-    const reorderPoint = getNumber(row[columns.reorderPoint])
-    if (stock === null || reorderPoint === null || stock > reorderPoint) continue
-    const product = columns.product ? String(row[columns.product] || "Unknown product").trim() : "Unknown product"
-    const key = product || "Unknown product"
-    const revenue = columns.revenue ? getNumber(row[columns.revenue]) || 0 : 0
-    const current = items.get(key)
-    if (!current || revenue > current.revenue) {
-      items.set(key, {
-        product: key,
-        category: columns.category ? String(row[columns.category] || "").trim() || undefined : undefined,
-        supplier: columns.vendor ? String(row[columns.vendor] || "").trim() || undefined : undefined,
-        stock,
-        reorderPoint,
-        revenue,
-      })
-    }
+  const items: { product: string; store?: string; category?: string; supplier?: string; stock: number; reorderPoint: number; revenue: number }[] = []
+  for (const snapshot of snapshots) {
+    if (snapshot.reorderPoint === null || snapshot.stock > snapshot.reorderPoint) continue
+    const revenue = columns.revenue ? getNumber(snapshot.row[columns.revenue]) || 0 : 0
+    items.push({
+      product: snapshot.store ? `${snapshot.store} / ${snapshot.product}` : snapshot.product,
+      store: snapshot.store,
+      category: snapshot.category,
+      supplier: snapshot.supplier,
+      stock: snapshot.stock,
+      reorderPoint: snapshot.reorderPoint,
+      revenue,
+    })
   }
-  return Array.from(items.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 10).map(({ revenue: _revenue, ...item }) => item)
+  return items.sort((a, b) => b.revenue - a.revenue).map(({ revenue: _revenue, ...item }) => item)
+}
+
+function retailStockByCategory(snapshots: RetailInventorySnapshot[], columns: ColumnMap) {
+  if (!columns.category || !columns.stock) return []
+  const grouped = new Map<string, number>()
+  for (const snapshot of snapshots) {
+    const name = snapshot.category || "Uncategorized"
+    grouped.set(name, round((grouped.get(name) || 0) + snapshot.stock))
+  }
+  return Array.from(grouped.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8)
 }
 
 function groupedRetailChart(rows: DataRow[], groupColumn: string | undefined, valueColumn: string | undefined, fallback: string) {
@@ -2237,6 +2297,7 @@ function buildDatasetSummary(
   columns: ColumnMap,
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+  reportProfileId?: string,
 ) {
   if (model === "business_consulting") {
     const parts: string[] = []
@@ -2286,7 +2347,13 @@ function buildDatasetSummary(
   } else {
     parts.push(`${datasetName} has ${rowCount.toLocaleString()} loaded rows, but revenue is not available from recognized source fields.`)
   }
-  if (financials.netProfit === null) {
+  const grossProfit = financials.grossProfit
+  const grossMargin = financials.grossMargin
+  const hasGrossProfitability = grossProfit !== null && grossMargin !== null
+  const hasIncompleteOperatingOrNetProfit = financials.operatingProfit === null || financials.netProfit === null
+  if (reportProfileId === "generic_business" && hasGrossProfitability && hasIncompleteOperatingOrNetProfit) {
+    parts.push(`Gross profitability is available, with ${formatCurrencyForSummary(grossProfit)} gross profit and a ${grossMargin.toFixed(1)}% gross margin. Operating and net profitability cannot be fully assessed because operating expense, interest, and tax inputs are not available.`)
+  } else if (financials.netProfit === null) {
     parts.push("Profitability cannot be reliably assessed because required cost, expense, interest, or tax fields are missing.")
   } else {
     parts.push(`Net profit is ${formatCurrencyForSummary(financials.netProfit)} from explicit source fields or complete required financial inputs.`)
@@ -2428,12 +2495,22 @@ function buildDatasetRecommendations(
     }
   }
   if (financials.revenue !== null && financials.netProfit === null) {
+    const requiredData = [
+      financials.cogs === null ? "COGS" : null,
+      financials.operatingExpenses === null ? "Operating Expenses" : null,
+      financials.interestExpense === null ? "Interest Expense" : null,
+      financials.taxExpense === null ? "Tax Expense" : null,
+    ].filter((field): field is string => field !== null)
     recommendations.push({
       issue: "Revenue is available, but profitability inputs are incomplete.",
-      businessImpact: "Margin, profit, and expense-ratio decisions are not reliable until cost data is present.",
-      recommendedAction: "Add COGS, operating expenses, interest, and tax fields before making margin or profitability decisions.",
+      businessImpact: financials.grossProfit !== null
+        ? "Gross profit and margin are available; operating and net profitability require additional expense fields."
+        : "Complete margin, profit, and expense-ratio decisions require recognized cost and expense fields.",
+      recommendedAction: requiredData.length > 0
+        ? `Add ${requiredData.join(", ")} fields before making complete operating or net profitability decisions.`
+        : "Use the available gross profit and margin metrics for source-backed margin decisions.",
       estimatedImpact: null,
-      requiredData: ["COGS", "Operating Expenses", "Interest Expense", "Tax Expense"],
+      requiredData,
     })
   }
   if (!hasTrendFields(columns)) {
@@ -2446,12 +2523,21 @@ function buildDatasetRecommendations(
     })
   }
   if (financials.cogs === null || financials.operatingExpenses === null) {
+    const requiredData = [
+      "Expense Category",
+      financials.cogs === null ? "COGS" : null,
+      financials.operatingExpenses === null ? "Operating Expenses" : null,
+    ].filter((field): field is string => field !== null)
     recommendations.push({
       issue: "Categorized expense data is incomplete.",
-      businessImpact: "Cost optimization opportunities cannot be ranked or quantified from this dataset.",
-      recommendedAction: "Upload categorized expense data so COGS and operating-expense drivers can be reviewed separately.",
+      businessImpact: financials.cogs !== null
+        ? "Total cost is available, but expense-driver optimization needs categorized operating-expense detail."
+        : "Cost optimization opportunities cannot be ranked or quantified from this dataset.",
+      recommendedAction: financials.cogs !== null
+        ? "Add expense category and operating-expense fields so cost drivers can be reviewed separately."
+        : "Upload categorized expense data so COGS and operating-expense drivers can be reviewed separately.",
       estimatedImpact: null,
-      requiredData: ["Expense Category", "COGS", "Operating Expenses"],
+      requiredData,
     })
   }
   if (!isPnlReport && !columns.customer && !columns.order) {
@@ -2533,6 +2619,7 @@ function buildProfitabilityAlerts(netMargin: number | null, metrics: Record<stri
 export function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {
   if (datasetType === "profitability" || datasetType === "accountancy" || datasetType === "prebookkeeping") return datasetType
   if (detectAccountancyLedger(columns, datasetName)) return "accountancy"
+  if ((businessModel === "generic" || isGenericBusinessDatasetName(datasetName)) && detectGenericBusinessFinancialSchema(columns, datasetName)) return "generic"
   if (detectProfessionalServices(columns, datasetName)) return "professional_services"
   if (detectBusinessConsulting(columns, datasetName)) return "business_consulting"
   return businessModel
@@ -2561,6 +2648,23 @@ function detectAccountancyLedger(columns: string[], datasetName: string) {
   const hasJournal = normalized.some((column) => column === "journal_id" || column.includes("journal"))
 
   return hasDebit && hasCredit && (hasAccount || hasJournal)
+}
+
+function detectGenericBusinessFinancialSchema(columns: string[], datasetName: string) {
+  void datasetName
+  const normalized = columns.map((column) => normalizeColumnName(column))
+  const hasInvoiceId = normalized.includes("invoice_id")
+  const hasRevenue = normalized.includes("revenue")
+  const hasCost = normalized.includes("cost")
+  const hasProfit = normalized.includes("profit")
+  const hasStrongerOrder = normalized.some((column) => /^(order_id|order_number|transaction_id|transaction_number)$/.test(column))
+  const hasEcommerceSpecific = normalized.some((column) => /^(shipping_cost|return_status|payment_method|discount|discount_amount|cart_id|checkout_id)$/.test(column))
+
+  return hasInvoiceId && hasRevenue && hasCost && hasProfit && !hasStrongerOrder && !hasEcommerceSpecific
+}
+
+function isGenericBusinessDatasetName(datasetName: string) {
+  return normalizeColumnName(datasetName).includes("generic_business")
 }
 
 function detectProfessionalServices(columns: string[], datasetName: string) {
@@ -2616,6 +2720,7 @@ function detectColumns(columns: string[]): ColumnMap {
     region: findColumn(columns, [/region/]),
     channel: findColumn(columns, [/channel/, /source/]),
     product: findColumn(columns, [/product_id/, /product_name/, /product/, /^sku$/, /item/]),
+    store: findColumn(columns, [/store_id/, /^store$/, /branch_id/, /^branch$/, /location_id/]),
     category: findColumn(columns, [/category/]),
     department: findColumn(columns, [/department/]),
     date: findColumn(columns, [/date/, /month/, /period/, /created_at/, /project_start/, /project_end/]),
@@ -2902,7 +3007,7 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Current Stock", retail?.currentStock ?? sumColumn(rows, columns.stock), "number")
     addKpi(kpis, "Inventory Value", retail?.inventoryValue ?? null, "currency")
     addKpi(kpis, "Products / SKUs", retail?.productCount ?? (columns.product ? uniqueCount(rows, columns.product) : null), "number")
-    addKpi(kpis, "Low Stock SKUs", retail?.lowStockSkuCount ?? countLowStock(rows, columns), "number")
+    addKpi(kpis, "Low Stock Positions", retail?.lowStockSkuCount ?? countLowStock(rows, columns), "number")
     addKpi(kpis, "Reorder Required", retail?.reorderRequiredCount ?? countLowStock(rows, columns), "number")
     addKpi(kpis, "Out of Stock", retail?.outOfStockSkuCount ?? null, "number")
     addKpi(kpis, "AOV", retail?.averageOrderValue?.status === "available" ? retail.averageOrderValue.value : null, "currency")
@@ -3005,8 +3110,15 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Invoices / documents", columns.invoice ? uniqueCount(rows, columns.invoice) : rows.length, "number")
     addKpi(kpis, "Accounts", columns.account ? uniqueCount(rows, columns.account) : null, "number")
   } else {
-    addKpi(kpis, "Orders / quantity", orders, "number")
+    addKpi(kpis, "Orders", orders, "number")
+    addKpi(kpis, "AOV", revenue !== null && orders ? round(revenue / orders) : null, "currency")
     addKpi(kpis, "Customers", customers, "number")
+    addKpi(kpis, "Orders per Customer", orders !== null && customers ? round(orders / customers) : null, "number")
+    addKpi(kpis, "Units Sold", quantity, "number")
+    addKpi(kpis, "Products", columns.product ? uniqueCount(rows, columns.product) : null, "number")
+    addKpi(kpis, "Cost", financials.cogs ?? cost, "currency")
+    addKpi(kpis, "Profit", financials.grossProfit ?? profit, "currency")
+    addKpi(kpis, "Profit Margin", financials.grossMargin, "percent")
   }
 
   return kpis
@@ -3069,6 +3181,9 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
   if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && model !== "business_consulting" && model !== "professional_services" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model === "generic" && columns.order) findings.push(`Transactions use distinct values from ${columns.order}.`)
+  if (model === "generic" && columns.cogs) findings.push("Generic business cost is recognized from an exact cost or COGS field.")
+  if (model === "generic" && columns.grossProfit) findings.push("Generic business profit is recognized from an explicit profit field.")
   if (model === "business_consulting" && !columns.consultantCost && !columns.otherCost) findings.push("Project cost analysis is limited because consultant_cost and other_cost fields are not recognized.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
   if (model === "local_retail") {
@@ -3139,6 +3254,62 @@ function findColumn(columns: string[], patterns: RegExp[]) {
 
 function normalizeColumnName(column: string) {
   return column.toLowerCase().trim().replace(/[\s-]+/g, "_")
+}
+
+function applyGenericBusinessCanonicalFallbacks(columnMap: ColumnMap, columns: string[], rows: DataRow[]) {
+  if (!columnMap.order) {
+    const invoiceId = findByNormalizedColumnName(columns, [/^invoice_id$/])
+    if (invoiceId && isReliableIdentifier(rows, invoiceId)) columnMap.order = invoiceId
+  }
+  if (!columnMap.cogs) {
+    const exactCost = findByNormalizedColumnName(columns, [/^cost$/])
+    if (exactCost && hasNumericValues(rows, exactCost)) columnMap.cogs = exactCost
+  }
+  if (!columnMap.grossProfit) {
+    const exactProfit = findByNormalizedColumnName(columns, [/^profit$/])
+    if (exactProfit && hasNumericValues(rows, exactProfit)) columnMap.grossProfit = exactProfit
+  }
+  if (columnMap.netProfit && normalizeColumnName(columnMap.netProfit) === "profit") {
+    columnMap.netProfit = undefined
+  }
+}
+
+function annotateGenericBusinessFinancials(financials: ReportFinancials, columns: ColumnMap) {
+  if (columns.grossProfit && normalizeColumnName(columns.grossProfit) === "profit" && financials.grossProfit !== null) {
+    const reconciles = financials.revenue !== null && financials.cogs !== null && withinTolerance(financials.grossProfit, round(financials.revenue - financials.cogs))
+    financials.metricSources = {
+      ...financials.metricSources,
+      grossProfit: {
+        kind: "source_value",
+        note: reconciles
+          ? `Directly from source field: ${columns.grossProfit}; reconciles to revenue - cost.`
+          : `Directly from source field: ${columns.grossProfit}.`,
+      },
+      grossMargin: financials.grossMargin !== null
+        ? { kind: "derived_value", note: "Profit divided by revenue." }
+        : financials.metricSources?.grossMargin,
+    }
+  }
+  if (columns.cogs && normalizeColumnName(columns.cogs) === "cost" && financials.cogs !== null) {
+    financials.metricSources = {
+      ...financials.metricSources,
+      cogs: { kind: "source_value", note: `Directly from source field: ${columns.cogs}.` },
+    }
+  }
+}
+
+function isReliableIdentifier(rows: DataRow[], column: string) {
+  const values = rows
+    .map((row) => row[column])
+    .filter((value) => value !== null && value !== undefined && String(value).trim() !== "")
+    .map((value) => String(value).trim())
+  if (values.length === 0) return false
+  const distinct = new Set(values).size
+  return distinct > 1 && distinct / values.length >= 0.8
+}
+
+function hasNumericValues(rows: DataRow[], column: string) {
+  return rows.some((row) => getNumber(row[column]) !== null)
 }
 
 function findInvestorInvestedAmountColumn(columns: string[]) {
@@ -3370,11 +3541,7 @@ function churnRate(rows: DataRow[], column?: string) {
 
 function countLowStock(rows: DataRow[], columns: ColumnMap) {
   if (!columns.stock || !columns.reorderPoint) return null
-  return rows.filter((row) => {
-    const stock = getNumber(row[columns.stock!])
-    const reorder = getNumber(row[columns.reorderPoint!])
-    return stock !== null && reorder !== null && stock <= reorder
-  }).length
+  return retailInventorySnapshots(rows, columns).filter((snapshot) => snapshot.reorderPoint !== null && snapshot.stock <= snapshot.reorderPoint).length
 }
 
 function groupedChart(rows: DataRow[], groupColumn: string | undefined, valueColumn: string | undefined, title: string): ReportChart | null {

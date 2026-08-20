@@ -1,3 +1,67 @@
+## Local Retail Inventory Snapshot Semantics
+
+1. Interaction title
+Local Retail inventory snapshot semantics.
+
+2. What was the user goal
+Fix `01_local_retail` so generated reports calculate inventory metrics from current store-product snapshots instead of summing historical `stock_on_hand` transaction rows.
+
+3. What changed
+Local retail report analysis now detects `store_id` and builds an inventory snapshot set from the latest valid dated row per `store_id + product_id`. Current Stock, reorder-required count, out-of-stock count, inventory value, stock by category, inventory value by product, low-stock rows, and inventory recommendations consume that snapshot set. Revenue, COGS, gross profit, gross margin, units sold, category gross margin, supplier exposure, and product count continue to use transaction-row semantics. The `01_local_retail` CSV and XLSX fixtures carry 180 rows with a historical stock sum of 10,643 and latest snapshot current stock of 6,341. A focused regression validates CSV, XLSX, generated PDF text, and the same-store same-product 100 to 70 to 40 case.
+
+4. Problems marked
+- blocker: none.
+- risk: The broad dataset-aware report-profile script contains unrelated profile Results Summary assertions that can fail outside this local-retail inventory path, so focused validation uses the new local-retail snapshot regression.
+- improvement: Keep fixture-generation logic centralized if more numbered fixture files need deterministic regeneration.
+- observation: The previous retail analysis summed `stock_on_hand`, inventory value, low-stock rows, and stock-by-category directly from all transaction rows; low-stock count was also capped by the displayed top-10 rows.
+
+5. User learning
+Retail sales metrics and inventory metrics can have different grains in the same dataset: transaction-period rows for sales, latest store-product snapshots for current inventory state.
+
+6. AI-agent learning
+Generated report tests should assert the historical-stock sum guard alongside the current snapshot total so a regression cannot silently reintroduce transaction-row inventory sums.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Generic Business Executive Summary Profitability Split
+
+1. Interaction title
+Generic Business Executive Summary profitability split.
+
+2. What was the user goal
+Fix only the `08_generic_business` Executive Summary sentence so the generated report does not claim profitability cannot be assessed when gross profit and gross margin are available.
+
+3. What changed
+The generic dataset summary builder now receives the resolved report profile id and uses canonical metric availability to write the gross-profit/gross-margin sentence only for the `generic_business` profile when gross profitability exists and operating or net profitability is unavailable. The focused generic-business regression asserts the builder summary and extracted PDF text include the new gross profitability sentence and exclude the old contradictory missing-profitability sentence.
+
+4. Problems marked
+- blocker: The exact `08_generic_business.xlsx` fixture file is not present in the checked-out workspace, so validation uses the existing source-equivalent synthetic regression fixture that regenerates the PDF and verifies extracted text.
+- risk: none.
+- improvement: Track the exact numbered fixture files in a documented fixture path if manual PDF reproduction must use the original XLSX artifact.
+- observation: At summary-build time, `reportType` remains `generic` while `reportProfile.id` resolves to `generic_business`; summary wording must use the profile id to stay scoped without changing report routing.
+
+5. User learning
+Generic business report summaries must distinguish available gross profitability from unavailable operating or net profitability instead of treating all profitability as missing.
+
+6. AI-agent learning
+For generated reports with profile metadata, copy branches that need dataset-profile specificity should read the resolved profile id instead of inferring from `reportType` alone.
+
+7. Follow-up tasks
+- Add the remaining exact numbered business-model fixtures in a tracked fixture path for manual PDF reproduction. (labels: data, testing, reports)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Dataset-Aware Executive Report Profiles
 
 1. Interaction title
@@ -4218,6 +4282,41 @@ Investor canonical metric tests must include distractor columns such as investme
 
 7. Follow-up tasks
 - Add the exact numbered investor portfolio CSV/XLSX fixture to file-backed profile validation when the source file is available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Generic Business Canonical Field Resolution
+
+1. Interaction title
+Generic Business invoice, cost, and profit canonical resolution.
+
+2. What was the user goal
+Fix `08_generic_business` generated reports so invoice IDs provide transaction counts and AOV, exact `cost` provides cost totals, explicit `profit` provides source-backed profit and margin, and the PDF stops claiming order or cost data is missing.
+
+3. What changed
+`dataset-report-builder` now recognizes the strict generic-business financial schema with invoice, revenue, cost, and profit evidence, while avoiding stronger e-commerce order, shipping, return, payment, or discount evidence. For generic reports only, the builder uses reliable `invoice_id` values as the transaction identifier, maps exact `cost` to the generic cost/COGS alias, maps exact `profit` to the generic profit/gross-profit alias, and removes the generic `profit` field from net-profit mapping. Generic KPIs now include Orders, AOV, Customers, Orders per Customer, Units Sold, Products, Cost, Profit, and Profit Margin. Generic recommendations consume canonical availability so they do not ask for COGS when exact cost is accepted. The focused regression script validates the 180-row schema/totals before PDF generation and verifies the generated PDF text.
+
+4. Problems marked
+blocker: none.
+risk: the exact `08_generic_business.xlsx` source file is absent from the workspace, so the regression uses a source-equivalent synthetic fixture with the confirmed schema and totals.
+improvement: add the exact numbered generic-business CSV/XLSX fixture to file-backed profile validation when the source file is available.
+observation: the wrong PDF came from model resolution selecting the e-commerce path for the generic schema and from generic financial mapping treating exact `cost` and `profit` as unavailable or net-profit-like fields.
+
+5. User learning
+The generic-business PDF can show e-commerce-style unavailable Orders/AOV when the schema classifier routes a generic invoice dataset into the e-commerce branch before the generic canonical fallback runs.
+
+6. AI-agent learning
+Generic business regression tests must include `invoice_id`, exact `cost`, and exact `profit` while also checking that e-commerce and retail do not globally promote `invoice_id`.
+
+7. Follow-up tasks
+- Add the exact numbered generic-business CSV/XLSX fixture to file-backed profile validation when the source file is available.
 
 8. Instruction sources
 - AGENTS.md

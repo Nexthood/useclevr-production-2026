@@ -113,8 +113,8 @@ const profiles: Record<ReportProfileId, ReportProfile> = {
   generic_business: {
     id: "generic_business",
     title: "Executive BI Report",
-    primaryMetrics: ["Revenue", "Gross Profit", "Gross Margin", "Operating Profit", "Net Profit"],
-    secondaryMetrics: ["Trends", "Categories", "Recommendations"],
+    primaryMetrics: ["Revenue", "Orders", "AOV", "Customers", "Units Sold", "Products", "Cost", "Profit", "Profit Margin"],
+    secondaryMetrics: ["Gross Profit", "Gross Margin", "Trends", "Categories", "Recommendations"],
     sections: [
       { id: "executive-summary", title: "Executive Summary" },
       { id: "financial-performance", title: "Financial Performance" },

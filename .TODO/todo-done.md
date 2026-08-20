@@ -24,6 +24,9 @@ moving work between states.
 
 ## Label: reports
 
+- T-1014. Local retail reports calculate current stock, reorder status, inventory value, and stock by category from latest store-product inventory snapshots while sales metrics use all transaction rows. (labels: reports, metrics, testing; commit: dfc27c74)
+- T-1013. Generic business generated-report executive summaries state available gross profit and gross margin separately from unavailable operating and net profitability inputs. (labels: reports, testing; commit: 50038f35)
+- T-1012. Generic business reports resolve invoice identifiers, exact cost fields, and explicit profit fields before building transaction and margin metrics. (labels: reports, metrics, testing; commit: 3eb16fde)
 - T-1011. Investor portfolio reports resolve invested amount and latest valuation source columns to amount fields before summing portfolio totals. (labels: reports, metrics, testing; commit: a12bb8ac)
 - T-1008. Retail reports calculate category gross margin from reconciled revenue and COGS totals and show Average Order Value only when order semantics are reliable. (labels: reports, metrics, testing; commit: worktree)
 - T-1009. Route accountancy ledger PDF generation into ledger KPIs and keep P&L metrics unavailable for debit-credit source datasets. (labels: reports, testing, data; commit: 8655ab35)
