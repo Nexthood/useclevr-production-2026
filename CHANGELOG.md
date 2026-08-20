@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix Generic Business report executive summaries so available gross profit and gross margin are stated separately from unavailable operating and net profitability inputs.
 - Fix Generic Business reports so invoice IDs provide transaction counts and AOV, exact cost fields provide cost totals, and explicit profit fields provide profit and margin without net-profit labeling.
 - Fix Investor Portfolio reports so Total Invested sums invested amount fields, Aggregate Company Valuations sums latest valuation fields, and ownership uses an average.
 - Fix Accountancy Ledger report routing so standard uploads with debit, credit, and account or journal columns show ledger totals and keep P&L metrics unavailable when revenue and account classification are missing.

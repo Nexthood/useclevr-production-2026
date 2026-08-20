@@ -1,3 +1,35 @@
+## Generic Business Executive Summary Profitability Split
+
+1. Interaction title
+Generic Business Executive Summary profitability split.
+
+2. What was the user goal
+Fix only the `08_generic_business` Executive Summary sentence so the generated report does not claim profitability cannot be assessed when gross profit and gross margin are available.
+
+3. What changed
+The generic dataset summary builder now receives the resolved report profile id and uses canonical metric availability to write the gross-profit/gross-margin sentence only for the `generic_business` profile when gross profitability exists and operating or net profitability is unavailable. The focused generic-business regression asserts the builder summary and extracted PDF text include the new gross profitability sentence and exclude the old contradictory missing-profitability sentence.
+
+4. Problems marked
+- blocker: The exact `08_generic_business.xlsx` fixture file is not present in the checked-out workspace, so validation uses the existing source-equivalent synthetic regression fixture that regenerates the PDF and verifies extracted text.
+- risk: none.
+- improvement: Track the exact numbered fixture files in a documented fixture path if manual PDF reproduction must use the original XLSX artifact.
+- observation: At summary-build time, `reportType` remains `generic` while `reportProfile.id` resolves to `generic_business`; summary wording must use the profile id to stay scoped without changing report routing.
+
+5. User learning
+Generic business report summaries must distinguish available gross profitability from unavailable operating or net profitability instead of treating all profitability as missing.
+
+6. AI-agent learning
+For generated reports with profile metadata, copy branches that need dataset-profile specificity should read the resolved profile id instead of inferring from `reportType` alone.
+
+7. Follow-up tasks
+- Add the remaining exact numbered business-model fixtures in a tracked fixture path for manual PDF reproduction. (labels: data, testing, reports)
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Dataset-Aware Executive Report Profiles
 
 1. Interaction title

@@ -132,6 +132,9 @@ async function assertGenericBusinessCanonicalResolution() {
   nearlyEqual(kpiValue(reportInput, "Cost"), 202990.21, "Cost KPI must use cost")
   nearlyEqual(kpiValue(reportInput, "Profit"), 141439.2, "Profit KPI must use profit")
   nearlyEqual(kpiValue(reportInput, "Profit Margin"), 41.07, "Profit Margin KPI must use profit / revenue", 0.03)
+  assert(reportInput.summary.includes("Gross profitability is available, with $141.4K gross profit and a 41.1% gross margin."), "summary must state available gross profitability")
+  assert(reportInput.summary.includes("Operating and net profitability cannot be fully assessed because operating expense, interest, and tax inputs are not available."), "summary must separate unavailable operating and net profitability")
+  assert(!reportInput.summary.includes("Profitability cannot be reliably assessed because required cost, expense, interest, or tax fields are missing."), "summary must not use the generic missing-profitability sentence when gross profitability is available")
 
   console.log(JSON.stringify({
     fixture: "08_generic_business",
@@ -161,12 +164,16 @@ async function assertGenericBusinessCanonicalResolution() {
   assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "generic business PDF must generate")
   const text = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
   const normalizedText = text.toLowerCase()
+  const compactText = text.replace(/\s+/g, " ")
   assert(text.includes("EXECUTIVE BI REPORT"), "PDF must use the generic business report")
   assert(normalizedText.includes("orders") && text.includes("180"), "PDF must show invoice-backed Orders")
   assert(normalizedText.includes("aov") && (text.includes("$1.9K") || text.includes("$1,914")), "PDF must show invoice-backed AOV")
   assert(text.includes("COGS") && text.includes("$203.0K"), "PDF must show cost-backed COGS alias")
   assert(text.includes("Gross Profit") && text.includes("$141.4K"), "PDF must show profit-backed Gross Profit alias")
   assert(text.includes("Gross Margin") && text.includes("41.1%"), "PDF must show profit margin")
+  assert(compactText.includes("Gross profitability is available, with $141.4K gross profit and a 41.1% gross margin."), "PDF summary must state available gross profitability")
+  assert(compactText.includes("Operating and net profitability cannot be fully assessed because operating expense, interest, and tax inputs are not available."), "PDF summary must separate unavailable operating and net profitability")
+  assert(!compactText.includes("Profitability cannot be reliably assessed because required cost, expense, interest, or tax fields are missing."), "PDF summary must not use the generic missing-profitability sentence when gross profitability is available")
   assert(!text.includes("Orders = Not available"), "PDF must not show Orders as unavailable")
   assert(!text.includes("AOV = Not available"), "PDF must not show AOV as unavailable")
   assert(!text.includes("No reliable order identifier"), "PDF must not claim order identifiers are missing")

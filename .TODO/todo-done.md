@@ -24,6 +24,7 @@ moving work between states.
 
 ## Label: reports
 
+- T-1013. Generic business generated-report executive summaries state available gross profit and gross margin separately from unavailable operating and net profitability inputs. (labels: reports, testing; commit: worktree)
 - T-1012. Generic business reports resolve invoice identifiers, exact cost fields, and explicit profit fields before building transaction and margin metrics. (labels: reports, metrics, testing; commit: 3eb16fde)
 - T-1011. Investor portfolio reports resolve invested amount and latest valuation source columns to amount fields before summing portfolio totals. (labels: reports, metrics, testing; commit: a12bb8ac)
 - T-1008. Retail reports calculate category gross margin from reconciled revenue and COGS totals and show Average Order Value only when order semantics are reliable. (labels: reports, metrics, testing; commit: worktree)

@@ -338,7 +338,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
             ? buildInvestorSummary(dataset.name, investorAnalysis)
             : saasAnalysis
               ? buildSaasSummary(dataset.name, canonicalRowCount, saasAnalysis)
-              : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc),
+              : buildDatasetSummary(dataset.name, reportModel, canonicalRowCount, columnMap, financials, bbsc, reportProfile.id),
     findings,
     kpis,
     charts,
@@ -2243,6 +2243,7 @@ function buildDatasetSummary(
   columns: ColumnMap,
   financials: ReportFinancials,
   bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>,
+  reportProfileId?: string,
 ) {
   if (model === "business_consulting") {
     const parts: string[] = []
@@ -2292,7 +2293,13 @@ function buildDatasetSummary(
   } else {
     parts.push(`${datasetName} has ${rowCount.toLocaleString()} loaded rows, but revenue is not available from recognized source fields.`)
   }
-  if (financials.netProfit === null) {
+  const grossProfit = financials.grossProfit
+  const grossMargin = financials.grossMargin
+  const hasGrossProfitability = grossProfit !== null && grossMargin !== null
+  const hasIncompleteOperatingOrNetProfit = financials.operatingProfit === null || financials.netProfit === null
+  if (reportProfileId === "generic_business" && hasGrossProfitability && hasIncompleteOperatingOrNetProfit) {
+    parts.push(`Gross profitability is available, with ${formatCurrencyForSummary(grossProfit)} gross profit and a ${grossMargin.toFixed(1)}% gross margin. Operating and net profitability cannot be fully assessed because operating expense, interest, and tax inputs are not available.`)
+  } else if (financials.netProfit === null) {
     parts.push("Profitability cannot be reliably assessed because required cost, expense, interest, or tax fields are missing.")
   } else {
     parts.push(`Net profit is ${formatCurrencyForSummary(financials.netProfit)} from explicit source fields or complete required financial inputs.`)
