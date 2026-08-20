@@ -125,6 +125,9 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   if (reportModel === "local_retail" && !columnMap.cogs && columnMap.cost) {
     columnMap.cogs = columnMap.cost
   }
+  if (reportModel === "generic") {
+    applyGenericBusinessCanonicalFallbacks(columnMap, columns, rows)
+  }
   if (reportModel === "marketplace") {
     columnMap.revenue = undefined
     columnMap.expenseCategory = undefined
@@ -159,6 +162,9 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     templateName: "executive-bi-report",
   })
   const financials = buildGenericFinancials(rows, columnMap)
+  if (reportModel === "generic") {
+    annotateGenericBusinessFinancials(financials, columnMap)
+  }
   if (reportModel === "marketplace" && financials.revenue !== null && columnMap.gmv && financials.metricSources?.revenue?.note?.includes(columnMap.gmv)) {
     financials.revenue = null
     financials.grossProfit = null
@@ -2428,12 +2434,22 @@ function buildDatasetRecommendations(
     }
   }
   if (financials.revenue !== null && financials.netProfit === null) {
+    const requiredData = [
+      financials.cogs === null ? "COGS" : null,
+      financials.operatingExpenses === null ? "Operating Expenses" : null,
+      financials.interestExpense === null ? "Interest Expense" : null,
+      financials.taxExpense === null ? "Tax Expense" : null,
+    ].filter((field): field is string => field !== null)
     recommendations.push({
       issue: "Revenue is available, but profitability inputs are incomplete.",
-      businessImpact: "Margin, profit, and expense-ratio decisions are not reliable until cost data is present.",
-      recommendedAction: "Add COGS, operating expenses, interest, and tax fields before making margin or profitability decisions.",
+      businessImpact: financials.grossProfit !== null
+        ? "Gross profit and margin are available; operating and net profitability require additional expense fields."
+        : "Complete margin, profit, and expense-ratio decisions require recognized cost and expense fields.",
+      recommendedAction: requiredData.length > 0
+        ? `Add ${requiredData.join(", ")} fields before making complete operating or net profitability decisions.`
+        : "Use the available gross profit and margin metrics for source-backed margin decisions.",
       estimatedImpact: null,
-      requiredData: ["COGS", "Operating Expenses", "Interest Expense", "Tax Expense"],
+      requiredData,
     })
   }
   if (!hasTrendFields(columns)) {
@@ -2446,12 +2462,21 @@ function buildDatasetRecommendations(
     })
   }
   if (financials.cogs === null || financials.operatingExpenses === null) {
+    const requiredData = [
+      "Expense Category",
+      financials.cogs === null ? "COGS" : null,
+      financials.operatingExpenses === null ? "Operating Expenses" : null,
+    ].filter((field): field is string => field !== null)
     recommendations.push({
       issue: "Categorized expense data is incomplete.",
-      businessImpact: "Cost optimization opportunities cannot be ranked or quantified from this dataset.",
-      recommendedAction: "Upload categorized expense data so COGS and operating-expense drivers can be reviewed separately.",
+      businessImpact: financials.cogs !== null
+        ? "Total cost is available, but expense-driver optimization needs categorized operating-expense detail."
+        : "Cost optimization opportunities cannot be ranked or quantified from this dataset.",
+      recommendedAction: financials.cogs !== null
+        ? "Add expense category and operating-expense fields so cost drivers can be reviewed separately."
+        : "Upload categorized expense data so COGS and operating-expense drivers can be reviewed separately.",
       estimatedImpact: null,
-      requiredData: ["Expense Category", "COGS", "Operating Expenses"],
+      requiredData,
     })
   }
   if (!isPnlReport && !columns.customer && !columns.order) {
@@ -2533,6 +2558,7 @@ function buildProfitabilityAlerts(netMargin: number | null, metrics: Record<stri
 export function resolveReportModel(datasetType: DatasetCategory, businessModel: BusinessModel, columns: string[], datasetName: string): ReportModel {
   if (datasetType === "profitability" || datasetType === "accountancy" || datasetType === "prebookkeeping") return datasetType
   if (detectAccountancyLedger(columns, datasetName)) return "accountancy"
+  if ((businessModel === "generic" || isGenericBusinessDatasetName(datasetName)) && detectGenericBusinessFinancialSchema(columns, datasetName)) return "generic"
   if (detectProfessionalServices(columns, datasetName)) return "professional_services"
   if (detectBusinessConsulting(columns, datasetName)) return "business_consulting"
   return businessModel
@@ -2561,6 +2587,23 @@ function detectAccountancyLedger(columns: string[], datasetName: string) {
   const hasJournal = normalized.some((column) => column === "journal_id" || column.includes("journal"))
 
   return hasDebit && hasCredit && (hasAccount || hasJournal)
+}
+
+function detectGenericBusinessFinancialSchema(columns: string[], datasetName: string) {
+  void datasetName
+  const normalized = columns.map((column) => normalizeColumnName(column))
+  const hasInvoiceId = normalized.includes("invoice_id")
+  const hasRevenue = normalized.includes("revenue")
+  const hasCost = normalized.includes("cost")
+  const hasProfit = normalized.includes("profit")
+  const hasStrongerOrder = normalized.some((column) => /^(order_id|order_number|transaction_id|transaction_number)$/.test(column))
+  const hasEcommerceSpecific = normalized.some((column) => /^(shipping_cost|return_status|payment_method|discount|discount_amount|cart_id|checkout_id)$/.test(column))
+
+  return hasInvoiceId && hasRevenue && hasCost && hasProfit && !hasStrongerOrder && !hasEcommerceSpecific
+}
+
+function isGenericBusinessDatasetName(datasetName: string) {
+  return normalizeColumnName(datasetName).includes("generic_business")
 }
 
 function detectProfessionalServices(columns: string[], datasetName: string) {
@@ -3005,8 +3048,15 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Invoices / documents", columns.invoice ? uniqueCount(rows, columns.invoice) : rows.length, "number")
     addKpi(kpis, "Accounts", columns.account ? uniqueCount(rows, columns.account) : null, "number")
   } else {
-    addKpi(kpis, "Orders / quantity", orders, "number")
+    addKpi(kpis, "Orders", orders, "number")
+    addKpi(kpis, "AOV", revenue !== null && orders ? round(revenue / orders) : null, "currency")
     addKpi(kpis, "Customers", customers, "number")
+    addKpi(kpis, "Orders per Customer", orders !== null && customers ? round(orders / customers) : null, "number")
+    addKpi(kpis, "Units Sold", quantity, "number")
+    addKpi(kpis, "Products", columns.product ? uniqueCount(rows, columns.product) : null, "number")
+    addKpi(kpis, "Cost", financials.cogs ?? cost, "currency")
+    addKpi(kpis, "Profit", financials.grossProfit ?? profit, "currency")
+    addKpi(kpis, "Profit Margin", financials.grossMargin, "percent")
   }
 
   return kpis
@@ -3069,6 +3119,9 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
   const findings = [`The selected dataset contains ${rowCount.toLocaleString()} loaded rows for ${reportModelLabel(model).toLowerCase()} analysis.`]
   if (kpis.some((kpi) => kpi.title === "Revenue")) findings.push("Revenue is available from a recognized source field in this dataset.")
   if (model !== "local_retail" && model !== "ecommerce" && model !== "saas" && model !== "startup" && model !== "business_consulting" && model !== "professional_services" && !columns.cogs && !columns.operatingExpenses && !columns.interestExpense && !columns.taxExpense) findings.push("Profitability and expense analysis are limited because recognized cost fields are missing.")
+  if (model === "generic" && columns.order) findings.push(`Transactions use distinct values from ${columns.order}.`)
+  if (model === "generic" && columns.cogs) findings.push("Generic business cost is recognized from an exact cost or COGS field.")
+  if (model === "generic" && columns.grossProfit) findings.push("Generic business profit is recognized from an explicit profit field.")
   if (model === "business_consulting" && !columns.consultantCost && !columns.otherCost) findings.push("Project cost analysis is limited because consultant_cost and other_cost fields are not recognized.")
   if (!hasTrendFields(columns)) findings.push("Trend analysis is unavailable because no recognized date or period field exists.")
   if (model === "local_retail") {
@@ -3139,6 +3192,62 @@ function findColumn(columns: string[], patterns: RegExp[]) {
 
 function normalizeColumnName(column: string) {
   return column.toLowerCase().trim().replace(/[\s-]+/g, "_")
+}
+
+function applyGenericBusinessCanonicalFallbacks(columnMap: ColumnMap, columns: string[], rows: DataRow[]) {
+  if (!columnMap.order) {
+    const invoiceId = findByNormalizedColumnName(columns, [/^invoice_id$/])
+    if (invoiceId && isReliableIdentifier(rows, invoiceId)) columnMap.order = invoiceId
+  }
+  if (!columnMap.cogs) {
+    const exactCost = findByNormalizedColumnName(columns, [/^cost$/])
+    if (exactCost && hasNumericValues(rows, exactCost)) columnMap.cogs = exactCost
+  }
+  if (!columnMap.grossProfit) {
+    const exactProfit = findByNormalizedColumnName(columns, [/^profit$/])
+    if (exactProfit && hasNumericValues(rows, exactProfit)) columnMap.grossProfit = exactProfit
+  }
+  if (columnMap.netProfit && normalizeColumnName(columnMap.netProfit) === "profit") {
+    columnMap.netProfit = undefined
+  }
+}
+
+function annotateGenericBusinessFinancials(financials: ReportFinancials, columns: ColumnMap) {
+  if (columns.grossProfit && normalizeColumnName(columns.grossProfit) === "profit" && financials.grossProfit !== null) {
+    const reconciles = financials.revenue !== null && financials.cogs !== null && withinTolerance(financials.grossProfit, round(financials.revenue - financials.cogs))
+    financials.metricSources = {
+      ...financials.metricSources,
+      grossProfit: {
+        kind: "source_value",
+        note: reconciles
+          ? `Directly from source field: ${columns.grossProfit}; reconciles to revenue - cost.`
+          : `Directly from source field: ${columns.grossProfit}.`,
+      },
+      grossMargin: financials.grossMargin !== null
+        ? { kind: "derived_value", note: "Profit divided by revenue." }
+        : financials.metricSources?.grossMargin,
+    }
+  }
+  if (columns.cogs && normalizeColumnName(columns.cogs) === "cost" && financials.cogs !== null) {
+    financials.metricSources = {
+      ...financials.metricSources,
+      cogs: { kind: "source_value", note: `Directly from source field: ${columns.cogs}.` },
+    }
+  }
+}
+
+function isReliableIdentifier(rows: DataRow[], column: string) {
+  const values = rows
+    .map((row) => row[column])
+    .filter((value) => value !== null && value !== undefined && String(value).trim() !== "")
+    .map((value) => String(value).trim())
+  if (values.length === 0) return false
+  const distinct = new Set(values).size
+  return distinct > 1 && distinct / values.length >= 0.8
+}
+
+function hasNumericValues(rows: DataRow[], column: string) {
+  return rows.some((row) => getNumber(row[column]) !== null)
 }
 
 function findInvestorInvestedAmountColumn(columns: string[]) {

@@ -4227,3 +4227,38 @@ Investor canonical metric tests must include distractor columns such as investme
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Generic Business Canonical Field Resolution
+
+1. Interaction title
+Generic Business invoice, cost, and profit canonical resolution.
+
+2. What was the user goal
+Fix `08_generic_business` generated reports so invoice IDs provide transaction counts and AOV, exact `cost` provides cost totals, explicit `profit` provides source-backed profit and margin, and the PDF stops claiming order or cost data is missing.
+
+3. What changed
+`dataset-report-builder` now recognizes the strict generic-business financial schema with invoice, revenue, cost, and profit evidence, while avoiding stronger e-commerce order, shipping, return, payment, or discount evidence. For generic reports only, the builder uses reliable `invoice_id` values as the transaction identifier, maps exact `cost` to the generic cost/COGS alias, maps exact `profit` to the generic profit/gross-profit alias, and removes the generic `profit` field from net-profit mapping. Generic KPIs now include Orders, AOV, Customers, Orders per Customer, Units Sold, Products, Cost, Profit, and Profit Margin. Generic recommendations consume canonical availability so they do not ask for COGS when exact cost is accepted. The focused regression script validates the 180-row schema/totals before PDF generation and verifies the generated PDF text.
+
+4. Problems marked
+blocker: none.
+risk: the exact `08_generic_business.xlsx` source file is absent from the workspace, so the regression uses a source-equivalent synthetic fixture with the confirmed schema and totals.
+improvement: add the exact numbered generic-business CSV/XLSX fixture to file-backed profile validation when the source file is available.
+observation: the wrong PDF came from model resolution selecting the e-commerce path for the generic schema and from generic financial mapping treating exact `cost` and `profit` as unavailable or net-profit-like fields.
+
+5. User learning
+The generic-business PDF can show e-commerce-style unavailable Orders/AOV when the schema classifier routes a generic invoice dataset into the e-commerce branch before the generic canonical fallback runs.
+
+6. AI-agent learning
+Generic business regression tests must include `invoice_id`, exact `cost`, and exact `profit` while also checking that e-commerce and retail do not globally promote `invoice_id`.
+
+7. Follow-up tasks
+- Add the exact numbered generic-business CSV/XLSX fixture to file-backed profile validation when the source file is available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
