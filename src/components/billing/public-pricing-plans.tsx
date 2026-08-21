@@ -7,7 +7,7 @@ import {
   getCheckoutMarketOptions,
   type BillingInterval,
 } from "@/lib/billing/launch-pricing"
-import { billingPlans, type BillingPlan } from "@/lib/billing/plans"
+import { billingPlans, formatPlanPrice, type BillingPlan } from "@/lib/billing/plans"
 import { Building2, Check, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -145,7 +145,7 @@ function BillingIntervalSelector({
 }
 
 function formatPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval) {
-  if (plan.tier === "free") return "$0/€0/month"
+  if (plan.tier === "free") return formatPlanPrice(plan)
   const market = getCheckoutMarketOptions(plan.tier, billingInterval).find((option) => option.market === "eu")
   if (market?.amountMinor !== null && market?.amountMinor !== undefined) {
     return formatRecurringPrice(market.amountMinor, market.currency, billingInterval)

@@ -66,6 +66,10 @@
 - Fix Accountancy upload error handling so non-CSV uploads (PDF, receipts, images, Excel, bank exports) no longer surface as generic `UNEXPECTED_ACCOUNTANCY_UPLOAD_ERROR` when credit engine calls or categorization throw; credit reservation, finalization, and release failures now convert to staged structured errors.
 - Accept `image/heic` receipts and invoices with the `image/heic` MIME type and `.heic` extension alongside JPEG, PNG, and WebP.
 
+### Dev
+
+- Centralize Free plan price labels through the shared billing formatter so pricing validation blocks hardcoded euro amounts in UI files.
+
 ### Fixed
 
 - Add intelligent Accounting AI VAT workflow so Business Profile tax settings drive explainable VAT predictions, exception review, scoped corrections, bulk assignment, and export-ready VAT audit details.
