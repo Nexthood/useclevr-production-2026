@@ -67,6 +67,7 @@ type DailyHealthSource = {
     analysisStatus: string | null
     analysis: unknown
     aiInsights: unknown
+    precomputedMetrics: unknown
   }[]
 }
 
@@ -112,6 +113,8 @@ type DailyHealthMetrics = {
   missingDataCount: number
   aiInsightCount: number
   columns: ColumnMap
+  isProfitabilityAnalysis: boolean
+  profitabilityExpenseShareLabel: string | null
 }
 
 const DEFAULT_WORKSPACE_ID = null
@@ -203,6 +206,7 @@ async function loadDailyHealthSource(userId: string, workspaceId: string | null,
       analysisStatus: dataset.analysisStatus,
       analysis: dataset.analysis,
       aiInsights: dataset.aiInsights,
+      precomputedMetrics: dataset.precomputedMetrics,
     })),
   }
 }
@@ -271,6 +275,7 @@ async function generateAiBrief(
       date: source.date,
       datasetCount: source.datasets.length,
       datasetTypes: source.datasets.map((dataset) => dataset.datasetType),
+      activeAnalysisType: metrics.isProfitabilityAnalysis ? "profitability" : "standard",
       metrics,
       deterministic,
     }),
@@ -357,7 +362,7 @@ function hashDailyHealthSource(source: DailyHealthSource) {
           status: "ready",
           businessModel: "generic",
           updatedAt: source.datasets[0].createdAt,
-          precomputedMetrics: null,
+          precomputedMetrics: source.datasets[0].precomputedMetrics,
           detectedColumns: null,
         }
       : null,
@@ -477,21 +482,22 @@ export const healthSignalProviders: HealthSignalProvider[] = [
 function calculateMetrics(source: DailyHealthSource): DailyHealthMetrics {
   const rows = source.datasets.flatMap((dataset) => dataset.rows)
   const columns = detectColumns(source.datasets.flatMap((dataset) => dataset.columns), rows)
+  const profitabilityMetrics = findActiveProfitabilityMetrics(source)
   const latestUploadAgeDays = source.datasets[0] ? daysBetween(source.datasets[0].createdAt, new Date()) : null
   const revenueRows = rows.map((row) => getNumber(row, columns.revenue)).filter(isNumber)
   const costRows = rows.map((row) => getNumber(row, columns.cost)).filter(isNumber)
   const profitRows = rows.map((row) => getNumber(row, columns.profit)).filter(isNumber)
-  const totalRevenue = columns.revenue ? sum(revenueRows) : null
-  const totalCost = columns.cost ? sum(costRows) : null
+  const totalRevenue = profitabilityNumber(profitabilityMetrics, "totalRevenue") ?? (columns.revenue ? sum(revenueRows) : null)
+  const totalCost = profitabilityNumber(profitabilityMetrics, "operatingExpenses") ?? (columns.cost ? sum(costRows) : null)
   const explicitProfit = columns.profit ? sum(profitRows) : null
-  const totalProfit = explicitProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
-  const profitMargin = totalRevenue && totalProfit !== null ? (totalProfit / totalRevenue) * 100 : null
+  const totalProfit = profitabilityNumber(profitabilityMetrics, "operatingProfit") ?? explicitProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
+  const profitMargin = profitabilityNumber(profitabilityMetrics, "operatingMargin") ?? (totalRevenue && totalProfit !== null ? (totalProfit / totalRevenue) * 100 : null)
   const revenueSeries = buildSeries(rows, columns.date, columns.revenue)
-  const revenueChangePct = revenueSeries.length >= 2 && revenueSeries[revenueSeries.length - 2].value !== 0
+  const revenueChangePct = profitabilityNumber(profitabilityMetrics, "revenueGrowth") ?? (revenueSeries.length >= 2 && revenueSeries[revenueSeries.length - 2].value !== 0
     ? ((revenueSeries[revenueSeries.length - 1].value - revenueSeries[revenueSeries.length - 2].value) / Math.abs(revenueSeries[revenueSeries.length - 2].value)) * 100
-    : null
-  const lowStockCount = columns.stock ? countLowStock(rows, columns) : null
-  const deadStockCount = columns.stock && (columns.quantity || columns.revenue) ? countDeadStock(rows, columns) : null
+    : null)
+  const lowStockCount = profitabilityMetrics ? null : columns.stock ? countLowStock(rows, columns) : null
+  const deadStockCount = profitabilityMetrics ? null : columns.stock && (columns.quantity || columns.revenue) ? countDeadStock(rows, columns) : null
   const inventoryHealth = lowStockCount === null && deadStockCount === null
     ? null
     : clamp(90 - (lowStockCount || 0) * 5 - (deadStockCount || 0) * 6, 10, 98)
@@ -518,6 +524,8 @@ function calculateMetrics(source: DailyHealthSource): DailyHealthMetrics {
     missingDataCount,
     aiInsightCount: source.datasets.reduce((total, dataset) => total + countInsights(dataset.analysis) + countInsights(dataset.aiInsights), 0),
     columns,
+    isProfitabilityAnalysis: Boolean(profitabilityMetrics),
+    profitabilityExpenseShareLabel: topExpenseShareLabel(profitabilityMetrics),
   }
 }
 
@@ -532,8 +540,8 @@ function buildDeterministicBrief(source: DailyHealthSource, metrics: DailyHealth
     ...(metrics.latestUploadAgeDays === null ? ["No uploaded datasets are available for executive analysis."] : []),
   ].slice(0, 5)
   const topOpportunities = [
-    metrics.profitMargin !== null ? "Protect or expand the highest-margin products and segments." : "Add profit or cost columns to unlock margin opportunities.",
-    metrics.lowStockCount !== null ? "Prioritize stock coverage for products with the lowest detected inventory." : "Add stock columns to unlock inventory optimisation.",
+    metrics.revenueChangePct !== null && metrics.revenueChangePct < 0 ? `Revenue declined by ${Math.abs(metrics.revenueChangePct).toFixed(1)}%.` : metrics.profitMargin !== null ? "Protect or expand the strongest Profitability drivers." : "Add profit or cost columns to unlock margin opportunities.",
+    metrics.profitabilityExpenseShareLabel || (metrics.isProfitabilityAnalysis ? "Review expense mix against operating margin." : metrics.lowStockCount !== null ? "Prioritize stock coverage for products with the lowest detected inventory." : "Add stock columns to unlock inventory optimisation."),
     source.hasBusinessProfile ? "Use the business profile context to sharpen AI recommendations." : "Complete the Business Profile to improve executive recommendations.",
   ]
   const todaysPriorities = [
@@ -548,7 +556,7 @@ function buildDeterministicBrief(source: DailyHealthSource, metrics: DailyHealth
       estimatedImpact: metrics.totalRevenue !== null ? `Protect performance across ${formatCurrency(metrics.totalRevenue)} detected revenue.` : "Improves daily executive visibility.",
       confidence: aiConfidence,
       reason: signals.map((signal) => signal.summary).slice(0, 2).join(" "),
-      suggestedAction: todaysPriorities[0] || "Review the latest dataset and follow the priority actions.",
+      suggestedAction: metrics.isProfitabilityAnalysis ? "Review the latest Profitability findings and assign owners for revenue movement, expense mix, and margin actions." : todaysPriorities[0] || "Review the latest dataset and follow the priority actions.",
     },
   ].slice(0, 6)
 
@@ -557,7 +565,9 @@ function buildDeterministicBrief(source: DailyHealthSource, metrics: DailyHealth
     aiConfidence,
     executiveSummary: source.datasets.length === 0
       ? "No uploaded datasets are available yet. Upload business data to activate the Daily Executive Health Check."
-      : `Today's health score is ${score}/100 across ${source.datasets.length} dataset${source.datasets.length === 1 ? "" : "s"} and ${formatNumber(metrics.rowCount)} processed rows.`,
+      : metrics.isProfitabilityAnalysis
+        ? `Today's health score is ${score}/100 for the active Profitability analysis across ${source.datasets.length} dataset${source.datasets.length === 1 ? "" : "s"}.`
+        : `Today's health score is ${score}/100 across ${source.datasets.length} dataset${source.datasets.length === 1 ? "" : "s"} and ${formatNumber(metrics.rowCount)} processed rows.`,
     topOpportunities,
     criticalRisks,
     anomalies: buildAnomalies(metrics),
@@ -567,7 +577,7 @@ function buildDeterministicBrief(source: DailyHealthSource, metrics: DailyHealth
       ? "Available dated data supports a directional forecast. Review revenue movement and margin pressure before committing operating decisions."
       : "Forecast confidence is limited until more dated revenue, order, or inventory rows are uploaded.",
     estimatedBusinessImpact: metrics.totalProfit !== null
-      ? `Current detected profit is ${formatCurrency(metrics.totalProfit)} with ${metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}% margin` : "limited margin context"}.`
+      ? `Current detected operating profit is ${formatCurrency(metrics.totalProfit)} with ${metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}% operating margin` : "limited margin context"}.`
       : "Business impact estimation improves when revenue, cost, and profit columns are available.",
     alerts,
   }
@@ -582,6 +592,36 @@ function buildAnomalies(metrics: DailyHealthMetrics) {
   if ((metrics.deadStockCount || 0) > 0) anomalies.push(`${metrics.deadStockCount} dead-stock line${metrics.deadStockCount === 1 ? "" : "s"} detected.`)
   if (metrics.latestUploadAgeDays !== null && metrics.latestUploadAgeDays > 30) anomalies.push(`Newest dataset is ${metrics.latestUploadAgeDays} days old.`)
   return anomalies.length > 0 ? anomalies : ["No critical anomaly was detected from the available uploaded data."]
+}
+
+function findActiveProfitabilityMetrics(source: DailyHealthSource): Record<string, unknown> | null {
+  for (const dataset of source.datasets) {
+    if (dataset.datasetType !== "profitability" && !hasProfitabilityPayload(dataset.analysis)) continue
+    const precomputed = isRecord(dataset.precomputedMetrics) ? dataset.precomputedMetrics : null
+    if (precomputed) return precomputed
+    if (isRecord(dataset.analysis) && isRecord(dataset.analysis.profitability)) return dataset.analysis.profitability
+  }
+  return null
+}
+
+function hasProfitabilityPayload(value: unknown) {
+  if (!isRecord(value)) return false
+  return value.datasetType === "profitability" || value.dataset_type === "profitability" || isRecord(value.profitability)
+}
+
+function profitabilityNumber(metrics: Record<string, unknown> | null, key: string) {
+  if (!metrics) return null
+  const value = metrics[key]
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function topExpenseShareLabel(metrics: Record<string, unknown> | null) {
+  if (!metrics || !Array.isArray(metrics.topCostCategories)) return null
+  const totalExpenses = profitabilityNumber(metrics, "totalExpenses") ?? profitabilityNumber(metrics, "operatingExpenses")
+  if (!totalExpenses) return null
+  const [top] = metrics.topCostCategories
+  if (!Array.isArray(top) || typeof top[0] !== "string" || typeof top[1] !== "number") return null
+  return `${top[0]} represents ${((top[1] / totalExpenses) * 100).toFixed(1)}% of categorized expenses.`
 }
 
 function detectColumns(columns: string[], rows: DataRow[]): ColumnMap {

@@ -4327,6 +4327,40 @@ For paired upload reports, carry metric provenance through analyzer, persistence
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Dashboard Context
+
+1. Interaction title
+Paired Profitability dashboard context.
+
+2. What was the user goal
+Fix the main Dashboard after paired Profitability uploads so async processing cannot switch the active command center, Daily Health, Balanced Scorecard, recommendations, or upload history from Profitability into Marketplace, E-Commerce, inventory, seller, buyer, GMV, active-seller, or low-stock semantics.
+
+3. What changed
+`resolveBusinessModel` now treats `datasetType=profitability` as a module-level authority that outranks stored child business-model values and automatic schema detection, so revenue and expense child files cannot become the owning dashboard model. `dashboard-semantic-profile` now exposes a Profitability dashboard profile from the Profitability P&L report profile and returns Profitability primary metrics and operating-profit trends from canonical report inputs. The main Dashboard uses the active semantic profile for the header, KPI labels, world-map gating, Balanced Scorecard preview, data-coverage note, and fallback KPI set; it suppresses inventory-derived low-stock/dead-stock/overstock signals for Profitability and labels upload history as `Profitability · Revenue Input` or `Profitability · Expense Input`. Daily Health reads active Profitability precomputed metrics, disables inventory alerts for Profitability, and writes Profitability-oriented priorities and impact text.
+
+4. Problems marked
+blocker: none.
+risk: exact large paired upload behavior still needs a signed-in browser verification after beta deploy because the available local regression uses source-equivalent synthetic datasets.
+observation: the async update did not need to change the formulas; it exposed persisted child business-model classification after the dashboard refetched ready datasets and BBSC read `selectedDataset.businessModel` directly.
+
+5. User learning
+Paired Profitability ownership requires an analysis/module profile separate from child-file schema hints; child roles map columns but do not define the dashboard model.
+
+6. AI-agent learning
+Dashboard context must follow explicit parent analysis/module, then stored dataset type, then automatic schema detection. Report-profile semantics should be reused by dashboard surfaces instead of recomputing business models from child file columns.
+
+7. Follow-up tasks
+- Verify the signed-in paired large Profitability upload on the beta test deployment after CI publishes `dist-test`.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Paired Profitability Partial Expense Coverage
 
 1. Interaction title

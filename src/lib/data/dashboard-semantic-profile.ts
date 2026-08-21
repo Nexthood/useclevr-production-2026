@@ -45,6 +45,8 @@ type DashboardReportInput = Awaited<ReturnType<typeof buildDatasetReportInput>> 
   kpis: { title: string; value: string | number }[]
 }
 
+export type DashboardBusinessProfile = BusinessModel | "profitability"
+
 export type DashboardSemanticMetric = {
   label: string
   value: number | null
@@ -66,7 +68,7 @@ export type DashboardSemanticAnalysis = {
   datasetId: string
   datasetName: string
   uploadType: string
-  businessProfile: BusinessModel
+  businessProfile: DashboardBusinessProfile
   reportProfileId: ReportProfileId | "unknown"
   reportProfileTitle: string
   rowCount: number
@@ -129,6 +131,18 @@ export async function buildDashboardSemanticAnalysis(dataset: DashboardDatasetIn
 }
 
 function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSemanticMetric[] {
+  if (reportInput.reportProfile?.id === "profitability_pnl" && reportInput.financials) {
+    const financials = reportInput.financials
+    return [
+      metric("Revenue", financials.revenue ?? null, "currency", "Revenue", "Revenue source total from selected Profitability inputs."),
+      metric("Operating Expenses", financials.operatingExpenses ?? null, "currency", "Operating Expenses", "Operating-expense source total from selected Profitability inputs."),
+      metric("Operating Profit", financials.operatingProfit ?? null, "currency", "Operating Profit", "Operating profit from the canonical Profitability analysis."),
+      metric("Operating Margin", financials.operatingMargin ?? null, "percent", "Operating Margin", "Operating profit divided by revenue."),
+      metric("COGS", financials.cogs ?? null, "currency", "COGS", "COGS source total from selected Profitability inputs."),
+      metric("Net Profit", financials.netProfit ?? null, "currency", "Net Profit", "Net profit after source-backed interest and tax."),
+    ].filter((item) => item.available)
+  }
+
   if (reportInput.reportProfile?.id === "ecommerce" && reportInput.ecommerceAnalysis) {
     const ecommerce = reportInput.ecommerceAnalysis
     return [
@@ -203,6 +217,14 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
 }
 
 function buildSemanticTrends(reportInput: DashboardReportInput): DashboardSemanticTrend[] {
+  if (reportInput.reportProfile?.id === "profitability_pnl") {
+    const periodTrends = reportInput.financials?.periodTrends ?? []
+    return [
+      trend("Revenue Trend", "Revenue", "currency", periodTrends.map((item) => ({ name: item.period, value: item.revenue ?? 0 })).filter((item) => item.value !== 0), "Missing revenue/date columns."),
+      trend("Operating Profit Trend", "Operating Profit", "currency", periodTrends.map((item) => ({ name: item.period, value: item.operatingProfit ?? 0 })).filter((item) => item.value !== 0), "Missing operating-profit trend data."),
+    ].filter((item) => item.data.length > 0)
+  }
+
   if (reportInput.reportProfile?.id === "ecommerce" && reportInput.ecommerceAnalysis) {
     const ecommerce = reportInput.ecommerceAnalysis
     return [
@@ -237,7 +259,8 @@ function buildSemanticTrends(reportInput: DashboardReportInput): DashboardSemant
   ].filter((item) => item.data.length > 0)
 }
 
-function businessProfileFromReport(profileId?: string | null, businessModel?: string | null): BusinessModel {
+function businessProfileFromReport(profileId?: string | null, businessModel?: string | null): DashboardBusinessProfile {
+  if (profileId === "profitability_pnl" || businessModel === "profitability") return "profitability"
   if (profileId === "local_retail") return "local_retail"
   if (profileId === "ecommerce") return "ecommerce"
   if (profileId === "saas_startup") return "saas"

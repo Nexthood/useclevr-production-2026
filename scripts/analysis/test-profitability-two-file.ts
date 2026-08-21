@@ -1,6 +1,8 @@
 import * as fs from "fs"
 import { execFileSync } from "child_process"
 import { calculateProfitabilityAnalysis } from "../../src/lib/profitability/two-file-analysis"
+import { resolveBusinessModel } from "../../src/lib/data/business-model"
+import { buildDashboardSemanticAnalysis } from "../../src/lib/data/dashboard-semantic-profile"
 
 function assert(condition: unknown, message: string) {
   if (!condition) throw new Error(message)
@@ -259,6 +261,52 @@ async function main() {
   assert(!(opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("Operating Profit")), "Opex-only paired recommendations must not request derived operating profit")
   assert((opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("COGS")), "Opex-only paired recommendations must request COGS for gross profitability")
   assert((opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("Interest Expense") || item.requiredData?.includes("Tax Expense")), "Opex-only paired recommendations must request interest/tax for net profitability")
+
+  const poisonedChildBusinessModel = resolveBusinessModel({
+    explicit: "marketplace",
+    uploadSource: "profitability",
+    datasetType: "profitability",
+    columns: ["date", "category", "vendor", "department", "amount"],
+    datasetName: "useclevr_expense_large_test",
+    analysis: { datasetType: "profitability", businessModel: "marketplace", profitability: opexOnly },
+  })
+  assert(poisonedChildBusinessModel === "generic", "Profitability dataset_type must outrank child marketplace schema and stored business model")
+
+  const dashboardSemantic = await buildDashboardSemanticAnalysis({
+    id: "ds_profitability_dashboard_poisoned_child",
+    name: "useclevr_expense_large_test",
+    fileName: "useclevr_expense_large_test.csv",
+    fileSize: 1000,
+    rowCount: revenueFile.rows.length + opexOnlyExpensesFile.rows.length,
+    columnCount: revenueFile.columns.length + opexOnlyExpensesFile.columns.length,
+    columns: [...revenueFile.columns, "vendor", ...opexOnlyExpensesFile.columns],
+    data: [...revenueFile.rows, ...opexOnlyExpensesFile.rows.map((row) => ({ ...row, vendor: "Supplier A" }))],
+    datasetType: "profitability",
+    businessModel: "marketplace",
+    analysisStatus: "ready",
+    status: "ready",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    analysis: { datasetType: "profitability", businessModel: "marketplace", profitabilityFileRole: "expense_input", profitability: opexOnly },
+    aiInsights: {
+      recommendedActions: [
+        { title: "Active sellers", impact: "Marketplace seller coverage.", action: "Review active sellers." },
+      ],
+    },
+    precomputedMetrics: opexOnly,
+    detectedColumns: null,
+  })
+  const dashboardMetricLabels = dashboardSemantic.metrics.map((metric) => metric.label)
+  const dashboardRecommendationText = dashboardSemantic.recommendations.map((item) => `${item.issue} ${item.businessImpact} ${item.recommendedAction}`).join(" ")
+  assert(dashboardSemantic.businessProfile === "profitability", "Dashboard semantic profile must remain Profitability for paired Profitability datasets")
+  assert(dashboardSemantic.reportProfileId === "profitability_pnl", "Dashboard must use the Profitability report profile")
+  assert(dashboardMetricLabels.includes("Revenue"), "Dashboard must expose Profitability revenue")
+  assert(dashboardMetricLabels.includes("Operating Expenses"), "Dashboard must expose Profitability operating expenses")
+  assert(dashboardMetricLabels.includes("Operating Profit"), "Dashboard must expose Profitability operating profit")
+  assert(dashboardMetricLabels.includes("Operating Margin"), "Dashboard must expose Profitability operating margin")
+  assert(!dashboardMetricLabels.includes("GMV"), "Dashboard must not expose Marketplace GMV for Profitability analysis")
+  assert(!dashboardMetricLabels.includes("Active Sellers"), "Dashboard must not expose Marketplace active sellers for Profitability analysis")
+  assertNotIncludes(dashboardRecommendationText, "seller", "Dashboard recommendations must not use stored Marketplace recommendations for Profitability analysis")
 
   const partialOpexBuiltInput = await buildDatasetReportInput({
     id: "ds_profitability_partial_opex",
