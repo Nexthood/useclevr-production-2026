@@ -75,6 +75,7 @@ async function main() {
   })
   nearlyEqual(opexOnly.totalRevenue, 10000, "Opex-only paired revenue")
   nearlyEqual(opexOnly.operatingExpenses, 2000, "Opex-only paired operating expenses")
+  assert(opexOnly.reportingPeriod === "2026-01", "Opex-only paired reporting period must come from source periods")
   assert(opexOnly.cogs === null, "Opex-only paired COGS must remain unavailable")
   assert(opexOnly.grossProfit === null, "Opex-only paired gross profit must remain unavailable")
   assert(opexOnly.grossMargin === null, "Opex-only paired gross margin must remain unavailable")
@@ -86,6 +87,23 @@ async function main() {
   assert(opexOnly.netMargin === null, "Net margin must require source-backed net profit")
   assert(opexOnly.metricSources.operatingProfit?.kind === "derived_value", "Opex-only operating profit must be derived")
   assert(opexOnly.metricSources.operatingProfit?.note.includes("Revenue minus source-backed operating expenses"), "Opex-only operating profit provenance must name the paired formula")
+
+  const partialOpex = calculateProfitabilityAnalysis({
+    analysisId: "pa_profitability_partial_opex",
+    revenueFile,
+    expensesFile: {
+      ...opexOnlyExpensesFile,
+      name: "profitability_expenses_partial_opex.csv",
+      operatingExpenseCoverage: "partial",
+    },
+  })
+  nearlyEqual(partialOpex.totalRevenue, 10000, "Partial opex paired revenue")
+  nearlyEqual(partialOpex.operatingExpenses, 2000, "Partial opex source total")
+  assert(partialOpex.operatingExpenseCoverage === "partial", "Partial opex must preserve incomplete source coverage")
+  assert(partialOpex.operatingProfit === null, "Partial opex must not derive operating profit")
+  assert(partialOpex.operatingMargin === null, "Partial opex must not derive operating margin")
+  assert(partialOpex.metricSources.operatingProfit?.kind === "unavailable", "Partial opex operating profit must be unavailable")
+  assert(partialOpex.metricSources.operatingProfit?.note.includes("complete operating-expense source"), "Partial opex provenance must require complete operating expenses")
 
   const explicitZeroInterestTax = calculateProfitabilityAnalysis({
     analysisId: "pa_profitability_zero_interest_tax",
@@ -242,6 +260,45 @@ async function main() {
   assert((opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("COGS")), "Opex-only paired recommendations must request COGS for gross profitability")
   assert((opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("Interest Expense") || item.requiredData?.includes("Tax Expense")), "Opex-only paired recommendations must request interest/tax for net profitability")
 
+  const partialOpexBuiltInput = await buildDatasetReportInput({
+    id: "ds_profitability_partial_opex",
+    userId: "synthetic_user",
+    name: "Synthetic Partial Opex Profitability Analysis",
+    fileName: "synthetic_profitability_partial_opex.csv",
+    fileSize: 1000,
+    mimeType: "text/csv",
+    storageKey: "private/storage/key.csv",
+    checksum: null,
+    rowCount: revenueFile.rows.length + opexOnlyExpensesFile.rows.length,
+    columnCount: revenueFile.columns.length + opexOnlyExpensesFile.columns.length,
+    columns: [...revenueFile.columns, ...opexOnlyExpensesFile.columns],
+    data: [...revenueFile.rows, ...opexOnlyExpensesFile.rows],
+    columnTypes: null,
+    previewRowCount: null,
+    previewGenerated: null,
+    fullAnalysisCompleted: null,
+    analysisStatus: "ready",
+    analysisProgress: null,
+    analysisMessage: null,
+    analysisError: null,
+    invalidRowCount: null,
+    missingValueCounts: null,
+    precomputedMetrics: partialOpex,
+    columnMapping: null,
+    detectedColumns: null,
+    aiInsights: null,
+    status: "ready",
+    analysis: { profitability: partialOpex },
+    datasetType: "profitability",
+    businessModel: "generic",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as any)
+  assert(partialOpexBuiltInput.reportType === "profitability", "Partial opex report must remain profitability")
+  assert(partialOpexBuiltInput.financials?.operatingExpenses === 2000, "Partial opex report must retain source operating expenses")
+  assert(partialOpexBuiltInput.financials?.operatingProfit === null, "Partial opex report must not re-derive operating profit")
+  assert(partialOpexBuiltInput.financials?.operatingMargin === null, "Partial opex report must not re-derive operating margin")
+
   const report = await generateReport("synthetic_profitability_dataset", "Synthetic Profitability Analysis", {
     visibility: "private",
     status: "ready",
@@ -319,6 +376,7 @@ async function main() {
     operatingMargin: analysis.operatingMargin,
     netMargin: analysis.netMargin,
     opexOnlyOperatingProfit: opexOnly.operatingProfit,
+    partialOpexOperatingProfit: partialOpex.operatingProfit,
     explicitZeroNetProfit: explicitZeroInterestTax.netProfit,
     reportPersisted: persisted,
     pdfGenerated,

@@ -4327,6 +4327,41 @@ For paired upload reports, carry metric provenance through analyzer, persistence
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Partial Expense Coverage
+
+1. Interaction title
+Paired Profitability complete-expense provenance and reporting period.
+
+2. What was the user goal
+Fix the paired Profitability report for `useclevr_revenue_large_test` plus `useclevr_expense_large_test` so Revenue and complete Operating Expenses derive Operating Profit and Operating Margin, missing COGS/gross/net inputs stay unavailable, Cost Intelligence data requirements stop contradicting categorized expenses, and the actual regenerated PDF is internally consistent.
+
+3. What changed
+`two-file-analysis` now records `operatingExpenseCoverage`, keeps Operating Profit unavailable when the expense input is explicitly partial, preserves partial operating-expense source totals without treating them as complete, and stores a full source-derived reporting period before trend rows are capped. `dataset-report-builder` respects partial operating-expense coverage during fallback derivation and reads the canonical reporting period. `test-profitability-two-file` covers complete operating-expense-only inputs, missing interest/tax, explicit zero interest/tax, expense category availability, partial operating-expense inputs, and reporting-period provenance. `requirements.md` and `CHANGELOG.md` describe the current user-visible contract.
+
+4. Problems marked
+blocker: none.
+risk: exact large CSV fixtures live in local Downloads and are not tracked fixtures, so future machines need safe fixture copies to rerun the exact large-file verification.
+improvement: add sanitized large paired Profitability fixtures to tracked regression coverage when privacy rules allow them.
+observation: trend rows stay capped for PDF size, while the top-level reporting period now comes from the full canonical source period range.
+
+5. User learning
+Paired Profitability needs a first-class completeness signal for operating expenses; otherwise a partial expense subset can look mathematically valid while producing overstated operating profit.
+
+6. AI-agent learning
+Generated report builders must avoid recomputing unavailable metrics from numeric totals when the analyzer already carries stricter availability provenance.
+
+7. Follow-up tasks
+- Add sanitized large paired Profitability fixtures to file-backed regression coverage when privacy rules allow them.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Generic Business Canonical Field Resolution
 
 1. Interaction title

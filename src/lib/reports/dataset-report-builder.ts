@@ -383,13 +383,15 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   const precomputedGrossProfit = numeric("grossProfit")
   const precomputedOperatingProfit = numeric("operatingProfit")
   const precomputedNetProfit = numeric("netProfit")
+  const operatingExpenseCoverage = metrics.operatingExpenseCoverage === "partial" ? "partial" : "complete"
+  const completeOperatingExpenses = operatingExpenseCoverage === "complete" ? operatingExpenses : null
   const grossProfit = precomputedGrossProfit !== null ? precomputedGrossProfit : totalRevenue !== null && cogs !== null ? round(totalRevenue - cogs) : null
   const operatingProfit = precomputedOperatingProfit !== null
     ? precomputedOperatingProfit
-    : grossProfit !== null && operatingExpenses !== null
-      ? round(grossProfit - operatingExpenses)
-      : totalRevenue !== null && operatingExpenses !== null && cogs === null
-        ? round(totalRevenue - operatingExpenses)
+    : grossProfit !== null && completeOperatingExpenses !== null
+      ? round(grossProfit - completeOperatingExpenses)
+      : totalRevenue !== null && completeOperatingExpenses !== null && cogs === null
+        ? round(totalRevenue - completeOperatingExpenses)
         : null
   const netProfit = precomputedNetProfit !== null ? precomputedNetProfit : operatingProfit !== null && interestExpense !== null && taxExpense !== null
     ? round(operatingProfit - interestExpense - taxExpense)
@@ -453,7 +455,7 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
       cogs: cogs !== null ? sourceMeta("COGS source total from selected analysis inputs.") : unavailableMeta("No recognized COGS source field."),
       grossProfit: metricSourceMeta(metrics, "grossProfit", precomputedGrossProfit !== null ? derivedMeta("Revenue minus COGS.") : grossProfit !== null ? derivedMeta("Revenue minus COGS.") : unavailableMeta("Requires COGS or explicit gross profit field.")),
       operatingExpenses: operatingExpenses !== null ? sourceMeta("Operating-expense source total from selected analysis inputs.") : unavailableMeta("No recognized operating-expense source field."),
-      operatingProfit: metricSourceMeta(metrics, "operatingProfit", operatingProfit !== null ? derivedMeta(grossProfit !== null ? "Gross profit minus operating expenses." : "Revenue minus source-backed operating expenses because COGS is unavailable in the paired Profitability inputs.") : unavailableMeta("Requires source-backed revenue and operating expenses.")),
+      operatingProfit: metricSourceMeta(metrics, "operatingProfit", operatingProfit !== null ? derivedMeta(grossProfit !== null ? "Gross profit minus operating expenses." : "Revenue minus source-backed operating expenses because COGS is unavailable in the paired Profitability inputs.") : unavailableMeta(operatingExpenseCoverage === "partial" ? "Requires a complete operating-expense source before deriving operating profit." : "Requires source-backed revenue and operating expenses.")),
       interestExpense: interestExpense !== null ? sourceMeta("Interest-expense source total from selected analysis inputs.") : unavailableMeta("No recognized interest-expense source field."),
       taxExpense: taxExpense !== null ? sourceMeta("Tax-expense source total from selected analysis inputs.") : unavailableMeta("No recognized tax-expense source field."),
       netProfit: metricSourceMeta(metrics, "netProfit", netProfit !== null ? derivedMeta("Operating profit minus source-backed interest and tax expense.") : unavailableMeta("Requires source-backed interest, tax, and operating profit inputs.")),
@@ -597,6 +599,7 @@ function revenueGrowthFromMetrics(metrics: Record<string, unknown>) {
 }
 
 function reportingPeriodFromMetrics(metrics: Record<string, unknown>) {
+  if (typeof metrics.reportingPeriod === "string" && metrics.reportingPeriod.trim()) return metrics.reportingPeriod
   const trends = periodTrendsFromMetrics(metrics) || []
   if (trends.length === 0) return null
   if (trends.length === 1) return trends[0].period

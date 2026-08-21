@@ -13,6 +13,7 @@ export type ProfitabilitySourceFile = {
   columns: string[]
   rows: Record<string, unknown>[]
   rowCount?: number
+  operatingExpenseCoverage?: "complete" | "partial"
 }
 
 export type ProfitabilityMetrics = {
@@ -23,6 +24,8 @@ export type ProfitabilityMetrics = {
   hasRevenue: boolean
   hasExpenses: boolean
   hasBothFiles: boolean
+  operatingExpenseCoverage: "complete" | "partial" | "unavailable"
+  reportingPeriod: string | null
   totalRevenue: number | null
   salesVolume: number | null
   customerCount: number | null
@@ -113,6 +116,11 @@ export function calculateProfitabilityAnalysis(input: {
   const hasRevenue = Boolean(revenueFile)
   const hasExpenses = Boolean(expensesFile)
   const hasBothFiles = hasRevenue && hasExpenses
+  const operatingExpenseCoverage = hasExpenses
+    ? expensesFile?.operatingExpenseCoverage === "partial"
+      ? "partial"
+      : "complete"
+    : "unavailable"
   const revenueColumns = detectColumns(revenueFile?.columns || [])
   const expenseColumns = detectColumns(expensesFile?.columns || [])
   const matchKey = chooseMatchKey(revenueColumns, expenseColumns)
@@ -203,14 +211,15 @@ export function calculateProfitabilityAnalysis(input: {
   const revenueValue = hasRevenue && revenueColumns.amount ? round(totalRevenue) : null
   const cogsValue = hasExpenses && foundCogs ? round(cogs) : null
   const operatingExpensesValue = hasExpenses && foundOperating ? round(operatingExpenses) : null
+  const completeOperatingExpensesValue = operatingExpenseCoverage === "complete" ? operatingExpensesValue : null
   const interestExpenseValue = hasExpenses && foundInterest ? round(interestExpense) : null
   const taxExpenseValue = hasExpenses && foundTax ? round(taxExpense) : null
   const totalExpenses = hasExpenses && expenseColumns.amount ? round(cogs + operatingExpenses + interestExpense + taxExpense) : null
   const grossProfit = revenueValue !== null && cogsValue !== null ? round(revenueValue - cogsValue) : null
-  const operatingProfit = grossProfit !== null && operatingExpensesValue !== null
-    ? round(grossProfit - operatingExpensesValue)
-    : revenueValue !== null && operatingExpensesValue !== null && cogsValue === null
-      ? round(revenueValue - operatingExpensesValue)
+  const operatingProfit = grossProfit !== null && completeOperatingExpensesValue !== null
+    ? round(grossProfit - completeOperatingExpensesValue)
+    : revenueValue !== null && completeOperatingExpensesValue !== null && cogsValue === null
+      ? round(revenueValue - completeOperatingExpensesValue)
       : null
   const netProfit = operatingProfit !== null && interestExpenseValue !== null && taxExpenseValue !== null
     ? round(operatingProfit - interestExpenseValue - taxExpenseValue)
@@ -237,6 +246,8 @@ export function calculateProfitabilityAnalysis(input: {
     hasRevenue,
     hasExpenses,
     hasBothFiles,
+    operatingExpenseCoverage,
+    reportingPeriod: reportingPeriodFromPeriodKeys(periodBuckets),
     totalRevenue: revenueValue,
     salesVolume: foundSalesVolume ? round(salesVolume) : null,
     customerCount: customers.size > 0 ? customers.size : null,
@@ -261,7 +272,9 @@ export function calculateProfitabilityAnalysis(input: {
     metricSources: {
       revenue: revenueValue !== null ? sourceMeta("Revenue source total from selected Revenue input.") : unavailableMeta("No recognized revenue source field."),
       cogs: cogsValue !== null ? sourceMeta("COGS source total from selected Expenses input.") : unavailableMeta("No recognized COGS source field."),
-      operatingExpenses: operatingExpensesValue !== null ? sourceMeta("Operating-expense source total from selected Expenses input.") : unavailableMeta("No recognized operating-expense source rows."),
+      operatingExpenses: operatingExpensesValue !== null
+        ? sourceMeta(operatingExpenseCoverage === "partial" ? "Partial operating-expense source total from selected Expenses input." : "Operating-expense source total from selected Expenses input.")
+        : unavailableMeta("No recognized operating-expense source rows."),
       interestExpense: interestExpenseValue !== null ? sourceMeta("Interest-expense source total from selected Expenses input.") : unavailableMeta("No recognized interest-expense source rows."),
       taxExpense: taxExpenseValue !== null ? sourceMeta("Tax-expense source total from selected Expenses input.") : unavailableMeta("No recognized tax-expense source rows."),
       grossProfit: grossProfit !== null ? derivedMeta("Revenue minus COGS.") : unavailableMeta("Requires source-backed COGS or explicit gross profit."),
@@ -269,13 +282,13 @@ export function calculateProfitabilityAnalysis(input: {
         ? grossProfit !== null
           ? derivedMeta("Gross profit minus operating expenses.")
           : derivedMeta("Revenue minus source-backed operating expenses because COGS is unavailable in the paired Profitability inputs.")
-        : unavailableMeta("Requires revenue and source-backed operating expenses, or gross profit and operating expenses."),
+        : unavailableMeta(operatingExpenseCoverage === "partial" ? "Requires a complete operating-expense source before deriving operating profit." : "Requires revenue and source-backed operating expenses, or gross profit and operating expenses."),
       netProfit: netProfit !== null ? derivedMeta("Operating profit minus source-backed interest and tax expense.") : unavailableMeta("Requires source-backed interest and tax expense."),
       grossMargin: margin(grossProfit, revenueValue) !== null ? derivedMeta("Gross profit divided by revenue.") : unavailableMeta("Requires gross profit and non-zero revenue."),
       operatingMargin: margin(operatingProfit, revenueValue) !== null ? derivedMeta("Operating profit divided by revenue.") : unavailableMeta("Requires operating profit and non-zero revenue."),
       netMargin: margin(netProfit, revenueValue) !== null ? derivedMeta("Net profit divided by revenue.") : unavailableMeta("Requires net profit and non-zero revenue."),
     },
-    periodTrends: buildPeriodTrends(periodBuckets, { hasCogs: foundCogs, hasOperating: foundOperating, hasInterest: foundInterest, hasTax: foundTax }),
+    periodTrends: buildPeriodTrends(periodBuckets, { hasCogs: foundCogs, hasOperating: foundOperating, hasCompleteOperatingExpenses: operatingExpenseCoverage === "complete", hasInterest: foundInterest, hasTax: foundTax }),
     departmentComparison: buildDepartmentComparison(departmentBuckets),
     matchKey,
     missingColumns,
@@ -384,14 +397,21 @@ function sortedEntries(map: Map<string, number>): [string, number][] {
   return Array.from(map.entries()).map(([key, value]) => [key, round(value)] as [string, number]).sort((a, b) => b[1] - a[1]).slice(0, 8)
 }
 
-function buildPeriodTrends(map: Map<string, Bucket>, availability: { hasCogs: boolean; hasOperating: boolean; hasInterest: boolean; hasTax: boolean }) {
+function reportingPeriodFromPeriodKeys(map: Map<string, Bucket>) {
+  const periods = Array.from(new Set(Array.from(map.keys()).map((period) => period.split(" • ")[0]).filter((period) => period && period !== "All periods"))).sort((a, b) => a.localeCompare(b))
+  if (periods.length === 0) return null
+  if (periods.length === 1) return periods[0]
+  return `${periods[0]} to ${periods[periods.length - 1]}`
+}
+
+function buildPeriodTrends(map: Map<string, Bucket>, availability: { hasCogs: boolean; hasOperating: boolean; hasCompleteOperatingExpenses: boolean; hasInterest: boolean; hasTax: boolean }) {
   return Array.from(map.entries()).map(([period, bucket]) => {
     const cogs = availability.hasCogs ? round(bucket.cogs) : null
     const operatingExpenses = availability.hasOperating ? round(bucket.operatingExpenses) : null
     const interestExpense = availability.hasInterest ? round(bucket.interestExpense) : null
     const taxExpense = availability.hasTax ? round(bucket.taxExpense) : null
     const grossProfit = cogs !== null ? bucket.revenue - bucket.cogs : null
-    const operatingProfit = operatingExpenses !== null
+    const operatingProfit = operatingExpenses !== null && availability.hasCompleteOperatingExpenses
       ? grossProfit !== null
         ? grossProfit - bucket.operatingExpenses
         : bucket.revenue - bucket.operatingExpenses
