@@ -97,6 +97,7 @@ moving work between states.
 
 ## Label: billing
 
+- T-1023. Credit top-up checkout authorizes supplied workspace identifiers through the existing workspace membership model before creating payment metadata. (labels: billing, security, api, testing; commit: worktree)
 - T-1001. Paid plan checkout supports Monthly and Yearly selection for Pro and Business, keeps the selected market unchanged across interval changes, and opens Stripe Checkout only with the matching configured recurring price. (labels: billing, payment, ui, testing; commit: worktree)
 - T-986. Keep consumed upload credits in the persistent billing ledger for the current billing period after datasets are deleted, and block additional Free uploads until reset or plan change. (labels: billing, upload, testing; commit: worktree)
 

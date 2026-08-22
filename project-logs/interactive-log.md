@@ -1,3 +1,34 @@
+## Credit Top-Up Workspace Authorization
+
+1. Interaction title
+Credit top-up workspace authorization.
+
+2. What was the user goal
+Fix only the credit top-up checkout workspace authorization issue so an authenticated user cannot attach a purchase to an arbitrary workspace by sending a `workspaceId` in the request body.
+
+3. What changed
+The checkout route now treats the request-body workspace identifier as untrusted input. When no workspace identifier is supplied, checkout metadata keeps the existing user-id workspace default. When a workspace identifier is supplied, the route checks the authenticated user with the existing workspace membership helper at viewer-or-higher access before Stripe checkout session creation. Unauthorized and nonexistent workspace identifiers return 403 and do not create Stripe sessions. Package-derived credits, amount, and currency metadata remain sourced from configured credit packages, and mismatched request-body currency remains rejected.
+
+4. Problems marked
+- blocker: none.
+- risk: none.
+- improvement: Add route-level integration tests with mocked auth, workspace membership, and Stripe service calls if the test harness gains module mocking.
+- observation: The root cause was that the route copied `body.workspaceId` into Stripe metadata without verifying workspace membership or ownership.
+
+5. User learning
+Credit top-up workspace metadata is now server-authorized and cannot be reassigned by editing the checkout request body.
+
+6. AI-agent learning
+Payment metadata that influences ledger attribution must be derived from authenticated server-side authorization checks, not from client-supplied identifiers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Public AI Production Disable
 
 1. Interaction title
