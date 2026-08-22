@@ -221,6 +221,7 @@ into the active queue.
 
 ## Label: security
 
+- Re-enable the external Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, abuse controls, and audit logging are implemented. (labels: security, api, ai, monitoring)
 - Create API rate limiting per user. (labels: security, api, performance)
 - Add a security audit that confirms user-uploaded files, prompt text, and generated exports stay outside AI context and public static paths. (labels: security, ai, data, upload)
 - Add redaction checks before saving imported AI memory summaries — strip email addresses, API keys, tokens, and private values from imported text. (labels: security, ai, api, workflow)

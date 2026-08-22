@@ -35,7 +35,7 @@ const faqSeed = [
   {
     category: "Getting Started",
     question: "How do I upload a dataset?",
-    answer: "Go to the Datasets page from the sidebar and click \"Upload dataset\". Supported format is CSV (up to 50 MB per file). Once uploaded, the column headers are parsed and the dataset is ready for analysis.",
+    answer: "Go to the Datasets page from the sidebar and click \"Upload dataset\". Standard uploads accept CSV or Excel files up to 25 MB per file. Once uploaded, the column headers are parsed and the dataset is ready for analysis.",
     sortOrder: 3,
     scope: "public" as const,
   },

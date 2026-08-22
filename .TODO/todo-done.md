@@ -63,6 +63,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1021. Standard CSV and Excel uploads enforce centralized server-side size, type, structure, worksheet-bound, and parser resource limits before heavy file reads. (labels: upload, security, testing; commit: 345a7676)
 - T-1020. Ordinary Dataset and Report access enforces requested dataset ownership for the authenticated user and ignores admin or superadmin roles in customer-data routes. (labels: security, data, reports, testing; commit: 090a5718)
 - T-1019. Paired Profitability result actions omit single-dataset navigation while keeping Open Profitability, Upload Another File, and report generation actions. (labels: upload, ui, testing; commit: 74e31041)
 - T-1018. Profitability refresh routing resolves active parent analysis identifiers before child dataset identifiers and keeps parent-scoped report generation after rich dashboard hydration. (labels: upload, dashboard, reports, testing; commit: 71048656)
@@ -96,6 +97,7 @@ moving work between states.
 
 ## Label: billing
 
+- T-1023. Credit top-up checkout authorizes supplied workspace identifiers through the existing workspace membership model before creating payment metadata. (labels: billing, security, api, testing; commit: 7e35aa1d)
 - T-1001. Paid plan checkout supports Monthly and Yearly selection for Pro and Business, keeps the selected market unchanged across interval changes, and opens Stripe Checkout only with the matching configured recurring price. (labels: billing, payment, ui, testing; commit: worktree)
 - T-986. Keep consumed upload credits in the persistent billing ledger for the current billing period after datasets are deleted, and block additional Free uploads until reset or plan change. (labels: billing, upload, testing; commit: worktree)
 
@@ -258,6 +260,7 @@ moving work between states.
 
 ## Label: api
 
+- T-1022. The external Public AI API returns a generic production 404 before exposing authentication, action, or dataset-processing behavior. (labels: api, security, ai, testing; commit: 7981ac1e)
 - T-786. Remove orphaned dataset comparison, alert, and live-refresh API routes that expose non-persistent or no-op production behavior. (labels: api, data, quality; commit: worktree)
 - T-782. Require authentication and dataset ownership for upload and direct dataset query operations. (labels: api, auth, upload, security; commit: worktree)
 - T-598. Remove remaining `any` types in API routes — replaced `any` types in `src/app/api/analyze/route.ts` with proper types. (labels: api, workflow; commit: 5b62cb31)
@@ -483,6 +486,7 @@ moving work between states.
 
 ## Label: security
 
+- T-1024. Chat, analysis, SQL, and email-verification diagnostics log safe metadata instead of complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets. (labels: security, ai, auth, testing; commit: 60aaeb7d)
 - T-602. Restrict local AI install and agent runtime install routes to development mode or explicit super-admin operations on shared deployments. (labels: security, local-ai, auth, api; commit: worktree)
 - T-603. Validate authentication, Stripe signing, and MCP service secrets from current server-only environment variables at startup without old compatibility aliases or hardcoded fallback tokens. (labels: security, auth, payment, mcp; commit: worktree)
 

@@ -50,7 +50,11 @@ export async function sendVerificationEmail(email: string, code: string) {
 
   if (!config) {
     if (process.env.EMAIL_PROVIDER === "console") {
-      debugLog(`[Email] UseClevr verification code for ${email}: ${code}`);
+      debugLog("[Email] Verification email requested", {
+        to: maskEmail(email),
+        codeGenerated: Boolean(code),
+        provider: "console",
+      });
       return;
     }
 

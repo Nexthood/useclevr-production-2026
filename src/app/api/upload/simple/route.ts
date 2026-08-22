@@ -7,14 +7,18 @@ import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
-import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
+import {
+  MAX_UPLOAD_ROWS,
+  assertStandardUploadFile,
+  sanitizeUploadFileNameForLog,
+  uploadValidationErrorPayload,
+} from "@/lib/upload/upload-security";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
-const SIMPLE_PARSE_ROW_LIMIT = 1000;
 const SIMPLE_ROW_INSERT_LIMIT = 1000;
 type UploadStage = "AUTH" | "CREDIT" | "PARSE" | "BUSINESS_MODEL" | "DATASET_INSERT" | "ANALYSIS" | "RESPONSE";
 
@@ -60,20 +64,6 @@ function serializeDatasetCreateError(error: unknown) {
   }
 
   return { message: String(error) };
-}
-
-function isCsvOrExcel(file: File) {
-  const fileName = file.name.toLowerCase();
-  return (
-    fileName.endsWith(".csv") ||
-    fileName.endsWith(".xlsx") ||
-    fileName.endsWith(".xls") ||
-    file.type.includes("csv") ||
-    file.type.includes("spreadsheet") ||
-    file.type.includes("excel") ||
-    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-    file.type === "application/vnd.ms-excel"
-  );
 }
 
 function createRequestId() {
@@ -232,7 +222,7 @@ export async function POST(request: Request) {
 
     const uploadFile = file as File;
     logStage(requestId, "file_metadata_resolved", {
-      fileName: uploadFile.name,
+      fileName: sanitizeUploadFileNameForLog(uploadFile.name),
       fileSize: uploadFile.size,
       fileType: uploadFile.type || "unknown",
       datasetType,
@@ -264,31 +254,24 @@ export async function POST(request: Request) {
       role: resolvedRole,
     });
 
-    if (!isCsvOrExcel(uploadFile)) {
+    try {
+      await assertStandardUploadFile(uploadFile);
+    } catch (error) {
+      const payload = uploadValidationErrorPayload(error, "UPLOAD_FILE_TYPE_INVALID");
       return jsonError(
-        422,
+        payload.status,
         "file_validated",
-        "File must be a CSV or Excel file (.csv, .xlsx, .xls).",
+        payload.message,
         false,
-        { code: "UPLOAD_FILE_TYPE_INVALID", requestId },
-      );
-    }
-
-    if (isTemporaryUploadFileName(uploadFile.name)) {
-      return jsonError(
-        422,
-        "file_validated",
-        temporaryUploadFileMessage(),
-        false,
-        { code: "UPLOAD_TEMPORARY_FILE_REJECTED", requestId },
+        { code: payload.code, requestId },
       );
     }
 
     let parsed;
     try {
       currentStage = "PARSE";
-      logStage(requestId, "parser_started", { fileName: uploadFile.name });
-      parsed = await parseCSVStreaming(uploadFile, SIMPLE_PARSE_ROW_LIMIT);
+      logStage(requestId, "parser_started", { fileName: sanitizeUploadFileNameForLog(uploadFile.name) });
+      parsed = await parseCSVStreaming(uploadFile, MAX_UPLOAD_ROWS);
       logStage(requestId, "parser_completed", {
         rowCount: parsed.rowCount,
         columnCount: parsed.columns.length,
@@ -296,12 +279,13 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       logStageError(requestId, "file_parsed", error);
+      const payload = uploadValidationErrorPayload(error);
       return jsonError(
-        422,
+        payload.status,
         "file_parsed",
-        "Unable to parse this CSV or Excel file. Check that it has a header row and at least one data row.",
+        payload.message,
         false,
-        { code: "UPLOAD_PARSE_FAILED", requestId },
+        { code: payload.code, requestId },
       );
     }
 

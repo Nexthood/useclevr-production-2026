@@ -131,6 +131,14 @@ export async function POST(request: Request) {
       const databaseUnavailable = errorCode === "DB_UNAVAILABLE"
       const limitReached = errorCode === "DATASET_LIMIT_REACHED"
       const rowLimitExceeded = errorCode === "ROW_LIMIT_EXCEEDED"
+      const uploadFileTooLarge = errorCode === "UPLOAD_FILE_TOO_LARGE"
+      const invalidUploadFile =
+        errorCode === "UPLOAD_FILE_TYPE_INVALID" ||
+        errorCode === "UPLOAD_CSV_STRUCTURE_INVALID" ||
+        errorCode === "UPLOAD_SPREADSHEET_STRUCTURE_INVALID" ||
+        errorCode === "UPLOAD_ROW_LIMIT_EXCEEDED" ||
+        errorCode === "UPLOAD_COLUMN_LIMIT_EXCEEDED" ||
+        errorCode === "UPLOAD_TEMPORARY_FILE_REJECTED"
       const insufficientCredits = errorCode === "INSUFFICIENT_CREDITS" || errorCode === "UPLOAD_CREDITS_EXHAUSTED"
       const usageLimitReached = errorCode === "USAGE_LIMIT_REACHED"
       const fileProcessingError = errorCode === "FILE_PROCESSING_ERROR"
@@ -159,6 +167,8 @@ export async function POST(request: Request) {
         : `Upload failed while ${stageLabels[stage] || stage.replaceAll("_", " ")}: ${userMessage}`
       const status = unauthorized
         ? 401
+        : uploadFileTooLarge
+          ? 413
         : authCheckFailed || unexpectedUploadError
           ? 500
           : databaseUnavailable
@@ -167,7 +177,7 @@ export async function POST(request: Request) {
             ? 402
             : limitReached
               ? 403
-              : fileProcessingError
+              : fileProcessingError || invalidUploadFile
                 ? 422
                 : databaseWriteError
                   ? 500

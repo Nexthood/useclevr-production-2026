@@ -3,6 +3,7 @@ import { getActiveCreditTopUpPackages, getCreditTopUpPackageById } from "@/lib/b
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { createCreditTopUpCheckoutSession } from "@/services/stripe/credit-checkout"
+import { hasWorkspacePermission } from "@/lib/utils/workspace-permissions"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
@@ -37,7 +38,9 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as Record<string, unknown>
   const packageId = typeof body.packageId === "string" ? body.packageId : undefined
   const provider = (typeof body.provider === "string" ? body.provider : "stripe") as "stripe" | "square"
-  const workspaceId = typeof body.workspaceId === "string" ? body.workspaceId : undefined
+  const requestedWorkspaceId = typeof body.workspaceId === "string" && body.workspaceId.trim()
+    ? body.workspaceId.trim()
+    : undefined
 
   const creditPackage = packageId
     ? getCreditTopUpPackageById(packageId)
@@ -71,6 +74,14 @@ export async function POST(request: Request) {
     )
   }
 
+  const metadataWorkspaceId = await resolveCheckoutWorkspaceId(user.id, requestedWorkspaceId)
+  if (!metadataWorkspaceId) {
+    return NextResponse.json(
+      { error: "Forbidden" },
+      { status: 403 },
+    )
+  }
+
   const origin = new URL(request.url).origin
 
   if (provider === "stripe") {
@@ -96,7 +107,7 @@ export async function POST(request: Request) {
         cancelUrl,
         metadata: {
           userId: user.id,
-          workspaceId: workspaceId || user.id,
+          workspaceId: metadataWorkspaceId,
           creditPackageId: creditPackage.id,
           pricingVersion: creditPackage.pricingVersion,
           creditsGranted: String(creditPackage.creditsGranted),
@@ -152,4 +163,11 @@ async function getUserStripeCustomerId(userId: string): Promise<string | null> {
   })
 
   return profile?.stripeCustomerId ?? null
+}
+
+async function resolveCheckoutWorkspaceId(userId: string, requestedWorkspaceId?: string) {
+  if (!requestedWorkspaceId) return userId
+
+  const hasAccess = await hasWorkspacePermission(userId, requestedWorkspaceId, "viewer")
+  return hasAccess ? requestedWorkspaceId : null
 }

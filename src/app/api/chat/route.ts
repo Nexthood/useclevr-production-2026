@@ -55,7 +55,11 @@ async function handleAnalyticalQuery(
   userId: string,
   ghostMode = false,
 ): Promise<Response> {
-  debugLog('[CHAT] Question requires verified computation');
+  debugLog('[CHAT] Question requires verified computation', {
+    datasetId,
+    messageLength: lastMessage.length,
+    ghostMode,
+  });
 
   const validation = await validateDatasetId(datasetId, userId);
   if (!validation.valid) {
@@ -65,11 +69,11 @@ async function handleAnalyticalQuery(
     );
   }
 
-  if (ghostMode) {
-    debugLog('[STRICT_SQL] Executing strict SQL for Ghost Mode request:', { datasetId, messageLength: lastMessage.length });
-  } else {
-    debugLog('[STRICT_SQL] Executing strict SQL for:', lastMessage);
-  }
+  debugLog('[STRICT_SQL] Executing strict SQL request metadata:', {
+    datasetId,
+    messageLength: lastMessage.length,
+    ghostMode,
+  });
   const sqlResult = await executeStrictSQL(datasetId, lastMessage, userId);
 
   if (!sqlResult.success) {
@@ -88,7 +92,11 @@ async function handleAnalyticalQuery(
     }, { status: 400 });
   }
 
-  debugLog('[STRICT_SQL] Success! Result:', JSON.stringify(sqlResult.result).slice(0, 200));
+  debugLog('[STRICT_SQL] Success metadata:', {
+    datasetId,
+    operation: sqlResult.result.operation,
+    resultKeys: Object.keys(sqlResult.result),
+  });
 
   const explainedValue = sqlResult.result.count || sqlResult.result.total || sqlResult.result.average ||
     sqlResult.result.data || sqlResult.result.minimum || sqlResult.result.maximum ||
@@ -246,7 +254,10 @@ async function handleAnalyticalQuery(
       },
     });
   } catch (antigravityError) {
-    debugError('[ANTIGRAVITY] Error generating explanation:', antigravityError);
+    debugError('[ANTIGRAVITY] Error generating explanation:', {
+      name: antigravityError instanceof Error ? antigravityError.name : "NonError",
+      message: antigravityError instanceof Error ? antigravityError.message : String(antigravityError),
+    });
     return NextResponse.json({
       success: true,
       content: `Result: ${JSON.stringify(sqlResult.result)}`,
@@ -364,16 +375,15 @@ export async function POST(request: Request) {
 
     const sessionKey = datasetId || 'no-dataset';
 
-    if (ghostMode) {
-      debugLog('[CHAT] Incoming Ghost Mode message metadata:', { messageLength: lastMessage.length });
-    } else {
-      debugLog('[CHAT] Incoming message:', lastMessage);
-    }
-    debugLog('[CHAT] Dataset ID:', datasetId);
+    debugLog('[CHAT] Incoming Ghost Mode message metadata:', {
+      datasetId,
+      messageLength: lastMessage.length,
+      ghostMode,
+    });
 
     const loopCheck = checkChatLoop(sessionKey + ':' + lastMessage.slice(0, 50), lastMessage);
     if (!loopCheck.allowed) {
-      logChatExecution('LOOP_DETECTED', { sessionKey, message: lastMessage.slice(0, 50) });
+      logChatExecution('LOOP_DETECTED', { sessionKey, messageLength: lastMessage.length });
       return NextResponse.json(
         { success: false, error: loopCheck.message },
         { status: 429 }
@@ -507,8 +517,8 @@ export async function POST(request: Request) {
 
   } catch (err: any) {
     debugError('[CHAT CRASH]', {
-      message: err.message,
-      stack: err.stack?.slice(0, 500),
+      name: err instanceof Error ? err.name : "NonError",
+      message: err instanceof Error ? err.message : String(err),
     });
 
     return NextResponse.json(

@@ -11,6 +11,7 @@ import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
 import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
+import { MAX_UPLOAD_BYTES, formatUploadBytes } from "@/lib/upload/upload-limits"
 import type { UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
 import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileSpreadsheet, Loader2, Sparkles, Wifi, WifiOff } from "lucide-react"
@@ -286,12 +287,11 @@ export function CsvUpload() {
     }
 
     // File tier detection
-    const maxSize = 50 * 1024 * 1024 // 50MB for standard uploads
     const isLargeFile = file.size > 10 * 1024 * 1024 // > 10MB
     const isMediumFile = file.size > 2 * 1024 * 1024 // > 2MB
 
-    if (file.size > maxSize) {
-      setErrorMessage("File size must be less than 50MB. For larger datasets, please split the file before uploading.")
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setErrorMessage(`File size must be ${formatUploadBytes(MAX_UPLOAD_BYTES)} or smaller. For larger datasets, please split the file before uploading.`)
       return
     }
 
@@ -779,7 +779,7 @@ export function CsvUpload() {
                 {/* File limit - refined */}
                 <div className="mt-3 border-t border-border/40 pt-3">
 <p className="text-xs text-muted-foreground/80">
-                     <span className="font-medium text-foreground">CSV or Excel</span> files up to 50MB
+                     <span className="font-medium text-foreground">CSV or Excel</span> files up to {formatUploadBytes(MAX_UPLOAD_BYTES)}
                    </p>
                 </div>
               </>

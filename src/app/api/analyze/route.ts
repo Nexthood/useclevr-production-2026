@@ -241,12 +241,11 @@ export async function POST(request: Request) {
     traceQuestion = question
     traceDatasetId = datasetId || null
 
-    if (isGhostMode) {
-      debugLog('[ANALYZE] Ghost Mode question metadata:', { questionLength: question.length });
-    } else {
-      debugLog('[ANALYZE] Question:', question);
-    }
-    debugLog('[ANALYZE] Dataset ID:', datasetId);
+    debugLog('[ANALYZE] Ghost Mode question metadata:', {
+      datasetId,
+      questionLength: question.length,
+      ghostMode: isGhostMode,
+    });
 
     // ============================================================================
     // RATE LIMIT - 30 analyses per minute per user
@@ -567,12 +566,22 @@ export async function POST(request: Request) {
     try {
       debugLog('[ANALYZE] Generating SQL query...');
       sqlQuery = await generateQuery(question, availableColumns);
-      debugLog('[ANALYZE] Generated SQL:', sqlQuery);
+      debugLog('[ANALYZE] Generated SQL metadata:', {
+        generatedSql: Boolean(sqlQuery),
+        sqlLength: sqlQuery.length,
+        columnCount: availableColumns.length,
+      });
     } catch (genError) {
-      debugError('[ANALYZE] Query generation failed:', genError);
+      debugError('[ANALYZE] Query generation failed:', {
+        name: genError instanceof Error ? genError.name : "NonError",
+        message: genError instanceof Error ? genError.message : String(genError),
+      });
       // Fallback to simple query
       sqlQuery = 'SELECT * FROM dataset LIMIT 50';
-      debugLog('[ANALYZE] Using fallback query:', sqlQuery);
+      debugLog('[ANALYZE] Using fallback query metadata:', {
+        fallbackSql: true,
+        sqlLength: sqlQuery.length,
+      });
     }
 
     // Step 2: Execute SQL query

@@ -338,7 +338,10 @@ export async function handleRegularChat(
       },
     };
   } catch (aiError) {
-    debugError('[AI ERROR]', aiError);
+    debugError('[AI ERROR]', {
+      name: aiError instanceof Error ? aiError.name : "NonError",
+      message: aiError instanceof Error ? aiError.message : String(aiError),
+    });
     return {
       success: false,
       content: `AI service error: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`,

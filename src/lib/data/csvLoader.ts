@@ -8,6 +8,13 @@
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files"
+import {
+  MAX_UPLOAD_ROWS,
+  UploadValidationError,
+  assertStandardUploadFile,
+  assertWorkbookHasSheets,
+  assertWorksheetBounds,
+} from "@/lib/upload/upload-security"
 
 /**
  * Parse CSV file from file path (Node.js)
@@ -270,14 +277,18 @@ export async function parseCSVStreaming(
   rowLimit: number,
   onProgress?: (rowCount: number) => void
 ): Promise<StreamingParseResult> {
+  await assertStandardUploadFile(file)
   const fileName = file.name.toLowerCase()
   if (isTemporaryUploadFileName(file.name)) {
     throw new Error(temporaryUploadFileMessage())
   }
   const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
+  const acceptedRowLimit = rowLimit > 0
+    ? Math.min(rowLimit, MAX_UPLOAD_ROWS)
+    : MAX_UPLOAD_ROWS
 
   if (isExcel) {
-    return parseExcelStreaming(file, rowLimit, onProgress)
+    return parseExcelStreaming(file, acceptedRowLimit, onProgress)
   }
 
   // Read file content as text (browser-compatible)
@@ -305,6 +316,7 @@ export async function parseCSVStreaming(
         if (!headersFound && results.meta.fields) {
           columns.push(...results.meta.fields)
           columnCount = columns.length
+          assertWorksheetBounds(0, columnCount)
           headersFound = true
           for (const col of columns) {
             aggregatedMetrics.numericMetrics[col] = { sum: 0, count: 0, min: Infinity, max: -Infinity, avg: 0 }
@@ -315,10 +327,14 @@ export async function parseCSVStreaming(
 
         if (results.data && Object.keys(results.data).length > 0) {
           rowCount++
+          if (rowCount > acceptedRowLimit) {
+            parser.abort()
+            return
+          }
           aggregatedMetrics.rowCount = rowCount
 
           // Always collect all rows if within limit
-          if (rowCount <= rowLimit) {
+          if (rowCount <= acceptedRowLimit) {
             allRows.push(results.data)
             if (allRows.length <= PREVIEW_ROW_COUNT) {
               previewRows.push(results.data)
@@ -356,12 +372,17 @@ export async function parseCSVStreaming(
           }
         }
 
-        // Abort only when we've passed the limit AND have enough preview rows
-        if (rowLimit > 0 && rowCount > rowLimit && previewRows.length >= PREVIEW_ROW_COUNT) {
-          parser.abort()
-        }
       },
       complete: () => {
+        if (rowCount > acceptedRowLimit) {
+          reject(new UploadValidationError(
+            "UPLOAD_ROW_LIMIT_EXCEEDED",
+            `File has more than ${MAX_UPLOAD_ROWS.toLocaleString("en-US")} supported data rows.`,
+            422,
+          ))
+          return
+        }
+
         for (const col of columns) {
           const catMetrics = aggregatedMetrics.categoryMetrics[col]
           if (catMetrics && Object.keys(catMetrics.values).length > 0) {
@@ -378,11 +399,11 @@ export async function parseCSVStreaming(
           rowCount,
           previewRows: allRows.length > 0 ? allRows : previewRows,
           aggregatedMetrics,
-          exceedsLimit: rowLimit > 0 && rowCount > rowLimit,
-          limit: rowLimit,
+          exceedsLimit: false,
+          limit: acceptedRowLimit,
         })
       },
-error: (error: Error) => {
+      error: (error: Error) => {
         reject(new Error(`CSV parsing failed: ${error.message}`))
       },
     })
@@ -396,9 +417,46 @@ async function parseExcelStreaming(
 ): Promise<StreamingParseResult> {
   const arrayBuffer = await file.arrayBuffer()
   const uint8Array = new Uint8Array(arrayBuffer)
-  const workbook = XLSX.read(uint8Array, { type: 'array' })
+  const workbookMetadata = XLSX.read(uint8Array, {
+    type: 'array',
+    bookSheets: true,
+    bookVBA: false,
+    cellFormula: false,
+    cellHTML: false,
+    cellNF: false,
+    cellStyles: false,
+    cellText: false,
+  })
+  assertWorkbookHasSheets(workbookMetadata)
+
+  const workbook = XLSX.read(uint8Array, {
+    type: 'array',
+    sheets: workbookMetadata.SheetNames[0],
+    bookVBA: false,
+    cellDates: true,
+    cellFormula: false,
+    cellHTML: false,
+    cellNF: false,
+    cellStyles: false,
+    cellText: false,
+    sheetRows: rowLimit + 2,
+  })
+  assertWorkbookHasSheets(workbook)
   const firstSheetName = workbook.SheetNames[0]
   const worksheet = workbook.Sheets[firstSheetName]
+  const range = worksheet?.["!ref"] ? XLSX.utils.decode_range(worksheet["!ref"]) : null
+
+  if (!worksheet || !range) {
+    throw new UploadValidationError(
+      "UPLOAD_SPREADSHEET_STRUCTURE_INVALID",
+      "Spreadsheet first worksheet has no readable range.",
+      422,
+    )
+  }
+
+  const worksheetRowCount = Math.max(0, range.e.r - range.s.r)
+  const worksheetColumnCount = Math.max(0, range.e.c - range.s.c + 1)
+  assertWorksheetBounds(worksheetRowCount, worksheetColumnCount)
 
   const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
 
@@ -416,7 +474,9 @@ async function parseExcelStreaming(
 
   const columns = json[0].map(String)
   const columnCount = columns.length
+  assertWorksheetBounds(0, columnCount)
   const dataRows = json.slice(1)
+  assertWorksheetBounds(dataRows.length, columnCount)
 
   const aggregatedMetrics: AggregatedMetrics = {
     rowCount: 0,

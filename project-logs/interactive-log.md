@@ -1,3 +1,127 @@
+## Sensitive Logging Redaction
+
+1. Interaction title
+Sensitive logging redaction.
+
+2. What was the user goal
+Remove sensitive values from chat logging and console email verification logging without changing chat behavior, email delivery, verification-code generation, authentication, datasets, reports, billing, or AI behavior.
+
+3. What changed
+Chat and analysis logs now record metadata such as dataset id, message length, question length, Ghost Mode state, row count, column count, operation name, and result key names instead of complete user messages, question text, SQL result data, raw SQL strings, dataset rows, or raw normalized values. Chat execution logging defensively deletes raw question, SQL, message, prompt, processedData, datasetRows, rows, and data keys before writing diagnostics. Console verification-email diagnostics now log a masked email, provider name, and `codeGenerated: true` without logging the verification code. Provider error logs now record error name and message instead of raw error objects.
+
+4. Problems marked
+- blocker: none.
+- risk: AI traces and functional prompt construction still intentionally use the actual user request for product behavior; this change is limited to application diagnostics/logging.
+- improvement: Add a central log-redaction utility if more subsystems need structured sensitive-field stripping.
+- observation: The confirmed root causes were direct chat/SQL diagnostics of `lastMessage`, SQL results, raw normalized values, and console verification-email output of email plus six-digit code.
+
+5. User learning
+Diagnostics now retain useful operational metadata without writing complete user content, verification codes, dataset rows, or authentication secrets.
+
+6. AI-agent learning
+Security fixes for logging should preserve operational counters and identifiers while removing raw content at every helper layer, including defensive deletion in shared log helpers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Credit Top-Up Workspace Authorization
+
+1. Interaction title
+Credit top-up workspace authorization.
+
+2. What was the user goal
+Fix only the credit top-up checkout workspace authorization issue so an authenticated user cannot attach a purchase to an arbitrary workspace by sending a `workspaceId` in the request body.
+
+3. What changed
+The checkout route now treats the request-body workspace identifier as untrusted input. When no workspace identifier is supplied, checkout metadata keeps the existing user-id workspace default. When a workspace identifier is supplied, the route checks the authenticated user with the existing workspace membership helper at viewer-or-higher access before Stripe checkout session creation. Unauthorized and nonexistent workspace identifiers return 403 and do not create Stripe sessions. Package-derived credits, amount, and currency metadata remain sourced from configured credit packages, and mismatched request-body currency remains rejected.
+
+4. Problems marked
+- blocker: none.
+- risk: none.
+- improvement: Add route-level integration tests with mocked auth, workspace membership, and Stripe service calls if the test harness gains module mocking.
+- observation: The root cause was that the route copied `body.workspaceId` into Stripe metadata without verifying workspace membership or ownership.
+
+5. User learning
+Credit top-up workspace metadata is now server-authorized and cannot be reassigned by editing the checkout request body.
+
+6. AI-agent learning
+Payment metadata that influences ledger attribution must be derived from authenticated server-side authorization checks, not from client-supplied identifiers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Public AI Production Disable
+
+1. Interaction title
+Public AI production disable.
+
+2. What was the user goal
+Temporarily disable only `/api/public/ai` in production while keeping the implementation available for later hardening.
+
+3. What changed
+The Public AI route returns a generic 404 at the start of both `POST` and `GET` handlers when `NODE_ENV` is production. The guard runs before API-key reads, request-body parsing, available-action metadata, and analyze, investigate, predict, or compare handlers. A focused regression verifies the guard order and confirms the generic production response does not disclose authentication format, action names, or public API metadata.
+
+4. Problems marked
+- blocker: none.
+- risk: none.
+- improvement: Re-enable the Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, usage and abuse controls, and audit logging are implemented.
+- observation: The existing development GET response intentionally remains in the file for later implementation work, but production requests no longer reach it.
+
+5. User learning
+The current launch excludes the external Public AI API even though the dormant implementation stays available in source.
+
+6. AI-agent learning
+Public-route launch toggles that protect unreleased APIs should fail closed before any authentication, request parsing, or capability metadata runs.
+
+7. Follow-up tasks
+- Re-enable the external Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, abuse controls, and audit logging are implemented. (labels: security, api, ai, monitoring)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Standard Upload Resource Limits
+
+1. Interaction title
+Standard Upload resource limits.
+
+2. What was the user goal
+Harden Standard CSV/XLS/XLSX upload validation so oversized, unsupported, malformed, macro-enabled, empty, or row/column over-limit files fail before parser-heavy processing.
+
+3. What changed
+Standard upload paths use one shared upload-security module for file-size, extension, MIME compatibility, temporary filename, CSV structure, Excel signature, worksheet, row, and column validation. The standard parser validates before `file.text()`, full `file.arrayBuffer()`, `XLSX.read`, and `sheet_to_json` where practical, rejects macro-enabled extensions, reads Excel values without retaining formulas or VBA data, and returns stable upload error codes with `413` for oversized files and `422` for invalid structures or unsupported limits.
+
+4. Problems marked
+- blocker: none.
+- risk: Older non-server browser/file-path helpers still contain legacy parsing code, but the Standard upload API and canonical upload action route through the hardened parser path.
+- improvement: Move any future upload entry point to the shared upload-security module before accepting customer files.
+- observation: The previous Standard upload validator accepted files based on MIME substrings such as `spreadsheet` or `excel`, and the parser could read file content before enforcing a central server-side size limit.
+
+5. User learning
+Standard uploads now require extension evidence plus compatible metadata and lightweight structure checks instead of trusting client-provided MIME values.
+
+6. AI-agent learning
+Upload hardening belongs at the shared parser boundary and the API status mapper so every normal Standard upload entry point returns the same stable failure codes.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Local Retail Inventory Snapshot Semantics
 
 1. Interaction title

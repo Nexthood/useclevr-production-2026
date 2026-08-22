@@ -36,7 +36,7 @@ export const allFaqCategories: FaqCategory[] = [
       },
       {
         q: "How do I upload a dataset?",
-        a: 'Go to the Datasets page from the sidebar and click "Upload dataset". Supported format is CSV (up to 50 MB per file). Once uploaded, the column headers are parsed and the dataset is ready for analysis.',
+        a: 'Go to the Datasets page from the sidebar and click "Upload dataset". Standard uploads accept CSV or Excel files up to 25 MB per file. Once uploaded, the column headers are parsed and the dataset is ready for analysis.',
       },
       {
         q: "What file formats are supported?",

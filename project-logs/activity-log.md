@@ -1,3 +1,7 @@
+- fixed: remove complete user message, SQL result, raw normalization value, provider error object, and email verification code values from chat, analysis, SQL, and verification-email diagnostics while retaining safe metadata
+- fixed: require credit top-up checkout workspace identifiers to pass existing workspace membership authorization before Stripe metadata is created
+- fixed: disable the external Public AI API in production with generic 404 responses before authentication, action metadata, or dataset-processing handlers run
+- fixed: harden Standard CSV and Excel uploads with centralized server-side size, extension, MIME compatibility, file signature, row, column, worksheet, and parser error handling before heavy file reads
 - fixed: enforce authenticated-owner checks for ordinary Dataset and Report customer-data routes, including report generation, private report downloads, dataset detail helpers, pre-bookkeeping dataset actions, Profitability focused analysis reads, and dataset chat helpers.
 - fixed: hide View Dataset from completed paired Profitability result actions while keeping Open Profitability, Upload Another File, and Generate / Regenerate Report available.
 - fixed: resolve Profitability refresh routes by active parent analysis id before child dataset id and seed refreshed report generation from the persisted parent id so the rich analytics dashboard remains parent-owned.
