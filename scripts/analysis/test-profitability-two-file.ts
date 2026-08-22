@@ -313,6 +313,10 @@ async function main() {
   assert(!dashboardMetricLabels.includes("Active Sellers"), "Dashboard must not expose Marketplace active sellers for Profitability analysis")
   assertNotIncludes(dashboardRecommendationText, "seller", "Dashboard recommendations must not use stored Marketplace recommendations for Profitability analysis")
 
+  const profitabilityPageSource = fs.readFileSync("src/app/(auth)/app/profitability/page.tsx", "utf8")
+  assertIncludes(profitabilityPageSource, "<ProfitabilityUpload", "Profitability page must preserve the rich upload analytics renderer for persisted parent analyses")
+  assertNotIncludes(profitabilityPageSource, "renderProfitabilityMetrics", "Profitability page must not replace the rich analytics renderer with the compact metrics renderer")
+
   const partialOpexBuiltInput = await buildDatasetReportInput({
     id: "ds_profitability_partial_opex",
     userId: "synthetic_user",

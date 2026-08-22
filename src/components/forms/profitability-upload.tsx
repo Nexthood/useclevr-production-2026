@@ -34,14 +34,22 @@ interface UploadedFile {
   rowCount?: number
 }
 
-export function ProfitabilityUpload() {
+type ProfitabilityUploadProps = {
+  initialProfitabilityResult?: Record<string, unknown> | null
+  initialUploadResult?: UploadDatasetResponse | null
+}
+
+export function ProfitabilityUpload({
+  initialProfitabilityResult = null,
+  initialUploadResult = null,
+}: ProfitabilityUploadProps = {}) {
   const router = useRouter()
   const [revenueFile, setRevenueFile] = React.useState<UploadedFile | null>(null)
   const [expenseFile, setExpenseFile] = React.useState<UploadedFile | null>(null)
   const [isUploading, setIsUploading] = React.useState(false)
   const [dragActive, setDragActive] = React.useState<"revenue" | "expense" | null>(null)
-  const [profitabilityResult, setProfitabilityResult] = React.useState<any>(null)
-  const [uploadResult, setUploadResult] = React.useState<UploadDatasetResponse | null>(null)
+  const [profitabilityResult, setProfitabilityResult] = React.useState<any>(initialProfitabilityResult)
+  const [uploadResult, setUploadResult] = React.useState<UploadDatasetResponse | null>(initialUploadResult)
   const [generateStatus, setGenerateStatus] = React.useState<"idle" | "parsing" | "uploading" | "analyzing" | "success" | "partial_success" | "failure">("idle")
   const [isGeneratingReport, setIsGeneratingReport] = React.useState(false)
   const [reportGenerated, setReportGenerated] = React.useState(false)
@@ -549,21 +557,21 @@ export function ProfitabilityUpload() {
       })
     }
 
-    if (kpis.netProfit !== null && kpis.netProfit !== 0) {
-      const profitLabel = kpis.netProfit >= 0 ? 'profit' : 'loss'
+    if (kpis.operatingProfit !== null && kpis.operatingProfit !== 0) {
+      const profitLabel = kpis.operatingProfit >= 0 ? 'profit' : 'loss'
       insights.push({
-        message: `Net ${profitLabel}: ${formatCurrencyForKPI(Math.abs(kpis.netProfit))}`,
+        message: `Operating ${profitLabel}: ${formatCurrencyForKPI(Math.abs(kpis.operatingProfit))}`,
         type: 'profit',
-        evidence: `Net profit: ${formatCurrencyForKPI(kpis.netProfit)}`,
+        evidence: `Operating profit: ${formatCurrencyForKPI(kpis.operatingProfit)}`,
         reliability: 'verified'
       })
     }
 
-    if (kpis.netMargin !== null && kpis.netMargin !== 0) {
+    if (kpis.operatingMargin !== null && kpis.operatingMargin !== 0) {
       insights.push({
-        message: `Net margin: ${formatPercentSimple(kpis.netMargin)}`,
+        message: `Operating margin: ${formatPercentSimple(kpis.operatingMargin)}`,
         type: 'margin',
-        evidence: `Net margin: ${formatPercentSimple(kpis.netMargin)}`,
+        evidence: `Operating margin: ${formatPercentSimple(kpis.operatingMargin)}`,
         reliability: 'verified'
       })
     }
@@ -628,16 +636,16 @@ export function ProfitabilityUpload() {
     }
 
     // Margin quality insight
-    if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin > 0 && kpis.netMargin < 20) {
+    if (hasFullProfitability && kpis.operatingMargin !== null && kpis.operatingMargin > 0 && kpis.operatingMargin < 20) {
       insights.push({
-        message: `Positive but thin net margin (${formatPercentSimple(kpis.netMargin)}) - vulnerable to cost increases`,
+        message: `Positive but thin operating margin (${formatPercentSimple(kpis.operatingMargin)}) - vulnerable to cost increases`,
         type: 'risk',
         evidence: `Margin between 0-20%`,
         reliability: 'verified'
       })
-    } else if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin >= 20) {
+    } else if (hasFullProfitability && kpis.operatingMargin !== null && kpis.operatingMargin >= 20) {
       insights.push({
-        message: `Strong net margin of ${formatPercentSimple(kpis.netMargin)} indicates healthy profitability`,
+        message: `Strong operating margin of ${formatPercentSimple(kpis.operatingMargin)} indicates healthy profitability`,
         type: 'profit',
         evidence: `Margin above 20%`,
         reliability: 'verified'
@@ -701,17 +709,17 @@ export function ProfitabilityUpload() {
     const recommendations: { action: string; reason: string }[] = []
 
     // Priority 1: Critical warnings for negative/low margin
-    if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin < 0) {
+    if (hasFullProfitability && kpis.operatingMargin !== null && kpis.operatingMargin < 0) {
       recommendations.push({
         action: 'URGENT: Review cost structure immediately',
         reason: 'Negative profit margin indicates unsustainable operations - immediate action required'
       })
-    } else if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin < 5) {
+    } else if (hasFullProfitability && kpis.operatingMargin !== null && kpis.operatingMargin < 5) {
       recommendations.push({
         action: 'Critical: Analyze cost reduction opportunities',
         reason: 'Margin below 5% leaves virtually no buffer for unexpected expenses'
       })
-    } else if (hasFullProfitability && kpis.netMargin !== null && kpis.netMargin < 15) {
+    } else if (hasFullProfitability && kpis.operatingMargin !== null && kpis.operatingMargin < 15) {
       recommendations.push({
         action: 'Prioritize efficiency improvements',
         reason: 'Low margin requires careful cost management and operational optimization'
@@ -737,17 +745,17 @@ export function ProfitabilityUpload() {
     }
 
     // Priority 3: Growth/profitability opportunities
-    if (kpis.netMargin !== null && kpis.netMargin > 20) {
+    if (kpis.operatingMargin !== null && kpis.operatingMargin > 20) {
       recommendations.push({
         action: 'Consider strategic reinvestment',
         reason: 'Strong margin enables growth investments, R&D, or market expansion'
       })
     }
 
-    if (kpis.netProfit !== null && kpis.netProfit > 0) {
+    if (kpis.operatingProfit !== null && kpis.operatingProfit > 0) {
       recommendations.push({
         action: 'Evaluate profit allocation strategy',
-        reason: `Available ${formatCurrencyForKPI(kpis.netProfit)} net profit - consider reserves vs growth`
+        reason: `Available ${formatCurrencyForKPI(kpis.operatingProfit)} operating profit - consider reserves vs growth`
       })
     }
 
@@ -903,22 +911,20 @@ export function ProfitabilityUpload() {
                 </div>
               </button>
 
-              {/* Net Profit - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'profit' ? null : 'profit')}
                 className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
                   activeSection === 'profit'
                     ? 'border-emerald-500 bg-emerald-50 dark:bg-gradient-to-br dark:from-emerald-900/30 dark:to-neutral-800'
                     : 'border-border hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-gradient-to-br dark:hover:from-emerald-900/20'
-                }`}
+                  }`}
               >
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-emerald-400 transition-colors">Net Profit</span>
-                <div className={`text-xl font-bold text-center leading-tight ${(kpis.netProfit ?? 0) >= 0 ? 'text-emerald-400' : 'text-purple-400'} group-hover:text-emerald-300 transition-colors`}>
-                  {displayCurrency(kpis.netProfit)}
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-emerald-400 transition-colors">Operating Margin</span>
+                <div className={`text-xl font-bold text-center leading-tight ${(kpis.operatingMargin ?? 0) >= 0 ? 'text-emerald-400' : 'text-purple-400'} group-hover:text-emerald-300 transition-colors`}>
+                  {displayPercent(kpis.operatingMargin)}
                 </div>
               </button>
 
-              {/* Net Margin - Clickable */}
               <button
                 onClick={() => setActiveSection(activeSection === 'margin' ? null : 'margin')}
                 className={`rounded-lg p-4 flex flex-col justify-between min-h-[100px] border bg-card transition-all duration-200 text-left group dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-800 ${
@@ -927,9 +933,9 @@ export function ProfitabilityUpload() {
                     : 'border-border hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-gradient-to-br dark:hover:from-blue-900/20'
                   }`}
               >
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-blue-400 transition-colors">Net Margin</span>
-                <div className={`text-xl font-bold text-center leading-tight ${(kpis.netMargin ?? 0) >= 0 ? 'text-blue-400' : 'text-purple-400'} group-hover:text-blue-300 transition-colors`}>
-                  {displayPercent(kpis.netMargin)}
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-blue-400 transition-colors">Data Confidence</span>
+                <div className="text-xl font-bold text-center leading-tight text-blue-400 group-hover:text-blue-300 transition-colors">
+                  {typeof profitabilityResult.dataConfidence === "number" ? `${profitabilityResult.dataConfidence}%` : "Verified"}
                 </div>
               </button>
 
@@ -1024,9 +1030,9 @@ export function ProfitabilityUpload() {
                 <p className="text-sm text-foreground leading-relaxed">
                   {!hasFullProfitability
                     ? profitabilityResult.statusLabel || `Profitability is waiting for the matching file. Unavailable metrics list the missing source columns.`
-                    : (kpis.netProfit ?? 0) >= 0
-                    ? `Your business generated ${displayCurrency(kpis.totalRevenue)} in revenue with ${displayCurrency(kpis.totalExpenses)} in expenses, resulting in gross profit of ${displayCurrency(kpis.grossProfit)}, operating profit of ${displayCurrency(kpis.operatingProfit)}, and net profit of ${displayCurrency(kpis.netProfit)} (${displayPercent(kpis.netMargin)} net margin). ${profitabilityResult.expenseCategories?.[0] ? `The largest expense category is ${profitabilityResult.expenseCategories[0][0]} at ${formatCurrencyForKPI(profitabilityResult.expenseCategories[0][1] as number)}.` : ''}`
-                    : `Your business generated ${displayCurrency(kpis.totalRevenue)} in revenue but incurred ${displayCurrency(kpis.totalExpenses)} in expenses, resulting in a net loss of ${formatCurrencyForKPI(Math.abs(kpis.netProfit ?? 0))}. Immediate cost reduction strategies are recommended.`
+                    : (kpis.operatingProfit ?? 0) >= 0
+                    ? `Your business generated ${displayCurrency(kpis.totalRevenue)} in revenue with ${displayCurrency(kpis.totalExpenses)} in expenses, resulting in operating profit of ${displayCurrency(kpis.operatingProfit)} (${displayPercent(kpis.operatingMargin)} operating margin). ${profitabilityResult.expenseCategories?.[0] ? `The largest expense category is ${profitabilityResult.expenseCategories[0][0]} at ${formatCurrencyForKPI(profitabilityResult.expenseCategories[0][1] as number)}.` : ''}`
+                    : `Your business generated ${displayCurrency(kpis.totalRevenue)} in revenue but incurred ${displayCurrency(kpis.totalExpenses)} in expenses, resulting in an operating loss of ${formatCurrencyForKPI(Math.abs(kpis.operatingProfit ?? 0))}. Immediate cost reduction strategies are recommended.`
                   }
                 </p>
               </CardContent>

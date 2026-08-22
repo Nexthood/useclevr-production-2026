@@ -4327,6 +4327,40 @@ For paired upload reports, carry metric provenance through analyzer, persistence
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Rich Analytics Persistence
+
+1. Interaction title
+Paired Profitability rich analytics persistence.
+
+2. What was the user goal
+Preserve the existing rich Profitability analytics dashboard after Generate Profitability Analysis, async processing, navigation, and refresh without changing formulas, PDF generation, or unrelated report types.
+
+3. What changed
+The Profitability page now hydrates the existing `ProfitabilityUpload` rich analytics renderer from the persisted parent Profitability analysis payload instead of rendering a separate compact server metrics summary. `ProfitabilityUpload` accepts initial parent metrics and upload context, so the same rich dashboard appears after route navigation and refresh. The rich dashboard uses operating profit and operating margin for primary profit KPI text, insights, recommendations, and executive summary. The focused Profitability regression asserts that the page uses `ProfitabilityUpload` and does not reintroduce `renderProfitabilityMetrics`.
+
+4. Problems marked
+blocker: none.
+risk: the exact large private CSV browser flow still needs signed-in beta verification, while source-equivalent regression confirms the renderer and report paths.
+observation: the replacement came from `router.push` loading `/app/profitability`, where the server page rendered its own compact `renderProfitabilityMetrics` branch from the focused dataset after the client rich state had already appeared.
+
+5. User learning
+The rich dashboard disappears when navigation changes the owning renderer, even if the paired calculation and persisted parent analysis are correct.
+
+6. AI-agent learning
+Parent-analysis precedence must choose both the owning data object and the final component renderer; preserving state alone is insufficient when route navigation swaps components.
+
+7. Follow-up tasks
+- Verify the signed-in large paired Profitability rich dashboard on beta after `dist-test` deploys.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Paired Profitability Parent Analysis Routing
 
 1. Interaction title

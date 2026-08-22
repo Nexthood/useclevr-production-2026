@@ -63,6 +63,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1017. Paired Profitability results keep the rich analytics dashboard after async processing and refresh while primary KPIs use canonical operating profit and operating margin. (labels: upload, dashboard, ui, testing; commit: f8737656)
 - T-1016. Generate Profitability Analysis opens one parent Profitability analysis with revenue and expense source inputs, combined source rows, parent-scoped reports, and refresh-stable routing. (labels: upload, dashboard, reports, testing; commit: 2531129b)
 - T-1003. Dataset Library row actions show only the working primary destination and keep selection, bulk deletion, upload, and backend row access unchanged. (labels: upload, ui, testing; commit: worktree)
 - T-995. Pre-bookkeeping export workflow guides users to review transactions before accountant export, and Risk Intelligence renders bookkeeping risk insights or graceful problem states without server crashes. (labels: upload, reports, stability, testing; commit: worktree)
