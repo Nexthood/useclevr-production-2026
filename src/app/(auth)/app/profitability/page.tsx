@@ -35,7 +35,6 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
   const rawAnalysisId = resolvedSearchParams?.analysisId
   const focusedDatasetId = Array.isArray(rawDatasetId) ? rawDatasetId[0] : rawDatasetId
   const focusedAnalysisId = Array.isArray(rawAnalysisId) ? rawAnalysisId[0] : rawAnalysisId
-  const focusedParentId = focusedDatasetId || focusedAnalysisId
 
   if (userId) {
     const db = getDb()
@@ -51,10 +50,31 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
           },
         })
 
-        if (focusedParentId) {
+        if (focusedAnalysisId) {
+          const candidateDatasets = await db.query.datasets.findMany({
+            ...(session?.user?.role === "superadmin" ? {} : { where: eq(datasets.userId, userId) }),
+            columns: {
+              id: true,
+              name: true,
+              fileName: true,
+              rowCount: true,
+              columnCount: true,
+              analysis: true,
+              precomputedMetrics: true,
+              columnMapping: true,
+              datasetType: true,
+            },
+          })
+          focusedDataset = candidateDatasets.find((dataset) =>
+            resolveDatasetType(dataset.datasetType, dataset.analysis) === "profitability" &&
+            getProfitabilityAnalysisId(dataset) === focusedAnalysisId
+          ) ?? null
+        }
+
+        if (!focusedDataset && focusedDatasetId) {
           const datasetWhere = session?.user?.role === "superadmin"
-            ? eq(datasets.id, focusedParentId)
-            : and(eq(datasets.id, focusedParentId), eq(datasets.userId, userId))
+            ? eq(datasets.id, focusedDatasetId)
+            : and(eq(datasets.id, focusedDatasetId), eq(datasets.userId, userId))
           focusedDataset = await db.query.datasets.findFirst({
             where: datasetWhere,
             columns: {
@@ -71,27 +91,6 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
           }) ?? null
           if (focusedDataset && resolveDatasetType(focusedDataset.datasetType, focusedDataset.analysis) !== "profitability") {
             focusedDataset = null
-          }
-
-          if (!focusedDataset && focusedAnalysisId) {
-            const candidateDatasets = await db.query.datasets.findMany({
-              where: eq(datasets.userId, userId),
-              columns: {
-                id: true,
-                name: true,
-                fileName: true,
-                rowCount: true,
-                columnCount: true,
-                analysis: true,
-                precomputedMetrics: true,
-                columnMapping: true,
-                datasetType: true,
-              },
-            })
-            focusedDataset = candidateDatasets.find((dataset) =>
-              resolveDatasetType(dataset.datasetType, dataset.analysis) === "profitability" &&
-              getProfitabilityAnalysisId(dataset) === focusedAnalysisId
-            ) ?? null
           }
         }
 

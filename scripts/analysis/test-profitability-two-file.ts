@@ -316,6 +316,15 @@ async function main() {
   const profitabilityPageSource = fs.readFileSync("src/app/(auth)/app/profitability/page.tsx", "utf8")
   assertIncludes(profitabilityPageSource, "<ProfitabilityUpload", "Profitability page must preserve the rich upload analytics renderer for persisted parent analyses")
   assertNotIncludes(profitabilityPageSource, "renderProfitabilityMetrics", "Profitability page must not replace the rich analytics renderer with the compact metrics renderer")
+  const analysisLookupIndex = profitabilityPageSource.indexOf("if (focusedAnalysisId)")
+  const datasetLookupIndex = profitabilityPageSource.indexOf("if (!focusedDataset && focusedDatasetId)")
+  assert(analysisLookupIndex >= 0, "Profitability page must resolve active profitability analysis ids")
+  assert(datasetLookupIndex >= 0, "Profitability page must retain dataset-id fallback routing")
+  assert(analysisLookupIndex < datasetLookupIndex, "Profitability page must prefer active analysis id before child dataset id")
+
+  const profitabilityUploadSource = fs.readFileSync("src/components/forms/profitability-upload.tsx", "utf8")
+  assertIncludes(profitabilityUploadSource, "initialProfitabilityResult?.profitabilityAnalysisId", "Profitability rich view refresh must seed the parent analysis id from persisted metrics")
+  assertIncludes(profitabilityUploadSource, "initialUploadResult?.datasetId", "Profitability rich view refresh must retain parent-scoped report generation")
 
   const partialOpexBuiltInput = await buildDatasetReportInput({
     id: "ds_profitability_partial_opex",

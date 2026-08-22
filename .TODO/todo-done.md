@@ -63,6 +63,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1018. Profitability refresh routing resolves active parent analysis identifiers before child dataset identifiers and keeps parent-scoped report generation after rich dashboard hydration. (labels: upload, dashboard, reports, testing; commit: e958bc7f)
 - T-1017. Paired Profitability results keep the rich analytics dashboard after async processing and refresh while primary KPIs use canonical operating profit and operating margin. (labels: upload, dashboard, ui, testing; commit: 59c08b37)
 - T-1016. Generate Profitability Analysis opens one parent Profitability analysis with revenue and expense source inputs, combined source rows, parent-scoped reports, and refresh-stable routing. (labels: upload, dashboard, reports, testing; commit: 2531129b)
 - T-1003. Dataset Library row actions show only the working primary destination and keep selection, bulk deletion, upload, and backend row access unchanged. (labels: upload, ui, testing; commit: worktree)

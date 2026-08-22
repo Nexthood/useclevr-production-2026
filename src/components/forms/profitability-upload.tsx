@@ -54,7 +54,15 @@ export function ProfitabilityUpload({
   const [isGeneratingReport, setIsGeneratingReport] = React.useState(false)
   const [reportGenerated, setReportGenerated] = React.useState(false)
   const [activeSection, setActiveSection] = React.useState<string | null>(null)
-  const [profitabilityAnalysisId, setProfitabilityAnalysisId] = React.useState(() => `pa_${crypto.randomUUID()}`)
+  const [profitabilityAnalysisId, setProfitabilityAnalysisId] = React.useState(() => {
+    const initialAnalysisId =
+      initialProfitabilityResult?.profitabilityAnalysisId ||
+      initialProfitabilityResult?.profitability_analysis_id ||
+      initialUploadResult?.datasetId
+    return typeof initialAnalysisId === "string" && initialAnalysisId.length > 0
+      ? initialAnalysisId
+      : `pa_${crypto.randomUUID()}`
+  })
   const { toast } = useToast()
 
   // Handle generate report action

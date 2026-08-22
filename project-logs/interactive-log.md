@@ -4327,6 +4327,40 @@ For paired upload reports, carry metric provenance through analyzer, persistence
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Parent Refresh Precedence
+
+1. Interaction title
+Paired Profitability parent refresh precedence.
+
+2. What was the user goal
+Preserve the existing rich Profitability analytics dashboard as the final view for active Revenue plus Expense analyses after async processing and refresh, with active Profitability analysis ownership taking precedence over child dataset state and auto-detected dataset profiles.
+
+3. What changed
+The Profitability page resolves an explicit parent `analysisId` before using a `datasetId` fallback, so refresh and navigation keep the active parent analysis selected even when a child dataset identifier is present. `ProfitabilityUpload` seeds its refreshed analysis id from the persisted parent profitability payload or parent upload context, so Generate Report remains parent-scoped after hydration. The existing rich `ProfitabilityUpload` renderer remains the final dashboard component.
+
+4. Problems marked
+blocker: none.
+risk: signed-in browser verification against the private large CSV pair remains a beta-deployment follow-up, while local regression verifies the same route precedence, rich renderer selection, canonical Profitability semantics, and PDF report generation path.
+observation: the remaining replacement hazard was the server page preferring `datasetId` before `analysisId`, which allowed child dataset state to outrank the active parent analysis during refresh-like navigation.
+
+5. User learning
+Active multi-file analyses need route parameters that name the parent owner, and page loaders must honor that parent before resolving child upload records.
+
+6. AI-agent learning
+When preserving a rich client renderer across navigation, check both component selection and identifier precedence; a correct renderer can still hydrate the wrong owner when fallback ids run first.
+
+7. Follow-up tasks
+- Verify the signed-in large paired Profitability rich dashboard on beta after `dist-test` deploys.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Paired Profitability Rich Analytics Persistence
 
 1. Interaction title
