@@ -1,3 +1,65 @@
+## GitHub Actions Supply-Chain Hardening
+
+1. Interaction title
+GitHub Actions supply-chain hardening.
+
+2. What was the user goal
+Pin third-party GitHub Actions to immutable commit SHAs, add the existing moderate-threshold dependency audit to CI, apply least-privilege permissions for validation workflows, and avoid application/runtime/business logic changes.
+
+3. What changed
+Workflow and composite-action references to `actions/checkout@v6`, `actions/setup-node@v6`, and `actions/github-script@v9` now use full upstream commit SHAs with readable version comments. The source validation workflow runs `pnpm audit --audit-level=moderate` without suppression before tests and build. Validation-only workflows declare `contents: read`, while deployment and auto-merge workflows keep write permissions needed for branch publishing, PR merging, and workflow dispatch. The workflow health check now scans `.github/workflows/` and `.github/actions/`, rejects mutable external action refs, requires exact allowed SHAs, requires readable version comments, enforces frozen installs, and verifies the CI audit command is not suppressed.
+
+4. Problems marked
+- blocker: none.
+- risk: CI now fails until current dependency audit findings are remediated or explicitly reviewed.
+- improvement: Review dependency audit findings in a dedicated dependency-remediation task instead of bundling package upgrades into workflow hardening.
+- observation: `pnpm audit --audit-level=moderate` reports 84 vulnerabilities: 3 critical, 32 high, 41 moderate, and 8 low.
+
+5. User learning
+The CI supply-chain gate is active and fails on current moderate-or-higher audit findings, which makes dependency risk visible before source validation passes.
+
+6. AI-agent learning
+Workflow supply-chain fixes should pin external action refs with upstream commit SHAs and update local workflow policy tests so mutable refs cannot re-enter through composite actions.
+
+7. Follow-up tasks
+- Review and remediate dependency audit findings for Auth.js, Next.js, SheetJS, Payload transitive packages, DOMPurify, Sharp, PostCSS, and workflow tooling without broad unreviewed dependency upgrades. (labels: security, ci-build, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Production Security Headers
+
+1. Interaction title
+Production security headers.
+
+2. What was the user goal
+Add production security headers safely through the existing Next.js config and proxy architecture, including CSP, HTTPS-only HSTS, browser permission restrictions, and no global wildcard CORS.
+
+3. What changed
+Security headers now come from one shared helper used by `next.config.mjs` and `src/proxy.ts`. Runtime responses receive CSP plus base security headers through the proxy, and HSTS is added only for production HTTPS requests. The production CSP starts from `default-src 'self'`, blocks objects and framing, restricts production browser connections to same-origin, allows Google Fonts for styles/fonts, allows configured S3/R2 image origins when present, and allows Stripe/Square only as form-action destinations. A focused regression checks header values, CSP directives, HSTS conditions, no wildcard CORS in the touched header paths, and the existing `/api/public/ai` production 404 guard.
+
+4. Problems marked
+- blocker: none.
+- risk: Payload admin still needs inline styles, so `/admin` keeps `style-src 'unsafe-inline'` while non-admin routes use the nonce path.
+- improvement: Add an integration test against the deployed test host after CI publishes `beta` to `dist-test`.
+- observation: Stripe and Square checkout/OAuth flows use redirects or server-side calls in the current app, so CSP does not need broad browser connect permissions for those providers.
+
+5. User learning
+Production browser responses now carry explicit hardening headers without exposing the dormant Public AI API or opening global CORS.
+
+6. AI-agent learning
+App-wide header work should reuse the existing Next config and proxy entry points, keep HSTS request-aware where possible, and test CSP compatibility as source-level policy instead of duplicating route-specific headers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Sensitive Logging Redaction
 
 1. Interaction title

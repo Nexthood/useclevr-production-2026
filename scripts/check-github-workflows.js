@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import process from "node:process";
 import yaml from "js-yaml";
 
-import { requiredPackageManager, resolveRepoPath, workflowsDir } from "./lib/app-config.js";
+import { requiredPackageManager, resolveRepoPath, rootDir, workflowsDir } from "./lib/app-config.js";
 import {
   deriveWorkflowSnapshot,
   readWorkflowGolden,
@@ -13,11 +13,17 @@ import {
 } from "./lib/workflow-check-names.js";
 
 const allowedActions = new Map([
-  ["actions/checkout", new Set(["v6"])],
-  ["actions/setup-node", new Set(["v6"])],
-  ["actions/github-script", new Set(["v9"])],
+  ["actions/checkout", new Set(["d23441a48e516b6c34aea4fa41551a30e30af803"])],
+  ["actions/setup-node", new Set(["249970729cb0ef3589644e2896645e5dc5ba9c38"])],
+  ["actions/github-script", new Set(["3a2844b7e9c422d3c10d287c895573f7108da1b3"])],
   ["./.github/workflows/validate.yml", new Set([""])],
   ["./.github/actions/setup", new Set([""])],
+]);
+
+const pinnedActionVersions = new Map([
+  ["actions/checkout", "v6"],
+  ["actions/setup-node", "v6"],
+  ["actions/github-script", "v9"],
 ]);
 
 const errors = [];
@@ -90,15 +96,45 @@ function fixWorkflow(source, fileName) {
   return { fixed: dumped, modified: true };
 }
 
-const workflowSnapshot = deriveWorkflowSnapshot({ readdirSync, readFileSync });
+function collectYamlFiles(directory) {
+  if (!existsSync(directory)) return [];
 
-for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.test(file))) {
-  const filePath = resolveRepoPath(".github", "workflows", fileName);
+  const entries = readdirSync(directory);
+  const files = [];
+  for (const entry of entries) {
+    const path = `${directory}/${entry}`;
+    const stat = statSync(path);
+    if (stat.isDirectory()) {
+      files.push(...collectYamlFiles(path));
+    } else if (/\.ya?ml$/i.test(entry)) {
+      files.push(path);
+    }
+  }
+  return files;
+}
+
+function toDisplayName(path) {
+  return path.startsWith(`${rootDir}/`) ? path.slice(rootDir.length + 1) : path;
+}
+
+function isExternalAction(action) {
+  return !action.startsWith("./") && !action.startsWith("docker://");
+}
+
+const workflowSnapshot = deriveWorkflowSnapshot({ readdirSync, readFileSync });
+const workflowFiles = readdirSync(workflowsDir)
+  .filter((file) => /\.ya?ml$/i.test(file))
+  .map((file) => resolveRepoPath(".github", "workflows", file));
+const actionFiles = collectYamlFiles(resolveRepoPath(".github", "actions"));
+
+for (const filePath of [...workflowFiles, ...actionFiles]) {
+  const fileName = toDisplayName(filePath);
   const source = readFileSync(filePath, "utf-8");
+  const isWorkflowFile = filePath.startsWith(`${workflowsDir}/`);
 
   let sourceToCheck = source;
 
-  if (isFix) {
+  if (isFix && isWorkflowFile) {
     const { fixed, modified } = fixWorkflow(source, fileName);
     if (fixed !== null && modified) {
       writeFileSync(filePath, fixed, "utf-8");
@@ -142,9 +178,31 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
         `${fileName}: unapproved ${action} ref ${ref || "(missing)"}; allowed refs: ${[...allowedRefs].join(", ")}`,
       );
     }
+
+    if (isExternalAction(action) && !/^[0-9a-f]{40}$/i.test(ref)) {
+      errors.push(
+        `${fileName}: external action ${actionRef} must be pinned to a full 40-character commit SHA`,
+      );
+    }
+
+    const readableVersion = pinnedActionVersions.get(action);
+    if (readableVersion) {
+      const expectedComment = `${action}@${ref} # ${readableVersion}`;
+      if (!sourceToCheck.includes(expectedComment)) {
+        errors.push(
+          `${fileName}: pinned ${action} ref must keep the readable ${readableVersion} comment`,
+        );
+      }
+    }
   });
 
   if (sourceToCheck.includes("pnpm install")) {
+    if (!sourceToCheck.includes("pnpm install --frozen-lockfile")) {
+      errors.push(
+        `${fileName}: pnpm install must use --frozen-lockfile`,
+      );
+    }
+
     const hasCorepack = sourceToCheck.includes(
       `corepack prepare ${requiredPackageManager} --activate`,
     );
@@ -152,6 +210,16 @@ for (const fileName of readdirSync(workflowsDir).filter((file) => /\.ya?ml$/i.te
       errors.push(
         `${fileName}: pnpm install requires Corepack activation for ${requiredPackageManager}`,
       );
+    }
+  }
+
+  if (fileName === ".github/workflows/ci.yml") {
+    const auditCommand = "pnpm audit --audit-level=moderate";
+    if (!sourceToCheck.includes(auditCommand)) {
+      errors.push(`${fileName}: CI must run ${auditCommand}`);
+    }
+    if (/pnpm audit --audit-level=moderate\s*(\|\||&&\s*true|;\s*true)/.test(sourceToCheck)) {
+      errors.push(`${fileName}: CI audit failure must not be suppressed`);
     }
   }
 

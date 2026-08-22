@@ -1,3 +1,5 @@
+- changed: pin external GitHub Actions to immutable upstream commit SHAs, add the moderate-threshold pnpm audit command to source CI, and extend workflow validation to reject mutable external action refs, non-frozen installs, and suppressed audit failures
+- fixed: add production security headers through the existing Next config and proxy so app responses carry nosniff, strict referrer policy, frame denial, disabled sensitive browser permissions, nonce-based CSP, HTTPS-only HSTS, and no global wildcard CORS
 - fixed: remove complete user message, SQL result, raw normalization value, provider error object, and email verification code values from chat, analysis, SQL, and verification-email diagnostics while retaining safe metadata
 - fixed: require credit top-up checkout workspace identifiers to pass existing workspace membership authorization before Stripe metadata is created
 - fixed: disable the external Public AI API in production with generic 404 responses before authentication, action metadata, or dataset-processing handlers run

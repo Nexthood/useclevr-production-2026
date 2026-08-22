@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix production browser hardening so app responses send security headers, a restrictive CSP, HTTPS-only HSTS, and no global wildcard CORS.
 - Fix chat, analysis, SQL, and email-verification diagnostics so logs keep useful metadata without recording complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets.
 - Fix credit top-up checkout so supplied workspace identifiers must belong to the authenticated user's accessible workspaces before payment metadata is created.
 - Fix the external Public AI API so production requests return a generic 404 until launch-ready key storage, permissions, limits, abuse controls, and audit logging are implemented.
@@ -78,6 +79,7 @@
 
 ### Dev
 
+- Pin CI workflow actions to immutable upstream commits and run the existing moderate-threshold dependency audit in source validation.
 - Centralize Free plan price labels through the shared billing formatter so pricing validation blocks hardcoded euro amounts in UI files.
 
 ### Fixed

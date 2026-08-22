@@ -23,6 +23,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   validate-source-and-build:
     name: Validate source and production build
@@ -32,6 +35,7 @@ jobs:
         pnpm validate:types
         pnpm validate:dist
         pnpm lint:package
+        pnpm audit --audit-level=moderate
         pnpm test:all
         pnpm build
       needs_postgres: true
@@ -40,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - uses: ./.github/actions/setup
 

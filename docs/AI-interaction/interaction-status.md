@@ -5,8 +5,8 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-22
-- **Goal**: Remove sensitive values from chat, analysis, SQL, and verification-email logging.
-- **Durable change**: Chat and analysis diagnostics log dataset/message/question metadata only; SQL diagnostics omit questions, raw SQL, result rows, and normalization values; console email verification diagnostics log masked email plus code-generated metadata without verification codes.
-- **Verification**: `pnpm exec tsx scripts/security/test-sensitive-logging-redaction.ts`, `pnpm exec tsx scripts/hybrid-ai/test-ghost-mode.ts`, and `pnpm exec tsc --noEmit --pretty false` pass.
+- **Goal**: Harden GitHub Actions supply-chain security and add a dependency audit CI gate.
+- **Durable change**: External GitHub Actions references use full upstream commit SHAs with readable version comments; source CI runs `pnpm audit --audit-level=moderate`; workflow validation rejects mutable external action refs, missing frozen installs, and suppressed CI audit commands.
+- **Verification**: `pnpm lint:workflows`, `pnpm audit --audit-level=moderate` fails with current findings as expected, `pnpm lint:secrets`, `pnpm exec tsc --noEmit --pretty false`, `pnpm validate:dist`, and `git diff --check` pass.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

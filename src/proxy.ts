@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 import { SQUARE_CALLBACK_PATH } from "@/integrations/retail/providers/square/square-oauth"
+import {
+  applyRuntimeSecurityHeaders,
+  buildContentSecurityPolicy,
+  isHttpsRequest,
+} from "@/lib/security/http-headers.mjs"
 
 const MCP_SUBDOMAIN_PATTERN = /^mcp(?:-test)?\.useclevr\.com(:?\d+)?$/;
 const MCP_TEST_SUBDOMAIN_PATTERN = /^mcp-test\.useclevr\.com(:?\d+)?$/
@@ -33,10 +38,17 @@ function isDemoRoute(pathname: string) {
   return pathname === "/demo" || pathname.startsWith("/demo/")
 }
 
-function redirectWithCsp(url: URL, cspHeader: string) {
-  const response = NextResponse.redirect(url)
-  response.headers.set("Content-Security-Policy", cspHeader)
+function applyResponseSecurityHeaders(request: NextRequest, response: NextResponse, cspHeader: string) {
+  applyRuntimeSecurityHeaders(response.headers, {
+    csp: cspHeader,
+    isHttps: isHttpsRequest(request),
+  })
   return response
+}
+
+function redirectWithCsp(request: NextRequest, url: URL, cspHeader: string) {
+  const response = NextResponse.redirect(url)
+  return applyResponseSecurityHeaders(request, response, cspHeader)
 }
 
 export default function proxy(request: NextRequest) {
@@ -45,18 +57,20 @@ export default function proxy(request: NextRequest) {
   const host = request.headers.get("host") || ""
   const isMcpSubdomain = MCP_SUBDOMAIN_PATTERN.test(host)
   const isMcpTestSubdomain = MCP_TEST_SUBDOMAIN_PATTERN.test(host)
+  // Generate CSP Nonce
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
+  const cspHeader = buildContentSecurityPolicy({ nonce, pathname })
+
   if (isMcpSubdomain && pathname !== "/api/mcp" && pathname !== "/api/payload/mcp") {
-    return new NextResponse("Not Found", { status: 404 })
+    const response = new NextResponse("Not Found", { status: 404 })
+    applyRuntimeSecurityHeaders(response.headers, {
+      csp: cspHeader,
+      isHttps: isHttpsRequest(request),
+    })
+    return response
   }
 
   const isLoggedIn = hasSessionCookie(request)
-
-  // Generate CSP Nonce
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
-  const styleSources = pathname.startsWith("/admin")
-    ? "'self' 'unsafe-inline' https://fonts.googleapis.com"
-    : `'self' 'nonce-${nonce}' https://fonts.googleapis.com`
-  const cspHeader = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'unsafe-eval'; style-src ${styleSources}; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'`.replace(/\s{2,}/g, " ").trim()
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-nonce", nonce)
@@ -67,11 +81,12 @@ export default function proxy(request: NextRequest) {
     requestHeaders.set("x-internal-trusted-proxy", "1")
     const mcpUrl = nextUrl.clone()
     mcpUrl.pathname = "/api/payload/mcp"
-    return NextResponse.rewrite(mcpUrl, {
+    const response = NextResponse.rewrite(mcpUrl, {
       request: {
         headers: requestHeaders,
       },
     })
+    return applyResponseSecurityHeaders(request, response, cspHeader)
   }
 
   const isPublicApiPrefix = publicApiPrefixes.some((prefix) => pathname.startsWith(prefix))
@@ -82,19 +97,18 @@ export default function proxy(request: NextRequest) {
       const registerUrl = nextUrl.clone()
       registerUrl.pathname = "/register"
       registerUrl.search = ""
-      return redirectWithCsp(registerUrl, cspHeader)
+      return redirectWithCsp(request, registerUrl, cspHeader)
     }
 
     const demoWorkspaceUrl = nextUrl.clone()
     demoWorkspaceUrl.pathname = "/app/dashboard"
     demoWorkspaceUrl.search = ""
-    return redirectWithCsp(demoWorkspaceUrl, cspHeader)
+    return redirectWithCsp(request, demoWorkspaceUrl, cspHeader)
   }
 
   if (!isLoggedIn && pathname.startsWith(apiPrefix) && !isPublicApiPrefix && !isPublicApiPath) {
     const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    response.headers.set("Content-Security-Policy", cspHeader)
-    return response
+    return applyResponseSecurityHeaders(request, response, cspHeader)
   }
 
   const response = NextResponse.next({
@@ -102,8 +116,7 @@ export default function proxy(request: NextRequest) {
       headers: requestHeaders,
     },
   })
-  response.headers.set("Content-Security-Policy", cspHeader)
-  return response
+  return applyResponseSecurityHeaders(request, response, cspHeader)
 }
 
 export const config = {

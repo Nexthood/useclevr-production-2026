@@ -14,6 +14,7 @@ moving work between states.
 
 ## Label: deployment
 
+- T-1025. Production application responses apply centralized security headers, a compatible Content Security Policy, HTTPS-only HSTS, and no global wildcard CORS. (labels: deployment, security, testing; commit: 1e8809b4)
 - T-988. Railway predeploy applies the upload-credit backfill with a conflict target that matches the Credit Ledger idempotency-key unique index. (labels: deployment, billing, stability; commit: b9eb8f5)
 - T-776. Wrap Payload CMS seed onInit with graceful table-existence check before querying cms-users collection, so static page generation succeeds on fresh databases without relying on generic try/catch. (labels: deployment, content, ci-build; commit: worktree)
 
@@ -224,6 +225,7 @@ moving work between states.
 
 ## Label: ci-build
 
+- T-1026. CI validation pins external GitHub Actions to immutable upstream commit SHAs and fails on moderate-or-higher dependency audit findings. (labels: ci-build, security, testing; commit: e834d44a)
 - T-791. Supply a deterministic CI-only authentication secret to source validation and generated deployment builds so required environment validation and smoke tests complete. (labels: ci-build, auth, deployment; commit: 4b99e59d)
 - T-783. Keep the Next.js production proxy entry intact so webpack builds complete middleware finalization. (labels: ci-build, deployment; commit: worktree)
 - T-739. Add workflow check-name golden validation, bot-driven golden refresh, and fail-fast pre-push workflow guarding against stale required job names. (labels: ci-build, deployment, workflow; commit: worktree)
