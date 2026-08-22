@@ -1,3 +1,34 @@
+## Sensitive Logging Redaction
+
+1. Interaction title
+Sensitive logging redaction.
+
+2. What was the user goal
+Remove sensitive values from chat logging and console email verification logging without changing chat behavior, email delivery, verification-code generation, authentication, datasets, reports, billing, or AI behavior.
+
+3. What changed
+Chat and analysis logs now record metadata such as dataset id, message length, question length, Ghost Mode state, row count, column count, operation name, and result key names instead of complete user messages, question text, SQL result data, raw SQL strings, dataset rows, or raw normalized values. Chat execution logging defensively deletes raw question, SQL, message, prompt, processedData, datasetRows, rows, and data keys before writing diagnostics. Console verification-email diagnostics now log a masked email, provider name, and `codeGenerated: true` without logging the verification code. Provider error logs now record error name and message instead of raw error objects.
+
+4. Problems marked
+- blocker: none.
+- risk: AI traces and functional prompt construction still intentionally use the actual user request for product behavior; this change is limited to application diagnostics/logging.
+- improvement: Add a central log-redaction utility if more subsystems need structured sensitive-field stripping.
+- observation: The confirmed root causes were direct chat/SQL diagnostics of `lastMessage`, SQL results, raw normalized values, and console verification-email output of email plus six-digit code.
+
+5. User learning
+Diagnostics now retain useful operational metadata without writing complete user content, verification codes, dataset rows, or authentication secrets.
+
+6. AI-agent learning
+Security fixes for logging should preserve operational counters and identifiers while removing raw content at every helper layer, including defensive deletion in shared log helpers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Credit Top-Up Workspace Authorization
 
 1. Interaction title

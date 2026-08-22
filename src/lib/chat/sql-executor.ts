@@ -17,7 +17,10 @@ export async function executeStrictSQL(datasetId: string, question: string, user
   result?: any;
   error?: string;
 }> {
-  debugLog('[STRICT_SQL] Generating SQL for question:', question);
+  debugLog('[STRICT_SQL] Generating SQL metadata:', {
+    datasetId,
+    questionLength: question.length,
+  });
 
   const dataset = await db!.query.datasets.findFirst({
     where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
@@ -34,7 +37,11 @@ export async function executeStrictSQL(datasetId: string, question: string, user
     return { success: false, error: 'Dataset has no data' };
   }
 
-  debugLog('[STRICT_SQL] Dataset:', dataset.name, '- Rows:', data.length, '- Columns:', columns.length);
+  debugLog('[STRICT_SQL] Dataset metadata:', {
+    datasetId,
+    rowCount: data.length,
+    columnCount: columns.length,
+  });
 
   const q = question.toLowerCase();
   let sql = '';
@@ -67,7 +74,10 @@ export async function executeStrictSQL(datasetId: string, question: string, user
       let groupCol = findColumn(columns, ['region', 'country', 'product', 'category', 'segment', 'channel', 'source', 'medium', 'campaign', 'customer', 'industry', 'area', 'zone']);
       const valueCol = findColumn(columns, ['revenue', 'sales', 'profit', 'amount', 'total', 'value', 'income']);
 
-      debugLog('[STRICT_SQL] GROUP BY - groupCol:', groupCol, 'valueCol:', valueCol);
+      debugLog('[STRICT_SQL] GROUP BY metadata:', {
+        hasGroupColumn: Boolean(groupCol),
+        hasValueColumn: Boolean(valueCol),
+      });
 
       if (groupCol && valueCol) {
         const grouped = aggregateData(data, groupCol, valueCol);
@@ -110,8 +120,11 @@ export async function executeStrictSQL(datasetId: string, question: string, user
       }
     }
 
-    debugLog('[STRICT_SQL] Generated SQL:', sql);
-    debugLog('[STRICT_SQL] Result:', JSON.stringify(result)?.slice(0, 200));
+    debugLog('[STRICT_SQL] Computation metadata:', {
+      generatedSql: Boolean(sql),
+      operation: result?.operation ?? null,
+      resultKeys: result ? Object.keys(result) : [],
+    });
 
     if (!sql || !result) {
       return { success: false, error: 'Could not generate SQL for this question type' };
@@ -182,7 +195,9 @@ export function normalizeDataset(data: DatasetRecord[]): DatasetRecord[] {
 
   const monetaryColumns = columns.filter(col => monetaryPatterns.test(col));
 
-  debugLog('[NORMALIZE] Detected monetary columns:', monetaryColumns);
+  debugLog('[NORMALIZE] Detected monetary column metadata:', {
+    monetaryColumnCount: monetaryColumns.length,
+  });
 
   return data.map(row => {
     const normalized: DatasetRecord = { ...row };
@@ -191,7 +206,11 @@ export function normalizeDataset(data: DatasetRecord[]): DatasetRecord[] {
       const value = row[col];
       if (typeof value === 'string' && /[€$¥£C$A₹CHF₽]/.test(value)) {
         normalized[col] = normalizeCurrencyValue(value);
-        debugLog(`[NORMALIZE] ${col}: "${value}" -> ${normalized[col]}`);
+        debugLog('[NORMALIZE] Converted monetary value metadata:', {
+          column: col,
+          sourceLength: value.length,
+          converted: true,
+        });
       }
     }
 

@@ -38,19 +38,27 @@ export function logChatExecution(
   details: Record<string, any>,
   options: { datasetId?: string; userId?: string; question?: string; sql?: string; executionTime?: number; success?: boolean } = {}
 ) {
-  const logEntry = {
+  const logEntry: Record<string, unknown> = {
     ...details,
     ...options,
     action,
     timestamp: new Date().toISOString(),
     ...(options.question && {
-      question: options.question.slice(0, 200),
+      questionLength: options.question.length,
       isAnalytical: /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(options.question)
     }),
-    ...(options.sql && { sql: options.sql.slice(0, 500) }),
+    ...(options.sql && { sqlGenerated: true, sqlLength: options.sql.length }),
     ...(options.executionTime !== undefined && { executionTimeMs: options.executionTime }),
     ...(options.success !== undefined && { success: options.success }),
   };
+  delete logEntry.question;
+  delete logEntry.sql;
+  delete logEntry.message;
+  delete logEntry.prompt;
+  delete logEntry.processedData;
+  delete logEntry.datasetRows;
+  delete logEntry.rows;
+  delete logEntry.data;
 
   debugLog(`[CHAT] ${action}:`, JSON.stringify(logEntry));
 }
