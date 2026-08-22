@@ -29,6 +29,7 @@
 ### Fixed
 
 - Fix Profitability results so the rich analytics dashboard renders after async processing and page refresh with canonical operating profit and margin values.
+- Fix paired Profitability result actions so two-input analyses omit single-dataset navigation while keeping Profitability and report actions.
 - Fix Profitability refresh routing so active parent analyses outrank child dataset identifiers and report generation uses the parent analysis.
 - Fix Generate Profitability Analysis so revenue and expense uploads open one persisted parent analysis with two traceable source inputs and combined source-row context.
 - Fix paired Profitability dashboards so the command center, KPI cards, Daily Health, Balanced Scorecard, recommendations, and upload history keep Profitability context after async processing, refresh, navigation, and tab changes.

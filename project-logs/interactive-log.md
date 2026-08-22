@@ -4327,6 +4327,40 @@ For paired upload reports, carry metric provenance through analyzer, persistence
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Result Actions
+
+1. Interaction title
+Paired Profitability result actions.
+
+2. What was the user goal
+Remove the invalid View Dataset action from completed paired Revenue plus Expense Profitability results without changing calculations, routing, persistence, PDF generation, dashboard analytics, or other dataset types.
+
+3. What changed
+The shared upload success panel accepts a scoped hide flag for dataset navigation, and the Profitability rich result passes that flag only when both Revenue and Expense inputs are present. Completed paired Profitability results keep Open Profitability, Upload Another File, and Generate / Regenerate Report, while single-dataset success flows keep their existing dataset action behavior.
+
+4. Problems marked
+blocker: none.
+risk: signed-in browser verification against the private large CSV pair remains a beta-deployment follow-up, while local source-level regression verifies the render condition and focused Profitability regression verifies the report path and canonical paired semantics.
+observation: View Dataset was rendered by the shared upload success panel whenever a result had a dataset id; paired Profitability stores a parent analysis id, not a single source dataset route.
+
+5. User learning
+Paired Profitability is an analysis owner with two source inputs, so success actions should route to the analysis surface rather than a single dataset detail page.
+
+6. AI-agent learning
+Shared upload result actions need an explicit owner/context flag for multi-input analyses; upload mode alone is too broad because single-file waiting states can still use existing behavior.
+
+7. Follow-up tasks
+- Verify the signed-in large paired Profitability result actions on beta after `dist-test` deploys.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Paired Profitability Parent Refresh Precedence
 
 1. Interaction title
