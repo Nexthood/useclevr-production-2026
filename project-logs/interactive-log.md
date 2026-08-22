@@ -1,3 +1,35 @@
+## Next.js Security Patch
+
+1. Interaction title
+Next.js security patch.
+
+2. What was the user goal
+Patch only the confirmed Next.js advisories by updating `next` from `16.2.9` to the smallest patched `16.2.x` release, without updating unrelated dependencies or changing application logic.
+
+3. What changed
+The dependency manifest pins `next` to `16.2.11`, and the lockfile updates the associated Next.js package entries and peer resolution references required by pnpm. `next-auth`, `@auth/core`, Payload, XLSX, Sharp, PostCSS, js-yaml, authentication code, upload logic, reporting, billing, dashboard, Superadmin behavior, and Public AI route logic remain unchanged.
+
+4. Problems marked
+- blocker: none.
+- risk: `pnpm audit --audit-level=moderate` still fails for scoped-out non-Next vulnerabilities after the Next patch.
+- risk: `pnpm test:report-accuracy` fails on an existing revenue-only summary expectation, and `pnpm test:dashboard-empty-state` fails on an existing explicit zero-dataset state expectation; neither failure is caused by the Next dependency diff.
+- observation: The named Next advisories `GHSA-6gpp-xcg3-4w24`, `GHSA-m99w-x7hq-7vfj`, `GHSA-89xv-2m56-2m9x`, and `GHSA-p9j2-gv94-2wf4` are absent from `pnpm audit --json` after the patch.
+
+5. User learning
+Next.js `16.2.11` clears the confirmed framework advisories, leaves the audit critical count at zero, and production build compiles all current app, API, proxy, auth, upload, report, billing, dashboard, and Public AI routes.
+
+6. AI-agent learning
+For framework patch tasks, try the requested smallest patch release first, verify advisory removal with parsed audit JSON, and keep package-manager incidental formatting out of the final diff.
+
+7. Follow-up tasks
+- Triage and patch the remaining non-Next dependency audit findings in separate approved dependency tasks. (labels: security, ci-build, testing)
+- Repair the existing report accuracy and dashboard empty-state regression expectations in scoped reporting and dashboard tasks. (labels: testing, reports, dashboard)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Auth Dependency Security Patch
 
 1. Interaction title

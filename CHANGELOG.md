@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix framework dependencies so production routing, uploads, dashboards, reports, billing, and authentication use the patched Next.js release.
 - Fix authentication dependencies so email-password sessions use the patched Auth.js beta release without changing the login architecture.
 - Fix production browser hardening so app responses send security headers, a restrictive CSP, HTTPS-only HSTS, and no global wildcard CORS.
 - Fix chat, analysis, SQL, and email-verification diagnostics so logs keep useful metadata without recording complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets.

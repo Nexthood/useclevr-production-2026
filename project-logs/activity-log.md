@@ -1,3 +1,4 @@
+- fixed: patch `next` to `16.2.11` so confirmed Next.js advisories are absent from audit, critical dependency findings remain at zero, and production build compiles existing routes without changing app logic
 - fixed: patch `next-auth` to `5.0.0-beta.32` so the resolved Auth.js core dependency is `0.41.3` and critical Auth.js advisories are absent from the audit while the existing email-password and Superadmin architecture stays unchanged
 - changed: pin external GitHub Actions to immutable upstream commit SHAs, add the moderate-threshold pnpm audit command to source CI, and extend workflow validation to reject mutable external action refs, non-frozen installs, and suppressed audit failures
 - fixed: add production security headers through the existing Next config and proxy so app responses carry nosniff, strict referrer policy, frame denial, disabled sensitive browser permissions, nonce-based CSP, HTTPS-only HSTS, and no global wildcard CORS
