@@ -24,9 +24,6 @@ async function getSession() {
 }
 
 async function canAccessDataset(userId: string, role: string | undefined, _email: string | null | undefined, datasetId: string) {
-  const hasSuperAdminRole = role === 'superadmin' || role === 'admin' || isSuperAdminUserId(userId)
-  if (hasSuperAdminRole) return true;
-
   const result = await findAccessibleDataset(datasetId, userId, role);
   return Boolean(result.dataset);
 }

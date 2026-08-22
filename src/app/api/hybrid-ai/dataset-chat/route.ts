@@ -185,12 +185,8 @@ export async function POST(request: Request) {
     stage: "load_dataset",
   });
 
-  const datasetWhere =
-    session.user.role === "superadmin"
-      ? eq(datasets.id, parsed.datasetId)
-      : and(eq(datasets.id, parsed.datasetId), eq(datasets.userId, userId));
   const dataset = await db.query.datasets.findFirst({
-    where: datasetWhere,
+    where: and(eq(datasets.id, parsed.datasetId), eq(datasets.userId, userId)),
     columns: {
       id: true,
       name: true,

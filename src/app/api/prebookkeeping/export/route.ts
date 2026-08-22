@@ -52,12 +52,8 @@ export async function GET(request: Request) {
   });
 
   try {
-    const datasetWhere =
-      session.user.role === "superadmin"
-        ? eq(datasets.id, datasetId)
-        : and(eq(datasets.id, datasetId), eq(datasets.userId, userId));
     const dataset = await db.query.datasets.findFirst({
-      where: datasetWhere,
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
       columns: {
         id: true,
         name: true,

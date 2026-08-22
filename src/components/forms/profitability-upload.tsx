@@ -841,6 +841,7 @@ export function ProfitabilityUpload({
             result={uploadResult}
             uploadMode="profitability"
             onUploadAnother={resetUploadFlow}
+            hideDatasetAction={hasFullProfitability}
           />
         )}
 

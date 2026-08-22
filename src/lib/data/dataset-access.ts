@@ -8,22 +8,24 @@ export type DatasetAccessResult = {
   dbUnavailable: boolean
 }
 
-export function canAccessAllDatasets(role?: string | null) {
-  return role === "superadmin" || role === "admin"
+export function customerDatasetAccessWhere(datasetId: string, userId: string) {
+  return and(eq(datasets.id, datasetId), eq(datasets.userId, userId))
+}
+
+export function canAccessAllDatasets(_role?: string | null) {
+  return false
 }
 
 export async function findAccessibleDataset(
   datasetId: string,
   userId: string,
-  role?: string | null,
+  _role?: string | null,
 ): Promise<DatasetAccessResult> {
   const db = getDb()
   if (!db) return { dataset: null, dbUnavailable: true }
 
   const dataset = await db.query.datasets.findFirst({
-    where: canAccessAllDatasets(role)
-      ? eq(datasets.id, datasetId)
-      : and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
+    where: customerDatasetAccessWhere(datasetId, userId),
     columns: {
       id: true,
       userId: true,

@@ -11,6 +11,7 @@ type UploadSuccessPanelProps = {
   result: UploadDatasetResponse
   uploadMode: UploadMode
   onUploadAnother: () => void
+  hideDatasetAction?: boolean
 }
 
 function primaryResultHref(uploadMode: UploadMode, result: UploadDatasetResponse) {
@@ -49,7 +50,7 @@ function analysisLabel(status: string | undefined) {
   return status.replaceAll("_", " ")
 }
 
-export function UploadSuccessPanel({ result, uploadMode, onUploadAnother }: UploadSuccessPanelProps) {
+export function UploadSuccessPanel({ result, uploadMode, onUploadAnother, hideDatasetAction = false }: UploadSuccessPanelProps) {
   const resolvedDatasetType = normalizeUploadType(String(result.dataset_type || result.datasetType || uploadMode))
   const isStandardUploadSuccess = uploadMode === "standard" && resolvedDatasetType === "standard"
 
@@ -59,7 +60,7 @@ export function UploadSuccessPanel({ result, uploadMode, onUploadAnother }: Uplo
 
   const datasetHref = result.datasetId ? `/app/datasets/${result.datasetId}` : "/app/datasets"
   const hasDatasetNavigation = Boolean(result.datasetId)
-  const showDatasetAction = uploadMode !== "retail"
+  const showDatasetAction = uploadMode !== "retail" && !hideDatasetAction
   const rowsProcessed = typeof result.rowsProcessed === "number" ? result.rowsProcessed : null
   const columnsDetected = typeof result.columnsDetected === "number" ? result.columnsDetected : null
 

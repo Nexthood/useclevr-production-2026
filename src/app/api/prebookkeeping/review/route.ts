@@ -63,12 +63,8 @@ export async function PATCH(request: Request) {
     const db = getDb();
     if (!db) return jsonError("Database is not configured.", 503);
 
-    const datasetWhere =
-      session.user.role === "superadmin"
-        ? eq(datasets.id, datasetId)
-        : and(eq(datasets.id, datasetId), eq(datasets.userId, userId));
     const dataset = await db.query.datasets.findFirst({
-      where: datasetWhere,
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
       columns: {
         id: true,
         userId: true,

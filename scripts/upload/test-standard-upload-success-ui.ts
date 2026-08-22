@@ -93,7 +93,8 @@ function main() {
   assertIncludes(sharedPanelSource, 'if (uploadMode === "accountancy") return "/app/accountancy"', "Accountancy Upload route remains unchanged")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "prebookkeeping") return "/app/prebookkeeping"', "Pre-bookkeeping Upload route remains unchanged")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "retail") return "Open Retail"', "Retail Upload label remains unchanged")
-  assertIncludes(sharedPanelSource, 'const showDatasetAction = uploadMode !== "retail"', "Retail Upload hides the dataset action")
+  assertIncludes(sharedPanelSource, 'hideDatasetAction?: boolean', "shared success panel accepts a scoped dataset-action hide flag")
+  assertIncludes(sharedPanelSource, 'const showDatasetAction = uploadMode !== "retail" && !hideDatasetAction', "Retail and explicitly scoped paired Profitability flows hide the dataset action")
   assertIncludes(sharedPanelSource, "{showDatasetAction && (", "dataset action rendering is guarded by upload mode")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "profitability") return "Open Profitability"', "Profitability Upload label remains unchanged")
   assertIncludes(sharedPanelSource, 'if (uploadMode === "accountancy") return "Open Accountancy"', "Accountancy Upload label remains unchanged")
@@ -102,6 +103,8 @@ function main() {
 
   assertIncludes(retailSource, 'uploadMode="retail"', "Retail Upload still uses the retail success flow")
   assertIncludes(profitabilitySource, 'uploadMode="profitability"', "Profitability Upload still uses the profitability success flow")
+  assertIncludes(profitabilitySource, "hideDatasetAction={hasFullProfitability}", "paired Profitability success hides View Dataset while single-file waiting states keep existing actions")
+  assertIncludes(profitabilitySource, "Generate / Regenerate Report", "paired Profitability rich view keeps report generation action")
   assertNotIncludes(accountancySource, "StandardUploadSuccessPanel", "Accountancy Upload does not use the Standard success panel")
   assertNotIncludes(prebookkeepingSource, "StandardUploadSuccessPanel", "Pre-bookkeeping Upload does not use the Standard success panel")
 }

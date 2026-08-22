@@ -1,8 +1,8 @@
 import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
-export async function validateDatasetId(datasetId: string | undefined): Promise<{
+export async function validateDatasetId(datasetId: string | undefined, userId: string): Promise<{
   valid: boolean;
   dataset?: any;
   error?: string;
@@ -12,7 +12,7 @@ export async function validateDatasetId(datasetId: string | undefined): Promise<
   }
 
   const dataset = await db!.query.datasets.findFirst({
-    where: eq(datasets.id, datasetId),
+    where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
   });
 
   if (!dataset) {

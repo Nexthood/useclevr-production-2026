@@ -34,12 +34,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Database is not configured." }, { status: 503 });
     }
 
-    const datasetWhere =
-      session.user.role === "superadmin"
-        ? eq(datasets.id, datasetId)
-        : and(eq(datasets.id, datasetId), eq(datasets.userId, userId));
     const dataset = await db.query.datasets.findFirst({
-      where: datasetWhere,
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
       columns: {
         id: true,
         analysis: true,
