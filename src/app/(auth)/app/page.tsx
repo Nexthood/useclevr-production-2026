@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth/auth"
 import { calculateBusinessBalancedScorecard, type BusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
 import {
   buildDashboardSemanticAnalysis,
+  type DashboardBusinessProfile,
   type DashboardSemanticAnalysis,
   type DashboardSemanticMetric,
   type DashboardSemanticTrend,
@@ -135,7 +136,7 @@ type ExecutiveMetrics = {
   categoryDistribution: RankedItem[]
   regions: RegionData[]
   recommendations: ExecutiveRecommendation[]
-  businessModel: BusinessModel
+  businessModel: DashboardBusinessProfile
   supportedKpis: string[]
   semanticAnalysis: DashboardSemanticAnalysis | null
   businessHealth: {
@@ -263,6 +264,7 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
   if (stats.dashboardData.activeDatasetCount === 0) return emptyExecutiveMetrics(stats)
 
   const businessModel = semanticAnalysis?.businessProfile ?? stats.dashboardData.dominantBusinessModel
+  const isProfitabilityProfile = businessModel === "profitability"
   const rows = stats.allDatasets.flatMap((dataset) =>
     dataset.data.map((row) => ({
       row,
@@ -284,12 +286,12 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
   const totalProfit = explicitProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
   const profitMargin = totalRevenue && totalProfit !== null ? (totalProfit / totalRevenue) * 100 : null
   const products = columns.product || columns.sku ? uniqueCount(activeRows.map(({ row }) => String(row[columns.product || columns.sku || ""] || "").trim()).filter(Boolean)) : null
-  const inventoryValue = columns.stock && (columns.price || columns.cost)
+  const inventoryValue = !isProfitabilityProfile && columns.stock && (columns.price || columns.cost)
     ? activeRows.reduce((total, { row }) => total + (getNumber(row, columns.stock) || 0) * (getNumber(row, columns.price || columns.cost) || 0), 0)
     : null
-  const deadStockItems = buildDeadStock(activeRows.map((entry) => entry.row), columns)
-  const lowStock = buildStockList(activeRows.map((entry) => entry.row), columns, "low")
-  const overstock = buildStockList(activeRows.map((entry) => entry.row), columns, "high")
+  const deadStockItems = isProfitabilityProfile ? [] : buildDeadStock(activeRows.map((entry) => entry.row), columns)
+  const lowStock = isProfitabilityProfile ? [] : buildStockList(activeRows.map((entry) => entry.row), columns, "low")
+  const overstock = isProfitabilityProfile ? [] : buildStockList(activeRows.map((entry) => entry.row), columns, "high")
   const topProducts = buildRanked(activeRows.map((entry) => entry.row), columns.product || columns.sku, columns.revenue || columns.profit || columns.quantity)
   const worstProducts = [...topProducts].reverse().slice(0, 6)
   const categoryDistribution = buildRanked(activeRows.map((entry) => entry.row), columns.category, columns.revenue || columns.profit || columns.quantity).slice(0, 7)
@@ -361,7 +363,7 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
     regions,
     recommendations,
     businessModel,
-    supportedKpis: getBusinessModelKpiNames(businessModel),
+    supportedKpis: getDashboardProfileKpiNames(businessModel),
     semanticAnalysis,
     businessHealth: {
       health: Math.round((readiness + aiConfidence + forecastConfidence + growthScore) / 4),
@@ -371,6 +373,27 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
       growthScore,
     },
   }
+}
+
+function getDashboardProfileKpiNames(profile: DashboardBusinessProfile): string[] {
+  if (profile === "profitability") return ["Revenue", "Operating Expenses", "Operating Profit", "Operating Margin"]
+  return getBusinessModelKpiNames(profile)
+}
+
+function getDashboardProfileLabel(profile: DashboardBusinessProfile) {
+  if (profile === "profitability") return "Profitability"
+  return getBusinessModelLabel(profile)
+}
+
+function shouldRenderWorldMapForDashboardProfile(input: {
+  businessModel: DashboardBusinessProfile
+  mappedLocations: RegionData[]
+}) {
+  if (input.businessModel === "profitability") return false
+  return shouldRenderWorldMapForBusinessModel({
+    businessModel: input.businessModel,
+    mappedLocations: input.mappedLocations,
+  })
 }
 
 function emptyExecutiveMetrics(stats: DashboardStats): ExecutiveMetrics {
@@ -790,10 +813,12 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const metrics = buildExecutiveMetrics(dashboardStats, range, semanticAnalysis)
   const companyName = dashboardStats.profile?.businessName || dashboardStats.profile?.companyName || "UseClevr"
   const hasRows = metrics.loadedRowCount > 0
-  const canRenderWorldMap = shouldRenderWorldMapForBusinessModel({
+  const canRenderWorldMap = shouldRenderWorldMapForDashboardProfile({
     businessModel: metrics.businessModel,
     mappedLocations: metrics.regions,
   })
+  const dashboardProfileLabel = getDashboardProfileLabel(metrics.businessModel)
+  const isProfitabilityDashboard = metrics.businessModel === "profitability"
 
   const kpis = buildBusinessModelKpis(metrics)
   const topRecommendations = metrics.recommendations.slice(0, 3)
@@ -809,7 +834,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
     ? calculateBusinessBalancedScorecard({
         rows: selected.selectedDataset.data,
         columns: selected.selectedDataset.columns,
-        businessModel: selected.selectedDataset.businessModel,
+        businessModel: metrics.businessModel,
       })
     : null
 
@@ -822,15 +847,21 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
             <div className="max-w-4xl">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-100">
                 <Sparkles className="h-3.5 w-3.5" />
-                {getBusinessModelLabel(metrics.businessModel)} command center
+                {dashboardProfileLabel} command center
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                {companyName} Dashboard
+                {isProfitabilityDashboard
+                  ? dashboardStats.hasBusiness
+                    ? `${companyName} Profitability Dashboard`
+                    : "Profitability Dashboard"
+                  : `${companyName} Dashboard`}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                {selected.selectedDataset
-                  ? `Live ${getBusinessModelLabel(metrics.businessModel).toLowerCase()} analytics for ${selected.selectedDataset.name}.`
-                  : "Live " + getBusinessModelLabel(metrics.businessModel).toLowerCase() + " analytics, dataset activity, and AI outputs from uploaded business data."}
+                {isProfitabilityDashboard
+                  ? "Combined revenue and expense profitability analysis."
+                  : selected.selectedDataset
+                  ? `Live ${dashboardProfileLabel.toLowerCase()} analytics for ${selected.selectedDataset.name}.`
+                  : "Live " + dashboardProfileLabel.toLowerCase() + " analytics, dataset activity, and AI outputs from uploaded business data."}
               </p>
               {selected.missing && (
                 <p className="mt-3 max-w-3xl rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-100">
@@ -931,7 +962,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                 {canRenderWorldMap ? (
                   <WorldMapRevenue regions={metrics.regions} />
                 ) : (
-                  <CompactEmpty label={`${getBusinessModelLabel(metrics.businessModel)} data does not expose valid mapped locations for a world map.`} />
+                  <CompactEmpty label={`${dashboardProfileLabel} data does not expose valid mapped locations for a world map.`} />
                 )}
               </DashboardSection>
             ),
@@ -1000,6 +1031,13 @@ function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {
   ]
 
   switch (metrics.businessModel) {
+    case "profitability":
+      return [
+        kpi("Revenue", metrics.totalRevenue, "currency", metrics.revenueTrend, metrics.totalRevenue !== null, "Canonical Profitability revenue", CircleDollarSign, "cyan"),
+        kpi("Operating Expenses", metrics.totalCost, "currency", metrics.profitTrend, metrics.totalCost !== null, "Canonical Profitability operating expenses", PieChart, "rose"),
+        kpi("Operating Profit", metrics.totalProfit, "currency", metrics.profitTrend, metrics.totalProfit !== null, "Canonical Profitability operating profit", TrendingUp, "emerald"),
+        kpi("Operating Margin", metrics.profitMargin, "percent", metrics.profitTrend, metrics.profitMargin !== null, "Canonical Profitability operating margin", PieChart, "violet"),
+      ]
     case "local_retail":
       return [
         common[0],
@@ -1542,7 +1580,7 @@ function LatestDatasets({ datasets: datasetList, activeDatasetId }: { datasets: 
         >
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium text-foreground">{dataset.name}</span>
-            <span className="mt-1 block text-xs text-muted-foreground">{formatNumber(dataset.rowCount)} rows · {getBusinessModelLabel(dataset.businessModel)}</span>
+            <span className="mt-1 block text-xs text-muted-foreground">{formatNumber(dataset.rowCount)} rows · {dashboardDatasetContextLabel(dataset)}</span>
           </span>
           <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Link>
@@ -1699,7 +1737,31 @@ function CompactEmpty({ label }: { label: string }) {
 
 function DataCoverageNote({ metrics }: { metrics: ExecutiveMetrics }) {
   const detected = Object.entries(metrics.columns).filter(([, value]) => Boolean(value)).length
-  return <span className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs font-medium text-muted-foreground">{getBusinessModelLabel(metrics.businessModel)} · {detected} detected business columns · {formatNumber(metrics.loadedRowCount)} preview rows</span>
+  return <span className="rounded-lg border border-border bg-background/60 px-3 py-2 text-xs font-medium text-muted-foreground">{getDashboardProfileLabel(metrics.businessModel)} · {detected} detected business columns · {formatNumber(metrics.loadedRowCount)} preview rows</span>
+}
+
+function dashboardDatasetContextLabel(dataset: DashboardDataset) {
+  if (dataset.datasetType === "profitability" || hasProfitabilityAnalysis(dataset.analysis) || hasProfitabilityAnalysis(dataset.precomputedMetrics)) {
+    const role = readProfitabilityRole(dataset.analysis) || readProfitabilityRole(dataset.precomputedMetrics)
+    if (role === "revenue" || role === "revenue_input") return "Profitability · Revenue Input"
+    if (role === "expenses" || role === "expense" || role === "expense_input" || role === "expenses_input") return "Profitability · Expense Input"
+    return "Profitability"
+  }
+  return getBusinessModelLabel(dataset.businessModel)
+}
+
+function hasProfitabilityAnalysis(value: unknown) {
+  if (!isRecord(value)) return false
+  return value.datasetType === "profitability" || value.dataset_type === "profitability" || isRecord(value.profitability)
+}
+
+function readProfitabilityRole(value: unknown) {
+  if (!isRecord(value)) return null
+  const direct = String(value.profitabilityFileRole || value.profitability_file_role || value.role || "").trim().toLowerCase()
+  if (direct) return direct
+  const profitability = isRecord(value.profitability) ? value.profitability : null
+  const nested = String(profitability?.role || profitability?.fileRole || profitability?.file_role || "").trim().toLowerCase()
+  return nested || null
 }
 
 function recentActivity(stats: DashboardStats, metrics: ExecutiveMetrics) {

@@ -107,7 +107,7 @@ function BillingIntervalSelector({
 }
 
 function formatSubscriptionPlanPrice(plan: BillingPlan, billingInterval: BillingInterval) {
-  if (plan.tier === "free") return "$0/€0/month"
+  if (plan.tier === "free") return formatPlanPrice(plan)
   const market = getCheckoutMarketOptions(plan.tier, billingInterval).find((option) => option.market === "eu")
   if (market?.amountMinor !== null && market?.amountMinor !== undefined) {
     return formatRecurringPrice(market.amountMinor, market.currency, billingInterval)

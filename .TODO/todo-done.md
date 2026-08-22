@@ -24,6 +24,7 @@ moving work between states.
 
 ## Label: reports
 
+- T-1015. Derive paired profitability operating profit only from source-backed revenue and complete operating-expense inputs while preserving unavailable gross and net metrics without COGS, interest, or tax. (labels: reports, metrics, testing; commit: 85657ac8)
 - T-1014. Local retail reports calculate current stock, reorder status, inventory value, and stock by category from latest store-product inventory snapshots while sales metrics use all transaction rows. (labels: reports, metrics, testing; commit: dfc27c74)
 - T-1013. Generic business generated-report executive summaries state available gross profit and gross margin separately from unavailable operating and net profitability inputs. (labels: reports, testing; commit: 50038f35)
 - T-1012. Generic business reports resolve invoice identifiers, exact cost fields, and explicit profit fields before building transaction and margin metrics. (labels: reports, metrics, testing; commit: 3eb16fde)
@@ -62,6 +63,9 @@ moving work between states.
 
 ## Label: upload
 
+- T-1018. Profitability refresh routing resolves active parent analysis identifiers before child dataset identifiers and keeps parent-scoped report generation after rich dashboard hydration. (labels: upload, dashboard, reports, testing; commit: 71048656)
+- T-1017. Paired Profitability results keep the rich analytics dashboard after async processing and refresh while primary KPIs use canonical operating profit and operating margin. (labels: upload, dashboard, ui, testing; commit: 59c08b37)
+- T-1016. Generate Profitability Analysis opens one parent Profitability analysis with revenue and expense source inputs, combined source rows, parent-scoped reports, and refresh-stable routing. (labels: upload, dashboard, reports, testing; commit: 2531129b)
 - T-1003. Dataset Library row actions show only the working primary destination and keep selection, bulk deletion, upload, and backend row access unchanged. (labels: upload, ui, testing; commit: worktree)
 - T-995. Pre-bookkeeping export workflow guides users to review transactions before accountant export, and Risk Intelligence renders bookkeeping risk insights or graceful problem states without server crashes. (labels: upload, reports, stability, testing; commit: worktree)
 - T-994. Accounting AI applies Business Profile tax configuration to VAT prediction, routes uncertain transactions to exception review, stores scoped VAT corrections for future uploads, and exports reviewed VAT audit details. (labels: upload, business, ai, testing; commit: worktree)

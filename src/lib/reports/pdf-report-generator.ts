@@ -1059,15 +1059,19 @@ function drawCostIntelligence(doc: jsPDF, report: Report, financials: ReportFina
   y = drawTextBox(doc, opportunity, page.margin, y, 174, 24) + 11;
 
   y = drawSectionHeading(doc, "Data Requirements", y);
-  const hasExpenseCategory = Boolean(semanticContext?.expenseCategoryField);
-  const hasExpenseAmount = Boolean(semanticContext?.expenseAmountField);
-  const hasDateField = Boolean(semanticContext?.dateField);
+  const pairedExpenseSource = report.reportType === "profitability" || report.reportProfile?.id === "profitability_pnl";
+  const hasPairedCostCategories = pairedExpenseSource && categories.length > 0;
+  const hasPairedExpenseAmount = pairedExpenseSource && financials.operatingExpenses !== null;
+  const hasPairedPeriod = pairedExpenseSource && ((financials.periodTrends?.length ?? 0) > 0 || Boolean(financials.reportingPeriod));
+  const hasExpenseCategory = Boolean(semanticContext?.expenseCategoryField) || hasPairedCostCategories;
+  const hasExpenseAmount = Boolean(semanticContext?.expenseAmountField) || hasPairedExpenseAmount;
+  const hasDateField = Boolean(semanticContext?.dateField) || hasPairedPeriod;
   const hasVendor = Boolean(semanticContext?.vendorField);
   drawTable(doc, [
     ["Required Field", "Purpose", "Status", "Notes"],
-    ["Expense Category", "Categorize and analyze costs", hasExpenseCategory ? "Available" : "Missing", hasExpenseCategory ? `Mapped from ${semanticContext?.expenseCategoryField}.` : "No matching source field."],
-    ["Expense Amount", "Quantify total cost by category", hasExpenseAmount ? "Available" : "Missing", hasExpenseAmount ? `Mapped from ${semanticContext?.expenseAmountField}.` : "No matching source field."],
-    ["Date / Period", "Analyze cost trends", hasDateField ? "Available" : "Missing", hasDateField ? `Mapped from ${semanticContext?.dateField}.` : "No matching source field."],
+    ["Expense Category", "Categorize and analyze costs", hasExpenseCategory ? "Available" : "Missing", semanticContext?.expenseCategoryField ? `Mapped from ${semanticContext.expenseCategoryField}.` : hasPairedCostCategories ? "Available from paired expense input." : "No matching source field."],
+    ["Expense Amount", "Quantify total cost by category", hasExpenseAmount ? "Available" : "Missing", semanticContext?.expenseAmountField ? `Mapped from ${semanticContext.expenseAmountField}.` : hasPairedExpenseAmount ? "Available from paired expense input." : "No matching source field."],
+    ["Date / Period", "Analyze cost trends", hasDateField ? "Available" : "Missing", semanticContext?.dateField ? `Mapped from ${semanticContext.dateField}.` : hasPairedPeriod ? "Available from paired profitability period data." : "No matching source field."],
     ["Vendor / Supplier", "Identify vendor opportunities", hasVendor ? "Available" : "Missing", hasVendor ? `Mapped from ${semanticContext?.vendorField}.` : "No matching source field."],
   ], page.margin, y, [42, 55, 28, 49]);
 }

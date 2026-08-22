@@ -1,4 +1,4 @@
-import type { DatasetCategory } from "@/lib/data/dataset-category"
+import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
 import { normalizeCountry } from "@/lib/geo/normalize-country"
 
 export const businessModels = [
@@ -90,6 +90,9 @@ export function getBusinessModelLabel(value?: string | null) {
 }
 
 export function resolveBusinessModel(input: BusinessModelResolutionInput): BusinessModel {
+  const datasetType = resolveDatasetType(input.datasetType, input.analysis)
+  if (datasetType === "profitability") return "generic"
+
   const explicit = normalizeBusinessModel(input.explicit)
   if (explicit && explicit !== "generic") return explicit
 

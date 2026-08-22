@@ -380,12 +380,20 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   const operatingExpenses = numeric("operatingExpenses")
   const interestExpense = numeric("interestExpense")
   const taxExpense = numeric("taxExpense")
-  const explicitGrossProfit = numeric("grossProfit")
-  const explicitOperatingProfit = numeric("operatingProfit")
-  const explicitNetProfit = numeric("netProfit")
-  const grossProfit = explicitGrossProfit !== null ? explicitGrossProfit : totalRevenue !== null && cogs !== null ? round(totalRevenue - cogs) : null
-  const operatingProfit = explicitOperatingProfit !== null ? explicitOperatingProfit : grossProfit !== null && operatingExpenses !== null ? round(grossProfit - operatingExpenses) : null
-  const netProfit = explicitNetProfit !== null ? explicitNetProfit : operatingProfit !== null && interestExpense !== null && taxExpense !== null
+  const precomputedGrossProfit = numeric("grossProfit")
+  const precomputedOperatingProfit = numeric("operatingProfit")
+  const precomputedNetProfit = numeric("netProfit")
+  const operatingExpenseCoverage = metrics.operatingExpenseCoverage === "partial" ? "partial" : "complete"
+  const completeOperatingExpenses = operatingExpenseCoverage === "complete" ? operatingExpenses : null
+  const grossProfit = precomputedGrossProfit !== null ? precomputedGrossProfit : totalRevenue !== null && cogs !== null ? round(totalRevenue - cogs) : null
+  const operatingProfit = precomputedOperatingProfit !== null
+    ? precomputedOperatingProfit
+    : grossProfit !== null && completeOperatingExpenses !== null
+      ? round(grossProfit - completeOperatingExpenses)
+      : totalRevenue !== null && completeOperatingExpenses !== null && cogs === null
+        ? round(totalRevenue - completeOperatingExpenses)
+        : null
+  const netProfit = precomputedNetProfit !== null ? precomputedNetProfit : operatingProfit !== null && interestExpense !== null && taxExpense !== null
     ? round(operatingProfit - interestExpense - taxExpense)
     : null
   const grossMargin = totalRevenue && grossProfit !== null ? round((grossProfit / totalRevenue) * 100) : null
@@ -445,12 +453,12 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     metricSources: {
       revenue: totalRevenue !== null ? sourceMeta("Revenue source total from selected analysis inputs.") : unavailableMeta("No recognized revenue source field."),
       cogs: cogs !== null ? sourceMeta("COGS source total from selected analysis inputs.") : unavailableMeta("No recognized COGS source field."),
-      grossProfit: explicitGrossProfit !== null ? sourceMeta("Explicit gross profit field from selected analysis inputs.") : grossProfit !== null ? derivedMeta("Revenue minus COGS.") : unavailableMeta("Requires COGS or explicit gross profit field."),
+      grossProfit: metricSourceMeta(metrics, "grossProfit", precomputedGrossProfit !== null ? derivedMeta("Revenue minus COGS.") : grossProfit !== null ? derivedMeta("Revenue minus COGS.") : unavailableMeta("Requires COGS or explicit gross profit field.")),
       operatingExpenses: operatingExpenses !== null ? sourceMeta("Operating-expense source total from selected analysis inputs.") : unavailableMeta("No recognized operating-expense source field."),
-      operatingProfit: explicitOperatingProfit !== null ? sourceMeta("Explicit operating profit field from selected analysis inputs.") : operatingProfit !== null ? derivedMeta("Gross profit minus operating expenses.") : unavailableMeta("Requires operating expenses or explicit operating profit field."),
+      operatingProfit: metricSourceMeta(metrics, "operatingProfit", operatingProfit !== null ? derivedMeta(grossProfit !== null ? "Gross profit minus operating expenses." : "Revenue minus source-backed operating expenses because COGS is unavailable in the paired Profitability inputs.") : unavailableMeta(operatingExpenseCoverage === "partial" ? "Requires a complete operating-expense source before deriving operating profit." : "Requires source-backed revenue and operating expenses.")),
       interestExpense: interestExpense !== null ? sourceMeta("Interest-expense source total from selected analysis inputs.") : unavailableMeta("No recognized interest-expense source field."),
       taxExpense: taxExpense !== null ? sourceMeta("Tax-expense source total from selected analysis inputs.") : unavailableMeta("No recognized tax-expense source field."),
-      netProfit: explicitNetProfit !== null ? sourceMeta("Explicit net profit field from selected analysis inputs.") : netProfit !== null ? derivedMeta("Operating profit minus interest and tax expense.") : unavailableMeta("Requires interest, tax, and operating profit inputs or explicit net profit field."),
+      netProfit: metricSourceMeta(metrics, "netProfit", netProfit !== null ? derivedMeta("Operating profit minus source-backed interest and tax expense.") : unavailableMeta("Requires source-backed interest, tax, and operating profit inputs.")),
       grossMargin: grossMargin !== null ? derivedMeta("Gross profit divided by revenue.") : unavailableMeta("Requires gross profit and non-zero revenue."),
       operatingMargin: operatingMargin !== null ? derivedMeta("Operating profit divided by revenue.") : unavailableMeta("Requires operating profit and non-zero revenue."),
       netMargin: netMargin !== null ? derivedMeta("Net profit divided by revenue.") : unavailableMeta("Requires net profit and non-zero revenue."),
@@ -497,21 +505,40 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   }
 }
 
+function metricSourceMeta(metrics: Record<string, unknown>, key: string, fallback: { kind: MetricSource; note: string }): { kind: MetricSource; note: string } {
+  const sources = isRecord(metrics.metricSources) ? metrics.metricSources : null
+  const source = sources && isRecord(sources[key]) ? sources[key] : null
+  const kind = source?.kind
+  const note = typeof source?.note === "string" ? source.note : null
+  if (kind === "source_value" || kind === "derived_value" || kind === "unavailable") {
+    return { kind: kind as MetricSource, note: note || fallback.note }
+  }
+  return fallback
+}
+
 function buildProfitabilitySummary(datasetName: string, financials: ReportFinancials, bbsc: ReturnType<typeof calculateBusinessBalancedScorecard>) {
   const revenue = financials.revenue !== null ? formatCurrencyForSummary(financials.revenue) : "Not available"
-  const grossMargin = financials.grossMargin !== null ? `${financials.grossMargin.toFixed(1)}%` : "not available"
-  const netMargin = financials.netMargin !== null ? `${financials.netMargin.toFixed(1)}%` : "not available"
   const score = bbsc.overallScore !== null ? `${bbsc.overallScore}/100` : "not available"
   const topCost = financials.topCostCategories?.[0]
   const totalCost = financials.topCostCategories?.reduce((total, item) => total + item.value, 0) || 0
   const topCostShare = topCost && totalCost > 0 ? `${((topCost.value / totalCost) * 100).toFixed(1)}%` : null
   const confidence = financials.dataConfidence !== null && financials.dataConfidence !== undefined ? `${Math.round(financials.dataConfidence)}%` : "not available"
+  const parts: string[] = []
 
-  return [
-    `${datasetName} generated ${revenue} in revenue with gross margin of ${grossMargin} and net margin of ${netMargin}.`,
-    topCost && topCostShare ? `${topCost.name} represents ${topCostShare} of total categorized expenses.` : "Cost concentration is not available because expense category data is incomplete.",
-    `Profitability health score is ${score}; source-data confidence is ${confidence}.`,
-  ].join(" ")
+  if (financials.operatingProfit !== null && financials.operatingMargin !== null && financials.grossProfit === null && financials.netProfit === null) {
+    parts.push(`${datasetName} contains ${revenue} in revenue and ${financials.operatingExpenses !== null ? formatCurrencyForSummary(financials.operatingExpenses) : "Not available"} in operating expenses.`)
+    parts.push(`Operating profit is ${formatCurrencyForSummary(financials.operatingProfit)}, representing an operating margin of ${financials.operatingMargin.toFixed(1)}%.`)
+    parts.push("Gross profitability cannot be calculated because COGS is unavailable.")
+    parts.push("Net profitability cannot be fully assessed because interest and/or tax inputs are unavailable.")
+  } else {
+    const grossMargin = financials.grossMargin !== null ? `${financials.grossMargin.toFixed(1)}%` : "not available"
+    const netMargin = financials.netMargin !== null ? `${financials.netMargin.toFixed(1)}%` : "not available"
+    parts.push(`${datasetName} generated ${revenue} in revenue with gross margin of ${grossMargin} and net margin of ${netMargin}.`)
+  }
+
+  parts.push(topCost && topCostShare ? `${topCost.name} represents ${topCostShare} of total categorized expenses.` : "Cost concentration is not available because expense category data is incomplete.")
+  parts.push(`Profitability health score is ${score}; source-data confidence is ${confidence}.`)
+  return parts.join(" ")
 }
 
 function missingProfitabilityFields(values: Record<string, number | null>, metrics: Record<string, unknown>) {
@@ -572,6 +599,7 @@ function revenueGrowthFromMetrics(metrics: Record<string, unknown>) {
 }
 
 function reportingPeriodFromMetrics(metrics: Record<string, unknown>) {
+  if (typeof metrics.reportingPeriod === "string" && metrics.reportingPeriod.trim()) return metrics.reportingPeriod
   const trends = periodTrendsFromMetrics(metrics) || []
   if (trends.length === 0) return null
   if (trends.length === 1) return trends[0].period
@@ -644,17 +672,40 @@ function buildProfitabilityRecommendations(
       requiredData: [],
     })
   }
-  if ((financials.missingFields || []).length > 0) {
-    const hasFinancialMissing = (financials.missingFields || []).some(f => 
-      ["Revenue", "COGS", "Gross Profit", "Operating Expenses", "Operating Profit", "Interest", "Tax", "Net Profit"].some(keyword => f.toLowerCase().includes(keyword.toLowerCase()))
+  if (financials.revenue !== null && financials.cogs === null) {
+    recommendations.push({
+      issue: "COGS is not available.",
+      businessImpact: "COGS would unlock gross profit and gross margin without treating operating expenses as product costs.",
+      recommendedAction: "Add a source-backed COGS or product-cost input when gross profitability is needed.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["COGS"],
+    })
+  }
+  if (financials.operatingProfit !== null && financials.netProfit === null && (financials.interestExpense === null || financials.taxExpense === null)) {
+    const requiredData = [
+      financials.interestExpense === null ? "Interest Expense" : null,
+      financials.taxExpense === null ? "Tax Expense" : null,
+    ].filter((field): field is string => field !== null)
+    recommendations.push({
+      issue: `${requiredData.join(" and ")} ${requiredData.length === 1 ? "is" : "are"} not available.`,
+      businessImpact: "Net profit and net margin require source-backed interest and tax inputs.",
+      recommendedAction: `Add ${requiredData.join(" and ")} to calculate net profit and net margin.`,
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData,
+    })
+  } else if ((financials.missingFields || []).length > 0) {
+    const sourceInputs = (financials.missingFields || []).filter((field) =>
+      ["Revenue", "COGS", "Operating Expenses", "Interest", "Tax"].some((keyword) => field.toLowerCase().includes(keyword.toLowerCase()))
     )
-    if (hasFinancialMissing) {
+    if (sourceInputs.length > 0) {
       recommendations.push({
-        issue: `Missing financial fields: ${financials.missingFields!.slice(0, 4).join(", ")}.`,
-        businessImpact: "Unavailable financial fields prevent complete profitability analysis.",
-        recommendedAction: "Add the missing financial fields to enable full P&L analysis.",
+        issue: `Missing financial inputs: ${sourceInputs.slice(0, 4).join(", ")}.`,
+        businessImpact: "Unavailable source inputs prevent complete profitability analysis.",
+        recommendedAction: "Add the missing source inputs to enable full P&L analysis.",
         estimatedImpact: null,
-        requiredData: financials.missingFields,
+        requiredData: sourceInputs,
       })
     }
   }
@@ -2505,6 +2556,8 @@ function buildDatasetRecommendations(
       issue: "Revenue is available, but profitability inputs are incomplete.",
       businessImpact: financials.grossProfit !== null
         ? "Gross profit and margin are available; operating and net profitability require additional expense fields."
+        : financials.operatingProfit !== null
+          ? "Operating profit and margin are available; gross profitability requires COGS and net profitability requires interest and tax inputs."
         : "Complete margin, profit, and expense-ratio decisions require recognized cost and expense fields.",
       recommendedAction: requiredData.length > 0
         ? `Add ${requiredData.join(", ")} fields before making complete operating or net profitability decisions.`

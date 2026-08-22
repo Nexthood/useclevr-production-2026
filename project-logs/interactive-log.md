@@ -4292,6 +4292,213 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Operating Profit
+
+1. Interaction title
+Paired Profitability source-aware operating profit.
+
+2. What was the user goal
+Fix the paired Revenue plus Expenses Profitability report so `useclevr_expense_large_test` derives Operating Profit and Operating Margin from source-backed revenue and complete operating expenses while keeping COGS, Gross Profit, Gross Margin, Interest Expense, Tax Expense, Net Profit, and Net Margin unavailable without source inputs.
+
+3. What changed
+`two-file-analysis` stops converting missing operating, interest, and tax rows into fallback zeros, records metric provenance, and derives Operating Profit as Revenue minus source-backed Operating Expenses only when COGS is absent from the paired Profitability input contract. `dataset-report-builder` preserves analyzer provenance, summarizes operating profitability separately from unavailable gross and net profitability, and stops recommending Operating Profit as an upload field when it is already derived. `upload` persists paired Profitability `metricSources`. `pdf-report-generator` marks Expense Category, Expense Amount, and Date / Period available from the same canonical paired expense state used by Cost Intelligence. The focused regression script covers operating-expense-only paired inputs, explicit zero interest/tax rows, standard COGS P&L, missing revenue, and extracted PDF text.
+
+4. Problems marked
+blocker: none.
+risk: the local downloaded large fixtures total Revenue `$16,327,920` and Operating Expenses `$6,121,332`, which differ slightly from the prompt's unrounded internal examples but render to the expected `$16.33M` and `$6.12M` PDF values.
+improvement: add the exact paired large Profitability CSV fixtures to tracked regression fixtures when they are safe to store.
+observation: the prior report skipped operating profitability because canonical paired metrics required Gross Profit before Operating Profit and treated missing interest/tax as source-backed zero, while the PDF Data Requirements table used semantic row fields instead of paired metric availability.
+
+5. User learning
+The paired Profitability report needs a source-aware P&L contract: operating expenses are not COGS, but complete operating expenses can support Operating Profit when COGS is absent.
+
+6. AI-agent learning
+For paired upload reports, carry metric provenance through analyzer, persistence, builder, and PDF rendering; re-detecting fields from the persisted expense dataset can contradict the selected two-file analysis state.
+
+7. Follow-up tasks
+- Add the exact paired large Profitability CSV fixtures to file-backed regression coverage when privacy rules allow it.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Parent Refresh Precedence
+
+1. Interaction title
+Paired Profitability parent refresh precedence.
+
+2. What was the user goal
+Preserve the existing rich Profitability analytics dashboard as the final view for active Revenue plus Expense analyses after async processing and refresh, with active Profitability analysis ownership taking precedence over child dataset state and auto-detected dataset profiles.
+
+3. What changed
+The Profitability page resolves an explicit parent `analysisId` before using a `datasetId` fallback, so refresh and navigation keep the active parent analysis selected even when a child dataset identifier is present. `ProfitabilityUpload` seeds its refreshed analysis id from the persisted parent profitability payload or parent upload context, so Generate Report remains parent-scoped after hydration. The existing rich `ProfitabilityUpload` renderer remains the final dashboard component.
+
+4. Problems marked
+blocker: none.
+risk: signed-in browser verification against the private large CSV pair remains a beta-deployment follow-up, while local regression verifies the same route precedence, rich renderer selection, canonical Profitability semantics, and PDF report generation path.
+observation: the remaining replacement hazard was the server page preferring `datasetId` before `analysisId`, which allowed child dataset state to outrank the active parent analysis during refresh-like navigation.
+
+5. User learning
+Active multi-file analyses need route parameters that name the parent owner, and page loaders must honor that parent before resolving child upload records.
+
+6. AI-agent learning
+When preserving a rich client renderer across navigation, check both component selection and identifier precedence; a correct renderer can still hydrate the wrong owner when fallback ids run first.
+
+7. Follow-up tasks
+- Verify the signed-in large paired Profitability rich dashboard on beta after `dist-test` deploys.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Rich Analytics Persistence
+
+1. Interaction title
+Paired Profitability rich analytics persistence.
+
+2. What was the user goal
+Preserve the existing rich Profitability analytics dashboard after Generate Profitability Analysis, async processing, navigation, and refresh without changing formulas, PDF generation, or unrelated report types.
+
+3. What changed
+The Profitability page now hydrates the existing `ProfitabilityUpload` rich analytics renderer from the persisted parent Profitability analysis payload instead of rendering a separate compact server metrics summary. `ProfitabilityUpload` accepts initial parent metrics and upload context, so the same rich dashboard appears after route navigation and refresh. The rich dashboard uses operating profit and operating margin for primary profit KPI text, insights, recommendations, and executive summary. The focused Profitability regression asserts that the page uses `ProfitabilityUpload` and does not reintroduce `renderProfitabilityMetrics`.
+
+4. Problems marked
+blocker: none.
+risk: the exact large private CSV browser flow still needs signed-in beta verification, while source-equivalent regression confirms the renderer and report paths.
+observation: the replacement came from `router.push` loading `/app/profitability`, where the server page rendered its own compact `renderProfitabilityMetrics` branch from the focused dataset after the client rich state had already appeared.
+
+5. User learning
+The rich dashboard disappears when navigation changes the owning renderer, even if the paired calculation and persisted parent analysis are correct.
+
+6. AI-agent learning
+Parent-analysis precedence must choose both the owning data object and the final component renderer; preserving state alone is insufficient when route navigation swaps components.
+
+7. Follow-up tasks
+- Verify the signed-in large paired Profitability rich dashboard on beta after `dist-test` deploys.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Parent Analysis Routing
+
+1. Interaction title
+Paired Profitability parent analysis routing.
+
+2. What was the user goal
+Fix Generate Profitability Analysis so the generated route, result page, Dashboard context, and report actions use one parent Profitability analysis instead of the last uploaded expense child dataset.
+
+3. What changed
+The Profitability upload click handler routes to the stable `pa_...` parent analysis id. The upload server action uses the submitted parent analysis id as the persisted Profitability dataset id, inserts it on the first child upload, updates it on the second child upload, stores combined metrics, stores combined source rows, stores source-file provenance, and skips child-file Business Intelligence profile enrichment for Profitability parent rows. The Profitability page resolves `datasetId` or `analysisId`, renders `Profitability analysis`, shows `Revenue + Expense Analysis`, displays source input cards, and uses the parent id for report generation and downloads.
+
+4. Problems marked
+blocker: none.
+risk: authenticated browser upload verification still needs the beta deployment or a local signed-in session with the large private CSV files.
+observation: the root cause was client routing from the final upload response; because expenses upload last, the old route used the expense child `datasetId` even though the paired calculations were already correct.
+
+5. User learning
+Paired Profitability ownership must be a parent analysis record; revenue and expense files are source inputs with provenance, not owning analyses.
+
+6. AI-agent learning
+When a multi-file upload loop persists through a single-file upload API, the response contract must return the stable parent id on every child request and the client must route from the parent id, not the final child response.
+
+7. Follow-up tasks
+- Verify the signed-in large paired Profitability upload on beta after CI publishes `dist-test`.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Dashboard Context
+
+1. Interaction title
+Paired Profitability dashboard context.
+
+2. What was the user goal
+Fix the main Dashboard after paired Profitability uploads so async processing cannot switch the active command center, Daily Health, Balanced Scorecard, recommendations, or upload history from Profitability into Marketplace, E-Commerce, inventory, seller, buyer, GMV, active-seller, or low-stock semantics.
+
+3. What changed
+`resolveBusinessModel` now treats `datasetType=profitability` as a module-level authority that outranks stored child business-model values and automatic schema detection, so revenue and expense child files cannot become the owning dashboard model. `dashboard-semantic-profile` now exposes a Profitability dashboard profile from the Profitability P&L report profile and returns Profitability primary metrics and operating-profit trends from canonical report inputs. The main Dashboard uses the active semantic profile for the header, KPI labels, world-map gating, Balanced Scorecard preview, data-coverage note, and fallback KPI set; it suppresses inventory-derived low-stock/dead-stock/overstock signals for Profitability and labels upload history as `Profitability · Revenue Input` or `Profitability · Expense Input`. Daily Health reads active Profitability precomputed metrics, disables inventory alerts for Profitability, and writes Profitability-oriented priorities and impact text.
+
+4. Problems marked
+blocker: none.
+risk: exact large paired upload behavior still needs a signed-in browser verification after beta deploy because the available local regression uses source-equivalent synthetic datasets.
+observation: the async update did not need to change the formulas; it exposed persisted child business-model classification after the dashboard refetched ready datasets and BBSC read `selectedDataset.businessModel` directly.
+
+5. User learning
+Paired Profitability ownership requires an analysis/module profile separate from child-file schema hints; child roles map columns but do not define the dashboard model.
+
+6. AI-agent learning
+Dashboard context must follow explicit parent analysis/module, then stored dataset type, then automatic schema detection. Report-profile semantics should be reused by dashboard surfaces instead of recomputing business models from child file columns.
+
+7. Follow-up tasks
+- Verify the signed-in paired large Profitability upload on the beta test deployment after CI publishes `dist-test`.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Partial Expense Coverage
+
+1. Interaction title
+Paired Profitability complete-expense provenance and reporting period.
+
+2. What was the user goal
+Fix the paired Profitability report for `useclevr_revenue_large_test` plus `useclevr_expense_large_test` so Revenue and complete Operating Expenses derive Operating Profit and Operating Margin, missing COGS/gross/net inputs stay unavailable, Cost Intelligence data requirements stop contradicting categorized expenses, and the actual regenerated PDF is internally consistent.
+
+3. What changed
+`two-file-analysis` now records `operatingExpenseCoverage`, keeps Operating Profit unavailable when the expense input is explicitly partial, preserves partial operating-expense source totals without treating them as complete, and stores a full source-derived reporting period before trend rows are capped. `dataset-report-builder` respects partial operating-expense coverage during fallback derivation and reads the canonical reporting period. `test-profitability-two-file` covers complete operating-expense-only inputs, missing interest/tax, explicit zero interest/tax, expense category availability, partial operating-expense inputs, and reporting-period provenance. The billing UI now reads Free plan labels from the shared plan formatter so the pre-push pricing gate rejects no hardcoded euro amounts. `requirements.md` and `CHANGELOG.md` describe the current user-visible and developer contracts.
+
+4. Problems marked
+blocker: none.
+risk: exact large CSV fixtures live in local Downloads and are not tracked fixtures, so future machines need safe fixture copies to rerun the exact large-file verification.
+improvement: add sanitized large paired Profitability fixtures to tracked regression coverage when privacy rules allow them.
+observation: trend rows stay capped for PDF size, while the top-level reporting period now comes from the full canonical source period range.
+observation: the push gate blocks hardcoded euro amounts in UI files; Free plan UI labels must use shared billing formatters.
+
+5. User learning
+Paired Profitability needs a first-class completeness signal for operating expenses; otherwise a partial expense subset can look mathematically valid while producing overstated operating profit.
+
+6. AI-agent learning
+Generated report builders must avoid recomputing unavailable metrics from numeric totals when the analyzer already carries stricter availability provenance. UI price labels must route through shared billing formatters instead of literal euro strings.
+
+7. Follow-up tasks
+- Add sanitized large paired Profitability fixtures to file-backed regression coverage when privacy rules allow them.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Generic Business Canonical Field Resolution
 
 1. Interaction title

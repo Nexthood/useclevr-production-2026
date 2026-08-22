@@ -28,6 +28,11 @@
 
 ### Fixed
 
+- Fix Profitability results so the rich analytics dashboard renders after async processing and page refresh with canonical operating profit and margin values.
+- Fix Profitability refresh routing so active parent analyses outrank child dataset identifiers and report generation uses the parent analysis.
+- Fix Generate Profitability Analysis so revenue and expense uploads open one persisted parent analysis with two traceable source inputs and combined source-row context.
+- Fix paired Profitability dashboards so the command center, KPI cards, Daily Health, Balanced Scorecard, recommendations, and upload history keep Profitability context after async processing, refresh, navigation, and tab changes.
+- Fix paired Profitability reports so revenue plus complete operating-expense uploads derive operating profit and margin, partial expense inputs do not derive operating profit, full source reporting periods display correctly, and COGS, gross profitability, interest, tax, and net profitability stay unavailable when their source inputs are absent.
 - Fix Retail Executive Reports so current stock, reorder status, inventory value, and stock by category use latest store-product inventory snapshots while sales and margin metrics use transaction rows.
 - Fix Generic Business report executive summaries so available gross profit and gross margin are stated separately from unavailable operating and net profitability inputs.
 - Fix Generic Business reports so invoice IDs provide transaction counts and AOV, exact cost fields provide cost totals, and explicit profit fields provide profit and margin without net-profit labeling.
@@ -64,6 +69,10 @@
 - Add comprehensive billing integrity verification with 25 automated checks covering atomic debit protection, idempotency, reserve/settle/release flow, admin entitlement, workspace isolation, and module enforcement.
 - Fix Accountancy upload error handling so non-CSV uploads (PDF, receipts, images, Excel, bank exports) no longer surface as generic `UNEXPECTED_ACCOUNTANCY_UPLOAD_ERROR` when credit engine calls or categorization throw; credit reservation, finalization, and release failures now convert to staged structured errors.
 - Accept `image/heic` receipts and invoices with the `image/heic` MIME type and `.heic` extension alongside JPEG, PNG, and WebP.
+
+### Dev
+
+- Centralize Free plan price labels through the shared billing formatter so pricing validation blocks hardcoded euro amounts in UI files.
 
 ### Fixed
 
