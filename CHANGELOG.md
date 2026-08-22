@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix Standard CSV and Excel uploads so oversized, unsupported, malformed, macro-enabled, empty, or over-limit files fail closed before parser-heavy processing.
 - Fix ordinary Dataset and Report access so customer-data routes require the authenticated owner even when the session has admin or superadmin role metadata.
 - Fix Profitability results so the rich analytics dashboard renders after async processing and page refresh with canonical operating profit and margin values.
 - Fix paired Profitability result actions so two-input analyses omit single-dataset navigation while keeping Profitability and report actions.

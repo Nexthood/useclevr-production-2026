@@ -1,5 +1,10 @@
 import { debugLog } from "@/lib/utils/debug";
 import { parse } from "papaparse";
+import {
+  assertStandardUploadFile,
+  getStandardUploadFileKind,
+  uploadValidationErrorPayload,
+} from "@/lib/upload/upload-security";
 
 export interface ParsedUpload {
   file: File;
@@ -17,7 +22,14 @@ export async function parseUploadForm(request: Request): Promise<ParsedUpload> {
     throw new UploadFormError("No file provided");
   }
 
-  if (!file.name.endsWith(".csv")) {
+  try {
+    await assertStandardUploadFile(file);
+  } catch (error) {
+    const payload = uploadValidationErrorPayload(error, "UPLOAD_FILE_TYPE_INVALID");
+    throw new UploadFormError(`${payload.code}|${payload.message}`);
+  }
+
+  if (getStandardUploadFileKind(file.name) !== "csv") {
     throw new UploadFormError("Only CSV files allowed");
   }
 

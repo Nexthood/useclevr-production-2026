@@ -29,6 +29,12 @@ import {
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
+import {
+  MAX_UPLOAD_ROWS,
+  assertStandardUploadFile,
+  sanitizeUploadFileNameForLog,
+  uploadValidationErrorPayload,
+} from "@/lib/upload/upload-security";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
@@ -217,6 +223,13 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       return fail(UPLOAD_STAGES.FILE_VALIDATED, "No file provided");
     }
 
+    try {
+      await assertStandardUploadFile(uploadFile);
+    } catch (error) {
+      const payload = uploadValidationErrorPayload(error, "UPLOAD_FILE_TYPE_INVALID");
+      return fail(UPLOAD_STAGES.FILE_VALIDATED, `${payload.code}|${payload.message}`);
+    }
+
     if (isTemporaryUploadFileName(uploadFile.name)) {
       return fail(
         UPLOAD_STAGES.FILE_VALIDATED,
@@ -235,7 +248,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         const fileName = file.name.toLowerCase();
         const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
         debugLog("[UPLOAD] file received:", {
-          name: file.name,
+          name: sanitizeUploadFileNameForLog(file.name),
           size: file.size,
           type: file.type,
           isExcel,
@@ -329,29 +342,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
 
     const file = uploadFile;
 
-    // Validate file type (CSV or Excel)
-    const fileName = file.name.toLowerCase();
-    const isCsv = fileName.endsWith(".csv") || file.type.includes("csv");
-    const isExcel =
-      fileName.endsWith(".xlsx") ||
-      fileName.endsWith(".xls") ||
-      file.type.includes("spreadsheet") ||
-      file.type.includes("excel") ||
-      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-      file.type === "application/vnd.ms-excel";
-    if (!isCsv && !isExcel) {
-      return fail(
-        UPLOAD_STAGES.FILE_VALIDATED,
-        "File must be a CSV or Excel file (.csv, .xlsx, .xls)",
-      );
-    }
-
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      return fail(UPLOAD_STAGES.FILE_VALIDATED, "File size must be less than 50MB");
-    }
-
-    const rowLimit = Number.MAX_SAFE_INTEGER;
+    const rowLimit = MAX_UPLOAD_ROWS;
     debugLog("[UPLOAD] Row limit for user:", rowLimit);
 
     // Use streaming parser to handle large files efficiently
@@ -362,9 +353,10 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       parseResult = await parseCSVStreaming(file, rowLimit);
     } catch (parseError) {
       debugError("[UPLOAD] File parsing failed:", parseError);
+      const payload = uploadValidationErrorPayload(parseError, "FILE_PROCESSING_ERROR");
       return fail(
         UPLOAD_STAGES.FILE_PARSED,
-        "FILE_PROCESSING_ERROR|Unable to parse this CSV or Excel file. Check that it has a header row and at least one data row, then try again.",
+        `${payload.code}|${payload.message}`,
       );
     }
 
@@ -417,7 +409,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     const datasetId = isProfitabilityUpload && requestedProfitabilityAnalysisId
       ? requestedProfitabilityAnalysisId
       : `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
-    const datasetName = file.name.replace(/\.csv$/i, "");
+    const datasetName = file.name.replace(/\.(csv|xlsx|xls)$/i, "");
     let uploadCreditOperationId: string | null = null;
 
     if (uploadUsage.unlimited) {

@@ -1,3 +1,34 @@
+## Standard Upload Resource Limits
+
+1. Interaction title
+Standard Upload resource limits.
+
+2. What was the user goal
+Harden Standard CSV/XLS/XLSX upload validation so oversized, unsupported, malformed, macro-enabled, empty, or row/column over-limit files fail before parser-heavy processing.
+
+3. What changed
+Standard upload paths use one shared upload-security module for file-size, extension, MIME compatibility, temporary filename, CSV structure, Excel signature, worksheet, row, and column validation. The standard parser validates before `file.text()`, full `file.arrayBuffer()`, `XLSX.read`, and `sheet_to_json` where practical, rejects macro-enabled extensions, reads Excel values without retaining formulas or VBA data, and returns stable upload error codes with `413` for oversized files and `422` for invalid structures or unsupported limits.
+
+4. Problems marked
+- blocker: none.
+- risk: Older non-server browser/file-path helpers still contain legacy parsing code, but the Standard upload API and canonical upload action route through the hardened parser path.
+- improvement: Move any future upload entry point to the shared upload-security module before accepting customer files.
+- observation: The previous Standard upload validator accepted files based on MIME substrings such as `spreadsheet` or `excel`, and the parser could read file content before enforcing a central server-side size limit.
+
+5. User learning
+Standard uploads now require extension evidence plus compatible metadata and lightweight structure checks instead of trusting client-provided MIME values.
+
+6. AI-agent learning
+Upload hardening belongs at the shared parser boundary and the API status mapper so every normal Standard upload entry point returns the same stable failure codes.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Local Retail Inventory Snapshot Semantics
 
 1. Interaction title

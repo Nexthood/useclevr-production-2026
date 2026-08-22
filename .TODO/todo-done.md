@@ -63,6 +63,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1021. Standard CSV and Excel uploads enforce centralized server-side size, type, structure, worksheet-bound, and parser resource limits before heavy file reads. (labels: upload, security, testing; commit: worktree)
 - T-1020. Ordinary Dataset and Report access enforces requested dataset ownership for the authenticated user and ignores admin or superadmin roles in customer-data routes. (labels: security, data, reports, testing; commit: 090a5718)
 - T-1019. Paired Profitability result actions omit single-dataset navigation while keeping Open Profitability, Upload Another File, and report generation actions. (labels: upload, ui, testing; commit: 74e31041)
 - T-1018. Profitability refresh routing resolves active parent analysis identifiers before child dataset identifiers and keeps parent-scoped report generation after rich dashboard hydration. (labels: upload, dashboard, reports, testing; commit: 71048656)
