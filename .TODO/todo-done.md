@@ -259,7 +259,7 @@ moving work between states.
 
 ## Label: api
 
-- T-1022. The external Public AI API returns a generic production 404 before exposing authentication, action, or dataset-processing behavior. (labels: api, security, ai, testing; commit: worktree)
+- T-1022. The external Public AI API returns a generic production 404 before exposing authentication, action, or dataset-processing behavior. (labels: api, security, ai, testing; commit: 7981ac1e)
 - T-786. Remove orphaned dataset comparison, alert, and live-refresh API routes that expose non-persistent or no-op production behavior. (labels: api, data, quality; commit: worktree)
 - T-782. Require authentication and dataset ownership for upload and direct dataset query operations. (labels: api, auth, upload, security; commit: worktree)
 - T-598. Remove remaining `any` types in API routes — replaced `any` types in `src/app/api/analyze/route.ts` with proper types. (labels: api, workflow; commit: 5b62cb31)
