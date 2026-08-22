@@ -79,6 +79,7 @@
 
 ### Dev
 
+- Pin CI workflow actions to immutable upstream commits and run the existing moderate-threshold dependency audit in source validation.
 - Centralize Free plan price labels through the shared billing formatter so pricing validation blocks hardcoded euro amounts in UI files.
 
 ### Fixed

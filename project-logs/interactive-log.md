@@ -1,3 +1,34 @@
+## GitHub Actions Supply-Chain Hardening
+
+1. Interaction title
+GitHub Actions supply-chain hardening.
+
+2. What was the user goal
+Pin third-party GitHub Actions to immutable commit SHAs, add the existing moderate-threshold dependency audit to CI, apply least-privilege permissions for validation workflows, and avoid application/runtime/business logic changes.
+
+3. What changed
+Workflow and composite-action references to `actions/checkout@v6`, `actions/setup-node@v6`, and `actions/github-script@v9` now use full upstream commit SHAs with readable version comments. The source validation workflow runs `pnpm audit --audit-level=moderate` without suppression before tests and build. Validation-only workflows declare `contents: read`, while deployment and auto-merge workflows keep write permissions needed for branch publishing, PR merging, and workflow dispatch. The workflow health check now scans `.github/workflows/` and `.github/actions/`, rejects mutable external action refs, requires exact allowed SHAs, requires readable version comments, enforces frozen installs, and verifies the CI audit command is not suppressed.
+
+4. Problems marked
+- blocker: none.
+- risk: CI now fails until current dependency audit findings are remediated or explicitly reviewed.
+- improvement: Review dependency audit findings in a dedicated dependency-remediation task instead of bundling package upgrades into workflow hardening.
+- observation: `pnpm audit --audit-level=moderate` reports 84 vulnerabilities: 3 critical, 32 high, 41 moderate, and 8 low.
+
+5. User learning
+The CI supply-chain gate is active and fails on current moderate-or-higher audit findings, which makes dependency risk visible before source validation passes.
+
+6. AI-agent learning
+Workflow supply-chain fixes should pin external action refs with upstream commit SHAs and update local workflow policy tests so mutable refs cannot re-enter through composite actions.
+
+7. Follow-up tasks
+- Review and remediate dependency audit findings for Auth.js, Next.js, SheetJS, Payload transitive packages, DOMPurify, Sharp, PostCSS, and workflow tooling without broad unreviewed dependency upgrades. (labels: security, ci-build, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Production Security Headers
 
 1. Interaction title

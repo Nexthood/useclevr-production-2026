@@ -221,6 +221,7 @@ into the active queue.
 
 ## Label: security
 
+- Review and remediate dependency audit findings for Auth.js, Next.js, SheetJS, Payload transitive packages, DOMPurify, Sharp, PostCSS, and workflow tooling without broad unreviewed dependency upgrades. (labels: security, ci-build, testing)
 - Re-enable the external Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, abuse controls, and audit logging are implemented. (labels: security, api, ai, monitoring)
 - Create API rate limiting per user. (labels: security, api, performance)
 - Add a security audit that confirms user-uploaded files, prompt text, and generated exports stay outside AI context and public static paths. (labels: security, ai, data, upload)
@@ -228,7 +229,6 @@ into the active queue.
 - Clean env usage, remove exposed secrets, add upload limits, add rate limits, review admin routes, and prepare basic GDPR/privacy notes. (labels: security, billing, api, upload)
 - Add Content Security Policy (CSP) headers with nonce-based script and style allowlisting. (labels: security, content)
 - Implement rate limiting on all API endpoints using Redis-backed sliding window counter. (labels: security, api, performance)
-- Add security scanning dependencies and integrate with CI pipeline for vulnerability detection. (labels: security, ci-build)
 - Add audit logging for sensitive operations (user data access, permission changes, financial transactions). (labels: security, auth, business, data)
 - Store external API keys in a persistent, owner-scoped table with hashed key values, expiry, revocation, last-used tracking, and audit logging. (labels: security, api, dashboard, ui)
 - Implement API gateway with request/response validation and threat protection. (labels: security, api, deployment)
