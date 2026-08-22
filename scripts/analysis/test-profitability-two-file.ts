@@ -132,6 +132,11 @@ async function main() {
   })
 
   assert(analysis.status === "ready", "Paired files should produce ready analysis")
+  assert(analysis.profitabilityAnalysisId === "pa_profitability_pair_a", "Paired files should retain the parent profitability analysis id")
+  assert(analysis.sourceFiles.length === 2, "Paired analysis should expose two source inputs")
+  assert(analysis.sourceFiles.reduce((total, sourceFile) => total + sourceFile.rowCount, 0) === revenueFile.rows.length + expensesFile.rows.length, "Paired analysis source rows should sum both child inputs")
+  assert(analysis.sourceFiles.some((sourceFile) => sourceFile.role === "revenue" && sourceFile.name === revenueFile.name), "Paired analysis should preserve the revenue input")
+  assert(analysis.sourceFiles.some((sourceFile) => sourceFile.role === "expenses" && sourceFile.name === expensesFile.name), "Paired analysis should preserve the expense input")
   assert(analysis.matchKey === "period_department", "Files should match on period + department")
   nearlyEqual(analysis.totalRevenue, 10000, "Revenue")
   nearlyEqual(analysis.cogs, 4000, "COGS")

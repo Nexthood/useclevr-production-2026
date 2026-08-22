@@ -27,12 +27,16 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
     columnCount: number
     analysis: unknown
     precomputedMetrics: unknown
+    columnMapping: unknown
     datasetType: string | null
   } | null = null
 
   const resolvedSearchParams = await searchParams
   const rawDatasetId = resolvedSearchParams?.datasetId
+  const rawAnalysisId = resolvedSearchParams?.analysisId
   const focusedDatasetId = Array.isArray(rawDatasetId) ? rawDatasetId[0] : rawDatasetId
+  const focusedAnalysisId = Array.isArray(rawAnalysisId) ? rawAnalysisId[0] : rawAnalysisId
+  const focusedParentId = focusedDatasetId || focusedAnalysisId
 
   if (userId) {
     const db = getDb()
@@ -41,15 +45,17 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
         const profitabilityDatasets = await db.query.datasets.findMany({
           where: eq(datasets.userId, userId),
           columns: {
+            id: true,
             datasetType: true,
             analysis: true,
+            precomputedMetrics: true,
           },
         })
 
-        if (focusedDatasetId) {
+        if (focusedParentId) {
           const datasetWhere = session?.user?.role === "superadmin"
-            ? eq(datasets.id, focusedDatasetId)
-            : and(eq(datasets.id, focusedDatasetId), eq(datasets.userId, userId))
+            ? eq(datasets.id, focusedParentId)
+            : and(eq(datasets.id, focusedParentId), eq(datasets.userId, userId))
           focusedDataset = await db.query.datasets.findFirst({
             where: datasetWhere,
             columns: {
@@ -60,17 +66,40 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
               columnCount: true,
               analysis: true,
               precomputedMetrics: true,
+              columnMapping: true,
               datasetType: true,
             },
           }) ?? null
           if (focusedDataset && resolveDatasetType(focusedDataset.datasetType, focusedDataset.analysis) !== "profitability") {
             focusedDataset = null
           }
+
+          if (!focusedDataset && focusedAnalysisId) {
+            const candidateDatasets = await db.query.datasets.findMany({
+              where: eq(datasets.userId, userId),
+              columns: {
+                id: true,
+                name: true,
+                fileName: true,
+                rowCount: true,
+                columnCount: true,
+                analysis: true,
+                precomputedMetrics: true,
+                columnMapping: true,
+                datasetType: true,
+              },
+            })
+            focusedDataset = candidateDatasets.find((dataset) =>
+              resolveDatasetType(dataset.datasetType, dataset.analysis) === "profitability" &&
+              getProfitabilityAnalysisId(dataset) === focusedAnalysisId
+            ) ?? null
+          }
         }
 
-        _activeDatasets = profitabilityDatasets.filter((dataset) =>
-          resolveDatasetType(dataset.datasetType, dataset.analysis) === "profitability"
-        ).length
+        _activeDatasets = new Set(profitabilityDatasets
+          .filter((dataset) => resolveDatasetType(dataset.datasetType, dataset.analysis) === "profitability")
+          .map((dataset) => getProfitabilityAnalysisId(dataset) || dataset.id)
+        ).size
       } catch {
         // Continue without stats
       }
@@ -78,6 +107,10 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
   }
 
   const metricsContent = focusedDataset ? renderProfitabilityMetrics(focusedDataset.precomputedMetrics as Record<string, unknown> | null) : null
+  const sourceInputs = focusedDataset ? getProfitabilitySourceInputs(focusedDataset) : []
+  const sourceRowCount = sourceInputs.length > 0
+    ? sourceInputs.reduce((total, input) => total + input.rowCount, 0)
+    : focusedDataset?.rowCount ?? 0
 
   return (
     <DashboardSubpageLayout
@@ -103,22 +136,33 @@ export default async function ProfitabilityPage({ searchParams }: ProfitabilityP
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-200">
-                    Routed profitability dataset
+                    Profitability analysis
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-foreground">
-                    {focusedDataset.name || focusedDataset.fileName}
+                    Revenue + Expense Analysis
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    This upload is saved in Profitability so revenue and expense analysis stays separate from the main Dashboard.
+                    This parent analysis combines revenue and expense inputs while preserving each source file.
                   </p>
                 </div>
                 <div className="grid gap-2 text-sm sm:grid-cols-2 lg:min-w-80">
-                  <ProfileContextRow label="Rows" value={focusedDataset.rowCount.toLocaleString()} />
-                  <ProfileContextRow label="Columns" value={focusedDataset.columnCount.toLocaleString()} />
+                  <ProfileContextRow label="Inputs" value={String(sourceInputs.length || 1)} />
+                  <ProfileContextRow label="Source Rows" value={sourceRowCount.toLocaleString()} />
                   <ProfileContextRow label="Type" value="Profitability Analysis" />
                   <ProfileContextRow label="Status" value={metricsContent ? "Analyzed" : "Ready for review"} />
                 </div>
               </div>
+              {sourceInputs.length > 0 && (
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  {sourceInputs.map((input) => (
+                    <div key={`${input.role}-${input.name}`} className="rounded-lg border border-border bg-background/80 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{input.label}</p>
+                      <p className="mt-2 truncate text-sm font-semibold text-foreground" title={input.name}>{input.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{input.rowCount.toLocaleString()} rows</p>
+                    </div>
+                  ))}
+                </div>
+              )}
               {metricsContent && (
                 <div className="mt-5 flex flex-wrap items-center gap-2">
                   <GenerateReportAction datasetId={focusedDataset.id} label="Generate / Regenerate Report" />
@@ -267,4 +311,52 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
       <span className="max-w-[12rem] text-right font-medium text-foreground">{value || "Not configured"}</span>
     </div>
   )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value))
+}
+
+function getProfitabilityPayload(dataset: { analysis: unknown; precomputedMetrics: unknown; columnMapping?: unknown }) {
+  const analysis = isRecord(dataset.analysis) ? dataset.analysis : {}
+  const nested = isRecord(analysis.profitability) ? analysis.profitability : null
+  if (nested) return nested
+  if (isRecord(dataset.precomputedMetrics)) return dataset.precomputedMetrics
+  if (isRecord(dataset.columnMapping)) return dataset.columnMapping
+  return {}
+}
+
+function getProfitabilityAnalysisId(dataset: { id?: string; analysis: unknown; precomputedMetrics: unknown; columnMapping?: unknown }) {
+  const payload = getProfitabilityPayload(dataset)
+  const analysis = isRecord(dataset.analysis) ? dataset.analysis : {}
+  const metrics = isRecord(dataset.precomputedMetrics) ? dataset.precomputedMetrics : {}
+  const mapping = isRecord(dataset.columnMapping) ? dataset.columnMapping : {}
+  const value =
+    payload.profitabilityAnalysisId ||
+    payload.profitability_analysis_id ||
+    analysis.profitabilityAnalysisId ||
+    analysis.profitability_analysis_id ||
+    metrics.profitabilityAnalysisId ||
+    metrics.profitability_analysis_id ||
+    mapping.profitabilityAnalysisId ||
+    mapping.profitability_analysis_id
+  return typeof value === "string" && value.length > 0 ? value : dataset.id ?? null
+}
+
+function getProfitabilitySourceInputs(dataset: { analysis: unknown; precomputedMetrics: unknown; columnMapping?: unknown }) {
+  const payload = getProfitabilityPayload(dataset)
+  const sourceFiles = Array.isArray(payload.sourceFiles) ? payload.sourceFiles : []
+  return sourceFiles
+    .map((sourceFile) => {
+      if (!isRecord(sourceFile)) return null
+      const role = String(sourceFile.role || "").toLowerCase()
+      const rowCount = Number(sourceFile.rowCount)
+      return {
+        role,
+        label: role === "revenue" ? "Revenue Input" : role === "expenses" ? "Expense Input" : "Source Input",
+        name: String(sourceFile.name || "Uploaded source"),
+        rowCount: Number.isFinite(rowCount) && rowCount > 0 ? rowCount : 0,
+      }
+    })
+    .filter((sourceFile): sourceFile is { role: string; label: string; name: string; rowCount: number } => Boolean(sourceFile))
 }

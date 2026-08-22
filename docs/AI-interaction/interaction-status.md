@@ -4,9 +4,9 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-08-21
-- **Goal**: Fix paired Profitability dashboard context so async completion, refetch, refresh, navigation, and tabs keep the active analysis on Profitability instead of switching to Marketplace or E-Commerce child-file semantics.
-- **Durable change**: Profitability dataset type now outranks persisted child business-model values and automatic schema detection for dashboard model resolution. The Dashboard semantic profile recognizes the Profitability P&L report profile, renders Profitability primary KPIs, suppresses inventory and marketplace fallback semantics, passes Profitability into the Balanced Scorecard preview, labels paired upload history as revenue or expense input, and feeds Daily Health from canonical Profitability metrics.
-- **Verification**: `pnpm test:profitability-two-file` passes with the paired report cases plus a poisoned child-model dashboard regression that stores Marketplace on a Profitability child dataset and still resolves the dashboard profile to Profitability. `pnpm exec tsc --noEmit --pretty false` passes.
+- **Date**: 2026-08-22
+- **Goal**: Fix Generate Profitability Analysis so the revenue and expense upload pair opens one persisted parent Profitability analysis instead of routing to the expense child dataset.
+- **Durable change**: The upload server action persists and updates the stable `pa_...` parent analysis id for paired Profitability uploads, stores both source inputs and combined source rows on that parent, returns the parent id for routing, and the Profitability result page renders the parent analysis with input cards and parent-scoped report actions.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false` passes. `pnpm test:profitability-two-file` passes with parent-id and source-input assertions plus existing Profitability report and dashboard semantics coverage.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

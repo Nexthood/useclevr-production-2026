@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix Generate Profitability Analysis so revenue and expense uploads open one persisted parent analysis with two traceable source inputs and combined source-row context.
 - Fix paired Profitability dashboards so the command center, KPI cards, Daily Health, Balanced Scorecard, recommendations, and upload history keep Profitability context after async processing, refresh, navigation, and tab changes.
 - Fix paired Profitability reports so revenue plus complete operating-expense uploads derive operating profit and margin, partial expense inputs do not derive operating profit, full source reporting periods display correctly, and COGS, gross profitability, interest, tax, and net profitability stay unavailable when their source inputs are absent.
 - Fix Retail Executive Reports so current stock, reorder status, inventory value, and stock by category use latest store-product inventory snapshots while sales and margin metrics use transaction rows.

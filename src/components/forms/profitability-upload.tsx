@@ -368,10 +368,16 @@ export function ProfitabilityUpload() {
       }
 
       if (latestResult) {
-        const redirectTo = latestResult.redirectTo || latestResult.redirectUrl || (latestResult.datasetId ? `/app/profitability?datasetId=${latestResult.datasetId}&analysisId=${profitabilityAnalysisId}` : "/app/profitability")
+        const parentAnalysisId = String(
+          latestResult.profitabilityResult?.profitabilityAnalysisId ||
+          latestResult.profitabilityResult?.profitability_analysis_id ||
+          profitabilityAnalysisId
+        )
+        const redirectTo = `/app/profitability?datasetId=${parentAnalysisId}&analysisId=${parentAnalysisId}`
         window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         setUploadResult({
           ...latestResult,
+          datasetId: parentAnalysisId,
           datasetName: latestResult.datasetName || `Profitability - ${new Date().toLocaleDateString()}`,
           datasetType: latestResult.datasetType || latestResult.dataset_type || "profitability",
           rowsProcessed: (revenueFile?.rowCount || 0) + (expenseFile?.rowCount || 0),

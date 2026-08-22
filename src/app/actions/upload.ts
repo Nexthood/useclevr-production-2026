@@ -115,6 +115,32 @@ function isDatabaseConnectionError(error: unknown) {
   );
 }
 
+function parseStringArrayField(formData: FormData, key: string) {
+  const rawValue = formData.get(key);
+  if (typeof rawValue !== "string" || rawValue.trim().length === 0) return [];
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string" && value.length > 0)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function numberFormField(formData: FormData, key: string) {
+  const value = Number(formData.get(key));
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function sourceRowsFromProfitabilityData(profitabilityData: any) {
+  if (!Array.isArray(profitabilityData?.sourceFiles)) return 0;
+  return profitabilityData.sourceFiles.reduce((total: number, file: any) => {
+    const rowCount = Number(file?.rowCount);
+    return total + (Number.isFinite(rowCount) && rowCount > 0 ? rowCount : 0);
+  }, 0);
+}
+
 async function cleanupCreatedUploadDataset(db: NonNullable<ReturnType<typeof getDb>>, datasetId: string) {
   await db.transaction(async (tx) => {
     await tx.delete(datasetRows).where(eq(datasetRows.datasetId, datasetId));
@@ -383,19 +409,35 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       aggregatedMetrics = computePrecomputedMetrics(allRows, headers);
     }
 
-    // Generate dataset ID
-    const datasetId = `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
+    const requestedProfitabilityAnalysisId = String(
+      formData.get("profitability_analysis_id") ||
+      formData.get("profitabilityAnalysisId") ||
+      "",
+    ).trim();
+    const datasetId = isProfitabilityUpload && requestedProfitabilityAnalysisId
+      ? requestedProfitabilityAnalysisId
+      : `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
     const datasetName = file.name.replace(/\.csv$/i, "");
     let uploadCreditOperationId: string | null = null;
 
     if (uploadUsage.unlimited) {
       debugLog("[UPLOAD] Credit reservation bypassed for unlimited role");
     } else {
-      const operationId = `upload:${effectiveUserId}:${datasetId}`;
+      const profitabilityRole = String(
+        formData.get("profitability_file_role") ||
+        formData.get("profitabilityFileRole") ||
+        "",
+      ).trim();
+      const operationId = isProfitabilityUpload
+        ? `upload:${effectiveUserId}:${datasetId}:${profitabilityRole || file.name}:${Date.now()}`
+        : `upload:${effectiveUserId}:${datasetId}`;
+      const uploadIdempotencyKey = isProfitabilityUpload
+        ? `upload:${effectiveUserId}:${datasetId}:${profitabilityRole || file.name}`
+        : `upload:${effectiveUserId}:${datasetId}`;
       const reservation = await reserveCredits({
         userId: effectiveUserId,
         operationId,
-        idempotencyKey: `upload:${effectiveUserId}:${datasetId}`,
+        idempotencyKey: uploadIdempotencyKey,
         estimatedCredits: 1,
         feature: "dataset_upload",
         source: "upload",
@@ -549,16 +591,30 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         analysisError: null,
       };
 
+      const revenueColumns = parseStringArrayField(formData, "revenueColumns");
+      const expenseColumns = parseStringArrayField(formData, "expenseColumns");
+      const combinedProfitabilityColumns = Array.from(new Set([...revenueColumns, ...expenseColumns, ...headers]));
+      const combinedProfitabilityRowCount =
+        sourceRowsFromProfitabilityData(profitabilityData) ||
+        numberFormField(formData, "revenueRowCount") + numberFormField(formData, "expenseRowCount") ||
+        totalRowCount;
+      const parentProfitabilityName = profitabilityData?.hasRevenue && profitabilityData?.hasExpenses
+        ? "Revenue + Expense Analysis"
+        : datasetName;
+      const parentProfitabilityFileName = profitabilityData?.hasRevenue && profitabilityData?.hasExpenses
+        ? "profitability-analysis"
+        : file.name;
+
       const insertData = isProfitabilityAnalysis
         ? {
             id: datasetId,
             userId: effectiveUserId,
-            name: datasetName,
-            fileName: file.name,
+            name: parentProfitabilityName,
+            fileName: parentProfitabilityFileName,
             fileSize: file.size,
-            rowCount: totalRowCount,
-            columnCount: headers.length,
-            columns: headers,
+            rowCount: combinedProfitabilityRowCount,
+            columnCount: combinedProfitabilityColumns.length,
+            columns: combinedProfitabilityColumns,
             data: [],
             columnTypes: {},
             datasetType,
@@ -671,11 +727,31 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
       debugLog("[UPLOAD] ============================");
 
       try {
-        await executeWithRetry(
-          () => (db as any).insert(datasets).values(insertData),
-          "Insert dataset",
-        );
-        debugLog("[UPLOAD] Dataset created with", totalRowCount, "rows");
+        const existingProfitabilityParent = isProfitabilityAnalysis
+          ? await db.query.datasets.findFirst({
+              where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
+              columns: { id: true },
+            })
+          : null;
+
+        if (existingProfitabilityParent) {
+          const { id: _id, userId: _userId, createdAt: _createdAt, ...updateData } = insertData as any;
+          await executeWithRetry(
+            () =>
+              (db as any)
+                .update(datasets)
+                .set({ ...updateData, updatedAt: now })
+                .where(and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId))),
+            "Update profitability parent analysis",
+          );
+          debugLog("[UPLOAD] Profitability parent analysis updated with", combinedProfitabilityRowCount, "source rows");
+        } else {
+          await executeWithRetry(
+            () => (db as any).insert(datasets).values(insertData),
+            "Insert dataset",
+          );
+          debugLog("[UPLOAD] Dataset created with", isProfitabilityAnalysis ? combinedProfitabilityRowCount : totalRowCount, "rows");
+        }
         debugLog("[UPLOAD] dataset saved:", datasetId);
         if (isProfitabilityAnalysis) {
           debugLog("[UPLOAD] result saved:", datasetId);
@@ -747,7 +823,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
         const rowsForBusinessIntelligence = (
           isProfitabilityAnalysis ? previewRows : useStreamingStorage ? previewRows : allRows
         ) as Record<string, unknown>[];
-        if (rowsForBusinessIntelligence.length > 0) {
+        if (!isProfitabilityAnalysis && rowsForBusinessIntelligence.length > 0) {
           try {
             debugLog("[UPLOAD] Running Business Intelligence Engine Phase 1:", datasetId);
             const businessIntelligence = await generateBusinessIntelligence({

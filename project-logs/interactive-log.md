@@ -4327,6 +4327,40 @@ For paired upload reports, carry metric provenance through analyzer, persistence
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Paired Profitability Parent Analysis Routing
+
+1. Interaction title
+Paired Profitability parent analysis routing.
+
+2. What was the user goal
+Fix Generate Profitability Analysis so the generated route, result page, Dashboard context, and report actions use one parent Profitability analysis instead of the last uploaded expense child dataset.
+
+3. What changed
+The Profitability upload click handler routes to the stable `pa_...` parent analysis id. The upload server action uses the submitted parent analysis id as the persisted Profitability dataset id, inserts it on the first child upload, updates it on the second child upload, stores combined metrics, stores combined source rows, stores source-file provenance, and skips child-file Business Intelligence profile enrichment for Profitability parent rows. The Profitability page resolves `datasetId` or `analysisId`, renders `Profitability analysis`, shows `Revenue + Expense Analysis`, displays source input cards, and uses the parent id for report generation and downloads.
+
+4. Problems marked
+blocker: none.
+risk: authenticated browser upload verification still needs the beta deployment or a local signed-in session with the large private CSV files.
+observation: the root cause was client routing from the final upload response; because expenses upload last, the old route used the expense child `datasetId` even though the paired calculations were already correct.
+
+5. User learning
+Paired Profitability ownership must be a parent analysis record; revenue and expense files are source inputs with provenance, not owning analyses.
+
+6. AI-agent learning
+When a multi-file upload loop persists through a single-file upload API, the response contract must return the stable parent id on every child request and the client must route from the parent id, not the final child response.
+
+7. Follow-up tasks
+- Verify the signed-in large paired Profitability upload on beta after CI publishes `dist-test`.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Paired Profitability Dashboard Context
 
 1. Interaction title
