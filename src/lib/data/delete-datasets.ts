@@ -1,5 +1,4 @@
 import { recordActivity } from "@/lib/activity/activity-store"
-import { canAccessAllDatasets } from "@/lib/data/dataset-access"
 import { deleteFile } from "@/lib/data/upload-handler"
 import { db } from "@/lib/db"
 import {
@@ -64,7 +63,7 @@ export async function deleteDatasetsForUser({
   datasetIds,
   userId,
   userEmail,
-  role,
+  role: _role,
 }: DeleteDatasetsInput): Promise<DeleteDatasetsResult> {
   const requestedIds = sanitizeDatasetIds(datasetIds)
   if (requestedIds.length === 0) {
@@ -82,12 +81,8 @@ export async function deleteDatasetsForUser({
     }
   }
 
-  const canDeleteAcrossUsers = canAccessAllDatasets(role)
-
   const accessibleDatasets = await db.query.datasets.findMany({
-    where: canDeleteAcrossUsers
-      ? inArray(datasets.id, requestedIds)
-      : and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds)),
+    where: and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds)),
     columns: {
       id: true,
       userId: true,

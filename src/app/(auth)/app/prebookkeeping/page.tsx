@@ -57,11 +57,8 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
         })
 
         if (focusedDatasetId) {
-          const datasetWhere = session?.user?.role === "superadmin"
-            ? eq(datasets.id, focusedDatasetId)
-            : and(eq(datasets.id, focusedDatasetId), eq(datasets.userId, userId))
           focusedDataset = await db.query.datasets.findFirst({
-            where: datasetWhere,
+            where: and(eq(datasets.id, focusedDatasetId), eq(datasets.userId, userId)),
             columns: {
               id: true,
               name: true,

@@ -57,7 +57,7 @@ async function handleAnalyticalQuery(
 ): Promise<Response> {
   debugLog('[CHAT] Question requires verified computation');
 
-  const validation = await validateDatasetId(datasetId);
+  const validation = await validateDatasetId(datasetId, userId);
   if (!validation.valid) {
     return NextResponse.json(
       { success: false, error: 'No active dataset selected or invalid ID', reason: validation.error },
@@ -70,13 +70,13 @@ async function handleAnalyticalQuery(
   } else {
     debugLog('[STRICT_SQL] Executing strict SQL for:', lastMessage);
   }
-  const sqlResult = await executeStrictSQL(datasetId, lastMessage);
+  const sqlResult = await executeStrictSQL(datasetId, lastMessage, userId);
 
   if (!sqlResult.success) {
     debugLog('[STRICT_SQL] Failed:', sqlResult.error);
 
     const dataset = await db!.query.datasets.findFirst({
-      where: eq(datasets.id, datasetId),
+      where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
     });
     const availableCols = (dataset?.columns as string[]) || [];
 

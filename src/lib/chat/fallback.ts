@@ -8,7 +8,7 @@ import {
   logDefaultCloudFallback,
   logUniversalAiResponse,
 } from '@/lib/ai/universal-ai-adapter';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { google } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
 import { normalizeProviderUsage, type ProviderUsage } from '@/lib/billing/provider-usage';
@@ -37,14 +37,14 @@ interface DatasetInfo {
   columns: string[];
 }
 
-async function fetchDatasetForChat(datasetId?: string): Promise<{
+async function fetchDatasetForChat(datasetId?: string, userId?: string): Promise<{
   datasetInfo: DatasetInfo | null;
   rows: any[];
 }> {
-  if (!datasetId) return { datasetInfo: null, rows: [] };
+  if (!datasetId || !userId) return { datasetInfo: null, rows: [] };
 
   const dataset = await db!.query.datasets.findFirst({
-    where: eq(datasets.id, datasetId),
+    where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
   });
 
   if (!dataset) return { datasetInfo: null, rows: [] };
@@ -241,7 +241,7 @@ export async function handleRegularChat(
   providerStatus?: ChatProviderStatus;
   usage?: ProviderUsage;
 }> {
-  const { datasetInfo, rows } = await fetchDatasetForChat(datasetId);
+  const { datasetInfo, rows } = await fetchDatasetForChat(datasetId, userId);
 
   let datasetRowsData = rows;
   if (processedData && Array.isArray(processedData) && processedData.length > 0) {
@@ -359,7 +359,7 @@ export async function handleRegularChatStream(
   appSearchResults: AppSearchResult[] = [],
   userId?: string,
 ): Promise<ReadableStream<string>> {
-  const { datasetInfo, rows } = await fetchDatasetForChat(datasetId);
+  const { datasetInfo, rows } = await fetchDatasetForChat(datasetId, userId);
 
   let datasetRowsData = rows;
   if (processedData && Array.isArray(processedData) && processedData.length > 0) {

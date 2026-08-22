@@ -9,9 +9,9 @@ import {
   formatPercentValue,
   normalizeCurrencyValue,
 } from '@/lib/data/queryEngine';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
-export async function executeStrictSQL(datasetId: string, question: string): Promise<{
+export async function executeStrictSQL(datasetId: string, question: string, userId: string): Promise<{
   success: boolean;
   sql?: string;
   result?: any;
@@ -20,7 +20,7 @@ export async function executeStrictSQL(datasetId: string, question: string): Pro
   debugLog('[STRICT_SQL] Generating SQL for question:', question);
 
   const dataset = await db!.query.datasets.findFirst({
-    where: eq(datasets.id, datasetId),
+    where: and(eq(datasets.id, datasetId), eq(datasets.userId, userId)),
   });
 
   if (!dataset) {
