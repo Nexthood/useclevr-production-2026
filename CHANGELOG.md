@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix the external Public AI API so production requests return a generic 404 until launch-ready key storage, permissions, limits, abuse controls, and audit logging are implemented.
 - Fix Standard CSV and Excel uploads so oversized, unsupported, malformed, macro-enabled, empty, or over-limit files fail closed before parser-heavy processing.
 - Fix ordinary Dataset and Report access so customer-data routes require the authenticated owner even when the session has admin or superadmin role metadata.
 - Fix Profitability results so the rich analytics dashboard renders after async processing and page refresh with canonical operating profit and margin values.

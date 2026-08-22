@@ -1,3 +1,34 @@
+## Public AI Production Disable
+
+1. Interaction title
+Public AI production disable.
+
+2. What was the user goal
+Temporarily disable only `/api/public/ai` in production while keeping the implementation available for later hardening.
+
+3. What changed
+The Public AI route returns a generic 404 at the start of both `POST` and `GET` handlers when `NODE_ENV` is production. The guard runs before API-key reads, request-body parsing, available-action metadata, and analyze, investigate, predict, or compare handlers. A focused regression verifies the guard order and confirms the generic production response does not disclose authentication format, action names, or public API metadata.
+
+4. Problems marked
+- blocker: none.
+- risk: none.
+- improvement: Re-enable the Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, usage and abuse controls, and audit logging are implemented.
+- observation: The existing development GET response intentionally remains in the file for later implementation work, but production requests no longer reach it.
+
+5. User learning
+The current launch excludes the external Public AI API even though the dormant implementation stays available in source.
+
+6. AI-agent learning
+Public-route launch toggles that protect unreleased APIs should fail closed before any authentication, request parsing, or capability metadata runs.
+
+7. Follow-up tasks
+- Re-enable the external Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, abuse controls, and audit logging are implemented. (labels: security, api, ai, monitoring)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Standard Upload Resource Limits
 
 1. Interaction title

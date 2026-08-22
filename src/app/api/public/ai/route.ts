@@ -17,7 +17,15 @@ import { NextResponse } from 'next/server';
 // MAIN ROUTER
 // ============================================================================
 
+function disabledInProductionResponse() {
+  if (process.env.NODE_ENV !== 'production') return null;
+  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+}
+
 export async function POST(request: Request) {
+  const disabledResponse = disabledInProductionResponse();
+  if (disabledResponse) return disabledResponse;
+
   try {
     const apiKeyHeader = request.headers.get('x-api-key');
     if (!apiKeyHeader) {
@@ -178,6 +186,9 @@ async function handleCompare(body: { action: string; dataset1: unknown[]; datase
 // ============================================================================
 
 export async function GET() {
+  const disabledResponse = disabledInProductionResponse();
+  if (disabledResponse) return disabledResponse;
+
   return NextResponse.json({
     name: 'UseClevr AI Data API',
     version: '1.0.0',

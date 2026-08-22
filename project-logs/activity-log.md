@@ -1,3 +1,4 @@
+- fixed: disable the external Public AI API in production with generic 404 responses before authentication, action metadata, or dataset-processing handlers run
 - fixed: harden Standard CSV and Excel uploads with centralized server-side size, extension, MIME compatibility, file signature, row, column, worksheet, and parser error handling before heavy file reads
 - fixed: enforce authenticated-owner checks for ordinary Dataset and Report customer-data routes, including report generation, private report downloads, dataset detail helpers, pre-bookkeeping dataset actions, Profitability focused analysis reads, and dataset chat helpers.
 - fixed: hide View Dataset from completed paired Profitability result actions while keeping Open Profitability, Upload Another File, and Generate / Regenerate Report available.
