@@ -1,3 +1,34 @@
+## Production Security Headers
+
+1. Interaction title
+Production security headers.
+
+2. What was the user goal
+Add production security headers safely through the existing Next.js config and proxy architecture, including CSP, HTTPS-only HSTS, browser permission restrictions, and no global wildcard CORS.
+
+3. What changed
+Security headers now come from one shared helper used by `next.config.mjs` and `src/proxy.ts`. Runtime responses receive CSP plus base security headers through the proxy, and HSTS is added only for production HTTPS requests. The production CSP starts from `default-src 'self'`, blocks objects and framing, restricts production browser connections to same-origin, allows Google Fonts for styles/fonts, allows configured S3/R2 image origins when present, and allows Stripe/Square only as form-action destinations. A focused regression checks header values, CSP directives, HSTS conditions, no wildcard CORS in the touched header paths, and the existing `/api/public/ai` production 404 guard.
+
+4. Problems marked
+- blocker: none.
+- risk: Payload admin still needs inline styles, so `/admin` keeps `style-src 'unsafe-inline'` while non-admin routes use the nonce path.
+- improvement: Add an integration test against the deployed test host after CI publishes `beta` to `dist-test`.
+- observation: Stripe and Square checkout/OAuth flows use redirects or server-side calls in the current app, so CSP does not need broad browser connect permissions for those providers.
+
+5. User learning
+Production browser responses now carry explicit hardening headers without exposing the dormant Public AI API or opening global CORS.
+
+6. AI-agent learning
+App-wide header work should reuse the existing Next config and proxy entry points, keep HSTS request-aware where possible, and test CSP compatibility as source-level policy instead of duplicating route-specific headers.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Sensitive Logging Redaction
 
 1. Interaction title

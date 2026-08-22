@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix production browser hardening so app responses send security headers, a restrictive CSP, HTTPS-only HSTS, and no global wildcard CORS.
 - Fix chat, analysis, SQL, and email-verification diagnostics so logs keep useful metadata without recording complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets.
 - Fix credit top-up checkout so supplied workspace identifiers must belong to the authenticated user's accessible workspaces before payment metadata is created.
 - Fix the external Public AI API so production requests return a generic 404 until launch-ready key storage, permissions, limits, abuse controls, and audit logging are implemented.
