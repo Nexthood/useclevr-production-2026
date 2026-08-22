@@ -1,3 +1,34 @@
+## Auth Dependency Security Patch
+
+1. Interaction title
+Auth dependency security patch.
+
+2. What was the user goal
+Patch only the confirmed `next-auth` and transitive `@auth/core` vulnerabilities by moving `next-auth` from `5.0.0-beta.31` to `5.0.0-beta.32`, without changing authentication architecture or unrelated dependencies.
+
+3. What changed
+The dependency manifest now pins `next-auth` to `5.0.0-beta.32`, and the lockfile resolves `@auth/core` to `0.41.3`. No Next.js, Payload, XLSX, Sharp, PostCSS, js-yaml, auth-route, provider, session, verification-code, or Superadmin logic changed.
+
+4. Problems marked
+- blocker: none.
+- risk: Remaining non-auth audit findings still fail the moderate-threshold audit gate until remediated in separate approved patches.
+- improvement: Convert `test:auth-flow` into a non-interactive regression harness or add documented subcommands for CI-friendly signup and login verification.
+- observation: The existing `test:auth-flow` script requires one of `signup-send`, `signup-verify`, `login-send`, or `login-verify`; running it without a command reports its usage requirement.
+
+5. User learning
+The critical Auth.js audit findings are removed while UseClevr keeps the current email-password Credentials provider, JWT session callbacks, protected-route behavior, verification email path, logout UI, and Superadmin helper behavior.
+
+6. AI-agent learning
+For dependency hardening tasks, verify the transitive graph before and after the patch, avoid package-manager broad update commands, and report parameterized test harness limitations explicitly.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## GitHub Actions Supply-Chain Hardening
 
 1. Interaction title
