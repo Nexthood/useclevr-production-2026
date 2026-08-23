@@ -1,0 +1,16 @@
+export async function auth() {
+  return {
+    user: {
+      id: 'super-admin-user-id',
+      email: 'superadmin@useclevr.com',
+      name: 'Csaba Sztoika',
+      role: 'superadmin',
+    },
+  }
+}
+
+export const { handlers, signIn, signOut } = {
+  handlers: {},
+  signIn: async () => {},
+  signOut: async () => {},
+}
