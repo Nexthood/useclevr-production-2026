@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix production page rendering by rolling back Payload CMS from 3.88.0 to 3.85.1 because the 3.88.0 update caused HTTP 500 on all app pages in test.useclevr.com while `/api/health` remained healthy.
 - Fix framework dependencies so production routing, uploads, dashboards, reports, billing, and authentication use the patched Next.js release.
 - Fix authentication dependencies so email-password sessions use the patched Auth.js beta release without changing the login architecture.
 - Fix production browser hardening so app responses send security headers, a restrictive CSP, HTTPS-only HSTS, and no global wildcard CORS.

@@ -1,3 +1,34 @@
+## Payload Rollback to 3.85.1
+
+1. Interaction title
+Payload 3.88.0 production regression rollback.
+
+2. What was the user goal
+Rollback the Payload CMS family from 3.88.0 to the known-good 3.85.1 because the 3.88.0 security-patch update caused HTTP 500 on all normal pages in test.useclevr.com while `/api/health` remained healthy.
+
+3. What changed
+The dependency manifest pins `payload`, `@payloadcms/db-postgres`, `@payloadcms/next`, `@payloadcms/plugin-mcp`, `@payloadcms/plugin-stripe`, `@payloadcms/richtext-lexical`, `@payloadcms/storage-s3`, and `@payloadcms/ui` back to `3.85.1`. The lockfile updates accordingly. No Next.js, next-auth, XLSX, Sharp, Tailwind, PostCSS, nanoid, dompurify, markdownlint, auth, profitability, billing, dashboard, security-header, or CSP code changed. A debug artifact `create-session.mjs` from the previous failed fix was removed.
+
+4. Problems marked
+- blocker: none.
+- risk: This intentionally reverts the Payload 3.88.0 security patch, so that patch's fixes are not present in the deployed test environment until a non-breaking Payload upgrade is available.
+- observation: `/api/health` returned 200 during the regression because it bypasses Payload and uses Drizzle directly; all page routes failed because `src/app/layout.tsx` imports `@payload-config` at module load time.
+
+5. User learning
+Payload 3.88.0 caused a production runtime regression on test.useclevr.com. The known-good production app.useclevr.com runs Payload 3.85.1. Rolling back to 3.85.1 restores normal page rendering.
+
+6. AI-agent learning
+When a dependency security patch causes a production regression, compare the deployed runtime against the last known working commit. In this case the working `dist` branch used Payload 3.85.1 while the broken `dist-test` branch used 3.88.0. Railway CLI auth may be unavailable in some environments, so use GraphQL token auth from `~/.railway/token` for deployment metadata.
+
+7. Follow-up tasks
+- Investigate a non-breaking Payload upgrade path that does not break production page rendering. (labels: payload, dependencies, ci-build)
+- Improve Railway CLI auth debugging for non-interactive environments. (labels: devops, railway)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Next.js Security Patch
 
 1. Interaction title
