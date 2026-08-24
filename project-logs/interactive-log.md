@@ -1,3 +1,34 @@
+## Railway Sharp musl Packaging Fix
+
+1. Interaction title
+Fix Railway sharp 0.35.3 linuxmusl-x64 packaging in dist artifacts.
+
+2. What was the user goal
+Fix the production HTTP 500 on both app.useclevr.com and test.useclevr.com caused by sharp 0.35.3 being deployed with stale Railway musl platform packages for sharp 0.34.5.
+
+3. What changed
+Updated `scripts/package-dist/create-dist.cjs` `ensureSharpMuslPackages()` to use matching musl packages for sharp 0.35.3: `@img/sharp-linuxmusl-x64@0.35.3` and `@img/sharp-libvips-linuxmusl-x64@1.3.2`. No application code, Payload, Next.js, auth, billing, or security policy changed.
+
+4. Problems marked
+- blocker: sharp 0.35.3 was published in `bedc524be` but `create-dist.cjs` still hardcoded `@img+sharp-linuxmusl-x64@0.34.5` and `@img+sharp-libvips-linuxmusl-x64@1.2.4`. Railway's Alpine linuxmusl-x64 runtime could not load the native binary.
+- risk: Both app and test services deploy from `dist/` artifacts built by this script, so both were affected.
+- observation: `/api/health` returned 200 because it bypasses Payload/sharp and uses Drizzle directly. All page routes returned 500 because `payload.config.ts` imports sharp at module load time.
+
+5. User learning
+The sharp musl packaging script must track the installed sharp version exactly. When sharp is patched, the musl platform packages and libvips symlink targets must be updated in lockstep.
+
+6. AI-agent learning
+When a native module packaging script contains hardcoded platform binary versions, always verify they match the declared dependency version after any patch. Railway Alpine runtime failures may not appear in local glibc builds.
+
+7. Follow-up tasks
+- Verify both app.useclevr.com and test.useclevr.com return 200 after redeploy. (labels: production, railway, sharp)
+- Consider deriving musl package versions dynamically from the installed sharp version instead of hardcoding. (labels: ci-build, dist)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Payload 3.85.1 Residual Security Risk Documentation
 
 1. Interaction title
