@@ -88,6 +88,7 @@
 
 ### Fixed
 
+- Fix Railway Alpine runtime sharp loading so app and test deployments use the matching linuxmusl-x64 platform packages for sharp 0.35.3 instead of the stale 0.34.5 musl binary.
 - Add intelligent Accounting AI VAT workflow so Business Profile tax settings drive explainable VAT predictions, exception review, scoped corrections, bulk assignment, and export-ready VAT audit details.
 - Fix Risk Intelligence dataset query so superadmin and all-dataset roles do not pass undefined SQL expressions to the drizzle `and` clause.
 - Fix Retail upload success actions so users continue to Retail analysis or upload another file without opening an unavailable dataset page.
@@ -284,3 +285,4 @@
 - Show plan price and a secure checkout button in the Upgrade to Pro modal, then start Stripe Checkout directly with a visible error if payment setup fails.
 - Center billing review panel to prevent sidebar squeezing on Account/Settings page
 - Fix Retail Inventory Analyst build by using a browser-safe CSV parser in the client component
+

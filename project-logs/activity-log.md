@@ -1,3 +1,4 @@
+- fixed: update Railway sharp musl packaging from 0.34.5/1.2.4 to 0.35.3/1.3.2 so dist artifacts deploy the matching linuxmusl-x64 native binaries and both app.useclevr.com and test.useclevr.com load sharp without crashing
 - added: document Payload 3.85.1 residual security risk with approved advisory allowlist so CI tracks the exact blocked undici and image-size transitive HIGH findings without suppressing new vulnerabilities
 - fixed: rollback Payload CMS family from 3.88.0 to 3.85.1 because the 3.88.0 security-patch update caused HTTP 500 on all app pages in test.useclevr.com; `/api/health` remained healthy because it bypasses Payload, and the known-good production app.useclevr.com still runs 3.85.1
 - fixed: patch `next` to `16.2.11` so confirmed Next.js advisories are absent from audit, critical dependency findings remain at zero, and production build compiles existing routes without changing app logic
@@ -283,3 +284,4 @@
 - fixed: route Generate Profitability Analysis to one stable parent `pa_...` Profitability analysis, update that parent across revenue and expense uploads, display two source inputs with combined source rows, and keep report actions parent-scoped.
 - fixed: keep the existing rich Profitability analytics dashboard as the final parent-analysis view after async processing, navigation, and refresh, with primary KPIs grounded in operating profit and operating margin.
 - changed: centralize Free plan price labels through the shared billing formatter so pricing validation passes without hardcoded euro amounts in UI files.
+
