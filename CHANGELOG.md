@@ -28,6 +28,9 @@
 
 ### Fixed
 
+- Fix production page rendering by rolling back Payload CMS from 3.88.0 to 3.85.1 because the 3.88.0 update caused HTTP 500 on all app pages in test.useclevr.com while `/api/health` remained healthy.
+- Fix framework dependencies so production routing, uploads, dashboards, reports, billing, and authentication use the patched Next.js release.
+- Fix authentication dependencies so email-password sessions use the patched Auth.js beta release without changing the login architecture.
 - Fix production browser hardening so app responses send security headers, a restrictive CSP, HTTPS-only HSTS, and no global wildcard CORS.
 - Fix chat, analysis, SQL, and email-verification diagnostics so logs keep useful metadata without recording complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets.
 - Fix credit top-up checkout so supplied workspace identifiers must belong to the authenticated user's accessible workspaces before payment metadata is created.
@@ -79,6 +82,7 @@
 
 ### Dev
 
+- Document Payload 3.85.1 residual security risk with approved advisory allowlist so CI tracks the exact blocked undici and image-size transitive HIGH findings without suppressing new vulnerabilities.
 - Pin CI workflow actions to immutable upstream commits and run the existing moderate-threshold dependency audit in source validation.
 - Centralize Free plan price labels through the shared billing formatter so pricing validation blocks hardcoded euro amounts in UI files.
 

@@ -151,6 +151,50 @@ async function main() {
   nearlyEqual(analysis.netMargin, 30, "Net margin")
   assert(analysis.grossProfit !== analysis.netProfit, "Gross Profit and Net Profit must remain distinct")
 
+  const userRevenueFile = {
+    role: "revenue" as const,
+    name: "user_revenue.csv",
+    columns: ["month", "revenue_category", "revenue"],
+    rows: [
+      { month: "2026-01", revenue_category: "Product Sales", revenue: 5000 },
+      { month: "2026-02", revenue_category: "Services", revenue: 3000 },
+    ],
+  }
+
+  const userExpenseFile = {
+    role: "expenses" as const,
+    name: "user_expenses.csv",
+    columns: ["month", "expense_category", "expense"],
+    rows: [
+      { month: "2026-01", expense_category: "COGS", expense: 2000 },
+      { month: "2026-01", expense_category: "Rent", expense: 1000 },
+    ],
+  }
+
+  const userSchemaAnalysis = calculateProfitabilityAnalysis({
+    analysisId: "pa_user_schema",
+    revenueFile: userRevenueFile,
+    expensesFile: userExpenseFile,
+  })
+
+  assert(userSchemaAnalysis.status === "ready", "User-schema paired files should produce ready analysis")
+  nearlyEqual(userSchemaAnalysis.totalRevenue, 8000, "User-schema revenue")
+  nearlyEqual(userSchemaAnalysis.totalExpenses, 3000, "User-schema total expenses")
+  nearlyEqual(userSchemaAnalysis.grossProfit, 6000, "User-schema gross profit")
+  nearlyEqual(userSchemaAnalysis.operatingProfit, 5000, "User-schema operating profit")
+  assert(userSchemaAnalysis.netProfit === null, "User-schema net profit must require interest/tax")
+  nearlyEqual(userSchemaAnalysis.grossMargin, 75, "User-schema gross margin")
+  nearlyEqual(userSchemaAnalysis.operatingMargin, 62.5, "User-schema operating margin")
+  assert(userSchemaAnalysis.netMargin === null, "User-schema net margin must require net profit")
+  assert(
+    userSchemaAnalysis.expenseCategories.some(([name]) => name === "COGS"),
+    "User-schema must detect COGS from expense_category column"
+  )
+  assert(
+    userSchemaAnalysis.expenseCategories.some(([name]) => name === "Rent"),
+    "User-schema must detect Rent from expense_category column"
+  )
+
   const unrelatedExpensesFile = {
     ...expensesFile,
     name: "profitability_expenses_unrelated.csv",

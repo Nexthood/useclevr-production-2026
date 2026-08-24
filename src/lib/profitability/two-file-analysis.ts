@@ -306,7 +306,24 @@ export function calculateProfitabilityAnalysis(input: {
 
 function detectColumns(columns: string[]): ColumnMap {
   return {
-    amount: findColumn(columns, [/^amount$/, /revenue/, /sales/, /income/, /^total$/, /expense/, /cost/, /debit/, /value/]),
+    amount: findColumn(columns, [
+      /^amount$/,
+      /^revenue$/,
+      /^sales$/,
+      /^income$/,
+      /^total$/,
+      /^expense$/,
+      /^cost$/,
+      /^debit$/,
+      /^value$/,
+      /revenue/,
+      /sales/,
+      /income/,
+      /expense/,
+      /cost/,
+      /debit/,
+      /value/,
+    ]),
     period: findColumn(columns, [/^period$/, /^month$/, /^date$/, /transaction_date/, /posted_date/, /created_at/, /year/]),
     department: findColumn(columns, [/department/, /^dept$/]),
     companyId: findColumn(columns, [/company_id/, /companyid/, /^company$/]),
@@ -335,10 +352,14 @@ function classifyExpense(category: string, columns: string[]) {
 }
 
 function findColumn(columns: string[], patterns: RegExp[]) {
-  return columns.find((column) => {
-    const normalized = column.toLowerCase().trim().replace(/[_-]+/g, " ")
-    return patterns.some((pattern) => pattern.test(normalized))
-  })
+  for (const pattern of patterns) {
+    const match = columns.find((column) => {
+      const normalized = column.toLowerCase().trim().replace(/[_-]+/g, " ")
+      return pattern.test(normalized)
+    })
+    if (match) return match
+  }
+  return undefined
 }
 
 function positiveAmount(value: unknown) {

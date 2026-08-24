@@ -132,6 +132,7 @@ moving work between states.
 
 ## Label: auth
 
+- T-1027. Authentication uses the patched Auth.js beta dependency pair so email-password credentials, JWT sessions, protected-route checks, email verification, logout, and Superadmin role handling stay on the existing architecture without critical Auth.js advisories. (labels: auth, security, testing; commit: 23650724)
 - T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)
 - T-908. Prefer the Railway social sign-in environment names for Google and LinkedIn provider setup, keep legacy provider names as fallback aliases, and suppress stale OAuth configuration query errors after provider status loads. (labels: auth, deployment, ui; commit: 000129bf)
 - T-907. Hide unconfigured Google and LinkedIn sign-in options on the login page, suppress social-auth configuration alerts when no social provider is enabled, and keep email-password plus demo sign-in available. (labels: auth, ui, stability; commit: worktree)
@@ -488,6 +489,7 @@ moving work between states.
 
 ## Label: security
 
+- T-1028. Next.js uses the patched 16.2 release that removes confirmed framework advisories while app routing, proxy security headers, authentication, uploads, reports, billing checkout, and the production-disabled Public AI route keep their existing behavior. (labels: security, deployment, testing; commit: f67ce2f3)
 - T-1024. Chat, analysis, SQL, and email-verification diagnostics log safe metadata instead of complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets. (labels: security, ai, auth, testing; commit: 60aaeb7d)
 - T-602. Restrict local AI install and agent runtime install routes to development mode or explicit super-admin operations on shared deployments. (labels: security, local-ai, auth, api; commit: worktree)
 - T-603. Validate authentication, Stripe signing, and MCP service secrets from current server-only environment variables at startup without old compatibility aliases or hardcoded fallback tokens. (labels: security, auth, payment, mcp; commit: worktree)
