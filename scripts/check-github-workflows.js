@@ -215,11 +215,16 @@ for (const filePath of [...workflowFiles, ...actionFiles]) {
 
   if (fileName === ".github/workflows/ci.yml") {
     const auditCommand = "pnpm audit --audit-level=moderate";
-    if (!sourceToCheck.includes(auditCommand)) {
-      errors.push(`${fileName}: CI must run ${auditCommand}`);
+    const allowlistCommand = "pnpm audit:allowlist";
+    const hasAudit = sourceToCheck.includes(auditCommand) || sourceToCheck.includes(allowlistCommand);
+    if (!hasAudit) {
+      errors.push(`${fileName}: CI must run ${auditCommand} or ${allowlistCommand}`);
     }
     if (/pnpm audit --audit-level=moderate\s*(\|\||&&\s*true|;\s*true)/.test(sourceToCheck)) {
       errors.push(`${fileName}: CI audit failure must not be suppressed`);
+    }
+    if (/pnpm audit:allowlist\s*(\|\||&&\s*true|;\s*true)/.test(sourceToCheck)) {
+      errors.push(`${fileName}: CI audit allowlist failure must not be suppressed`);
     }
   }
 

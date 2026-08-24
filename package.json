@@ -121,6 +121,7 @@
     "docs:lint": "pnpm lint:docs",
     "audit": "pnpm audit --audit-level=moderate",
     "audit:ci": "pnpm audit --audit-level=moderate --json",
+    "audit:allowlist": "node ./scripts/security/audit-allowlist.cjs",
     "deps:check": "pnpm outdated",
     "health": "pnpm validate && pnpm test:all && pnpm docs:check && pnpm audit",
     "release:check": "pnpm validate && pnpm lint:changelog",

@@ -1,3 +1,34 @@
+## Payload 3.85.1 Residual Security Risk Documentation
+
+1. Interaction title
+Document Payload 3.85.1 residual security risk with CI allowlist.
+
+2. What was the user goal
+Document the exact Payload 3.85.1 transitive HIGH findings that cannot be safely remediated without breaking production, and implement an explicit CI allowlist that permits only those approved advisories while still failing on any new Critical or High vulnerability.
+
+3. What changed
+Added `docs/security/residual-risk-register.md` documenting 7 approved residual advisories: 4 undici HIGHs via Payload transitive dependency (GHSA-vmh5-mc38-953g, GHSA-vxpw-j846-p89q, GHSA-hm92-r4w5-c3mj, GHSA-4cwx-7wf7-3272), 2 image-size HIGHs via Payload transitive dependency (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq), and 1 deferred d3-color HIGH (GHSA-36jr-mh4h-2g58). Added `scripts/security/audit-allowlist.cjs` to enforce the allowlist in CI. Updated `package.json` with `audit:allowlist` script, `.github/workflows/ci.yml` to use `pnpm audit:allowlist`, and `scripts/check-github-workflows.js` to validate the allowlist command.
+
+4. Problems marked
+- blocker: Payload 3.85.1 pins exact versions `undici@7.24.4` and `image-size@2.0.2`. Required patches (`>=7.29.0`, `>=2.0.3`) are outside declared ranges. Payload 3.88.0 caused production HTTP 500 regression.
+- risk: Residual HIGH advisories remain in production until Payload updates transitive dependencies within compatible ranges.
+- observation: `pnpm audit --json` shows 20 advisories: 0 critical, 7 high, 9 moderate, 4 low. The 7 high advisories are all in approved residual allowlist.
+
+5. User learning
+Payload 3.85.1 cannot safely upgrade `undici` or `image-size` because it declares exact versions. The CI allowlist documents the exact approved residual risk while ensuring new Critical/High advisories still fail CI.
+
+6. AI-agent learning
+When a dependency owner pins exact versions that block security patches, document the residual risk with explicit advisory IDs, production exposure analysis, and a CI allowlist that permits only approved findings. Never use `|| true` or suppress unknown vulnerabilities.
+
+7. Follow-up tasks
+- Re-evaluate when Payload publishes a `3.85.x` or `3.88.x` release that updates `undici` and `image-size` within declared compatible ranges. (labels: security, payload, dependencies)
+- Fix test.useclevr.com HTTP 500 on page routes caused by Payload 3.88.0 database schema changes. (labels: production, payload, database)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Payload Rollback to 3.85.1
 
 1. Interaction title

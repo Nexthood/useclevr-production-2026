@@ -82,6 +82,7 @@
 
 ### Dev
 
+- Document Payload 3.85.1 residual security risk with approved advisory allowlist so CI tracks the exact blocked undici and image-size transitive HIGH findings without suppressing new vulnerabilities.
 - Pin CI workflow actions to immutable upstream commits and run the existing moderate-threshold dependency audit in source validation.
 - Centralize Free plan price labels through the shared billing formatter so pricing validation blocks hardcoded euro amounts in UI files.
 

@@ -35,7 +35,7 @@ jobs:
         pnpm validate:types
         pnpm validate:dist
         pnpm lint:package
-        pnpm audit --audit-level=moderate
+        pnpm audit:allowlist
         pnpm test:all
         pnpm build
       needs_postgres: true
