@@ -411,19 +411,41 @@ function ensureSharpMuslPackages(distNmDir) {
 
   // Create symlinks inside sharp@0.35.3/node_modules/@img/ for Node.js require resolution
   const sharpPnpmDir = path.join(pnpmDir, "sharp@0.35.3");
-  if (!fs.existsSync(sharpPnpmDir)) return;
-  const imgDir = path.join(sharpPnpmDir, "node_modules", "@img");
-  if (!fs.existsSync(imgDir)) return;
+  if (!fs.existsSync(sharpPnpmDir)) {
+    let foundSharpPnpmDir = null;
+    if (fs.existsSync(pnpmDir)) {
+      for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+        if (entry.isDirectory() && entry.name.startsWith("sharp@0.35.3")) {
+          foundSharpPnpmDir = path.join(pnpmDir, entry.name);
+          break;
+        }
+      }
+    }
+    if (!foundSharpPnpmDir) return;
+    var sharpImgDir = path.join(foundSharpPnpmDir, "node_modules", "@img");
+    if (!fs.existsSync(sharpImgDir)) return;
 
-  for (const pkg of muslPackages) {
-    const symlinkPath = path.join(imgDir, pkg.npmName.split("/")[1]);
-    if (fs.existsSync(symlinkPath)) continue;
-    // Resolve back up to .pnpm/ then forward into the pnpm store entry
-    // From: sharp@0.35.3/node_modules/@img/
-    // To:   ../../../@img+sharp-linuxmusl-x64@0.35.3/node_modules/@img/sharp-linuxmusl-x64
-    const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
-    fs.symlinkSync(target, symlinkPath, "junction");
-    console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
+    for (const pkg of muslPackages) {
+      const symlinkPath = path.join(sharpImgDir, pkg.npmName.split("/")[1]);
+      if (fs.existsSync(symlinkPath)) continue;
+      const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
+      fs.symlinkSync(target, symlinkPath, "junction");
+      console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
+    }
+  } else {
+    const imgDir = path.join(sharpPnpmDir, "node_modules", "@img");
+    if (!fs.existsSync(imgDir)) return;
+
+    for (const pkg of muslPackages) {
+      const symlinkPath = path.join(imgDir, pkg.npmName.split("/")[1]);
+      if (fs.existsSync(symlinkPath)) continue;
+      // Resolve back up to .pnpm/ then forward into the pnpm store entry
+      // From: sharp@0.35.3/node_modules/@img/
+      // To:   ../../../@img+sharp-linuxmusl-x64@0.35.3/node_modules/@img/sharp-linuxmusl-x64
+      const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
+      fs.symlinkSync(target, symlinkPath, "junction");
+      console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
+    }
   }
 }
 

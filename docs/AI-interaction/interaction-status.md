@@ -11,3 +11,4 @@ Update this file after every completed AI interaction.
 - **Residual risk**: 7 approved HIGH advisories remain documented in `docs/security/residual-risk-register.md` and enforced by `scripts/security/audit-allowlist.cjs`.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
+

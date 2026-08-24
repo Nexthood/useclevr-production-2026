@@ -4943,3 +4943,4 @@ Generic business regression tests must include `invoice_id`, exact `cost`, and e
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+

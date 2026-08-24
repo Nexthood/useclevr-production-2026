@@ -284,3 +284,4 @@
 - fixed: route Generate Profitability Analysis to one stable parent `pa_...` Profitability analysis, update that parent across revenue and expense uploads, display two source inputs with combined source rows, and keep report actions parent-scoped.
 - fixed: keep the existing rich Profitability analytics dashboard as the final parent-analysis view after async processing, navigation, and refresh, with primary KPIs grounded in operating profit and operating margin.
 - changed: centralize Free plan price labels through the shared billing formatter so pricing validation passes without hardcoded euro amounts in UI files.
+
