@@ -114,8 +114,7 @@ export function detectBusinessModelFromColumns(columns: string[], datasetName = 
   const hasSaasStartupUnitEconomics =
     /\bplan\b/.test(text) &&
     /\busers?\b/.test(text) &&
-    /\bprice per user\b|\brevenue\b/.test(text) &&
-    !/\border\b|\border id\b|\bcart\b|\bcheckout\b|\bsku\b|\binventory\b|\bstock\b|\breorder\b/.test(text)
+    /\bprice per user\b|\brevenue\b/.test(text)
   if (hasSaasStartupUnitEconomics) return "saas"
 
   const ranked = Object.entries(modelKeywordPatterns)
