@@ -159,6 +159,13 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
   if (reportInput.reportProfile?.id === "saas_startup" && reportInput.saasAnalysis) {
     const saas = reportInput.saasAnalysis
     return [
+      metric("Total Revenue", saas.revenue, "currency", saas.revenueField, "Source revenue field."),
+      metric("Total Cost", saas.cost, "currency", saas.costField, "Source cost field."),
+      metric("Total Profit", saas.profit, "currency", saas.profitField || "revenue - cost", saas.profitField ? "Source profit field." : "Revenue minus cost."),
+      metric("Profit Margin", saas.profitMargin, "percent", "profit / revenue", "Profit divided by revenue."),
+      metric("Total Users", saas.users, "number", saas.usersField, "Sum of recognized users field."),
+      metric("Average Revenue per User", saas.averageRevenuePerUser, "currency", "revenue / users", "Revenue divided by users."),
+      metric("Price per User", saas.pricePerUser, "currency", saas.pricePerUserField, "Average recognized price-per-user field."),
       metric("MRR", saas.mrr, "currency", saas.mrrField, "Latest-period SaaS snapshot sum."),
       metric("ARR", saas.arr, "currency", saas.arrField, "Latest-period SaaS snapshot sum."),
       metric("Customers", saas.customers, "number", saas.customerField, "Distinct recognized customer IDs."),
@@ -235,7 +242,11 @@ function buildSemanticTrends(reportInput: DashboardReportInput): DashboardSemant
 
   if (reportInput.reportProfile?.id === "saas_startup" && reportInput.saasAnalysis) {
     const saas = reportInput.saasAnalysis
+    const revenueTrend = reportInput.financials?.periodTrends
+      ?.map((item) => ({ name: item.period, value: item.revenue ?? 0 }))
+      .filter((item) => item.value !== 0) ?? []
     return [
+      trend("Revenue Trend", "Revenue", "currency", revenueTrend, "Missing revenue/date columns."),
       trend("MRR Trend", "MRR", "currency", saas.mrrTrend, "Missing MRR/month columns."),
       trend("Customer Trend", "Customers", "number", saas.customerTrend, "Missing customer/month columns."),
       trend("Churn Trend", "Churned Customers", "number", saas.churnTrend, "Missing churn/month columns."),

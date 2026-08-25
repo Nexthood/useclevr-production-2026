@@ -52,7 +52,7 @@ const modelKeywordPatterns: Record<Exclude<BusinessModel, "generic">, RegExp[]> 
     /\bcustomer\b|\brepeat[\s_-]?customer\b|\bconversion\b|\baov\b/,
   ],
   saas: [
-    /\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b|\bplan\b|\bseat\b/,
+    /\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b|\bplan\b|\bseat\b|\bprice[\s_-]?per[\s_-]?user\b|\busers\b/,
     /\bchurn\b|\bchurned\b|\bretention\b|\brenewal\b|\btrial\b|\bactivation\b/,
     /\bcac\b|\bltv\b|\barpa\b|\bactive[\s_-]?user\b/,
   ],
@@ -111,6 +111,13 @@ export function resolveBusinessModel(input: BusinessModelResolutionInput): Busin
 
 export function detectBusinessModelFromColumns(columns: string[], datasetName = ""): BusinessModel {
   const text = [datasetName, ...columns].join(" ").toLowerCase().replace(/_/g, " ")
+  const hasSaasStartupUnitEconomics =
+    /\bplan\b/.test(text) &&
+    /\busers?\b/.test(text) &&
+    /\bprice per user\b|\brevenue\b/.test(text) &&
+    !/\border\b|\border id\b|\bcart\b|\bcheckout\b|\bsku\b|\binventory\b|\bstock\b|\breorder\b/.test(text)
+  if (hasSaasStartupUnitEconomics) return "saas"
+
   const ranked = Object.entries(modelKeywordPatterns)
     .map(([model, patterns]) => ({
       model: model as Exclude<BusinessModel, "generic">,

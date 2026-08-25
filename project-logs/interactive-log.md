@@ -4943,4 +4943,38 @@ Generic business regression tests must include `invoice_id`, exact `cost`, and e
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+## SaaS Startup Unit-Economics Dataset Semantics
+
+1. Interaction title
+SaaS/startup unit-economics standard upload analysis.
+
+2. What was the user goal
+Fix standard-upload analysis for SaaS and startup CSVs so company, plan, users, price per user, revenue, cost, profit, startup stage, country, and date fields keep their business semantics and do not become e-commerce, retail, or unsupported recurring-revenue metrics.
+
+3. What changed
+Business-model detection now resolves plan plus users plus price-per-user or revenue schemas as SaaS when no order, inventory, or retail evidence exists. Dataset Intelligence Engine semantics now classify company, users, and price-per-user fields, calculate source-backed revenue, cost, profit, profit margin, total users, average revenue per user, and plan/stage/country dashboard widgets, and avoid row-count Average Order Value without order evidence. Generated report and dashboard semantic profiles now preserve SaaS/startup unit-economics mappings, calculate profit from source profit or revenue minus cost, display plan, startup stage, company, country, and user metrics, and keep MRR, ARR, churn, CAC, LTV, burn, and runway unavailable unless source fields exist. `scripts/analysis/test-saas-startup-unit-economics.ts` covers production-like standard upload metadata, semantic classification, field preservation, KPI calculation, dashboard output, and AI Analyst context.
+
+4. Problems marked
+blocker: none.
+risk: `scripts/analysis/test-dataset-aware-report-profiles.ts` still fails at the classic SaaS PDF text assertion that the results summary includes a Top Findings section after report generation completes.
+improvement: add a focused PDF-results-summary fix for the classic SaaS profile assertion without changing the SaaS/startup unit-economics semantics.
+observation: the original failure occurred before code changes: standard SaaS/startup data resolved as e-commerce, Dataset Intelligence Engine AI context resolved as Finance, `users` stayed unknown, `price_per_user` became Percentage, and dashboards generated order/product labels.
+
+5. User learning
+SaaS/startup unit-economics datasets need a supported profile even when they do not contain classic MRR, ARR, churn, CAC, LTV, burn, or runway columns.
+
+6. AI-agent learning
+The standard upload path stores `datasetType: standard`, so SaaS/startup preservation depends on business-model detection, deterministic semantic roles, generated report mappings, dashboard semantics, and AI context staying aligned.
+
+7. Follow-up tasks
+- Add a focused PDF-results-summary fix for the classic SaaS dataset-aware report profile assertion.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 

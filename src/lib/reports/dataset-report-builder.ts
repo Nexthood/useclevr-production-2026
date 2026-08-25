@@ -62,6 +62,9 @@ type ColumnMap = {
   cashBalance?: string
   runway?: string
   plan?: string
+  users?: string
+  pricePerUser?: string
+  startupStage?: string
   investedAmount?: string
   valuation?: string
   ownership?: string
@@ -1425,6 +1428,10 @@ function buildSaasSummary(datasetName: string, rowCount: number, saas: SaasRepor
   const parts: string[] = []
   parts.push(`${datasetName} is analyzed as a SaaS startup dataset with ${rowCount.toLocaleString()} loaded rows.`)
   if (saas.latestPeriod) parts.push(`Latest SaaS snapshot period is ${saas.latestPeriod}.`)
+  if (saas.revenue !== null) parts.push(`Total revenue is ${formatCurrencyForSummary(saas.revenue)} from ${saas.revenueField}.`)
+  if (saas.profit !== null) parts.push(`Total profit is ${formatCurrencyForSummary(saas.profit)}${saas.profitField ? ` from ${saas.profitField}` : " from revenue minus cost"}.`)
+  if (saas.users !== null) parts.push(`${saas.users.toLocaleString()} users are recognized from ${saas.usersField}.`)
+  if (saas.averageRevenuePerUser !== null) parts.push(`Average revenue per user is ${formatCurrencyForSummary(saas.averageRevenuePerUser)}.`)
   if (saas.mrr !== null) parts.push(`MRR is ${formatCurrencyForSummary(saas.mrr)} from ${saas.mrrField}.`)
   if (saas.arr !== null) parts.push(`ARR is ${formatCurrencyForSummary(saas.arr)} from ${saas.arrField}.`)
   if (saas.customers !== null) parts.push(`${saas.customers.toLocaleString()} distinct customers are recognized from ${saas.customerField}.`)
@@ -1515,7 +1522,17 @@ function buildSaasRecommendations(
       requiredData: [],
     })
   }
-  if (!columns.mrr && !columns.arr) {
+  if (saas.profitMargin !== null) {
+    recommendations.push({
+      issue: `Profit margin is ${saas.profitMargin.toFixed(1)}% from available revenue and profit values.`,
+      businessImpact: "Margin shows which plans, stages, and companies convert revenue into profit.",
+      recommendedAction: "Compare profit margin by plan and startup stage before prioritizing growth actions.",
+      estimatedImpact: saas.profit !== null ? `${formatCurrencyForSummary(saas.profit)} total profit from the uploaded dataset.` : null,
+      confidence: "High",
+      requiredData: [],
+    })
+  }
+  if (!columns.mrr && !columns.arr && !columns.revenue) {
     recommendations.push({
       issue: "Recurring revenue fields are missing.",
       businessImpact: "SaaS growth quality cannot be measured without MRR or ARR.",
@@ -1540,6 +1557,18 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
   const latestRows = latestPeriodRows(rows, columns.date)
   const latestPeriod = latestRows.period
   const snapshotRows = latestRows.rows
+  const revenue = sumColumn(rows, columns.revenue)
+  const cost = sumColumn(rows, columns.cost)
+  const sourceProfit = sumColumn(rows, columns.netProfit || columns.profit)
+  const profit = sourceProfit !== null
+    ? sourceProfit
+    : revenue !== null && cost !== null
+      ? round(revenue - cost)
+      : null
+  const users = sumColumn(rows, columns.users)
+  const pricePerUser = averageColumn(rows, columns.pricePerUser)
+  const averageRevenuePerUser = revenue !== null && users !== null && users > 0 ? round(revenue / users) : null
+  const profitMargin = revenue !== null && revenue !== 0 && profit !== null ? round((profit / revenue) * 100) : null
   const mrr = sumColumn(snapshotRows, columns.mrr)
   const arr = sumColumn(snapshotRows, columns.arr)
   const expansionMrr = sumColumn(snapshotRows, columns.expansionMrr)
@@ -1587,6 +1616,18 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
     cashBalanceField: columns.cashBalance || null,
     runwayMonths: runwayMonths === null ? null : round(runwayMonths),
     runwayField: columns.runway || null,
+    revenue: revenue === null ? null : round(revenue),
+    revenueField: columns.revenue || null,
+    cost: cost === null ? null : round(cost),
+    costField: columns.cost || null,
+    profit,
+    profitField: columns.netProfit || columns.profit || null,
+    profitMargin,
+    users: users === null ? null : round(users),
+    usersField: columns.users || null,
+    pricePerUser: pricePerUser === null ? null : round(pricePerUser),
+    pricePerUserField: columns.pricePerUser || null,
+    averageRevenuePerUser,
     periodField: columns.date || null,
     latestPeriod,
     dataConfidence: saasDataConfidence(columns),
@@ -1601,13 +1642,25 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
     burnTrend: trendByPeriod(rows, columns.date, columns.burn, "average"),
     cashTrend: trendByPeriod(rows, columns.date, columns.cashBalance, "average"),
     runwayTrend: trendByPeriod(rows, columns.date, columns.runway, "average"),
-    planPerformance: saasSegmentPerformance(snapshotRows, columns.plan, columns, mrr),
-    geography: saasSegmentPerformance(snapshotRows, columns.country || columns.region, columns, mrr),
+    planPerformance: saasSegmentPerformance(rows, columns.plan, columns, mrr),
+    geography: saasSegmentPerformance(rows, columns.country || columns.region, columns, mrr),
   }
 }
 
 function saasDataConfidence(columns: ColumnMap) {
-  const fields = [
+  const unitEconomicsFields = [
+    columns.date,
+    columns.revenue,
+    columns.cost,
+    columns.netProfit || columns.profit,
+    columns.users,
+    columns.pricePerUser,
+    columns.plan,
+    columns.startupStage,
+    columns.companyName,
+    columns.country || columns.region,
+  ]
+  const recurringFields = [
     columns.date,
     columns.customer,
     columns.mrr,
@@ -1626,7 +1679,8 @@ function saasDataConfidence(columns: ColumnMap) {
     columns.plan,
     columns.country || columns.region,
   ]
-  return Math.round((fields.filter(Boolean).length / fields.length) * 100)
+  const score = (fields: Array<string | undefined>) => Math.round((fields.filter(Boolean).length / fields.length) * 100)
+  return Math.max(score(unitEconomicsFields), score(recurringFields))
 }
 
 function latestPeriodRows(rows: DataRow[], periodColumn?: string) {
@@ -1749,15 +1803,19 @@ function statusTrendByPeriod(rows: DataRow[], periodColumn: string | undefined, 
 
 function saasSegmentPerformance(rows: DataRow[], groupColumn: string | undefined, columns: ColumnMap, totalMrr: number | null) {
   if (!groupColumn) return []
-  const grouped = new Map<string, { customers: Set<string>; mrr: number; arr: number }>()
+  const grouped = new Map<string, { customers: Set<string>; mrr: number; arr: number; revenue: number; cost: number; profit: number; users: number }>()
   rows.forEach((row, index) => {
     const name = String(row[groupColumn] || "").trim()
     if (!name) return
-    const current = grouped.get(name) || { customers: new Set<string>(), mrr: 0, arr: 0 }
+    const current = grouped.get(name) || { customers: new Set<string>(), mrr: 0, arr: 0, revenue: 0, cost: 0, profit: 0, users: 0 }
     const customer = columns.customer ? String(row[columns.customer] || "").trim() : `row_${index}`
     if (customer) current.customers.add(customer)
     current.mrr += columns.mrr ? getNumber(row[columns.mrr]) || 0 : 0
     current.arr += columns.arr ? getNumber(row[columns.arr]) || 0 : 0
+    current.revenue += columns.revenue ? getNumber(row[columns.revenue]) || 0 : 0
+    current.cost += columns.cost ? getNumber(row[columns.cost]) || 0 : 0
+    current.profit += columns.netProfit || columns.profit ? getNumber(row[(columns.netProfit || columns.profit)!]) || 0 : 0
+    current.users += columns.users ? getNumber(row[columns.users]) || 0 : 0
     grouped.set(name, current)
   })
   return Array.from(grouped.entries())
@@ -1766,9 +1824,12 @@ function saasSegmentPerformance(rows: DataRow[], groupColumn: string | undefined
       customers: value.customers.size || null,
       mrr: columns.mrr ? round(value.mrr) : null,
       arr: columns.arr ? round(value.arr) : null,
+      revenue: columns.revenue ? round(value.revenue) : null,
+      profit: columns.netProfit || columns.profit ? round(value.profit) : columns.revenue && columns.cost ? round(value.revenue - value.cost) : null,
+      users: columns.users ? round(value.users) : null,
       share: totalMrr && totalMrr > 0 ? round((value.mrr / totalMrr) * 100) : null,
     }))
-    .sort((a, b) => (b.mrr || b.customers || 0) - (a.mrr || a.customers || 0))
+    .sort((a, b) => (b.mrr || b.revenue || b.profit || b.customers || 0) - (a.mrr || a.revenue || a.profit || a.customers || 0))
     .slice(0, 8)
 }
 
@@ -2800,13 +2861,16 @@ function detectColumns(columns: string[]): ColumnMap {
     cashBalance: findColumn(columns, [/cash_balance/, /^cash$/]),
     runway: findColumn(columns, [/runway/]),
     plan: findColumn(columns, [/^plan$/, /subscription_plan/, /tier/]),
+    users: findColumn(columns, [/^users$/, /user_count/, /seat_count/, /^seats$/]),
+    pricePerUser: findColumn(columns, [/price_per_user/, /price_per_seat/, /revenue_per_user/, /^arpu$/, /^arpa$/]),
+    startupStage: findColumn(columns, [/startup_stage/, /^stage$/]),
     investedAmount: findInvestorInvestedAmountColumn(columns),
     valuation: findInvestorLatestValuationColumn(columns),
     ownership: findColumn(columns, [/ownership/]),
     sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
     companyId: findColumn(columns, [/company_id/, /companyid/]),
-    companyName: findColumn(columns, [/company_name/, /companyname/]),
+    companyName: findColumn(columns, [/^company$/, /company_name/, /companyname/]),
     status: findColumn(columns, [/status/, /portfolio_status/]),
     growthRate: findColumn(columns, [/growth_rate/, /growth/]),
     seller: findColumn(columns, [/seller/, /vendor/, /merchant/]),
@@ -2883,6 +2947,10 @@ function buildSemanticContext(input: {
     cashBalance: input.columnMap.cashBalance || null,
     runway: input.columnMap.runway || null,
     plan: input.columnMap.plan || null,
+    users: input.columnMap.users || null,
+    pricePerUser: input.columnMap.pricePerUser || null,
+    startupStage: input.columnMap.startupStage || null,
+    company: input.columnMap.companyName || null,
     country: input.columnMap.country ?? null,
     gmv: input.columnMap.gmv || null,
     commission: input.columnMap.commission || null,
@@ -2902,8 +2970,11 @@ function buildSemanticContext(input: {
     projectEnd: isBusinessConsulting ? input.columnMap.projectEnd || null : null,
     billableHours: isBusinessConsulting || isProfessionalServices ? input.columnMap.billableHours || null : null,
   }
+  const hasRecurringSaasFields = Boolean(mappings.mrr || mappings.arr || mappings.customer || mappings.churned)
   const required = isSaas
-    ? ["date", "mrr", "arr", "customer", "newCustomer", "churned", "expansionMrr", "contractionMrr", "cac", "ltv", "activeUsers", "supportTickets", "burn", "cashBalance", "runway", "plan", "country"]
+    ? hasRecurringSaasFields
+      ? ["date", "mrr", "arr", "customer", "newCustomer", "churned", "expansionMrr", "contractionMrr", "cac", "ltv", "activeUsers", "supportTickets", "burn", "cashBalance", "runway", "plan", "country"]
+      : ["date", "revenue", "cost", "netProfit", "users", "pricePerUser", "plan", "startupStage", "company", "country"]
     : isMarketplace
       ? ["date", "gmv", "commission", "order", "buyer", "seller", "refund"]
       : isBusinessConsulting
@@ -3082,6 +3153,13 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Discount % of Revenue", ecommerce?.discountRate ?? null, "percent")
   } else if (model === "saas" || model === "startup") {
     kpis.length = 0
+    addKpi(kpis, "Total Revenue", saas?.revenue ?? revenue, "currency")
+    addKpi(kpis, "Total Cost", saas?.cost ?? cost, "currency")
+    addKpi(kpis, "Total Profit", saas?.profit ?? profit, "currency")
+    addKpi(kpis, "Profit Margin", saas?.profitMargin ?? (revenue !== null && revenue !== 0 && profit !== null ? (profit / revenue) * 100 : null), "percent")
+    addKpi(kpis, "Total Users", saas?.users ?? null, "number")
+    addKpi(kpis, "Average Revenue per User", saas?.averageRevenuePerUser ?? null, "currency")
+    addKpi(kpis, "Price per User", saas?.pricePerUser ?? null, "currency")
     addKpi(kpis, "MRR", saas?.mrr ?? null, "currency")
     addKpi(kpis, "ARR", saas?.arr ?? null, "currency")
     addKpi(kpis, "Customers", saas?.customers ?? customers, "number")
@@ -3204,10 +3282,16 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     if (ecommerce?.channelPerformance.length) charts.push({ type: "bar", title: "Channel Performance", data: ecommerce.channelPerformance.map(({ name, value }) => ({ name, value })) })
     if (ecommerce?.geography.length) charts.push({ type: "bar", title: "Geography", data: ecommerce.geography.map(({ name, value }) => ({ name, value })) })
   } else if ((model === "saas" || model === "startup") && saas) {
+    const planMetric = saas.mrr !== null ? "mrr" : saas.revenue !== null ? "revenue" : saas.profit !== null ? "profit" : "users"
+    const planMetricLabel = planMetric === "mrr" ? "MRR" : planMetric === "revenue" ? "Revenue" : planMetric === "profit" ? "Profit" : "Users"
     if (saas.mrrTrend.length) charts.push({ type: "line", title: "MRR Trend", data: saas.mrrTrend })
     if (saas.arrTrend.length) charts.push({ type: "line", title: "ARR Trend", data: saas.arrTrend })
-    if (saas.planPerformance.length) charts.push({ type: "bar", title: "MRR by Plan", data: saas.planPerformance.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
-    if (saas.geography.length) charts.push({ type: "bar", title: "MRR by Country", data: saas.geography.map((item) => ({ name: item.name, value: item.mrr || 0 })) })
+    if (saas.planPerformance.length) charts.push({ type: "bar", title: `${planMetricLabel} by Plan`, data: saas.planPerformance.map((item) => ({ name: item.name, value: item[planMetric] || 0 })) })
+    if (columns.startupStage) {
+      const stageChart = groupedChart(rows, columns.startupStage, columns.revenue || columns.netProfit || columns.profit || columns.users, `${planMetricLabel} by Startup Stage`)
+      if (stageChart) charts.push(stageChart)
+    }
+    if (saas.geography.length) charts.push({ type: "bar", title: `${planMetricLabel} by Country`, data: saas.geography.map((item) => ({ name: item.name, value: item[planMetric] || 0 })) })
   } else if (model === "marketplace" && marketplace) {
     if (marketplace.gmvTrend.length) charts.push({ type: "line", title: "GMV Trend", data: marketplace.gmvTrend })
     if (marketplace.marketplaceRevenueTrend.length) charts.push({ type: "line", title: "Marketplace Revenue Trend", data: marketplace.marketplaceRevenueTrend })

@@ -66,8 +66,11 @@ export function buildDashboard(
   const profitCol = findSemanticColumn(semantic, ["Profit"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('profit') || c.toLowerCase().includes('margin')
   );
-  const _costCol = findSemanticColumn(semantic, ["Cost"])?.columnName || numericCols.find(c =>
+  const costCol = findSemanticColumn(semantic, ["Cost"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('cost') || c.toLowerCase().includes('cogs')
+  );
+  const usersCol = findSemanticColumn(semantic, ["Users"])?.columnName || numericCols.find(c =>
+    /^users?$|user_count|seats?/.test(c.toLowerCase().replace(/[^a-z0-9_]/g, '_'))
   );
   const orderCol = findSemanticColumn(semantic, ["Order"])?.columnName || categoricalCols.find(c =>
     c.toLowerCase().includes('order') || c.toLowerCase().includes('transaction')
@@ -115,13 +118,46 @@ export function buildDashboard(
       });
     }
   }
+  if (!profitCol && revenueCol && costCol) {
+    const totalRevenue = aggregateSum(data, revenueCol);
+    const totalProfit = totalRevenue - aggregateSum(data, costCol);
+    kpis.push({
+      id: 'total_profit',
+      title: 'Total Profit',
+      value: totalProfit,
+      format: 'currency'
+    });
+    kpis.push({
+      id: 'profit_margin',
+      title: 'Profit Margin',
+      value: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
+      format: 'percentage'
+    });
+  }
+
+  if (usersCol) {
+    kpis.push({
+      id: 'total_users',
+      title: 'Total Users',
+      value: aggregateSum(data, usersCol),
+      format: 'number'
+    });
+  }
+
+  if (revenueCol && usersCol) {
+    const totalUsers = aggregateSum(data, usersCol);
+    kpis.push({
+      id: 'average_revenue_per_user',
+      title: 'Average Revenue per User',
+      value: totalUsers > 0 ? aggregateSum(data, revenueCol) / totalUsers : 0,
+      format: 'currency'
+    });
+  }
 
   // 5. Average Order Value
-  if (revenueCol) {
+  if (revenueCol && orderCol) {
     const totalRevenue = aggregateSum(data, revenueCol);
-    const orderCount = orderCol
-      ? new Set(data.map((row) => String(row[orderCol] ?? '').trim()).filter(Boolean)).size
-      : data.length;
+    const orderCount = new Set(data.map((row) => String(row[orderCol] ?? '').trim()).filter(Boolean)).size;
     const aov = orderCount > 0 ? totalRevenue / orderCount : 0;
     kpis.push({
       id: 'avg_order_value',
@@ -134,7 +170,7 @@ export function buildDashboard(
   // Generate Charts
   // 1. Revenue by Category (bar chart)
   if (revenueCol && categoricalCols.length > 0) {
-    const groupCol = findSemanticColumn(semantic, ["Category", "Product Category", "Product", "Customer", "Seller", "Merchant", "Buyer"])?.columnName || categoricalCols[0];
+    const groupCol = findSemanticColumn(semantic, ["Category", "Product Category", "Product", "Customer", "Seller", "Merchant", "Buyer", "Company"])?.columnName || categoricalCols[0];
     const chartData = aggregateGroup(data, groupCol, revenueCol);
     charts.push({
       id: 'revenue_by_category',
@@ -174,11 +210,36 @@ export function buildDashboard(
     });
   }
 
-  // 4. Top Products (bar chart)
+  if (revenueCol && semantic.businessModel.model === "SaaS") {
+    const planCol = Object.keys(data[0] || {}).find((column) => /^plan$|subscription_plan|tier/i.test(column));
+    const startupStageCol = Object.keys(data[0] || {}).find((column) => /startup_stage|^stage$/i.test(column));
+    if (planCol) {
+      charts.push({
+        id: 'revenue_by_plan',
+        type: 'bar',
+        title: 'Revenue by Plan',
+        xAxis: planCol,
+        yAxis: revenueCol,
+        data: aggregateGroup(data, planCol, revenueCol).slice(0, 10)
+      });
+    }
+    if (startupStageCol) {
+      charts.push({
+        id: 'revenue_by_startup_stage',
+        type: 'bar',
+        title: 'Revenue by Startup Stage',
+        xAxis: startupStageCol,
+        yAxis: revenueCol,
+        data: aggregateGroup(data, startupStageCol, revenueCol).slice(0, 10)
+      });
+    }
+  }
+
+  // 4. Top categorical dimension by revenue
   if (revenueCol) {
     const productCol = findSemanticColumn(semantic, ["Product", "SKU"])?.columnName || categoricalCols.find(c =>
       c.toLowerCase().includes('product') || c.toLowerCase().includes('item')
-    ) || categoricalCols[0];
+    );
 
     if (productCol) {
       const chartData = aggregateGroup(data, productCol, revenueCol);

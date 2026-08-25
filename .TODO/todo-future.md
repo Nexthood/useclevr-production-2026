@@ -202,6 +202,7 @@ into the active queue.
 
 ## Label: reports
 
+- Fix the classic SaaS generated PDF results-summary Top Findings assertion while keeping source-backed SaaS and startup unit-economics analysis intact. (labels: reports, testing)
 - Consolidate heavy client dependencies (canvg, html2canvas, qrcode, jspdf) — lazy-load or move PDF generation server-side. (labels: reports, performance)
 - Add proper layering (presentation, application, domain, infrastructure) with clear boundaries. (labels: reports, sales, workflow)
 - Add report scheduling and automated delivery via email. (labels: reports, workflow)
