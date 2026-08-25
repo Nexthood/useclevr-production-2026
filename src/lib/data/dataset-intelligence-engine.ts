@@ -25,6 +25,9 @@ export type CanonicalSemanticRole =
   | "Profit"
   | "Margin"
   | "Customer"
+  | "Company"
+  | "Users"
+  | "Price per User"
   | "Merchant"
   | "Seller"
   | "Buyer"
@@ -225,6 +228,9 @@ const COLUMN_SYNONYMS: Array<{
     { role: "Cost", patterns: [/\bcost\b/, /\bcogs\b/, /\bexpense\b/, /\bunit_cost\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches cost, COGS, or expense terminology." },
     { role: "Profit", patterns: [/\bprofit\b/, /\bgross_profit\b/, /\bnet_profit\b/, /\bearnings\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches profit or earnings terminology." },
     { role: "Margin", patterns: [/\bmargin\b/, /\bprofit_margin\b/], valueTypes: ["Percentage", "Number"], explanation: "Column name matches margin terminology." },
+    { role: "Users", patterns: [/\busers\b/, /\buser_count\b/, /\bseats\b/, /\bseat_count\b/], valueTypes: ["Number"], explanation: "Column name identifies users or seats." },
+    { role: "Price per User", patterns: [/\bprice_per_user\b/, /\bprice_per_seat\b/, /\brevenue_per_user\b/, /\barpu\b/, /\barpa\b/], valueTypes: ["Money", "Number"], explanation: "Column name identifies per-user or per-seat pricing." },
+    { role: "Company", patterns: [/\bcompany\b/, /\bcompany_name\b/, /\baccount_name\b/, /\borganization\b/, /\borg\b/], valueTypes: ["Text"], explanation: "Column name identifies a company or organization dimension." },
     { role: "Customer", patterns: [/\bbuyer_id\b/, /\bbuyer\b/, /\bpurchaser\b/, /\bcustomer\b/, /\bcustomer_id\b/, /\bclient\b/, /\baccount_id\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies customers, buyers, purchasers, clients, or accounts." },
     { role: "Merchant", patterns: [/\bseller_id\b/, /\bseller\b/, /\bmerchant\b/, /\bvendor_id\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies merchants, sellers, or vendors." },
     { role: "Buyer", patterns: [/\bpurchaser_id\b/], valueTypes: ["Customer", "Text", "UUID"], explanation: "Column name identifies buyers or purchasers." },
@@ -257,7 +263,7 @@ const MODEL_PATTERNS: Record<Exclude<SemanticBusinessModel, "Generic">, RegExp[]
   Inventory: [/\binventory\b|\bstock\b|\bwarehouse\b/, /\breorder\b|\blead_time\b/, /\bsku\b|\bitem\b/],
   Accounting: [/\bledger\b|\bjournal\b|\bdebit\b|\bcredit\b/, /\binvoice\b|\bpayment\b/, /\btax\b|\bvat\b|\bgst\b/],
   CRM: [/\bcustomer\b|\bclient\b|\bcontact\b|\blead\b/, /\bemail\b|\bphone\b/, /\bpipeline\b|\bopportunity\b/],
-  SaaS: [/\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b/, /\bchurn\b|\bretention\b|\brenewal\b/, /\bplan\b|\bseat\b|\baccount\b/],
+  SaaS: [/\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b/, /\bchurn\b|\bretention\b|\brenewal\b/, /\bplan\b|\bseat\b|\busers\b|\bprice_per_user\b|\baccount\b/],
   Manufacturing: [/\bmanufacturing\b|\bproduction\b|\bwork_order\b/, /\bbom\b|\bmaterial\b/, /\bmachine\b|\bdowntime\b/],
   Healthcare: [/\bpatient\b|\bclinical\b|\bappointment\b/, /\bprovider\b|\bdiagnosis\b/, /\bclaim\b|\binsurance\b/],
   Finance: [/\brevenue\b|\bprofit\b|\bloss\b|\bexpense\b/, /\bcash\b|\bbalance\b|\bbudget\b/, /\btransaction\b|\bpayment\b/],
@@ -482,15 +488,15 @@ function detectValueTypes(values: unknown[]): SemanticValueType[] {
   const sample = values.slice(0, 100).map((value) => String(value).trim()).filter(Boolean);
   const detectors: Array<{ type: SemanticValueType; count: number }> = [
     { type: "Email", count: sample.filter((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)).length },
-    { type: "Phone", count: sample.filter((value) => /^\+?[\d\s().-]{7,}$/.test(value) && /[\s().-]/.test(value)).length },
+    { type: "Phone", count: sample.filter((value) => /^\+?[\d\s().-]{7,}$/.test(value) && /[\s().-]/.test(value) && !/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)).length },
     { type: "UUID", count: sample.filter((value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)).length },
     { type: "Boolean", count: sample.filter((value) => /^(true|false|yes|no|0|1)$/i.test(value)).length },
-    { type: "Date", count: sample.filter((value) => !Number.isNaN(Date.parse(value)) && /[-/]\d{1,2}[-/]|\d{4}/.test(value)).length },
-    { type: "Money", count: sample.filter((value) => /^[€$£]|[€$£]$/.test(value) || /^-?\d{1,3}(,\d{3})*(\.\d+)?$/.test(value)).length },
+    { type: "Date", count: sample.filter((value) => !/^\d+(\.\d+)?$/.test(value) && !Number.isNaN(Date.parse(value)) && (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value) || /\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(value) || /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(value))).length },
+    { type: "Money", count: sample.filter((value) => /^[€$£]|[€$£]$/.test(value) || /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(value)).length },
     { type: "Percentage", count: sample.filter((value) => /%$/.test(value) || (/^-?\d+(\.\d+)?$/.test(value) && Number(value) >= -100 && Number(value) <= 100)).length },
     { type: "Currency", count: sample.filter((value) => CURRENCY_CODES.has(value.toUpperCase())).length },
     { type: "Country", count: sample.filter((value) => COUNTRY_CODES.has(value.toUpperCase()) || /^[A-Z][a-z]+(?: [A-Z][a-z]+)?$/.test(value)).length },
-    { type: "SKU", count: sample.filter((value) => /^[A-Z0-9][A-Z0-9_-]{3,}$/i.test(value) && /\d/.test(value)).length },
+    { type: "SKU", count: sample.filter((value) => /^[A-Z0-9][A-Z0-9_-]{3,}$/i.test(value) && /[a-z]/i.test(value) && /\d/.test(value)).length },
     { type: "Invoice", count: sample.filter((value) => /^(inv|invoice|ord|order|txn|tx)-?[a-z0-9-]+$/i.test(value)).length },
     { type: "Number", count: sample.filter((value) => Number.isFinite(toNumber(value))).length },
   ];
@@ -524,9 +530,10 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
   const cost = byRole("Cost");
   const profit = byRole("Profit");
   const commission = byRole("Commission");
-  const margin = byRole("Margin") || byRole("Percentage");
+  const margin = byRole("Margin");
   const quantity = byRole("Quantity");
   const buyer = byRole("Buyer") || byRole("Customer");
+  const users = byRole("Users");
 
   if (revenue && cost && profit) {
     relationships.push({
@@ -604,6 +611,21 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
     });
   }
 
+  if (revenue && users) {
+    relationships.push({
+      id: "average_revenue_per_user",
+      label: "Average Revenue per User",
+      kind: "ratio",
+      confidence: Math.min(revenue.confidence, users.confidence),
+      leftRole: revenue.canonicalRole,
+      outputRole: "Price per User",
+      inputRoles: [revenue.canonicalRole, "Users"],
+      columns: [revenue.columnName, users.columnName],
+      formula: `${revenue.columnName} / ${users.columnName}`,
+      explanation: "Revenue and users columns are present, enabling average revenue per user analysis.",
+    });
+  }
+
   return relationships;
 }
 
@@ -647,6 +669,7 @@ function scoreModelFromRoles(columns: SemanticColumnScan[]) {
   const has = (role: CanonicalSemanticRole) => columns.some((column) => compatibleRoles(role).includes(column.canonicalRole));
   const scores: Partial<Record<Exclude<SemanticBusinessModel, "Generic">, number>> = {};
   if (has("Seller") && has("Buyer") && (has("Revenue") || has("Commission"))) scores.Marketplace = 2.5;
+  if (has("Users") && has("Category") && has("Revenue")) scores.SaaS = 2.5;
   if (has("SKU") && has("Quantity") && (has("Product") || has("Category"))) scores.Inventory = 1.5;
   if (has("Invoice") && (has("Cost") || has("Revenue") || has("Account"))) scores.Accounting = 1.5;
   if (has("Customer") && (has("Email") || has("Phone") || has("Status"))) scores.CRM = 1.5;
@@ -669,6 +692,8 @@ function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnSc
   const cost = byRole("Cost");
   const profit = byRole("Profit");
   const quantity = byRole("Quantity");
+  const users = byRole("Users");
+  const pricePerUser = byRole("Price per User");
   const customer = byRole("Customer") || byRole("Buyer");
   const seller = byRole("Seller");
   const buyer = byRole("Buyer");
@@ -682,8 +707,32 @@ function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnSc
   if (refund) kpis.push(sumKpi("refunds", refund, rows, "Refunds"));
   if (cost) kpis.push(sumKpi("total_cost", cost, rows, "Total Cost"));
   if (profit) kpis.push(sumKpi("total_profit", profit, rows, "Total Profit"));
+  if (!profit && revenue && cost) {
+    kpis.push({
+      id: "total_profit",
+      title: "Total Profit",
+      value: round(sumColumn(rows, revenue.columnName) - sumColumn(rows, cost.columnName)),
+      format: "currency",
+      sourceColumns: [revenue.columnName, cost.columnName],
+      confidence: Math.min(revenue.confidence, cost.confidence),
+      explanation: "Total Profit is computed from revenue minus cost because no source profit column was detected.",
+    });
+  }
   if (quantity) kpis.push(sumKpi("quantity", quantity, rows, "Quantity", "number"));
-  if (revenue) {
+  if (users) kpis.push(sumKpi("total_users", users, rows, "Total Users", "number"));
+  if (pricePerUser) kpis.push(averageKpi("price_per_user", pricePerUser, rows, "Price per User"));
+  if (revenue && users && sumColumn(rows, users.columnName) > 0) {
+    kpis.push({
+      id: "average_revenue_per_user",
+      title: "Average Revenue per User",
+      value: round(sumColumn(rows, revenue.columnName) / sumColumn(rows, users.columnName)),
+      format: "currency",
+      sourceColumns: [revenue.columnName, users.columnName],
+      confidence: Math.min(revenue.confidence, users.confidence),
+      explanation: "Average Revenue per User is computed from total revenue divided by total users.",
+    });
+  }
+  if (revenue && order) {
     const orderCount = order
       ? new Set(rows.map((row) => String(row[order.columnName] ?? "").trim()).filter(Boolean)).size
       : rows.length;
@@ -692,11 +741,9 @@ function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnSc
       title: "Average Order Value",
       value: orderCount > 0 ? round(sumColumn(rows, revenue.columnName) / orderCount) : null,
       format: "currency",
-      sourceColumns: [revenue.columnName, ...(order ? [order.columnName] : [])],
+      sourceColumns: [revenue.columnName, order.columnName],
       confidence: revenue.confidence,
-      explanation: order
-        ? "Average order value is computed from the detected revenue metric divided by the number of distinct orders."
-        : "Average order value is computed from the detected revenue metric divided by record count because no order ID column was detected.",
+      explanation: "Average order value is computed from the detected revenue metric divided by the number of distinct orders.",
     });
   }
   if (customer) kpis.push(uniqueKpi("customers", customer, rows, customer.canonicalRole === "Customer" && /buyer/.test(customer.normalizedName) ? "Buyers / Customers" : "Customers"));
@@ -713,15 +760,18 @@ function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnSc
       explanation: "Take rate is computed from commission divided by revenue or GMV.",
     });
   }
-  if (revenue && cost && sumColumn(rows, revenue.columnName) > 0) {
+  const profitValue = profit ? sumColumn(rows, profit.columnName) : revenue && cost ? sumColumn(rows, revenue.columnName) - sumColumn(rows, cost.columnName) : null;
+  if (revenue && profitValue !== null && sumColumn(rows, revenue.columnName) > 0) {
     kpis.push({
-      id: "gross_margin",
-      title: "Gross Margin",
-      value: round(((sumColumn(rows, revenue.columnName) - sumColumn(rows, cost.columnName)) / sumColumn(rows, revenue.columnName)) * 100),
+      id: "profit_margin",
+      title: "Profit Margin",
+      value: round((profitValue / sumColumn(rows, revenue.columnName)) * 100),
       format: "percentage",
-      sourceColumns: [revenue.columnName, cost.columnName],
-      confidence: Math.min(revenue.confidence, cost.confidence),
-      explanation: "Gross margin is computed from detected revenue and cost metrics.",
+      sourceColumns: [revenue.columnName, ...(profit ? [profit.columnName] : cost ? [cost.columnName] : [])],
+      confidence: profit ? Math.min(revenue.confidence, profit.confidence) : cost ? Math.min(revenue.confidence, cost.confidence) : revenue.confidence,
+      explanation: profit
+        ? "Profit Margin is computed from source profit divided by revenue."
+        : "Profit Margin is computed from derived profit divided by revenue.",
     });
   }
   if (businessModel.model === "SaaS") {
@@ -756,6 +806,19 @@ function uniqueKpi(id: string, column: SemanticColumnScan, rows: Record<string, 
   };
 }
 
+function averageKpi(id: string, column: SemanticColumnScan, rows: Record<string, unknown>[], title: string, format: KpiFormat = "currency"): DynamicKpi {
+  const values = rows.map((row) => toNumber(row[column.columnName])).filter((value): value is number => value !== null);
+  return {
+    id,
+    title,
+    value: values.length > 0 ? round(values.reduce((total, value) => total + value, 0) / values.length) : null,
+    format,
+    sourceColumns: [column.columnName],
+    confidence: column.confidence,
+    explanation: `${title} is averaged from the detected ${column.canonicalRole.toLowerCase()} column "${column.columnName}".`,
+  };
+}
+
 function generateDashboard(input: {
   businessModel: BusinessModelDetection;
   columns: SemanticColumnScan[];
@@ -773,14 +836,14 @@ function generateDashboard(input: {
   }));
   const revenue = input.columns.find((column) => compatibleRoles("Revenue").includes(column.canonicalRole));
   const date = input.columns.find((column) => column.canonicalRole === "Date");
-  const dimensions = input.columns.filter((column) => ["Category", "Product Category", "Country", "Geography", "Region", "City", "Product", "Seller", "Merchant", "Customer", "Buyer"].includes(column.canonicalRole));
+  const dimensions = input.columns.filter((column) => ["Category", "Product Category", "Country", "Geography", "Region", "City", "Product", "Seller", "Merchant", "Customer", "Buyer", "Company"].includes(column.canonicalRole));
   if (revenue && date) {
     widgets.push({ id: "revenue_over_time", type: "line", title: `${revenue.canonicalRole} over time`, xAxis: date.columnName, yAxis: revenue.columnName, sourceColumns: [date.columnName, revenue.columnName], confidence: Math.min(date.confidence, revenue.confidence), explanation: "A time-series chart is generated because date and revenue semantics are both present." });
   }
   for (const dimension of dimensions.slice(0, 3)) {
     const metric = revenue || input.columns.find((column) => column.canonicalRole === "Quantity" || column.canonicalRole === "Profit");
     if (!metric) continue;
-    widgets.push({ id: `${metric.normalizedName}_by_${dimension.normalizedName}`, type: "bar", title: `${metric.canonicalRole} by ${dimension.canonicalRole}`, xAxis: dimension.columnName, yAxis: metric.columnName, sourceColumns: [dimension.columnName, metric.columnName], confidence: Math.min(dimension.confidence, metric.confidence), explanation: "A grouped chart is generated from semantic dimension and metric roles." });
+    widgets.push({ id: `${metric.normalizedName}_by_${dimension.normalizedName}`, type: "bar", title: `${metric.canonicalRole} by ${humanizeColumnName(dimension.columnName)}`, xAxis: dimension.columnName, yAxis: metric.columnName, sourceColumns: [dimension.columnName, metric.columnName], confidence: Math.min(dimension.confidence, metric.confidence), explanation: "A grouped chart is generated from semantic dimension and metric roles." });
   }
   if (input.relationships.length > 0) {
     widgets.push({ id: "semantic_relationships", type: "table", title: "Detected Relationships", sourceColumns: Array.from(new Set(input.relationships.flatMap((relationship) => relationship.columns))), confidence: Math.max(...input.relationships.map((relationship) => relationship.confidence)), explanation: "A relationship table explains formulas and dependencies detected in the dataset." });
@@ -838,6 +901,14 @@ function buildAiContext(input: {
 
 function normalizeName(value: string) {
   return value.trim().toLowerCase().replace(/([a-z])([A-Z])/g, "$1_$2").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function humanizeColumnName(value: string) {
+  return value
+    .trim()
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
 function toNumber(value: unknown) {

@@ -313,6 +313,18 @@ export interface SaasReportAnalysis {
   cashBalanceField: string | null;
   runwayMonths: number | null;
   runwayField: string | null;
+  revenue: number | null;
+  revenueField: string | null;
+  cost: number | null;
+  costField: string | null;
+  profit: number | null;
+  profitField: string | null;
+  profitMargin: number | null;
+  users: number | null;
+  usersField: string | null;
+  pricePerUser: number | null;
+  pricePerUserField: string | null;
+  averageRevenuePerUser: number | null;
   periodField: string | null;
   latestPeriod: string | null;
   dataConfidence: number;
@@ -327,8 +339,8 @@ export interface SaasReportAnalysis {
   burnTrend: { name: string; value: number }[];
   cashTrend: { name: string; value: number }[];
   runwayTrend: { name: string; value: number }[];
-  planPerformance: { name: string; customers: number | null; mrr: number | null; arr: number | null; share: number | null }[];
-  geography: { name: string; customers: number | null; mrr: number | null; arr: number | null; share: number | null }[];
+  planPerformance: { name: string; customers: number | null; mrr: number | null; arr: number | null; revenue?: number | null; profit?: number | null; users?: number | null; share: number | null }[];
+  geography: { name: string; customers: number | null; mrr: number | null; arr: number | null; revenue?: number | null; profit?: number | null; users?: number | null; share: number | null }[];
 }
 
 export interface MarketplaceReportAnalysis {
