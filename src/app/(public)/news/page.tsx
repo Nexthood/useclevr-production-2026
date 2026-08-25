@@ -234,7 +234,7 @@ export default function NewsPage() {
         </section>
 
         <section className="bg-[#080A14] px-4 py-20 md:px-6 md:py-28">
-          <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+          <div className="mx-auto grid max-w-7xl gap-12 xl:grid-cols-[0.75fr_1.25fr] xl:items-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#A1EFEA]">UseClevr moment</p>
               <h2 className="mt-5 text-4xl font-semibold tracking-tight text-white md:text-5xl">
@@ -245,17 +245,19 @@ export default function NewsPage() {
               </p>
             </div>
 
-            <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_32px_120px_rgba(0,0,0,0.3)] backdrop-blur-xl md:p-7">
-              <div className="grid gap-3 md:grid-cols-5">
+            <div className="min-w-0 rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_32px_120px_rgba(0,0,0,0.3)] backdrop-blur-xl md:p-7">
+              <div className="grid min-w-0 gap-3 md:grid-cols-5">
                 {intelligenceStack.map((item, index) => {
                   const Icon = item.icon
                   return (
-                    <div key={item.label} className="relative rounded-2xl border border-white/10 bg-[#111426]/90 p-4">
+                    <div key={item.label} className="relative min-w-0 rounded-2xl border border-white/10 bg-[#111426]/90 p-3 sm:p-4 xl:p-3">
                       {index < intelligenceStack.length - 1 && (
                         <div className="absolute left-1/2 top-full hidden h-3 w-px bg-gradient-to-b from-[#A1EFEA]/70 to-transparent md:left-full md:top-1/2 md:block md:h-px md:w-3 md:bg-gradient-to-r" />
                       )}
                       <Icon className="h-5 w-5 text-[#A1EFEA]" />
-                      <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-white">{item.label}</p>
+                      <p className="mt-4 min-w-0 max-w-full break-words text-[0.68rem] font-semibold uppercase leading-snug tracking-[0.04em] text-white [overflow-wrap:anywhere]">
+                        {item.label}
+                      </p>
                       <p className="mt-3 text-xs leading-5 text-[#AEB6C8]">{item.detail}</p>
                     </div>
                   )

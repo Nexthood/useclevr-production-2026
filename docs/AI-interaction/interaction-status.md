@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-08-25
-- **Goal**: Fix SaaS and startup standard-upload dataset analysis so unit-economics fields keep their business semantics.
-- **Durable change**: Updated business-model detection, Dataset Intelligence Engine semantics, generated report inputs, dashboard semantic metrics, and dashboard charts so company, plan, users, price per user, revenue, cost, profit, startup stage, country, and date fields stay source-backed in SaaS/startup uploads. Added a dedicated SaaS/startup unit-economics regression.
-- **Verification**: `pnpm test:saas-startup-unit-economics`, `pnpm test:dataset-intelligence-engine`, `pnpm test:standard-upload-success-ui`, `pnpm test:generic-business-canonical-resolution`, `pnpm test:local-retail-inventory-snapshots`, `pnpm test:profitability-two-file`, `pnpm test:accountancy-upload-system`, and `pnpm exec tsc --noEmit --pretty false` passed.
-- **Residual risk**: `node -r tsx/esm scripts/analysis/test-dataset-aware-report-profiles.ts` still fails at the classic SaaS generated PDF text assertion `saas: results summary must include a Top Findings section` after the report generation completes.
+- **Goal**: Keep the What You're Missing five-step flow headings inside their own cards, especially the Understanding heading.
+- **Durable change**: The `/news` insight-flow component keeps the five card labels inside bounded card content by delaying the narrow two-column parent layout, adding `min-w-0` containment, compacting card padding at the constrained desktop breakpoint, and using a tighter uppercase label style that can wrap safely instead of overflowing.
+- **Verification**: Headless Chrome measurements at 1536px, 1440px, 1280px, 1024px, 768px, and 390px confirmed each heading stayed inside its card with no horizontal page overflow. `pnpm exec tsc --noEmit --pretty false`, `pnpm build`, and `git diff --check` passed.
+- **Residual risk**: none for this scoped UI layout fix.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
