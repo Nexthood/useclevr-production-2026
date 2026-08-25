@@ -91,6 +91,37 @@ When a dependency security patch causes a production regression, compare the dep
 - ai-chat-behavior.config.ts
 - gemini-behavior.config.ts
 
+## What You're Missing Insight-Flow Card Layout
+
+1. Interaction title
+What You're Missing insight-flow card layout.
+
+2. What was the user goal
+Fix the `/news` five-step flow so the `UNDERSTANDING` heading stays fully inside its card and does not overlap the `EVIDENCE` card, without changing navigation, copy, colors, business logic, dependencies, backend, or other pages.
+
+3. What changed
+The `/news` insight-flow component now keeps the five card headings inside their cards by delaying the surrounding two-column layout until the wider desktop breakpoint, adding `min-w-0` containment to the card shell and grid, using slightly tighter constrained-breakpoint card padding, and applying compact uppercase label typography with safe wrapping. The five-card visual design and connector alignment remain in the component.
+
+4. Problems marked
+- blocker: none.
+- risk: none for this scoped layout fix.
+- improvement: Add a lightweight visual regression check for public landing/news page card labels if the project adds browser automation to CI.
+- observation: Headless Chrome measurements confirmed the labels are contained at 1536px, 1440px, 1280px, 1024px, 768px, and 390px, with no horizontal page overflow.
+
+5. User learning
+The overflow came from forcing five uppercase labels with wide letter spacing into a narrow right-hand column at desktop/tablet breakpoints; `UNDERSTANDING` was the first label wide enough to escape into the neighboring card.
+
+6. AI-agent learning
+For responsive marketing-card layouts, verify the parent grid breakpoint and the child grid/card min-widths together; fixing only text overflow can hide the real compression source.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Next.js Security Patch
 
 1. Interaction title
@@ -4977,4 +5008,3 @@ The standard upload path stores `datasetType: standard`, so SaaS/startup preserv
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
-
