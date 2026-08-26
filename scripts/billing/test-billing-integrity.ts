@@ -131,6 +131,15 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: "spending limit profile schema is applied during Railway predeploy",
+    run() {
+      const migration = readProjectFile("src/lib/db/migrations/0025_billing_settings.sql")
+      const predeploy = readProjectFile("scripts/runtime/railway-predeploy.cjs")
+      assert.ok(migration.includes('"billingSettings" jsonb'), "billing settings migration adds profile JSONB settings")
+      assert.ok(predeploy.includes("0025_billing_settings.sql"), "Railway predeploy applies billing settings migration")
+    },
+  },
+  {
     name: "reconciliation excludes pending reservations",
     run() {
       const service = readProjectFile("src/lib/billing/credit-account-service.ts")
@@ -197,9 +206,15 @@ const tests: TestCase[] = [
     name: "payment provider fields are stored on purchase ledger",
     run() {
       const schema = readProjectFile("src/lib/db/schema.ts")
+      const migration = readProjectFile("src/lib/db/migrations/0027_credit_ledger_current_columns.sql")
+      const predeploy = readProjectFile("scripts/runtime/railway-predeploy.cjs")
       assert.ok(schema.includes("paymentProvider: varchar"), "paymentProvider column exists")
       assert.ok(schema.includes("providerTransactionId: varchar"), "providerTransactionId column exists")
       assert.ok(schema.includes("paymentStatus: varchar"), "paymentStatus column exists")
+      assert.ok(migration.includes('"includedBalance" integer'), "credit table migration adds included balance fields")
+      assert.ok(migration.includes('"paymentProvider" varchar(50)'), "credit ledger migration adds payment provider fields")
+      assert.ok(migration.includes('"reportId" text'), "credit ledger migration adds report linkage fields")
+      assert.ok(predeploy.includes("0027_credit_ledger_current_columns.sql"), "Railway predeploy applies current credit ledger migration")
     },
   },
   {
