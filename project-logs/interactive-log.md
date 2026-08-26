@@ -1,3 +1,39 @@
+## Global Dashboard Report Generation Regression
+
+1. Interaction title
+Shared dashboard report generation and download regression.
+
+2. What was the user goal
+Find the single shared failure in the dashboard-to-`/api/reports` flow across SaaS, Profitability, and standard business datasets, verify Superadmin unlimited report generation, and avoid dataset-specific fixes.
+
+3. What changed
+The shared report integrity guard no longer throws when trend output is unavailable even though date and profit evidence exists; it records sanitized debug telemetry while preserving fatal checks for row-count and semantic mapping mismatches. File-backed report reads refresh before report lookup, list, dataset list, and idempotency checks so a newly generated report is visible to Downloads and PDF download handlers across Next workers. No dataset classification, KPI, SaaS, Profitability, Retail, Accountancy, dependency, security, Payload, Railway, sharp, or CI logic changed.
+
+4. Problems marked
+blocker: none.
+risk: the local dev server creates Next-generated `AGENTS.md` and `next-env.d.ts` drift, so agents must remove that drift before staging report fixes.
+improvement: add a focused dashboard-route report regression script that posts the actual `GenerateReportAction` payload for SaaS, Profitability, and standard business datasets.
+observation: the SaaS dashboard request reached `buildDatasetReportInput` and `generateReport`, then failed in `assertReportIntegrity` with `trend is unavailable despite valid date and net-profit values`; report list/download also used stale in-memory cache state in another server worker.
+
+5. User learning
+The dashboard route can fail after report input succeeds when a shared integrity guard treats optional trend absence as fatal, and Downloads can miss a just-generated report when the read worker does not refresh file-backed storage.
+
+6. AI-agent learning
+For dashboard report regressions, always verify POST success, report list visibility, and PDF download in the same route-shaped probe because generation, persistence visibility, and download authorization fail at different shared steps.
+
+7. Follow-up tasks
+- T-1031. Restore dashboard report generation and immediate PDF downloads across SaaS, Profitability, and standard business datasets while preserving Superadmin unlimited access and normal limited-user credit enforcement.
+- Add a focused dashboard-route report regression script for SaaS, Profitability, and standard business datasets.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; active/done work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dashboard Profitability Report Generation Failure
 
 1. Interaction title

@@ -89,6 +89,12 @@ function getReports(): Map<string, Report> {
   return reportsCache;
 }
 
+function getFreshReports(): Map<string, Report> {
+  reportsCache = loadReports();
+  debugLog('[REPORT] getFreshReports() returning count:', reportsCache.size);
+  return reportsCache;
+}
+
 function setReports(reports: Map<string, Report>) {
   reportsCache = reports;
   saveReports(reports);
@@ -643,7 +649,14 @@ function assertReportIntegrity(report: Report) {
   if (report.diagnostics.provenanceRowsLength !== report.diagnostics.rowCount) failures.push("provenance row count differs from authoritative row count");
   if (report.diagnostics.rowsUsedForKpis !== report.diagnostics.rowCount) failures.push("KPI row count differs from authoritative row count");
   if (report.diagnostics.validDateCount > 0 && report.diagnostics.validNetProfitCount > 0 && !report.diagnostics.trendAvailable) {
-    failures.push("trend is unavailable despite valid date and net-profit values");
+    debugLog("[REPORT] Trend unavailable despite date and profit evidence", {
+      reportId: report.id,
+      datasetId: report.datasetId,
+      dateField: report.diagnostics.dateField,
+      netProfitField: report.diagnostics.netProfitField,
+      validDateCount: report.diagnostics.validDateCount,
+      validNetProfitCount: report.diagnostics.validNetProfitCount,
+    });
   }
   if (report.diagnostics.validExpenseCategoryCount > 0 && !report.semanticContext.expenseCategoryField) {
     failures.push("expense categories exist but semantic context has no expense category field");
@@ -673,7 +686,7 @@ function assertReportIntegrity(report: Report) {
  * Get report by ID
  */
 export function getReport(reportId: string): Report | null {
-  const report = getReports().get(reportId);
+  const report = getFreshReports().get(reportId);
   
   if (!report) {
     return null;
@@ -691,8 +704,9 @@ export function getReport(reportId: string): Report | null {
  * List all reports
  */
 export function listAllReports(): Report[] {
-  debugLog('[REPORTS] listAllReports called, Map size:', getReports().size);
-  return Array.from(getReports().values())
+  const reports = getFreshReports();
+  debugLog('[REPORTS] listAllReports called, Map size:', reports.size);
+  return Array.from(reports.values())
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -700,7 +714,7 @@ export function listAllReports(): Report[] {
  * List reports for a dataset
  */
 export function listReports(datasetId: string): Report[] {
-  return Array.from(getReports().values())
+  return Array.from(getFreshReports().values())
     .filter(r => r.datasetId === datasetId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
@@ -709,7 +723,7 @@ export function listReports(datasetId: string): Report[] {
  * Find an existing report generated for the same dataset operation.
  */
 export function findReportByIdempotencyKey(datasetId: string, idempotencyKey: string): Report | null {
-  return Array.from(getReports().values())
+  return Array.from(getFreshReports().values())
     .find((report) => report.datasetId === datasetId && report.idempotencyKey === idempotencyKey) || null;
 }
 

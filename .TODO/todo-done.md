@@ -25,6 +25,7 @@ moving work between states.
 
 ## Label: reports
 
+- T-1031. Restore dashboard report generation and immediate PDF downloads across SaaS, Profitability, and standard business datasets while preserving Superadmin unlimited access and normal limited-user credit enforcement. (labels: reports, dashboard, testing; commit: worktree)
 - T-1030. Restore dashboard profitability report generation with safe request diagnostics, persisted report output, downloadable PDF output, unchanged profitability metrics, and passing report validation gates. (labels: reports, dashboard, testing; commit: worktree)
 - T-1015. Derive paired profitability operating profit only from source-backed revenue and complete operating-expense inputs while preserving unavailable gross and net metrics without COGS, interest, or tax. (labels: reports, metrics, testing; commit: 85657ac8)
 - T-1014. Local retail reports calculate current stock, reorder status, inventory value, and stock by category from latest store-product inventory snapshots while sales metrics use all transaction rows. (labels: reports, metrics, testing; commit: dfc27c74)
