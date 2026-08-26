@@ -1,3 +1,4 @@
+- fixed: restore dashboard profitability report generation by applying billing-settings and current credit-ledger schema during Railway predeploy, keeping dashboard report diagnostics sanitized, and verifying persisted reports plus PDF downloads through the live route
 - fixed: keep the What You're Missing five-step insight-flow headings inside their cards across desktop, tablet, and mobile widths by tightening the card label layout and avoiding narrow five-column compression
 - fixed: update Railway sharp musl packaging from 0.34.5/1.2.4 to 0.35.3/1.3.2 so dist artifacts deploy the matching linuxmusl-x64 native binaries and both app.useclevr.com and test.useclevr.com load sharp without crashing
 - added: document Payload 3.85.1 residual security risk with approved advisory allowlist so CI tracks the exact blocked undici and image-size transitive HIGH findings without suppressing new vulnerabilities

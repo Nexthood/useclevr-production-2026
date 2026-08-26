@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Fix dashboard profitability report generation so users with available report credits can create and download reports from the dashboard.
 - Fix the What You're Missing insight-flow cards so long step headings stay inside their cards on desktop, tablet, and mobile screens.
 - Fix SaaS and startup dataset analysis so standard uploads preserve plan, users, price per user, revenue, cost, profit, startup stage, company, country, and date semantics while avoiding unsupported retail and recurring-revenue KPIs.
 - Fix production page rendering by rolling back Payload CMS from 3.88.0 to 3.85.1 because the 3.88.0 update caused HTTP 500 on all app pages in test.useclevr.com while `/api/health` remained healthy.

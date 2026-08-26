@@ -38,6 +38,30 @@ function forbidden() {
 
 type ReportCostLogInput = Parameters<typeof logAiCost>[0];
 
+type DashboardReportDiagnostics = {
+  active: boolean;
+  method: string;
+  endpoint: string;
+  datasetId: string | null;
+  reportType: string | null;
+  reportProfile: string | null;
+  workspaceId: string | null;
+  datasetType: string | null;
+  requestKeys: string[];
+  responseStatus: number | null;
+  responseErrorCode: string | null;
+  responseErrorMessage: string | null;
+  datasetName: string | null;
+  analysisId: string | null;
+  profitabilityPairing: Record<string, unknown> | null;
+  reportInputKeys: string[];
+  session: {
+    hasUserId: boolean;
+    role: string | null;
+    hasEmail: boolean;
+  } | null;
+};
+
 async function safeLogReportAiCost(input: ReportCostLogInput, context: string) {
   try {
     await logAiCost(input);
@@ -49,9 +73,172 @@ async function safeLogReportAiCost(input: ReportCostLogInput, context: string) {
   }
 }
 
+function getBodyKeys(body: unknown) {
+  return body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body).sort() : [];
+}
+
+function getErrorMessage(body: unknown) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const record = body as Record<string, unknown>;
+  if (typeof record.error === "string") return record.error;
+  if (typeof record.message === "string") return record.message;
+  return null;
+}
+
+function getErrorCode(body: unknown) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const code = (body as Record<string, unknown>).code;
+  return typeof code === "string" ? code : null;
+}
+
+function isDashboardReportRequest(idempotencyKey: string, requestKeys: string[]) {
+  return idempotencyKey.startsWith("dashboard-report:") || (
+    requestKeys.length <= 2 &&
+    requestKeys.includes("datasetId") &&
+    requestKeys.includes("idempotencyKey")
+  );
+}
+
+function createReportResponse(
+  body: Record<string, unknown>,
+  init: ResponseInit,
+  diagnostics: DashboardReportDiagnostics | null,
+) {
+  if (diagnostics?.active) {
+    diagnostics.responseStatus = init.status ?? 200;
+    diagnostics.responseErrorCode = getErrorCode(body);
+    diagnostics.responseErrorMessage = getErrorMessage(body);
+    debugLog("[REPORTS POST] Dashboard report response diagnostics:", diagnostics);
+  }
+  return NextResponse.json(body, init);
+}
+
+function updateDashboardDatasetDiagnostics(
+  diagnostics: DashboardReportDiagnostics | null,
+  dataset: Awaited<ReturnType<typeof findAccessibleDataset>>["dataset"],
+  resolvedRole: string | undefined,
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>,
+) {
+  if (!diagnostics?.active || !dataset) return;
+  diagnostics.datasetName = dataset.name;
+  diagnostics.datasetType = dataset.datasetType ?? null;
+  diagnostics.workspaceId = session.user.id;
+  diagnostics.session = {
+    hasUserId: Boolean(session.user.id),
+    role: resolvedRole ?? null,
+    hasEmail: Boolean(session.user.email),
+  };
+  diagnostics.analysisId = getProfitabilityAnalysisId(dataset);
+  diagnostics.profitabilityPairing = getProfitabilityPairingDiagnostics(dataset);
+}
+
+function updateDashboardReportInputDiagnostics(
+  diagnostics: DashboardReportDiagnostics | null,
+  reportInput: Awaited<ReturnType<typeof buildDatasetReportInput>>,
+) {
+  if (!diagnostics?.active) return;
+  diagnostics.reportType = reportInput.reportType ?? null;
+  diagnostics.reportProfile = reportInput.reportProfile?.id ?? null;
+  diagnostics.reportInputKeys = Object.keys(reportInput).sort();
+}
+
+function getProfitabilityAnalysisId(dataset: Awaited<ReturnType<typeof findAccessibleDataset>>["dataset"]) {
+  if (!dataset) return null;
+  const sources = [dataset.precomputedMetrics, dataset.columnMapping, dataset.analysis];
+  for (const source of sources) {
+    const direct = readString(source, "profitabilityAnalysisId") ?? readString(source, "profitability_analysis_id");
+    if (direct) return direct;
+    const nested = source && typeof source === "object" && !Array.isArray(source)
+      ? (source as Record<string, unknown>).profitability
+      : null;
+    const nestedId = readString(nested, "profitabilityAnalysisId") ?? readString(nested, "profitability_analysis_id");
+    if (nestedId) return nestedId;
+  }
+  return null;
+}
+
+function getProfitabilityPairingDiagnostics(dataset: Awaited<ReturnType<typeof findAccessibleDataset>>["dataset"]) {
+  if (!dataset) return null;
+  const metrics = dataset.precomputedMetrics && typeof dataset.precomputedMetrics === "object" && !Array.isArray(dataset.precomputedMetrics)
+    ? dataset.precomputedMetrics as Record<string, unknown>
+    : null;
+  const mapping = dataset.columnMapping && typeof dataset.columnMapping === "object" && !Array.isArray(dataset.columnMapping)
+    ? dataset.columnMapping as Record<string, unknown>
+    : null;
+  const sourceFiles = Array.isArray(metrics?.sourceFiles)
+    ? metrics.sourceFiles
+    : Array.isArray(mapping?.sourceFiles)
+      ? mapping.sourceFiles
+      : [];
+  return {
+    analysisId: getProfitabilityAnalysisId(dataset),
+    fileRole: readString(metrics, "profitabilityFileRole") ?? readString(metrics, "profitability_file_role") ?? readString(mapping, "profitabilityFileRole") ?? readString(mapping, "profitability_file_role"),
+    hasBothFiles: typeof metrics?.hasBothFiles === "boolean" ? metrics.hasBothFiles : null,
+    hasRevenue: typeof metrics?.hasRevenue === "boolean" ? metrics.hasRevenue : null,
+    hasExpenses: typeof metrics?.hasExpenses === "boolean" ? metrics.hasExpenses : null,
+    sourceFiles: sourceFiles
+      .filter((file): file is Record<string, unknown> => Boolean(file) && typeof file === "object" && !Array.isArray(file))
+      .map((file) => ({
+        role: readString(file, "role"),
+        name: readString(file, "name"),
+        rowCount: typeof file.rowCount === "number" ? file.rowCount : null,
+        columns: Array.isArray(file.columns) ? file.columns.filter((column) => typeof column === "string") : [],
+      })),
+  };
+}
+
+function readString(source: unknown, key: string) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null;
+  const value = (source as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function getFirstApplicationFrame(stack: string | undefined) {
+  const lines = stack?.split("\n").map((line) => line.trim()).filter(Boolean) ?? [];
+  return lines.find((line) => line.includes("/src/") || line.includes("src/")) ?? null;
+}
+
+function parseApplicationFrame(frame: string | null) {
+  if (!frame) return { file: null, line: null, functionName: null };
+  const match = frame.match(/at\s+(?:(.*?)\s+\()?(.+?src\/.+?):(\d+):(\d+)\)?$/);
+  return {
+    file: match?.[2] ?? null,
+    line: match?.[3] ? Number(match[3]) : null,
+    functionName: match?.[1] || null,
+  };
+}
+
+function logDashboardReportException(error: unknown, diagnostics: DashboardReportDiagnostics | null) {
+  if (!diagnostics?.active) return;
+  const stack = error instanceof Error ? error.stack : undefined;
+  const firstApplicationFrame = getFirstApplicationFrame(stack);
+  const parsedFrame = parseApplicationFrame(firstApplicationFrame);
+  const cause = error instanceof Error && error.cause ? error.cause : null;
+  debugError("[REPORTS POST] Dashboard report exception diagnostics:", {
+    request: diagnostics,
+    exception: {
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      cause: cause instanceof Error
+        ? {
+            name: cause.name,
+            message: cause.message,
+            stack: cause.stack,
+          }
+        : cause,
+      stack,
+      firstApplicationFrame,
+      failingFile: parsedFrame.file,
+      failingLine: parsedFrame.line,
+      failedFunction: parsedFrame.functionName,
+    },
+  });
+}
+
 export async function POST(request: Request) {
   let operationId: string | null = null;
   let reservationCreated = false;
+  let dashboardDiagnostics: DashboardReportDiagnostics | null = null;
 
   try {
     const session = await getSession();
@@ -71,19 +258,43 @@ export async function POST(request: Request) {
     const userId = session.user.id;
     const headerIdempotencyKey = request.headers.get('idempotency-key') || request.headers.get('x-idempotency-key');
     const idempotencyKey = String(bodyIdempotencyKey || headerIdempotencyKey || `report:${datasetId || 'missing'}:${crypto.randomUUID()}`);
+    const requestKeys = getBodyKeys(body);
+    dashboardDiagnostics = {
+      active: isDashboardReportRequest(idempotencyKey, requestKeys),
+      method: request.method,
+      endpoint: new URL(request.url).pathname,
+      datasetId: typeof datasetId === "string" ? datasetId : null,
+      reportType: null,
+      reportProfile: null,
+      workspaceId: null,
+      datasetType: null,
+      requestKeys,
+      responseStatus: null,
+      responseErrorCode: null,
+      responseErrorMessage: null,
+      datasetName: typeof datasetName === "string" ? datasetName : null,
+      analysisId: null,
+      profitabilityPairing: null,
+      reportInputKeys: [],
+      session: null,
+    };
+    if (dashboardDiagnostics.active) {
+      debugLog("[REPORTS POST] Dashboard report request diagnostics:", dashboardDiagnostics);
+    }
     
     debugLog('[REPORTS POST] Received request:', { datasetId, datasetName, visibility });
     
     if (!datasetId) {
-      return NextResponse.json(
+      return createReportResponse(
         { success: false, error: 'datasetId is required' },
-        { status: 400 }
+        { status: 400 },
+        dashboardDiagnostics,
       );
     }
 
     const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
+      return createReportResponse({ success: false, error: 'Database unavailable' }, { status: 503 }, dashboardDiagnostics);
     }
 
     const profile = await db.query.profiles.findFirst({
@@ -95,12 +306,13 @@ export async function POST(request: Request) {
     const access = await findAccessibleDataset(datasetId, userId, resolvedRole);
 
     if (access.dbUnavailable) {
-      return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
+      return createReportResponse({ success: false, error: 'Database unavailable' }, { status: 503 }, dashboardDiagnostics);
     }
 
     if (!access.dataset) {
       return forbidden();
     }
+    updateDashboardDatasetDiagnostics(dashboardDiagnostics, access.dataset, resolvedRole, session);
 
     const existingReport = findReportByIdempotencyKey(datasetId, idempotencyKey);
     if (existingReport) {
@@ -120,7 +332,7 @@ export async function POST(request: Request) {
         currentRuntime: isCurrentReportRuntime(existingReport),
       });
       if (isCurrentReportRuntime(existingReport)) {
-        return NextResponse.json({
+        return createReportResponse({
           success: true,
           reportId: existingReport.id,
           status: existingReport.status || 'ready',
@@ -137,7 +349,7 @@ export async function POST(request: Request) {
           localTime: existingReport.localTime,
           timezone: existingReport.timezone,
           idempotent: true,
-        });
+        }, { status: 200 }, dashboardDiagnostics);
       }
       if (existingReport.pdfPath && fs.existsSync(existingReport.pdfPath)) {
         fs.unlinkSync(existingReport.pdfPath);
@@ -169,9 +381,10 @@ export async function POST(request: Request) {
           errorMessage: spendingLimitCheck.reason,
           datasetId,
         }, 'spending_limit_blocked');
-        return NextResponse.json(
+        return createReportResponse(
           { success: false, error: spendingLimitCheck.reason || 'Spending limit reached.' },
-          { status: 402 }
+          { status: 402 },
+          dashboardDiagnostics,
         );
       }
     }
@@ -204,9 +417,10 @@ export async function POST(request: Request) {
         errorMessage: reservation.error,
         datasetId,
       }, 'credit_reservation_blocked');
-      return NextResponse.json(
+      return createReportResponse(
         { success: false, error: reservation.error || 'No credits remaining. Please upgrade to generate reports.' },
-        { status: 402 }
+        { status: 402 },
+        dashboardDiagnostics,
       );
     }
     reservationCreated = Boolean(reservation);
@@ -228,9 +442,10 @@ export async function POST(request: Request) {
         errorMessage: enforcementCheck.reason,
         datasetId,
       }, 'usage_limit_blocked');
-      return NextResponse.json(
+      return createReportResponse(
         { success: false, error: enforcementCheck.upgradeMessage || enforcementCheck.reason || 'Your plan has reached a usage limit.' },
-        { status: 402 }
+        { status: 402 },
+        dashboardDiagnostics,
       );
     }
 
@@ -246,6 +461,7 @@ export async function POST(request: Request) {
     });
 
     const reportInput = await buildDatasetReportInput(access.dataset);
+    updateDashboardReportInputDiagnostics(dashboardDiagnostics, reportInput);
     
     // DIAGNOSTIC LOGGING FOR ACCOUNTANCY LEDGER FIX VERIFICATION
     if (access.dataset.name?.toLowerCase().includes("accountancy") || access.dataset.name?.toLowerCase().includes("ledger")) {
@@ -284,9 +500,10 @@ export async function POST(request: Request) {
 
     if (reportInput.rowCount <= 0) {
       if (reservationCreated && operationId) await releaseCredits(operationId, 'no_reportable_dataset');
-      return NextResponse.json(
+      return createReportResponse(
         { success: false, error: 'No reportable dataset is currently available.' },
         { status: 422 },
+        dashboardDiagnostics,
       );
     }
     
@@ -326,7 +543,7 @@ export async function POST(request: Request) {
       if (!deduction.success) {
         await releaseCredits(operationId, 'report_charge_failed');
         deleteReport(report.id);
-        return NextResponse.json({ success: false, error: deduction.error || 'Unable to finalize report credits.' }, { status: 402 });
+        return createReportResponse({ success: false, error: deduction.error || 'Unable to finalize report credits.' }, { status: 402 }, dashboardDiagnostics);
       }
 
       creditsRemaining = deduction.remainingCredits;
@@ -349,7 +566,7 @@ export async function POST(request: Request) {
     
     debugLog('[REPORTS POST] Generated report:', report.id);
     
-    return NextResponse.json({
+    return createReportResponse({
       success: true,
       reportId: report.id,
       status: report.status || 'ready',
@@ -366,20 +583,22 @@ export async function POST(request: Request) {
       localTime: report.localTime,
       timezone: report.timezone,
       creditsRemaining,
-    });
+    }, { status: 200 }, dashboardDiagnostics);
     
   } catch (error) {
     if (reservationCreated && operationId) {
       await releaseCredits(operationId, 'report_generation_failed');
     }
+    logDashboardReportException(error, dashboardDiagnostics);
     debugError(
       '[REPORTS POST] Error:',
       error instanceof Error ? error.message : String(error),
       error instanceof Error ? error.stack : undefined,
     );
-    return NextResponse.json(
+    return createReportResponse(
       { success: false, error: 'Failed to generate report' },
-      { status: 500 }
+      { status: 500 },
+      dashboardDiagnostics,
     );
   }
 }
