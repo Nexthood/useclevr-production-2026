@@ -4736,6 +4736,41 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## SaaS Same-Period Customer And Churn Semantics
+
+1. Interaction title
+SaaS same-period customer and churn report semantics.
+
+2. What was the user goal
+Fix the remaining SaaS Executive Report inconsistency where a source churn rate displayed beside a historical churned-customer total and a latest customer snapshot, producing contradictory text such as 211 churned customers with a 2.2% churn rate.
+
+3. What changed
+SaaS Executive Reports now treat numeric `customers`, `new_customers`, and `churned_customers` fields as latest-period source values for executive snapshot metrics. Source `churn_rate` stays a latest-period source rate and no longer receives a fabricated eligible-customer denominator. Derived churn rates use same-period churned-customer and customer-count values only. Customer-level SaaS datasets with customer IDs, subscription IDs, and status values still use distinct customer and normalized churn status logic. PDF KPI cards, Customer Metrics tables, recommendations, Dataset Intelligence SaaS KPIs, dashboard confidence, and SaaS Results Summary findings now use the same canonical interpretation.
+
+4. Problems marked
+blocker: none.
+risk: the direct dataset-aware report profile script now passes the SaaS Top Findings assertion and stops later on an out-of-scope retail PDF assertion about inventory-position low-stock labeling.
+improvement: fix the retail unit-cost PDF low-stock labeling assertion in a separate retail-scoped task.
+observation: source churn-rate fields and churned-customer count fields can both be valid while still being independent source metrics, so recommendation text must not imply one derives the other unless the code derives it from the same-period denominator.
+
+5. User learning
+SaaS snapshot uploads need latest-period executive metrics, while customer-level uploads need distinct-customer/event semantics; the resolver must preserve both behaviors from structural evidence.
+
+6. AI-agent learning
+SaaS report provenance must state aggregation intent, not only source column names, because source fields can represent snapshots, period flows, statuses, identifiers, or rates.
+
+7. Follow-up tasks
+- Fix the retail unit-cost PDF low-stock labeling assertion in a separate retail-scoped task.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; active/deferred/no-fix work: `.TODO/` queue files only as destinations; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS Executive Report Customer And Churn Aggregation
 
 1. Interaction title

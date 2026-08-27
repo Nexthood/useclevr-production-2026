@@ -25,6 +25,7 @@ moving work between states.
 
 ## Label: reports
 
+- T-1034. Fix SaaS Executive Reports so period snapshot customer, new-customer, churned-customer, and churn-rate fields use same-period source semantics without contradicting customer-level event semantics. (labels: reports, data, metrics, testing; commit: worktree)
 - T-1033. Fix SaaS Executive Reports so customer count, new customer count, churned customer count, churn rate, and monthly customer snapshots use deterministic SaaS aggregation without requiring optional segmentation fields. (labels: reports, data, metrics, testing; commit: worktree)
 - T-1031. Restore dashboard report generation and immediate PDF downloads across SaaS, Profitability, and standard business datasets while preserving Superadmin unlimited access and normal limited-user credit enforcement. (labels: reports, dashboard, testing; commit: worktree)
 - T-1030. Restore dashboard profitability report generation with safe request diagnostics, persisted report output, downloadable PDF output, unchanged profitability metrics, and passing report validation gates. (labels: reports, dashboard, testing; commit: worktree)

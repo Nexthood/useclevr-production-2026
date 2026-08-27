@@ -296,10 +296,10 @@ export interface SaasReportAnalysis {
   customerAggregation?: "distinct_ids" | "latest_snapshot" | "sum" | null;
   newCustomers: number | null;
   newCustomerField: string | null;
-  newCustomerAggregation?: "positive_status" | "period_flow" | null;
+  newCustomerAggregation?: "positive_status" | "latest_snapshot" | null;
   churnedCustomers: number | null;
   churnedCustomerField?: string | null;
-  churnedCustomerAggregation?: "positive_status" | "period_flow" | null;
+  churnedCustomerAggregation?: "positive_status" | "latest_snapshot" | null;
   eligibleChurnCustomers: number | null;
   churnRate: number | null;
   churnField: string | null;

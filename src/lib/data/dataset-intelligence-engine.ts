@@ -1001,11 +1001,11 @@ function generateKpis(
     if (saas?.mappings.expansion_mrr) kpis.push(sumMappedKpi("expansion_mrr", saas.mappings.expansion_mrr, rows, "Expansion MRR", "currency", saas.confidence));
     if (saas?.mappings.contraction_mrr) kpis.push(sumMappedKpi("contraction_mrr", saas.mappings.contraction_mrr, rows, "Contraction MRR", "currency", saas.confidence));
     if (saas?.mappings.customer_id) kpis.push(uniqueMappedKpi("customers", saas.mappings.customer_id, rows, "Customers", saas.confidence));
-    if (saas?.mappings.customer_count) kpis.push(latestMappedKpi("customers", saas.mappings.customer_count, rows, "Customers", "number", saas.confidence));
+    if (saas?.mappings.customer_count) kpis.push(latestMappedKpi("customers", saas.mappings.customer_count, rows, "Customers", "number", saas.confidence, saas.mappings.period));
     if (saas?.mappings.subscription_id) kpis.push(uniqueMappedKpi("subscriptions", saas.mappings.subscription_id, rows, "Subscriptions", saas.confidence));
-    if (saas?.mappings.new_customers) kpis.push(sumMappedKpi("new_customers", saas.mappings.new_customers, rows, "New Customers", "number", saas.confidence));
-    if (saas?.mappings.churned_customers) kpis.push(sumMappedKpi("churned_customers", saas.mappings.churned_customers, rows, "Churned Customers", "number", saas.confidence));
-    if (saas?.mappings.churn_rate) kpis.push(averageMappedRateKpi("churn_rate", saas.mappings.churn_rate, rows, "Churn Rate", saas.confidence));
+    if (saas?.mappings.new_customers) kpis.push(latestMappedKpi("new_customers", saas.mappings.new_customers, rows, "New Customers", "number", saas.confidence, saas.mappings.period));
+    if (saas?.mappings.churned_customers) kpis.push(latestMappedKpi("churned_customers", saas.mappings.churned_customers, rows, "Churned Customers", "number", saas.confidence, saas.mappings.period));
+    if (saas?.mappings.churn_rate) kpis.push(latestMappedRateKpi("churn_rate", saas.mappings.churn_rate, rows, "Churn Rate", saas.confidence, saas.mappings.period));
     if (!saas?.mappings.churned_customers && !saas?.mappings.churn_rate && saas?.mappings.churn) {
       const churned = countSaasPositiveRows(rows, saas.mappings.churn);
       kpis.push({
@@ -1034,8 +1034,8 @@ function generateKpis(
   return kpis.slice(0, 14);
 }
 
-function latestMappedKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, format: KpiFormat, confidence: number): DynamicKpi {
-  const value = rows.length === 1 ? toNumber(rows[0][column]) : null;
+function latestMappedKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, format: KpiFormat, confidence: number, periodColumn?: string): DynamicKpi {
+  const value = latestMappedValue(rows, column, periodColumn);
   return {
     id,
     title,
@@ -1043,12 +1043,15 @@ function latestMappedKpi(id: string, column: string, rows: Record<string, unknow
     format,
     sourceColumns: [column],
     confidence,
-    explanation: `${title} uses the source SaaS snapshot field "${column}" when the dataset has a single defensible snapshot row.`,
+    explanation: periodColumn
+      ? `${title} uses the latest-period source SaaS snapshot field "${column}".`
+      : `${title} uses the source SaaS snapshot field "${column}" when the dataset has a single defensible snapshot row.`,
   };
 }
 
-function averageMappedRateKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, confidence: number): DynamicKpi {
-  const values = rows.map((row) => toNumber(row[column])).filter((value): value is number => value !== null).map(normalizePercentValue).filter((value): value is number => value !== null);
+function latestMappedRateKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, confidence: number, periodColumn?: string): DynamicKpi {
+  const sourceRows = latestRowsByPeriod(rows, periodColumn);
+  const values = sourceRows.map((row) => toNumber(row[column])).filter((value): value is number => value !== null).map(normalizePercentValue).filter((value): value is number => value !== null);
   return {
     id,
     title,
@@ -1056,8 +1059,41 @@ function averageMappedRateKpi(id: string, column: string, rows: Record<string, u
     format: "percentage",
     sourceColumns: [column],
     confidence,
-    explanation: `${title} averages the SaaS rate field "${column}" and never sums percentage values.`,
+    explanation: periodColumn
+      ? `${title} uses the latest-period SaaS rate field "${column}" and never sums percentage values.`
+      : `${title} averages the SaaS rate field "${column}" and never sums percentage values.`,
   };
+}
+
+function latestMappedValue(rows: Record<string, unknown>[], column: string, periodColumn?: string) {
+  if (!periodColumn && rows.length > 1) return null;
+  const sourceRows = latestRowsByPeriod(rows, periodColumn);
+  const values = sourceRows.map((row) => toNumber(row[column])).filter((value): value is number => value !== null);
+  if (values.length === 0) return null;
+  return values.reduce((total, value) => total + value, 0);
+}
+
+function latestRowsByPeriod(rows: Record<string, unknown>[], periodColumn?: string) {
+  if (!periodColumn) return rows;
+  const keyed = rows
+    .map((row) => ({ row, key: normalizePeriodKey(row[periodColumn]) }))
+    .filter((item): item is { row: Record<string, unknown>; key: string } => Boolean(item.key));
+  if (keyed.length === 0) return rows;
+  const latest = keyed.map((item) => item.key).sort().at(-1);
+  return latest ? keyed.filter((item) => item.key === latest).map((item) => item.row) : rows;
+}
+
+function normalizePeriodKey(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const parsed = Date.parse(raw);
+  if (Number.isFinite(parsed)) return new Date(parsed).toISOString().slice(0, 10);
+  const month = raw.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (month) return `${month[1]}-${month[2].padStart(2, "0")}-01`;
+  const year = raw.match(/^(\d{4})$/);
+  if (year) return `${year[1]}-01-01`;
+  return raw.toLowerCase();
 }
 
 function normalizePercentValue(value: number) {

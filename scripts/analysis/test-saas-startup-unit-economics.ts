@@ -211,22 +211,26 @@ async function main() {
   assert.equal(hybridSaas.saas.capabilities.financialRunway, true)
 
   const caseARows = [
-    { date: "2026-01-31", mrr: 10000, customers: 100, new_customers: 12, churned_customers: 2 },
-    { date: "2026-02-28", mrr: 12000, customers: 120, new_customers: 15, churned_customers: 3 },
+    { month: "2026-01", mrr: 10000, arr: 120000, customers: 100, new_customers: 12, churned_customers: 2, churn_rate: 0.02, active_users: 640, cac: 120, ltv: 1800, burn: 20000, cash_balance: 200000, runway_months: 10 },
+    { month: "2026-02", mrr: 12000, arr: 144000, customers: 120, new_customers: 15, churned_customers: 3, churn_rate: 0.025, active_users: 780, cac: 130, ltv: 1900, burn: 21000, cash_balance: 180000, runway_months: 8.6 },
   ]
-  const caseA = await buildDatasetReportInput(makeSaasDataset("saas-case-a-customer-counts", caseARows, ["date", "mrr", "customers", "new_customers", "churned_customers"]))
+  const caseA = await buildDatasetReportInput(makeSaasDataset("saas-case-a-customer-counts", caseARows, ["month", "mrr", "arr", "customers", "new_customers", "churned_customers", "churn_rate", "active_users", "cac", "ltv", "burn", "cash_balance", "runway_months"]))
   const caseASaas = getSaasAnalysis(caseA)
   assert.equal(caseASaas.customers, 120)
   assert.equal(caseASaas.customerAggregation, "latest_snapshot")
-  assert.equal(caseASaas.newCustomers, 27)
-  assert.equal(caseASaas.newCustomerAggregation, "period_flow")
-  assert.equal(caseASaas.churnedCustomers, 5)
-  assert.equal(caseASaas.churnedCustomerAggregation, "period_flow")
+  assert.equal(caseASaas.newCustomers, 15)
+  assert.equal(caseASaas.newCustomerAggregation, "latest_snapshot")
+  assert.equal(caseASaas.churnedCustomers, 3)
+  assert.equal(caseASaas.churnedCustomerAggregation, "latest_snapshot")
   assert.equal(caseASaas.churnRate, 2.5)
-  assert.equal(caseASaas.churnRateSource, "derived_from_counts")
+  assert.equal(caseASaas.churnRateSource, "source_rate")
+  assert.equal(caseASaas.eligibleChurnCustomers, null)
+  assert.equal(caseASaas.activeUsers, 780)
   assert.ok(caseA.kpis.some((kpi) => kpi.title === "Customers" && kpi.value === 120))
-  assert.ok(caseA.kpis.some((kpi) => kpi.title === "New Customers" && kpi.value === 27))
-  assert.ok(caseA.kpis.some((kpi) => kpi.title === "Churned Customers" && kpi.value === 5))
+  assert.ok(caseA.kpis.some((kpi) => kpi.title === "New Customers" && kpi.value === 15))
+  assert.ok(caseA.kpis.some((kpi) => kpi.title === "Churned Customers" && kpi.value === 3))
+  assert.equal(/churned customers produce a 2\.5% churn rate/i.test(caseA.recommendations.map((item) => item.issue).join(" ")), false)
+  assert.ok(caseA.recommendations.some((item) => /Latest churn rate is 2\.5% from source churn_rate/i.test(item.issue)))
 
   const caseBRows = [
     { date: "2026-01-31", mrr: 10000, total_customers: 100, new_customers: 12, churned_customers: 2, churn_rate: 2 },
@@ -236,13 +240,24 @@ async function main() {
   const caseBSaas = getSaasAnalysis(caseB)
   assert.equal(caseBSaas.customers, 120)
   assert.equal(caseBSaas.customerField, "total_customers")
-  assert.equal(caseBSaas.churnedCustomers, 5)
+  assert.equal(caseBSaas.newCustomers, 15)
+  assert.equal(caseBSaas.churnedCustomers, 3)
   assert.equal(caseBSaas.churnRate, 2.5)
   assert.equal(caseBSaas.churnRateField, "churn_rate")
   assert.equal(caseBSaas.churnRateSource, "source_rate")
   assert.notEqual(caseBSaas.churnRate, 4.5)
 
-  const caseC = await buildDatasetReportInput(makeSaasDataset("saas-case-c-no-segmentation", caseARows, ["date", "mrr", "customers", "new_customers", "churned_customers"]))
+  const caseBNoRate = await buildDatasetReportInput(makeSaasDataset("saas-case-b-no-source-churn-rate", [
+    { date: "2026-01-31", mrr: 10000, total_customers: 100, new_customers: 12, churned_customers: 2 },
+    { date: "2026-02-28", mrr: 12000, total_customers: 120, new_customers: 15, churned_customers: 3 },
+  ], ["date", "mrr", "total_customers", "new_customers", "churned_customers"]))
+  const caseBNoRateSaas = getSaasAnalysis(caseBNoRate)
+  assert.equal(caseBNoRateSaas.churnedCustomers, 3)
+  assert.equal(caseBNoRateSaas.eligibleChurnCustomers, 120)
+  assert.equal(caseBNoRateSaas.churnRate, 2.5)
+  assert.equal(caseBNoRateSaas.churnRateSource, "derived_from_counts")
+
+  const caseC = await buildDatasetReportInput(makeSaasDataset("saas-case-c-no-segmentation", caseARows, ["month", "mrr", "customers", "new_customers", "churned_customers"]))
   const caseCRecommendationText = caseC.recommendations.map((item) => `${item.issue} ${item.recommendedAction} ${(item.requiredData || []).join(" ")}`).join(" ").toLowerCase()
   assert.equal(/plan|country|channel/.test(caseCRecommendationText), false)
   assert.ok(caseC.kpis.some((kpi) => kpi.title === "Customers" && kpi.value === 120))
@@ -271,6 +286,19 @@ async function main() {
   assert.equal(caseESaas.customers, 140)
   assert.notEqual(caseESaas.customers, 360)
   assert.ok(caseE.kpis.some((kpi) => kpi.title === "Customers" && kpi.value === 140))
+
+  const customerLevelRows = [
+    { customer_id: "cus_1", subscription_id: "sub_1", plan: "Pro", signup_date: "2026-01-03", status: "active", mrr: 100 },
+    { customer_id: "cus_2", subscription_id: "sub_2", plan: "Pro", signup_date: "2026-01-10", status: "churned", mrr: 80 },
+    { customer_id: "cus_3", subscription_id: "sub_3", plan: "Team", signup_date: "2026-01-15", status: "active", mrr: 150 },
+  ]
+  const customerLevel = await buildDatasetReportInput(makeSaasDataset("saas-case-c-customer-level", customerLevelRows, ["customer_id", "subscription_id", "plan", "signup_date", "status", "mrr"]))
+  const customerLevelSaas = getSaasAnalysis(customerLevel)
+  assert.equal(customerLevelSaas.customers, 3)
+  assert.equal(customerLevelSaas.customerAggregation, "distinct_ids")
+  assert.equal(customerLevelSaas.churnedCustomers, 1)
+  assert.equal(customerLevelSaas.churnRate, 33.33)
+  assert.equal(customerLevelSaas.churnRateSource, "derived_from_status")
 
   const report = await buildDatasetReportInput(dataset)
   assert.equal(report.reportType, "saas")
