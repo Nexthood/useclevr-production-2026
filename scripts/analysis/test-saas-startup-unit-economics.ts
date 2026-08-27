@@ -80,6 +80,21 @@ async function main() {
   })
 
   assert.equal(die.businessModel.model, "SaaS", "semantic AI context classifies SaaS/startup unit economics")
+  assert.equal(die.saas?.profile, "transactional_saas")
+  assert.ok(die.saas.confidence >= 0.55)
+  assert.equal(die.saas.mappings.period, "date")
+  assert.equal(die.saas.mappings.plan, "plan")
+  assert.equal(die.saas.mappings.users, "users")
+  assert.equal(die.saas.mappings.price_per_user, "price_per_user")
+  assert.equal(die.saas.mappings.revenue, "revenue")
+  assert.equal(die.saas.mappings.cost, "cost")
+  assert.equal(die.saas.mappings.profit, "profit")
+  assert.equal(die.saas.mappings.country, "country")
+  assert.equal(die.saas.mappings.startup_stage, "startup_stage")
+  assert.equal(die.saas.capabilities.unitEconomics, true)
+  assert.equal(die.saas.capabilities.segmentation, true)
+  assert.equal(die.saas.capabilities.geography, true)
+  assert.equal(die.aiContext.saas?.profile, "transactional_saas")
   assert.equal(die.columns.find((column) => column.columnName === "company")?.canonicalRole, "Company")
   assert.equal(die.columns.find((column) => column.columnName === "plan")?.canonicalRole, "Category")
   assert.equal(die.columns.find((column) => column.columnName === "users")?.canonicalRole, "Users")
@@ -97,6 +112,59 @@ async function main() {
   assert.ok(die.dashboard.widgets.some((widget) => widget.title === "Revenue by Plan"))
   assert.ok(die.dashboard.widgets.some((widget) => widget.title === "Revenue by Startup Stage"))
   assert.ok(die.aiContext.semanticColumns.some((column) => column.columnName === "users" && column.canonicalRole === "Users"))
+
+  const subscriptionSnapshot = buildDatasetIntelligenceEngine({
+    rows: [
+      { billing_month: "2026-03", customer_id: "cus_1", subscription_id: "sub_1", plan: "Pro", status: "active", mrr: 500, arr: 6000, renewal_date: "2027-03-01" },
+      { billing_month: "2026-03", customer_id: "cus_2", subscription_id: "sub_2", plan: "Team", status: "churned", mrr: 200, arr: 2400, churn_date: "2026-03-20" },
+    ],
+    columns: ["billing_month", "customer_id", "subscription_id", "plan", "status", "mrr", "arr", "renewal_date", "churn_date"],
+    fileName: "subscription-snapshot.csv",
+  })
+  assert.equal(subscriptionSnapshot.businessModel.model, "SaaS")
+  assert.equal(subscriptionSnapshot.saas?.profile, "subscription_snapshot")
+  assert.equal(subscriptionSnapshot.saas.capabilities.recurringRevenue, true)
+  assert.equal(subscriptionSnapshot.saas.capabilities.subscriptionLifecycle, true)
+  assert.ok(subscriptionSnapshot.kpis.some((kpi) => kpi.id === "mrr" && kpi.value === 700))
+  assert.ok(subscriptionSnapshot.kpis.some((kpi) => kpi.id === "arr" && kpi.value === 8400))
+
+  const customerCohort = buildDatasetIntelligenceEngine({
+    rows: [
+      { signup_date: "2026-01-05", customer_id: "cus_1", plan: "Pro", mrr: 500, churn: "no", expansion: 50, contraction: 0, country: "US", cohort: "2026-01" },
+      { signup_date: "2026-01-18", customer_id: "cus_2", plan: "Team", mrr: 200, churn: "yes", expansion: 0, contraction: 25, country: "NL", cohort: "2026-01" },
+    ],
+    columns: ["signup_date", "customer_id", "plan", "mrr", "churn", "expansion", "contraction", "country", "cohort"],
+    fileName: "customer-cohort.csv",
+  })
+  assert.equal(customerCohort.saas?.profile, "customer_cohort")
+  assert.equal(customerCohort.saas.capabilities.cohortRetention, true)
+  assert.equal(customerCohort.saas.mappings.expansion_mrr, "expansion")
+  assert.equal(customerCohort.saas.mappings.contraction_mrr, "contraction")
+
+  const saasFinancial = buildDatasetIntelligenceEngine({
+    rows: [
+      { month: "2026-01", revenue: 20000, expenses: 14000, profit: 6000, burn: 3000, cash: 120000, runway: 40 },
+      { month: "2026-02", revenue: 24000, expenses: 15000, profit: 9000, burn: 2500, cash: 118000, runway: 47.2 },
+    ],
+    columns: ["month", "revenue", "expenses", "profit", "burn", "cash", "runway"],
+    fileName: "saas-financial.csv",
+  })
+  assert.equal(saasFinancial.saas?.profile, "saas_financial")
+  assert.equal(saasFinancial.saas.capabilities.financialRunway, true)
+  assert.equal(saasFinancial.saas.mappings.cash_balance, "cash")
+
+  const hybridSaas = buildDatasetIntelligenceEngine({
+    rows: [
+      { month: "2026-01", customer_id: "cus_1", subscription_id: "sub_1", plan: "Pro", status: "active", mrr: 500, revenue: 500, users: 10, unit_price: 50, burn: 1000, cash_balance: 30000, runway: 30 },
+      { month: "2026-02", customer_id: "cus_2", subscription_id: "sub_2", plan: "Team", status: "active", mrr: 900, revenue: 900, users: 30, unit_price: 30, burn: 1200, cash_balance: 28800, runway: 24 },
+    ],
+    columns: ["month", "customer_id", "subscription_id", "plan", "status", "mrr", "revenue", "users", "unit_price", "burn", "cash_balance", "runway"],
+    fileName: "hybrid-saas.csv",
+  })
+  assert.equal(hybridSaas.saas?.profile, "hybrid_saas")
+  assert.equal(hybridSaas.saas.capabilities.recurringRevenue, true)
+  assert.equal(hybridSaas.saas.capabilities.unitEconomics, true)
+  assert.equal(hybridSaas.saas.capabilities.financialRunway, true)
 
   const report = await buildDatasetReportInput(dataset)
   assert.equal(report.reportType, "saas")

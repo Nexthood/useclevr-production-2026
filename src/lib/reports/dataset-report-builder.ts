@@ -2,6 +2,7 @@ import { calculateBusinessBalancedScorecard } from "@/lib/business/balanced-scor
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import { loadDatasetData } from "@/lib/data/dataset-access"
 import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
+import { resolveSaasSemanticProfile } from "@/lib/data/dataset-intelligence-engine"
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
@@ -126,6 +127,9 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
+  if (reportModel === "saas" || reportModel === "startup") {
+    applySaasSemanticMappings(columnMap, resolveSaasSemanticProfile({ rows, columns, fileName: dataset.fileName }))
+  }
   if (reportModel === "local_retail" && !columnMap.cogs && columnMap.cost) {
     columnMap.cogs = columnMap.cost
   }
@@ -2817,7 +2821,7 @@ function reportModelLabel(model: ReportModel) {
 
 function detectColumns(columns: string[]): ColumnMap {
   return {
-    revenue: findColumn(columns, [/revenue/, /^sales$/, /turnover/, /income/]),
+    revenue: findColumn(columns, [/revenue/, /^sales$/, /sales_amount/, /subscription_revenue/, /recurring_revenue/, /billing_amount/, /^amount$/, /turnover/, /income/]),
     cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /unit_cost/, /spend/]),
     grossProfit: findColumn(columns, [/gross_profit/, /grossprofit/]),
     operatingProfit: findColumn(columns, [/operating_profit/, /operatingprofit/, /ebit\b/]),
@@ -2829,7 +2833,7 @@ function detectColumns(columns: string[]): ColumnMap {
     profit: findColumn(columns, [/net_profit/, /gross_profit/, /operating_profit/, /^profit$/]),
     quantity: findColumn(columns, [/quantity/, /^qty$/, /units_sold/, /units/, /volume/]),
     order: columns.find((column) => isOrderIdentifierColumn(column)),
-    customer: findColumn(columns, [/customer_id/, /customer/, /client_id/, /client/]),
+    customer: findColumn(columns, [/customer_id/, /^customer$/, /account_id/, /client_id/, /^client$/, /organization_id/, /tenant_id/]),
     country: findColumn(columns, [/country/, /region/, /location/]),
     region: findColumn(columns, [/region/]),
     channel: findColumn(columns, [/channel/, /source/]),
@@ -2837,7 +2841,7 @@ function detectColumns(columns: string[]): ColumnMap {
     store: findColumn(columns, [/store_id/, /^store$/, /branch_id/, /^branch$/, /location_id/]),
     category: findColumn(columns, [/category/]),
     department: findColumn(columns, [/department/]),
-    date: findColumn(columns, [/date/, /month/, /period/, /created_at/, /project_start/, /project_end/]),
+    date: findColumn(columns, [/date/, /month/, /period/, /billing_month/, /invoice_date/, /order_date/, /transaction_date/, /signup_date/, /start_date/, /renewal_date/, /created_at/, /project_start/, /project_end/]),
     shippingCost: findColumn(columns, [/shipping_cost/, /shipping/, /fulfillment_cost/, /delivery_cost/, /freight/]),
     discount: findColumn(columns, [/discount/, /discount_amount/, /promo/]),
     returnStatus: findColumn(columns, [/return_status/, /returned/, /return/]),
@@ -2850,20 +2854,20 @@ function detectColumns(columns: string[]): ColumnMap {
     mrr: findColumn(columns, [/^mrr$/, /monthly_recurring_revenue/]),
     arr: findColumn(columns, [/^arr$/, /annual_recurring_revenue/]),
     newCustomer: findColumn(columns, [/new_customer/, /newcustomer/, /new_logo/]),
-    churned: findColumn(columns, [/churned/, /churn/]),
+    churned: findColumn(columns, [/churned/, /churn/, /churn_date/, /cancelled/, /canceled/, /cancellation/]),
     expansionMrr: findColumn(columns, [/expansion_mrr/, /expansion_recurring/, /upsell/]),
     contractionMrr: findColumn(columns, [/contraction_mrr/, /contraction_recurring/, /downsell/]),
     cac: findColumn(columns, [/^cac$/, /customer_acquisition_cost/]),
     ltv: findColumn(columns, [/^ltv$/, /customer_lifetime_value/, /lifetime_value/]),
-    activeUsers: findColumn(columns, [/active_users/, /active_user/, /usage/]),
+    activeUsers: findColumn(columns, [/active_users/, /active_user/, /active_user_count/, /monthly_active_users/, /^mau$/, /usage/]),
     supportTickets: findColumn(columns, [/support_tickets/, /support_ticket/, /tickets/]),
     burn: findColumn(columns, [/burn/]),
     cashBalance: findColumn(columns, [/cash_balance/, /^cash$/]),
     runway: findColumn(columns, [/runway/]),
-    plan: findColumn(columns, [/^plan$/, /subscription_plan/, /tier/]),
-    users: findColumn(columns, [/^users$/, /user_count/, /seat_count/, /^seats$/]),
-    pricePerUser: findColumn(columns, [/price_per_user/, /price_per_seat/, /revenue_per_user/, /^arpu$/, /^arpa$/]),
-    startupStage: findColumn(columns, [/startup_stage/, /^stage$/]),
+    plan: findColumn(columns, [/^plan$/, /subscription_plan/, /pricing_plan/, /product_plan/, /tier/, /package/]),
+    users: findColumn(columns, [/^users$/, /user_count/, /paid_users/, /seat_count/, /^seats$/, /^licenses$/, /licensed_users/]),
+    pricePerUser: findColumn(columns, [/price_per_user/, /price_per_seat/, /unit_price/, /revenue_per_user/, /^arpu$/, /^arpa$/]),
+    startupStage: findColumn(columns, [/startup_stage/, /funding_stage/, /^stage$/]),
     investedAmount: findInvestorInvestedAmountColumn(columns),
     valuation: findInvestorLatestValuationColumn(columns),
     ownership: findColumn(columns, [/ownership/]),
@@ -2906,6 +2910,38 @@ function detectColumns(columns: string[]): ColumnMap {
     leadCount: findColumn(columns, [/lead_count/]),
     conversionCount: findColumn(columns, [/conversion_count/]),
   }
+}
+
+function applySaasSemanticMappings(columns: ColumnMap, saas: ReturnType<typeof resolveSaasSemanticProfile>) {
+  const map = saas.mappings
+  columns.date = columns.date || map.period
+  columns.customer = columns.customer || map.customer_id
+  columns.companyId = columns.companyId || map.customer_id
+  columns.companyName = columns.companyName || map.company
+  columns.status = columns.status || map.subscription_status
+  columns.revenue = columns.revenue || map.revenue || map.subscription_revenue
+  columns.cost = columns.cost || map.cost
+  columns.profit = columns.profit || map.profit
+  columns.netProfit = columns.netProfit || map.profit
+  columns.grossMargin = columns.grossMargin || map.profit_margin
+  columns.mrr = columns.mrr || map.mrr
+  columns.arr = columns.arr || map.arr
+  columns.churned = columns.churned || map.churn
+  columns.expansionMrr = columns.expansionMrr || map.expansion_mrr
+  columns.contractionMrr = columns.contractionMrr || map.contraction_mrr
+  columns.cac = columns.cac || map.cac
+  columns.ltv = columns.ltv || map.ltv
+  columns.activeUsers = columns.activeUsers || map.active_users
+  columns.burn = columns.burn || map.burn
+  columns.cashBalance = columns.cashBalance || map.cash_balance
+  columns.runway = columns.runway || map.runway
+  columns.plan = columns.plan || map.plan
+  columns.users = columns.users || map.users || map.seats || map.licenses
+  columns.pricePerUser = columns.pricePerUser || map.price_per_user || map.unit_price
+  columns.channel = columns.channel || map.channel
+  columns.country = columns.country || map.country
+  columns.region = columns.region || map.region
+  columns.startupStage = columns.startupStage || map.startup_stage
 }
 
 function buildSemanticContext(input: {

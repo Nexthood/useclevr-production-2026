@@ -386,6 +386,7 @@ moving work between states.
 
 ## Label: data
 
+- T-1032. Add schema-flexible SaaS semantic profiling, subtype detection, capability-driven metrics, and report routing without changing non-SaaS dataset behavior. (labels: data, ai, metrics, reports; commit: worktree)
 - T-961. Implement the Universal Forecast and Scenario Intelligence Engine with forecast model registration, confidence intervals, scenario simulation, evidence-backed forecast profiles, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-960. Implement the Universal Business Recommendation Engine with recommendation rule registration, evidence-backed action profiles, priority scoring, dependency mapping, duplicate detection, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
 - T-959. Implement the Universal Insight Generation Engine with insight rule registration, evidence-backed insight profiles, priority scoring, duplicate detection, statistics, and EDIE/BIE integration. (labels: data, ai, dashboard, testing; commit: worktree)
