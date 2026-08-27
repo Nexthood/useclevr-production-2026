@@ -6,6 +6,7 @@ import { parseCSVString } from "../../src/lib/data/csvLoader"
 import { buildDatasetIntelligenceEngine } from "../../src/lib/data/dataset-intelligence-engine"
 import { buildDashboardSemanticAnalysis } from "../../src/lib/data/dashboard-semantic-profile"
 import { buildDatasetReportInput } from "../../src/lib/reports/dataset-report-builder"
+import type { SaasReportAnalysis } from "../../src/lib/reports/report-generator"
 
 const csv = [
   "company,plan,users,price_per_user,revenue,cost,profit,startup_stage,country,date",
@@ -14,6 +15,49 @@ const csv = [
   "CloudNine,Basic,210,19,3990,1800,2190,Pre-seed,DE,2026-02-28",
   "DeltaOps,Pro,150,49,7350,3600,3750,Seed,GB,2026-02-28",
 ].join("\n")
+
+function makeSaasDataset(name: string, rows: Record<string, unknown>[], columns: string[]) {
+  return {
+    id: `ds_${name.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}`,
+    userId: "user_test",
+    name,
+    fileName: `${name}.csv`,
+    fileSize: 1000,
+    mimeType: "text/csv",
+    storageKey: null,
+    checksum: null,
+    rowCount: rows.length,
+    columnCount: columns.length,
+    columns,
+    data: rows,
+    columnTypes: {},
+    previewRowCount: null,
+    previewGenerated: null,
+    fullAnalysisCompleted: null,
+    analysisStatus: "ready",
+    analysisProgress: 100,
+    analysisMessage: "Analysis is ready.",
+    analysisError: null,
+    invalidRowCount: null,
+    missingValueCounts: null,
+    precomputedMetrics: null,
+    columnMapping: null,
+    detectedColumns: null,
+    aiInsights: null,
+    status: "ready",
+    analysis: { datasetType: "standard", businessModel: "saas", uploadSource: "standard" },
+    datasetType: "standard",
+    businessModel: "saas",
+    createdAt: new Date("2026-03-31T00:00:00.000Z"),
+    updatedAt: new Date("2026-03-31T00:00:00.000Z"),
+  } as Parameters<typeof buildDatasetReportInput>[0]
+}
+
+function getSaasAnalysis(report: Awaited<ReturnType<typeof buildDatasetReportInput>>): SaasReportAnalysis {
+  const analysis = (report as { saasAnalysis?: SaasReportAnalysis }).saasAnalysis
+  assert.ok(analysis, "Expected SaaS report analysis to be available.")
+  return analysis
+}
 
 async function main() {
   const parsed = parseCSVString(csv)
@@ -165,6 +209,68 @@ async function main() {
   assert.equal(hybridSaas.saas.capabilities.recurringRevenue, true)
   assert.equal(hybridSaas.saas.capabilities.unitEconomics, true)
   assert.equal(hybridSaas.saas.capabilities.financialRunway, true)
+
+  const caseARows = [
+    { date: "2026-01-31", mrr: 10000, customers: 100, new_customers: 12, churned_customers: 2 },
+    { date: "2026-02-28", mrr: 12000, customers: 120, new_customers: 15, churned_customers: 3 },
+  ]
+  const caseA = await buildDatasetReportInput(makeSaasDataset("saas-case-a-customer-counts", caseARows, ["date", "mrr", "customers", "new_customers", "churned_customers"]))
+  const caseASaas = getSaasAnalysis(caseA)
+  assert.equal(caseASaas.customers, 120)
+  assert.equal(caseASaas.customerAggregation, "latest_snapshot")
+  assert.equal(caseASaas.newCustomers, 27)
+  assert.equal(caseASaas.newCustomerAggregation, "period_flow")
+  assert.equal(caseASaas.churnedCustomers, 5)
+  assert.equal(caseASaas.churnedCustomerAggregation, "period_flow")
+  assert.equal(caseASaas.churnRate, 2.5)
+  assert.equal(caseASaas.churnRateSource, "derived_from_counts")
+  assert.ok(caseA.kpis.some((kpi) => kpi.title === "Customers" && kpi.value === 120))
+  assert.ok(caseA.kpis.some((kpi) => kpi.title === "New Customers" && kpi.value === 27))
+  assert.ok(caseA.kpis.some((kpi) => kpi.title === "Churned Customers" && kpi.value === 5))
+
+  const caseBRows = [
+    { date: "2026-01-31", mrr: 10000, total_customers: 100, new_customers: 12, churned_customers: 2, churn_rate: 2 },
+    { date: "2026-02-28", mrr: 12000, total_customers: 120, new_customers: 15, churned_customers: 3, churn_rate: 2.5 },
+  ]
+  const caseB = await buildDatasetReportInput(makeSaasDataset("saas-case-b-source-churn-rate", caseBRows, ["date", "mrr", "total_customers", "new_customers", "churned_customers", "churn_rate"]))
+  const caseBSaas = getSaasAnalysis(caseB)
+  assert.equal(caseBSaas.customers, 120)
+  assert.equal(caseBSaas.customerField, "total_customers")
+  assert.equal(caseBSaas.churnedCustomers, 5)
+  assert.equal(caseBSaas.churnRate, 2.5)
+  assert.equal(caseBSaas.churnRateField, "churn_rate")
+  assert.equal(caseBSaas.churnRateSource, "source_rate")
+  assert.notEqual(caseBSaas.churnRate, 4.5)
+
+  const caseC = await buildDatasetReportInput(makeSaasDataset("saas-case-c-no-segmentation", caseARows, ["date", "mrr", "customers", "new_customers", "churned_customers"]))
+  const caseCRecommendationText = caseC.recommendations.map((item) => `${item.issue} ${item.recommendedAction} ${(item.requiredData || []).join(" ")}`).join(" ").toLowerCase()
+  assert.equal(/plan|country|channel/.test(caseCRecommendationText), false)
+  assert.ok(caseC.kpis.some((kpi) => kpi.title === "Customers" && kpi.value === 120))
+  assert.ok((caseC.financials.dataConfidence ?? 0) >= 60)
+
+  const caseDRows = [
+    { date: "2026-01-31", mrr: 10000, customers: 100 },
+    { date: "2026-02-28", mrr: 12000, customers: 120 },
+  ]
+  const caseD = await buildDatasetReportInput(makeSaasDataset("saas-case-d-missing-churn", caseDRows, ["date", "mrr", "customers"]))
+  const caseDSaas = getSaasAnalysis(caseD)
+  assert.equal(caseDSaas.customers, 120)
+  assert.equal(caseDSaas.churnedCustomers, null)
+  assert.equal(caseDSaas.churnRate, null)
+  assert.equal(caseD.kpis.some((kpi) => /Churn/.test(kpi.title)), false)
+  assert.equal(/churn rate is 0|0 churned/i.test(caseD.summary), false)
+  assert.ok(caseD.recommendations.some((item) => /churned customer data is not available/i.test(item.issue)))
+
+  const caseERows = [
+    { date: "2026-01-31", mrr: 10000, customers: 100 },
+    { date: "2026-02-28", mrr: 12000, customers: 120 },
+    { date: "2026-03-31", mrr: 14000, customers: 140 },
+  ]
+  const caseE = await buildDatasetReportInput(makeSaasDataset("saas-case-e-monthly-customer-snapshots", caseERows, ["date", "mrr", "customers"]))
+  const caseESaas = getSaasAnalysis(caseE)
+  assert.equal(caseESaas.customers, 140)
+  assert.notEqual(caseESaas.customers, 360)
+  assert.ok(caseE.kpis.some((kpi) => kpi.title === "Customers" && kpi.value === 140))
 
   const report = await buildDatasetReportInput(dataset)
   assert.equal(report.reportType, "saas")

@@ -32,6 +32,7 @@ type ColumnMap = {
   quantity?: string
   order?: string
   customer?: string
+  customerCount?: string
   country?: string
   region?: string
   channel?: string
@@ -52,7 +53,10 @@ type ColumnMap = {
   mrr?: string
   arr?: string
   newCustomer?: string
+  newCustomerCount?: string
   churned?: string
+  churnedCustomerCount?: string
+  churnRate?: string
   expansionMrr?: string
   contractionMrr?: string
   cac?: string
@@ -1438,8 +1442,14 @@ function buildSaasSummary(datasetName: string, rowCount: number, saas: SaasRepor
   if (saas.averageRevenuePerUser !== null) parts.push(`Average revenue per user is ${formatCurrencyForSummary(saas.averageRevenuePerUser)}.`)
   if (saas.mrr !== null) parts.push(`MRR is ${formatCurrencyForSummary(saas.mrr)} from ${saas.mrrField}.`)
   if (saas.arr !== null) parts.push(`ARR is ${formatCurrencyForSummary(saas.arr)} from ${saas.arrField}.`)
-  if (saas.customers !== null) parts.push(`${saas.customers.toLocaleString()} distinct customers are recognized from ${saas.customerField}.`)
-  if (saas.churnRate !== null) parts.push(`Churn rate is ${saas.churnRate.toFixed(1)}% from normalized ${saas.churnField} values.`)
+  if (saas.customers !== null) {
+    const basis = saas.customerAggregation === "latest_snapshot" ? "latest customer snapshot" : saas.customerAggregation === "distinct_ids" ? "distinct customers" : "customers"
+    parts.push(`${basis[0].toUpperCase()}${basis.slice(1)} is ${saas.customers.toLocaleString()} from ${saas.customerField}.`)
+  }
+  if (saas.churnRate !== null) {
+    const basis = saas.churnRateSource === "source_rate" ? `source ${saas.churnRateField}` : saas.churnRateSource === "derived_from_counts" ? "churned customers divided by customer snapshot" : "normalized churn status values"
+    parts.push(`Churn rate is ${saas.churnRate.toFixed(1)}% from ${basis}.`)
+  }
   if (saas.netExpansionMrr !== null) parts.push(`Net Expansion MRR is ${formatCurrencyForSummary(saas.netExpansionMrr)}.`)
   if (saas.runwayMonths !== null) parts.push(`Runway is ${saas.runwayMonths.toFixed(1)} months from explicit runway data.`)
   return parts.join(" ")
@@ -1477,21 +1487,40 @@ function buildSaasRecommendations(
   const recommendations: ReportRecommendation[] = []
   const mrrTrend = trendMovement(saas.mrrTrend)
   if (mrrTrend) {
+    const reviewDimensions = [
+      columns.plan ? "plan" : null,
+      columns.country || columns.region ? "geography" : null,
+      columns.channel ? "channel" : null,
+    ].filter((value): value is string => value !== null)
     recommendations.push({
       issue: `MRR changed by ${mrrTrend.percent.toFixed(1)}% across the available period trend.`,
       businessImpact: mrrTrend.percent >= 0 ? "Recurring revenue growth is measurable from source MRR values." : "Recurring revenue contraction is visible in source MRR values.",
-      recommendedAction: "Review the latest MRR movement by plan and country before setting growth actions.",
+      recommendedAction: reviewDimensions.length > 0
+        ? `Review the latest MRR movement by ${reviewDimensions.join(" and ")} before setting growth actions.`
+        : "Review the latest MRR movement before setting growth actions.",
       estimatedImpact: `${formatCurrencyForSummary(mrrTrend.delta)} net MRR movement from first to latest period.`,
       confidence: "High",
       requiredData: [],
     })
   }
   if (saas.churnRate !== null) {
+    const churnDimensions = [
+      columns.plan ? "plan" : null,
+      columns.country || columns.region ? "geography" : null,
+      columns.activeUsers ? "active usage" : null,
+      columns.supportTickets ? "support tickets" : null,
+    ].filter((value): value is string => value !== null)
     recommendations.push({
-      issue: `${saas.churnedCustomers?.toLocaleString() || "0"} churned customers produce a ${saas.churnRate.toFixed(1)}% churn rate.`,
+      issue: saas.churnedCustomers !== null
+        ? `${saas.churnedCustomers.toLocaleString()} churned customers produce a ${saas.churnRate.toFixed(1)}% churn rate.`
+        : `Source churn rate is ${saas.churnRate.toFixed(1)}%.`,
       businessImpact: "Customer churn affects recurring revenue durability and expansion capacity.",
-      recommendedAction: "Review churned customers by plan, country, active usage, and support tickets.",
-      estimatedImpact: saas.eligibleChurnCustomers !== null ? `Denominator: ${saas.eligibleChurnCustomers.toLocaleString()} customers with normalized churn status.` : null,
+      recommendedAction: churnDimensions.length > 0
+        ? `Review churn by ${churnDimensions.join(" and ")}.`
+        : "Review churn movement against customer and recurring-revenue changes.",
+      estimatedImpact: saas.eligibleChurnCustomers !== null
+        ? `Denominator: ${saas.eligibleChurnCustomers.toLocaleString()} customers${saas.churnRateSource === "derived_from_status" ? " with normalized churn status" : ""}.`
+        : null,
       confidence: "High",
       requiredData: [],
     })
@@ -1527,10 +1556,17 @@ function buildSaasRecommendations(
     })
   }
   if (saas.profitMargin !== null) {
+    const marginDimensions = [
+      columns.plan ? "plan" : null,
+      columns.startupStage ? "startup stage" : null,
+      columns.channel ? "channel" : null,
+    ].filter((value): value is string => value !== null)
     recommendations.push({
       issue: `Profit margin is ${saas.profitMargin.toFixed(1)}% from available revenue and profit values.`,
       businessImpact: "Margin shows which plans, stages, and companies convert revenue into profit.",
-      recommendedAction: "Compare profit margin by plan and startup stage before prioritizing growth actions.",
+      recommendedAction: marginDimensions.length > 0
+        ? `Compare profit margin by ${marginDimensions.join(" and ")} before prioritizing growth actions.`
+        : "Compare profit margin against revenue, cost, and profit movement before prioritizing growth actions.",
       estimatedImpact: saas.profit !== null ? `${formatCurrencyForSummary(saas.profit)} total profit from the uploaded dataset.` : null,
       confidence: "High",
       requiredData: [],
@@ -1544,6 +1580,16 @@ function buildSaasRecommendations(
       estimatedImpact: null,
       confidence: "High",
       requiredData: ["MRR or ARR"],
+    })
+  }
+  if (saas.churnRate === null && !columns.churned && !columns.churnedCustomerCount && !columns.churnRate) {
+    recommendations.push({
+      issue: "Customer churn cannot be calculated because churned customer data is not available.",
+      businessImpact: "Churn analysis requires a source churn status, churned customer count, or churn rate field.",
+      recommendedAction: "Add churned customer count, churn status, or churn rate when churn analysis is needed.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: ["Churned Customers or Churn Rate"],
     })
   }
   return recommendations.slice(0, 5)
@@ -1577,8 +1623,10 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
   const arr = sumColumn(snapshotRows, columns.arr)
   const expansionMrr = sumColumn(snapshotRows, columns.expansionMrr)
   const contractionMrr = sumColumn(snapshotRows, columns.contractionMrr)
-  const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
-  const newCustomers = countDistinctPositiveStatus(rows, columns.customer, columns.newCustomer)
+  const customersFromCount = latestSnapshotValue(rows, columns.customerCount, columns.date)
+  const customers = customersFromCount.value ?? (columns.customer ? uniqueCount(rows, columns.customer) : null)
+  const newCustomerCount = sumColumn(rows, columns.newCustomerCount)
+  const newCustomers = newCustomerCount ?? countDistinctPositiveStatus(rows, columns.customer, columns.newCustomer)
   const churn = churnMetrics(rows, columns)
   const cac = averageColumn(snapshotRows, columns.cac)
   const ltv = averageColumn(snapshotRows, columns.ltv)
@@ -1593,13 +1641,19 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
     arr: arr === null ? null : round(arr),
     arrField: columns.arr || null,
     customers,
-    customerField: columns.customer || null,
+    customerField: columns.customerCount || columns.customer || null,
+    customerAggregation: columns.customerCount ? (customersFromCount.latest ? "latest_snapshot" : "sum") : columns.customer ? "distinct_ids" : null,
     newCustomers,
-    newCustomerField: columns.newCustomer || null,
+    newCustomerField: columns.newCustomerCount || columns.newCustomer || null,
+    newCustomerAggregation: columns.newCustomerCount ? "period_flow" : columns.newCustomer ? "positive_status" : null,
     churnedCustomers: churn.churnedCustomers,
+    churnedCustomerField: churn.churnedCustomerField,
+    churnedCustomerAggregation: churn.churnedCustomerAggregation,
     eligibleChurnCustomers: churn.eligibleCustomers,
     churnRate: churn.churnRate,
-    churnField: columns.churned || null,
+    churnField: columns.churnedCustomerCount || columns.churned || columns.churnRate || null,
+    churnRateField: churn.churnRateField,
+    churnRateSource: churn.churnRateSource,
     expansionMrr: expansionMrr === null ? null : round(expansionMrr),
     expansionMrrField: columns.expansionMrr || null,
     contractionMrr: contractionMrr === null ? null : round(contractionMrr),
@@ -1638,8 +1692,8 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
     mrrTrend: trendByPeriod(rows, columns.date, columns.mrr, "sum"),
     arrTrend: trendByPeriod(rows, columns.date, columns.arr, "sum"),
     customerTrend: customerTrendByPeriod(rows, columns),
-    newCustomerTrend: statusTrendByPeriod(rows, columns.date, columns.customer, columns.newCustomer),
-    churnTrend: statusTrendByPeriod(rows, columns.date, columns.customer, columns.churned),
+    newCustomerTrend: columns.newCustomerCount ? trendByPeriod(rows, columns.date, columns.newCustomerCount, "sum") : statusTrendByPeriod(rows, columns.date, columns.customer, columns.newCustomer),
+    churnTrend: columns.churnedCustomerCount ? trendByPeriod(rows, columns.date, columns.churnedCustomerCount, "sum") : statusTrendByPeriod(rows, columns.date, columns.customer, columns.churned),
     expansionTrend: trendByPeriod(rows, columns.date, columns.expansionMrr, "sum"),
     contractionTrend: trendByPeriod(rows, columns.date, columns.contractionMrr, "sum"),
     activeUserTrend: trendByPeriod(rows, columns.date, columns.activeUsers, "sum"),
@@ -1652,25 +1706,26 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
 }
 
 function saasDataConfidence(columns: ColumnMap) {
-  const unitEconomicsFields = [
+  const coreFields = [
     columns.date,
+    columns.mrr || columns.arr || columns.revenue,
+    columns.customer || columns.customerCount,
+    columns.newCustomer || columns.newCustomerCount || columns.churned || columns.churnedCustomerCount || columns.churnRate,
+  ]
+  const unitEconomicsFields = [
     columns.revenue,
-    columns.cost,
-    columns.netProfit || columns.profit,
     columns.users,
     columns.pricePerUser,
+    columns.cost || columns.netProfit || columns.profit,
+  ]
+  const enrichmentFields = [
     columns.plan,
+    columns.country || columns.region,
+    columns.channel,
     columns.startupStage,
     columns.companyName,
-    columns.country || columns.region,
-  ]
-  const recurringFields = [
-    columns.date,
-    columns.customer,
     columns.mrr,
     columns.arr,
-    columns.newCustomer,
-    columns.churned,
     columns.expansionMrr,
     columns.contractionMrr,
     columns.cac,
@@ -1680,11 +1735,9 @@ function saasDataConfidence(columns: ColumnMap) {
     columns.burn,
     columns.cashBalance,
     columns.runway,
-    columns.plan,
-    columns.country || columns.region,
   ]
   const score = (fields: Array<string | undefined>) => Math.round((fields.filter(Boolean).length / fields.length) * 100)
-  return Math.max(score(unitEconomicsFields), score(recurringFields))
+  return Math.min(100, Math.round((score(coreFields) * 0.7) + (Math.max(score(unitEconomicsFields), score(enrichmentFields)) * 0.3)))
 }
 
 function latestPeriodRows(rows: DataRow[], periodColumn?: string) {
@@ -1720,7 +1773,48 @@ function countPositiveRows(rows: DataRow[], statusColumn?: string) {
 }
 
 function churnMetrics(rows: DataRow[], columns: ColumnMap) {
-  if (!columns.churned) return { churnedCustomers: null, eligibleCustomers: null, churnRate: null }
+  const sourceRate = latestRateValue(rows, columns.churnRate, columns.date)
+  const churnedCount = sumColumn(rows, columns.churnedCustomerCount)
+  const latestCustomers = latestSnapshotValue(rows, columns.customerCount, columns.date)
+  if (sourceRate.value !== null) {
+    return {
+      churnedCustomers: churnedCount === null ? null : round(churnedCount),
+      churnedCustomerField: columns.churnedCustomerCount || null,
+      churnedCustomerAggregation: columns.churnedCustomerCount ? "period_flow" as const : null,
+      eligibleCustomers: latestCustomers.value === null ? null : round(latestCustomers.value),
+      churnRate: sourceRate.value,
+      churnRateField: columns.churnRate || null,
+      churnRateSource: "source_rate" as const,
+    }
+  }
+  if (churnedCount !== null) {
+    const denominator = latestCustomers.value
+    const churnedForRate = columns.date && columns.churnedCustomerCount
+      ? sumColumn(latestPeriodRows(rows, columns.date).rows, columns.churnedCustomerCount)
+      : rows.length === 1
+        ? churnedCount
+        : null
+    return {
+      churnedCustomers: round(churnedCount),
+      churnedCustomerField: columns.churnedCustomerCount || null,
+      churnedCustomerAggregation: "period_flow" as const,
+      eligibleCustomers: denominator === null ? null : round(denominator),
+      churnRate: denominator !== null && denominator > 0 && churnedForRate !== null ? round((churnedForRate / denominator) * 100) : null,
+      churnRateField: null,
+      churnRateSource: denominator !== null && denominator > 0 && churnedForRate !== null ? "derived_from_counts" as const : null,
+    }
+  }
+  if (!columns.churned) {
+    return {
+      churnedCustomers: null,
+      churnedCustomerField: null,
+      churnedCustomerAggregation: null,
+      eligibleCustomers: null,
+      churnRate: null,
+      churnRateField: null,
+      churnRateSource: null,
+    }
+  }
   const statusByCustomer = new Map<string, NormalizedBooleanStatus[]>()
   rows.forEach((row, index) => {
     const key = columns.customer ? String(row[columns.customer] || "").trim() : `row_${index}`
@@ -1739,12 +1833,54 @@ function churnMetrics(rows: DataRow[], columns: ColumnMap) {
       eligibleCustomers += 1
     }
   }
-  if (eligibleCustomers === 0) return { churnedCustomers: null, eligibleCustomers: null, churnRate: null }
+  if (eligibleCustomers === 0) {
+    return {
+      churnedCustomers: null,
+      churnedCustomerField: columns.churned || null,
+      churnedCustomerAggregation: "positive_status" as const,
+      eligibleCustomers: null,
+      churnRate: null,
+      churnRateField: null,
+      churnRateSource: null,
+    }
+  }
   return {
     churnedCustomers,
+    churnedCustomerField: columns.churned || null,
+    churnedCustomerAggregation: "positive_status" as const,
     eligibleCustomers,
     churnRate: round((churnedCustomers / eligibleCustomers) * 100),
+    churnRateField: null,
+    churnRateSource: "derived_from_status" as const,
   }
+}
+
+function latestSnapshotValue(rows: DataRow[], valueColumn?: string, periodColumn?: string): { value: number | null; latest: boolean } {
+  if (!valueColumn) return { value: null, latest: false }
+  if (!periodColumn && rows.length > 1) return { value: null, latest: false }
+  const sourceRows = periodColumn ? latestPeriodRows(rows, periodColumn).rows : rows
+  const value = sumColumn(sourceRows, valueColumn)
+  return { value: value === null ? null : round(value), latest: Boolean(periodColumn) }
+}
+
+function latestRateValue(rows: DataRow[], valueColumn?: string, periodColumn?: string): { value: number | null; latest: boolean } {
+  if (!valueColumn) return { value: null, latest: false }
+  if (!periodColumn && rows.length > 1) return { value: null, latest: false }
+  const sourceRows = periodColumn ? latestPeriodRows(rows, periodColumn).rows : rows
+  const values = sourceRows
+    .map((row) => getNumber(row[valueColumn]))
+    .filter((value): value is number => value !== null)
+    .map(normalizeRatePercent)
+    .filter((value): value is number => value !== null)
+  if (values.length === 0) return { value: null, latest: Boolean(periodColumn) }
+  return { value: round(values.reduce((total, value) => total + value, 0) / values.length), latest: Boolean(periodColumn) }
+}
+
+function normalizeRatePercent(value: number) {
+  if (!Number.isFinite(value) || value < 0) return null
+  if (value <= 1) return round(value * 100)
+  if (value <= 100) return round(value)
+  return null
 }
 
 function normalizeBooleanStatus(value: unknown): NormalizedBooleanStatus {
@@ -1774,6 +1910,7 @@ function trendByPeriod(rows: DataRow[], periodColumn: string | undefined, valueC
 }
 
 function customerTrendByPeriod(rows: DataRow[], columns: ColumnMap) {
+  if (columns.date && columns.customerCount) return trendByPeriod(rows, columns.date, columns.customerCount, "sum")
   if (!columns.date || !columns.customer) return []
   const grouped = new Map<string, Set<string>>()
   for (const row of rows) {
@@ -2834,6 +2971,7 @@ function detectColumns(columns: string[]): ColumnMap {
     quantity: findColumn(columns, [/quantity/, /^qty$/, /units_sold/, /units/, /volume/]),
     order: columns.find((column) => isOrderIdentifierColumn(column)),
     customer: findColumn(columns, [/customer_id/, /^customer$/, /account_id/, /client_id/, /^client$/, /organization_id/, /tenant_id/]),
+    customerCount: findColumn(columns, [/^customers$/, /customer_count/, /total_customers/, /active_customers/, /ending_customers/, /subscriber_count/, /subscriptions_count/]),
     country: findColumn(columns, [/country/, /region/, /location/]),
     region: findColumn(columns, [/region/]),
     channel: findColumn(columns, [/channel/, /source/]),
@@ -2853,8 +2991,11 @@ function detectColumns(columns: string[]): ColumnMap {
     reorderPoint: findColumn(columns, [/reorder_point/, /reorder/]),
     mrr: findColumn(columns, [/^mrr$/, /monthly_recurring_revenue/]),
     arr: findColumn(columns, [/^arr$/, /annual_recurring_revenue/]),
-    newCustomer: findColumn(columns, [/new_customer/, /newcustomer/, /new_logo/]),
-    churned: findColumn(columns, [/churned/, /churn/, /churn_date/, /cancelled/, /canceled/, /cancellation/]),
+    newCustomer: findColumn(columns, [/^new_customer$/, /new_customer_flag/, /is_new_customer/, /newcustomer/, /^new_logo$/]),
+    newCustomerCount: findColumn(columns, [/new_customers/, /new_customer_count/, /new_logo_count/, /new_logos/]),
+    churnRate: findColumn(columns, [/churn_rate/, /customer_churn_rate/, /churn_pct/, /churn_percent/]),
+    churned: findColumn(columns, [/^churned$/, /is_churned/, /churn_flag/, /^churn$/, /churn_date/, /^cancelled$/, /^canceled$/, /^cancellation$/]),
+    churnedCustomerCount: findColumn(columns, [/churned_customers/, /churned_customer_count/, /cancelled_customers/, /canceled_customers/, /cancellations/]),
     expansionMrr: findColumn(columns, [/expansion_mrr/, /expansion_recurring/, /upsell/]),
     contractionMrr: findColumn(columns, [/contraction_mrr/, /contraction_recurring/, /downsell/]),
     cac: findColumn(columns, [/^cac$/, /customer_acquisition_cost/]),
@@ -2916,6 +3057,7 @@ function applySaasSemanticMappings(columns: ColumnMap, saas: ReturnType<typeof r
   const map = saas.mappings
   columns.date = columns.date || map.period
   columns.customer = columns.customer || map.customer_id
+  columns.customerCount = columns.customerCount || map.customer_count
   columns.companyId = columns.companyId || map.customer_id
   columns.companyName = columns.companyName || map.company
   columns.status = columns.status || map.subscription_status
@@ -2926,6 +3068,9 @@ function applySaasSemanticMappings(columns: ColumnMap, saas: ReturnType<typeof r
   columns.grossMargin = columns.grossMargin || map.profit_margin
   columns.mrr = columns.mrr || map.mrr
   columns.arr = columns.arr || map.arr
+  columns.newCustomerCount = columns.newCustomerCount || map.new_customers
+  columns.churnedCustomerCount = columns.churnedCustomerCount || map.churned_customers
+  columns.churnRate = columns.churnRate || map.churn_rate
   columns.churned = columns.churned || map.churn
   columns.expansionMrr = columns.expansionMrr || map.expansion_mrr
   columns.contractionMrr = columns.contractionMrr || map.contraction_mrr
@@ -2971,8 +3116,12 @@ function buildSemanticContext(input: {
     mrr: input.columnMap.mrr || null,
     arr: input.columnMap.arr || null,
     customer: input.columnMap.customer || null,
+    customerCount: input.columnMap.customerCount || null,
     newCustomer: input.columnMap.newCustomer || null,
+    newCustomerCount: input.columnMap.newCustomerCount || null,
     churned: input.columnMap.churned || null,
+    churnedCustomerCount: input.columnMap.churnedCustomerCount || null,
+    churnRate: input.columnMap.churnRate || null,
     expansionMrr: input.columnMap.expansionMrr || null,
     contractionMrr: input.columnMap.contractionMrr || null,
     cac: input.columnMap.cac || null,
