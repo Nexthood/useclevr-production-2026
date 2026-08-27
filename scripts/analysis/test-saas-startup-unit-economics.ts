@@ -287,6 +287,35 @@ async function main() {
   assert.notEqual(caseESaas.customers, 360)
   assert.ok(caseE.kpis.some((kpi) => kpi.title === "Customers" && kpi.value === 140))
 
+  const subscriptionMetricsRows = [
+    { month: "2025-01-01", mrr: 65000, arr: 780000, customers: 620, new_customers: 50, churned_customers: 12, churn_rate: 0.019, active_users: 5000, cac: 410, ltv: 4100, burn: 70000, cash_balance: 900000, runway_months: 12.8 },
+    { month: "2025-02-01", mrr: 67200, arr: 806400, customers: 640, new_customers: 52, churned_customers: 11, churn_rate: 0.017, active_users: 5200, cac: 408, ltv: 4120, burn: 70500, cash_balance: 875000, runway_months: 12.4 },
+    { month: "2025-03-01", mrr: 70100, arr: 841200, customers: 665, new_customers: 55, churned_customers: 13, churn_rate: 0.02, active_users: 5400, cac: 405, ltv: 4200, burn: 71000, cash_balance: 850000, runway_months: 12 },
+    { month: "2025-04-01", mrr: 72800, arr: 873600, customers: 682, new_customers: 58, churned_customers: 14, churn_rate: 0.021, active_users: 5600, cac: 402, ltv: 4300, burn: 71500, cash_balance: 825000, runway_months: 11.5 },
+    { month: "2025-05-01", mrr: 75200, arr: 902400, customers: 701, new_customers: 60, churned_customers: 15, churn_rate: 0.021, active_users: 5800, cac: 399, ltv: 4400, burn: 72000, cash_balance: 800000, runway_months: 11.1 },
+    { month: "2025-06-01", mrr: 78100, arr: 937200, customers: 720, new_customers: 62, churned_customers: 15, churn_rate: 0.021, active_users: 6000, cac: 396, ltv: 4500, burn: 72500, cash_balance: 775000, runway_months: 10.7 },
+    { month: "2025-07-01", mrr: 80600, arr: 967200, customers: 735, new_customers: 64, churned_customers: 16, churn_rate: 0.022, active_users: 6200, cac: 393, ltv: 4600, burn: 73000, cash_balance: 750000, runway_months: 10.3 },
+    { month: "2025-08-01", mrr: 83200, arr: 998400, customers: 754, new_customers: 66, churned_customers: 16, churn_rate: 0.021, active_users: 6400, cac: 390, ltv: 4700, burn: 73500, cash_balance: 725000, runway_months: 9.9 },
+    { month: "2025-09-01", mrr: 86100, arr: 1033200, customers: 774, new_customers: 68, churned_customers: 17, churn_rate: 0.022, active_users: 6600, cac: 387, ltv: 4800, burn: 74000, cash_balance: 700000, runway_months: 9.5 },
+    { month: "2025-10-01", mrr: 88900, arr: 1066800, customers: 793, new_customers: 70, churned_customers: 17, churn_rate: 0.021, active_users: 6800, cac: 384, ltv: 4900, burn: 74500, cash_balance: 675000, runway_months: 9.1 },
+    { month: "2025-11-01", mrr: 91000, arr: 1092000, customers: 807, new_customers: 72, churned_customers: 18, churn_rate: 0.022, active_users: 7000, cac: 381, ltv: 5000, burn: 75000, cash_balance: 650000, runway_months: 8.7 },
+    { month: "2025-12-01", mrr: 92300, arr: 1107600, customers: 821, new_customers: 74, churned_customers: 18, churn_rate: 0.022, active_users: 7200, cac: 378, ltv: 5100, burn: 75500, cash_balance: 625000, runway_months: 8.3 },
+  ]
+  const subscriptionMetrics = await buildDatasetReportInput(makeSaasDataset("saas_subscription_metrics_test", subscriptionMetricsRows, ["month", "mrr", "arr", "customers", "new_customers", "churned_customers", "churn_rate", "active_users", "cac", "ltv", "burn", "cash_balance", "runway_months"]))
+  const subscriptionMetricsSaas = getSaasAnalysis(subscriptionMetrics)
+  assert.equal(subscriptionMetrics.financials.reportingPeriod, "2025-01-01 to 2025-12-01")
+  assert.notEqual(subscriptionMetrics.financials.reportingPeriod, "Not available")
+  assert.equal(subscriptionMetricsSaas.latestPeriod, "2025-12-01")
+  assert.equal(subscriptionMetricsSaas.mrrTrend.length, 12)
+  assert.equal(subscriptionMetricsSaas.mrrTrend[0].name, "2025-01-01")
+  assert.equal(subscriptionMetricsSaas.mrrTrend.at(-1)?.name, "2025-12-01")
+  assert.equal(subscriptionMetricsSaas.customers, 821)
+  assert.equal(subscriptionMetricsSaas.newCustomers, 74)
+  assert.equal(subscriptionMetricsSaas.churnedCustomers, 18)
+  assert.equal(subscriptionMetricsSaas.churnRate, 2.2)
+  assert.equal(subscriptionMetricsSaas.mrr, 92300)
+  assert.equal(subscriptionMetricsSaas.arr, 1107600)
+
   const customerLevelRows = [
     { customer_id: "cus_1", subscription_id: "sub_1", plan: "Pro", signup_date: "2026-01-03", status: "active", mrr: 100 },
     { customer_id: "cus_2", subscription_id: "sub_2", plan: "Pro", signup_date: "2026-01-10", status: "churned", mrr: 80 },

@@ -219,7 +219,10 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   const marketplaceAnalysis = reportModel === "marketplace" ? buildMarketplaceAnalysis(rows, columnMap) : undefined
   const investorAnalysis = reportModel === "investor" ? buildInvestorAnalysis(rows, columnMap) : undefined
   if (ecommerceAnalysis) financials.dataConfidence = ecommerceDataConfidence(columnMap)
-  if (saasAnalysis) financials.dataConfidence = saasDataConfidence(columnMap)
+  if (saasAnalysis) {
+    financials.dataConfidence = saasDataConfidence(columnMap)
+    financials.reportingPeriod = reportingPeriodFromRecognizedPeriods(rows, columnMap.date)
+  }
   if (marketplaceAnalysis) financials.dataConfidence = marketplaceDataConfidence(columnMap)
   if (investorAnalysis) financials.dataConfidence = investorDataConfidence(columnMap)
   if (reportModel === "business_consulting") {
@@ -1755,6 +1758,18 @@ function latestPeriodRows(rows: DataRow[], periodColumn?: string) {
   if (keyed.length === 0) return { period: null, rows }
   const latest = keyed.map((item) => item.key).sort().at(-1) || null
   return { period: latest, rows: latest ? keyed.filter((item) => item.key === latest).map((item) => item.row) : rows }
+}
+
+function reportingPeriodFromRecognizedPeriods(rows: DataRow[], periodColumn?: string) {
+  if (!periodColumn) return null
+  const periods = rows
+    .map((row) => periodKey(row[periodColumn]))
+    .filter((period): period is string => Boolean(period))
+    .sort()
+  if (periods.length === 0) return null
+  const first = periods[0]
+  const last = periods[periods.length - 1]
+  return first === last ? first : `${first} to ${last}`
 }
 
 function countDistinctPositiveStatus(rows: DataRow[], idColumn?: string, statusColumn?: string) {

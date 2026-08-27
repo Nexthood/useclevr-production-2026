@@ -29,6 +29,7 @@
 
 ### Fixed
 
+- Fix SaaS Executive Reports so Reporting Period displays the recognized source period range when SaaS trend periods are available.
 - Fix SaaS Executive Reports so customer snapshots, new-customer counts, churned-customer counts, and source churn rates use same-period SaaS semantics without requiring optional segmentation data.
 - Fix dashboard report generation so SaaS, Profitability, and standard business reports complete, appear in Downloads, and open PDF downloads immediately.
 - Fix dashboard profitability report generation so users with available report credits can create and download reports from the dashboard.

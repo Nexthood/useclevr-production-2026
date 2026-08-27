@@ -5184,3 +5184,38 @@ The standard upload path stores `datasetType: standard`, so SaaS/startup preserv
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Executive Report Reporting Period Metadata
+
+1. Interaction title
+SaaS Executive Report Reporting Period metadata.
+
+2. What was the user goal
+Fix only the SaaS Executive Report page-1 Reporting Period value so a dataset with recognized monthly SaaS periods displays the source period range instead of Not available.
+
+3. What changed
+The SaaS report builder sets top-level financial reporting period metadata from the same recognized SaaS period column used by latest-period and trend metrics. The SaaS unit-economics regression fixture includes `saas_subscription_metrics_test` with 12 recognized 2025 monthly periods and verifies Reporting Period, latest period, trend coverage, and unchanged customer, churn, MRR, and ARR metrics. Requirements, changelog, TODO state, activity log, and interaction status reflect the current behavior.
+
+4. Problems marked
+blocker: none.
+risk: none for the scoped SaaS metadata fix.
+improvement: keep future SaaS metadata tests tied to the canonical period resolver whenever SaaS trend fields change.
+observation: the page-1 PDF rendered Not available because the top-level report metadata field stayed empty even though SaaS analysis already resolved valid period values elsewhere.
+
+5. User learning
+SaaS report metadata uses the selected dataset source periods; report generation date is not a valid reporting-period fallback.
+
+6. AI-agent learning
+Report-wide SaaS metadata must reuse canonical SaaS period resolution instead of introducing separate date detection or formatting paths.
+
+7. Follow-up tasks
+- T-1035. Populate SaaS Executive Report Reporting Period metadata from the recognized SaaS period field without changing SaaS metric calculations or other report families.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
