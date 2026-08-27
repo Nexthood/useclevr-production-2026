@@ -403,9 +403,9 @@ function overviewMetricCards(report: Report, financials: ReportFinancials, dataC
     return [
       metricCard("MRR", saas.mrr, "currency", "missing", saas.mrrField ? `Latest-period source value from ${saas.mrrField}.` : "Requires MRR field."),
       metricCard("ARR", saas.arr, "currency", "missing", saas.arrField ? `Latest-period source value from ${saas.arrField}.` : "Requires ARR field."),
-      numberMetricCard("Customers", saas.customers === null ? "Not available" : saas.customers.toLocaleString(), saas.customerField ? `Distinct values from ${saas.customerField}.` : "Requires customer ID."),
-      numberMetricCard("New Customers", saas.newCustomers === null ? "Not available" : saas.newCustomers.toLocaleString(), saas.newCustomerField ? `Normalized positives from ${saas.newCustomerField}.` : "Requires new customer field."),
-      metricCard("Churn Rate", saas.churnRate, "percent", "missing", saas.churnField ? `Churned customers divided by eligible customers from ${saas.churnField}.` : "Requires churn field."),
+      numberMetricCard("Customers", saas.customers === null ? "Not available" : saas.customers.toLocaleString(), saasCustomerNote(saas)),
+      numberMetricCard("New Customers", saas.newCustomers === null ? "Not available" : saas.newCustomers.toLocaleString(), saasNewCustomerNote(saas)),
+      metricCard("Churn Rate", saas.churnRate, "percent", "missing", saasChurnRateNote(saas)),
       metricCard("CAC", saas.cac, "currency", "missing", saas.cacField ? `Latest-period average from ${saas.cacField}.` : "Requires CAC field."),
       metricCard("LTV", saas.ltv, "currency", "missing", saas.ltvField ? `Latest-period average from ${saas.ltvField}.` : "Requires LTV field."),
       numberMetricCard("Runway", saas.runwayMonths === null ? "Not available" : `${saas.runwayMonths.toFixed(1)} months`, saas.runwayField ? `Latest-period average from ${saas.runwayField}.` : "Requires runway field."),
@@ -756,10 +756,10 @@ function drawSaasCustomerEconomics(doc: jsPDF, report: Report) {
   y = drawSectionHeading(doc, "Customer Metrics", y);
   y = drawTable(doc, [
     ["Metric", "Value", "Status", "Source / Notes"],
-    ["Customers", saas.customers === null ? "Not available" : saas.customers.toLocaleString(), saas.customers === null ? "Not available" : "Available", saas.customerField ? `Distinct values from ${saas.customerField}.` : "No customer ID."],
-    ["New Customers", saas.newCustomers === null ? "Not available" : saas.newCustomers.toLocaleString(), saas.newCustomers === null ? "Not available" : "Available", saas.newCustomerField ? `Distinct customers with normalized positive ${saas.newCustomerField}.` : "No new-customer field."],
-    ["Churned Customers", saas.churnedCustomers === null ? "Not available" : saas.churnedCustomers.toLocaleString(), saas.churnedCustomers === null ? "Not available" : "Available", saas.churnField ? `Distinct customers with normalized positive ${saas.churnField}.` : "No churn field."],
-    ["Churn Rate", saas.churnRate === null ? "Not available" : formatPercent(saas.churnRate), saas.churnRate === null ? "Not available" : "Valid derived", saas.eligibleChurnCustomers === null ? "Requires eligible normalized churn statuses." : `${saas.churnedCustomers} / ${saas.eligibleChurnCustomers} eligible customers.`],
+    ["Customers", saas.customers === null ? "Not available" : saas.customers.toLocaleString(), saas.customers === null ? "Not available" : "Available", saasCustomerNote(saas)],
+    ["New Customers", saas.newCustomers === null ? "Not available" : saas.newCustomers.toLocaleString(), saas.newCustomers === null ? "Not available" : "Available", saasNewCustomerNote(saas)],
+    ["Churned Customers", saas.churnedCustomers === null ? "Not available" : saas.churnedCustomers.toLocaleString(), saas.churnedCustomers === null ? "Not available" : "Available", saasChurnedCustomerNote(saas)],
+    ["Churn Rate", saas.churnRate === null ? "Not available" : formatPercent(saas.churnRate), saas.churnRate === null ? "Not available" : saas.churnRateSource === "source_rate" ? "Source value" : "Valid derived", saasChurnRateNote(saas)],
     saasRow("CAC", saas.cac, "currency", saas.cacField ? "Source value" : "Not available", saas.cacField ? `Latest-period average from ${saas.cacField}.` : "No CAC field."),
     saasRow("LTV", saas.ltv, "currency", saas.ltvField ? "Source value" : "Not available", saas.ltvField ? `Latest-period average from ${saas.ltvField}.` : "No LTV field."),
     ["LTV/CAC", saas.ltvToCac === null ? "Not available" : `${saas.ltvToCac.toFixed(2)}x`, saas.ltvToCac === null ? "Not available" : "Valid derived", "LTV divided by CAC when both latest-period averages are available."],
@@ -808,6 +808,36 @@ function saasRow(label: string, value: number | null, format: "currency" | "numb
     value === null ? "Not available" : status,
     note,
   ];
+}
+
+function saasCustomerNote(saas: SaasReportAnalysis) {
+  if (!saas.customerField) return "Requires customer ID or customer-count snapshot.";
+  if (saas.customerAggregation === "latest_snapshot") return `Latest-period source value from ${saas.customerField}.`;
+  if (saas.customerAggregation === "distinct_ids") return `Distinct customer identifiers from ${saas.customerField}.`;
+  return `Source value from ${saas.customerField}.`;
+}
+
+function saasNewCustomerNote(saas: SaasReportAnalysis) {
+  if (!saas.newCustomerField) return "Requires new-customer field.";
+  if (saas.newCustomerAggregation === "latest_snapshot") return `Latest-period source value from ${saas.newCustomerField}.`;
+  return `Distinct customers with normalized positive ${saas.newCustomerField}.`;
+}
+
+function saasChurnedCustomerNote(saas: SaasReportAnalysis) {
+  if (!saas.churnedCustomerField) return "No churned-customer field.";
+  if (saas.churnedCustomerAggregation === "latest_snapshot") return `Latest-period source value from ${saas.churnedCustomerField}.`;
+  return `Distinct customers with normalized positive ${saas.churnedCustomerField}.`;
+}
+
+function saasChurnRateNote(saas: SaasReportAnalysis) {
+  if (saas.churnRateSource === "source_rate" && saas.churnRateField) return `Latest-period source value from ${saas.churnRateField}.`;
+  if (saas.churnRateSource === "derived_from_counts" && saas.eligibleChurnCustomers !== null) {
+    return `${saas.churnedCustomers} / ${saas.eligibleChurnCustomers} same-period customers.`;
+  }
+  if (saas.churnRateSource === "derived_from_status" && saas.eligibleChurnCustomers !== null) {
+    return `${saas.churnedCustomers} / ${saas.eligibleChurnCustomers} customers with normalized churn status.`;
+  }
+  return "Requires source churn rate or compatible same-period churn count and customer base.";
 }
 
 function drawSaasTrendTable(doc: jsPDF, trend: { name: string; value: number }[], y: number, label: string) {
@@ -1215,12 +1245,20 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
     y = drawSummaryItems(doc, summary.health, y, 2, 8, 55) + layout.sectionGap;
   }
 
+  if (report.reportProfile?.id === "saas_startup" && summary.actions.length > 0) {
+    y = drawSectionHeading(doc, "Priority Actions", y, 24);
+    y = drawSummaryItems(doc, summary.actions, y, 3, 8) + layout.sectionGap;
+  }
+
   if (summary.findings.length > 0) {
     y = drawSectionHeading(doc, "Top Findings", y, 50);
     y = drawSummaryItems(doc, summary.findings, y, 3, 8) + layout.sectionGap;
+    if (report.reportProfile?.id === "saas_startup" && summary.actions.length > 0) {
+      y = drawSectionHeading(doc, "Priority Actions", y, 8);
+    }
   }
 
-  if (summary.actions.length > 0) {
+  if (report.reportProfile?.id !== "saas_startup" && summary.actions.length > 0) {
     y = drawSectionHeading(doc, "Priority Actions", y, 24);
     y = drawSummaryItems(doc, summary.actions, y, 3, 8) + layout.sectionGap;
   }
@@ -1453,6 +1491,15 @@ function collectSummaryFindingCandidates(report: Report): FindingCandidate[] {
 
   for (const finding of report.findings || []) {
     add(finding);
+  }
+
+  if (report.reportProfile?.id === "saas_startup" && report.saasAnalysis) {
+    const saas = report.saasAnalysis;
+    if (saas.churnRate !== null) add(`Churn is ${formatPercent(saas.churnRate)} from ${saas.churnRateSource === "source_rate" ? "source churn rate" : "compatible SaaS customer metrics"}.`, -150);
+    if (saas.mrr !== null) add(`MRR is ${formatCurrency(saas.mrr)} in the latest SaaS reporting period.`, -140);
+    if (saas.customers !== null) add(`Customers total ${saas.customers.toLocaleString()} using ${saas.customerAggregation === "latest_snapshot" ? "latest-period SaaS snapshot" : "distinct SaaS customer"} semantics.`, -130);
+    if (saas.netExpansionMrr !== null) add(`Net Expansion MRR is ${formatCurrency(saas.netExpansionMrr)} from expansion minus contraction.`, -120);
+    if (saas.runwayMonths !== null) add(`Runway is ${saas.runwayMonths.toFixed(1)} months from explicit SaaS runway data.`, -110);
   }
 
   return candidates;

@@ -4736,6 +4736,76 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## SaaS Same-Period Customer And Churn Semantics
+
+1. Interaction title
+SaaS same-period customer and churn report semantics.
+
+2. What was the user goal
+Fix the remaining SaaS Executive Report inconsistency where a source churn rate displayed beside a historical churned-customer total and a latest customer snapshot, producing contradictory text such as 211 churned customers with a 2.2% churn rate.
+
+3. What changed
+SaaS Executive Reports now treat numeric `customers`, `new_customers`, and `churned_customers` fields as latest-period source values for executive snapshot metrics. Source `churn_rate` stays a latest-period source rate and no longer receives a fabricated eligible-customer denominator. Derived churn rates use same-period churned-customer and customer-count values only. Customer-level SaaS datasets with customer IDs, subscription IDs, and status values still use distinct customer and normalized churn status logic. PDF KPI cards, Customer Metrics tables, recommendations, Dataset Intelligence SaaS KPIs, dashboard confidence, and SaaS Results Summary findings now use the same canonical interpretation.
+
+4. Problems marked
+blocker: none.
+risk: the direct dataset-aware report profile script now passes the SaaS Top Findings assertion and stops later on an out-of-scope retail PDF assertion about inventory-position low-stock labeling.
+improvement: fix the retail unit-cost PDF low-stock labeling assertion in a separate retail-scoped task.
+observation: source churn-rate fields and churned-customer count fields can both be valid while still being independent source metrics, so recommendation text must not imply one derives the other unless the code derives it from the same-period denominator.
+
+5. User learning
+SaaS snapshot uploads need latest-period executive metrics, while customer-level uploads need distinct-customer/event semantics; the resolver must preserve both behaviors from structural evidence.
+
+6. AI-agent learning
+SaaS report provenance must state aggregation intent, not only source column names, because source fields can represent snapshots, period flows, statuses, identifiers, or rates.
+
+7. Follow-up tasks
+- Fix the retail unit-cost PDF low-stock labeling assertion in a separate retail-scoped task.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; active/deferred/no-fix work: `.TODO/` queue files only as destinations; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Executive Report Customer And Churn Aggregation
+
+1. Interaction title
+SaaS Executive Report customer snapshots and churn semantics.
+
+2. What was the user goal
+Fix SaaS Executive Reports so customer count, new customer count, churned customer count, churn rate, and monthly customer snapshots calculate correctly without requiring optional segmentation fields.
+
+3. What changed
+SaaS semantic detection now recognizes customer-count, new-customer-count, churned-customer-count, and churn-rate concepts separately. The SaaS report builder keeps customer identifiers distinct from snapshot counts, uses the latest customer snapshot instead of summing monthly snapshots, sums new and churned customer flow counts, treats source churn rates as rates instead of counts, derives churn only from valid churned-customer and customer-count denominators, and keeps missing churn values unavailable instead of printing zero. SaaS summaries, recommendations, confidence scoring, and focused regression tests now cover count fields, source rates, missing optional segmentation, missing churn data, and monthly snapshots.
+
+4. Problems marked
+blocker: none.
+risk: the direct dataset-aware report profile script still fails on the existing SaaS PDF text assertion that the Results Summary includes a Top Findings section; full `pnpm lint` fails on unrelated root reproduction `.mjs` files that are outside the configured TypeScript project.
+improvement: fix the SaaS PDF Results Summary Top Findings assertion in a focused report-profile pass.
+observation: SaaS count columns and rate columns need separate canonical mappings because `customers`, `new_customers`, `churned_customers`, and `churn_rate` carry different aggregation rules.
+
+5. User learning
+SaaS Executive Reports need latest-period snapshot aggregation for customer counts and source-aware rate handling for churn; optional plan, country, channel, or segment fields should enrich analysis but not gate core SaaS metrics.
+
+6. AI-agent learning
+Report-profile mappings must encode aggregation intent, not only semantic names, when source schemas mix snapshots, period flows, identifiers, booleans, and percentages.
+
+7. Follow-up tasks
+- Fix the SaaS PDF Results Summary Top Findings assertion in a focused report-profile pass.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Universal SaaS Semantic Analysis Engine
 
 1. Interaction title
@@ -5105,6 +5175,41 @@ The standard upload path stores `datasetType: standard`, so SaaS/startup preserv
 
 7. Follow-up tasks
 - Add a focused PDF-results-summary fix for the classic SaaS dataset-aware report profile assertion.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Executive Report Reporting Period Metadata
+
+1. Interaction title
+SaaS Executive Report Reporting Period metadata.
+
+2. What was the user goal
+Fix only the SaaS Executive Report page-1 Reporting Period value so a dataset with recognized monthly SaaS periods displays the source period range instead of Not available.
+
+3. What changed
+The SaaS report builder sets top-level financial reporting period metadata from the same recognized SaaS period column used by latest-period and trend metrics. The SaaS unit-economics regression fixture includes `saas_subscription_metrics_test` with 12 recognized 2025 monthly periods and verifies Reporting Period, latest period, trend coverage, and unchanged customer, churn, MRR, and ARR metrics. Requirements, changelog, TODO state, activity log, and interaction status reflect the current behavior.
+
+4. Problems marked
+blocker: none.
+risk: none for the scoped SaaS metadata fix.
+improvement: keep future SaaS metadata tests tied to the canonical period resolver whenever SaaS trend fields change.
+observation: the page-1 PDF rendered Not available because the top-level report metadata field stayed empty even though SaaS analysis already resolved valid period values elsewhere.
+
+5. User learning
+SaaS report metadata uses the selected dataset source periods; report generation date is not a valid reporting-period fallback.
+
+6. AI-agent learning
+Report-wide SaaS metadata must reuse canonical SaaS period resolution instead of introducing separate date detection or formatting paths.
+
+7. Follow-up tasks
+- T-1035. Populate SaaS Executive Report Reporting Period metadata from the recognized SaaS period field without changing SaaS metric calculations or other report families.
 
 8. Instruction sources
 - AGENTS.md

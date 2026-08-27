@@ -145,6 +145,7 @@ export type SaasProfileId =
 export type SaasCanonicalConcept =
   | "period"
   | "customer_id"
+  | "customer_count"
   | "subscription_id"
   | "company"
   | "plan"
@@ -166,6 +167,9 @@ export type SaasCanonicalConcept =
   | "profit_margin"
   | "cac"
   | "ltv"
+  | "new_customers"
+  | "churned_customers"
+  | "churn_rate"
   | "churn"
   | "retention"
   | "burn"
@@ -320,6 +324,7 @@ const COLUMN_SYNONYMS: Array<{
 const SAAS_CONCEPT_ALIASES: Record<SaasCanonicalConcept, RegExp[]> = {
   period: [/\bdate\b/, /\bmonth\b/, /\bperiod\b/, /\bbilling_month\b/, /\binvoice_date\b/, /\border_date\b/, /\btransaction_date\b/, /\bsignup_date\b/, /\bstart_date\b/, /\brenewal_date\b/],
   customer_id: [/\bcustomer_id\b/, /\bcustomer\b/, /\baccount_id\b/, /\bclient_id\b/, /\bcompany_id\b/, /\borganization_id\b/, /\btenant_id\b/],
+  customer_count: [/\bcustomers\b/, /\bcustomer_count\b/, /\btotal_customers\b/, /\bactive_customers\b/, /\bending_customers\b/, /\bsubscriber_count\b/, /\bsubscriptions_count\b/],
   subscription_id: [/\bsubscription_id\b/, /\bsub_id\b/, /\bcontract_id\b/, /\bsubscription\b/],
   company: [/\bcompany\b/, /\bcompany_name\b/, /\baccount_name\b/, /\borganization\b/, /\borg\b/, /\btenant\b/],
   plan: [/\bplan\b/, /\btier\b/, /\bsubscription_plan\b/, /\bpricing_plan\b/, /\bpackage\b/, /\bproduct_plan\b/],
@@ -341,6 +346,9 @@ const SAAS_CONCEPT_ALIASES: Record<SaasCanonicalConcept, RegExp[]> = {
   profit_margin: [/\bprofit_margin\b/, /\bgross_margin\b/, /\bnet_margin\b/, /\bmargin\b/],
   cac: [/\bcac\b/, /\bcustomer_acquisition_cost\b/, /\bacquisition_cost\b/],
   ltv: [/\bltv\b/, /\bcustomer_lifetime_value\b/, /\blifetime_value\b/],
+  new_customers: [/\bnew_customers\b/, /\bnew_customer_count\b/, /\bnew_logo_count\b/, /\bnew_logos\b/],
+  churned_customers: [/\bchurned_customers\b/, /\bchurned_customer_count\b/, /\bcancelled_customers\b/, /\bcanceled_customers\b/, /\bcancellations\b/],
+  churn_rate: [/\bchurn_rate\b/, /\bcustomer_churn_rate\b/, /\bchurn_pct\b/, /\bchurn_percent\b/],
   churn: [/\bchurn\b/, /\bchurned\b/, /\bcancelled\b/, /\bcanceled\b/, /\bcancellation\b/, /\bchurn_date\b/],
   retention: [/\bretention\b/, /\bretained\b/, /\brenewal\b/, /\brenewed\b/],
   burn: [/\bburn\b/, /\bburn_rate\b/, /\bcash_burn\b/],
@@ -651,27 +659,28 @@ export function resolveSaasSemanticProfile(input: Pick<DatasetIntelligenceEngine
 
   const has = (...concepts: SaasCanonicalConcept[]) => concepts.some((concept) => Boolean(mappings[concept]));
   const groups = {
-    subscription_snapshot: scoreSaasGroup(mappings, ["customer_id", "subscription_id", "plan", "subscription_status", "mrr", "arr", "period", "churn"]),
+    subscription_snapshot: scoreSaasGroup(mappings, ["customer_id", "customer_count", "subscription_id", "plan", "subscription_status", "mrr", "arr", "period", "churned_customers", "churn_rate", "churn"]),
     transactional_saas: scoreSaasGroup(mappings, ["period", "plan", "users", "seats", "licenses", "price_per_user", "unit_price", "revenue", "cost", "profit", "channel", "country"]),
-    customer_cohort: scoreSaasGroup(mappings, ["customer_id", "period", "plan", "mrr", "churn", "expansion_mrr", "contraction_mrr", "country"]),
+    customer_cohort: scoreSaasGroup(mappings, ["customer_id", "customer_count", "period", "plan", "mrr", "new_customers", "churned_customers", "churn_rate", "churn", "expansion_mrr", "contraction_mrr", "country"]),
     saas_financial: scoreSaasGroup(mappings, ["period", "revenue", "cost", "profit", "burn", "cash_balance", "runway"]),
   };
-  const strongGroups = Object.entries(groups).filter(([, score]) => score >= 0.7).map(([profile]) => profile as Exclude<SaasProfileId, "hybrid_saas" | "generic_saas">);
-  const best = Object.entries(groups).sort((a, b) => b[1] - a[1])[0] as [Exclude<SaasProfileId, "hybrid_saas" | "generic_saas">, number] | undefined;
-  const profile: SaasProfileId = strongGroups.length >= 2
-    ? "hybrid_saas"
-    : best && best[1] >= 0.35
-      ? best[0]
-      : "generic_saas";
   const capabilities = {
     recurringRevenue: has("mrr", "arr", "subscription_revenue"),
     unitEconomics: has("revenue", "users", "seats", "licenses", "price_per_user", "unit_price", "cac", "ltv"),
-    cohortRetention: has("customer_id") && has("period", "churn", "retention", "expansion_mrr", "contraction_mrr"),
-    subscriptionLifecycle: has("subscription_id", "subscription_status", "churn", "retention"),
+    cohortRetention: has("customer_id", "customer_count") && has("period", "new_customers", "churned_customers", "churn_rate", "churn", "retention", "expansion_mrr", "contraction_mrr"),
+    subscriptionLifecycle: has("subscription_id", "subscription_status", "churned_customers", "churn_rate", "churn", "retention"),
     financialRunway: has("burn", "cash_balance", "runway"),
     segmentation: has("plan", "channel", "startup_stage", "company"),
     geography: has("country", "region"),
   };
+  const strongGroups = Object.entries(groups).filter(([, score]) => score >= 0.7).map(([profile]) => profile as Exclude<SaasProfileId, "hybrid_saas" | "generic_saas">);
+  const hasHybridCapabilities = capabilities.financialRunway && capabilities.recurringRevenue && capabilities.unitEconomics;
+  const best = Object.entries(groups).sort((a, b) => b[1] - a[1])[0] as [Exclude<SaasProfileId, "hybrid_saas" | "generic_saas">, number] | undefined;
+  const profile: SaasProfileId = strongGroups.length >= 2 || hasHybridCapabilities
+    ? "hybrid_saas"
+    : best && best[1] >= 0.35
+      ? best[0]
+      : "generic_saas";
 
   return {
     profile,
@@ -992,8 +1001,12 @@ function generateKpis(
     if (saas?.mappings.expansion_mrr) kpis.push(sumMappedKpi("expansion_mrr", saas.mappings.expansion_mrr, rows, "Expansion MRR", "currency", saas.confidence));
     if (saas?.mappings.contraction_mrr) kpis.push(sumMappedKpi("contraction_mrr", saas.mappings.contraction_mrr, rows, "Contraction MRR", "currency", saas.confidence));
     if (saas?.mappings.customer_id) kpis.push(uniqueMappedKpi("customers", saas.mappings.customer_id, rows, "Customers", saas.confidence));
+    if (saas?.mappings.customer_count) kpis.push(latestMappedKpi("customers", saas.mappings.customer_count, rows, "Customers", "number", saas.confidence, saas.mappings.period));
     if (saas?.mappings.subscription_id) kpis.push(uniqueMappedKpi("subscriptions", saas.mappings.subscription_id, rows, "Subscriptions", saas.confidence));
-    if (saas?.mappings.churn) {
+    if (saas?.mappings.new_customers) kpis.push(latestMappedKpi("new_customers", saas.mappings.new_customers, rows, "New Customers", "number", saas.confidence, saas.mappings.period));
+    if (saas?.mappings.churned_customers) kpis.push(latestMappedKpi("churned_customers", saas.mappings.churned_customers, rows, "Churned Customers", "number", saas.confidence, saas.mappings.period));
+    if (saas?.mappings.churn_rate) kpis.push(latestMappedRateKpi("churn_rate", saas.mappings.churn_rate, rows, "Churn Rate", saas.confidence, saas.mappings.period));
+    if (!saas?.mappings.churned_customers && !saas?.mappings.churn_rate && saas?.mappings.churn) {
       const churned = countSaasPositiveRows(rows, saas.mappings.churn);
       kpis.push({
         id: "churned_customers",
@@ -1019,6 +1032,75 @@ function generateKpis(
   }
 
   return kpis.slice(0, 14);
+}
+
+function latestMappedKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, format: KpiFormat, confidence: number, periodColumn?: string): DynamicKpi {
+  const value = latestMappedValue(rows, column, periodColumn);
+  return {
+    id,
+    title,
+    value: value === null ? null : round(value),
+    format,
+    sourceColumns: [column],
+    confidence,
+    explanation: periodColumn
+      ? `${title} uses the latest-period source SaaS snapshot field "${column}".`
+      : `${title} uses the source SaaS snapshot field "${column}" when the dataset has a single defensible snapshot row.`,
+  };
+}
+
+function latestMappedRateKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, confidence: number, periodColumn?: string): DynamicKpi {
+  const sourceRows = latestRowsByPeriod(rows, periodColumn);
+  const values = sourceRows.map((row) => toNumber(row[column])).filter((value): value is number => value !== null).map(normalizePercentValue).filter((value): value is number => value !== null);
+  return {
+    id,
+    title,
+    value: values.length > 0 ? round(values.reduce((total, value) => total + value, 0) / values.length) : null,
+    format: "percentage",
+    sourceColumns: [column],
+    confidence,
+    explanation: periodColumn
+      ? `${title} uses the latest-period SaaS rate field "${column}" and never sums percentage values.`
+      : `${title} averages the SaaS rate field "${column}" and never sums percentage values.`,
+  };
+}
+
+function latestMappedValue(rows: Record<string, unknown>[], column: string, periodColumn?: string) {
+  if (!periodColumn && rows.length > 1) return null;
+  const sourceRows = latestRowsByPeriod(rows, periodColumn);
+  const values = sourceRows.map((row) => toNumber(row[column])).filter((value): value is number => value !== null);
+  if (values.length === 0) return null;
+  return values.reduce((total, value) => total + value, 0);
+}
+
+function latestRowsByPeriod(rows: Record<string, unknown>[], periodColumn?: string) {
+  if (!periodColumn) return rows;
+  const keyed = rows
+    .map((row) => ({ row, key: normalizePeriodKey(row[periodColumn]) }))
+    .filter((item): item is { row: Record<string, unknown>; key: string } => Boolean(item.key));
+  if (keyed.length === 0) return rows;
+  const latest = keyed.map((item) => item.key).sort().at(-1);
+  return latest ? keyed.filter((item) => item.key === latest).map((item) => item.row) : rows;
+}
+
+function normalizePeriodKey(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const parsed = Date.parse(raw);
+  if (Number.isFinite(parsed)) return new Date(parsed).toISOString().slice(0, 10);
+  const month = raw.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (month) return `${month[1]}-${month[2].padStart(2, "0")}-01`;
+  const year = raw.match(/^(\d{4})$/);
+  if (year) return `${year[1]}-01-01`;
+  return raw.toLowerCase();
+}
+
+function normalizePercentValue(value: number) {
+  if (!Number.isFinite(value) || value < 0) return null;
+  if (value <= 1) return round(value * 100);
+  if (value <= 100) return round(value);
+  return null;
 }
 
 function sumMappedKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, format: KpiFormat, confidence: number): DynamicKpi {

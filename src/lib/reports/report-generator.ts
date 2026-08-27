@@ -293,12 +293,18 @@ export interface SaasReportAnalysis {
   arrField: string | null;
   customers: number | null;
   customerField: string | null;
+  customerAggregation?: "distinct_ids" | "latest_snapshot" | "sum" | null;
   newCustomers: number | null;
   newCustomerField: string | null;
+  newCustomerAggregation?: "positive_status" | "latest_snapshot" | null;
   churnedCustomers: number | null;
+  churnedCustomerField?: string | null;
+  churnedCustomerAggregation?: "positive_status" | "latest_snapshot" | null;
   eligibleChurnCustomers: number | null;
   churnRate: number | null;
   churnField: string | null;
+  churnRateField?: string | null;
+  churnRateSource?: "source_rate" | "derived_from_counts" | "derived_from_status" | null;
   expansionMrr: number | null;
   expansionMrrField: string | null;
   contractionMrr: number | null;
