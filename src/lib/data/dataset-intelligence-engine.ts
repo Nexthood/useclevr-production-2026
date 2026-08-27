@@ -134,6 +134,65 @@ export interface BusinessModelDetection {
   explanation: string;
 }
 
+export type SaasProfileId =
+  | "subscription_snapshot"
+  | "transactional_saas"
+  | "customer_cohort"
+  | "saas_financial"
+  | "hybrid_saas"
+  | "generic_saas";
+
+export type SaasCanonicalConcept =
+  | "period"
+  | "customer_id"
+  | "subscription_id"
+  | "company"
+  | "plan"
+  | "subscription_status"
+  | "users"
+  | "active_users"
+  | "seats"
+  | "licenses"
+  | "price_per_user"
+  | "unit_price"
+  | "revenue"
+  | "subscription_revenue"
+  | "mrr"
+  | "arr"
+  | "expansion_mrr"
+  | "contraction_mrr"
+  | "cost"
+  | "profit"
+  | "profit_margin"
+  | "cac"
+  | "ltv"
+  | "churn"
+  | "retention"
+  | "burn"
+  | "cash_balance"
+  | "runway"
+  | "channel"
+  | "country"
+  | "region"
+  | "startup_stage";
+
+export interface SaasSemanticResolution {
+  profile: SaasProfileId;
+  confidence: number;
+  evidence: ConfidenceEvidence[];
+  mappings: Partial<Record<SaasCanonicalConcept, string>>;
+  capabilities: {
+    recurringRevenue: boolean;
+    unitEconomics: boolean;
+    cohortRetention: boolean;
+    subscriptionLifecycle: boolean;
+    financialRunway: boolean;
+    segmentation: boolean;
+    geography: boolean;
+  };
+  explanation: string;
+}
+
 export interface DynamicKpi {
   id: string;
   title: string;
@@ -170,10 +229,12 @@ export interface DatasetIntelligenceEngineResult {
   columns: SemanticColumnScan[];
   relationships: RelationshipDetection[];
   businessModel: BusinessModelDetection;
+  saas: SaasSemanticResolution | null;
   kpis: DynamicKpi[];
   dashboard: DynamicDashboardDefinition;
   aiContext: {
     businessModel: BusinessModelDetection;
+    saas: SaasSemanticResolution | null;
     semanticColumns: Array<{
       columnName: string;
       canonicalRole: CanonicalSemanticRole;
@@ -256,6 +317,41 @@ const COLUMN_SYNONYMS: Array<{
     { role: "Account", patterns: [/\baccount\b/, /\bledger\b/, /\bgl_account\b/], valueTypes: ["Text"], explanation: "Column name identifies account or ledger data." },
   ];
 
+const SAAS_CONCEPT_ALIASES: Record<SaasCanonicalConcept, RegExp[]> = {
+  period: [/\bdate\b/, /\bmonth\b/, /\bperiod\b/, /\bbilling_month\b/, /\binvoice_date\b/, /\border_date\b/, /\btransaction_date\b/, /\bsignup_date\b/, /\bstart_date\b/, /\brenewal_date\b/],
+  customer_id: [/\bcustomer_id\b/, /\bcustomer\b/, /\baccount_id\b/, /\bclient_id\b/, /\bcompany_id\b/, /\borganization_id\b/, /\btenant_id\b/],
+  subscription_id: [/\bsubscription_id\b/, /\bsub_id\b/, /\bcontract_id\b/, /\bsubscription\b/],
+  company: [/\bcompany\b/, /\bcompany_name\b/, /\baccount_name\b/, /\borganization\b/, /\borg\b/, /\btenant\b/],
+  plan: [/\bplan\b/, /\btier\b/, /\bsubscription_plan\b/, /\bpricing_plan\b/, /\bpackage\b/, /\bproduct_plan\b/],
+  subscription_status: [/\bstatus\b/, /\bsubscription_status\b/, /\baccount_status\b/, /\blifecycle_status\b/],
+  users: [/\busers\b/, /\buser_count\b/, /\bpaid_users\b/],
+  active_users: [/\bactive_users\b/, /\bactive_user_count\b/, /\bmau\b/, /\bmonthly_active_users\b/, /\busage\b/],
+  seats: [/\bseats\b/, /\bseat_count\b/],
+  licenses: [/\blicenses\b/, /\blicence_count\b/, /\blicensed_users\b/],
+  price_per_user: [/\bprice_per_user\b/, /\bprice_per_seat\b/, /\brevenue_per_user\b/, /\barpu\b/, /\barpa\b/],
+  unit_price: [/\bunit_price\b/, /\bprice\b/, /\bunit_amount\b/],
+  revenue: [/\brevenue\b/, /\bsales_amount\b/, /\bsales\b/, /\bamount\b/, /\bturnover\b/],
+  subscription_revenue: [/\bsubscription_revenue\b/, /\brecurring_revenue\b/, /\bsubscription_amount\b/, /\bbilling_amount\b/],
+  mrr: [/\bmrr\b/, /\bmonthly_recurring_revenue\b/],
+  arr: [/\barr\b/, /\bannual_recurring_revenue\b/],
+  expansion_mrr: [/\bexpansion_mrr\b/, /\bexpansion\b/, /\bexpansion_recurring\b/, /\bupsell\b/, /\bupgrade_mrr\b/],
+  contraction_mrr: [/\bcontraction_mrr\b/, /\bcontraction\b/, /\bcontraction_recurring\b/, /\bdownsell\b/, /\bdowngrade_mrr\b/],
+  cost: [/\bcost\b/, /\bexpense\b/, /\bcogs\b/, /\bspend\b/],
+  profit: [/\bprofit\b/, /\bgross_profit\b/, /\bnet_profit\b/, /\boperating_profit\b/],
+  profit_margin: [/\bprofit_margin\b/, /\bgross_margin\b/, /\bnet_margin\b/, /\bmargin\b/],
+  cac: [/\bcac\b/, /\bcustomer_acquisition_cost\b/, /\bacquisition_cost\b/],
+  ltv: [/\bltv\b/, /\bcustomer_lifetime_value\b/, /\blifetime_value\b/],
+  churn: [/\bchurn\b/, /\bchurned\b/, /\bcancelled\b/, /\bcanceled\b/, /\bcancellation\b/, /\bchurn_date\b/],
+  retention: [/\bretention\b/, /\bretained\b/, /\brenewal\b/, /\brenewed\b/],
+  burn: [/\bburn\b/, /\bburn_rate\b/, /\bcash_burn\b/],
+  cash_balance: [/\bcash_balance\b/, /\bcash\b/, /\bbank_balance\b/],
+  runway: [/\brunway\b/, /\brunway_months\b/],
+  channel: [/\bchannel\b/, /\bacquisition_channel\b/, /\bsource\b/, /\bmarketing_channel\b/],
+  country: [/\bcountry\b/, /\bcountry_code\b/, /\bnation\b/],
+  region: [/\bregion\b/, /\bterritory\b/, /\bstate\b/, /\bprovince\b/],
+  startup_stage: [/\bstartup_stage\b/, /\bstage\b/, /\bfunding_stage\b/],
+};
+
 const MODEL_PATTERNS: Record<Exclude<SemanticBusinessModel, "Generic">, RegExp[]> = {
   Retail: [/\bretail\b|\bstore\b|\bshop\b/, /\bsku\b|\bproduct\b|\bitem\b/, /\binventory\b|\bstock\b|\breorder\b/, /\bsupplier\b|\bvendor\b/],
   Marketplace: [/\bmarketplace\b|\bgmv\b|\bgross_merchandise_value\b|\bgross_merchandise\b/, /\bseller\b|\bbuyer\b/, /\bplatform_fee\b|\bcommission\b|\btake_rate\b/, /\blisting\b/],
@@ -263,7 +359,7 @@ const MODEL_PATTERNS: Record<Exclude<SemanticBusinessModel, "Generic">, RegExp[]
   Inventory: [/\binventory\b|\bstock\b|\bwarehouse\b/, /\breorder\b|\blead_time\b/, /\bsku\b|\bitem\b/],
   Accounting: [/\bledger\b|\bjournal\b|\bdebit\b|\bcredit\b/, /\binvoice\b|\bpayment\b/, /\btax\b|\bvat\b|\bgst\b/],
   CRM: [/\bcustomer\b|\bclient\b|\bcontact\b|\blead\b/, /\bemail\b|\bphone\b/, /\bpipeline\b|\bopportunity\b/],
-  SaaS: [/\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b/, /\bchurn\b|\bretention\b|\brenewal\b/, /\bplan\b|\bseat\b|\busers\b|\bprice_per_user\b|\baccount\b/],
+  SaaS: [/\bsaas\b|\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b/, /\bchurn\b|\bretention\b|\brenewal\b/, /\bplan\b|\bseat\b|\busers\b|\bprice_per_user\b|\baccount\b/],
   Manufacturing: [/\bmanufacturing\b|\bproduction\b|\bwork_order\b/, /\bbom\b|\bmaterial\b/, /\bmachine\b|\bdowntime\b/],
   Healthcare: [/\bpatient\b|\bclinical\b|\bappointment\b/, /\bprovider\b|\bdiagnosis\b/, /\bclaim\b|\binsurance\b/],
   Finance: [/\brevenue\b|\bprofit\b|\bloss\b|\bexpense\b/, /\bcash\b|\bbalance\b|\bbudget\b/, /\btransaction\b|\bpayment\b/],
@@ -343,7 +439,8 @@ export function buildDatasetIntelligenceEngine(input: DatasetIntelligenceEngineI
   const columns = datasetIntelligenceDetectorRegistry.semanticColumns.detect(normalizedInput);
   const relationships = detectRelationships(columns);
   const businessModel = detectBusinessModel(normalizedInput, columns);
-  const kpis = generateKpis(rows, columns, businessModel);
+  const saas = businessModel.model === "SaaS" ? resolveSaasSemanticProfile({ rows, columns: normalizedInput.columns, fileName: normalizedInput.fileName }) : null;
+  const kpis = generateKpis(rows, columns, businessModel, saas);
   const dashboard = generateDashboard({ businessModel, columns, relationships, kpis, generatedAt });
 
   return {
@@ -353,9 +450,10 @@ export function buildDatasetIntelligenceEngine(input: DatasetIntelligenceEngineI
     columns,
     relationships,
     businessModel,
+    saas,
     kpis,
     dashboard,
-    aiContext: buildAiContext({ businessModel, columns, relationships, kpis }),
+    aiContext: buildAiContext({ businessModel, saas, columns, relationships, kpis }),
   };
 }
 
@@ -522,6 +620,97 @@ function roleFromValueTypes(valueTypes: SemanticValueType[], sampleValues: strin
   return { role: "Unknown" as const, confidence: 0, explanation: "" };
 }
 
+export function resolveSaasSemanticProfile(input: Pick<DatasetIntelligenceEngineInput, "rows" | "columns" | "fileName">): SaasSemanticResolution {
+  const columns = getColumns({ rows: input.rows, columns: input.columns });
+  const mappings: Partial<Record<SaasCanonicalConcept, string>> = {};
+  const evidence: ConfidenceEvidence[] = [];
+  const valueSignals = collectSaasValueSignals(input.rows, columns);
+
+  for (const concept of Object.keys(SAAS_CONCEPT_ALIASES) as SaasCanonicalConcept[]) {
+    const column = findSaasConceptColumn(columns, concept);
+    if (column) {
+      mappings[concept] = column;
+      evidence.push({
+        signal: `saas_${concept}`,
+        weight: 1,
+        explanation: `${humanizeColumnName(column)} maps to SaaS ${concept.replace(/_/g, " ")}.`,
+      });
+    }
+  }
+
+  for (const [concept, column] of Object.entries(valueSignals) as Array<[SaasCanonicalConcept, string]>) {
+    if (!mappings[concept]) {
+      mappings[concept] = column;
+      evidence.push({
+        signal: `saas_value_${concept}`,
+        weight: 0.65,
+        explanation: `${humanizeColumnName(column)} maps to SaaS ${concept.replace(/_/g, " ")} from value profiling.`,
+      });
+    }
+  }
+
+  const has = (...concepts: SaasCanonicalConcept[]) => concepts.some((concept) => Boolean(mappings[concept]));
+  const groups = {
+    subscription_snapshot: scoreSaasGroup(mappings, ["customer_id", "subscription_id", "plan", "subscription_status", "mrr", "arr", "period", "churn"]),
+    transactional_saas: scoreSaasGroup(mappings, ["period", "plan", "users", "seats", "licenses", "price_per_user", "unit_price", "revenue", "cost", "profit", "channel", "country"]),
+    customer_cohort: scoreSaasGroup(mappings, ["customer_id", "period", "plan", "mrr", "churn", "expansion_mrr", "contraction_mrr", "country"]),
+    saas_financial: scoreSaasGroup(mappings, ["period", "revenue", "cost", "profit", "burn", "cash_balance", "runway"]),
+  };
+  const strongGroups = Object.entries(groups).filter(([, score]) => score >= 0.7).map(([profile]) => profile as Exclude<SaasProfileId, "hybrid_saas" | "generic_saas">);
+  const best = Object.entries(groups).sort((a, b) => b[1] - a[1])[0] as [Exclude<SaasProfileId, "hybrid_saas" | "generic_saas">, number] | undefined;
+  const profile: SaasProfileId = strongGroups.length >= 2
+    ? "hybrid_saas"
+    : best && best[1] >= 0.35
+      ? best[0]
+      : "generic_saas";
+  const capabilities = {
+    recurringRevenue: has("mrr", "arr", "subscription_revenue"),
+    unitEconomics: has("revenue", "users", "seats", "licenses", "price_per_user", "unit_price", "cac", "ltv"),
+    cohortRetention: has("customer_id") && has("period", "churn", "retention", "expansion_mrr", "contraction_mrr"),
+    subscriptionLifecycle: has("subscription_id", "subscription_status", "churn", "retention"),
+    financialRunway: has("burn", "cash_balance", "runway"),
+    segmentation: has("plan", "channel", "startup_stage", "company"),
+    geography: has("country", "region"),
+  };
+
+  return {
+    profile,
+    confidence: roundConfidence(Math.min(0.98, Math.max(best?.[1] || 0.35, Object.keys(mappings).length / 14))),
+    evidence: evidence.slice(0, 12),
+    mappings,
+    capabilities,
+    explanation: profile === "generic_saas"
+      ? "SaaS evidence is present, but no specialized SaaS profile has enough complete field groups."
+      : `${profile.replace(/_/g, " ")} has the strongest SaaS semantic evidence.`,
+  };
+}
+
+function findSaasConceptColumn(columns: string[], concept: SaasCanonicalConcept) {
+  return findColumnByNormalizedPattern(columns, SAAS_CONCEPT_ALIASES[concept]);
+}
+
+function findColumnByNormalizedPattern(columns: string[], patterns: RegExp[]) {
+  return columns.find((column) => patterns.some((pattern) => pattern.test(normalizeName(column))));
+}
+
+function collectSaasValueSignals(rows: Record<string, unknown>[], columns: string[]) {
+  const signals: Partial<Record<SaasCanonicalConcept, string>> = {};
+  for (const column of columns) {
+    const values = rows.map((row) => String(row[column] ?? "").trim().toLowerCase()).filter(Boolean).slice(0, 100);
+    if (values.length === 0) continue;
+    const statusMatches = values.filter((value) => /^(active|trial|past_due|paused|cancelled|canceled|churned|expired|renewed)$/.test(value)).length;
+    const planMatches = values.filter((value) => /^(free|basic|starter|pro|business|growth|enterprise|team|premium)$/.test(value)).length;
+    if (!signals.subscription_status && statusMatches >= Math.ceil(values.length * 0.5)) signals.subscription_status = column;
+    if (!signals.plan && planMatches >= Math.ceil(values.length * 0.5)) signals.plan = column;
+  }
+  return signals;
+}
+
+function scoreSaasGroup(mappings: Partial<Record<SaasCanonicalConcept, string>>, concepts: SaasCanonicalConcept[]) {
+  const matches = concepts.filter((concept) => Boolean(mappings[concept])).length;
+  return roundConfidence(matches / concepts.length);
+}
+
 function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetection[] {
   const byRole = (role: CanonicalSemanticRole) => columns.find((column) => compatibleRoles(role).includes(column.canonicalRole));
   const allByRole = (role: CanonicalSemanticRole) => columns.filter((column) => compatibleRoles(role).includes(column.canonicalRole));
@@ -647,6 +836,19 @@ function detectBusinessModel(input: DatasetIntelligenceEngineInput, columns: Sem
     .map((entry) => ({ ...entry, score: entry.score + (roleBoosts[entry.model] || 0) }))
     .sort((a, b) => b.score - a.score);
   const best = ranked[0];
+  const saasRank = ranked.find((entry) => entry.model === "SaaS");
+  if (/\bsaas\b/.test(text) && saasRank && saasRank.score > 0 && best?.model === "Finance") {
+    return {
+      model: "SaaS",
+      confidence: roundConfidence(Math.min(0.98, Math.max(0.65, saasRank.score / 6))),
+      evidence: saasRank.evidence,
+      alternatives: ranked.filter((entry) => entry.model !== "SaaS").slice(0, 3).map((entry) => ({
+        model: entry.model as SemanticBusinessModel,
+        confidence: roundConfidence(Math.min(0.95, entry.score / 6)),
+      })),
+      explanation: "SaaS has explicit dataset evidence, so SaaS financial fields are analyzed with SaaS semantics instead of generic finance semantics.",
+    };
+  }
   const model: SemanticBusinessModel = best && best.score > 0 ? best.model : "Generic";
   const confidence = model === "Generic" ? 0.35 : roundConfidence(Math.min(0.98, best.score / 6));
   const alternatives = ranked.slice(1, 4).map((entry) => ({
@@ -667,9 +869,13 @@ function detectBusinessModel(input: DatasetIntelligenceEngineInput, columns: Sem
 
 function scoreModelFromRoles(columns: SemanticColumnScan[]) {
   const has = (role: CanonicalSemanticRole) => columns.some((column) => compatibleRoles(role).includes(column.canonicalRole));
+  const hasName = (pattern: RegExp) => columns.some((column) => pattern.test(column.normalizedName));
   const scores: Partial<Record<Exclude<SemanticBusinessModel, "Generic">, number>> = {};
   if (has("Seller") && has("Buyer") && (has("Revenue") || has("Commission"))) scores.Marketplace = 2.5;
   if (has("Users") && has("Category") && has("Revenue")) scores.SaaS = 2.5;
+  if (hasName(/(^|_)mrr($|_)|(^|_)arr($|_)|subscription|recurring|churn|renewal/)) {
+    scores.SaaS = Math.max(scores.SaaS || 0, 3);
+  }
   if (has("SKU") && has("Quantity") && (has("Product") || has("Category"))) scores.Inventory = 1.5;
   if (has("Invoice") && (has("Cost") || has("Revenue") || has("Account"))) scores.Accounting = 1.5;
   if (has("Customer") && (has("Email") || has("Phone") || has("Status"))) scores.CRM = 1.5;
@@ -678,7 +884,12 @@ function scoreModelFromRoles(columns: SemanticColumnScan[]) {
   return scores;
 }
 
-function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnScan[], businessModel: BusinessModelDetection): DynamicKpi[] {
+function generateKpis(
+  rows: Record<string, unknown>[],
+  columns: SemanticColumnScan[],
+  businessModel: BusinessModelDetection,
+  saas: SaasSemanticResolution | null = null,
+): DynamicKpi[] {
   const kpis: DynamicKpi[] = [{ id: "record_count", title: "Records", value: rows.length, format: "number", sourceColumns: [], confidence: 0.99, explanation: "Record count is computed directly from parsed rows." }];
   const exactRole = (role: CanonicalSemanticRole) => columns.find((column) => column.canonicalRole === role);
   const byRole = (role: CanonicalSemanticRole) => columns.find((column) => compatibleRoles(role).includes(column.canonicalRole));
@@ -775,11 +986,67 @@ function generateKpis(rows: Record<string, unknown>[], columns: SemanticColumnSc
     });
   }
   if (businessModel.model === "SaaS") {
+    if (saas?.mappings.mrr) kpis.push(sumMappedKpi("mrr", saas.mappings.mrr, rows, "MRR", "currency", saas.confidence));
+    if (saas?.mappings.arr) kpis.push(sumMappedKpi("arr", saas.mappings.arr, rows, "ARR", "currency", saas.confidence));
+    if (saas?.mappings.subscription_revenue && !saas.mappings.revenue) kpis.push(sumMappedKpi("subscription_revenue", saas.mappings.subscription_revenue, rows, "Subscription Revenue", "currency", saas.confidence));
+    if (saas?.mappings.expansion_mrr) kpis.push(sumMappedKpi("expansion_mrr", saas.mappings.expansion_mrr, rows, "Expansion MRR", "currency", saas.confidence));
+    if (saas?.mappings.contraction_mrr) kpis.push(sumMappedKpi("contraction_mrr", saas.mappings.contraction_mrr, rows, "Contraction MRR", "currency", saas.confidence));
+    if (saas?.mappings.customer_id) kpis.push(uniqueMappedKpi("customers", saas.mappings.customer_id, rows, "Customers", saas.confidence));
+    if (saas?.mappings.subscription_id) kpis.push(uniqueMappedKpi("subscriptions", saas.mappings.subscription_id, rows, "Subscriptions", saas.confidence));
+    if (saas?.mappings.churn) {
+      const churned = countSaasPositiveRows(rows, saas.mappings.churn);
+      kpis.push({
+        id: "churned_customers",
+        title: "Churned Customers",
+        value: churned,
+        format: "number",
+        sourceColumns: [saas.mappings.churn],
+        confidence: saas.confidence,
+        explanation: "Churned Customers counts normalized churn-positive values from the detected SaaS churn field.",
+      });
+      kpis.push({
+        id: "churn_rate",
+        title: "Churn Rate",
+        value: rows.length > 0 ? round((churned / rows.length) * 100) : null,
+        format: "percentage",
+        sourceColumns: [saas.mappings.churn],
+        confidence: saas.confidence,
+        explanation: "Churn Rate is computed from churn-positive rows divided by loaded rows when a churn field exists.",
+      });
+    }
     const plans = columns.find((column) => /plan|tier|subscription/.test(column.normalizedName)) || allByRole("Category")[0];
     if (plans) kpis.push(uniqueKpi("plans", plans, rows, "Plans"));
   }
 
   return kpis.slice(0, 14);
+}
+
+function sumMappedKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, format: KpiFormat, confidence: number): DynamicKpi {
+  return {
+    id,
+    title,
+    value: round(sumColumn(rows, column)),
+    format,
+    sourceColumns: [column],
+    confidence,
+    explanation: `${title} is computed from the SaaS semantic field "${column}".`,
+  };
+}
+
+function uniqueMappedKpi(id: string, column: string, rows: Record<string, unknown>[], title: string, confidence: number): DynamicKpi {
+  return {
+    id,
+    title,
+    value: new Set(rows.map((row) => String(row[column] ?? "").trim()).filter(Boolean)).size,
+    format: "number",
+    sourceColumns: [column],
+    confidence,
+    explanation: `${title} counts unique values from the SaaS semantic field "${column}".`,
+  };
+}
+
+function countSaasPositiveRows(rows: Record<string, unknown>[], column: string) {
+  return rows.filter((row) => /^(true|yes|1|churned|cancelled|canceled|lost)$/i.test(String(row[column] ?? "").trim())).length;
 }
 
 function sumKpi(id: string, column: SemanticColumnScan, rows: Record<string, unknown>[], title: string, format: KpiFormat = "currency"): DynamicKpi {
@@ -860,6 +1127,7 @@ function generateDashboard(input: {
 
 function buildAiContext(input: {
   businessModel: BusinessModelDetection;
+  saas: SaasSemanticResolution | null;
   columns: SemanticColumnScan[];
   relationships: RelationshipDetection[];
   kpis: DynamicKpi[];
@@ -869,6 +1137,7 @@ function buildAiContext(input: {
     : 0;
   return {
     businessModel: input.businessModel,
+    saas: input.saas,
     semanticColumns: input.columns.map((column) => ({
       columnName: column.columnName,
       canonicalRole: column.canonicalRole,

@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add schema-flexible SaaS analysis so subscription snapshots, transactional SaaS data, customer cohorts, SaaS financials, and hybrid startup datasets receive relevant metrics and report sections from detected fields.
 - Add Marketplace startup profile end-to-end with GMV, platform revenue, take rate, seller payout, refunds, buyer/seller intelligence, category and geography performance, balanced scorecard, PDF sections, dashboard command center metrics, and dataset-aware report profile routing.
 - Add dataset-aware executive report profiles so standard generated reports select retail, e-commerce, SaaS, marketplace, investor, consulting, services, generic, profitability, or ledger framing and retail reports prioritize sales, margin, inventory, product, category, supplier, and reorder actions.
 - Add Generate Report to the Executive Daily Health dashboard header so users can create the active dataset report beside the full daily brief action.

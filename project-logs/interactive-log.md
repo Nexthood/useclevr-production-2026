@@ -4736,6 +4736,41 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Universal SaaS Semantic Analysis Engine
+
+1. Interaction title
+Universal SaaS semantic analysis engine.
+
+2. What was the user goal
+Build a schema-flexible SaaS/startup analysis layer that detects common SaaS spreadsheet structures, profiles SaaS subtypes, derives only supported metrics, feeds AI context, and preserves non-SaaS dataset behavior.
+
+3. What changed
+`src/lib/data/dataset-intelligence-engine.ts` now returns a SaaS semantic resolution with profile, confidence, evidence, canonical mappings, and capability flags for subscription snapshots, transactional SaaS, customer cohorts, SaaS financials, hybrid SaaS, and generic SaaS. SaaS KPI generation now adds MRR, ARR, subscription revenue, expansion, contraction, customers, subscriptions, churned customers, and churn rate only when mapped fields exist. `src/lib/reports/dataset-report-builder.ts` applies the shared SaaS mapping only for SaaS/startup reports, expanding aliases for period, subscription revenue, users/seats/licenses, unit price, churn, expansion, contraction, active users, cash, runway, geography, and startup stage. `scripts/analysis/test-saas-startup-unit-economics.ts` covers the requested SaaS profiles and report/dashboard reuse. `CHANGELOG.md` and `.TODO/` record the completed product change.
+
+4. Problems marked
+blocker: none.
+risk: SaaS financial datasets require explicit SaaS evidence, such as a SaaS filename or SaaS schema terms, before SaaS semantics outrank generic Finance.
+improvement: add file-backed CSV/XLSX SaaS profile fixtures when sanitized real samples are available.
+observation: generic CRM and Finance signals can outrank SaaS unless SaaS-specific recurring, subscription, churn, or filename evidence is scored directly.
+
+5. User learning
+SaaS analysis now adapts to the available fields instead of forcing every SaaS dataset into recurring-revenue report content.
+
+6. AI-agent learning
+SaaS semantic changes must share one resolver across intelligence, reports, dashboards, and AI context so deterministic metrics and narrative context stay aligned.
+
+7. Follow-up tasks
+- Add file-backed sanitized CSV/XLSX SaaS profile fixtures when representative samples are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; active/completed work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Paired Profitability Operating Profit
 
 1. Interaction title
