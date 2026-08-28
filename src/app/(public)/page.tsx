@@ -8,9 +8,23 @@ import { allFaqCategories, getHomepageFaqs } from "@/lib/content/faq"
 import { getHomepageContent, getNewsPosts } from "@/lib/payload/content"
 import { ArrowRight, BarChart3, Bot, BriefcaseBusiness, Calculator, CheckCircle2, Database, FileSpreadsheet, FileText, HelpCircle, MessageSquare, Newspaper, Package, Shield, Sparkles, TrendingUp, Upload, Users, Zap } from "lucide-react"
 import Link from "next/link"
+import { unstable_cache } from "next/cache"
 
 const faqData = getHomepageFaqs()
 const allFaqCount = allFaqCategories.reduce((n, c) => n + c.items.length, 0)
+const homepageCacheSeconds = 300
+
+const getCachedHomepageContent = unstable_cache(
+  () => getHomepageContent(),
+  ["homepage-content"],
+  { revalidate: homepageCacheSeconds },
+)
+
+const getCachedHomepageNews = unstable_cache(
+  () => getNewsPosts(3),
+  ["homepage-news", "limit-3"],
+  { revalidate: homepageCacheSeconds },
+)
 
 const useCases = [
   {
@@ -41,8 +55,10 @@ const useCases = [
 ]
 
 export default async function HomePage() {
-  const homepageContent = await getHomepageContent()
-  const latestNews = await getNewsPosts(3)
+  const [homepageContent, latestNews] = await Promise.all([
+    getCachedHomepageContent(),
+    getCachedHomepageNews(),
+  ])
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

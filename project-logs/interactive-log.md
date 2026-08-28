@@ -4736,6 +4736,41 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Mobile Homepage LCP Performance
+
+1. Interaction title
+Mobile homepage LCP performance diagnosis and scoped fixes.
+
+2. What was the user goal
+Diagnose and reduce the UseClevr mobile homepage LCP regression without redesigning the homepage, changing business logic, or making broad speculative optimizations.
+
+3. What changed
+Lighthouse mobile diagnostics on the local production build identified the LCP element as the hero supporting paragraph, selector `div.mx-auto > div.space-y-8 > div.space-y-5 > p.mx-auto`, not an image or background asset. The warmed local production server reports the root document at about 30ms in Lighthouse, while the first post-boot homepage request spends about 18s before first byte and the next request spends about 0.12s. The homepage caches public CMS homepage and three-news-card reads for five minutes and fetches them in parallel. The mobile hero demo keeps its first above-the-fold panel visible immediately and prevents later carousel frames from replacing the initial mobile paint as LCP candidates. The public header replaces the `next-auth/react` client import with a small same-origin session fetch. Existing pre-work in the tree already moves Inter to `next/font`, defers the public chat and cookie bar through `PublicClientShell`, and compresses the avatar asset.
+
+4. Problems marked
+blocker: none.
+risk: `/` remains dynamic because the root layout reads request headers for admin layout routing, so the first request after server boot still pays server/Payload startup cost.
+improvement: move Payload admin root-layout handling into an admin-owned layout path only after verifying Payload admin compatibility, so public routes can become static or ISR without header reads in the root layout.
+observation: cookie UI is not the LCP element; Lighthouse lists no third-party main-thread work, and cookie/help UI assets appear after the hero LCP path.
+
+5. User learning
+The mobile regression is not caused by a hero image. Mobile throttling amplifies server wait and main-thread work, while delayed hero animation frames can replace earlier content as LCP candidates.
+
+6. AI-agent learning
+Use production Lighthouse JSON plus the LCP breakdown insight before optimizing homepage visuals; local simulated LCP can diverge from observed LCP when main-thread work is high.
+
+7. Follow-up tasks
+- Review root layout admin routing so public pages avoid request-header reads when Payload admin keeps its required layout behavior.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; TODO queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS Same-Period Customer And Churn Semantics
 
 1. Interaction title
