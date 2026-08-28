@@ -1,16 +1,14 @@
-import payloadConfig from "@payload-config"
-import { handleServerFunctions, RootLayout as PayloadRootLayout } from "@payloadcms/next/layouts"
-import { CookieBar } from "@/components/ui/cookie-bar"
-import { HelpChatbox } from "@/components/ui/help-chatbox"
+import type { Metadata, Viewport } from "next"
+import type React from "react"
+import { headers } from "next/headers"
+import { Inter } from "next/font/google"
 import { NoticeProvider } from "@/components/ui/notice-bar"
 import { ThemeProvider } from "@/components/ui/theme-provider"
 import { LanguageProvider } from "@/lib/i18n/language-context"
-import { headers } from "next/headers"
-import type { Metadata, Viewport } from "next"
-import type { ServerFunctionClient } from "payload"
-import type React from "react"
-import { importMap } from "./(payload)/admin/importMap"
+import { PublicClientShell } from "@/components/layout/public-client-shell"
 import "./../assets/styles/globals.css"
+
+const inter = Inter({ subsets: ["latin"], display: "swap" })
 
 export const metadata: Metadata = {
   title: {
@@ -61,7 +59,13 @@ export default async function RootLayout({
   const pathname = headerStore.get("x-useclevr-pathname") || ""
 
   if (pathname.startsWith("/admin")) {
-    const serverFunction: ServerFunctionClient = async function (args) {
+    const { RootLayout, handleServerFunctions } = await import(
+      "@payloadcms/next/layouts"
+    )
+    const payloadConfig = (await import("@payload-config")).default
+    const { importMap } = await import("./(payload)/admin/importMap")
+
+    const serverFunction = async (args: any) => {
       "use server"
 
       return handleServerFunctions({
@@ -71,7 +75,7 @@ export default async function RootLayout({
       })
     }
 
-    return PayloadRootLayout({
+    return RootLayout({
       children,
       config: payloadConfig,
       importMap,
@@ -80,7 +84,11 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={inter.className}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body className="flex flex-col min-h-screen transition-all duration-500 ease-in-out">
         <ThemeProvider
           attribute="class"
@@ -90,9 +98,9 @@ export default async function RootLayout({
         >
           <LanguageProvider>
             <NoticeProvider>
-              {children}
-              <HelpChatbox audience="public" hideOnApp />
-              <CookieBar />
+              <PublicClientShell>
+                {children}
+              </PublicClientShell>
             </NoticeProvider>
           </LanguageProvider>
         </ThemeProvider>

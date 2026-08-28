@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -666,6 +664,18 @@
     100% {
       opacity: 0.92;
       transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .hero-demo-panel {
+      animation: none;
+      opacity: 0;
+      transform: none;
+    }
+
+    .hero-demo-panel-pain {
+      opacity: 1;
     }
   }
 

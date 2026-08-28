@@ -292,3 +292,4 @@
 - fixed: calculate SaaS Executive Report customer snapshots, new-customer counts, churned-customer counts, and churn rates from separate SaaS source semantics without requiring optional plan, country, channel, or segment fields
 - fixed: align SaaS Executive Report customer, new-customer, churned-customer, source churn-rate, recommendation, PDF provenance, dashboard confidence, and Results Summary text around same-period snapshot semantics while preserving customer-level churn status semantics
 - fixed: display SaaS Executive Report Reporting Period from the recognized source SaaS period range used by latest-period and trend metrics while leaving SaaS KPI calculations unchanged
+- fixed: reduce mobile homepage LCP risk by caching public CMS content, keeping the first mobile AI demo panel visible at initial paint, and removing the public header's bundled NextAuth client import

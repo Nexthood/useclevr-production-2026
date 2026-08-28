@@ -23,6 +23,10 @@ moving work between states.
 - T-793. Add Docker HEALTHCHECK instruction to dist-root/Dockerfile and generated Dockerfile, checking /api/health every 30s with 3 retries. (labels: monitoring, deployment, stability; commit: worktree)
 - T-794. Add SIGTERM/SIGINT graceful shutdown handler to start-dist.cjs that forwards the signal to the child Next.js server process before exiting. (labels: monitoring, deployment, data; commit: worktree)
 
+## Label: performance
+
+- T-1036. Mobile homepage LCP uses cached public content, a lighter public session lookup, and immediately visible above-the-fold AI demo content. (labels: performance, ui, testing; commit: worktree)
+
 ## Label: reports
 
 - T-1035. Populate SaaS Executive Report Reporting Period metadata from the recognized SaaS period field without changing SaaS metric calculations or other report families. (labels: reports, data, metrics, testing; commit: worktree)

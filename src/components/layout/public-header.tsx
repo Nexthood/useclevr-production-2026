@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { ProductStatusBadge } from "@/components/ui/product-status-badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { Brain, Cloud, Menu, Sparkles, WifiOff, X } from "lucide-react"
-import { getSession } from "next-auth/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -19,8 +18,9 @@ export function PublicHeader() {
   useEffect(() => {
     let mounted = true
 
-    getSession()
-      .then((session) => {
+    fetch("/api/auth/session", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((session: { user?: unknown } | null) => {
         if (mounted) {
           setIsLoggedIn(Boolean(session?.user))
         }
