@@ -728,10 +728,12 @@ function drawSaasRecurringRevenue(doc: jsPDF, report: Report) {
   y = drawSectionHeading(doc, "Recurring Revenue Snapshot", y);
   y = drawTable(doc, [
     ["Metric", "Value", "Status", "Source / Notes"],
-    saasRow("MRR", saas.mrr, "currency", saas.mrrField ? "Source value" : "Not available", saas.mrrField ? `Latest-period sum from ${saas.mrrField}.` : "No MRR field."),
+    saasRow("MRR", saas.mrr, "currency", saas.mrrField ? "Source value" : "Not available", saas.mrrField ? (saas.canonicalFields?.mrr_after === saas.mrrField ? `Latest-period active customer state from ${saas.mrrField}.` : `Latest-period sum from ${saas.mrrField}.`) : "No MRR field."),
     saasRow("ARR", saas.arr, "currency", saas.arrField ? "Source value" : "Not available", saas.arrField ? (saas.arrField === saas.mrrField ? `Annualized from source MRR field ${saas.arrField}.` : `Latest-period sum from ${saas.arrField}.`) : "No ARR or MRR field."),
+    saasRow("New MRR", saas.newMrr ?? null, "currency", saas.newMrrField ? "Source movement" : "Not available", saas.newMrrField ? `Latest-period new movement from ${saas.newMrrField}.` : "No new MRR movement field."),
     saasRow("Expansion MRR", saas.expansionMrr, "currency", saas.expansionMrrField ? "Source value" : "Not available", saas.expansionMrrField ? `Latest-period sum from ${saas.expansionMrrField}.` : "No expansion MRR field."),
     saasRow("Contraction MRR", saas.contractionMrr, "currency", saas.contractionMrrField ? "Source value" : "Not available", saas.contractionMrrField ? `Latest-period sum from ${saas.contractionMrrField}.` : "No contraction MRR field."),
+    saasRow("Churned MRR", saas.churnedMrr ?? null, "currency", saas.churnedMrrField ? "Source movement" : "Not available", saas.churnedMrrField ? `Latest-period churn movement from ${saas.churnedMrrField}.` : "No churned MRR movement field."),
     saasRow("Net Expansion MRR", saas.netExpansionMrr, "currency", saas.netExpansionMrr !== null ? "Valid derived" : "Not available", "Expansion MRR minus Contraction MRR."),
     ["Latest Period", saas.latestPeriod || "Not available", saas.latestPeriod ? "Available" : "Not available", saas.periodField ? `Mapped from ${saas.periodField}.` : "No period field."],
   ], page.margin, y, [42, 35, 30, 67]) + 12;

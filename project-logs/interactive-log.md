@@ -5185,6 +5185,41 @@ Generic business regression tests must include `invoice_id`, exact `cost`, and e
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+## SaaS MRR Movement Dashboard Routing
+
+1. Interaction title
+SaaS MRR movement dashboard routing.
+
+2. What was the user goal
+Fix SaaS subscription MRR movement uploads so the dashboard and Generate Report path resolve them as SaaS rather than e-commerce, without changing non-SaaS report-family semantics.
+
+3. What changed
+Business-model detection now treats MRR plus customer identity, MRR before/after/delta fields, and subscription movement types as strong SaaS evidence before e-commerce event-row signals. Dataset Intelligence and generated report builders now map MRR movement columns, identify the `subscription_mrr_movements` SaaS subtype, calculate latest-period active customer MRR and customer count from `mrr_after` and active status, aggregate New MRR, Expansion MRR, Contraction MRR, and Churned MRR from `mrr_delta` by `movement_type`, expose those metrics on SaaS dashboards and PDFs, and keep e-commerce Revenue, Orders, and Average Order Value out of the MRR movement dashboard. The dashboard semantic regression fixture verifies the expected 2025-12-01 values and confirms report persistence plus PDF creation.
+
+4. Problems marked
+blocker: none.
+risk: exact uploaded customer workbook files are not stored in the workspace, so the regression uses a sanitized synthetic fixture with the confirmed column shape and ground-truth totals.
+improvement: add the exact sanitized workbook fixture to file-backed regression coverage when the source file is available.
+observation: event_date and customer rows are ambiguous across business models, so MRR movement evidence must outrank generic e-commerce event semantics.
+
+5. User learning
+SaaS movement datasets need latest active customer state for Ending MRR and customer count; summing all historical `mrr_after` rows overstates current recurring revenue.
+
+6. AI-agent learning
+The dashboard and report paths must share SaaS semantic mappings for movement datasets so classification, KPI cards, report profile, PDF sections, and persistence agree.
+
+7. Follow-up tasks
+- Add the exact sanitized SaaS MRR movement workbook fixture to file-backed regression coverage when the source file is available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS Startup Unit-Economics Dataset Semantics
 
 1. Interaction title

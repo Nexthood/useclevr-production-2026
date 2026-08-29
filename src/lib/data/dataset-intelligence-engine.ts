@@ -135,6 +135,7 @@ export interface BusinessModelDetection {
 }
 
 export type SaasProfileId =
+  | "subscription_mrr_movements"
   | "subscription_snapshot"
   | "transactional_saas"
   | "customer_cohort"
@@ -159,6 +160,10 @@ export type SaasCanonicalConcept =
   | "revenue"
   | "subscription_revenue"
   | "mrr"
+  | "mrr_before"
+  | "mrr_after"
+  | "mrr_delta"
+  | "movement_type"
   | "arr"
   | "expansion_mrr"
   | "contraction_mrr"
@@ -375,22 +380,26 @@ const COLUMN_SYNONYMS: Array<{
   ];
 
 const SAAS_CONCEPT_ALIASES: Record<SaasCanonicalConcept, string[]> = {
-  period: ["date", "month", "period", "billing_month", "invoice_date", "transaction_date", "signup_date", "start_date", "renewal_date"],
+  period: ["date", "month", "period", "billing_month", "invoice_date", "event_date", "transaction_date", "signup_date", "start_date", "renewal_date"],
   customer_id: ["customer_id", "account_id", "client_id", "organization_id", "tenant_id"],
   customer_count: ["customers", "customer_count", "total_customers", "active_customers", "ending_customers", "subscriber_count", "subscribers", "subscriptions_count"],
   subscription_id: ["subscription_id", "sub_id", "contract_id"],
   company: ["company", "company_name", "account_name", "organization", "org", "tenant"],
   plan: ["plan", "tier", "subscription_plan", "pricing_plan", "package", "product_plan"],
-  subscription_status: ["status", "subscription_status", "account_status", "lifecycle_status"],
+  subscription_status: ["status", "subscription_status", "customer_status", "account_status", "lifecycle_status"],
   users: ["users", "user_count", "paid_users"],
   active_users: ["active_users", "active_user_count", "mau", "monthly_active_users", "usage"],
-  seats: ["seats", "seat_count"],
+  seats: ["seats", "seat_count", "seats_after"],
   licenses: ["licenses", "licence_count", "license_count", "licensed_users"],
   price_per_user: ["price_per_user", "price_per_seat", "revenue_per_user", "arpu", "arpa"],
   unit_price: ["unit_price", "unit_amount"],
   revenue: ["revenue", "sales_amount", "sales", "amount", "turnover"],
   subscription_revenue: ["subscription_revenue", "recurring_revenue", "subscription_amount", "billing_amount"],
   mrr: ["mrr", "monthly_recurring_revenue"],
+  mrr_before: ["mrr_before", "starting_mrr", "opening_mrr"],
+  mrr_after: ["mrr_after", "ending_mrr", "closing_mrr"],
+  mrr_delta: ["mrr_delta", "mrr_change", "mrr_movement", "net_mrr_change"],
+  movement_type: ["movement_type", "movement", "mrr_movement_type", "change_type"],
   arr: ["arr", "annual_recurring_revenue"],
   expansion_mrr: ["expansion_mrr", "expansion", "expansion_recurring", "upsell", "upgrade_mrr"],
   contraction_mrr: ["contraction_mrr", "contraction", "contraction_recurring", "downsell", "downgrade_mrr"],
@@ -712,13 +721,14 @@ export function resolveSaasSemanticProfile(input: Pick<DatasetIntelligenceEngine
 
   const has = (...concepts: SaasCanonicalConcept[]) => concepts.some((concept) => Boolean(mappings[concept]));
   const groups = {
+    subscription_mrr_movements: scoreSaasGroup(mappings, ["period", "customer_id", "plan", "mrr_before", "mrr_after", "mrr_delta", "movement_type", "subscription_status"]),
     subscription_snapshot: scoreSaasGroup(mappings, ["customer_id", "customer_count", "subscription_id", "plan", "subscription_status", "mrr", "arr", "period", "churned_customers", "churn_rate", "churn"]),
     transactional_saas: scoreSaasGroup(mappings, ["period", "plan", "users", "seats", "licenses", "price_per_user", "unit_price", "revenue", "cost", "profit", "channel", "country"]),
     customer_cohort: scoreSaasGroup(mappings, ["customer_id", "customer_count", "period", "plan", "mrr", "new_customers", "churned_customers", "churn_rate", "churn", "expansion_mrr", "contraction_mrr", "country"]),
     saas_financial: scoreSaasGroup(mappings, ["period", "revenue", "cost", "profit", "burn", "cash_balance", "runway"]),
   };
   const capabilities = {
-    recurringRevenue: has("mrr", "arr", "subscription_revenue"),
+    recurringRevenue: has("mrr", "mrr_after", "mrr_delta", "arr", "subscription_revenue"),
     unitEconomics: has("revenue", "users", "seats", "licenses", "price_per_user", "unit_price", "cac", "ltv"),
     cohortRetention: has("customer_id", "customer_count") && has("period", "new_customers", "churned_customers", "churn_rate", "churn", "retention", "expansion_mrr", "contraction_mrr"),
     subscriptionLifecycle: has("subscription_id", "subscription_status", "churned_customers", "churn_rate", "churn", "retention"),
@@ -813,18 +823,18 @@ function buildSaasCapabilityDetails(
     capability("unit_economics", metricAvailable("average_revenue_per_user") || has("price_per_user", "unit_price"), source("revenue", "users", "seats", "licenses", "price_per_user", "unit_price"), ["revenue plus users/seats/licenses or price_per_user"], "Unit economics requires additive user or seat quantities and revenue, or a source price-per-user field."),
     capability("plan_performance", has("plan") && metricAvailable("revenue", "mrr", "arr", "profit", "users"), source("plan", "revenue", "mrr", "arr", "profit", "users"), ["plan plus revenue, MRR, ARR, profit, or users"], "Plan performance requires a plan field and at least one compatible SaaS metric."),
     capability("customer_analysis", has("customer_id", "customer_count"), source("customer_id", "customer_count"), ["customer_id or customer_count"], "Customer analysis requires a customer identifier or explicit customer count."),
-    capability("subscription_metrics", has("subscription_id", "subscription_status", "mrr", "arr"), source("subscription_id", "subscription_status", "mrr", "arr"), ["subscription_id, subscription_status, MRR, or ARR"], "Subscription metrics require subscription lifecycle or recurring revenue fields."),
-    capability("mrr_analysis", has("mrr"), source("mrr"), ["mrr"], "MRR analysis requires a source MRR field."),
-    capability("arr_analysis", has("arr") || has("mrr"), source("arr", "mrr"), ["arr or mrr"], "ARR analysis requires a source ARR field or source MRR that can be annualized."),
-    capability("churn_analysis", has("churn_rate", "churned_customers", "churn"), source("churn_rate", "churned_customers", "churn"), ["churn_rate, churned_customers, or churn status"], "Churn analysis requires source churn semantics."),
+    capability("subscription_metrics", has("subscription_id", "subscription_status", "mrr", "mrr_after", "mrr_delta", "movement_type", "arr"), source("subscription_id", "subscription_status", "mrr", "mrr_after", "mrr_delta", "movement_type", "arr"), ["subscription_id, subscription_status, MRR, MRR movement, or ARR"], "Subscription metrics require subscription lifecycle or recurring revenue fields."),
+    capability("mrr_analysis", has("mrr", "mrr_after", "mrr_delta"), source("mrr", "mrr_after", "mrr_delta"), ["mrr or mrr_after/mrr_delta"], "MRR analysis requires source MRR or SaaS MRR movement fields."),
+    capability("arr_analysis", has("arr") || has("mrr", "mrr_after"), source("arr", "mrr", "mrr_after"), ["arr, mrr, or mrr_after"], "ARR analysis requires a source ARR field or source MRR that can be annualized."),
+    capability("churn_analysis", has("churn_rate", "churned_customers", "churn", "movement_type"), source("churn_rate", "churned_customers", "churn", "movement_type"), ["churn_rate, churned_customers, churn status, or movement_type"], "Churn analysis requires source churn semantics."),
     capability("retention_analysis", has("retention"), source("retention"), ["retention"], "Retention analysis requires a source retention field."),
     capability("cac_analysis", has("cac"), source("cac"), ["cac"], "CAC analysis requires a source CAC field."),
     capability("ltv_analysis", has("ltv"), source("ltv"), ["ltv"], "LTV analysis requires a source LTV field."),
-    capability("growth_analysis", has("period") && metricAvailable("revenue", "mrr", "arr", "customers", "users"), source("period", "revenue", "mrr", "arr", "customer_id", "customer_count", "users"), ["period plus revenue, MRR, ARR, customers, or users"], "Growth analysis requires a period field and a compatible SaaS metric."),
-    capability("cohort_analysis", has("period") && has("customer_id", "customer_count") && has("new_customers", "churned_customers", "churn", "retention"), source("period", "customer_id", "customer_count", "new_customers", "churned_customers", "churn", "retention"), ["period plus customers plus cohort movement"], "Cohort analysis requires period, customer, and cohort movement fields."),
-    capability("channel_analysis", has("channel") && metricAvailable("revenue", "mrr", "arr", "customers", "users"), source("channel", "revenue", "mrr", "arr", "customer_id", "customer_count", "users"), ["channel plus a compatible SaaS metric"], "Channel analysis requires channel and a compatible SaaS metric."),
-    capability("geography_analysis", has("country", "region") && metricAvailable("revenue", "mrr", "arr", "customers", "users"), source("country", "region", "revenue", "mrr", "arr", "customer_id", "customer_count", "users"), ["country or region plus a compatible SaaS metric"], "Geography analysis requires geography and a compatible SaaS metric."),
-    capability("startup_stage_analysis", has("startup_stage") && metricAvailable("revenue", "mrr", "arr", "profit", "users"), source("startup_stage", "revenue", "mrr", "arr", "profit", "users"), ["startup_stage plus a compatible SaaS metric"], "Startup-stage analysis requires startup stage and a compatible SaaS metric."),
+    capability("growth_analysis", has("period") && metricAvailable("revenue", "mrr", "arr", "customers", "users"), source("period", "revenue", "mrr", "mrr_after", "mrr_delta", "arr", "customer_id", "customer_count", "users"), ["period plus revenue, MRR, ARR, customers, or users"], "Growth analysis requires a period field and a compatible SaaS metric."),
+    capability("cohort_analysis", has("period") && has("customer_id", "customer_count") && has("new_customers", "churned_customers", "churn", "retention", "movement_type"), source("period", "customer_id", "customer_count", "new_customers", "churned_customers", "churn", "retention", "movement_type"), ["period plus customers plus cohort movement"], "Cohort analysis requires period, customer, and cohort movement fields."),
+    capability("channel_analysis", has("channel") && metricAvailable("revenue", "mrr", "arr", "customers", "users"), source("channel", "revenue", "mrr", "mrr_after", "arr", "customer_id", "customer_count", "users"), ["channel plus a compatible SaaS metric"], "Channel analysis requires channel and a compatible SaaS metric."),
+    capability("geography_analysis", has("country", "region") && metricAvailable("revenue", "mrr", "arr", "customers", "users"), source("country", "region", "revenue", "mrr", "mrr_after", "arr", "customer_id", "customer_count", "users"), ["country or region plus a compatible SaaS metric"], "Geography analysis requires geography and a compatible SaaS metric."),
+    capability("startup_stage_analysis", has("startup_stage") && metricAvailable("revenue", "mrr", "arr", "profit", "users"), source("startup_stage", "revenue", "mrr", "mrr_after", "arr", "profit", "users"), ["startup_stage plus a compatible SaaS metric"], "Startup-stage analysis requires startup stage and a compatible SaaS metric."),
     capability("cash_analysis", has("cash_balance"), source("cash_balance"), ["cash_balance"], "Cash analysis requires a source cash balance field."),
     capability("burn_analysis", has("burn"), source("burn"), ["burn"], "Burn analysis requires a source burn field."),
     capability("runway_analysis", has("runway"), source("runway"), ["runway"], "Runway analysis requires a source runway field."),
@@ -862,7 +872,10 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
   const averageRevenuePerUser = revenue.status === "available" && revenue.value && users.status === "available" && users.value && users.value > 0
     ? resolvedValue(round(revenue.value / users.value), [revenueField, usersField].filter((value): value is string => Boolean(value)), "Average revenue per user is revenue divided by additive users, seats, or licenses.")
     : unavailableMetric("Average revenue per user requires revenue and additive users, seats, or licenses.");
-  const mrr = resolvedSum(sourceRows, mappings.mrr, "MRR uses only source MRR fields.");
+  const movementSnapshotRows = mappings.mrr_after ? latestActiveRowsByCustomer(sourceRows, mappings.customer_id, mappings.subscription_status) : sourceRows;
+  const mrr = mappings.mrr
+    ? resolvedSum(sourceRows, mappings.mrr, "MRR uses only source MRR fields.")
+    : resolvedSum(movementSnapshotRows, mappings.mrr_after, "MRR uses latest-period active customer MRR after movement values.");
   const arr = mappings.arr
     ? resolvedSum(sourceRows, mappings.arr, "ARR uses only source ARR fields.")
     : mrr.status === "available" && mrr.value !== null
@@ -871,8 +884,9 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
   const customers = mappings.customer_count
     ? resolvedSum(sourceRows, mappings.customer_count, "Customers use the latest-period explicit customer count.")
     : mappings.customer_id
-      ? resolvedValue(uniqueCountFromRows(rows, mappings.customer_id), [mappings.customer_id], "Customers count distinct source customer identifiers.")
+      ? resolvedValue(uniqueCountFromRows(mappings.mrr_after && movementSnapshotRows.length > 0 ? movementSnapshotRows : rows, mappings.customer_id), [mappings.customer_id], mappings.mrr_after && movementSnapshotRows.length > 0 ? "Customers count latest-period active source customer identifiers." : "Customers count distinct source customer identifiers.")
       : unavailableMetric("Customers require customer_id or explicit customer_count; rows, orders, and plans are not customer proxies.");
+  const movementMetrics = aggregateMrrMovements(sourceRows, mappings.movement_type, mappings.mrr_delta);
 
   return {
     revenue,
@@ -884,11 +898,13 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
     price_per_user: resolvedAverage(sourceRows, mappings.price_per_user || mappings.unit_price, "Price per user uses the source price-per-user or unit-price field."),
     mrr,
     arr,
-    expansion_mrr: resolvedSum(sourceRows, mappings.expansion_mrr, "Expansion MRR uses only source expansion MRR fields."),
-    contraction_mrr: resolvedSum(sourceRows, mappings.contraction_mrr, "Contraction MRR uses only source contraction MRR fields."),
+    expansion_mrr: movementMetrics.expansion_mrr ?? resolvedSum(sourceRows, mappings.expansion_mrr, "Expansion MRR uses only source expansion MRR fields."),
+    contraction_mrr: movementMetrics.contraction_mrr ?? resolvedSum(sourceRows, mappings.contraction_mrr, "Contraction MRR uses only source contraction MRR fields."),
     customers,
     new_customers: resolvedSum(sourceRows, mappings.new_customers, "New customers use source new-customer fields."),
     churned_customers: resolvedSum(sourceRows, mappings.churned_customers, "Churned customers use source churned-customer fields."),
+    new_mrr: movementMetrics.new_mrr ?? unavailableMetric("New MRR requires movement_type and mrr_delta source fields."),
+    churned_mrr: movementMetrics.churned_mrr ?? unavailableMetric("Churned MRR requires movement_type and mrr_delta source fields."),
     churn_rate: resolvedRate(sourceRows, mappings.churn_rate, "Churn rate uses source churn-rate fields and never row counts."),
     cac: resolvedAverage(sourceRows, mappings.cac, "CAC uses source CAC fields."),
     ltv: resolvedAverage(sourceRows, mappings.ltv, "LTV uses source LTV fields."),
@@ -896,6 +912,56 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
     burn: resolvedAverage(sourceRows, mappings.burn, "Burn uses source burn fields."),
     cash_balance: resolvedAverage(sourceRows, mappings.cash_balance, "Cash balance uses source cash balance fields and is not summed across periods."),
     runway: resolvedAverage(sourceRows, mappings.runway, "Runway uses source runway fields."),
+  };
+}
+
+function latestActiveRowsByCustomer(rows: Record<string, unknown>[], customerColumn?: string, statusColumn?: string) {
+  if (!customerColumn) return rows;
+  const activeByCustomer = new Map<string, Record<string, unknown>>();
+  rows.forEach((row) => {
+    const customer = String(row[customerColumn] ?? "").trim();
+    if (!customer) return;
+    const status = statusColumn ? String(row[statusColumn] ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_") : "active";
+    if (["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(status)) return;
+    activeByCustomer.set(customer, row);
+  });
+  return Array.from(activeByCustomer.values());
+}
+
+function aggregateMrrMovements(rows: Record<string, unknown>[], movementColumn?: string, deltaColumn?: string) {
+  if (!movementColumn || !deltaColumn) return {};
+  const totals = {
+    new_mrr: 0,
+    expansion_mrr: 0,
+    contraction_mrr: 0,
+    churned_mrr: 0,
+  };
+  let matched = 0;
+  rows.forEach((row) => {
+    const movement = String(row[movementColumn] ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+    const rawDelta = toNumber(row[deltaColumn]);
+    if (rawDelta === null) return;
+    const delta = Math.abs(rawDelta);
+    if (movement === "new") {
+      totals.new_mrr += delta;
+      matched += 1;
+    } else if (movement === "expansion") {
+      totals.expansion_mrr += delta;
+      matched += 1;
+    } else if (movement === "contraction") {
+      totals.contraction_mrr += delta;
+      matched += 1;
+    } else if (movement === "churn" || movement === "churned") {
+      totals.churned_mrr += delta;
+      matched += 1;
+    }
+  });
+  if (matched === 0) return {};
+  return {
+    new_mrr: resolvedValue(round(totals.new_mrr), [movementColumn, deltaColumn], "New MRR sums latest-period mrr_delta rows with movement_type new."),
+    expansion_mrr: resolvedValue(round(totals.expansion_mrr), [movementColumn, deltaColumn], "Expansion MRR sums latest-period mrr_delta rows with movement_type expansion."),
+    contraction_mrr: resolvedValue(round(totals.contraction_mrr), [movementColumn, deltaColumn], "Contraction MRR sums latest-period mrr_delta rows with movement_type contraction."),
+    churned_mrr: resolvedValue(round(totals.churned_mrr), [movementColumn, deltaColumn], "Churned MRR sums latest-period mrr_delta rows with movement_type churn."),
   };
 }
 
