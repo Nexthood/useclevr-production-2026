@@ -1015,7 +1015,7 @@ async function assertRetailUnitCostAndAovRegressions(
   assert(pdfText.includes("RETAIL EXECUTIVE REPORT"), "unit-cost retail PDF must identify the retail report")
   assert(pdfText.includes("INVENTORY INTELLIGENCE"), "unit-cost retail PDF must keep inventory intelligence")
   assert(pdfText.includes("6,341"), "unit-cost retail PDF must show current stock from latest snapshots")
-  assert(pdfText.includes("Low Stock Positions"), "unit-cost retail PDF must label low stock at inventory-position grain")
+  assert(/Low Stock Positions/i.test(pdfText), "unit-cost retail PDF must label low stock at inventory-position grain")
   assert(pdfText.includes("RETAIL RECOMMENDATIONS + PROVENANCE"), "unit-cost retail PDF must keep retail recommendations and provenance")
   assert(!pdfText.includes("$443"), "unit-cost retail PDF must not display revenue per row as AOV")
   assert(pdfText.includes("Average Order Value"), "unit-cost retail PDF must include the AOV row")

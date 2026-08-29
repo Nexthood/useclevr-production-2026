@@ -293,3 +293,4 @@
 - fixed: align SaaS Executive Report customer, new-customer, churned-customer, source churn-rate, recommendation, PDF provenance, dashboard confidence, and Results Summary text around same-period snapshot semantics while preserving customer-level churn status semantics
 - fixed: display SaaS Executive Report Reporting Period from the recognized source SaaS period range used by latest-period and trend metrics while leaving SaaS KPI calculations unchanged
 - fixed: reduce mobile homepage LCP risk by caching public CMS content, keeping the first mobile AI demo panel visible at initial paint, and removing the public header's bundled NextAuth client import
+- changed: add universal SaaS semantic capability detection with subtype-aware metrics, capability-filtered report sections, AI context suggestions, SaaS PDF fixture coverage, and negative controls for ecommerce, retail, and profitability datasets

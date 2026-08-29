@@ -5254,3 +5254,38 @@ Report-wide SaaS metadata must reuse canonical SaaS period resolution instead of
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Universal SaaS Semantic Capability Engine
+
+1. Interaction title
+Universal SaaS semantic capability engine.
+
+2. What was the user goal
+Add a SaaS-only semantic capability layer so SaaS and startup uploads resolve their subtype, canonical fields, available metrics, report sections, and suggested questions without changing non-SaaS report families.
+
+3. What changed
+Dataset Intelligence now resolves SaaS subtypes, canonical SaaS concepts, capability coverage, deterministic source-backed metrics, partial-period comparability, data gaps, and suggested questions. Generated reports reuse that profile for SaaS analysis, findings, recommendations, AI context, and PDF section selection. Focused SaaS semantic fixture coverage validates subscription snapshots, transactional SaaS, cohorts, SaaS financials, hybrid SaaS, generic SaaS, source-MRR ARR derivation, customer-count safety, partial-period warnings, AI context, generated PDF text, and negative ecommerce, retail, and profitability controls.
+
+4. Problems marked
+blocker: none.
+risk: some adjacent documentation and SaaS report test edits existed in the shared worktree before this interaction and must be staged only when they belong to the SaaS implementation.
+improvement: add exact customer-owned numbered SaaS fixtures to file-backed validation when privacy rules allow them.
+observation: SaaS report sections need capability gates so transactional revenue datasets do not show recurring-revenue pages and SaaS financial datasets do not show customer/unit-economics pages without source fields.
+
+5. User learning
+SaaS datasets need separate semantic confidence and capability coverage because a well-recognized SaaS file can still lack MRR, churn, CAC, LTV, cash, or runway inputs.
+
+6. AI-agent learning
+SaaS alias matching must use normalized full-column semantics; generic row counts, order identifiers, plans, and periods are not valid substitutes for customer, churn, MRR, or ARR source fields.
+
+7. Follow-up tasks
+- Add exact sanitized SaaS customer fixtures to file-backed regression coverage when they are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

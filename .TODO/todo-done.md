@@ -573,6 +573,7 @@ moving work between states.
 
 ## Label: testing
 
+- T-1037. Keep SaaS Executive Report final-summary missing-data messaging limited to SaaS-specific capability gaps without requesting generic profitability fields. (labels: reports, data, testing; commit: worktree)
 - T-208. Convert project audit work into regular TODO tasks plus auditor and testing guide documents. (labels: testing, docs, todo, workflow; commit: 53deaed7)
 - T-214. Replace troubleshooting guidance with a developer testing guide. (labels: testing, docs; commit: 53deaed7)
 

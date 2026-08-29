@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { execFileSync } from "node:child_process"
+import * as fs from "node:fs"
 
 import { resolveBusinessModel } from "../../src/lib/data/business-model"
 import { buildDashboard } from "../../src/lib/data/dashboard-builder"
@@ -6,6 +8,7 @@ import { parseCSVString } from "../../src/lib/data/csvLoader"
 import { buildDatasetIntelligenceEngine } from "../../src/lib/data/dataset-intelligence-engine"
 import { buildDashboardSemanticAnalysis } from "../../src/lib/data/dashboard-semantic-profile"
 import { buildDatasetReportInput } from "../../src/lib/reports/dataset-report-builder"
+import { generatePdfReport } from "../../src/lib/reports/pdf-report-generator"
 import type { SaasReportAnalysis } from "../../src/lib/reports/report-generator"
 
 const csv = [
@@ -315,6 +318,49 @@ async function main() {
   assert.equal(subscriptionMetricsSaas.churnRate, 2.2)
   assert.equal(subscriptionMetricsSaas.mrr, 92300)
   assert.equal(subscriptionMetricsSaas.arr, 1107600)
+  assert.equal(subscriptionMetricsSaas.cac, 378)
+  assert.equal(subscriptionMetricsSaas.ltv, 5100)
+  assert.equal(subscriptionMetricsSaas.ltvToCac, 13.49)
+  assert.equal(subscriptionMetricsSaas.activeUsers, 7200)
+  assert.equal(subscriptionMetricsSaas.burn, 75500)
+  assert.equal(subscriptionMetricsSaas.cashBalance, 625000)
+  assert.equal(subscriptionMetricsSaas.runwayMonths, 8.3)
+
+  const subscriptionMetricsPdfPath = await generatePdfReport({
+    ...subscriptionMetrics,
+    id: "saas_subscription_metrics_test",
+    datasetId: "ds_saas_subscription_metrics_test",
+    datasetName: "saas_subscription_metrics_test",
+    createdAt: new Date("2026-08-28T00:00:00.000Z").toISOString(),
+    timezone: "UTC",
+    timezoneOffset: 0,
+    localTime: "08/28/2026, 12:00:00 AM",
+    visibility: "private",
+    kpis: subscriptionMetrics.kpis.map((item) => ({ title: item.title, value: String(item.value) })),
+    columnCount: subscriptionMetrics.columns.length,
+  })
+  const subscriptionMetricsPdfText = execFileSync("pdftotext", [subscriptionMetricsPdfPath, "-"], { encoding: "utf8" })
+  const subscriptionMetricsSummary = subscriptionMetricsPdfText
+    .split(/\f/)
+    .find((pageText) => pageText.includes("SAAS RESULTS SUMMARY")) || ""
+  assert.ok(subscriptionMetricsSummary, "SaaS subscription metrics PDF must include the Results Summary page")
+  assert.match(subscriptionMetricsPdfText, /MRR[\s\S]*\$92\.3K/, "SaaS subscription metrics PDF must keep MRR unchanged")
+  assert.match(subscriptionMetricsPdfText, /ARR[\s\S]*\$1\.11M/, "SaaS subscription metrics PDF must keep ARR unchanged")
+  assert.match(subscriptionMetricsPdfText, /Customers[\s\S]*821/, "SaaS subscription metrics PDF must keep customers unchanged")
+  assert.match(subscriptionMetricsPdfText, /New Customers[\s\S]*74/, "SaaS subscription metrics PDF must keep new customers unchanged")
+  assert.match(subscriptionMetricsPdfText, /Churned Customers[\s\S]*18/, "SaaS subscription metrics PDF must keep churned customers unchanged")
+  assert.match(subscriptionMetricsPdfText, /Churn Rate[\s\S]*2\.2%/, "SaaS subscription metrics PDF must keep churn rate unchanged")
+  assert.match(subscriptionMetricsPdfText, /CAC[\s\S]*\$378/, "SaaS subscription metrics PDF must keep CAC unchanged")
+  assert.match(subscriptionMetricsPdfText, /LTV[\s\S]*\$5\.1K/, "SaaS subscription metrics PDF must keep LTV unchanged")
+  assert.match(subscriptionMetricsPdfText, /LTV\/CAC[\s\S]*13\.49x/, "SaaS subscription metrics PDF must keep LTV/CAC unchanged")
+  assert.match(subscriptionMetricsPdfText, /Active Users[\s\S]*7,200/, "SaaS subscription metrics PDF must keep active users unchanged")
+  assert.match(subscriptionMetricsPdfText, /Burn[\s\S]*\$75\.5K/, "SaaS subscription metrics PDF must keep burn unchanged")
+  assert.match(subscriptionMetricsPdfText, /Cash Balance[\s\S]*\$625\.0K/, "SaaS subscription metrics PDF must keep cash balance unchanged")
+  assert.match(subscriptionMetricsPdfText, /Runway[\s\S]*8\.3 months/, "SaaS subscription metrics PDF must keep runway unchanged")
+  assert.doesNotMatch(subscriptionMetricsSummary, /Missing Data\s+Unlock/i, "SaaS Results Summary must not show generic Missing Data Unlock")
+  assert.doesNotMatch(subscriptionMetricsSummary, /Revenue,\s*COGS?,\s*Gross Profit,\s*Operating Expenses/i, "SaaS Results Summary must not request generic P&L fields")
+  assert.doesNotMatch(subscriptionMetricsSummary, /add supported source fields to unlock related analysis/i, "SaaS Results Summary must not use generic financial unlock wording")
+  fs.unlinkSync(subscriptionMetricsPdfPath)
 
   const customerLevelRows = [
     { customer_id: "cus_1", subscription_id: "sub_1", plan: "Pro", signup_date: "2026-01-03", status: "active", mrr: 100 },

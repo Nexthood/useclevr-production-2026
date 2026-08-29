@@ -185,12 +185,18 @@ export async function generatePdfReport(report: Report): Promise<string> {
     addDocumentPage(doc, "E-commerce Recommendations + Provenance", datasetName);
     drawRecommendationsAndProvenance(doc, report, financials, "E-commerce Recommendations");
   } else if (report.reportProfile?.id === "saas_startup" && report.saasAnalysis) {
-    addDocumentPage(doc, "Recurring Revenue & Growth", datasetName);
-    drawSaasRecurringRevenue(doc, report);
-    addDocumentPage(doc, "Customer & Unit Economics", datasetName);
-    drawSaasCustomerEconomics(doc, report);
-    addDocumentPage(doc, "Cash / Startup Health", datasetName);
-    drawSaasCashHealth(doc, report);
+    if (hasSaasCapability(report, "mrr_analysis") || hasSaasCapability(report, "arr_analysis") || hasSaasCapability(report, "subscription_metrics")) {
+      addDocumentPage(doc, "Recurring Revenue & Growth", datasetName);
+      drawSaasRecurringRevenue(doc, report);
+    }
+    if (hasSaasCapability(report, "customer_analysis") || hasSaasCapability(report, "unit_economics") || hasSaasCapability(report, "churn_analysis") || hasSaasCapability(report, "plan_performance") || hasSaasCapability(report, "geography_analysis")) {
+      addDocumentPage(doc, "Customer & Unit Economics", datasetName);
+      drawSaasCustomerEconomics(doc, report);
+    }
+    if (hasSaasCapability(report, "cash_analysis") || hasSaasCapability(report, "burn_analysis") || hasSaasCapability(report, "runway_analysis")) {
+      addDocumentPage(doc, "Cash / Startup Health", datasetName);
+      drawSaasCashHealth(doc, report);
+    }
     addDocumentPage(doc, "Business Balanced Scorecard", datasetName);
     drawBalancedScorecard(doc, report);
     addDocumentPage(doc, "SaaS Recommendations + Provenance", datasetName);
@@ -551,7 +557,7 @@ function drawRetailInventoryIntelligence(doc: jsPDF, report: Report) {
   ], y);
   y += 10;
 
-  y = drawSectionHeading(doc, "Low Stock / Reorder Required", y);
+  y = drawSectionHeading(doc, "Low Stock Positions / Reorder Required", y);
   if (retail.lowStockItems.length === 0) {
     y = drawUnavailable(doc, "No reorder exceptions detected", "No products are at or below detected reorder point in the loaded data.", page.margin, y, 174, 28) + 12;
   } else {
@@ -723,7 +729,7 @@ function drawSaasRecurringRevenue(doc: jsPDF, report: Report) {
   y = drawTable(doc, [
     ["Metric", "Value", "Status", "Source / Notes"],
     saasRow("MRR", saas.mrr, "currency", saas.mrrField ? "Source value" : "Not available", saas.mrrField ? `Latest-period sum from ${saas.mrrField}.` : "No MRR field."),
-    saasRow("ARR", saas.arr, "currency", saas.arrField ? "Source value" : "Not available", saas.arrField ? `Latest-period sum from ${saas.arrField}.` : "No ARR field."),
+    saasRow("ARR", saas.arr, "currency", saas.arrField ? "Source value" : "Not available", saas.arrField ? (saas.arrField === saas.mrrField ? `Annualized from source MRR field ${saas.arrField}.` : `Latest-period sum from ${saas.arrField}.`) : "No ARR or MRR field."),
     saasRow("Expansion MRR", saas.expansionMrr, "currency", saas.expansionMrrField ? "Source value" : "Not available", saas.expansionMrrField ? `Latest-period sum from ${saas.expansionMrrField}.` : "No expansion MRR field."),
     saasRow("Contraction MRR", saas.contractionMrr, "currency", saas.contractionMrrField ? "Source value" : "Not available", saas.contractionMrrField ? `Latest-period sum from ${saas.contractionMrrField}.` : "No contraction MRR field."),
     saasRow("Net Expansion MRR", saas.netExpansionMrr, "currency", saas.netExpansionMrr !== null ? "Valid derived" : "Not available", "Expansion MRR minus Contraction MRR."),
@@ -747,6 +753,14 @@ function drawSaasRecurringRevenue(doc: jsPDF, report: Report) {
       ]),
     ], page.margin, y, [45, 32, 32, 65]);
   }
+}
+
+function hasSaasCapability(report: Report, capability: string) {
+  const saas = report.saasAnalysis;
+  if (!saas) return false;
+  if (saas.availableCapabilities?.includes(capability)) return true;
+  if (!saas.availableCapabilities) return true;
+  return false;
 }
 
 function drawSaasCustomerEconomics(doc: jsPDF, report: Report) {
@@ -1578,7 +1592,9 @@ function findingPriorityLabel(priority: FindingPriority) {
 
 function selectDataStatus(report: Report, financials: ReportFinancials, confidence: number | null): SummaryItem[] {
   const status: SummaryItem[] = [];
-  if (report.reportProfile?.id === "investor_portfolio") {
+  if (report.reportProfile?.id === "saas_startup") {
+    status.push(...selectSaasDataStatus(report.saasAnalysis));
+  } else if (report.reportProfile?.id === "investor_portfolio") {
     status.push({ label: "Data Coverage", detail: "Investor portfolio fields sufficiently covered for current analysis." });
   } else if (report.reportProfile?.id === "business_consulting") {
     const available: string[] = [];
@@ -1640,6 +1656,23 @@ function selectDataStatus(report: Report, financials: ReportFinancials, confiden
     status.push({ label: "Analysis Basis", detail: "Selected dataset only; no cross-dataset blending." });
   }
   return status.slice(0, 3);
+}
+
+function selectSaasDataStatus(saas?: SaasReportAnalysis): SummaryItem[] {
+  if (!saas) return [];
+  const gaps: SummaryItem[] = [];
+  if (saas.profile) {
+    gaps.push({ label: "SaaS Subtype", detail: `${saas.profile.replace(/_/g, " ")} with ${saas.capabilityCoverage ?? saas.dataConfidence} / 100 capability coverage.` });
+  }
+  const unavailable = saas.unavailableCapabilities?.slice(0, 2) || [];
+  for (const capability of unavailable) {
+    gaps.push({
+      label: `${labelFromCamelCase(capability.id.replace(/_/g, " "))} Unavailable`,
+      detail: capability.reason,
+      tone: "risk",
+    });
+  }
+  return gaps.slice(0, 2);
 }
 
 function profileDataConfidence(report: Report, financials: ReportFinancials) {

@@ -287,6 +287,17 @@ export interface EcommerceReportAnalysis {
 }
 
 export interface SaasReportAnalysis {
+  profile?: string;
+  semanticConfidence?: number;
+  capabilityCoverage?: number;
+  availableCapabilities?: string[];
+  unavailableCapabilities?: Array<{ id: string; reason: string; missingRequirements: string[] }>;
+  capabilityDetails?: Record<string, { available: boolean; reason: string; missingRequirements: string[]; evidence: string[]; confidence: number }>;
+  canonicalFields?: Record<string, string | null>;
+  dataGaps?: string[];
+  suggestedQuestions?: string[];
+  latestPeriodComparable?: boolean;
+  periodComparabilityReason?: string | null;
   mrr: number | null;
   mrrField: string | null;
   arr: number | null;

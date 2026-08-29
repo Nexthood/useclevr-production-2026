@@ -2,7 +2,7 @@ import { calculateBusinessBalancedScorecard } from "@/lib/business/balanced-scor
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import { loadDatasetData } from "@/lib/data/dataset-access"
 import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
-import { resolveSaasSemanticProfile } from "@/lib/data/dataset-intelligence-engine"
+import { resolveSaasSemanticProfile, type SaasSemanticResolution } from "@/lib/data/dataset-intelligence-engine"
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
@@ -131,8 +131,11 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
+  const saasSemanticProfile = reportModel === "saas" || reportModel === "startup"
+    ? resolveSaasSemanticProfile({ rows, columns, fileName: dataset.fileName })
+    : null
   if (reportModel === "saas" || reportModel === "startup") {
-    applySaasSemanticMappings(columnMap, resolveSaasSemanticProfile({ rows, columns, fileName: dataset.fileName }))
+    applySaasSemanticMappings(columnMap, saasSemanticProfile)
   }
   if (reportModel === "local_retail" && !columnMap.cogs && columnMap.cost) {
     columnMap.cogs = columnMap.cost
@@ -215,7 +218,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
   }
   const retailAnalysis = reportModel === "local_retail" ? buildRetailAnalysis(rows, columnMap) : undefined
   const ecommerceAnalysis = reportModel === "ecommerce" ? buildEcommerceAnalysis(rows, columnMap, financials) : undefined
-  const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap) : undefined
+  const saasAnalysis = reportModel === "saas" || reportModel === "startup" ? buildSaasAnalysis(rows, columnMap, saasSemanticProfile) : undefined
   const marketplaceAnalysis = reportModel === "marketplace" ? buildMarketplaceAnalysis(rows, columnMap) : undefined
   const investorAnalysis = reportModel === "investor" ? buildInvestorAnalysis(rows, columnMap) : undefined
   if (ecommerceAnalysis) financials.dataConfidence = ecommerceDataConfidence(columnMap)
@@ -1438,6 +1441,10 @@ function buildMarketplaceRecommendations(
 function buildSaasSummary(datasetName: string, rowCount: number, saas: SaasReportAnalysis) {
   const parts: string[] = []
   parts.push(`${datasetName} is analyzed as a SaaS startup dataset with ${rowCount.toLocaleString()} loaded rows.`)
+  if (saas.profile) parts.push(`SaaS subtype is ${saas.profile.replace(/_/g, " ")}.`)
+  if (typeof saas.semanticConfidence === "number" && typeof saas.capabilityCoverage === "number") {
+    parts.push(`Semantic confidence is ${saas.semanticConfidence}/100 and capability coverage is ${saas.capabilityCoverage}/100.`)
+  }
   if (saas.latestPeriod) parts.push(`Latest SaaS snapshot period is ${saas.latestPeriod}.`)
   if (saas.revenue !== null) parts.push(`Total revenue is ${formatCurrencyForSummary(saas.revenue)} from ${saas.revenueField}.`)
   if (saas.profit !== null) parts.push(`Total profit is ${formatCurrencyForSummary(saas.profit)}${saas.profitField ? ` from ${saas.profitField}` : " from revenue minus cost"}.`)
@@ -1455,6 +1462,7 @@ function buildSaasSummary(datasetName: string, rowCount: number, saas: SaasRepor
   }
   if (saas.netExpansionMrr !== null) parts.push(`Net Expansion MRR is ${formatCurrencyForSummary(saas.netExpansionMrr)}.`)
   if (saas.runwayMonths !== null) parts.push(`Runway is ${saas.runwayMonths.toFixed(1)} months from explicit runway data.`)
+  if (saas.latestPeriodComparable === false && saas.periodComparabilityReason) parts.push(saas.periodComparabilityReason)
   return parts.join(" ")
 }
 
@@ -1579,6 +1587,8 @@ function buildSaasRecommendations(
       requiredData: [],
     })
   }
+  const missingMrr = saas.unavailableCapabilities?.find((capability) => capability.id === "mrr_analysis")
+  const missingChurn = saas.unavailableCapabilities?.find((capability) => capability.id === "churn_analysis")
   if (!columns.mrr && !columns.arr && !columns.revenue) {
     recommendations.push({
       issue: "Recurring revenue fields are missing.",
@@ -1589,14 +1599,24 @@ function buildSaasRecommendations(
       requiredData: ["MRR or ARR"],
     })
   }
-  if (saas.churnRate === null && !columns.churned && !columns.churnedCustomerCount && !columns.churnRate) {
+  if (missingMrr && columns.revenue) {
+    recommendations.push({
+      issue: "MRR analysis is unavailable because no source MRR field exists.",
+      businessImpact: "Revenue analysis can continue, but recurring-revenue movement cannot be labeled as MRR.",
+      recommendedAction: "Add a source MRR field when monthly recurring revenue analysis is needed.",
+      estimatedImpact: null,
+      confidence: "High",
+      requiredData: missingMrr.missingRequirements,
+    })
+  }
+  if (saas.churnRate === null && missingChurn) {
     recommendations.push({
       issue: "Customer churn cannot be calculated because churned customer data is not available.",
       businessImpact: "Churn analysis requires a source churn status, churned customer count, or churn rate field.",
       recommendedAction: "Add churned customer count, churn status, or churn rate when churn analysis is needed.",
       estimatedImpact: null,
       confidence: "High",
-      requiredData: ["Churned Customers or Churn Rate"],
+      requiredData: missingChurn.missingRequirements,
     })
   }
   return recommendations.slice(0, 5)
@@ -1610,7 +1630,7 @@ function trendMovement(trend: { name: string; value: number }[]) {
   return { delta: round(last - first), percent: round(((last - first) / first) * 100) }
 }
 
-function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnalysis {
+function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap, semanticProfile: SaasSemanticResolution | null): SaasReportAnalysis {
   const latestRows = latestPeriodRows(rows, columns.date)
   const latestPeriod = latestRows.period
   const snapshotRows = latestRows.rows
@@ -1627,7 +1647,8 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
   const averageRevenuePerUser = revenue !== null && users !== null && users > 0 ? round(revenue / users) : null
   const profitMargin = revenue !== null && revenue !== 0 && profit !== null ? round((profit / revenue) * 100) : null
   const mrr = sumColumn(snapshotRows, columns.mrr)
-  const arr = sumColumn(snapshotRows, columns.arr)
+  const sourceArr = sumColumn(snapshotRows, columns.arr)
+  const arr = sourceArr ?? (mrr !== null ? round(mrr * 12) : null)
   const expansionMrr = sumColumn(snapshotRows, columns.expansionMrr)
   const contractionMrr = sumColumn(snapshotRows, columns.contractionMrr)
   const customersFromCount = latestSnapshotValue(rows, columns.customerCount, columns.date)
@@ -1643,10 +1664,25 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
   const cashBalance = averageColumn(snapshotRows, columns.cashBalance)
   const runwayMonths = averageColumn(snapshotRows, columns.runway)
   return {
+    profile: semanticProfile?.profile,
+    semanticConfidence: semanticProfile ? Math.round(semanticProfile.confidence * 100) : undefined,
+    capabilityCoverage: semanticProfile ? Math.round(semanticProfile.capabilityCoverage * 100) : undefined,
+    availableCapabilities: semanticProfile?.availableCapabilities,
+    unavailableCapabilities: semanticProfile?.unavailableCapabilities,
+    capabilityDetails: semanticProfile?.capabilityDetails,
+    canonicalFields: semanticProfile
+      ? Object.fromEntries(
+          Object.keys(semanticProfile.mappings).map((key) => [key, semanticProfile.mappings[key as keyof typeof semanticProfile.mappings] || null]),
+        )
+      : undefined,
+    dataGaps: semanticProfile?.dataGaps,
+    suggestedQuestions: semanticProfile?.suggestedQuestions,
+    latestPeriodComparable: semanticProfile?.periodComparability.latestPeriodComparable,
+    periodComparabilityReason: semanticProfile?.periodComparability.reason,
     mrr: mrr === null ? null : round(mrr),
     mrrField: columns.mrr || null,
     arr: arr === null ? null : round(arr),
-    arrField: columns.arr || null,
+    arrField: columns.arr || (columns.mrr ? columns.mrr : null),
     customers,
     customerField: columns.customerCount || columns.customer || null,
     customerAggregation: columns.customerCount ? (customersFromCount.latest ? "latest_snapshot" : "sum") : columns.customer ? "distinct_ids" : null,
@@ -1695,7 +1731,7 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap): SaasReportAnaly
     averageRevenuePerUser,
     periodField: columns.date || null,
     latestPeriod,
-    dataConfidence: saasDataConfidence(columns),
+    dataConfidence: semanticProfile ? Math.round(semanticProfile.confidence * 100) : saasDataConfidence(columns),
     mrrTrend: trendByPeriod(rows, columns.date, columns.mrr, "sum"),
     arrTrend: trendByPeriod(rows, columns.date, columns.arr, "sum"),
     customerTrend: customerTrendByPeriod(rows, columns),
@@ -1833,9 +1869,20 @@ function churnMetrics(rows: DataRow[], columns: ColumnMap) {
       churnRateSource: null,
     }
   }
+  if (!columns.customer) {
+    return {
+      churnedCustomers: null,
+      churnedCustomerField: columns.churned || null,
+      churnedCustomerAggregation: null,
+      eligibleCustomers: null,
+      churnRate: null,
+      churnRateField: null,
+      churnRateSource: null,
+    }
+  }
   const statusByCustomer = new Map<string, NormalizedBooleanStatus[]>()
-  rows.forEach((row, index) => {
-    const key = columns.customer ? String(row[columns.customer] || "").trim() : `row_${index}`
+  rows.forEach((row) => {
+    const key = String(row[columns.customer!] || "").trim()
     if (!key) return
     const statuses = statusByCustomer.get(key) || []
     statuses.push(normalizeBooleanStatus(row[columns.churned!]))
@@ -3071,7 +3118,8 @@ function detectColumns(columns: string[]): ColumnMap {
   }
 }
 
-function applySaasSemanticMappings(columns: ColumnMap, saas: ReturnType<typeof resolveSaasSemanticProfile>) {
+function applySaasSemanticMappings(columns: ColumnMap, saas: SaasSemanticResolution | null) {
+  if (!saas) return
   const map = saas.mappings
   columns.date = columns.date || map.period
   columns.customer = columns.customer || map.customer_id
@@ -3543,11 +3591,14 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
     if (columns.country || columns.region) findings.push("Geography uses only country or region values present in this dataset.")
   }
   if ((model === "saas" || model === "startup") && saas) {
+    if (saas.profile) findings.push(`SaaS subtype resolves to ${saas.profile.replace(/_/g, " ")} from canonical field evidence.`)
+    if (saas.availableCapabilities?.length) findings.push(`SaaS capabilities available: ${saas.availableCapabilities.slice(0, 6).map((capability) => capability.replace(/_/g, " ")).join(", ")}.`)
     if (saas.mrr !== null || saas.arr !== null) findings.push("Recurring revenue metrics are included from SaaS MRR/ARR columns.")
-    if (saas.customerField) findings.push("Customer metrics use distinct customer identifiers from the selected dataset.")
+    if (saas.customerField) findings.push(saas.customerAggregation === "distinct_ids" ? "Customer metrics use distinct customer identifiers from the selected dataset." : "Customer metrics use explicit customer-count snapshot fields from the selected dataset.")
     if (saas.periodField && saas.mrrTrend.length >= 2) findings.push("SaaS trend analysis uses the recognized period field and recurring-revenue metrics.")
     if (columns.plan) findings.push("Plan is treated as subscription-plan segmentation, not an expense category.")
     if (columns.country || columns.region) findings.push("SaaS geography uses only country or region values present in this dataset.")
+    if (saas.dataGaps?.length) findings.push(`Unavailable SaaS capabilities list source requirements separately from metric confidence: ${saas.dataGaps.slice(0, 4).join(", ")}.`)
   }
   if (model === "marketplace" && marketplace) {
     findings.push("Marketplace KPIs use GMV, platform revenue, take rate, seller payout, refunds, transactions, buyers, sellers, and marketplace economics where columns exist.")
