@@ -29,7 +29,7 @@ moving work between states.
 
 ## Label: reports
 
-- T-1038. Resolve SaaS MRR movement uploads as SaaS subscription movement dashboards and reports with latest active customer MRR, active customer count, movement MRR metrics, persisted report output, and no e-commerce order metrics. (labels: reports, dashboard, data, metrics, testing; commit: dd4d51e1)
+- T-1038. Resolve SaaS MRR movement uploads as SaaS subscription movement dashboards and reports with latest active customer MRR, active customer count, movement MRR metrics, persisted report output, and no e-commerce order metrics. (labels: reports, dashboard, data, metrics, testing; commit: 3d4e47dc)
 - T-1035. Populate SaaS Executive Report Reporting Period metadata from the recognized SaaS period field without changing SaaS metric calculations or other report families. (labels: reports, data, metrics, testing; commit: worktree)
 - T-1034. Fix SaaS Executive Reports so period snapshot customer, new-customer, churned-customer, and churn-rate fields use same-period source semantics without contradicting customer-level event semantics. (labels: reports, data, metrics, testing; commit: worktree)
 - T-1033. Fix SaaS Executive Reports so customer count, new customer count, churned customer count, churn rate, and monthly customer snapshots use deterministic SaaS aggregation without requiring optional segmentation fields. (labels: reports, data, metrics, testing; commit: worktree)
