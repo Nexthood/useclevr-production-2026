@@ -145,6 +145,7 @@ export type SaasProfileId =
 
 export type SaasCanonicalConcept =
   | "period"
+  | "movement_event_date"
   | "customer_id"
   | "customer_count"
   | "subscription_id"
@@ -153,6 +154,7 @@ export type SaasCanonicalConcept =
   | "subscription_status"
   | "users"
   | "active_users"
+  | "seats_before"
   | "seats"
   | "licenses"
   | "price_per_user"
@@ -381,6 +383,7 @@ const COLUMN_SYNONYMS: Array<{
 
 const SAAS_CONCEPT_ALIASES: Record<SaasCanonicalConcept, string[]> = {
   period: ["date", "month", "period", "billing_month", "invoice_date", "event_date", "transaction_date", "signup_date", "start_date", "renewal_date"],
+  movement_event_date: ["event_date", "movement_date", "change_date"],
   customer_id: ["customer_id", "account_id", "client_id", "organization_id", "tenant_id"],
   customer_count: ["customers", "customer_count", "total_customers", "active_customers", "ending_customers", "subscriber_count", "subscribers", "subscriptions_count"],
   subscription_id: ["subscription_id", "sub_id", "contract_id"],
@@ -389,7 +392,8 @@ const SAAS_CONCEPT_ALIASES: Record<SaasCanonicalConcept, string[]> = {
   subscription_status: ["status", "subscription_status", "customer_status", "account_status", "lifecycle_status"],
   users: ["users", "user_count", "paid_users"],
   active_users: ["active_users", "active_user_count", "mau", "monthly_active_users", "usage"],
-  seats: ["seats", "seat_count", "seats_after"],
+  seats_before: ["seats_before", "previous_seats", "starting_seats", "opening_seats"],
+  seats: ["seats", "seat_count", "seats_after", "current_seats", "ending_seats"],
   licenses: ["licenses", "licence_count", "license_count", "licensed_users"],
   price_per_user: ["price_per_user", "price_per_seat", "revenue_per_user", "arpu", "arpa"],
   unit_price: ["unit_price", "unit_amount"],
@@ -721,7 +725,7 @@ export function resolveSaasSemanticProfile(input: Pick<DatasetIntelligenceEngine
 
   const has = (...concepts: SaasCanonicalConcept[]) => concepts.some((concept) => Boolean(mappings[concept]));
   const groups = {
-    subscription_mrr_movements: scoreSaasGroup(mappings, ["period", "customer_id", "plan", "mrr_before", "mrr_after", "mrr_delta", "movement_type", "subscription_status"]),
+    subscription_mrr_movements: scoreSaasGroup(mappings, ["period", "movement_event_date", "customer_id", "plan", "seats_before", "seats", "mrr_before", "mrr_after", "mrr_delta", "movement_type", "subscription_status"]),
     subscription_snapshot: scoreSaasGroup(mappings, ["customer_id", "customer_count", "subscription_id", "plan", "subscription_status", "mrr", "arr", "period", "churned_customers", "churn_rate", "churn"]),
     transactional_saas: scoreSaasGroup(mappings, ["period", "plan", "users", "seats", "licenses", "price_per_user", "unit_price", "revenue", "cost", "profit", "channel", "country"]),
     customer_cohort: scoreSaasGroup(mappings, ["customer_id", "customer_count", "period", "plan", "mrr", "new_customers", "churned_customers", "churn_rate", "churn", "expansion_mrr", "contraction_mrr", "country"]),

@@ -101,7 +101,7 @@ async function main() {
   assert.equal(mrrMovement.businessProfile, "saas")
   assert.equal(mrrMovement.reportProfileId, "saas_startup")
   assert.equal(mrrMovement.saasAnalysis?.profile, "subscription_mrr_movements")
-  assert.equal(metric(mrrMovement, "Customers"), 123)
+  assert.equal(metric(mrrMovement, "Active Customers"), 123)
   assert.equal(metric(mrrMovement, "MRR"), 372136)
   assert.equal(metric(mrrMovement, "ARR"), 4465632)
   assert.equal(metric(mrrMovement, "New MRR"), 3361)
@@ -142,7 +142,7 @@ async function main() {
   console.log(JSON.stringify({
     ecommerce: snapshotMetrics(ecommerce, ["Revenue", "Orders", "Average Order Value", "Customers", "Units Sold", "Products", "Return Rate"]),
     saas: snapshotMetrics(saas, ["MRR", "ARR", "Customers", "New Customers", "Churn Rate", "Expansion MRR", "Contraction MRR", "Net Expansion MRR", "LTV/CAC"]),
-    mrrMovement: snapshotMetrics(mrrMovement, ["MRR", "ARR", "Customers", "New MRR", "Expansion MRR", "Contraction MRR", "Churned MRR"]),
+    mrrMovement: snapshotMetrics(mrrMovement, ["MRR", "ARR", "Active Customers", "New MRR", "Expansion MRR", "Contraction MRR", "Churned MRR"]),
     switchSequence,
   }, null, 2))
 }
