@@ -50,6 +50,7 @@ type ColumnMap = {
   vendor?: string
   stock?: string
   reorderPoint?: string
+  eventDate?: string
   mrr?: string
   mrrBefore?: string
   mrrAfter?: string
@@ -72,6 +73,7 @@ type ColumnMap = {
   runway?: string
   plan?: string
   users?: string
+  seatsBefore?: string
   pricePerUser?: string
   startupStage?: string
   investedAmount?: string
@@ -1646,7 +1648,7 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap, semanticProfile:
     : revenue !== null && cost !== null
       ? round(revenue - cost)
       : null
-  const movementRows = columns.mrrAfter ? latestActiveRowsByCustomer(snapshotRows, columns.customer, columns.status) : snapshotRows
+  const movementRows = columns.mrrAfter ? latestActiveRowsByCustomer(snapshotRows, columns.customer, columns.status, columns.eventDate) : snapshotRows
   const latestStateRows = columns.mrrAfter ? movementRows : rows
   const users = sumColumn(latestStateRows, columns.users)
   const pricePerUser = averageColumn(rows, columns.pricePerUser)
@@ -1757,8 +1759,8 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap, semanticProfile:
     burnTrend: trendByPeriod(rows, columns.date, columns.burn, "average"),
     cashTrend: trendByPeriod(rows, columns.date, columns.cashBalance, "average"),
     runwayTrend: trendByPeriod(rows, columns.date, columns.runway, "average"),
-    planPerformance: saasSegmentPerformance(rows, columns.plan, columns, mrr),
-    geography: saasSegmentPerformance(rows, columns.country || columns.region, columns, mrr),
+    planPerformance: saasSegmentPerformance(latestStateRows, columns.plan, columns, mrr),
+    geography: saasSegmentPerformance(latestStateRows, columns.country || columns.region, columns, mrr),
   }
 }
 
@@ -1810,17 +1812,21 @@ function latestPeriodRows(rows: DataRow[], periodColumn?: string) {
   return { period: latest, rows: latest ? keyed.filter((item) => item.key === latest).map((item) => item.row) : rows }
 }
 
-function latestActiveRowsByCustomer(rows: DataRow[], customerColumn?: string, statusColumn?: string) {
+function latestActiveRowsByCustomer(rows: DataRow[], customerColumn?: string, statusColumn?: string, eventDateColumn?: string) {
   if (!customerColumn) return rows
-  const latestRows = new Map<string, DataRow>()
-  rows.forEach((row) => {
+  const latestRows = new Map<string, { row: DataRow; time: number; index: number }>()
+  rows.forEach((row, index) => {
     const customer = String(row[customerColumn] || "").trim()
     if (!customer) return
     const status = statusColumn ? String(row[statusColumn] || "").trim().toLowerCase().replace(/[\s-]+/g, "_") : "active"
     if (["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(status)) return
-    latestRows.set(customer, row)
+    const time = eventDateColumn ? new Date(String(row[eventDateColumn] || "")).getTime() : NaN
+    const previous = latestRows.get(customer)
+    if (!previous || (Number.isFinite(time) && time > previous.time) || (!Number.isFinite(previous.time) && index > previous.index)) {
+      latestRows.set(customer, { row, time: Number.isFinite(time) ? time : -Infinity, index })
+    }
   })
-  return Array.from(latestRows.values())
+  return Array.from(latestRows.values()).map((item) => item.row)
 }
 
 function aggregateMrrMovementRows(rows: DataRow[], movementColumn?: string, deltaColumn?: string) {
@@ -1867,7 +1873,7 @@ function trendLatestActiveMrrByPeriod(rows: DataRow[], columns: ColumnMap) {
   })
   return Array.from(grouped.entries())
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([name, periodRows]) => ({ name, value: round(sumColumn(latestActiveRowsByCustomer(periodRows, columns.customer, columns.status), columns.mrrAfter) || 0) }))
+    .map(([name, periodRows]) => ({ name, value: round(sumColumn(latestActiveRowsByCustomer(periodRows, columns.customer, columns.status, columns.eventDate), columns.mrrAfter) || 0) }))
     .filter((item) => item.value !== 0)
 }
 
@@ -2107,7 +2113,7 @@ function saasSegmentPerformance(rows: DataRow[], groupColumn: string | undefined
     const current = grouped.get(name) || { customers: new Set<string>(), mrr: 0, arr: 0, revenue: 0, cost: 0, profit: 0, users: 0 }
     const customer = columns.customer ? String(row[columns.customer] || "").trim() : `row_${index}`
     if (customer) current.customers.add(customer)
-    current.mrr += columns.mrr ? getNumber(row[columns.mrr]) || 0 : 0
+    current.mrr += columns.mrr || columns.mrrAfter ? getNumber(row[(columns.mrr || columns.mrrAfter)!]) || 0 : 0
     current.arr += columns.arr ? getNumber(row[columns.arr]) || 0 : 0
     current.revenue += columns.revenue ? getNumber(row[columns.revenue]) || 0 : 0
     current.cost += columns.cost ? getNumber(row[columns.cost]) || 0 : 0
@@ -2119,12 +2125,12 @@ function saasSegmentPerformance(rows: DataRow[], groupColumn: string | undefined
     .map(([name, value]) => ({
       name,
       customers: value.customers.size || null,
-      mrr: columns.mrr ? round(value.mrr) : null,
+      mrr: columns.mrr || columns.mrrAfter ? round(value.mrr) : null,
       arr: columns.arr ? round(value.arr) : null,
       revenue: columns.revenue ? round(value.revenue) : null,
       profit: columns.netProfit || columns.profit ? round(value.profit) : columns.revenue && columns.cost ? round(value.revenue - value.cost) : null,
       users: columns.users ? round(value.users) : null,
-      share: totalMrr && totalMrr > 0 ? round((value.mrr / totalMrr) * 100) : null,
+      share: totalMrr && totalMrr > 0 && (columns.mrr || columns.mrrAfter) ? round((value.mrr / totalMrr) * 100) : null,
     }))
     .sort((a, b) => (b.mrr || b.revenue || b.profit || b.customers || 0) - (a.mrr || a.revenue || a.profit || a.customers || 0))
     .slice(0, 8)
@@ -3145,6 +3151,7 @@ function detectColumns(columns: string[]): ColumnMap {
     vendor: findColumn(columns, [/vendor_supplier/, /vendorsupplier/, /^vendor$/, /supplier/, /merchant/]),
     stock: findColumn(columns, [/stock_on_hand/, /stock/, /inventory/]),
     reorderPoint: findColumn(columns, [/reorder_point/, /reorder/]),
+    eventDate: findColumn(columns, [/^event_date$/, /^movement_date$/, /^change_date$/]),
     mrr: findColumn(columns, [/^mrr$/, /monthly_recurring_revenue/]),
     mrrBefore: findColumn(columns, [/^mrr_before$/, /^starting_mrr$/, /^opening_mrr$/]),
     mrrAfter: findColumn(columns, [/^mrr_after$/, /^ending_mrr$/, /^closing_mrr$/]),
@@ -3167,6 +3174,7 @@ function detectColumns(columns: string[]): ColumnMap {
     runway: findColumn(columns, [/runway/]),
     plan: findColumn(columns, [/^plan$/, /subscription_plan/, /pricing_plan/, /product_plan/, /tier/, /package/]),
     users: findColumn(columns, [/^users$/, /user_count/, /paid_users/, /seat_count/, /^seats$/, /^seats_after$/, /^licenses$/, /licensed_users/]),
+    seatsBefore: findColumn(columns, [/^seats_before$/, /^previous_seats$/, /^starting_seats$/, /^opening_seats$/]),
     pricePerUser: findColumn(columns, [/price_per_user/, /price_per_seat/, /unit_price/, /revenue_per_user/, /^arpu$/, /^arpa$/]),
     startupStage: findColumn(columns, [/startup_stage/, /funding_stage/, /^stage$/]),
     investedAmount: findInvestorInvestedAmountColumn(columns),
@@ -3216,6 +3224,7 @@ function detectColumns(columns: string[]): ColumnMap {
 function applySaasSemanticMappings(columns: ColumnMap, saas: SaasSemanticResolution | null) {
   if (!saas) return
   const map = saas.mappings
+  columns.eventDate = columns.eventDate || map.movement_event_date
   columns.date = columns.date || map.period
   columns.customer = columns.customer || map.customer_id
   columns.customerCount = columns.customerCount || map.customer_count
@@ -3243,6 +3252,7 @@ function applySaasSemanticMappings(columns: ColumnMap, saas: SaasSemanticResolut
   columns.cac = columns.cac || map.cac
   columns.ltv = columns.ltv || map.ltv
   columns.activeUsers = columns.activeUsers || map.active_users
+  columns.seatsBefore = columns.seatsBefore || map.seats_before
   columns.burn = columns.burn || map.burn
   columns.cashBalance = columns.cashBalance || map.cash_balance
   columns.runway = columns.runway || map.runway
