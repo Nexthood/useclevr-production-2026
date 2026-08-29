@@ -111,6 +111,10 @@ export function resolveBusinessModel(input: BusinessModelResolutionInput): Busin
 
 export function detectBusinessModelFromColumns(columns: string[], datasetName = ""): BusinessModel {
   const text = [datasetName, ...columns].join(" ").toLowerCase().replace(/_/g, " ")
+  const hasStartupFinance =
+    /\brunway\b|\bburn rate\b|\bcash burn\b|\bfunding\b|\bfunding round\b|\braise\b/.test(text)
+  if (hasStartupFinance && !/\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b/.test(text)) return "startup"
+
   const hasSaasStartupUnitEconomics =
     /\bplan\b/.test(text) &&
     /\busers?\b/.test(text) &&

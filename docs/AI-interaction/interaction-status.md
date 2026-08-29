@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-08-28
-- **Goal**: Diagnose and reduce the mobile homepage LCP regression without redesigning the homepage or changing business logic.
-- **Durable change**: The homepage caches public CMS reads for five minutes, fetches homepage content and news in parallel, keeps the first mobile AI demo panel visible during initial paint, and removes the public header's bundled NextAuth client import in favor of a same-origin session fetch.
-- **Verification**: `pnpm exec tsc --noEmit --pretty false`, `pnpm prod:build`, `pnpm build`, `pnpm lint:todos`, `pnpm lint:changelog`, `pnpm lint:package`, `pnpm lint:secrets`, focused ESLint for changed TSX files, `pnpm validate:dist`, `git diff --check`, local production `/api/health`, homepage `curl` timings, and mobile Lighthouse passed.
-- **Residual risk**: `/` remains dynamic because the root layout reads request headers for admin layout routing; the first homepage request after server boot still pays server/Payload startup cost.
+- **Date**: 2026-08-29
+- **Goal**: Add SaaS-only semantic subtype, capability, metric, report-section, and AI-context support without changing non-SaaS report families.
+- **Durable change**: SaaS and startup datasets now resolve subscription snapshot, transactional SaaS, customer cohort, SaaS financial, hybrid SaaS, and generic SaaS profiles with canonical fields, capability coverage, deterministic source-backed metrics, data gaps, suggested questions, and capability-filtered PDF sections.
+- **Verification**: `pnpm test:dataset-aware-report-profiles`, `pnpm test:saas-startup-unit-economics`, `pnpm test:business-model-routing`, `pnpm test:standard-upload-success-ui`, `pnpm test:profitability-two-file`, `pnpm test:accountancy-upload-system`, `pnpm test:dashboard-semantic-profiles`, `pnpm test:dataset-intelligence-engine`, `pnpm test:saas-semantic-profile`, `pnpm exec tsc --noEmit --pretty false`, `pnpm build`, `pnpm validate:dist`, `pnpm lint:todos`, `pnpm lint:secrets`, and `git diff --check` passed.
+- **Residual risk**: Exact customer-owned numbered SaaS source files are not present in the workspace, so the new SaaS semantic coverage uses sanitized representative fixtures and generated PDF text inspection.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

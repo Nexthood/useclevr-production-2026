@@ -85,10 +85,10 @@ async function main() {
   assert(completeFinancials.metricSources?.revenue?.kind === "source_value", "Complete dataset revenue must be classified as a source value")
   assert(completeFinancials.metricSources?.grossProfit?.kind === "derived_value", "Complete dataset gross profit must be classified as a valid derived value")
 
-  const revenueOnly = await buildDatasetReportInput(dataset("startup_dataset", [
+  const revenueOnly = await buildDatasetReportInput(dataset("generic_revenue_only_dataset", [
     { revenue: 19_090_000 },
     { revenue: 516 },
-  ], ["revenue"]))
+  ], ["revenue"], "generic"))
   const revenueOnlyFinancials = financials(revenueOnly)
   assert(revenueOnlyFinancials.revenue === 19_090_516, "Revenue-only dataset keeps supported revenue")
   assert(revenueOnlyFinancials.cogs === null, "Revenue-only dataset must not fabricate COGS")
@@ -142,12 +142,12 @@ async function main() {
   assert(multiplePerspectives.strongestPerspective !== null, "Multiple perspectives must keep strongest comparison")
   assert(multiplePerspectives.weakestPerspective !== null, "Multiple perspectives must keep weakest comparison")
 
-  await assertPdf(revenueOnly, "startup_dataset")
+  await assertPdf(revenueOnly, "generic_revenue_only_dataset")
   await assertPdf(complete, "complete_financial_dataset")
   fs.rmSync(process.env.TEMP_DIR, { recursive: true, force: true })
 
   console.log(JSON.stringify({
-    startupDataset: {
+    genericRevenueOnlyDataset: {
       revenue: revenueOnlyFinancials.revenue,
       cogs: revenueOnlyFinancials.cogs,
       grossProfit: revenueOnlyFinancials.grossProfit,
