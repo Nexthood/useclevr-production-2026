@@ -1012,7 +1012,7 @@ type KpiDisplay = {
 
 function buildBusinessModelKpis(metrics: ExecutiveMetrics): KpiDisplay[] {
   if (metrics.semanticAnalysis?.metrics.length) {
-    return metrics.semanticAnalysis.metrics.slice(0, 6).map((item) => semanticKpi(item))
+    return metrics.semanticAnalysis.metrics.slice(0, metrics.businessModel === "saas" ? 8 : 6).map((item) => semanticKpi(item))
   }
 
   if (metrics.activeDatasets === 0) {
