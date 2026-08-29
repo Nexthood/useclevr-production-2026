@@ -108,11 +108,24 @@ async function main() {
   assert.equal(metric(mrrMovement, "Expansion MRR"), 5248)
   assert.equal(metric(mrrMovement, "Contraction MRR"), 1219)
   assert.equal(metric(mrrMovement, "Churned MRR"), 643)
-  assert.ok(!mrrMovement.metrics.some((item) => item.label === "Revenue" || item.label === "Orders" || item.label === "Average Order Value"), "MRR movement dashboard must not render E-Commerce metrics")
+  assert.ok(!mrrMovement.metrics.some((item) => item.label === "Customers"), "MRR movement dashboard must present latest-period customer state as Active Customers")
+  assert.ok(!mrrMovement.metrics.some((item) => item.label === "Revenue" || item.label === "Orders" || item.label === "Average Order Value" || item.label === "CAC" || item.label === "LTV"), "MRR movement dashboard must not render unsupported E-Commerce or unit-economics metrics")
   assert.ok(mrrMovement.trends.some((trend) => trend.title === "MRR Trend"), "MRR movement dashboard must expose an MRR trend")
 
   listReports(mrrMovementDataset.id).forEach((report) => deleteReport(report.id))
   const mrrMovementReportInput = await buildDatasetReportInput(mrrMovementDataset as Parameters<typeof buildDatasetReportInput>[0])
+  assert.equal(mrrMovementReportInput.saasAnalysis?.latestPeriod, "2025-12-01")
+  assert.equal(mrrMovementReportInput.saasAnalysis?.canonicalFields?.movement_event_date, "event_date")
+  assert.equal(mrrMovementReportInput.saasAnalysis?.canonicalFields?.seats_before, "seats_before")
+  assert.equal(mrrMovementReportInput.saasAnalysis?.mrr, 372136)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.arr, 4465632)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.customers, 123)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.newMrr, 3361)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.expansionMrr, 5248)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.contractionMrr, 1219)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.churnedMrr, 643)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.cac, null)
+  assert.equal(mrrMovementReportInput.saasAnalysis?.ltv, null)
   const mrrMovementReport = await generateReport(
     mrrMovementDataset.id,
     mrrMovementDataset.name,
@@ -219,6 +232,7 @@ function buildMrrMovementRows() {
       customer_status: "active",
     })
   }
+  rows.push({ month: "2025-12-01", event_date: "2025-12-01", customer_id: "cus_expansion", customer_name: "Expansion Customer", industry: "Healthcare", region: "EMEA", plan: "Enterprise", seats_before: 35, seats_after: 35, movement_type: "no_change", mrr_before: 10000, mrr_after: 10000, mrr_delta: 0, currency: "USD", signup_date: "2024-03-15", customer_status: "active" })
   return rows
 }
 
