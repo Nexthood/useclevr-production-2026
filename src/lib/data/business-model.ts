@@ -111,6 +111,15 @@ export function resolveBusinessModel(input: BusinessModelResolutionInput): Busin
 
 export function detectBusinessModelFromColumns(columns: string[], datasetName = ""): BusinessModel {
   const text = [datasetName, ...columns].join(" ").toLowerCase().replace(/_/g, " ")
+  const hasMrrMovementSignature =
+    /\bmrr\b/.test(text) &&
+    (/\bcustomer id\b|\baccount id\b|\bclient id\b/.test(text)) &&
+    (/\bmrr before\b|\bmrr after\b|\bmrr delta\b|\bmovement type\b/.test(text))
+  const hasRecurringMovementColumns =
+    /\bmovement type\b/.test(text) &&
+    /\bmrr before\b|\bmrr after\b|\bmrr delta\b/.test(text)
+  if (hasMrrMovementSignature || hasRecurringMovementColumns) return "saas"
+
   const hasStartupFinance =
     /\brunway\b|\bburn rate\b|\bcash burn\b|\bfunding\b|\bfunding round\b|\braise\b/.test(text)
   if (hasStartupFinance && !/\bmrr\b|\barr\b|\brecurring\b|\bsubscription\b/.test(text)) return "startup"

@@ -51,6 +51,10 @@ type ColumnMap = {
   stock?: string
   reorderPoint?: string
   mrr?: string
+  mrrBefore?: string
+  mrrAfter?: string
+  mrrDelta?: string
+  movementType?: string
   arr?: string
   newCustomer?: string
   newCustomerCount?: string
@@ -1642,17 +1646,23 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap, semanticProfile:
     : revenue !== null && cost !== null
       ? round(revenue - cost)
       : null
-  const users = sumColumn(rows, columns.users)
+  const movementRows = columns.mrrAfter ? latestActiveRowsByCustomer(snapshotRows, columns.customer, columns.status) : snapshotRows
+  const latestStateRows = columns.mrrAfter ? movementRows : rows
+  const users = sumColumn(latestStateRows, columns.users)
   const pricePerUser = averageColumn(rows, columns.pricePerUser)
   const averageRevenuePerUser = revenue !== null && users !== null && users > 0 ? round(revenue / users) : null
   const profitMargin = revenue !== null && revenue !== 0 && profit !== null ? round((profit / revenue) * 100) : null
-  const mrr = sumColumn(snapshotRows, columns.mrr)
+  const mrr = columns.mrr
+    ? sumColumn(snapshotRows, columns.mrr)
+    : sumColumn(movementRows, columns.mrrAfter)
   const sourceArr = sumColumn(snapshotRows, columns.arr)
   const arr = sourceArr ?? (mrr !== null ? round(mrr * 12) : null)
-  const expansionMrr = sumColumn(snapshotRows, columns.expansionMrr)
-  const contractionMrr = sumColumn(snapshotRows, columns.contractionMrr)
+  const movementMetrics = aggregateMrrMovementRows(snapshotRows, columns.movementType, columns.mrrDelta)
+  const expansionMrr = movementMetrics.expansionMrr ?? sumColumn(snapshotRows, columns.expansionMrr)
+  const contractionMrr = movementMetrics.contractionMrr ?? sumColumn(snapshotRows, columns.contractionMrr)
   const customersFromCount = latestSnapshotValue(rows, columns.customerCount, columns.date)
-  const customers = customersFromCount.value ?? (columns.customer ? uniqueCount(rows, columns.customer) : null)
+  const customerRows = columns.mrrAfter && movementRows.length > 0 ? movementRows : rows
+  const customers = customersFromCount.value ?? (columns.customer ? uniqueCount(customerRows, columns.customer) : null)
   const newCustomerCount = latestSnapshotValue(rows, columns.newCustomerCount, columns.date)
   const newCustomers = newCustomerCount.value ?? countDistinctPositiveStatus(rows, columns.customer, columns.newCustomer)
   const churn = churnMetrics(rows, columns)
@@ -1680,9 +1690,9 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap, semanticProfile:
     latestPeriodComparable: semanticProfile?.periodComparability.latestPeriodComparable,
     periodComparabilityReason: semanticProfile?.periodComparability.reason,
     mrr: mrr === null ? null : round(mrr),
-    mrrField: columns.mrr || null,
+    mrrField: columns.mrr || columns.mrrAfter || null,
     arr: arr === null ? null : round(arr),
-    arrField: columns.arr || (columns.mrr ? columns.mrr : null),
+    arrField: columns.arr || columns.mrr || columns.mrrAfter || null,
     customers,
     customerField: columns.customerCount || columns.customer || null,
     customerAggregation: columns.customerCount ? (customersFromCount.latest ? "latest_snapshot" : "sum") : columns.customer ? "distinct_ids" : null,
@@ -1698,9 +1708,13 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap, semanticProfile:
     churnRateField: churn.churnRateField,
     churnRateSource: churn.churnRateSource,
     expansionMrr: expansionMrr === null ? null : round(expansionMrr),
-    expansionMrrField: columns.expansionMrr || null,
+    expansionMrrField: columns.expansionMrr || (movementMetrics.expansionMrr !== null ? columns.mrrDelta || null : null),
     contractionMrr: contractionMrr === null ? null : round(contractionMrr),
-    contractionMrrField: columns.contractionMrr || null,
+    contractionMrrField: columns.contractionMrr || (movementMetrics.contractionMrr !== null ? columns.mrrDelta || null : null),
+    newMrr: movementMetrics.newMrr,
+    newMrrField: movementMetrics.newMrr !== null ? columns.mrrDelta || null : null,
+    churnedMrr: movementMetrics.churnedMrr,
+    churnedMrrField: movementMetrics.churnedMrr !== null ? columns.mrrDelta || null : null,
     netExpansionMrr: expansionMrr !== null && contractionMrr !== null ? round(expansionMrr - contractionMrr) : null,
     cac: cac === null ? null : round(cac),
     cacField: columns.cac || null,
@@ -1732,13 +1746,13 @@ function buildSaasAnalysis(rows: DataRow[], columns: ColumnMap, semanticProfile:
     periodField: columns.date || null,
     latestPeriod,
     dataConfidence: semanticProfile ? Math.round(semanticProfile.confidence * 100) : saasDataConfidence(columns),
-    mrrTrend: trendByPeriod(rows, columns.date, columns.mrr, "sum"),
+    mrrTrend: columns.mrr ? trendByPeriod(rows, columns.date, columns.mrr, "sum") : trendLatestActiveMrrByPeriod(rows, columns),
     arrTrend: trendByPeriod(rows, columns.date, columns.arr, "sum"),
     customerTrend: customerTrendByPeriod(rows, columns),
     newCustomerTrend: columns.newCustomerCount ? trendByPeriod(rows, columns.date, columns.newCustomerCount, "sum") : statusTrendByPeriod(rows, columns.date, columns.customer, columns.newCustomer),
     churnTrend: columns.churnedCustomerCount ? trendByPeriod(rows, columns.date, columns.churnedCustomerCount, "sum") : statusTrendByPeriod(rows, columns.date, columns.customer, columns.churned),
-    expansionTrend: trendByPeriod(rows, columns.date, columns.expansionMrr, "sum"),
-    contractionTrend: trendByPeriod(rows, columns.date, columns.contractionMrr, "sum"),
+    expansionTrend: columns.expansionMrr ? trendByPeriod(rows, columns.date, columns.expansionMrr, "sum") : movementTrendByPeriod(rows, columns, "expansion"),
+    contractionTrend: columns.contractionMrr ? trendByPeriod(rows, columns.date, columns.contractionMrr, "sum") : movementTrendByPeriod(rows, columns, "contraction"),
     activeUserTrend: trendByPeriod(rows, columns.date, columns.activeUsers, "sum"),
     burnTrend: trendByPeriod(rows, columns.date, columns.burn, "average"),
     cashTrend: trendByPeriod(rows, columns.date, columns.cashBalance, "average"),
@@ -1794,6 +1808,83 @@ function latestPeriodRows(rows: DataRow[], periodColumn?: string) {
   if (keyed.length === 0) return { period: null, rows }
   const latest = keyed.map((item) => item.key).sort().at(-1) || null
   return { period: latest, rows: latest ? keyed.filter((item) => item.key === latest).map((item) => item.row) : rows }
+}
+
+function latestActiveRowsByCustomer(rows: DataRow[], customerColumn?: string, statusColumn?: string) {
+  if (!customerColumn) return rows
+  const latestRows = new Map<string, DataRow>()
+  rows.forEach((row) => {
+    const customer = String(row[customerColumn] || "").trim()
+    if (!customer) return
+    const status = statusColumn ? String(row[statusColumn] || "").trim().toLowerCase().replace(/[\s-]+/g, "_") : "active"
+    if (["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(status)) return
+    latestRows.set(customer, row)
+  })
+  return Array.from(latestRows.values())
+}
+
+function aggregateMrrMovementRows(rows: DataRow[], movementColumn?: string, deltaColumn?: string) {
+  const empty = { newMrr: null, expansionMrr: null, contractionMrr: null, churnedMrr: null }
+  if (!movementColumn || !deltaColumn) return empty
+  const totals = { newMrr: 0, expansionMrr: 0, contractionMrr: 0, churnedMrr: 0 }
+  let matched = 0
+  rows.forEach((row) => {
+    const movement = String(row[movementColumn] || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
+    const delta = getNumber(row[deltaColumn])
+    if (delta === null) return
+    if (movement === "new") {
+      totals.newMrr += Math.abs(delta)
+      matched += 1
+    } else if (movement === "expansion") {
+      totals.expansionMrr += Math.abs(delta)
+      matched += 1
+    } else if (movement === "contraction") {
+      totals.contractionMrr += Math.abs(delta)
+      matched += 1
+    } else if (movement === "churn" || movement === "churned") {
+      totals.churnedMrr += Math.abs(delta)
+      matched += 1
+    }
+  })
+  if (matched === 0) return empty
+  return {
+    newMrr: round(totals.newMrr),
+    expansionMrr: round(totals.expansionMrr),
+    contractionMrr: round(totals.contractionMrr),
+    churnedMrr: round(totals.churnedMrr),
+  }
+}
+
+function trendLatestActiveMrrByPeriod(rows: DataRow[], columns: ColumnMap) {
+  if (!columns.date || !columns.mrrAfter) return []
+  const grouped = new Map<string, DataRow[]>()
+  rows.forEach((row) => {
+    const key = periodKey(row[columns.date!])
+    if (!key) return
+    const current = grouped.get(key) || []
+    current.push(row)
+    grouped.set(key, current)
+  })
+  return Array.from(grouped.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, periodRows]) => ({ name, value: round(sumColumn(latestActiveRowsByCustomer(periodRows, columns.customer, columns.status), columns.mrrAfter) || 0) }))
+    .filter((item) => item.value !== 0)
+}
+
+function movementTrendByPeriod(rows: DataRow[], columns: ColumnMap, movementType: "expansion" | "contraction") {
+  if (!columns.date || !columns.movementType || !columns.mrrDelta) return []
+  const grouped = new Map<string, number>()
+  rows.forEach((row) => {
+    const key = periodKey(row[columns.date!])
+    const movement = String(row[columns.movementType!] || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
+    const delta = getNumber(row[columns.mrrDelta!])
+    if (!key || movement !== movementType || delta === null) return
+    grouped.set(key, (grouped.get(key) || 0) + Math.abs(delta))
+  })
+  return Array.from(grouped.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, value]) => ({ name, value: round(value) }))
+    .filter((item) => item.value !== 0)
 }
 
 function reportingPeriodFromRecognizedPeriods(rows: DataRow[], periodColumn?: string) {
@@ -3044,7 +3135,7 @@ function detectColumns(columns: string[]): ColumnMap {
     store: findColumn(columns, [/store_id/, /^store$/, /branch_id/, /^branch$/, /location_id/]),
     category: findColumn(columns, [/category/]),
     department: findColumn(columns, [/department/]),
-    date: findColumn(columns, [/date/, /month/, /period/, /billing_month/, /invoice_date/, /order_date/, /transaction_date/, /signup_date/, /start_date/, /renewal_date/, /created_at/, /project_start/, /project_end/]),
+    date: findColumn(columns, [/date/, /month/, /period/, /billing_month/, /invoice_date/, /event_date/, /order_date/, /transaction_date/, /signup_date/, /start_date/, /renewal_date/, /created_at/, /project_start/, /project_end/]),
     shippingCost: findColumn(columns, [/shipping_cost/, /shipping/, /fulfillment_cost/, /delivery_cost/, /freight/]),
     discount: findColumn(columns, [/discount/, /discount_amount/, /promo/]),
     returnStatus: findColumn(columns, [/return_status/, /returned/, /return/]),
@@ -3055,6 +3146,10 @@ function detectColumns(columns: string[]): ColumnMap {
     stock: findColumn(columns, [/stock_on_hand/, /stock/, /inventory/]),
     reorderPoint: findColumn(columns, [/reorder_point/, /reorder/]),
     mrr: findColumn(columns, [/^mrr$/, /monthly_recurring_revenue/]),
+    mrrBefore: findColumn(columns, [/^mrr_before$/, /^starting_mrr$/, /^opening_mrr$/]),
+    mrrAfter: findColumn(columns, [/^mrr_after$/, /^ending_mrr$/, /^closing_mrr$/]),
+    mrrDelta: findColumn(columns, [/^mrr_delta$/, /^mrr_change$/, /^mrr_movement$/, /^net_mrr_change$/]),
+    movementType: findColumn(columns, [/^movement_type$/, /^movement$/, /^mrr_movement_type$/, /^change_type$/]),
     arr: findColumn(columns, [/^arr$/, /annual_recurring_revenue/]),
     newCustomer: findColumn(columns, [/^new_customer$/, /new_customer_flag/, /is_new_customer/, /newcustomer/, /^new_logo$/]),
     newCustomerCount: findColumn(columns, [/new_customers/, /new_customer_count/, /new_logo_count/, /new_logos/]),
@@ -3071,7 +3166,7 @@ function detectColumns(columns: string[]): ColumnMap {
     cashBalance: findColumn(columns, [/cash_balance/, /^cash$/]),
     runway: findColumn(columns, [/runway/]),
     plan: findColumn(columns, [/^plan$/, /subscription_plan/, /pricing_plan/, /product_plan/, /tier/, /package/]),
-    users: findColumn(columns, [/^users$/, /user_count/, /paid_users/, /seat_count/, /^seats$/, /^licenses$/, /licensed_users/]),
+    users: findColumn(columns, [/^users$/, /user_count/, /paid_users/, /seat_count/, /^seats$/, /^seats_after$/, /^licenses$/, /licensed_users/]),
     pricePerUser: findColumn(columns, [/price_per_user/, /price_per_seat/, /unit_price/, /revenue_per_user/, /^arpu$/, /^arpa$/]),
     startupStage: findColumn(columns, [/startup_stage/, /funding_stage/, /^stage$/]),
     investedAmount: findInvestorInvestedAmountColumn(columns),
@@ -3081,7 +3176,7 @@ function detectColumns(columns: string[]): ColumnMap {
     stage: findColumn(columns, [/stage/]),
     companyId: findColumn(columns, [/company_id/, /companyid/]),
     companyName: findColumn(columns, [/^company$/, /company_name/, /companyname/]),
-    status: findColumn(columns, [/status/, /portfolio_status/]),
+    status: findColumn(columns, [/status/, /customer_status/, /portfolio_status/]),
     growthRate: findColumn(columns, [/growth_rate/, /growth/]),
     seller: findColumn(columns, [/seller/, /vendor/, /merchant/]),
     buyer: findColumn(columns, [/buyer/]),
@@ -3133,6 +3228,10 @@ function applySaasSemanticMappings(columns: ColumnMap, saas: SaasSemanticResolut
   columns.netProfit = columns.netProfit || map.profit
   columns.grossMargin = columns.grossMargin || map.profit_margin
   columns.mrr = columns.mrr || map.mrr
+  columns.mrrBefore = columns.mrrBefore || map.mrr_before
+  columns.mrrAfter = columns.mrrAfter || map.mrr_after
+  columns.mrrDelta = columns.mrrDelta || map.mrr_delta
+  columns.movementType = columns.movementType || map.movement_type
   columns.arr = columns.arr || map.arr
   columns.newCustomerCount = columns.newCustomerCount || map.new_customers
   columns.churnedCustomerCount = columns.churnedCustomerCount || map.churned_customers
@@ -3418,8 +3517,10 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "New Customers", saas?.newCustomers ?? null, "number")
     addKpi(kpis, "Churned Customers", saas?.churnedCustomers ?? null, "number")
     addKpi(kpis, "Churn Rate", saas?.churnRate ?? null, "percent")
+    addKpi(kpis, "New MRR", saas?.newMrr ?? null, "currency")
     addKpi(kpis, "Expansion MRR", saas?.expansionMrr ?? null, "currency")
     addKpi(kpis, "Contraction MRR", saas?.contractionMrr ?? null, "currency")
+    addKpi(kpis, "Churned MRR", saas?.churnedMrr ?? null, "currency")
     addKpi(kpis, "Net Expansion MRR", saas?.netExpansionMrr ?? null, "currency")
     addKpi(kpis, "CAC", saas?.cac ?? null, "currency")
     addKpi(kpis, "LTV", saas?.ltv ?? null, "currency")

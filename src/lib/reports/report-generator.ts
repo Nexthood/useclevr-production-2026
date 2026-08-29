@@ -320,6 +320,10 @@ export interface SaasReportAnalysis {
   expansionMrrField: string | null;
   contractionMrr: number | null;
   contractionMrrField: string | null;
+  newMrr?: number | null;
+  newMrrField?: string | null;
+  churnedMrr?: number | null;
+  churnedMrrField?: string | null;
   netExpansionMrr: number | null;
   cac: number | null;
   cacField: string | null;
