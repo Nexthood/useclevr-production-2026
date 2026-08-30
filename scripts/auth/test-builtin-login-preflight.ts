@@ -1,26 +1,27 @@
 import assert from "node:assert/strict";
 
-import { beginEmailPasswordLogin } from "../../src/app/actions/auth";
-import { BUILTIN_SUPER_ADMIN_USER } from "../../src/lib/auth/builtin-users";
+import {
+  BUILTIN_BASE_USER,
+  BUILTIN_DEMO_USER,
+  BUILTIN_SUPER_ADMIN_USER,
+  canUseBuiltinDirectCredentials,
+  findBuiltinUserByCredentials,
+} from "../../src/lib/auth/builtin-users";
 
 async function main() {
-  const result = await beginEmailPasswordLogin(
+  const superadmin = findBuiltinUserByCredentials(
     BUILTIN_SUPER_ADMIN_USER.email,
     BUILTIN_SUPER_ADMIN_USER.password,
   );
+  const demo = findBuiltinUserByCredentials(BUILTIN_DEMO_USER.email, BUILTIN_DEMO_USER.password);
+  const base = findBuiltinUserByCredentials(BUILTIN_BASE_USER.email, BUILTIN_BASE_USER.password);
 
-  assert.equal("success" in result ? result.success : false, true);
-  assert.equal("builtInCredentials" in result ? result.builtInCredentials : false, true);
-  assert.equal("email" in result ? result.email : "", BUILTIN_SUPER_ADMIN_USER.email);
-  assert.equal("purpose" in result ? result.purpose : "", "login");
+  assert.equal(superadmin?.role, "superadmin");
+  assert.equal(canUseBuiltinDirectCredentials(superadmin), false);
+  assert.equal(canUseBuiltinDirectCredentials(demo), true);
+  assert.equal(canUseBuiltinDirectCredentials(base), true);
 
-  const badPasswordResult = await beginEmailPasswordLogin(
-    BUILTIN_SUPER_ADMIN_USER.email,
-    "wrong-password",
-  );
-  assert.equal("error" in badPasswordResult, true);
-
-  console.log("Built-in superadmin login preflight checks passed.");
+  console.log("Built-in direct credential policy checks passed.");
 }
 
 main().catch((error) => {
