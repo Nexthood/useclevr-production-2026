@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { debugError, debugWarn } from "@/lib/utils/debug";
 
 import { recordActivity } from "@/lib/activity/activity-store";
-import { findBuiltinUserByCredentials } from "@/lib/auth/builtin-users";
+import { canUseBuiltinDirectCredentials, findBuiltinUserByCredentials } from "@/lib/auth/builtin-users";
 import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import {
   createVerifiedAuthProof,
@@ -21,6 +21,7 @@ import { profiles, users } from "@/lib/db/schema";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 export async function signup(formData: FormData) {
@@ -159,15 +160,30 @@ export async function signup(formData: FormData) {
 }
 
 export async function beginEmailPasswordLogin(emailInput: string, passwordInput: string) {
+  const traceId = createAuthTraceId();
+  const request = await getSafeAuthRequestMetadata();
   const email = emailInput.trim().toLowerCase();
   const password = String(passwordInput || "");
 
+  logEmailPasswordFlow("request_received", {
+    traceId,
+    email,
+    request,
+    action: "login",
+  });
+
   if (!z.string().email().safeParse(email).success || password.length < 1) {
+    logEmailPasswordFlow("request_rejected_invalid_input", {
+      traceId,
+      email,
+      request,
+      action: "login",
+    });
     return { error: "Sign-in failed. Check your email and password." };
   }
 
   const builtinUser = findBuiltinUserByCredentials(email, password);
-  if (builtinUser) {
+  if (canUseBuiltinDirectCredentials(builtinUser)) {
     try {
       await ensureBuiltinUserRecord(builtinUser.id);
     } catch (error) {
@@ -193,11 +209,31 @@ export async function beginEmailPasswordLogin(emailInput: string, passwordInput:
       },
     });
 
+    logEmailPasswordFlow("account_lookup_complete", {
+      traceId,
+      email,
+      request,
+      action: "login",
+      userId: user?.id,
+      accountFound: Boolean(user),
+      hasPassword: Boolean(user?.password),
+      emailVerified: Boolean(user?.emailVerified),
+    });
+
     if (!user?.password) {
       return { error: "Sign-in failed. Check your email and password." };
     }
 
     const isValid = await bcrypt.compare(password, user.password);
+    logEmailPasswordFlow("password_verified", {
+      traceId,
+      email,
+      request,
+      action: "login",
+      userId: user.id,
+      passwordValid: isValid,
+    });
+
     if (!isValid) {
       return { error: "Sign-in failed. Check your email and password." };
     }
@@ -207,6 +243,9 @@ export async function beginEmailPasswordLogin(emailInput: string, passwordInput:
       userId: user.id,
       email,
       purpose,
+      traceId,
+      source: "login",
+      requestHost: request.host,
     });
 
     if (!delivery.success) {
@@ -223,7 +262,12 @@ export async function beginEmailPasswordLogin(emailInput: string, passwordInput:
 
     return { success: true, verificationRequired: true, email, purpose };
   } catch (error) {
-    debugError("Email-password login verification setup failed:", error);
+    debugError("Email-password login verification setup failed:", {
+      traceId,
+      email: maskEmail(email),
+      request,
+      error: getSafeErrorLogDetails(error),
+    });
     return { error: "Sign-in failed. Please try again." };
   }
 }
@@ -342,10 +386,27 @@ export async function verifyAdminAuthBypass(formData: FormData) {
 }
 
 export async function resendEmailOtp(emailInput: string, purposeInput: EmailVerificationPurpose) {
+  const traceId = createAuthTraceId();
+  const request = await getSafeAuthRequestMetadata();
   const email = emailInput.trim().toLowerCase();
   const purpose = purposeInput === "login" ? "login" : "signup";
 
+  logEmailPasswordFlow("request_received", {
+    traceId,
+    email,
+    request,
+    action: "resend",
+    purpose,
+  });
+
   if (!z.string().email().safeParse(email).success) {
+    logEmailPasswordFlow("request_rejected_invalid_input", {
+      traceId,
+      email,
+      request,
+      action: "resend",
+      purpose,
+    });
     return { error: "Enter a valid email address." };
   }
 
@@ -358,6 +419,17 @@ export async function resendEmailOtp(emailInput: string, purposeInput: EmailVeri
     },
   });
 
+  logEmailPasswordFlow("account_lookup_complete", {
+    traceId,
+    email,
+    request,
+    action: "resend",
+    purpose,
+    userId: user?.id,
+    accountFound: Boolean(user),
+    hasPassword: Boolean(user?.password),
+  });
+
   if (!user?.password) {
     return { success: true };
   }
@@ -367,6 +439,9 @@ export async function resendEmailOtp(emailInput: string, purposeInput: EmailVeri
     email,
     purpose,
     enforceCooldown: true,
+    traceId,
+    source: "resend",
+    requestHost: request.host,
   });
 
   if (!delivery.success) {
@@ -431,6 +506,77 @@ function logAdminBypassAttempt(event: string, email: string, error?: unknown) {
   }
 
   console.error("[Auth] Admin bypass event", payload);
+}
+
+function createAuthTraceId() {
+  return `auth_${uuidv4().slice(0, 8)}`;
+}
+
+async function getSafeAuthRequestMetadata() {
+  try {
+    const headerStore = await headers();
+    const host = headerStore.get("x-forwarded-host") || headerStore.get("host") || undefined;
+    const protocol = headerStore.get("x-forwarded-proto") || undefined;
+    return {
+      host,
+      protocol,
+      serverAction: Boolean(headerStore.get("next-action")),
+    };
+  } catch {
+    return {
+      host: undefined,
+      protocol: undefined,
+      serverAction: undefined,
+    };
+  }
+}
+
+function logEmailPasswordFlow(
+  event: string,
+  details: {
+    traceId: string;
+    email: string;
+    request: Awaited<ReturnType<typeof getSafeAuthRequestMetadata>>;
+    action: "login" | "resend";
+    purpose?: EmailVerificationPurpose;
+    userId?: string | null;
+    accountFound?: boolean;
+    hasPassword?: boolean;
+    emailVerified?: boolean;
+    passwordValid?: boolean;
+  },
+) {
+  debugWarn("[Auth] Email-password verification flow", {
+    event,
+    traceId: details.traceId,
+    action: details.action,
+    email: maskEmail(details.email),
+    purpose: details.purpose,
+    userId: details.userId,
+    accountFound: details.accountFound,
+    hasPassword: details.hasPassword,
+    emailVerified: details.emailVerified,
+    passwordValid: details.passwordValid,
+    request: details.request,
+  });
+}
+
+function getSafeErrorLogDetails(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return { message: String(error) };
+  }
+
+  const cause = error as { name?: unknown; message?: unknown; code?: unknown };
+  return {
+    name: stringifyLogValue(cause.name),
+    message: stringifyLogValue(cause.message),
+    code: stringifyLogValue(cause.code),
+  };
+}
+
+function stringifyLogValue(value: unknown) {
+  if (value === undefined || value === null) return undefined;
+  return String(value);
 }
 
 function maskEmail(email: string) {
