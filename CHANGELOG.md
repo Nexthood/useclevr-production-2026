@@ -29,6 +29,7 @@
 
 ### Fixed
 
+- Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes through the same working email-send path as the test app.
 - Fix production superadmin verification so the official admin account follows the same password-verified 6-digit email flow as the working test app and logs safe delivery diagnostics for real login and resend requests.
 - Fix verification email delivery handling so production never treats console delivery or ambiguous Resend responses as a sent login code.
 - Fix production superadmin sign-in so the official built-in admin account can authenticate on the app domain while redirects stay on the active configured host.

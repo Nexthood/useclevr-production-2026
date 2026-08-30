@@ -79,19 +79,9 @@ export async function sendVerificationEmail(
   }
 
   try {
-    const domain = await checkResendDomainStatus(config);
-    if (domain.checked && !domain.verified) {
-      throw new ResendApiError(422, {
-        message: "EMAIL_FROM domain is not verified in Resend",
-        domain: domain.name,
-        status: domain.status,
-      });
-    }
-
     console.warn("[Email] Resend verification email send starting", {
       ...sanitizeVerificationEmailContext(context),
       resend: sanitizeResendConfig(config),
-      domain,
       to: maskEmail(email),
     });
 
@@ -105,9 +95,8 @@ export async function sendVerificationEmail(
     console.warn("[Email] Resend verification email sent", {
       ...sanitizeVerificationEmailContext(context),
       resend: sanitizeResendConfig(config),
-      domain,
       to: maskEmail(email),
-      messageIdReturned: Boolean(result.id),
+      messageIdReturned: Boolean(result?.id),
     });
   } catch (error) {
     logResendEmailFailure(error, config, email, context);
@@ -297,13 +286,6 @@ async function sendResendEmail(
 
   if (!response.ok) {
     throw new ResendApiError(response.status, body);
-  }
-
-  if (!messageId) {
-    throw new ResendApiError(response.status, {
-      message: "Resend accepted the request without returning a message id",
-      responseShape: getSafeResponseShape(body),
-    });
   }
 
   return { id: messageId };

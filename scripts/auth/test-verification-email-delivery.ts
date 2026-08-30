@@ -17,8 +17,8 @@ const originalEnv = {
 
 async function main() {
   await rejectsProductionConsoleDelivery();
-  await rejectsMissingResendMessageId();
-  await acceptsResendMessageId();
+  await acceptsResendEmailSend();
+  await acceptsMissingResendMessageId();
   console.log("Verification email delivery checks passed.");
 }
 
@@ -36,28 +36,7 @@ async function rejectsProductionConsoleDelivery() {
   );
 }
 
-async function rejectsMissingResendMessageId() {
-  setEnv({
-    NODE_ENV: "production",
-    RESEND_API_KEY: "test_resend_key",
-    EMAIL_FROM: "UseClevr <auth@useclevr.com>",
-    EMAIL_PROVIDER: "",
-  });
-
-  const calls: FetchCall[] = [];
-  globalThis.fetch = mockResendFetch(calls, { emailBody: { name: "email" } });
-
-  await assert.rejects(
-    () => sendVerificationEmail("user@example.com", "123456"),
-    /Email delivery failed/,
-  );
-  assert.deepEqual(calls.map((call) => call.url), [
-    "https://api.resend.com/domains",
-    "https://api.resend.com/emails",
-  ]);
-}
-
-async function acceptsResendMessageId() {
+async function acceptsResendEmailSend() {
   setEnv({
     NODE_ENV: "production",
     RESEND_API_KEY: "test_resend_key",
@@ -70,7 +49,23 @@ async function acceptsResendMessageId() {
 
   await sendVerificationEmail("user@example.com", "123456");
   assert.deepEqual(calls.map((call) => call.url), [
-    "https://api.resend.com/domains",
+    "https://api.resend.com/emails",
+  ]);
+}
+
+async function acceptsMissingResendMessageId() {
+  setEnv({
+    NODE_ENV: "production",
+    RESEND_API_KEY: "test_resend_key",
+    EMAIL_FROM: "UseClevr <auth@useclevr.com>",
+    EMAIL_PROVIDER: "",
+  });
+
+  const calls: FetchCall[] = [];
+  globalThis.fetch = mockResendFetch(calls, { emailBody: { name: "email" } });
+
+  await sendVerificationEmail("user@example.com", "123456");
+  assert.deepEqual(calls.map((call) => call.url), [
     "https://api.resend.com/emails",
   ]);
 }
@@ -79,12 +74,6 @@ function mockResendFetch(calls: FetchCall[], options: { emailBody: Record<string
   return (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     calls.push({ url, method: init?.method || "GET" });
-
-    if (url === "https://api.resend.com/domains") {
-      return jsonResponse(200, {
-        data: [{ name: "useclevr.com", status: "verified" }],
-      });
-    }
 
     if (url === "https://api.resend.com/emails") {
       return jsonResponse(200, options.emailBody);

@@ -1,3 +1,33 @@
+## Production Auth Verification Email Fix
+
+1. Interaction title
+Restore verification email delivery on `app.useclevr.com` so sign-up and superadmin verification codes reach users.
+
+2. What was the user goal
+The production app domain (`app.useclevr.com`) failed to deliver 6-digit verification emails for both new user sign-up and superadmin sign-in. New users saw "Account setup failed" and the superadmin could not receive the 6-digit code to log in. The test domain (`test.useclevr.com`) worked because it predates the auth hardening commits.
+
+3. What changed
+Removed the blocking `checkResendDomainStatus` GET request to `https://api.resend.com/domains` from `sendVerificationEmail` — Resend already validates the sender domain at send-time, so the pre-check is redundant and its failure (unexpected response shape, rate-limit, or transient API issue) blocks all verification email delivery. Reverted `sendResendEmail` to non-throwing behavior when the Resend response lacks `messageId` — the `!response.ok` check already handles API errors, and a 200 response without an `id` should be logged, not rejected. Updated `test-verification-email-delivery.ts` to assert the new no-pre-check, no-messageId-throw behavior. Added `ADMIN_AUTH_BYPASS_CODE` documentation to `.env.railway.example`.
+
+4. Problems marked
+blocker: none.
+risk: if the Resend API returns a 200 without `messageId` for a genuinely failed send, the code will not detect it — however, Resend returns non-200 for delivery failures, so the `!response.ok` check remains the authoritative guard.
+improvement: expose a health endpoint that performs a live Resend send test and reports true delivery status, rather than relying on the domain-list pre-check alone.
+
+5. User learning
+Removing the domain pre-check and messageId throw restores verification email delivery on production while keeping Resend's own error handling as the authoritative delivery-failure signal.
+
+6. AI-agent learning
+When hardening email delivery logic, non-blocking diagnostics (logging) are safer than blocking pre-checks that can fail for reasons unrelated to the actual send (rate limits, response shape drift, transient API unavailability). The Resend API already validates domains and keys at send-time.
+
+7. Follow-up tasks
+- Verify live sign-up and superadmin verification on `app.useclevr.com` after Railway deploys the fix.
+- Consider adding a live Resend send health check endpoint for continuous delivery monitoring.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+
 ## Global Dashboard Report Generation Regression
 
 1. Interaction title
