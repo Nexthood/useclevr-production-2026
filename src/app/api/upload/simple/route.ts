@@ -20,6 +20,15 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
 const SIMPLE_ROW_INSERT_LIMIT = 1000;
+const SAAS_MRR_MOVEMENT_COLUMNS = [
+  "customer_id",
+  "customer_status",
+  "month",
+  "mrr_before",
+  "mrr_after",
+  "mrr_delta",
+  "movement_type",
+] as const;
 type UploadStage = "AUTH" | "CREDIT" | "PARSE" | "BUSINESS_MODEL" | "DATASET_INSERT" | "ANALYSIS" | "RESPONSE";
 
 function jsonError(
@@ -73,6 +82,16 @@ function createRequestId() {
 function createDatasetId(userId: string, requestKey: string) {
   const hash = createHash("sha256").update(`${userId}:${requestKey}`).digest("hex").slice(0, 24);
   return `ds_${hash}`;
+}
+
+function normalizeUploadColumn(column: string) {
+  return column.toLowerCase().trim().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "");
+}
+
+function isSaasMrrMovementUpload(businessModel: BusinessModel, columns: string[]) {
+  if (businessModel !== "saas") return false;
+  const normalizedColumns = new Set(columns.map(normalizeUploadColumn));
+  return SAAS_MRR_MOVEMENT_COLUMNS.every((column) => normalizedColumns.has(column));
 }
 
 function getStandardDashboardRedirect(datasetId: string) {
@@ -311,10 +330,6 @@ export async function POST(request: Request) {
     datasetId = createDatasetId(authenticatedUserId, requestKey);
     operationId = `upload:${authenticatedUserId}:${requestKey}`;
     const now = new Date();
-    const parsedRows = (parsed.previewRows as Record<string, unknown>[]).slice(
-      0,
-      SIMPLE_ROW_INSERT_LIMIT,
-    );
     const datasetName = uploadFile.name.replace(/\.(csv|xlsx|xls)$/i, "");
     try {
       currentStage = "BUSINESS_MODEL";
@@ -329,6 +344,23 @@ export async function POST(request: Request) {
     } catch (error) {
       logUploadFailed(requestId, currentStage, error, { userId, resolvedRole, datasetType, businessModel, datasetId, operationId });
       throw error;
+    }
+
+    const storeFullRowsForSaasMrrMovement = isSaasMrrMovementUpload(businessModel, parsed.columns);
+    const simpleRowLimit = storeFullRowsForSaasMrrMovement ? parsed.previewRows.length : SIMPLE_ROW_INSERT_LIMIT;
+    const parsedRows = (parsed.previewRows as Record<string, unknown>[]).slice(
+      0,
+      simpleRowLimit,
+    );
+
+    if (storeFullRowsForSaasMrrMovement && parsedRows.length !== parsed.rowCount) {
+      return jsonError(
+        422,
+        "file_parsed",
+        "SaaS MRR movement uploads require complete row storage for dashboard and report metrics.",
+        false,
+        { code: "UPLOAD_INCOMPLETE_SAAS_MRR_ROWS", requestId },
+      );
     }
 
     currentStage = "DATASET_INSERT";
