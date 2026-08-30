@@ -4772,6 +4772,40 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Production Superadmin Verification Flow Alignment
+
+1. Interaction title
+Production superadmin verification flow alignment.
+
+2. What was the user goal
+Compare the working `test.useclevr.com` superadmin 6-digit verification flow with `app.useclevr.com`, identify the exact difference, instrument the real app verification request with safe diagnostics, and ship the smallest production fix without changing TEST.
+
+3. What changed
+The official superadmin no longer uses the direct built-in credential shortcut in the server action preflight or Auth.js credentials callback. Production now follows the same database-backed password verification and 6-digit email verification flow as the working test app while base and demo built-in accounts keep their direct shortcut behavior. Real login and resend requests now log a safe trace id, request host, action, account lookup result, password-valid boolean, code-storage event, send invocation, cooldown block, Resend HTTP status, response shape, and message-id presence without logging passwords, codes, API keys, tokens, or full email addresses.
+
+4. Problems marked
+blocker: Railway native log streaming remains unavailable in this local session because the native CLI reports unauthorized.
+risk: real APP request breadcrumbs must be read from Railway application logs or dashboard after deployment; they are safe to inspect but are not printed with secrets.
+observation: Railway APP and TEST services use the same Resend API key, same `EMAIL_FROM` sender domain, same database URL, and no `EMAIL_PROVIDER`; their expected differences are the configured public app/auth hosts.
+
+5. User learning
+The working test reference uses the existing database superadmin account and 6-digit verification; production had an extra direct built-in superadmin credential path that bypassed that reference flow.
+
+6. AI-agent learning
+When debugging production auth against a working test host, compare deployed branch behavior before assuming provider delivery because shared DB and shared email variables eliminate many environment-only causes.
+
+7. Follow-up tasks
+- Inspect the safe `traceId` breadcrumbs for the next real `app.useclevr.com` login or resend attempt if the email still does not arrive.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Production App Domain Superadmin Login
 
 1. Interaction title

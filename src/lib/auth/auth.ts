@@ -3,6 +3,7 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import {
   BUILTIN_DEMO_USER,
   BUILTIN_SUPER_ADMIN_USER,
+  canUseBuiltinDirectCredentials,
   findBuiltinUserByCredentials,
   isBuiltinUserId,
   isSuperadmin,
@@ -77,7 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const rawPassword = typeof credentials?.password === "string" ? credentials.password : "";
 
           const builtinUser = findBuiltinUserByCredentials(rawEmail, rawPassword);
-          if (builtinUser) {
+          if (canUseBuiltinDirectCredentials(builtinUser)) {
             debugLog(`[Auth] Built-in ${builtinUser.role} credentials authenticated`);
             return {
               id: builtinUser.id,
