@@ -3,12 +3,12 @@ import assert from "node:assert/strict"
 import { normalizePublicAuthBaseUrl, resolveAuthRedirect } from "../../src/lib/auth/redirect-origin"
 
 assert.equal(
-  resolveAuthRedirect("https://app.useclevr.com/app", "https://0.0.0.0:8080"),
+  resolveAuthRedirect("https://app.useclevr.com/app", "https://app.useclevr.com"),
   "https://app.useclevr.com/app",
 )
 assert.equal(
-  resolveAuthRedirect("https://test.useclevr.com/app", "https://0.0.0.0:8080"),
-  "https://test.useclevr.com/app",
+  resolveAuthRedirect("https://test.useclevr.com/app", "https://app.useclevr.com"),
+  "https://app.useclevr.com/login",
 )
 assert.equal(
   resolveAuthRedirect("https://attacker.example/app", "https://app.useclevr.com"),
@@ -39,6 +39,10 @@ assert.equal(
 assert.equal(
   resolveAuthRedirect("/app/dashboard", "https://test.useclevr.com"),
   "https://test.useclevr.com/app/dashboard",
+)
+assert.equal(
+  resolveAuthRedirect("https://app.useclevr.com/app/dashboard", "https://test.useclevr.com"),
+  "https://test.useclevr.com/login",
 )
 assert.equal(
   resolveAuthRedirect("/app", "http://localhost:3100"),

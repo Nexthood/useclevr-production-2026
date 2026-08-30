@@ -1,3 +1,33 @@
+## Production Auth Verification Email Fix
+
+1. Interaction title
+Restore verification email delivery on `app.useclevr.com` so sign-up and superadmin verification codes reach users.
+
+2. What was the user goal
+The production app domain (`app.useclevr.com`) failed to deliver 6-digit verification emails for both new user sign-up and superadmin sign-in. New users saw "Account setup failed" and the superadmin could not receive the 6-digit code to log in. The test domain (`test.useclevr.com`) worked because it predates the auth hardening commits.
+
+3. What changed
+Removed the blocking `checkResendDomainStatus` GET request to `https://api.resend.com/domains` from `sendVerificationEmail` — Resend already validates the sender domain at send-time, so the pre-check is redundant and its failure (unexpected response shape, rate-limit, or transient API issue) blocks all verification email delivery. Reverted `sendResendEmail` to non-throwing behavior when the Resend response lacks `messageId` — the `!response.ok` check already handles API errors, and a 200 response without an `id` should be logged, not rejected. Updated `test-verification-email-delivery.ts` to assert the new no-pre-check, no-messageId-throw behavior. Added `ADMIN_AUTH_BYPASS_CODE` documentation to `.env.railway.example`.
+
+4. Problems marked
+blocker: none.
+risk: if the Resend API returns a 200 without `messageId` for a genuinely failed send, the code will not detect it — however, Resend returns non-200 for delivery failures, so the `!response.ok` check remains the authoritative guard.
+improvement: expose a health endpoint that performs a live Resend send test and reports true delivery status, rather than relying on the domain-list pre-check alone.
+
+5. User learning
+Removing the domain pre-check and messageId throw restores verification email delivery on production while keeping Resend's own error handling as the authoritative delivery-failure signal.
+
+6. AI-agent learning
+When hardening email delivery logic, non-blocking diagnostics (logging) are safer than blocking pre-checks that can fail for reasons unrelated to the actual send (rate limits, response shape drift, transient API unavailability). The Resend API already validates domains and keys at send-time.
+
+7. Follow-up tasks
+- Verify live sign-up and superadmin verification on `app.useclevr.com` after Railway deploys the fix.
+- Consider adding a live Resend send health check endpoint for continuous delivery monitoring.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+
 ## Global Dashboard Report Generation Regression
 
 1. Interaction title
@@ -3609,6 +3639,42 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Production Verification Email Delivery
+
+1. Interaction title
+Production verification email delivery.
+
+2. What was the user goal
+Debug the production 6-digit verification email flow after `app.useclevr.com` reached the code-entry step but the user did not receive the email, then implement the smallest safe fix, run tests, commit, and push.
+
+3. What changed
+Verification email delivery now treats Resend success as valid only when the provider response includes a message id. Production no longer allows `EMAIL_PROVIDER=console` to satisfy a real verification send when `RESEND_API_KEY` is missing. Resend logging now records only safe metadata: API-key presence, sender-domain presence/domain, masked recipient, domain-check status, provider status, and sanitized response shape. The standalone Resend verification diagnostic script now masks recipients and omits full sender addresses. A focused delivery test covers production console rejection, ambiguous Resend acceptance without a message id, and valid Resend message-id acceptance.
+
+4. Problems marked
+blocker: Railway native log streaming is unavailable in this local session because the native CLI reports unauthorized; Railway GraphQL inspect and variable presence checks remain available through the project wrapper token.
+risk: the production Resend key is send-only, so `/api/debug/resend-status` cannot list domain status and reports `api_error` for the domain check; the POST test send still returns a message id, so final inbox delivery must be checked in the Resend dashboard for bounces, suppressions, spam placement, or recipient filtering.
+improvement: use a Resend key that can read domain status or add a separate non-secret deployment flag that records the verified sender-domain state.
+observation: production has `RESEND_API_KEY`, `EMAIL_FROM`, and app-domain auth URLs set; `EMAIL_PROVIDER` is unset; the guarded Resend test endpoint returns a message id for a test send while domain-list verification is blocked by the restricted API key.
+
+5. User learning
+The app can confirm that Resend accepted a send request, but a send-only API key cannot confirm domain verification status through the Resend domains API.
+
+6. AI-agent learning
+Verification-email diagnostics must distinguish provider acceptance from final inbox delivery and must never log verification codes, full recipients, full sender addresses, or provider secrets.
+
+7. Follow-up tasks
+- Check the Resend dashboard for the production message id, delivery events, bounces, suppressions, and sender-domain status.
+- Configure a Resend API key or operational diagnostic that can verify `useclevr.com` sender-domain status without exposing secrets.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Accountancy Ledger PDF Branch Routing
 
 1. Interaction title
@@ -4735,6 +4801,76 @@ Investor canonical metric tests must include distractor columns such as investme
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production Superadmin Verification Flow Alignment
+
+1. Interaction title
+Production superadmin verification flow alignment.
+
+2. What was the user goal
+Compare the working `test.useclevr.com` superadmin 6-digit verification flow with `app.useclevr.com`, identify the exact difference, instrument the real app verification request with safe diagnostics, and ship the smallest production fix without changing TEST.
+
+3. What changed
+The official superadmin no longer uses the direct built-in credential shortcut in the server action preflight or Auth.js credentials callback. Production now follows the same database-backed password verification and 6-digit email verification flow as the working test app while base and demo built-in accounts keep their direct shortcut behavior. Real login and resend requests now log a safe trace id, request host, action, account lookup result, password-valid boolean, code-storage event, send invocation, cooldown block, Resend HTTP status, response shape, and message-id presence without logging passwords, codes, API keys, tokens, or full email addresses.
+
+4. Problems marked
+blocker: Railway native log streaming remains unavailable in this local session because the native CLI reports unauthorized.
+risk: real APP request breadcrumbs must be read from Railway application logs or dashboard after deployment; they are safe to inspect but are not printed with secrets.
+observation: Railway APP and TEST services use the same Resend API key, same `EMAIL_FROM` sender domain, same database URL, and no `EMAIL_PROVIDER`; their expected differences are the configured public app/auth hosts.
+
+5. User learning
+The working test reference uses the existing database superadmin account and 6-digit verification; production had an extra direct built-in superadmin credential path that bypassed that reference flow.
+
+6. AI-agent learning
+When debugging production auth against a working test host, compare deployed branch behavior before assuming provider delivery because shared DB and shared email variables eliminate many environment-only causes.
+
+7. Follow-up tasks
+- Inspect the safe `traceId` breadcrumbs for the next real `app.useclevr.com` login or resend attempt if the email still does not arrive.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production App Domain Superadmin Login
+
+1. Interaction title
+Production app-domain superadmin login.
+
+2. What was the user goal
+Audit authentication and domain handling for the production migration from `test.useclevr.com` to `app.useclevr.com`, fix the existing superadmin login failure without creating a new account or bypassing password verification, preserve test service operation, and report remaining `test.useclevr.com` references.
+
+3. What changed
+The email-password login preflight now recognizes exact built-in account credentials before database OTP setup, so the official built-in superadmin account reaches NextAuth credentials verification on `app.useclevr.com`. Built-in identity sync logs conflicts without blocking sign-in, and its conflict message no longer prints the account email. Auth.js redirects now accept only the configured active origin or local development origins, which prevents production login callbacks from staying on `test.useclevr.com`. Railway runtime fallback, Auth.js fallback, Stripe checkout fallback, Square production origin, Square tests, and production callback documentation now point to `https://app.useclevr.com`; test-host constants and examples remain where they document or test the active test service.
+
+4. Problems marked
+blocker: none.
+risk: the current database has the official superadmin email assigned to a different database user ID, so built-in identity sync cannot claim that email record until an operator resolves the duplicate identity mapping.
+improvement: add a package script for the built-in login preflight regression if this check should run in the standard auth suite.
+observation: the production login failure happened before cookies or redirects; the login page called the database-backed OTP preflight, which rejected the official built-in superadmin account before NextAuth could validate its exact built-in password. A longer `pnpm build` run completed with `BUILD_EXIT:0`.
+
+5. User learning
+The existing superadmin account can be restored on the production app domain without creating a new account by letting exact built-in credentials reach the existing NextAuth credentials provider.
+
+6. AI-agent learning
+Auth domain migrations need both URL fallback audits and login preflight audits because client/server preflight code can reject an account before Auth.js callbacks, cookies, or redirect logic run.
+
+7. Follow-up tasks
+- Resolve the production database identity conflict for the official superadmin email so the database user record and built-in identity policy agree.
+- Register `https://app.useclevr.com/api/auth/callback/google`, `https://app.useclevr.com/api/auth/callback/linkedin`, and `https://app.useclevr.com/api/integrations/retail/square/callback` in the external provider consoles.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
 ## SaaS MRR Movement Date Normalization
 

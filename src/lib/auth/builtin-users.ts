@@ -30,12 +30,19 @@ export const BUILTIN_SUPER_ADMIN_USER = {
 export const BUILTIN_USERS = [BUILTIN_BASE_USER, BUILTIN_DEMO_USER, BUILTIN_SUPER_ADMIN_USER] as const
 
 export type BuiltinUserRole = (typeof BUILTIN_USERS)[number]["role"] | "admin" | "user"
+export type BuiltinUser = (typeof BUILTIN_USERS)[number]
 
 export function findBuiltinUserByCredentials(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase()
   return BUILTIN_USERS.find(
     (user) => user.email === normalizedEmail && user.password === password,
   )
+}
+
+export function canUseBuiltinDirectCredentials(
+  user?: BuiltinUser | null,
+): user is Exclude<BuiltinUser, typeof BUILTIN_SUPER_ADMIN_USER> {
+  return Boolean(user && user.role !== "superadmin")
 }
 
 export function findBuiltinUserById(userId?: string | null) {

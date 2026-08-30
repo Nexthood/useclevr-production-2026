@@ -34,11 +34,17 @@ export async function createAndSendVerificationCode({
   email,
   purpose,
   enforceCooldown = false,
+  traceId,
+  source,
+  requestHost,
 }: {
   userId?: string | null;
   email: string;
   purpose: EmailVerificationPurpose;
   enforceCooldown?: boolean;
+  traceId?: string;
+  source?: "signup" | "login" | "resend";
+  requestHost?: string;
 }): Promise<{ success: true } | { success: false; reason: EmailVerificationFailure }> {
   const normalizedEmail = email.trim().toLowerCase();
   const now = new Date();
@@ -47,6 +53,14 @@ export async function createAndSendVerificationCode({
     const latest = await findLatestActiveCode(normalizedEmail, purpose);
     const createdAt = latest?.createdAt ? new Date(latest.createdAt) : null;
     if (createdAt && now.getTime() - createdAt.getTime() < RESEND_COOLDOWN_SECONDS * 1000) {
+      logVerificationEvent("send_blocked_cooldown", {
+        email: normalizedEmail,
+        purpose,
+        userId,
+        traceId,
+        source,
+        requestHost,
+      });
       return { success: false, reason: "cooldown" };
     }
   }
@@ -75,13 +89,44 @@ export async function createAndSendVerificationCode({
     expiresAt,
   });
 
+  logVerificationEvent("code_stored", {
+    email: normalizedEmail,
+    purpose,
+    userId,
+    traceId,
+    source,
+    requestHost,
+    expiresInMinutes: CODE_EXPIRY_MINUTES,
+  });
+
   try {
-    logVerificationEvent("send_start", { email: normalizedEmail, purpose, userId });
-    await sendVerificationEmail(normalizedEmail, code);
-    logVerificationEvent("send_success", { email: normalizedEmail, purpose, userId });
+    logVerificationEvent("send_start", {
+      email: normalizedEmail,
+      purpose,
+      userId,
+      traceId,
+      source,
+      requestHost,
+    });
+    await sendVerificationEmail(normalizedEmail, code, { traceId, source, requestHost });
+    logVerificationEvent("send_success", {
+      email: normalizedEmail,
+      purpose,
+      userId,
+      traceId,
+      source,
+      requestHost,
+    });
     return { success: true };
   } catch (error) {
-    logVerificationError("send_failed", error, { email: normalizedEmail, purpose, userId });
+    logVerificationError("send_failed", error, {
+      email: normalizedEmail,
+      purpose,
+      userId,
+      traceId,
+      source,
+      requestHost,
+    });
     await db
       .update(emailVerificationCodes)
       .set({ usedAt: new Date() })
@@ -256,24 +301,47 @@ function generateVerificationCode() {
 
 function logVerificationEvent(
   event: string,
-  details: { email?: string; purpose?: EmailVerificationPurpose; userId?: string | null; attempts?: number },
+  details: {
+    email?: string;
+    purpose?: EmailVerificationPurpose;
+    userId?: string | null;
+    attempts?: number;
+    traceId?: string;
+    source?: string;
+    requestHost?: string;
+    expiresInMinutes?: number;
+  },
 ) {
   console.warn("[Auth] Email verification event", {
     event,
+    traceId: details.traceId,
+    source: details.source,
+    requestHost: details.requestHost,
     email: maskEmail(details.email),
     purpose: details.purpose,
     userId: details.userId,
     attempts: details.attempts,
+    expiresInMinutes: details.expiresInMinutes,
   });
 }
 
 function logVerificationError(
   event: string,
   error: unknown,
-  details: { email?: string; purpose?: EmailVerificationPurpose; userId?: string | null },
+  details: {
+    email?: string;
+    purpose?: EmailVerificationPurpose;
+    userId?: string | null;
+    traceId?: string;
+    source?: string;
+    requestHost?: string;
+  },
 ) {
   console.error("[Auth] Email verification failure", {
     event,
+    traceId: details.traceId,
+    source: details.source,
+    requestHost: details.requestHost,
     email: maskEmail(details.email),
     purpose: details.purpose,
     userId: details.userId,

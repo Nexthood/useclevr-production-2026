@@ -150,6 +150,23 @@ function LoginForm() {
         return;
       }
 
+      if ("builtInCredentials" in result && result.builtInCredentials) {
+        const signInResult = await signIn("credentials", {
+          email: result.email,
+          password: signInPassword,
+          redirect: false,
+          callbackUrl: dashboardCallbackUrl(),
+        });
+
+        if (!signInResult?.ok) {
+          setAuthError("Sign-in failed. Check your email and password.");
+          return;
+        }
+
+        goToDashboard();
+        return;
+      }
+
       showVerificationStep(
         signInEmail,
         signInPassword,

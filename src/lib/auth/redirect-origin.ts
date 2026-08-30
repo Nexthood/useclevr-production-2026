@@ -9,11 +9,7 @@ export function resolveAuthRedirect(url: string, baseUrl: string) {
     const targetUrl = new URL(url)
     const baseOrigin = new URL(safeBaseUrl).origin
 
-    if (
-      targetUrl.origin === baseOrigin ||
-      isLocalAuthOrigin(targetUrl) ||
-      isUseClevrAuthOrigin(targetUrl)
-    ) {
+    if (targetUrl.origin === baseOrigin || isLocalAuthOrigin(targetUrl)) {
       return targetUrl.toString()
     }
   } catch {
@@ -56,11 +52,4 @@ function parseUrl(value?: string | null) {
   } catch {
     return null
   }
-}
-
-function isUseClevrAuthOrigin(url: URL) {
-  return (
-    url.protocol === "https:" &&
-    (url.hostname === "useclevr.com" || url.hostname.endsWith(".useclevr.com"))
-  )
 }

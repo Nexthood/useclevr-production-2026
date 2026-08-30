@@ -26,7 +26,7 @@ export type ResendStatus = {
 type ResendConfig = NonNullable<ReturnType<typeof getResendConfig>>;
 type SanitizedResendConfig = {
   RESEND_API_KEY_SET: boolean;
-  EMAIL_FROM: string;
+  EMAIL_FROM_SET: boolean;
   EMAIL_FROM_DOMAIN: string;
 };
 
@@ -37,6 +37,12 @@ type ResendEmailPayload = {
   html: string;
 };
 
+type VerificationEmailContext = {
+  traceId?: string;
+  source?: "signup" | "login" | "resend";
+  requestHost?: string;
+};
+
 type ResendDomainStatus = {
   checked: boolean;
   name: string;
@@ -45,12 +51,17 @@ type ResendDomainStatus = {
   error?: ReturnType<typeof getResendErrorDetails>;
 };
 
-export async function sendVerificationEmail(email: string, code: string) {
+export async function sendVerificationEmail(
+  email: string,
+  code: string,
+  context: VerificationEmailContext = {},
+) {
   const config = getResendConfig();
 
   if (!config) {
-    if (process.env.EMAIL_PROVIDER === "console") {
+    if (process.env.NODE_ENV !== "production" && process.env.EMAIL_PROVIDER === "console") {
       debugLog("[Email] Verification email requested", {
+        ...sanitizeVerificationEmailContext(context),
         to: maskEmail(email),
         codeGenerated: Boolean(code),
         provider: "console",
@@ -59,6 +70,7 @@ export async function sendVerificationEmail(email: string, code: string) {
     }
 
     console.error("[Email] Resend verification email delivery failed", {
+      ...sanitizeVerificationEmailContext(context),
       error: { message: "RESEND_API_KEY is not configured" },
       resend: null,
       to: maskEmail(email),
@@ -67,18 +79,9 @@ export async function sendVerificationEmail(email: string, code: string) {
   }
 
   try {
-    const domain = await checkResendDomainStatus(config);
-    if (domain.checked && !domain.verified) {
-      throw new ResendApiError(422, {
-        message: "EMAIL_FROM domain is not verified in Resend",
-        domain: domain.name,
-        status: domain.status,
-      });
-    }
-
     console.warn("[Email] Resend verification email send starting", {
+      ...sanitizeVerificationEmailContext(context),
       resend: sanitizeResendConfig(config),
-      domain,
       to: maskEmail(email),
     });
 
@@ -87,16 +90,16 @@ export async function sendVerificationEmail(email: string, code: string) {
       subject: "Your UseClevr verification code",
       text: buildTextEmail(code),
       html: buildHtmlEmail(code),
-    });
+    }, context);
 
     console.warn("[Email] Resend verification email sent", {
+      ...sanitizeVerificationEmailContext(context),
       resend: sanitizeResendConfig(config),
-      domain,
       to: maskEmail(email),
-      messageId: result.id,
+      messageIdReturned: Boolean(result?.id),
     });
   } catch (error) {
-    logResendEmailFailure(error, config, email);
+    logResendEmailFailure(error, config, email, context);
     throw new EmailDeliveryError("Email delivery failed. Please try again.");
   }
 }
@@ -250,7 +253,11 @@ function extractResendDomains(body: unknown): Array<{ name: string; status: stri
     .filter((entry): entry is { name: string; status: string } => Boolean(entry));
 }
 
-async function sendResendEmail(config: ResendConfig, payload: ResendEmailPayload): Promise<{ id?: string }> {
+async function sendResendEmail(
+  config: ResendConfig,
+  payload: ResendEmailPayload,
+  context: VerificationEmailContext = {},
+): Promise<{ id?: string }> {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -267,14 +274,21 @@ async function sendResendEmail(config: ResendConfig, payload: ResendEmailPayload
   });
 
   const body = await response.json().catch(() => ({}));
+  const messageId = typeof body?.id === "string" ? body.id : "";
+
+  console.warn("[Email] Resend verification email provider response", {
+    ...sanitizeVerificationEmailContext(context),
+    status: response.status,
+    ok: response.ok,
+    messageIdReturned: Boolean(messageId),
+    responseShape: getSafeResponseShape(body),
+  });
 
   if (!response.ok) {
     throw new ResendApiError(response.status, body);
   }
 
-  return {
-    id: typeof body?.id === "string" ? body.id : undefined,
-  };
+  return { id: messageId };
 }
 
 class ResendApiError extends Error {
@@ -306,13 +320,19 @@ function getResendConfig() {
 function sanitizeResendConfig(config: ResendConfig): SanitizedResendConfig {
   return {
     RESEND_API_KEY_SET: Boolean(config.apiKey),
-    EMAIL_FROM: config.from,
+    EMAIL_FROM_SET: Boolean(config.from),
     EMAIL_FROM_DOMAIN: getSenderDomain(config.from),
   };
 }
 
-function logResendEmailFailure(error: unknown, config: ResendConfig, email: string) {
+function logResendEmailFailure(
+  error: unknown,
+  config: ResendConfig,
+  email: string,
+  context: VerificationEmailContext = {},
+) {
   console.error("[Email] Resend verification email delivery failed", {
+    ...sanitizeVerificationEmailContext(context),
     error: getResendErrorDetails(error),
     resend: sanitizeResendConfig(config),
     to: maskEmail(email),
@@ -341,8 +361,7 @@ function getResendErrorDetails(error: unknown) {
     name: stringifyLogValue(resendError.name),
     message: stringifyLogValue(resendError.message),
     status: stringifyLogValue(resendError.status),
-    response: safeStringify(resendError.response),
-    stack: stringifyLogValue(resendError.stack),
+    response: redactSensitiveLogText(safeStringify(resendError.response)),
   };
 }
 
@@ -358,6 +377,31 @@ function safeStringify(value: unknown) {
   } catch {
     return String(value);
   }
+}
+
+function getSafeResponseShape(value: unknown) {
+  if (!value || typeof value !== "object") return typeof value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      Array.isArray(entry) ? "array" : typeof entry,
+    ]),
+  );
+}
+
+function sanitizeVerificationEmailContext(context: VerificationEmailContext) {
+  return {
+    traceId: context.traceId,
+    source: context.source,
+    requestHost: context.requestHost,
+  };
+}
+
+function redactSensitiveLogText(value?: string) {
+  if (!value) return undefined;
+  return value
+    .replace(/\b\d{6}\b/g, "[CODE]")
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[EMAIL]");
 }
 
 function getResendStatusRecipient() {
