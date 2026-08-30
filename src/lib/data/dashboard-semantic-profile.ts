@@ -158,6 +158,7 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
 
   if (reportInput.reportProfile?.id === "saas_startup" && reportInput.saasAnalysis) {
     const saas = reportInput.saasAnalysis
+    const customerLabel = saas.profile === "subscription_mrr_movements" ? "Active Customers" : "Customers"
     return [
       metric("Total Revenue", saas.revenue, "currency", saas.revenueField, "Source revenue field."),
       metric("Total Cost", saas.cost, "currency", saas.costField, "Source cost field."),
@@ -168,7 +169,7 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
       metric("Price per User", saas.pricePerUser, "currency", saas.pricePerUserField, "Average recognized price-per-user field."),
       metric("MRR", saas.mrr, "currency", saas.mrrField, "Latest-period SaaS snapshot sum."),
       metric("ARR", saas.arr, "currency", saas.arrField, "Latest-period SaaS snapshot sum."),
-      metric("Customers", saas.customers, "number", saas.customerField, "Distinct recognized customer IDs."),
+      metric(customerLabel, saas.customers, "number", saas.customerField, saas.profile === "subscription_mrr_movements" ? "Latest-period active customer IDs." : "Distinct recognized customer IDs."),
       metric("New Customers", saas.newCustomers, "number", saas.newCustomerField, "Distinct customers with normalized positive new-customer status."),
       metric("Churn Rate", saas.churnRate, "percent", saas.churnField, "Churned customers divided by eligible normalized churn-status customers."),
       metric("New MRR", saas.newMrr ?? null, "currency", saas.newMrrField ?? null, "Latest-period MRR delta where movement type is new."),

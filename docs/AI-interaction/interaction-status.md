@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-08-29
-- **Goal**: Fix SaaS subscription MRR movement uploads so dashboards and generated reports use SaaS movement semantics instead of e-commerce order semantics.
-- **Durable change**: MRR movement datasets now resolve as SaaS `subscription_mrr_movements`, calculate latest active customer MRR, ARR, active customers, New MRR, Expansion MRR, Contraction MRR, and Churned MRR from source movement fields, render SaaS dashboard metrics, and generate persisted SaaS Executive Report PDFs.
-- **Verification**: `pnpm test:dashboard-semantic-profiles`, `pnpm test:saas-semantic-profile`, `pnpm test:saas-startup-unit-economics`, `pnpm test:business-model-routing`, `pnpm test:dataset-aware-report-profiles`, `pnpm test:dataset-intelligence-engine`, and `pnpm test:profitability-two-file` passed; final typecheck, build, TODO, changelog, secret, and diff checks run before close.
-- **Residual risk**: The exact uploaded customer workbook file is not stored in the workspace, so regression coverage uses a sanitized synthetic fixture with the confirmed field shape and ground-truth totals.
+- **Date**: 2026-08-30
+- **Goal**: Fix only SaaS/startup MRR movement support and return success only with actual metric, authenticated route, report persistence, PDF, and regression evidence.
+- **Durable change**: SaaS MRR movement workbooks preserve Excel Date calendar periods, calculate the locked movement totals from the latest SaaS period, omit unsupported churn-rate output, and keep existing SaaS KPI, retail, e-commerce, marketplace, profitability, accountancy, investor, and generic report behavior covered by regression tests.
+- **Verification**: Exact workbook probe returned MRR 372136, ARR 4465632, Active Customers 123, New MRR 3361, Expansion MRR 5248, Contraction MRR 1219, and Churned MRR 643; authenticated `/api/reports` returned HTTP 200, Reports listing showed the ready report, PDF download returned HTTP 200; `pnpm test:dashboard-semantic-profiles`, `pnpm test:saas-startup-unit-economics`, `pnpm test:saas-semantic-profile`, `pnpm test:dataset-aware-report-profiles`, `pnpm test:business-model-routing`, `pnpm test:profitability-two-file`, `pnpm test:generic-business-canonical-resolution`, `pnpm test:report-accuracy`, `node -r tsx/esm scripts/analysis/test-accountancy-ledger-routing.ts`, `pnpm exec tsc --noEmit --pretty false`, `pnpm build`, and `git diff --check` passed.
+- **Residual risk**: The local upload route is blocked by a pre-existing development database identity conflict for the built-in superadmin email, so the authenticated report-route proof used a temporary seeded dataset owned by the authenticated superadmin session.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

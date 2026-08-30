@@ -45,6 +45,19 @@ async function main() {
   } as ParsedFixture
   const mrrMovementDataset = buildDataset("dashboard_saas_mrr_movements", "saas_subscription_mrr_movements_test.xlsx", mrrMovementParsed, "standard", "generic")
   const mrrMovement = await buildDashboardSemanticAnalysis(mrrMovementDataset)
+  const mrrMovementDateRows = buildMrrMovementRows().map((row) => ({
+    ...row,
+    month: toLocalDate(row.month),
+    event_date: toLocalDate(row.event_date),
+  }))
+  const mrrMovementDateParsed = {
+    columns: Object.keys(mrrMovementDateRows[0]),
+    previewRows: mrrMovementDateRows,
+    rowCount: mrrMovementDateRows.length,
+    aggregatedMetrics: null,
+  } as ParsedFixture
+  const mrrMovementDateDataset = buildDataset("dashboard_saas_mrr_movements_dates", "saas_subscription_mrr_movements_dates.xlsx", mrrMovementDateParsed, "standard", "generic")
+  const mrrMovementDates = await buildDashboardSemanticAnalysis(mrrMovementDateDataset)
 
   assert.equal(ecommerce.uploadType, "standard")
   assert.equal(ecommerce.businessProfile, "ecommerce")
@@ -108,11 +121,43 @@ async function main() {
   assert.equal(metric(mrrMovement, "Expansion MRR"), 5248)
   assert.equal(metric(mrrMovement, "Contraction MRR"), 1219)
   assert.equal(metric(mrrMovement, "Churned MRR"), 643)
-  assert.ok(!mrrMovement.metrics.some((item) => item.label === "Revenue" || item.label === "Orders" || item.label === "Average Order Value"), "MRR movement dashboard must not render E-Commerce metrics")
+  assert.ok(!mrrMovement.metrics.some((item) => item.label === "Customers"), "MRR movement dashboard must present latest-period customer state as Active Customers")
+  assert.ok(!mrrMovement.metrics.some((item) => item.label === "Revenue" || item.label === "Orders" || item.label === "Average Order Value" || item.label === "CAC" || item.label === "LTV"), "MRR movement dashboard must not render unsupported E-Commerce or unit-economics metrics")
   assert.ok(mrrMovement.trends.some((trend) => trend.title === "MRR Trend"), "MRR movement dashboard must expose an MRR trend")
+  assert.equal(mrrMovementDates.saasAnalysis?.latestPeriod, "2025-12-01")
+  assert.deepEqual(
+    snapshotMetrics(mrrMovementDates, ["MRR", "ARR", "Active Customers", "New MRR", "Expansion MRR", "Contraction MRR", "Churned MRR"]),
+    snapshotMetrics(mrrMovement, ["MRR", "ARR", "Active Customers", "New MRR", "Expansion MRR", "Contraction MRR", "Churned MRR"]),
+    "MRR movement Date values must keep the same calendar period and metrics as string dates",
+  )
 
   listReports(mrrMovementDataset.id).forEach((report) => deleteReport(report.id))
   const mrrMovementReportInput = await buildDatasetReportInput(mrrMovementDataset as Parameters<typeof buildDatasetReportInput>[0])
+  const mrrMovementSaasAnalysis = (mrrMovementReportInput as { saasAnalysis?: {
+    latestPeriod?: string | null
+    canonicalFields?: Record<string, string>
+    mrr?: number | null
+    arr?: number | null
+    customers?: number | null
+    newMrr?: number | null
+    expansionMrr?: number | null
+    contractionMrr?: number | null
+    churnedMrr?: number | null
+    cac?: number | null
+    ltv?: number | null
+  } }).saasAnalysis
+  assert.equal(mrrMovementSaasAnalysis?.latestPeriod, "2025-12-01")
+  assert.equal(mrrMovementSaasAnalysis?.canonicalFields?.movement_event_date, "event_date")
+  assert.equal(mrrMovementSaasAnalysis?.canonicalFields?.seats_before, "seats_before")
+  assert.equal(mrrMovementSaasAnalysis?.mrr, 372136)
+  assert.equal(mrrMovementSaasAnalysis?.arr, 4465632)
+  assert.equal(mrrMovementSaasAnalysis?.customers, 123)
+  assert.equal(mrrMovementSaasAnalysis?.newMrr, 3361)
+  assert.equal(mrrMovementSaasAnalysis?.expansionMrr, 5248)
+  assert.equal(mrrMovementSaasAnalysis?.contractionMrr, 1219)
+  assert.equal(mrrMovementSaasAnalysis?.churnedMrr, 643)
+  assert.equal(mrrMovementSaasAnalysis?.cac, null)
+  assert.equal(mrrMovementSaasAnalysis?.ltv, null)
   const mrrMovementReport = await generateReport(
     mrrMovementDataset.id,
     mrrMovementDataset.name,
@@ -219,7 +264,13 @@ function buildMrrMovementRows() {
       customer_status: "active",
     })
   }
+  rows.push({ month: "2025-12-01", event_date: "2025-12-01", customer_id: "cus_expansion", customer_name: "Expansion Customer", industry: "Healthcare", region: "EMEA", plan: "Enterprise", seats_before: 35, seats_after: 35, movement_type: "no_change", mrr_before: 10000, mrr_after: 10000, mrr_delta: 0, currency: "USD", signup_date: "2024-03-15", customer_status: "active" })
   return rows
+}
+
+function toLocalDate(value: unknown) {
+  const [year, month, day] = String(value).split("-").map(Number)
+  return new Date(year, month - 1, day)
 }
 
 function mimeTypeForFile(filePath: string) {

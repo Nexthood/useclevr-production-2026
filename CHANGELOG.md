@@ -29,6 +29,7 @@
 
 ### Fixed
 
+- Fix SaaS MRR movement workbooks so Excel date values keep the correct latest month and movement reports omit unsupported churn-rate metrics.
 - Fix SaaS MRR movement uploads so dashboards and reports use SaaS MRR, ARR, active-customer, and movement metrics instead of e-commerce order cards.
 - Fix SaaS Executive Report summaries so valid subscription metrics do not request generic profitability fields when SaaS-specific analysis is available.
 - Fix mobile homepage loading so repeat visits and PageSpeed checks receive cached public content and the above-the-fold AI demo paints without delayed carousel frames replacing the first render.

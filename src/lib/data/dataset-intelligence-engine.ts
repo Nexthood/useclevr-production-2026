@@ -876,7 +876,7 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
   const averageRevenuePerUser = revenue.status === "available" && revenue.value && users.status === "available" && users.value && users.value > 0
     ? resolvedValue(round(revenue.value / users.value), [revenueField, usersField].filter((value): value is string => Boolean(value)), "Average revenue per user is revenue divided by additive users, seats, or licenses.")
     : unavailableMetric("Average revenue per user requires revenue and additive users, seats, or licenses.");
-  const movementSnapshotRows = mappings.mrr_after ? latestActiveRowsByCustomer(sourceRows, mappings.customer_id, mappings.subscription_status) : sourceRows;
+  const movementSnapshotRows = mappings.mrr_after ? latestActiveRowsByCustomer(sourceRows, mappings.customer_id, mappings.subscription_status, mappings.movement_event_date) : sourceRows;
   const mrr = mappings.mrr
     ? resolvedSum(sourceRows, mappings.mrr, "MRR uses only source MRR fields.")
     : resolvedSum(movementSnapshotRows, mappings.mrr_after, "MRR uses latest-period active customer MRR after movement values.");
@@ -919,17 +919,21 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
   };
 }
 
-function latestActiveRowsByCustomer(rows: Record<string, unknown>[], customerColumn?: string, statusColumn?: string) {
+function latestActiveRowsByCustomer(rows: Record<string, unknown>[], customerColumn?: string, statusColumn?: string, eventDateColumn?: string) {
   if (!customerColumn) return rows;
-  const activeByCustomer = new Map<string, Record<string, unknown>>();
-  rows.forEach((row) => {
+  const activeByCustomer = new Map<string, { row: Record<string, unknown>; time: number; index: number }>();
+  rows.forEach((row, index) => {
     const customer = String(row[customerColumn] ?? "").trim();
     if (!customer) return;
     const status = statusColumn ? String(row[statusColumn] ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_") : "active";
     if (["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(status)) return;
-    activeByCustomer.set(customer, row);
+    const time = eventDateColumn ? new Date(String(row[eventDateColumn] ?? "")).getTime() : NaN;
+    const previous = activeByCustomer.get(customer);
+    if (!previous || (Number.isFinite(time) && time > previous.time) || (!Number.isFinite(previous.time) && index > previous.index)) {
+      activeByCustomer.set(customer, { row, time: Number.isFinite(time) ? time : -Infinity, index });
+    }
   });
-  return Array.from(activeByCustomer.values());
+  return Array.from(activeByCustomer.values()).map((item) => item.row);
 }
 
 function aggregateMrrMovements(rows: Record<string, unknown>[], movementColumn?: string, deltaColumn?: string) {
@@ -1413,15 +1417,25 @@ function latestRowsByPeriod(rows: Record<string, unknown>[], periodColumn?: stri
 
 function normalizePeriodKey(value: unknown) {
   if (value === null || value === undefined) return null;
+  if (value instanceof Date && Number.isFinite(value.getTime())) return formatCalendarDate(value);
   const raw = String(value).trim();
   if (!raw) return null;
-  const parsed = Date.parse(raw);
-  if (Number.isFinite(parsed)) return new Date(parsed).toISOString().slice(0, 10);
+  const dateOnly = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (dateOnly) return `${dateOnly[1]}-${dateOnly[2].padStart(2, "0")}-${dateOnly[3].padStart(2, "0")}`;
   const month = raw.match(/^(\d{4})[-/](\d{1,2})$/);
   if (month) return `${month[1]}-${month[2].padStart(2, "0")}-01`;
+  const parsed = Date.parse(raw);
+  if (Number.isFinite(parsed)) return new Date(parsed).toISOString().slice(0, 10);
   const year = raw.match(/^(\d{4})$/);
   if (year) return `${year[1]}-01-01`;
   return raw.toLowerCase();
+}
+
+function formatCalendarDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function normalizePercentValue(value: number) {

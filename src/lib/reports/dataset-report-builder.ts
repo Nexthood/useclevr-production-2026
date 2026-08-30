@@ -1955,6 +1955,25 @@ function churnMetrics(rows: DataRow[], columns: ColumnMap) {
       churnRateSource: denominator !== null && denominator > 0 && churnedForRate !== null ? "derived_from_counts" as const : null,
     }
   }
+  if (columns.movementType && columns.customer) {
+    const sourceRows = columns.date ? latestPeriodRows(rows, columns.date).rows : rows
+    const churnedCustomers = new Set<string>()
+    sourceRows.forEach((row, index) => {
+      const movement = String(row[columns.movementType!] || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
+      if (movement !== "churn" && movement !== "churned") return
+      const key = String(row[columns.customer!] || "").trim() || `row_${index}`
+      churnedCustomers.add(key)
+    })
+    return {
+      churnedCustomers: churnedCustomers.size || null,
+      churnedCustomerField: columns.movementType,
+      churnedCustomerAggregation: "positive_status" as const,
+      eligibleCustomers: null,
+      churnRate: null,
+      churnRateField: null,
+      churnRateSource: null,
+    }
+  }
   if (!columns.churned) {
     return {
       churnedCustomers: null,
@@ -2618,17 +2637,26 @@ function addTrendValue(
 }
 
 function periodKey(value: unknown) {
-  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString().slice(0, 10)
+  if (value instanceof Date && Number.isFinite(value.getTime())) return formatCalendarDate(value)
   if (typeof value === "number" && Number.isFinite(value)) {
     const parsed = XLSXDateToJSDate(value)
     return parsed ? parsed.toISOString().slice(0, 10) : null
   }
   const text = String(value || "").trim()
   if (!text) return null
+  const dateOnly = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/)
+  if (dateOnly) return `${dateOnly[1]}-${dateOnly[2].padStart(2, "0")}-${dateOnly[3].padStart(2, "0")}`
   const parsed = new Date(text)
   if (Number.isFinite(parsed.getTime())) return parsed.toISOString().slice(0, 10)
   if (/^\d{4}-\d{1,2}$/.test(text)) return text.replace(/-(\d)$/, "-0$1")
   return null
+}
+
+function formatCalendarDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
 }
 
 function monthKey(value: unknown) {
