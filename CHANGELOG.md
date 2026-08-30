@@ -29,6 +29,7 @@
 
 ### Fixed
 
+- Fix production superadmin sign-in so the official built-in admin account can authenticate on the app domain while redirects stay on the active configured host.
 - Fix SaaS MRR movement workbooks so Excel date values keep the correct latest month and movement reports omit unsupported churn-rate metrics.
 - Fix SaaS MRR movement uploads so dashboards and reports use SaaS MRR, ARR, active-customer, and movement metrics instead of e-commerce order cards.
 - Fix SaaS Executive Report summaries so valid subscription metrics do not request generic profitability fields when SaaS-specific analysis is available.

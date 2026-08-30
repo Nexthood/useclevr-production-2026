@@ -87,7 +87,7 @@ const tests: TestCase[] = [
 
       withSquareEnv("sandbox", () => {
         process.env.NEXT_PUBLIC_APP_URL = SQUARE_TEST_APP_ORIGIN;
-        process.env.SQUARE_REDIRECT_URI = "https://useclevr.com/api/integrations/retail/square/callback";
+        process.env.SQUARE_REDIRECT_URI = `${SQUARE_PRODUCTION_APP_ORIGIN}${squareCallbackPath}`;
         assert.throws(() => getSquareRedirectUri(), /test\.useclevr\.com|configured application URL/);
       });
 

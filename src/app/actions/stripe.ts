@@ -113,7 +113,7 @@ function getSafeAppBaseUrl(origin?: string) {
   }
 
   // Fallback for production if no safe candidate found
-  return 'https://test.useclevr.com'
+  return 'https://app.useclevr.com'
 }
 
 function getBaseUrl() {

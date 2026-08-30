@@ -22,7 +22,7 @@ export async function ensureBuiltinUserRecord(userId?: string | null): Promise<b
   })
 
   if (existingEmailOwner && existingEmailOwner.id !== builtinUser.id) {
-    throw new Error(`Built-in account email is assigned to another user: ${builtinUser.email}`)
+    throw new Error("Built-in account email is assigned to another user.")
   }
 
   await db

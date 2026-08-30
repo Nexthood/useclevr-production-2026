@@ -11,7 +11,7 @@ process.env.PORT = port;
 
 if (process.env.RAILWAY_ENVIRONMENT_ID || serverTarget === "railway") {
   process.env.HOSTNAME = "0.0.0.0";
-  setPublicAuthUrl(resolveDeployedPublicUrl() || "https://test.useclevr.com");
+  setPublicAuthUrl(resolveDeployedPublicUrl() || "https://app.useclevr.com");
 } else if (process.env.VERCEL || serverTarget === "vercel") {
   process.env.HOSTNAME = "0.0.0.0";
   setPublicAuthUrl(resolveDeployedPublicUrl());

@@ -4736,6 +4736,42 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Production App Domain Superadmin Login
+
+1. Interaction title
+Production app-domain superadmin login.
+
+2. What was the user goal
+Audit authentication and domain handling for the production migration from `test.useclevr.com` to `app.useclevr.com`, fix the existing superadmin login failure without creating a new account or bypassing password verification, preserve test service operation, and report remaining `test.useclevr.com` references.
+
+3. What changed
+The email-password login preflight now recognizes exact built-in account credentials before database OTP setup, so the official built-in superadmin account reaches NextAuth credentials verification on `app.useclevr.com`. Built-in identity sync logs conflicts without blocking sign-in, and its conflict message no longer prints the account email. Auth.js redirects now accept only the configured active origin or local development origins, which prevents production login callbacks from staying on `test.useclevr.com`. Railway runtime fallback, Auth.js fallback, Stripe checkout fallback, Square production origin, Square tests, and production callback documentation now point to `https://app.useclevr.com`; test-host constants and examples remain where they document or test the active test service.
+
+4. Problems marked
+blocker: none.
+risk: the current database has the official superadmin email assigned to a different database user ID, so built-in identity sync cannot claim that email record until an operator resolves the duplicate identity mapping.
+improvement: add a package script for the built-in login preflight regression if this check should run in the standard auth suite.
+observation: the production login failure happened before cookies or redirects; the login page called the database-backed OTP preflight, which rejected the official built-in superadmin account before NextAuth could validate its exact built-in password. A longer `pnpm build` run completed with `BUILD_EXIT:0`.
+
+5. User learning
+The existing superadmin account can be restored on the production app domain without creating a new account by letting exact built-in credentials reach the existing NextAuth credentials provider.
+
+6. AI-agent learning
+Auth domain migrations need both URL fallback audits and login preflight audits because client/server preflight code can reject an account before Auth.js callbacks, cookies, or redirect logic run.
+
+7. Follow-up tasks
+- Resolve the production database identity conflict for the official superadmin email so the database user record and built-in identity policy agree.
+- Register `https://app.useclevr.com/api/auth/callback/google`, `https://app.useclevr.com/api/auth/callback/linkedin`, and `https://app.useclevr.com/api/integrations/retail/square/callback` in the external provider consoles.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS MRR Movement Date Normalization
 
 1. Interaction title

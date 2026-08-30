@@ -3,7 +3,7 @@ import { normalizePublicAuthBaseUrl } from "@/lib/auth/redirect-origin";
 export const SQUARE_CALLBACK_PATH = "/api/integrations/retail/square/callback";
 export const SQUARE_INTEGRATIONS_PATH = "/app/retail/integrations";
 export const SQUARE_TEST_APP_ORIGIN = "https://test.useclevr.com";
-export const SQUARE_PRODUCTION_APP_ORIGIN = "https://useclevr.com";
+export const SQUARE_PRODUCTION_APP_ORIGIN = "https://app.useclevr.com";
 
 export type SquareEnvironment = "sandbox" | "production";
 

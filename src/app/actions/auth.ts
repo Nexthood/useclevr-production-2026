@@ -2,9 +2,11 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
-import { debugError } from "@/lib/utils/debug";
+import { debugError, debugWarn } from "@/lib/utils/debug";
 
 import { recordActivity } from "@/lib/activity/activity-store";
+import { findBuiltinUserByCredentials } from "@/lib/auth/builtin-users";
+import { ensureBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import {
   createVerifiedAuthProof,
   createAndSendVerificationCode,
@@ -162,6 +164,22 @@ export async function beginEmailPasswordLogin(emailInput: string, passwordInput:
 
   if (!z.string().email().safeParse(email).success || password.length < 1) {
     return { error: "Sign-in failed. Check your email and password." };
+  }
+
+  const builtinUser = findBuiltinUserByCredentials(email, password);
+  if (builtinUser) {
+    try {
+      await ensureBuiltinUserRecord(builtinUser.id);
+    } catch (error) {
+      debugWarn("Built-in account identity sync failed during login:", error);
+    }
+
+    return {
+      success: true,
+      email: builtinUser.email,
+      purpose: "login" as const,
+      builtInCredentials: true,
+    };
   }
 
   try {

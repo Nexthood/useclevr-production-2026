@@ -357,7 +357,7 @@ function normalizePublicAuthUrlEnv() {
 function getAuthUrlFallback() {
   const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RAILWAY_STATIC_URL;
   if (railwayDomain) return `https://${railwayDomain}`;
-  if (process.env.RAILWAY_ENVIRONMENT_ID) return "https://test.useclevr.com";
+  if (process.env.RAILWAY_ENVIRONMENT_ID) return "https://app.useclevr.com";
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return `http://localhost:${process.env.PORT || "8080"}`;
 }
