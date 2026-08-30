@@ -3609,6 +3609,42 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Production Verification Email Delivery
+
+1. Interaction title
+Production verification email delivery.
+
+2. What was the user goal
+Debug the production 6-digit verification email flow after `app.useclevr.com` reached the code-entry step but the user did not receive the email, then implement the smallest safe fix, run tests, commit, and push.
+
+3. What changed
+Verification email delivery now treats Resend success as valid only when the provider response includes a message id. Production no longer allows `EMAIL_PROVIDER=console` to satisfy a real verification send when `RESEND_API_KEY` is missing. Resend logging now records only safe metadata: API-key presence, sender-domain presence/domain, masked recipient, domain-check status, provider status, and sanitized response shape. The standalone Resend verification diagnostic script now masks recipients and omits full sender addresses. A focused delivery test covers production console rejection, ambiguous Resend acceptance without a message id, and valid Resend message-id acceptance.
+
+4. Problems marked
+blocker: Railway native log streaming is unavailable in this local session because the native CLI reports unauthorized; Railway GraphQL inspect and variable presence checks remain available through the project wrapper token.
+risk: the production Resend key is send-only, so `/api/debug/resend-status` cannot list domain status and reports `api_error` for the domain check; the POST test send still returns a message id, so final inbox delivery must be checked in the Resend dashboard for bounces, suppressions, spam placement, or recipient filtering.
+improvement: use a Resend key that can read domain status or add a separate non-secret deployment flag that records the verified sender-domain state.
+observation: production has `RESEND_API_KEY`, `EMAIL_FROM`, and app-domain auth URLs set; `EMAIL_PROVIDER` is unset; the guarded Resend test endpoint returns a message id for a test send while domain-list verification is blocked by the restricted API key.
+
+5. User learning
+The app can confirm that Resend accepted a send request, but a send-only API key cannot confirm domain verification status through the Resend domains API.
+
+6. AI-agent learning
+Verification-email diagnostics must distinguish provider acceptance from final inbox delivery and must never log verification codes, full recipients, full sender addresses, or provider secrets.
+
+7. Follow-up tasks
+- Check the Resend dashboard for the production message id, delivery events, bounces, suppressions, and sender-domain status.
+- Configure a Resend API key or operational diagnostic that can verify `useclevr.com` sender-domain status without exposing secrets.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Accountancy Ledger PDF Branch Routing
 
 1. Interaction title

@@ -18,16 +18,30 @@ async function main() {
 
   console.warn("[Email] Sending Resend verification test email", {
     RESEND_API_KEY_SET: Boolean(process.env.RESEND_API_KEY),
-    EMAIL_FROM: process.env.EMAIL_FROM,
-    to,
+    EMAIL_FROM_SET: Boolean(process.env.EMAIL_FROM),
+    EMAIL_FROM_DOMAIN: getSenderDomain(process.env.EMAIL_FROM || ""),
+    to: maskEmail(to),
   });
 
   await sendVerificationEmail(to, "123456");
 
   console.warn("[Email] Resend verification test email sent", {
-    EMAIL_FROM: process.env.EMAIL_FROM,
-    to,
+    EMAIL_FROM_SET: Boolean(process.env.EMAIL_FROM),
+    EMAIL_FROM_DOMAIN: getSenderDomain(process.env.EMAIL_FROM || ""),
+    to: maskEmail(to),
   });
+}
+
+function getSenderDomain(from: string) {
+  const match = from.match(/<[^@<>]+@([^<>]+)>/) || from.match(/^[^@<>]+@([^<>]+)$/);
+  return match?.[1]?.trim().toLowerCase() || "";
+}
+
+function maskEmail(email: string) {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "[invalid-email]";
+  const visible = local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
 }
 
 main().catch((error) => {

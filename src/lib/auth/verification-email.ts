@@ -26,7 +26,7 @@ export type ResendStatus = {
 type ResendConfig = NonNullable<ReturnType<typeof getResendConfig>>;
 type SanitizedResendConfig = {
   RESEND_API_KEY_SET: boolean;
-  EMAIL_FROM: string;
+  EMAIL_FROM_SET: boolean;
   EMAIL_FROM_DOMAIN: string;
 };
 
@@ -49,7 +49,7 @@ export async function sendVerificationEmail(email: string, code: string) {
   const config = getResendConfig();
 
   if (!config) {
-    if (process.env.EMAIL_PROVIDER === "console") {
+    if (process.env.NODE_ENV !== "production" && process.env.EMAIL_PROVIDER === "console") {
       debugLog("[Email] Verification email requested", {
         to: maskEmail(email),
         codeGenerated: Boolean(code),
@@ -272,9 +272,15 @@ async function sendResendEmail(config: ResendConfig, payload: ResendEmailPayload
     throw new ResendApiError(response.status, body);
   }
 
-  return {
-    id: typeof body?.id === "string" ? body.id : undefined,
-  };
+  const messageId = typeof body?.id === "string" ? body.id : "";
+  if (!messageId) {
+    throw new ResendApiError(response.status, {
+      message: "Resend accepted the request without returning a message id",
+      responseShape: getSafeResponseShape(body),
+    });
+  }
+
+  return { id: messageId };
 }
 
 class ResendApiError extends Error {
@@ -306,7 +312,7 @@ function getResendConfig() {
 function sanitizeResendConfig(config: ResendConfig): SanitizedResendConfig {
   return {
     RESEND_API_KEY_SET: Boolean(config.apiKey),
-    EMAIL_FROM: config.from,
+    EMAIL_FROM_SET: Boolean(config.from),
     EMAIL_FROM_DOMAIN: getSenderDomain(config.from),
   };
 }
@@ -341,8 +347,7 @@ function getResendErrorDetails(error: unknown) {
     name: stringifyLogValue(resendError.name),
     message: stringifyLogValue(resendError.message),
     status: stringifyLogValue(resendError.status),
-    response: safeStringify(resendError.response),
-    stack: stringifyLogValue(resendError.stack),
+    response: redactSensitiveLogText(safeStringify(resendError.response)),
   };
 }
 
@@ -358,6 +363,23 @@ function safeStringify(value: unknown) {
   } catch {
     return String(value);
   }
+}
+
+function getSafeResponseShape(value: unknown) {
+  if (!value || typeof value !== "object") return typeof value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      Array.isArray(entry) ? "array" : typeof entry,
+    ]),
+  );
+}
+
+function redactSensitiveLogText(value?: string) {
+  if (!value) return undefined;
+  return value
+    .replace(/\b\d{6}\b/g, "[CODE]")
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[EMAIL]");
 }
 
 function getResendStatusRecipient() {
