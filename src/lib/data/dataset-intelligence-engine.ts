@@ -1417,15 +1417,25 @@ function latestRowsByPeriod(rows: Record<string, unknown>[], periodColumn?: stri
 
 function normalizePeriodKey(value: unknown) {
   if (value === null || value === undefined) return null;
+  if (value instanceof Date && Number.isFinite(value.getTime())) return formatCalendarDate(value);
   const raw = String(value).trim();
   if (!raw) return null;
-  const parsed = Date.parse(raw);
-  if (Number.isFinite(parsed)) return new Date(parsed).toISOString().slice(0, 10);
+  const dateOnly = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (dateOnly) return `${dateOnly[1]}-${dateOnly[2].padStart(2, "0")}-${dateOnly[3].padStart(2, "0")}`;
   const month = raw.match(/^(\d{4})[-/](\d{1,2})$/);
   if (month) return `${month[1]}-${month[2].padStart(2, "0")}-01`;
+  const parsed = Date.parse(raw);
+  if (Number.isFinite(parsed)) return new Date(parsed).toISOString().slice(0, 10);
   const year = raw.match(/^(\d{4})$/);
   if (year) return `${year[1]}-01-01`;
   return raw.toLowerCase();
+}
+
+function formatCalendarDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function normalizePercentValue(value: number) {

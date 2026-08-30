@@ -4736,6 +4736,41 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## SaaS MRR Movement Date Normalization
+
+1. Interaction title
+SaaS MRR movement date normalization.
+
+2. What was the user goal
+Fix only SaaS/startup MRR movement support and claim success only after actual metric, authenticated route, report persistence, PDF, and regression output proves the behavior.
+
+3. What changed
+Dataset Intelligence and report input building preserve calendar dates from Excel Date values for SaaS period selection. SaaS movement report input counts churned customers from movement type and leaves churn rate unavailable when no source churn-rate metric exists. Dashboard semantic regression coverage compares string-date and Date-object SaaS movement rows.
+
+4. Problems marked
+blocker: none for report generation; local upload-route setup is blocked by a pre-existing built-in superadmin email conflict in the development database.
+risk: the authenticated route proof used a temporary seeded dataset because the local upload route cannot create a dataset for the built-in superadmin session while that DB identity conflict exists.
+improvement: repair the local built-in superadmin database identity before future full upload-to-report route smoke tests.
+observation: Excel Date objects formatted through UTC shift `2025-12-01` to `2025-11-30` in the local timezone, which selects the wrong SaaS latest-period rows.
+
+5. User learning
+The SaaS movement dashboard and generated report now use the same latest-period rows for Excel Date objects and string dates.
+
+6. AI-agent learning
+Calendar-only business periods must be formatted with local date fields before sorting; UTC serialization is unsafe for workbook-imported Date values.
+
+7. Follow-up tasks
+- Repair the development database built-in superadmin identity so authenticated upload-route smoke tests do not require seeded dataset setup.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Mobile Homepage LCP Performance
 
 1. Interaction title
