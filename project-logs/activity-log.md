@@ -1,3 +1,4 @@
+- fixed: apply the existing profile regional-preferences migration during Railway predeploy so production sign-up creates profiles and sends 6-digit verification emails on app.useclevr.com
 - fixed: restore production verification email delivery by removing the blocking Resend domain pre-check and message-id requirement so sign-up and sign-in 6-digit codes reach users on app.useclevr.com
 - fixed: restore dashboard report generation across SaaS, Profitability, and standard business datasets by treating unavailable trend output as non-fatal report telemetry and refreshing file-backed report reads before list and download lookups
 - fixed: restore dashboard profitability report generation by applying billing-settings and current credit-ledger schema during Railway predeploy, keeping dashboard report diagnostics sanitized, and verifying persisted reports plus PDF downloads through the live route

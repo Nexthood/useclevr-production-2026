@@ -1,3 +1,33 @@
+## Production Sign-Up Profile Schema Failure
+
+1. Interaction title
+Restore production sign-up profile creation on `app.useclevr.com`.
+
+2. What was the user goal
+Reproduce one controlled production sign-up failure, capture the exact server-side failure chain, compare the exact operation with TEST, apply the smallest safe fix, and verify real production sign-up succeeds.
+
+3. What changed
+Railway predeploy now runs the existing profile regional-preferences migration before app startup. The production database had `Profile.themePreference` and `Profile.billingSettings`, but not `Profile.regionalPreferences`, while the deployed Drizzle schema includes `regionalPreferences` in `Profile` inserts.
+
+4. Problems marked
+blocker: none.
+risk: existing superadmin login completion still requires the real password and received 6-digit code.
+observation: `POST /login` returned HTTP 200 with server-action payload `{ error: "Account setup failed. Please try again." }`; local replay of the same server action captured PostgreSQL `42703` at the `Profile` insert with `column "regionalPreferences" of relation "Profile" does not exist`; after the migration, live production sign-up reached the 6-digit verification step and Resend returned HTTP 200 with a message id.
+
+5. User learning
+The production sign-up failure was a schema drift issue in the profile insert, not a frontend, DNS, auth-cookie, or Resend deliverability problem.
+
+6. AI-agent learning
+When a Next server action returns a generic UI error with HTTP 200, capture the `text/x-component` response and verify whether the action returned an error object before chasing network or frontend causes.
+
+7. Follow-up tasks
+- Test existing superadmin login with the real password and received 6-digit code.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Production Auth Verification Email Fix
 
 1. Interaction title
