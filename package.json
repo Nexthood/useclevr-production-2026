@@ -56,6 +56,7 @@
     "test:profitability-two-file": "node -r tsx/esm scripts/analysis/test-profitability-two-file.ts",
     "test:report-accuracy": "node -r tsx/esm scripts/analysis/test-report-accuracy-missing-data.ts",
     "test:business-intelligence": "node -r tsx/esm scripts/analysis/test-business-intelligence-engine.ts",
+    "test:business-semantics": "node -r tsx/esm scripts/analysis/test-business-semantics-engine.ts",
     "test:dataset-intelligence-engine": "node -r tsx/esm scripts/analysis/test-dataset-intelligence-engine.ts",
     "test:dataset-aware-report-profiles": "node -r tsx/esm scripts/analysis/test-dataset-aware-report-profiles.ts",
     "test:saas-startup-unit-economics": "node -r tsx/esm scripts/analysis/test-saas-startup-unit-economics.ts",

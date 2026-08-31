@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-08-30
-- **Goal**: Reproduce one production sign-up failure on `https://app.useclevr.com`, capture the exact server-side failure chain, and ship the smallest production fix without changing TEST service configuration.
-- **Durable change**: Railway predeploy now applies the existing profile regional-preferences migration so production `Profile` inserts match the active application schema.
-- **Verification**: controlled production sign-up reproduced `POST /login` returning the server-action error payload; local server-action replay captured PostgreSQL `42703` for missing `Profile.regionalPreferences`; applying predeploy added the column; production sign-up now reaches the 6-digit verification screen and Resend returns `200` with a message id.
-- **Residual risk**: Existing superadmin login still requires the real password and received 6-digit code, which are not available in this local session.
+- **Date**: 2026-08-31
+- **Goal**: Implement a centralized business semantics engine that gates KPI calculations and business claims across dashboards, AI Analyst prompts, and generated reports.
+- **Durable change**: UseClevr now builds a versioned business semantic profile with dataset classification, canonical concept mappings, formula definitions, metric permissions, ambiguity detection, lineage, and multi-file compatibility checks before presenting supported business KPIs.
+- **Verification**: `pnpm test:business-semantics`, `pnpm test:accountancy-upload-system`, `pnpm exec tsx scripts/analysis/test-accountancy-ledger-routing.ts`, `pnpm test:saas-semantic-profile`, `pnpm test:dashboard-semantic-profiles`, `pnpm test:profitability-two-file`, `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:package`, `pnpm lint:todos`, `pnpm lint:changelog`, and `pnpm lint:secrets` pass.
+- **Residual risk**: `pnpm exec tsx scripts/analysis/test-full-row-report-semantic-consistency.ts` fails before report assertions because its SheetJS workbook fixture cannot save to its `/tmp` path in that script run, while a direct XLSX temp-file write succeeds.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

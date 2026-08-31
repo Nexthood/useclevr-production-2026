@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { BusinessBalancedScorecard } from '@/lib/business/balanced-scorecard';
+import type { SemanticProfile } from '@/lib/data/business-semantics';
 import { generatePdfReport } from './pdf-report-generator';
 import type { ReportProfile } from './report-profiles';
 
@@ -168,6 +169,7 @@ export interface DepartmentProfitability {
 export interface ReportSemanticContext {
   datasetId: string;
   datasetType: string;
+  businessSemanticProfile?: SemanticProfile;
   mappings: Record<string, string | null>;
   confidence: number;
   dateField: string | null;

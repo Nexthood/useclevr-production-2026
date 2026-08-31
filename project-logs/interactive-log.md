@@ -5456,6 +5456,41 @@ The standard upload path stores `datasetType: standard`, so SaaS/startup preserv
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Authoritative Business Semantics Engine
+
+1. Interaction title
+Authoritative Business Semantics Engine.
+
+2. What was the user goal
+Implement a centralized UseClevr business semantics engine that classifies datasets, maps columns to canonical business concepts, gates KPIs, records lineage, detects ambiguity and contradictions, supports multi-file semantic reasoning, and prevents dashboard, AI, export, PDF, and report outputs from fabricating unsupported metrics.
+
+3. What changed
+The data layer now builds a versioned business semantic profile with dataset/domain classification, canonical concept mappings, formula definitions, metric permissions, missing evidence, ambiguity flags, lineage records, and multi-file compatibility checks. Generated reports, Profitability reports, the legacy dashboard builder, and AI Analyst prompts consume the profile so ambiguous generic fields such as amount, total, value, balance, net, and gross do not become revenue or profit without stronger evidence. Marketplace GMV, SaaS recurring revenue, accountancy ledger movement, Profitability P&L, retail, and standard semantics stay isolated. Focused regression coverage validates generic ambiguity, marketplace GMV separation, accountancy ledger gating, SaaS MRR/ARR/runway permissions, multi-file currency contradictions, prompt governance text, and dashboard metadata.
+
+4. Problems marked
+blocker: none.
+risk: generated report full-row fixture validation currently fails before report assertions because the SheetJS helper cannot save the test workbook at `/tmp/useclevr-full-row-report-semantic-test/UseClevr_Full_Report_Test_Dataset.xlsx` in that script path, while direct XLSX temp-file writing works.
+improvement: route additional deterministic export and PDF-only branches through the business semantic profile as future report families migrate to the central contract.
+observation: scattered legacy revenue fallbacks can turn generic financial columns into business KPIs unless every presentation path checks metric permission before calculation or narration.
+
+5. User learning
+Business KPI output now depends on explicit semantic evidence, not convenient numeric headers.
+
+6. AI-agent learning
+Column aliases must distinguish source concepts, metric permission, and presentation labels; GMV, revenue, ledger movement, SaaS recurring revenue, and P&L profit are separate concepts even when files use similar numeric column names.
+
+7. Follow-up tasks
+- T-1039. Implement the authoritative business semantics layer that classifies datasets, maps supported concepts, blocks unsupported KPIs, records lineage, and protects dashboard, AI, and report outputs from unsupported business claims.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; completed work queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS Executive Report Reporting Period Metadata
 
 1. Interaction title

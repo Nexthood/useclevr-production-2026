@@ -34,6 +34,7 @@ import { buildProfileCalculationLayer } from "@/lib/business/company-calculation
 import { buildBusinessProfileContext } from "@/lib/business/company-setup";
 import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { skillEngine } from "@/lib/business/skill-engine";
+import { buildBusinessSemanticProfile, buildBusinessSemanticPromptBlock } from "@/lib/data/business-semantics";
 import { getBusinessModelPromptContext, resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
 import { runQueryJS } from "@/lib/data/datasetEngine";
 import { db } from "@/lib/db";
@@ -439,6 +440,8 @@ export async function POST(request: Request) {
     let requestDataset: Record<string, unknown>[] = [];
     let requestColumns: string[] = [];
     let requestBusinessModel: BusinessModel = "generic";
+    let requestDatasetType: string | null = null;
+    let requestDatasetName: string | null = null;
 
     // Persisted dataset IDs always load owner-scoped server data.
     if (datasetId) {
@@ -478,6 +481,8 @@ export async function POST(request: Request) {
         }
 
         requestColumns = (storedDataset.columns as string[]) || Object.keys(requestDataset[0] || {});
+        requestDatasetType = storedDataset.datasetType;
+        requestDatasetName = storedDataset.name;
         requestBusinessModel = resolveBusinessModel({
           explicit: storedDataset.businessModel,
           uploadSource:
@@ -516,6 +521,10 @@ export async function POST(request: Request) {
       try {
         requestDataset = data;
         requestColumns = columns || Object.keys(data[0] || {});
+        requestDatasetType =
+          precomputedAnalysis && typeof precomputedAnalysis === "object"
+            ? String((precomputedAnalysis as Record<string, unknown>).datasetType || (precomputedAnalysis as Record<string, unknown>).dataset_type || "")
+            : null;
         requestBusinessModel = resolveBusinessModel({
           explicit:
             precomputedAnalysis && typeof precomputedAnalysis === "object"
@@ -560,6 +569,14 @@ export async function POST(request: Request) {
       availableColumns = Object.keys(requestDataset[0] || {});
     }
     debugLog('[ANALYZE] Available columns:', availableColumns.length);
+    const businessSemanticProfile = buildBusinessSemanticProfile({
+      datasetId: datasetId || "request_dataset",
+      datasetType: requestDatasetType || requestBusinessModel,
+      businessModel: requestBusinessModel,
+      datasetName: requestDatasetName,
+      columns: availableColumns,
+      rows: requestDataset,
+    });
 
     // Step 1: Generate SQL query
     let sqlQuery: string;
@@ -722,7 +739,8 @@ try {
        }
 
        const businessModelPrompt = `\n\nSTRICT BUSINESS MODEL CONTEXT\n${getBusinessModelPromptContext(requestBusinessModel)}\nThe assistant must not return KPIs from another business model unless the current dataset columns explicitly support them.\n`;
-       const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis, null, skillResult) + businessModelPrompt + businessProfilePrompt + mcpToolsPrompt;
+       const semanticPrompt = buildBusinessSemanticPromptBlock(businessSemanticProfile);
+       const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis, null, skillResult) + businessModelPrompt + semanticPrompt + businessProfilePrompt + mcpToolsPrompt;
 
       try {
         let text: string | null = null;

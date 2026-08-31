@@ -1,4 +1,10 @@
 import { calculateBusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
+import {
+  buildBusinessSemanticProfile,
+  conceptColumn,
+  profileSupportsMetric,
+  type SemanticProfile,
+} from "@/lib/data/business-semantics"
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import { loadDatasetData } from "@/lib/data/dataset-access"
 import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
@@ -137,6 +143,16 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     if (profitabilityReport) return profitabilityReport
   }
   const columnMap = detectColumns(columns)
+  const businessSemanticProfile = buildBusinessSemanticProfile({
+    datasetId: dataset.id,
+    datasetType: reportModel,
+    businessModel,
+    fileName: dataset.fileName,
+    datasetName: dataset.name,
+    columns,
+    rows,
+  })
+  applyBusinessSemanticProfileToColumnMap(columnMap, businessSemanticProfile, reportModel)
   const saasSemanticProfile = reportModel === "saas" || reportModel === "startup"
     ? resolveSaasSemanticProfile({ rows, columns, fileName: dataset.fileName })
     : null
@@ -168,6 +184,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     datasetType,
     reportModel,
     columnMap,
+    businessSemanticProfile,
   })
   traceReportRuntime("buildDeterministicAnalysis", {
     datasetId: dataset.id,
@@ -505,6 +522,22 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     departmentProfitability: buildDepartmentProfitability(rows, detectColumns(columns)),
   }
   const columnMap = detectColumns(columns)
+  const businessSemanticProfile = buildBusinessSemanticProfile({
+    datasetId: dataset.id,
+    datasetType: "profitability",
+    businessModel,
+    fileName: dataset.fileName,
+    datasetName: dataset.name,
+    columns,
+    rows,
+  })
+  const semanticContext = buildSemanticContext({
+    datasetId: dataset.id,
+    datasetType: "profitability",
+    reportModel: "profitability",
+    columnMap,
+    businessSemanticProfile,
+  })
   const recommendations = buildProfitabilityRecommendations(financials, bbsc, columnMap)
   const reportProfile = getReportProfile("profitability")
 
@@ -523,6 +556,7 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     retailAnalysis: undefined,
     alerts: buildProfitabilityAlerts(netMargin, metrics),
     bbsc,
+    semanticContext,
     rowCount: dataset.rowCount || rows.length,
     columns,
   }
@@ -3146,6 +3180,38 @@ function reportModelLabel(model: ReportModel) {
   return "Business analytics"
 }
 
+function applyBusinessSemanticProfileToColumnMap(columns: ColumnMap, profile: SemanticProfile, reportModel: ReportModel) {
+  const semanticRevenue = conceptColumn(profile, "revenue") || conceptColumn(profile, "net_sales") || conceptColumn(profile, "gross_sales") || conceptColumn(profile, "subscription_revenue")
+  if (semanticRevenue) {
+    columns.revenue = semanticRevenue
+  } else if (isUnsafeFinancialFallback(columns.revenue)) {
+    columns.revenue = undefined
+  }
+
+  if (reportModel !== "marketplace" && columns.gmv && !conceptColumn(profile, "gmv")) {
+    columns.gmv = undefined
+  }
+  if (reportModel === "marketplace") {
+    columns.revenue = undefined
+    if (!conceptColumn(profile, "marketplace_revenue") && isUnsafeFinancialFallback(columns.commission)) {
+      columns.commission = undefined
+    }
+  }
+  if ((reportModel === "accountancy" || reportModel === "prebookkeeping") && !profileSupportsMetric(profile, "Net Movement")) {
+    columns.revenue = undefined
+    columns.profit = undefined
+    columns.grossProfit = undefined
+    columns.operatingProfit = undefined
+    columns.netProfit = undefined
+  }
+}
+
+function isUnsafeFinancialFallback(column?: string) {
+  if (!column) return false
+  const normalized = normalizeColumnName(column)
+  return /^(amount|total|value|balance|net|gross)$/.test(normalized)
+}
+
 function detectColumns(columns: string[]): ColumnMap {
   return {
     revenue: findColumn(columns, [/revenue/, /^sales$/, /sales_amount/, /subscription_revenue/, /recurring_revenue/, /billing_amount/, /^amount$/, /turnover/, /income/]),
@@ -3298,6 +3364,7 @@ function buildSemanticContext(input: {
   datasetType: string
   reportModel: ReportModel
   columnMap: ColumnMap
+  businessSemanticProfile: SemanticProfile
 }): ReportSemanticContext {
   const isEcommerce = input.reportModel === "ecommerce"
   const isSaas = input.reportModel === "saas" || input.reportModel === "startup"
@@ -3375,6 +3442,7 @@ function buildSemanticContext(input: {
   return {
     datasetId: input.datasetId,
     datasetType: input.datasetType,
+    businessSemanticProfile: input.businessSemanticProfile,
     mappings,
     confidence: Math.round((available / required.length) * 100),
     dateField: mappings.date,

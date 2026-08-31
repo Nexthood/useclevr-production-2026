@@ -6,6 +6,12 @@
  */
 
 import type { DatasetRecord } from './dataset-intelligence';
+import {
+  buildBusinessSemanticProfile,
+  conceptColumn,
+  profileSupportsMetric,
+  type SemanticProfile,
+} from './business-semantics';
 import { buildDatasetIntelligence } from './dataset-intelligence';
 import { findSemanticColumn, type DynamicDashboardDefinition, type SemanticBusinessModel } from './dataset-intelligence-engine';
 
@@ -36,6 +42,7 @@ export interface DashboardConfig {
     businessModel: SemanticBusinessModel;
     semanticConfidence: number;
     semanticDashboard: DynamicDashboardDefinition;
+    businessSemanticProfile: SemanticProfile;
     generatedAt: string;
   };
 }
@@ -58,15 +65,28 @@ export function buildDashboard(
   const timeCols = dims.timeColumns;
   const geoCols = dims.geographicColumns;
   const semantic = intelligence.semanticMetadata;
+  const businessSemanticProfile = buildBusinessSemanticProfile({
+    datasetId,
+    datasetType: semantic.businessModel.model,
+    businessModel: semantic.businessModel.model,
+    columns: Object.keys(data[0] || {}),
+    rows: data,
+  });
 
   // Get key columns
-  const revenueCol = findSemanticColumn(semantic, ["Revenue"])?.columnName || numericCols.find(c =>
-    c.toLowerCase().includes('revenue') || c.toLowerCase().includes('sales') || c.toLowerCase().includes('amount')
-  );
-  const profitCol = findSemanticColumn(semantic, ["Profit"])?.columnName || numericCols.find(c =>
+  const revenueCol = conceptColumn(businessSemanticProfile, "revenue") ||
+    conceptColumn(businessSemanticProfile, "net_sales") ||
+    conceptColumn(businessSemanticProfile, "gross_sales") ||
+    conceptColumn(businessSemanticProfile, "subscription_revenue") ||
+    (profileSupportsMetric(businessSemanticProfile, "Revenue") ? findSemanticColumn(semantic, ["Revenue"])?.columnName : undefined);
+  const profitCol = profileSupportsMetric(businessSemanticProfile, "Net Profit")
+    ? findSemanticColumn(semantic, ["Profit"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('profit') || c.toLowerCase().includes('margin')
-  );
-  const costCol = findSemanticColumn(semantic, ["Cost"])?.columnName || numericCols.find(c =>
+  )
+    : undefined;
+  const costCol = conceptColumn(businessSemanticProfile, "cogs") ||
+    conceptColumn(businessSemanticProfile, "operating_expense") ||
+    findSemanticColumn(semantic, ["Cost"])?.columnName || numericCols.find(c =>
     c.toLowerCase().includes('cost') || c.toLowerCase().includes('cogs')
   );
   const usersCol = findSemanticColumn(semantic, ["Users"])?.columnName || numericCols.find(c =>
@@ -94,6 +114,17 @@ export function buildDashboard(
       value: totalRevenue,
       format: 'currency'
     });
+  }
+  if (!revenueCol && businessSemanticProfile.datasetType === "marketplace") {
+    const gmvCol = conceptColumn(businessSemanticProfile, "gmv");
+    if (gmvCol) {
+      kpis.push({
+        id: 'gmv',
+        title: 'GMV',
+        value: aggregateSum(data, gmvCol),
+        format: 'currency'
+      });
+    }
   }
 
   // 3. Total Profit
@@ -277,6 +308,7 @@ export function buildDashboard(
       businessModel: semantic.businessModel.model,
       semanticConfidence: semantic.businessModel.confidence,
       semanticDashboard: semantic.dashboard,
+      businessSemanticProfile,
       generatedAt: new Date().toISOString()
     }
   };
