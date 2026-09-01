@@ -8,6 +8,11 @@ import {
   semanticColumn,
 } from "@/lib/data/semantic-schema";
 import { analyzeTransactionAmountAnomalies } from "@/lib/data/transaction-anomaly-analysis";
+import {
+  answerRetailInventoryQuestionDeterministically,
+  hasRetailInventoryDeterministicCapability,
+  isRetailInventoryQuestion,
+} from "@/lib/data/retail-inventory-intents";
 
 export type DatasetAssistantDeterministicResult = {
   status: "success";
@@ -62,6 +67,9 @@ export function answerDatasetQuestionDeterministically(
 ): DatasetAssistantDeterministicResult | null {
   const question = input.question.trim();
   if (!question || input.rows.length === 0) return null;
+
+  const retailInventoryResult = answerRetailInventoryQuestionDeterministically(input);
+  if (retailInventoryResult) return retailInventoryResult;
 
   const resolvedMetric = resolveQuestionMetric(input);
   if (resolvedMetric.status === "success") {
@@ -149,6 +157,12 @@ export function answerDatasetQuestionDeterministically(
   }
 
   return null;
+}
+
+export function canAnswerDatasetSuggestionDeterministically(input: DatasetAssistantInput) {
+  if (hasRetailInventoryDeterministicCapability(input)) return true;
+  if (isRetailInventoryQuestion(input.question)) return false;
+  return resolveQuestionMetric(input).status === "success";
 }
 
 function describeTransactionAnomalies(input: DatasetAssistantInput & {

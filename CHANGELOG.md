@@ -30,6 +30,7 @@
 
 ### Fixed
 
+- Fix Dataset AI Assistant retail and inventory suggestions so shown stock, reorder, dead-stock, margin, supplier, and inventory-value questions have deterministic answer paths and do not fail when cloud providers are unavailable.
 - Fix production sign-up so new accounts create their profile and receive the 6-digit verification code on the app domain.
 - Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes through the same working email-send path as the test app.
 - Fix production superadmin verification so the official admin account follows the same password-verified 6-digit email flow as the working test app and logs safe delivery diagnostics for real login and resend requests.

@@ -110,6 +110,8 @@ Text rules for this file:
 - Enable session-based Ghost Mode for AI requests so UseClevr skips normal conversation history and content-level AI traces while preserving billing, security, operational metadata, cloud provider routing, Local AI behavior, dataset storage, and dataset isolation.
 - Classify every selected-dataset AI Analyst question into a structured business intent before metric calculation or provider routing.
 - Resolve selected-dataset metric questions through deterministic calculations for revenue, average order value, average selling price, order count, customer count, revenue grouping, rankings, concentration, risk, trend, customer growth, forecast baselines, comparisons, and margin.
+- Resolve selected-dataset retail and inventory questions through deterministic calculations for top products, low stock, dead stock, inventory valuation, reorder recommendations, margin ranking, supplier exposure, revenue trends, slow-moving stock, inventory cash-flow risk, category gross profit, merchandising actions, stock coverage, and inventory turnover when validated source semantics provide the required fields.
+- Return deterministic missing-evidence answers for selected-dataset retail and inventory KPI questions when validated source fields are unavailable, and do not route those known KPI questions to a cloud provider.
 - Return a precise missing-data explanation when a requested metric lacks required validated columns, and do not replace the requested metric with a generic revenue summary.
 - Refuse selected-dataset expense calculations when no validated expense category, cost field, debit classification, or trusted expense mapping exists, and offer only alternatives supported by the detected dataset semantics.
 - Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
@@ -128,7 +130,7 @@ Text rules for this file:
 - Calculate gross margin deterministically from revenue plus COGS, revenue plus validated gross profit, or validated gross margin fields.
 - Never calculate gross margin from operating expenses alone and never infer COGS from an ambiguous generic cost field.
 - Return structured unsupported analysis messages for missing revenue, missing COGS, ambiguous cost mapping, zero revenue, mixed currency, invalid numeric values, unavailable dataset context, unsupported dataset type, and insufficient data.
-- Filter AI Assistant suggested questions by selected-dataset semantic capabilities before showing financial KPI prompts.
+- Filter AI Assistant suggested questions by selected-dataset semantic capabilities and deterministic answer capability before showing dataset KPI prompts.
 - Show deterministic KPI results with Direct data analysis status and Last provider: Not required when no AI provider is needed.
 - Answer declining sales segment questions from validated dataset rows by detecting a time column, sales or revenue metric, and segment-like dimensions before provider routing.
 - Compare declining sales segment results across the two latest complete periods and exclude sparse trailing periods from period-over-period comparisons.

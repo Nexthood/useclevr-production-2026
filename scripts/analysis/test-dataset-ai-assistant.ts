@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { answerDatasetQuestionDeterministically } from "../../src/lib/data/dataset-assistant-deterministic";
+import {
+  answerDatasetQuestionDeterministically,
+  canAnswerDatasetSuggestionDeterministically,
+} from "../../src/lib/data/dataset-assistant-deterministic";
 import { answerPrebookkeepingQuestionDeterministically } from "../../src/lib/accountancy/prebookkeeping-ai-assistant";
 import type { PrebookkeepingCategorization } from "../../src/lib/accountancy/prebookkeeping-categorization";
 
@@ -322,6 +325,81 @@ const prebookkeepingUnusual = answerPrebookkeepingQuestionDeterministically({
 assert.match(prebookkeepingUnusual.answer, /statistical outlier candidates|unusually large/i, "pre-bookkeeping unusual question uses anomaly evidence");
 assert.match(prebookkeepingUnusual.answer, /Median transaction/i, "pre-bookkeeping unusual answer includes median evidence");
 assert.doesNotMatch(prebookkeepingUnusual.answer, /Large and low-confidence/i, "pre-bookkeeping unusual answer removes unsupported low-confidence takeaway");
+
+const retailInventoryRows = [
+  { date: "2025-01-01", product: "Coffee", category: "Drinks", supplier: "Acme", revenue: "400", units_sold: "40", stock_on_hand: "30", reorder_point: "20", unit_cost: "4" },
+  { date: "2025-02-01", product: "Coffee", category: "Drinks", supplier: "Acme", revenue: "500", units_sold: "50", stock_on_hand: "12", reorder_point: "20", unit_cost: "4" },
+  { date: "2025-01-01", product: "Tea", category: "Drinks", supplier: "Garden", revenue: "300", units_sold: "30", stock_on_hand: "80", reorder_point: "15", unit_cost: "2" },
+  { date: "2025-02-01", product: "Tea", category: "Drinks", supplier: "Garden", revenue: "20", units_sold: "2", stock_on_hand: "96", reorder_point: "15", unit_cost: "2" },
+  { date: "2025-01-01", product: "Mug", category: "Accessories", supplier: "ClayCo", revenue: "0", units_sold: "0", stock_on_hand: "25", reorder_point: "5", unit_cost: "6" },
+  { date: "2025-02-01", product: "Mug", category: "Accessories", supplier: "ClayCo", revenue: "0", units_sold: "0", stock_on_hand: "25", reorder_point: "5", unit_cost: "6" },
+];
+const retailColumns = Object.keys(retailInventoryRows[0] ?? {});
+const retailSuggestedQuestions = [
+  "What are the top selling products?",
+  "Which products are low stock items?",
+  "Which products are dead stock products?",
+  "What is the current inventory valuation?",
+  "Which products need reorder recommendations?",
+  "Which products have the highest margin?",
+  "Which suppliers drive the most revenue or risk?",
+  "What are the revenue trends over time?",
+  "Which products are slow moving inventory?",
+  "What cash-flow risks are created by inventory and stock levels?",
+  "Which categories generate the most gross profit?",
+  "Which SKUs should be discounted, bundled, or stopped?",
+];
+for (const question of retailSuggestedQuestions) {
+  const answer = answerDatasetQuestionDeterministically({
+    question,
+    datasetId: "fixture:retail-inventory",
+    datasetType: "Retail",
+    columns: retailColumns,
+    rows: retailInventoryRows,
+  });
+  assert.ok(answer, `${question} receives a deterministic retail answer`);
+  assert.match(String(answer.result.intent), /^retail_inventory\./, `${question} uses the retail inventory deterministic route`);
+  assert.match(answer.answer, /No provider-generated values were used|will not .* route .* provider/i, `${question} does not need provider routing`);
+  assert.notEqual(answer.result.status, "missing_evidence", `${question} has sufficient fixture evidence`);
+}
+
+const deadStock = answerDatasetQuestionDeterministically({
+  question: "Which products are dead stock products?",
+  datasetId: "fixture:retail-inventory",
+  datasetType: "Retail",
+  columns: retailColumns,
+  rows: retailInventoryRows,
+});
+assert.ok(deadStock, "dead stock production wording receives a deterministic answer");
+assert.match(deadStock.answer, /Mug/i, "dead stock answer names product-level evidence");
+assert.match(deadStock.answer, /25 units on hand|stock.*25/i, "dead stock answer includes stock evidence");
+
+const inventoryWithoutUnitCostRows = retailInventoryRows.map(({ unit_cost: _unitCost, ...row }) => row);
+const inventoryWithoutUnitCost = answerDatasetQuestionDeterministically({
+  question: "What is the current inventory valuation?",
+  datasetId: "fixture:retail-missing-cost",
+  datasetType: "Retail",
+  columns: Object.keys(inventoryWithoutUnitCostRows[0] ?? {}),
+  rows: inventoryWithoutUnitCostRows,
+});
+assert.ok(inventoryWithoutUnitCost, "inventory valuation without unit cost receives a deterministic missing-evidence answer");
+assert.equal(inventoryWithoutUnitCost.result.status, "missing_evidence");
+assert.match(inventoryWithoutUnitCost.answer, /unit cost/i, "inventory valuation refuses when unit cost evidence is missing");
+assert.match(inventoryWithoutUnitCost.answer, /will not substitute arbitrary numeric columns or route this deterministic retail KPI to a provider/i);
+assert.equal(canAnswerDatasetSuggestionDeterministically({
+  question: "What is the current inventory valuation?",
+  datasetId: "fixture:retail-missing-cost",
+  datasetType: "Retail",
+  columns: Object.keys(inventoryWithoutUnitCostRows[0] ?? {}),
+  rows: inventoryWithoutUnitCostRows,
+}), false, "unsupported retail valuation is excluded from generated suggestions");
+assert.equal(canAnswerDatasetSuggestionDeterministically({
+  question: "Which products are dead stock products?",
+  datasetId: "fixture:retail-inventory",
+  datasetType: "Retail",
+  columns: retailColumns,
+  rows: retailInventoryRows,
+}), true, "supported dead-stock question is allowed as a suggestion");
 
 process.stdout.write("ok - dataset AI assistant deterministic responses and Usy isolation\n");
 

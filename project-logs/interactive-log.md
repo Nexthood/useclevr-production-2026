@@ -5560,3 +5560,38 @@ SaaS alias matching must use normalized full-column semantics; generic row count
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dataset AI Retail Suggested-Question Contract
+
+1. Interaction title
+Dataset AI Retail suggested-question contract.
+
+2. What was the user goal
+Fix the Dataset AI Assistant so every shown retail or inventory suggested question has a valid answer path, with core retail KPI questions answered deterministically instead of falling through to unavailable cloud providers.
+
+3. What changed
+The semantic schema maps explicit retail inventory concepts for stock on hand, units sold, reorder point, unit cost, and supplier. Dataset AI answers retail inventory questions through deterministic handlers for top products, low stock, dead stock, inventory valuation, reorder recommendations, product margins, supplier exposure, revenue trends, slow movers, inventory cash-flow risk, category gross profit, merchandising actions, stock coverage, and turnover. The suggestion generator uses a new cache version and filters generated and fallback candidates through deterministic answer capability before returning them. Regression tests cover all twelve retail suggested questions, the production dead-stock wording, missing unit-cost valuation refusal, and unsupported suggestion exclusion.
+
+4. Problems marked
+blocker: none.
+risk: provider-answerable interpretive suggestions remain intentionally conservative because this route cannot prove provider availability during suggestion generation.
+improvement: keep future retail suggested-question wording tied to deterministic capability checks before adding it to contextual lists.
+observation: retail fallback suggestions previously bypassed every capability check except gross margin.
+
+5. User learning
+Dataset AI suggested questions are a contract: a shown question must calculate deterministically from mapped data or stay out of the suggestion list.
+
+6. AI-agent learning
+Retail inventory chat answers must use semantic mappings for stock, movement, reorder points, costs, products, suppliers, categories, and dates; arbitrary numeric columns are not valid substitutes.
+
+7. Follow-up tasks
+- T-1040. Dataset AI retail and inventory suggested questions return deterministic answers or missing-evidence responses without provider routing.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; completed work queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

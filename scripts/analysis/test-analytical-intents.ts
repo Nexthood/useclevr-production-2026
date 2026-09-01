@@ -175,7 +175,8 @@ assert.match(datasetChatRoute, /providerName: "Not required"/, "direct analysis 
 assert.match(datasetChatRoute, /and\(eq\(datasets\.id, parsed\.datasetId\), eq\(datasets\.userId, userId\)\)/, "dataset access is scoped to selected dataset ID and user");
 
 const suggestionsRoute = readFileSync(join(repoRoot, "src", "app", "api", "suggestions", "generate", "route.ts"), "utf8");
-assert.match(suggestionsRoute, /suggestions_dataset_v3_\$\{datasetId\}/, "suggestion cache key includes dataset ID and semantic version");
+assert.match(suggestionsRoute, /suggestions_dataset_v4_\$\{datasetId\}/, "suggestion cache key includes dataset ID and semantic version");
 assert.match(suggestionsRoute, /availableAnalyticalSuggestions/, "suggestions are filtered by semantic metrics");
+assert.match(suggestionsRoute, /canAnswerDatasetSuggestionDeterministically/, "suggestions are filtered by deterministic answer capability");
 
 process.stdout.write("ok - analytical intent registry and gross margin fixtures\n");

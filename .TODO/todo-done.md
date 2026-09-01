@@ -603,6 +603,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1040. Dataset AI retail and inventory suggested questions return deterministic answers or missing-evidence responses without provider routing. (labels: ai, data, testing; commit: worktree)
 - T-890. Add a Bring Your Own AI provider connector with encrypted OpenAI-compatible provider storage, connection testing, Account settings controls, and analysis fallback routing. (labels: ai, ui, security, api; commit: worktree)
 - T-723. Enhance local AI and mock AI documentation with router priority, mock guard logic, endpoint coverage, and local bridge details. (labels: ai, docs; commit: worktree)
 - T-724. Extend sales planning with stage gate reviews, product focus quality criteria, sales tolerances, and lessons integration. (labels: sales, docs; commit: worktree)
