@@ -87,6 +87,15 @@ assert.match(datasetAssistantSource, /\/api\/hybrid-ai\/dataset-chat/, "Dataset 
 assert.match(datasetAssistantSource, /retryQuestion/, "Dataset AI preserves failed questions for retry");
 assert.match(datasetAssistantSource, /Retry/, "Dataset AI renders a retry action");
 assert.match(datasetAssistantSource, /Dataset assistant issue/, "Dataset AI renders a specific error title");
+assert.doesNotMatch(datasetAssistantSource, /window\.(prompt|confirm|alert)/, "Dataset AI Human Control edit does not use browser dialogs");
+assert.match(datasetAssistantSource, /<Dialog open=\{Boolean\(responseEditor\)\}/, "Dataset AI Human Control edit opens a real dialog");
+assert.match(datasetAssistantSource, /Edit AI response/, "Dataset AI edit dialog uses the approved title");
+assert.match(datasetAssistantSource, /Review and edit this response before saving it\./, "Dataset AI edit dialog uses the approved helper text");
+assert.match(datasetAssistantSource, /<textarea[\s\S]*value=\{responseEditor\?\.draft \?\? ""\}/, "Dataset AI edit dialog preloads the complete editable response");
+assert.match(datasetAssistantSource, /originalValue: responseEditor\.message\.content[\s\S]*editedValue: responseEditor\.draft/, "Dataset AI edit save sends original and edited values to the override API");
+assert.match(datasetAssistantSource, /setMessages\(\(current\) => current\.map/, "Dataset AI edit save updates the displayed assistant message");
+assert.match(datasetAssistantSource, /setOverrideMap\(\(prev\) => \(\{ \.\.\.prev, \[editedMessageId\]: "edit" \}\)\)/, "Dataset AI marks Human Control Edit only after save");
+assert.match(datasetAssistantSource, /disabled=\{savingResponseEdit \|\| !responseEditor\?\.draft\.trim\(\)\}/, "Dataset AI disables Save during empty or saving edit states");
 assert.match(datasetAssistantSource, /PROVIDER_TIMEOUT/, "Dataset AI classifies timeout errors");
 assert.match(datasetAssistantSource, /PROVIDER_MISSING/, "Dataset AI classifies missing provider errors");
 assert.match(datasetAssistantSource, /INVALID_PROVIDER_RESPONSE/, "Dataset AI classifies invalid provider responses");

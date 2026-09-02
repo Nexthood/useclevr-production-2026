@@ -125,6 +125,7 @@ Text rules for this file:
 - Keep Dataset AI Assistant state, selected dataset routing, retry behavior, and dataset-grounded conversation separate from the Usy floating product assistant.
 - Show classified Dataset AI Assistant failure states for no dataset selected, missing dataset, unauthorized request, empty dataset, provider unavailable, provider timeout, missing provider configuration, invalid provider response, network interruption, and internal failure.
 - Preserve the failed Dataset AI Assistant question and show one retry action for the corresponding response state.
+- Let AI Assistant users edit Human Control responses in a centered multiline dialog; save confirmed non-empty edits through override tracking; keep canceled edits and failed-save drafts from replacing the displayed answer.
 - Log Dataset AI Assistant request diagnostics with request ID, dataset ID, dataset type, tenant, user ID, provider, model, processing stage, duration, HTTP status, and sanitized error only.
 - Map uploaded dataset columns to canonical business fields with normalized names, confidence values, original column references, ambiguity handling, and dataset-scoped schema state.
 - Calculate gross margin deterministically from revenue plus COGS, revenue plus validated gross profit, or validated gross margin fields.

@@ -1,3 +1,38 @@
+## AI Assistant Human Control Response Editor
+
+1. Interaction title
+Replace AI Assistant Human Control edit prompt with a response editor dialog.
+
+2. What was the user goal
+Remove the browser prompt from Human Control Edit and provide a UseClevr-styled modal for reviewing and editing long AI responses before an override is saved.
+
+3. What changed
+The AI Assistant opens a centered dark/glass dialog with title, helper text, accessible multiline textarea, Cancel, and Save changes controls. Opening Edit does not record an override. Save changes requires non-empty text, sends the original and edited values to the override API, updates the displayed assistant message after persistence, preserves message metadata, and marks Human Control state as Edit only after successful save. Persistence failure leaves the dialog open with the draft and inline error.
+
+4. Problems marked
+blocker: none.
+risk: no browser-run visual smoke test runs in this session, so responsive layout verification is covered by code review and static assertions.
+improvement: add a browser interaction test for the AI Assistant Human Control edit modal when the app has a stable test fixture for authenticated assistant sessions.
+observation: the previous edit path used a blocking browser prompt and updated the override state before the user confirmed an edit.
+
+5. User learning
+Human Control Edit now behaves like an intentional review step: Cancel discards the draft, and Save changes is the only path that records an edit override.
+
+6. AI-agent learning
+Governance controls that collect user-edited AI text must defer override state changes until persistence succeeds, especially when users can cancel or retry failed saves.
+
+7. Follow-up tasks
+- Add a browser interaction test for the AI Assistant Human Control edit modal when authenticated assistant fixtures are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Production Sign-Up Profile Schema Failure
 
 1. Interaction title
