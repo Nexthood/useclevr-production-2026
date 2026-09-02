@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dataset not found" }, { status: 404 })
     }
 
-    const datasetKey = `suggestions_dataset_v4_${datasetId}`
+    const datasetKey = `suggestions_dataset_v5_${datasetId}`
     const [cached] = await db
       .select()
       .from(appSettings)

@@ -101,19 +101,7 @@ type HistoryEntry = {
 
 const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
 const GHOST_MODE_NOTICE_KEY = "useclevr_ghost_mode_notice_seen"
-
-const FALLBACK_SUGGESTIONS = [
-  "What are the key insights in this dataset?",
-  "What are the top 10 records by value?",
-  "Which categories perform best?",
-  "What trends appear over time?",
-  "Where are values unusually high or low?",
-  "What data quality issues should be reviewed?",
-  "Which segments need attention?",
-  "What risks does this data reveal?",
-  "What actions should I take next?",
-  "What should I compare against the previous period?",
-]
+const SUGGESTION_CLIENT_CACHE_VERSION = "v5"
 
 function buildWelcomeMessage(): AssistantMessage {
   return {
@@ -577,8 +565,9 @@ export function AiAssistantWorkspace() {
 
   async function generateSuggestions(force = false) {
     if (!selectedDatasetId || isGeneratingSuggestions) return
-    if (!force && suggestionsByDataset[selectedDatasetId]?.length) {
-      setSavedSuggestions(suggestionsByDataset[selectedDatasetId])
+    const suggestionCacheKey = `${SUGGESTION_CLIENT_CACHE_VERSION}:${selectedDatasetId}`
+    if (!force && suggestionsByDataset[suggestionCacheKey]?.length) {
+      setSavedSuggestions(suggestionsByDataset[suggestionCacheKey])
       return
     }
     setIsGeneratingSuggestions(true)
@@ -591,31 +580,19 @@ export function AiAssistantWorkspace() {
       if (response.ok) {
         const body = await response.json()
         const nextSuggestions = Array.isArray(body.suggestions) ? body.suggestions : []
-        const usableSuggestions = nextSuggestions.length > 0
-          ? nextSuggestions
-          : FALLBACK_SUGGESTIONS.map((text, index) => ({
-              id: `fallback-${selectedDatasetId}-${index}`,
-              text,
-              createdAt: new Date().toISOString(),
-            }))
-        setSavedSuggestions(usableSuggestions)
+        setSavedSuggestions(nextSuggestions)
         setSuggestionsByDataset((current) => ({
           ...current,
-          [selectedDatasetId]: usableSuggestions,
+          [suggestionCacheKey]: nextSuggestions,
         }))
       } else {
         throw new Error("Suggestion generation failed")
       }
     } catch {
-      const fallbackSuggestions = FALLBACK_SUGGESTIONS.map((text, index) => ({
-        id: `fallback-${selectedDatasetId}-${index}`,
-        text,
-        createdAt: new Date().toISOString(),
-      }))
-      setSavedSuggestions(fallbackSuggestions)
+      setSavedSuggestions([])
       setSuggestionsByDataset((current) => ({
         ...current,
-        [selectedDatasetId]: fallbackSuggestions,
+        [suggestionCacheKey]: [],
       }))
     }
     finally { setIsGeneratingSuggestions(false) }
@@ -627,7 +604,7 @@ export function AiAssistantWorkspace() {
       return
     }
 
-    const cached = suggestionsByDataset[selectedDatasetId]
+    const cached = suggestionsByDataset[`${SUGGESTION_CLIENT_CACHE_VERSION}:${selectedDatasetId}`]
     if (cached?.length) {
       setSavedSuggestions(cached)
       return
@@ -1118,7 +1095,7 @@ export function AiAssistantWorkspace() {
                       </div>
                     ) : allSuggestionsCombined.length === 0 ? (
                       <p className="px-1 py-2 text-xs text-muted-foreground">
-                        {selectedDatasetId ? "Preparing fallback suggestions..." : "Select a dataset to see suggestions"}
+                        {selectedDatasetId ? "No supported suggested questions are available for this dataset yet. You can still ask a question below." : "Select a dataset to see suggestions"}
                       </p>
                     ) : (
                       allSuggestionsCombined.map((question, index) => (

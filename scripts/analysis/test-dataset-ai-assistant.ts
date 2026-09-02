@@ -9,6 +9,12 @@ import {
 } from "../../src/lib/data/dataset-assistant-deterministic";
 import { answerPrebookkeepingQuestionDeterministically } from "../../src/lib/accountancy/prebookkeeping-ai-assistant";
 import type { PrebookkeepingCategorization } from "../../src/lib/accountancy/prebookkeeping-categorization";
+import { availableAnalyticalSuggestions } from "../../src/lib/data/analytical-intents";
+import {
+  buildDatasetIntelligence,
+  fallbackSuggestionsForDatasetType,
+  generateSuggestions,
+} from "../../src/lib/data/dataset-intelligence";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..", "..");
@@ -96,6 +102,10 @@ assert.match(datasetAssistantSource, /originalValue: responseEditor\.message\.co
 assert.match(datasetAssistantSource, /setMessages\(\(current\) => current\.map/, "Dataset AI edit save updates the displayed assistant message");
 assert.match(datasetAssistantSource, /setOverrideMap\(\(prev\) => \(\{ \.\.\.prev, \[editedMessageId\]: "edit" \}\)\)/, "Dataset AI marks Human Control Edit only after save");
 assert.match(datasetAssistantSource, /disabled=\{savingResponseEdit \|\| !responseEditor\?\.draft\.trim\(\)\}/, "Dataset AI disables Save during empty or saving edit states");
+assert.doesNotMatch(datasetAssistantSource, /fallback-\$\{selectedDatasetId\}/, "Selected-dataset suggestions do not use client-side generic fallback buttons");
+assert.match(datasetAssistantSource, /SUGGESTION_CLIENT_CACHE_VERSION = "v5"/, "Selected-dataset suggestion memory cache uses the current semantic cache version");
+assert.match(datasetAssistantSource, /SUGGESTION_CLIENT_CACHE_VERSION\}:\$\{selectedDatasetId\}/, "Selected-dataset suggestion memory cache is dataset-specific and semantic-version-specific");
+assert.match(datasetAssistantSource, /No supported suggested questions are available for this dataset yet\. You can still ask a question below\./, "Selected-dataset suggestions show a neutral empty state when the server returns no supported questions");
 assert.match(datasetAssistantSource, /PROVIDER_TIMEOUT/, "Dataset AI classifies timeout errors");
 assert.match(datasetAssistantSource, /PROVIDER_MISSING/, "Dataset AI classifies missing provider errors");
 assert.match(datasetAssistantSource, /INVALID_PROVIDER_RESPONSE/, "Dataset AI classifies invalid provider responses");
@@ -410,6 +420,97 @@ assert.equal(canAnswerDatasetSuggestionDeterministically({
   rows: retailInventoryRows,
 }), true, "supported dead-stock question is allowed as a suggestion");
 
+const mrrMovementRows = buildMrrMovementRows();
+const mrrMovementColumns = Object.keys(mrrMovementRows[0] ?? {});
+const mrrMovementSuggestions = [
+  ...new Set([
+    ...availableAnalyticalSuggestions({
+      datasetId: "fixture:saas-mrr-movement",
+      datasetType: "SaaS",
+      columns: mrrMovementColumns,
+      rows: mrrMovementRows,
+    }),
+    ...generateSuggestions(buildDatasetIntelligence(mrrMovementRows), "saas_subscription_mrr_movements_test"),
+    ...fallbackSuggestionsForDatasetType("SaaS"),
+  ]),
+].filter((question) => canAnswerDatasetSuggestionDeterministically({
+  question,
+  datasetId: "fixture:saas-mrr-movement",
+  datasetType: "SaaS",
+  columns: mrrMovementColumns,
+  rows: mrrMovementRows,
+})).slice(0, 12);
+
+assert.ok(mrrMovementSuggestions.length >= 9, "SaaS MRR movement fixture returns a useful deterministic suggestion set");
+for (const expectedQuestion of [
+  "What is the current MRR?",
+  "What changed in MRR across the available periods?",
+  "What is the current ARR?",
+  "How much New MRR is in the data?",
+  "How much Expansion MRR is in the data?",
+  "How much Contraction MRR is in the data?",
+  "How much Churned MRR is in the data?",
+  "What is the net MRR movement?",
+  "How many active customers are represented?",
+]) {
+  assert.ok(mrrMovementSuggestions.includes(expectedQuestion), `${expectedQuestion} is shown for the SaaS MRR movement fixture`);
+}
+for (const invalidGenericQuestion of [
+  "What risks does this data reveal?",
+  "Which segments need attention?",
+  "What actions should I take next?",
+  "What should I compare against the previous period?",
+]) {
+  assert.ok(!mrrMovementSuggestions.includes(invalidGenericQuestion), `${invalidGenericQuestion} is not shown as a stale generic fallback`);
+}
+for (const question of mrrMovementSuggestions) {
+  const answer = answerDatasetQuestionDeterministically({
+    question,
+    datasetId: "fixture:saas-mrr-movement",
+    datasetType: "SaaS",
+    columns: mrrMovementColumns,
+    rows: mrrMovementRows,
+  });
+  assert.ok(answer, `${question} receives a deterministic SaaS answer`);
+  assert.match(String(answer.result.intent), /^saas\./, `${question} uses the SaaS deterministic route`);
+  assert.equal(answer.result.status, "success", `${question} has sufficient SaaS fixture evidence`);
+  assert.doesNotMatch(answer.answer, /PROVIDER_UNAVAILABLE|AI_PROVIDER_ERROR|unsupported_question|provider route is unavailable/i, `${question} does not fail through provider routing`);
+  assert.match(answer.answer, /no provider-generated values|works without any cloud AI provider|without any cloud AI provider|no provider interpretation|no provider-generated values/i, `${question} states direct data analysis`);
+}
+
+const mrrAnswer = answerDatasetQuestionDeterministically({
+  question: "What is the current MRR?",
+  datasetId: "fixture:saas-mrr-movement",
+  datasetType: "SaaS",
+  columns: mrrMovementColumns,
+  rows: mrrMovementRows,
+});
+assert.ok(mrrAnswer, "current MRR question receives a deterministic SaaS answer");
+assert.match(mrrAnswer.answer, /\$372,136/, "current MRR answer uses latest-period active MRR-after values");
+
+const arrAnswer = answerDatasetQuestionDeterministically({
+  question: "What is the current ARR?",
+  datasetId: "fixture:saas-mrr-movement",
+  datasetType: "SaaS",
+  columns: mrrMovementColumns,
+  rows: mrrMovementRows,
+});
+assert.ok(arrAnswer, "current ARR question receives a deterministic SaaS answer");
+assert.match(arrAnswer.answer, /\$4,465,632/, "current ARR answer annualizes validated MRR");
+
+const planMissingRows = mrrMovementRows.map(({ plan: _plan, ...row }) => row);
+const missingPlanAnswer = answerDatasetQuestionDeterministically({
+  question: "Which plans generate the most recurring revenue?",
+  datasetId: "fixture:saas-mrr-missing-plan",
+  datasetType: "SaaS",
+  columns: Object.keys(planMissingRows[0] ?? {}),
+  rows: planMissingRows,
+});
+assert.ok(missingPlanAnswer, "missing-plan SaaS question receives a deterministic missing-evidence answer");
+assert.equal(missingPlanAnswer.result.status, "missing_evidence");
+assert.match(missingPlanAnswer.answer, /Plan-level recurring revenue is unavailable because no validated plan field was found in this dataset\./);
+assert.doesNotMatch(missingPlanAnswer.answer, /provider route|Gemini|AI_PROVIDER_ERROR|PROVIDER_UNAVAILABLE/i, "missing-plan answer does not route to a provider");
+
 process.stdout.write("ok - dataset AI assistant deterministic responses and Usy isolation\n");
 
 function parseFixtureCsv(fileName: string) {
@@ -534,4 +635,37 @@ function prebookkeepingFixture(
     transactions,
     thresholdConfig: { autoReview: 0.95, suggestedReview: 0.8, manualReview: 0 },
   };
+}
+
+function buildMrrMovementRows() {
+  const rows: Record<string, string | number>[] = [
+    { month: "2025-11-01", event_date: "2025-11-01", customer_id: "cus_previous", customer_name: "Previous Customer", industry: "Software", region: "EMEA", plan: "Pro", seats_before: 7, seats_after: 7, movement_type: "no_change", mrr_before: 2100, mrr_after: 2100, mrr_delta: 0, currency: "USD", signup_date: "2024-01-10", customer_status: "active" },
+    { month: "2025-12-01", event_date: "2025-12-02", customer_id: "cus_new", customer_name: "New Customer", industry: "Software", region: "North America", plan: "Business", seats_before: 0, seats_after: 12, movement_type: "new", mrr_before: 0, mrr_after: 3361, mrr_delta: 3361, currency: "USD", signup_date: "2025-12-02", customer_status: "active" },
+    { month: "2025-12-01", event_date: "2025-12-03", customer_id: "cus_expansion", customer_name: "Expansion Customer", industry: "Healthcare", region: "EMEA", plan: "Enterprise", seats_before: 35, seats_after: 48, movement_type: "expansion", mrr_before: 10000, mrr_after: 15248, mrr_delta: 5248, currency: "USD", signup_date: "2024-03-15", customer_status: "active" },
+    { month: "2025-12-01", event_date: "2025-12-04", customer_id: "cus_contraction", customer_name: "Contraction Customer", industry: "Finance", region: "APAC", plan: "Pro", seats_before: 20, seats_after: 16, movement_type: "contraction", mrr_before: 6219, mrr_after: 5000, mrr_delta: -1219, currency: "USD", signup_date: "2024-06-20", customer_status: "active" },
+    { month: "2025-12-01", event_date: "2025-12-05", customer_id: "cus_churn", customer_name: "Churn Customer", industry: "Retail", region: "North America", plan: "Starter", seats_before: 3, seats_after: 0, movement_type: "churn", mrr_before: 643, mrr_after: 0, mrr_delta: -643, currency: "USD", signup_date: "2025-01-12", customer_status: "churned" },
+  ];
+  for (let index = 0; index < 120; index += 1) {
+    const mrrAfter = index === 119 ? 3427 : 2900;
+    rows.push({
+      month: "2025-12-01",
+      event_date: "2025-12-06",
+      customer_id: `cus_no_change_${index + 1}`,
+      customer_name: `No Change Customer ${index + 1}`,
+      industry: index % 2 === 0 ? "Software" : "Services",
+      region: index % 3 === 0 ? "EMEA" : "North America",
+      plan: index % 4 === 0 ? "Enterprise" : "Business",
+      seats_before: 10,
+      seats_after: 10,
+      movement_type: "no_change",
+      mrr_before: mrrAfter,
+      mrr_after: mrrAfter,
+      mrr_delta: 0,
+      currency: "USD",
+      signup_date: "2024-02-01",
+      customer_status: "active",
+    });
+  }
+  rows.push({ month: "2025-12-01", event_date: "2025-12-01", customer_id: "cus_expansion", customer_name: "Expansion Customer", industry: "Healthcare", region: "EMEA", plan: "Enterprise", seats_before: 35, seats_after: 35, movement_type: "no_change", mrr_before: 10000, mrr_after: 10000, mrr_delta: 0, currency: "USD", signup_date: "2024-03-15", customer_status: "active" });
+  return rows;
 }

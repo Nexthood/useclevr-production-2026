@@ -257,6 +257,36 @@ export interface SaasSemanticResolution {
   explanation: string;
 }
 
+export type SaasAssistantSummaryRow = {
+  label: string;
+  value: number;
+  sharePct?: number;
+  rows?: number;
+  sourceColumns: string[];
+};
+
+export type SaasAssistantPeriodRow = {
+  period: string;
+  mrr: number | null;
+  netMovement: number | null;
+  activeCustomers: number | null;
+  rows: number;
+};
+
+export type SaasAssistantSummary = {
+  profile: SaasProfileId;
+  confidence: number;
+  mappings: Partial<Record<SaasCanonicalConcept, string>>;
+  metrics: Record<string, SaasResolvedMetric>;
+  suggestedQuestions: string[];
+  latestPeriod: string | null;
+  periodRows: SaasAssistantPeriodRow[];
+  planRows: SaasAssistantSummaryRow[];
+  customerRows: SaasAssistantSummaryRow[];
+  movementRows: SaasAssistantSummaryRow[];
+  dataGaps: string[];
+};
+
 export interface DynamicKpi {
   id: string;
   title: string;
@@ -1039,14 +1069,153 @@ function evaluateSaasPeriodComparability(rows: Record<string, unknown>[], period
 function buildSaasSuggestedQuestions(capabilities: SaasCapabilityId[]) {
   const has = (capability: SaasCapabilityId) => capabilities.includes(capability);
   const questions: string[] = [];
+  if (has("mrr_analysis")) questions.push("What is the current MRR?");
   if (has("mrr_analysis")) questions.push("What changed in MRR across the available periods?");
+  if (has("arr_analysis")) questions.push("What is the current ARR?");
+  if (has("mrr_analysis")) questions.push("How much New MRR is in the data?");
+  if (has("mrr_analysis")) questions.push("How much Expansion MRR is in the data?");
+  if (has("mrr_analysis")) questions.push("How much Contraction MRR is in the data?");
+  if (has("churn_analysis")) questions.push("How much Churned MRR is in the data?");
+  if (has("mrr_analysis")) questions.push("What is the net MRR movement?");
+  if (has("customer_analysis")) questions.push("How many active customers are represented?");
   if (has("plan_performance")) questions.push("Which plan contributes the most SaaS revenue or users?");
+  if (has("customer_analysis") && has("mrr_analysis")) questions.push("Which customers or accounts are highest value?");
   if (has("unit_economics")) questions.push("How does revenue per user compare across the dataset?");
   if (has("churn_analysis")) questions.push("What churn signal is visible in the source data?");
   if (has("cash_analysis") || has("burn_analysis") || has("runway_analysis")) questions.push("What does the cash, burn, and runway data show?");
   if (has("geography_analysis")) questions.push("Which country or region performs best?");
   if (questions.length === 0) questions.push("Which SaaS fields are available and which metrics need additional source data?");
-  return questions.slice(0, 6);
+  return questions.slice(0, 12);
+}
+
+export function buildSaasAssistantSummary(input: Pick<DatasetIntelligenceEngineInput, "rows" | "columns" | "fileName">): SaasAssistantSummary {
+  const rows = input.rows.filter((row) => row && typeof row === "object" && !Array.isArray(row));
+  const columns = input.columns?.length ? input.columns : getColumns({ rows, columns: input.columns });
+  const saas = resolveSaasSemanticProfile({ rows, columns, fileName: input.fileName });
+  const sourceRows = latestRowsByPeriod(rows, saas.mappings.period);
+  const snapshotRows = saas.mappings.mrr_after
+    ? latestActiveRowsByCustomer(sourceRows, saas.mappings.customer_id, saas.mappings.subscription_status, saas.mappings.movement_event_date)
+    : sourceRows;
+  const valueColumn = saas.mappings.mrr_after || saas.mappings.mrr || saas.mappings.arr || saas.mappings.subscription_revenue || saas.mappings.revenue || saas.mappings.users;
+  const latestPeriod = saas.periodComparability.latestPeriod ?? latestRowsByPeriodKey(rows, saas.mappings.period);
+
+  return {
+    profile: saas.profile,
+    confidence: saas.confidence,
+    mappings: saas.mappings,
+    metrics: saas.metrics,
+    suggestedQuestions: saas.suggestedQuestions,
+    latestPeriod,
+    periodRows: summarizeSaasAssistantPeriods(rows, saas.mappings),
+    planRows: summarizeSaasAssistantDimension(snapshotRows, saas.mappings.plan, valueColumn),
+    customerRows: summarizeSaasAssistantDimension(snapshotRows, saas.mappings.customer_id, valueColumn, saas.mappings.company),
+    movementRows: summarizeSaasAssistantMovements(saas.metrics),
+    dataGaps: saas.dataGaps,
+  };
+}
+
+function summarizeSaasAssistantPeriods(rows: Record<string, unknown>[], mappings: Partial<Record<SaasCanonicalConcept, string>>): SaasAssistantPeriodRow[] {
+  const periodColumn = mappings.period;
+  if (!periodColumn) return [];
+  const periodKeys = Array.from(new Set(rows
+    .map((row) => normalizePeriodKey(row[periodColumn]))
+    .filter((value): value is string => Boolean(value))))
+    .sort();
+  return periodKeys.map((period) => {
+    const periodRows = rows.filter((row) => normalizePeriodKey(row[periodColumn]) === period);
+    const snapshotRows = mappings.mrr_after
+      ? latestActiveRowsByCustomer(periodRows, mappings.customer_id, mappings.subscription_status, mappings.movement_event_date)
+      : periodRows;
+    const mrrColumn = mappings.mrr_after || mappings.mrr;
+    const mrr = mrrColumn ? round(sumColumn(snapshotRows, mrrColumn)) : null;
+    const movement = aggregateMrrMovements(periodRows, mappings.movement_type, mappings.mrr_delta);
+    const netMovement = netMrrMovementValue(movement);
+    const activeCustomers = mappings.customer_id
+      ? uniqueCountFromRows(snapshotRows, mappings.customer_id)
+      : mappings.customer_count
+        ? round(sumColumn(periodRows, mappings.customer_count))
+        : null;
+    return {
+      period,
+      mrr,
+      netMovement,
+      activeCustomers,
+      rows: periodRows.length,
+    };
+  });
+}
+
+function summarizeSaasAssistantDimension(
+  rows: Record<string, unknown>[],
+  dimensionColumn: string | undefined,
+  valueColumn: string | undefined,
+  labelColumn?: string,
+): SaasAssistantSummaryRow[] {
+  if (!dimensionColumn || !valueColumn) return [];
+  const total = sumColumn(rows, valueColumn);
+  const groups = new Map<string, { value: number; rows: number; labels: Map<string, number> }>();
+  for (const row of rows) {
+    const key = String(row[dimensionColumn] ?? "").trim();
+    if (!key) continue;
+    const value = toNumber(row[valueColumn]) ?? 0;
+    const current = groups.get(key) ?? { value: 0, rows: 0, labels: new Map<string, number>() };
+    current.value += value;
+    current.rows += 1;
+    if (labelColumn) {
+      const label = String(row[labelColumn] ?? "").trim();
+      if (label) current.labels.set(label, (current.labels.get(label) ?? 0) + 1);
+    }
+    groups.set(key, current);
+  }
+  return Array.from(groups.entries())
+    .map(([key, value]) => {
+      const label = Array.from(value.labels.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || key;
+      return {
+        label,
+        value: round(value.value),
+        sharePct: total > 0 ? round((value.value / total) * 100) : 0,
+        rows: value.rows,
+        sourceColumns: [dimensionColumn, valueColumn, labelColumn].filter((column): column is string => Boolean(column)),
+      };
+    })
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+}
+
+function summarizeSaasAssistantMovements(metrics: Record<string, SaasResolvedMetric>): SaasAssistantSummaryRow[] {
+  return [
+    ["New MRR", metrics.new_mrr],
+    ["Expansion MRR", metrics.expansion_mrr],
+    ["Contraction MRR", metrics.contraction_mrr],
+    ["Churned MRR", metrics.churned_mrr],
+  ].flatMap(([label, metric]) => {
+    const item = metric as SaasResolvedMetric | undefined;
+    return item?.status === "available" && item.value !== null
+      ? [{ label: String(label), value: item.value, sourceColumns: item.sourceColumns }]
+      : [];
+  });
+}
+
+function latestRowsByPeriodKey(rows: Record<string, unknown>[], periodColumn?: string) {
+  if (!periodColumn) return null;
+  return rows
+    .map((row) => normalizePeriodKey(row[periodColumn]))
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1) ?? null;
+}
+
+function netMrrMovementValue(metrics: Partial<Record<"new_mrr" | "expansion_mrr" | "contraction_mrr" | "churned_mrr", SaasResolvedMetric>>) {
+  const newMrr = metricNumber(metrics.new_mrr);
+  const expansionMrr = metricNumber(metrics.expansion_mrr);
+  const contractionMrr = metricNumber(metrics.contraction_mrr);
+  const churnedMrr = metricNumber(metrics.churned_mrr);
+  if ([newMrr, expansionMrr, contractionMrr, churnedMrr].every((value) => value === null)) return null;
+  return round((newMrr ?? 0) + (expansionMrr ?? 0) - (contractionMrr ?? 0) - (churnedMrr ?? 0));
+}
+
+function metricNumber(metric?: SaasResolvedMetric) {
+  return metric?.status === "available" && metric.value !== null ? metric.value : null;
 }
 
 function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetection[] {

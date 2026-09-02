@@ -13,6 +13,10 @@ import {
   hasRetailInventoryDeterministicCapability,
   isRetailInventoryQuestion,
 } from "@/lib/data/retail-inventory-intents";
+import {
+  buildSaasAssistantSummary,
+  type SaasAssistantSummary,
+} from "@/lib/data/dataset-intelligence-engine";
 
 export type DatasetAssistantDeterministicResult = {
   status: "success";
@@ -70,6 +74,9 @@ export function answerDatasetQuestionDeterministically(
 
   const retailInventoryResult = answerRetailInventoryQuestionDeterministically(input);
   if (retailInventoryResult) return retailInventoryResult;
+
+  const saasResult = answerSaasQuestionDeterministically(input);
+  if (saasResult) return saasResult;
 
   const resolvedMetric = resolveQuestionMetric(input);
   if (resolvedMetric.status === "success") {
@@ -162,7 +169,407 @@ export function answerDatasetQuestionDeterministically(
 export function canAnswerDatasetSuggestionDeterministically(input: DatasetAssistantInput) {
   if (hasRetailInventoryDeterministicCapability(input)) return true;
   if (isRetailInventoryQuestion(input.question)) return false;
-  return resolveQuestionMetric(input).status === "success";
+  return answerDatasetQuestionDeterministically(input) !== null;
+}
+
+function answerSaasQuestionDeterministically(input: DatasetAssistantInput): DatasetAssistantDeterministicResult | null {
+  const summary = buildSaasAssistantSummary({
+    rows: input.rows,
+    columns: input.columns,
+  });
+  if (!hasSaasAssistantEvidence(summary) || !isSaasQuestion(input.question)) return null;
+
+  const question = input.question.toLowerCase();
+  const currencyCode = currencyCodeFromRows(input.rows, input.columns);
+
+  if (/field|available|additional source data|source data/.test(question) && /saas|metric|field|source data/.test(question)) {
+    return describeSaasAvailableFields(input, summary);
+  }
+  if (/changed|change|across|period|trend|growth/.test(question) && /\bmrr\b|recurring|subscription/.test(question)) {
+    return describeSaasMrrTrend(input, summary, currencyCode);
+  }
+  if (/net/.test(question) && /\bmrr\b/.test(question)) {
+    return describeSaasNetMrrMovement(input, summary, currencyCode);
+  }
+  if (/\bnew\s+mrr\b|new recurring/.test(question)) {
+    return describeSaasMetric(input, summary, "new_mrr", "New MRR", currencyCode);
+  }
+  if (/expansion\s+mrr|expansion recurring|upsell/.test(question)) {
+    return describeSaasMetric(input, summary, "expansion_mrr", "Expansion MRR", currencyCode);
+  }
+  if (/contraction\s+mrr|contraction recurring|downsell/.test(question)) {
+    return describeSaasMetric(input, summary, "contraction_mrr", "Contraction MRR", currencyCode);
+  }
+  if (/churned\s+mrr|churn\s+mrr/.test(question)) {
+    return describeSaasMetric(input, summary, "churned_mrr", "Churned MRR", currencyCode);
+  }
+  if (/\barr\b|annual recurring/.test(question)) {
+    return describeSaasMetric(input, summary, "arr", "ARR", currencyCode);
+  }
+  if (/\bmrr\b|monthly recurring|recurring revenue/.test(question) && /current|latest|total|what is|how much/.test(question)) {
+    return describeSaasMetric(input, summary, "mrr", "MRR", currencyCode);
+  }
+  if (/active customers|active accounts|how many.*customers|how many.*accounts|customers.*represented|accounts.*represented/.test(question)) {
+    return describeSaasActiveCustomers(input, summary);
+  }
+  if (/highest-value|highest value|top.*customer|top.*account|customer.*highest|account.*highest/.test(question)) {
+    return describeSaasCustomerRanking(input, summary, currencyCode);
+  }
+  if (/plan/.test(question)) {
+    return describeSaasPlanContribution(input, summary, currencyCode);
+  }
+  if (/churn|cancell/.test(question)) {
+    return describeSaasChurnSignal(input, summary, currencyCode);
+  }
+  if (/retention|cohort/.test(question)) {
+    return saasMissingEvidence(input, "SaaS retention or cohort analysis is unavailable because no validated retention or cohort field was found in this dataset.", ["retention or cohort field"], "retention_analysis");
+  }
+  if (/\bcac\b|customer acquisition/.test(question)) {
+    return describeSaasMetric(input, summary, "cac", "CAC", currencyCode);
+  }
+  if (/\bltv\b|lifetime value/.test(question)) {
+    return describeSaasMetric(input, summary, "ltv", "LTV", currencyCode);
+  }
+  if (/runway/.test(question)) {
+    return describeSaasMetric(input, summary, "runway", "Runway", null);
+  }
+  if (/burn/.test(question)) {
+    return describeSaasMetric(input, summary, "burn", "Burn", currencyCode);
+  }
+
+  return null;
+}
+
+function hasSaasAssistantEvidence(summary: SaasAssistantSummary) {
+  return summary.profile !== "generic_saas" || [
+    "mrr",
+    "mrr_after",
+    "mrr_delta",
+    "arr",
+    "movement_type",
+    "subscription_status",
+    "subscription_revenue",
+  ].some((concept) => Boolean(summary.mappings[concept as keyof typeof summary.mappings]));
+}
+
+function isSaasQuestion(question: string) {
+  return /\bsaas\b|\bmrr\b|\barr\b|recurring|subscription|churn|retention|cohort|\bcac\b|\bltv\b|runway|burn|plan|active customers|active accounts|customer.*account|highest-value|highest value|expansion|contraction|upsell|downsell/.test(question.toLowerCase());
+}
+
+function describeSaasMetric(
+  input: DatasetAssistantInput,
+  summary: SaasAssistantSummary,
+  metricId: string,
+  label: string,
+  currencyCode: string | null,
+): DatasetAssistantDeterministicResult {
+  const metric = summary.metrics[metricId];
+  if (!metric || metric.status !== "available" || metric.value === null) {
+    return saasMissingEvidence(input, missingSaasMetricMessage(metricId, label), missingSaasMetricFields(metricId), `saas.${metricId}`);
+  }
+  const formatted = metricId === "runway" ? `${formatNumber(metric.value)} months` : formatValue(metric.value, currencyCode);
+  const periodText = summary.latestPeriod ? ` for latest period ${summary.latestPeriod}` : "";
+  return {
+    status: "success",
+    answer: [
+      `Answer: Current ${label} is ${formatted}${periodText}.`,
+      `Evidence: ${metric.reason} Source column${metric.sourceColumns.length === 1 ? "" : "s"}: ${metric.sourceColumns.join(", ")}.`,
+      "Takeaway: This answer uses the selected dataset's SaaS semantic profile and no provider-generated values.",
+      nextSaasQuestion(label),
+    ].join("\n\n"),
+    insight: `Current ${label}: ${formatted}.`,
+    explanation: metric.reason,
+    recommendation: "Ask what changed in MRR across the available periods.",
+    data: [{ metric: label, value: round(metric.value), source: metric.sourceColumns.join(", ") }],
+    chartType: "kpi",
+    result: saasResult(input, summary, `saas.${metricId}`, {
+      metric: metricId,
+      value: round(metric.value),
+      sourceColumns: metric.sourceColumns,
+      latestPeriod: summary.latestPeriod,
+    }),
+  };
+}
+
+function describeSaasMrrTrend(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
+  const periods = summary.periodRows.filter((row) => row.mrr !== null);
+  if (periods.length < 2) {
+    return saasMissingEvidence(input, "MRR movement over time is unavailable because this dataset does not contain at least two periods with validated MRR or MRR-after values.", ["period plus MRR or MRR-after"], "saas.mrr_trend");
+  }
+  const previous = periods.at(-2);
+  const current = periods.at(-1);
+  if (!previous || !current || previous.mrr === null || current.mrr === null) {
+    return saasMissingEvidence(input, "MRR movement over time is unavailable because current and previous period MRR values could not both be calculated.", ["two valid MRR periods"], "saas.mrr_trend");
+  }
+  const change = current.mrr - previous.mrr;
+  const changePct = previous.mrr === 0 ? null : (change / previous.mrr) * 100;
+  return {
+    status: "success",
+    answer: [
+      `Answer: MRR changed from ${formatValue(previous.mrr, currencyCode)} in ${previous.period} to ${formatValue(current.mrr, currencyCode)} in ${current.period}, a ${change >= 0 ? "gain" : "decline"} of ${formatValue(Math.abs(change), currencyCode)}${changePct === null ? "" : ` (${formatSignedPercent(changePct)})`}.`,
+      "Evidence: MRR uses the Dataset Intelligence Engine SaaS mapping for source MRR or latest-period active MRR-after values.",
+      "Takeaway: This is a direct SaaS calculation and works without any cloud AI provider.",
+      "Next question: Ask for New MRR, Expansion MRR, Contraction MRR, or Churned MRR to inspect the movement components.",
+    ].join("\n\n"),
+    insight: `Latest MRR is ${formatValue(current.mrr, currencyCode)}.`,
+    explanation: "Grouped source rows by validated SaaS period and calculated MRR from recurring-revenue semantics.",
+    recommendation: "Review movement components to explain the period change.",
+    data: periods.map((period) => ({
+      period: period.period,
+      mrr: period.mrr,
+      netMovement: period.netMovement,
+      activeCustomers: period.activeCustomers,
+      rows: period.rows,
+    })),
+    chartType: "table",
+    result: saasResult(input, summary, "saas.mrr_trend", { periods, latestChange: round(change), latestChangePct: changePct === null ? null : round(changePct, 1) }),
+  };
+}
+
+function describeSaasNetMrrMovement(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
+  const movement = movementMetricValues(summary);
+  if (Object.values(movement).every((value) => value === null)) {
+    return saasMissingEvidence(input, "Net MRR movement is unavailable because no validated movement type plus MRR delta fields were found in this dataset.", ["movement_type plus mrr_delta"], "saas.net_mrr_movement");
+  }
+  const net = (movement.newMrr ?? 0) + (movement.expansionMrr ?? 0) - (movement.contractionMrr ?? 0) - (movement.churnedMrr ?? 0);
+  return {
+    status: "success",
+    answer: [
+      `Answer: Net MRR movement is ${formatValue(net, currencyCode)}.`,
+      `Evidence: New MRR ${formatValue(movement.newMrr ?? 0, currencyCode)} + Expansion MRR ${formatValue(movement.expansionMrr ?? 0, currencyCode)} - Contraction MRR ${formatValue(movement.contractionMrr ?? 0, currencyCode)} - Churned MRR ${formatValue(movement.churnedMrr ?? 0, currencyCode)}.`,
+      "Takeaway: This calculation uses movement rows only; no provider-generated values were used.",
+      "Next question: Ask which movement component changed most.",
+    ].join("\n\n"),
+    insight: `Net MRR movement: ${formatValue(net, currencyCode)}.`,
+    explanation: "Calculated from validated SaaS movement_type and mrr_delta fields.",
+    recommendation: "Inspect contraction and churned MRR first when net movement is under pressure.",
+    data: [
+      { metric: "New MRR", value: movement.newMrr ?? 0 },
+      { metric: "Expansion MRR", value: movement.expansionMrr ?? 0 },
+      { metric: "Contraction MRR", value: movement.contractionMrr ?? 0 },
+      { metric: "Churned MRR", value: movement.churnedMrr ?? 0 },
+      { metric: "Net MRR movement", value: round(net) },
+    ],
+    chartType: "table",
+    result: saasResult(input, summary, "saas.net_mrr_movement", { ...movement, netMrrMovement: round(net) }),
+  };
+}
+
+function describeSaasActiveCustomers(input: DatasetAssistantInput, summary: SaasAssistantSummary): DatasetAssistantDeterministicResult {
+  const customers = summary.metrics.customers;
+  if (!customers || customers.status !== "available" || customers.value === null) {
+    return saasMissingEvidence(input, "Active customer count is unavailable because no validated customer or account identifier was found in this dataset.", ["customer_id or customer_count"], "saas.active_customers");
+  }
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${formatNumber(customers.value)} active customers or accounts are represented${summary.latestPeriod ? ` in latest period ${summary.latestPeriod}` : ""}.`,
+      `Evidence: ${customers.reason} Source column${customers.sourceColumns.length === 1 ? "" : "s"}: ${customers.sourceColumns.join(", ")}.`,
+      "Takeaway: This count uses SaaS customer/account semantics, not row count as a proxy, and no provider-generated values were used.",
+      "Next question: Ask which customers or accounts are highest value.",
+    ].join("\n\n"),
+    insight: `${formatNumber(customers.value)} active customers represented.`,
+    explanation: customers.reason,
+    recommendation: "Ask which customers or accounts are highest value.",
+    data: [{ metric: "Active customers", value: customers.value, source: customers.sourceColumns.join(", ") }],
+    chartType: "kpi",
+    result: saasResult(input, summary, "saas.active_customers", { customers: customers.value, sourceColumns: customers.sourceColumns }),
+  };
+}
+
+function describeSaasCustomerRanking(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
+  if (!summary.mappings.customer_id) {
+    return saasMissingEvidence(input, "Highest-value customer analysis is unavailable because no validated customer or account identifier was found in this dataset.", ["customer_id"], "saas.customer_ranking");
+  }
+  if (summary.customerRows.length === 0) {
+    return saasMissingEvidence(input, "Highest-value customer analysis is unavailable because no validated customer/account value field was found in this dataset.", ["customer_id plus MRR, ARR, revenue, or users"], "saas.customer_ranking");
+  }
+  const top = summary.customerRows[0];
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${top.label} is the highest-value customer or account at ${formatValue(top.value, currencyCode)}.`,
+      `Evidence: Ranked latest SaaS customer/account rows using ${top.sourceColumns.join(", ")}.`,
+      "Takeaway: The ranking uses source customer/account identifiers and recurring-revenue semantics; no provider-generated values were used.",
+      "Next question: Ask which plan contributes the most SaaS revenue or users.",
+    ].join("\n\n"),
+    insight: `Highest-value account: ${top.label}.`,
+    explanation: "Grouped latest SaaS rows by customer/account and ranked by the selected recurring-revenue metric.",
+    recommendation: "Review concentration in the top accounts before planning expansion or churn actions.",
+    data: summary.customerRows.map((row) => ({ account: row.label, value: row.value, sharePct: row.sharePct ?? null, rows: row.rows ?? null })),
+    chartType: "table",
+    result: saasResult(input, summary, "saas.customer_ranking", { rows: summary.customerRows }),
+  };
+}
+
+function describeSaasPlanContribution(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
+  if (!summary.mappings.plan) {
+    return saasMissingEvidence(input, "Plan-level recurring revenue is unavailable because no validated plan field was found in this dataset.", ["plan"], "saas.plan_contribution");
+  }
+  if (summary.planRows.length === 0) {
+    return saasMissingEvidence(input, "Plan-level recurring revenue is unavailable because no validated recurring revenue, MRR, ARR, or users field was found with the plan field.", ["plan plus MRR, ARR, recurring revenue, or users"], "saas.plan_contribution");
+  }
+  const top = summary.planRows[0];
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${top.label} contributes the most SaaS revenue or users at ${formatValue(top.value, currencyCode)}${top.sharePct === undefined ? "" : ` (${top.sharePct.toFixed(1)}% of the detected total)`}.`,
+      `Evidence: Grouped latest SaaS rows by plan using ${top.sourceColumns.join(", ")}.`,
+      "Takeaway: This answer uses the selected dataset's SaaS plan capability and no provider-generated values.",
+      "Next question: Ask what changed in MRR across the available periods.",
+    ].join("\n\n"),
+    insight: `Top SaaS plan: ${top.label}.`,
+    explanation: "Grouped latest SaaS rows by validated plan and compatible SaaS metric.",
+    recommendation: "Compare the top plan with churn and expansion movement before changing pricing or packaging.",
+    data: summary.planRows.map((row) => ({ plan: row.label, value: row.value, sharePct: row.sharePct ?? null, rows: row.rows ?? null })),
+    chartType: "table",
+    result: saasResult(input, summary, "saas.plan_contribution", { rows: summary.planRows }),
+  };
+}
+
+function describeSaasChurnSignal(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
+  const churnedMrr = summary.metrics.churned_mrr;
+  const churnRate = summary.metrics.churn_rate;
+  if ((churnedMrr?.status !== "available" || churnedMrr.value === null) && (churnRate?.status !== "available" || churnRate.value === null)) {
+    return saasMissingEvidence(input, "Churn signal is unavailable because no validated churn, cancellation, movement type, or churn-rate field was found in this dataset.", ["churn, movement_type, churned_customers, or churn_rate"], "saas.churn_signal");
+  }
+  const parts = [
+    churnedMrr?.status === "available" && churnedMrr.value !== null ? `Churned MRR is ${formatValue(churnedMrr.value, currencyCode)}` : null,
+    churnRate?.status === "available" && churnRate.value !== null ? `churn rate is ${formatSignedPercent(churnRate.value).replace(/^\+/, "")}` : null,
+  ].filter(Boolean);
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${parts.join(", ")}.`,
+      "Evidence: Churn uses validated SaaS churn, movement type, or churn-rate semantics from the Dataset Intelligence Engine.",
+      "Takeaway: This is a direct source-data signal, not a provider interpretation.",
+      "Next question: Ask for contraction MRR or highest-value accounts to identify where churn risk matters most.",
+    ].join("\n\n"),
+    insight: parts.join("; "),
+    explanation: "Calculated from validated SaaS churn semantics.",
+    recommendation: "Review churned MRR alongside contraction MRR and top-account concentration.",
+    data: [
+      ...(churnedMrr?.status === "available" && churnedMrr.value !== null ? [{ metric: "Churned MRR", value: churnedMrr.value }] : []),
+      ...(churnRate?.status === "available" && churnRate.value !== null ? [{ metric: "Churn Rate", value: churnRate.value }] : []),
+    ],
+    chartType: "table",
+    result: saasResult(input, summary, "saas.churn_signal", { churnedMrr: churnedMrr?.value ?? null, churnRate: churnRate?.value ?? null }),
+  };
+}
+
+function describeSaasAvailableFields(input: DatasetAssistantInput, summary: SaasAssistantSummary): DatasetAssistantDeterministicResult {
+  const mappings = Object.entries(summary.mappings).map(([concept, column]) => ({ concept, column: column ?? "" })).filter((row) => row.column);
+  return {
+    status: "success",
+    answer: [
+      `Answer: UseClevr found ${mappings.length.toLocaleString("en-US")} SaaS semantic field${mappings.length === 1 ? "" : "s"} in this dataset.`,
+      `Evidence: ${mappings.slice(0, 8).map((row) => `${row.concept} = ${row.column}`).join("; ")}${mappings.length > 8 ? "; ..." : ""}`,
+      `Takeaway: Available capabilities include ${summary.suggestedQuestions.length > 0 ? summary.suggestedQuestions.join("; ") : "basic SaaS field review"}. No provider-generated values were used.`,
+      `Next question: ${summary.suggestedQuestions[0] ?? "Ask what SaaS metric needs additional source data."}`,
+    ].join("\n\n"),
+    insight: `${mappings.length.toLocaleString("en-US")} SaaS fields are mapped.`,
+    explanation: "The Dataset Intelligence Engine resolved SaaS semantic mappings before answering.",
+    recommendation: summary.suggestedQuestions[0] ?? "Ask about a mapped SaaS metric.",
+    data: mappings,
+    chartType: "table",
+    result: saasResult(input, summary, "saas.available_fields", { mappings, dataGaps: summary.dataGaps }),
+  };
+}
+
+function saasMissingEvidence(input: DatasetAssistantInput, message: string, missingFields: string[], intent: string): DatasetAssistantDeterministicResult {
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${message}`,
+      `Evidence: Missing required source evidence: ${missingFields.join(", ")}.`,
+      "Takeaway: UseClevr will not route recognized SaaS metric gaps to a provider or fabricate values.",
+      "Next question: Ask about a SaaS metric backed by mapped source fields in this dataset.",
+    ].join("\n\n"),
+    insight: "Required SaaS source evidence is missing.",
+    explanation: "Direct data analysis recognized the SaaS question and refused the calculation because the required semantic fields are unavailable.",
+    recommendation: "Ask about a SaaS metric backed by mapped source fields in this dataset.",
+    data: missingFields.map((field) => ({ field, status: "missing" })),
+    chartType: "table",
+    result: {
+      intent,
+      status: "missing_evidence",
+      missingFields,
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+    },
+  };
+}
+
+function saasResult(input: DatasetAssistantInput, summary: SaasAssistantSummary, intent: string, extra: Record<string, unknown>) {
+  return {
+    intent,
+    status: "success",
+    confidence: summary.confidence,
+    datasetId: input.datasetId,
+    datasetType: input.datasetType,
+    profile: summary.profile,
+    mappings: summary.mappings,
+    ...extra,
+  };
+}
+
+function movementMetricValues(summary: SaasAssistantSummary) {
+  return {
+    newMrr: metricValue(summary, "new_mrr"),
+    expansionMrr: metricValue(summary, "expansion_mrr"),
+    contractionMrr: metricValue(summary, "contraction_mrr"),
+    churnedMrr: metricValue(summary, "churned_mrr"),
+  };
+}
+
+function metricValue(summary: SaasAssistantSummary, metricId: string) {
+  const metric = summary.metrics[metricId];
+  return metric?.status === "available" && metric.value !== null ? metric.value : null;
+}
+
+function missingSaasMetricMessage(metricId: string, label: string) {
+  const messages: Record<string, string> = {
+    mrr: "Current MRR is unavailable because no validated MRR or MRR-after field was found in this dataset.",
+    arr: "Current ARR is unavailable because no validated ARR field or annualizable MRR field was found in this dataset.",
+    new_mrr: "New MRR is unavailable because no validated movement type plus MRR delta fields were found in this dataset.",
+    expansion_mrr: "Expansion MRR is unavailable because no validated expansion MRR field or movement type plus MRR delta fields were found in this dataset.",
+    contraction_mrr: "Contraction MRR is unavailable because no validated contraction MRR field or movement type plus MRR delta fields were found in this dataset.",
+    churned_mrr: "Churned MRR is unavailable because no validated churn movement type plus MRR delta fields were found in this dataset.",
+    cac: "CAC is unavailable because no validated customer acquisition cost field was found in this dataset.",
+    ltv: "LTV is unavailable because no validated lifetime value field was found in this dataset.",
+    runway: "Runway is unavailable because no validated runway field was found in this dataset.",
+    burn: "Burn is unavailable because no validated burn field was found in this dataset.",
+  };
+  return messages[metricId] ?? `${label} is unavailable because the required validated SaaS source fields were not found in this dataset.`;
+}
+
+function missingSaasMetricFields(metricId: string) {
+  const fields: Record<string, string[]> = {
+    mrr: ["mrr or mrr_after"],
+    arr: ["arr or mrr"],
+    new_mrr: ["movement_type plus mrr_delta"],
+    expansion_mrr: ["expansion_mrr or movement_type plus mrr_delta"],
+    contraction_mrr: ["contraction_mrr or movement_type plus mrr_delta"],
+    churned_mrr: ["churn movement_type plus mrr_delta"],
+    cac: ["cac"],
+    ltv: ["ltv"],
+    runway: ["runway"],
+    burn: ["burn"],
+  };
+  return fields[metricId] ?? ["validated SaaS metric fields"];
+}
+
+function nextSaasQuestion(label: string) {
+  if (label === "MRR") return "Next question: Ask what changed in MRR across the available periods.";
+  if (label === "ARR") return "Next question: Ask how much New MRR, Expansion MRR, Contraction MRR, or Churned MRR is in the data.";
+  return "Next question: Ask for the net MRR movement.";
+}
+
+function currencyCodeFromRows(rows: Record<string, unknown>[], columns: string[]) {
+  const currencyColumn = columns.find((column) => /^currency$/i.test(column) || /currency_code/i.test(column));
+  if (!currencyColumn) return null;
+  const value = rows.map((row) => String(row[currencyColumn] ?? "").trim().toUpperCase()).find((item) => /^[A-Z]{3}$/.test(item));
+  return value ?? null;
 }
 
 function describeTransactionAnomalies(input: DatasetAssistantInput & {

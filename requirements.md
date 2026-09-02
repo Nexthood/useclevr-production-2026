@@ -112,6 +112,8 @@ Text rules for this file:
 - Resolve selected-dataset metric questions through deterministic calculations for revenue, average order value, average selling price, order count, customer count, revenue grouping, rankings, concentration, risk, trend, customer growth, forecast baselines, comparisons, and margin.
 - Resolve selected-dataset retail and inventory questions through deterministic calculations for top products, low stock, dead stock, inventory valuation, reorder recommendations, margin ranking, supplier exposure, revenue trends, slow-moving stock, inventory cash-flow risk, category gross profit, merchandising actions, stock coverage, and inventory turnover when validated source semantics provide the required fields.
 - Return deterministic missing-evidence answers for selected-dataset retail and inventory KPI questions when validated source fields are unavailable, and do not route those known KPI questions to a cloud provider.
+- Return deterministic SaaS MRR movement answers for current MRR, current ARR, MRR change by period, New MRR, Expansion MRR, Contraction MRR, Churned MRR, net MRR movement, active customers, top accounts, plan contribution, and churn signals when validated SaaS source fields are available.
+- Return deterministic missing-evidence answers for recognized SaaS metric questions when validated source fields are unavailable, including plan, churn, customer, cohort, retention, CAC, LTV, runway, burn, MRR, ARR, and movement fields.
 - Return a precise missing-data explanation when a requested metric lacks required validated columns, and do not replace the requested metric with a generic revenue summary.
 - Refuse selected-dataset expense calculations when no validated expense category, cost field, debit classification, or trusted expense mapping exists, and offer only alternatives supported by the detected dataset semantics.
 - Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
@@ -148,7 +150,8 @@ Text rules for this file:
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
 - Generate at least 10 contextual AI Assistant suggestions automatically after dataset selection by detecting retail, inventory, sales, finance, SaaS, or generic data from the dataset columns.
-- Cache AI Assistant suggestions per selected dataset and show fallback suggestions when generation fails.
+- Cache AI Assistant suggestions per selected dataset and semantic suggestion version; show selected-dataset suggestions only when the server verifies semantic capability and deterministic answer execution for the selected dataset.
+- Show a neutral empty state when selected-dataset suggestion generation returns no supported questions.
 - Keep AI answers within the uploaded dataset scope.
 - Show geographic dataset visualizations only when uploaded rows contain country, city, region, market, location, state, province, territory, area, or zone columns.
 - Show a professional dark BI world map with detected location nodes, restrained flow lines, compact metric cards, hover tooltips, and top-location summaries when geographic columns are available.

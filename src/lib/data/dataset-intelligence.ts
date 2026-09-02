@@ -332,6 +332,7 @@ export function generateSuggestions(intelligence: DatasetIntelligence, datasetNa
   const cols = intelligence.schema.columns;
   const numericCols = intelligence.metrics.numericColumns;
   const datasetType = detectDatasetTypeFromColumns(cols.map((column) => column.name), datasetName);
+  const semanticSaasSuggestions = intelligence.semanticMetadata.saas?.suggestedQuestions ?? [];
   
   // Get actual column names for different categories
   const regionCol = dims.geographicColumns[0] || 
@@ -403,7 +404,7 @@ export function generateSuggestions(intelligence: DatasetIntelligence, datasetNa
   suggestions.push(`How many rows are in this dataset?`);
   
   const contextualSuggestions = questionListForDatasetType(datasetType);
-  const uniqueSuggestions = [...new Set([...contextualSuggestions, ...suggestions])].slice(0, 12);
+  const uniqueSuggestions = [...new Set([...semanticSaasSuggestions, ...contextualSuggestions, ...suggestions])].slice(0, 12);
   
   return uniqueSuggestions;
 }

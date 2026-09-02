@@ -1,3 +1,38 @@
+## SaaS AI Assistant Deterministic Suggestion Routing
+
+1. Interaction title
+Fix SaaS MRR movement AI Assistant suggestions and deterministic answer routing.
+
+2. What was the user goal
+Ensure the selected-dataset AI Assistant shows SaaS MRR movement suggestions only when the selected dataset has a deterministic answer path, remove generic fallback leakage, invalidate stale suggestion caches, and preserve recent Retail behavior.
+
+3. What changed
+The suggestion route uses cache key `suggestions_dataset_v5_${datasetId}`. SaaS semantic suggestions from the Dataset Intelligence Engine are prioritized before broader generated suggestions and filtered through the canonical deterministic answer pipeline. The deterministic assistant now answers current MRR, current ARR, MRR changes by period, New MRR, Expansion MRR, Contraction MRR, Churned MRR, net MRR movement, active customers, top accounts, plan contribution, and churn signals from SaaS semantic mappings. Recognized SaaS questions with missing evidence return deterministic unavailable answers instead of provider routing. The client no longer creates generic fallback suggestions for selected datasets and shows a neutral empty state when the server returns none.
+
+4. Problems marked
+blocker: none.
+risk: `pnpm test:dataset-intelligence-engine` fails on an existing Marketplace dashboard KPI assertion outside this SaaS Assistant fix.
+improvement: add a browser-backed authenticated suggestion route test when stable assistant fixtures are available.
+observation: the previous selected-dataset sidebar could display generic prompts because the server returned zero deterministic suggestions and the client replaced that empty response with local generic fallback suggestions.
+
+5. User learning
+Selected-dataset suggestions now follow a hard contract: a shown SaaS suggestion has a deterministic answer path and does not require Gemini or another cloud provider to be available.
+
+6. AI-agent learning
+Suggestion eligibility must call the same deterministic answer pipeline that handles execution, otherwise semantic suggestion generation and answer routing drift apart.
+
+7. Follow-up tasks
+- Add a browser-backed authenticated suggestion route test when stable assistant fixtures are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## AI Assistant Human Control Response Editor
 
 1. Interaction title
