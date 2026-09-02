@@ -452,6 +452,7 @@ for (const expectedQuestion of [
   "How much Churned MRR is in the data?",
   "What is the net MRR movement?",
   "How many active customers are represented?",
+  "What churn signal is visible in the source data?",
 ]) {
   assert.ok(mrrMovementSuggestions.includes(expectedQuestion), `${expectedQuestion} is shown for the SaaS MRR movement fixture`);
 }
@@ -497,6 +498,37 @@ const arrAnswer = answerDatasetQuestionDeterministically({
 });
 assert.ok(arrAnswer, "current ARR question receives a deterministic SaaS answer");
 assert.match(arrAnswer.answer, /\$4,465,632/, "current ARR answer annualizes validated MRR");
+
+const churnSignalAnswer = answerDatasetQuestionDeterministically({
+  question: "What churn signal is visible in the source data?",
+  datasetId: "fixture:saas-mrr-movement",
+  datasetType: "SaaS",
+  columns: mrrMovementColumns,
+  rows: mrrMovementRows,
+});
+assert.ok(churnSignalAnswer, "churn-signal question receives a deterministic SaaS answer");
+assert.equal(churnSignalAnswer.result.intent, "saas.churn_signal");
+assert.equal(churnSignalAnswer.result.status, "success");
+assert.match(churnSignalAnswer.answer, /Churned MRR is \$643/, "churn-signal answer returns actual churned MRR");
+assert.match(churnSignalAnswer.answer, /Churn events: 1/, "churn-signal answer returns churn event evidence");
+assert.match(churnSignalAnswer.answer, /Customers affected: 1/, "churn-signal answer returns affected customer evidence");
+assert.match(churnSignalAnswer.answer, /Period with highest churn: 2025-12-01 \(\$643\)/, "churn-signal answer identifies the highest churn period");
+assert.match(churnSignalAnswer.answer, /Source fields: .*movement_type.*mrr_delta.*mrr_before.*mrr_after.*customer_id.*event_date.*customer_status/, "churn-signal answer lists validated source fields");
+assert.match(churnSignalAnswer.answer, /contraction is kept separate from full churn/i, "churn-signal answer does not label contraction as churn");
+assert.doesNotMatch(churnSignalAnswer.answer, /UseClevr found \d+ SaaS semantic fields/, "churn-signal answer does not fall back to the generic SaaS capability response");
+assert.doesNotMatch(churnSignalAnswer.answer, /PROVIDER_UNAVAILABLE|AI_PROVIDER_ERROR|unsupported_question|provider route is unavailable/i, "churn-signal answer does not fail through provider routing");
+
+const activeCustomersAnswer = answerDatasetQuestionDeterministically({
+  question: "How many active customers are represented?",
+  datasetId: "fixture:saas-mrr-movement",
+  datasetType: "SaaS",
+  columns: mrrMovementColumns,
+  rows: mrrMovementRows,
+});
+assert.ok(activeCustomersAnswer, "active-customer question receives a deterministic SaaS answer");
+assert.match(activeCustomersAnswer.answer, /123 active customers/, "active customers use distinct latest customer state and exclude churned customers");
+assert.equal(activeCustomersAnswer.result.customers, 123, "active customers do not double-count duplicate movement rows");
+assert.match(mrrAnswer.answer, /\$372,136/, "current MRR does not double-count duplicate movement rows for one customer");
 
 const planMissingRows = mrrMovementRows.map(({ plan: _plan, ...row }) => row);
 const missingPlanAnswer = answerDatasetQuestionDeterministically({

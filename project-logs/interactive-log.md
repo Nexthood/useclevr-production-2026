@@ -1,3 +1,38 @@
+## SaaS AI Assistant Specific-Intent Execution
+
+1. Interaction title
+Fix SaaS Assistant deterministic intent execution before generic capability responses.
+
+2. What was the user goal
+Ensure the selected-dataset AI Assistant answers SaaS MRR movement questions, especially "What churn signal is visible in the source data?", with deterministic calculations instead of the generic SaaS semantic capability summary.
+
+3. What changed
+The SaaS deterministic assistant routes specific MRR, ARR, movement, churn, active-customer, plan, and account-value questions before explicit capability and mapping questions. Churn-signal answers return churned MRR, churn events, affected customers, highest churn period, source fields, and materiality against current MRR while keeping contraction separate from full churn. The SaaS semantic suggestion order keeps the churn-signal question inside the advertised deterministic suggestion set.
+
+4. Problems marked
+blocker: none.
+risk: full dataset-intelligence regression still carries an existing Marketplace KPI assertion failure outside this targeted SaaS Assistant execution fix.
+improvement: add an authenticated API route fixture for `saas_subscription_mrr_movements_test` when stable test user dataset seeding exists.
+observation: the exact production question contained "source data", and the previous capability matcher treated that phrase as a request for available SaaS fields before checking the churn intent.
+
+5. User learning
+SaaS Assistant business questions now execute before capability discovery, so source-data wording no longer prevents churn, MRR, ARR, customer, plan, or account calculations.
+
+6. AI-agent learning
+Capability summaries must be opt-in for explicit support, mapping, field, and available-metric questions; business metric words in the same question must keep deterministic calculation priority.
+
+7. Follow-up tasks
+- Add an authenticated Dataset AI route fixture for SaaS MRR movement chat execution when stable seeded datasets are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS AI Assistant Deterministic Suggestion Routing
 
 1. Interaction title

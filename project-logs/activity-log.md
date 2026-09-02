@@ -1,3 +1,4 @@
+- fixed: execute selected-dataset SaaS churn, MRR, ARR, movement, active-customer, plan, and account-value questions through deterministic intent calculations before generic SaaS semantic capability summaries
 - fixed: route SaaS MRR movement AI Assistant suggestions through semantic capability checks and deterministic answer execution so the sidebar no longer shows generic selected-dataset prompts that fail when cloud providers are unavailable
 - fixed: replace the AI Assistant Human Control edit browser prompt with a centered multiline response editor dialog that saves only confirmed non-empty edits, updates the displayed answer after persistence, and keeps draft text visible on failed saves
 - fixed: apply the existing profile regional-preferences migration during Railway predeploy so production sign-up creates profiles and sends 6-digit verification emails on app.useclevr.com

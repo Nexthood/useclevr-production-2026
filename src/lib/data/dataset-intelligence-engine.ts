@@ -1080,8 +1080,8 @@ function buildSaasSuggestedQuestions(capabilities: SaasCapabilityId[]) {
   if (has("customer_analysis")) questions.push("How many active customers are represented?");
   if (has("plan_performance")) questions.push("Which plan contributes the most SaaS revenue or users?");
   if (has("customer_analysis") && has("mrr_analysis")) questions.push("Which customers or accounts are highest value?");
-  if (has("unit_economics")) questions.push("How does revenue per user compare across the dataset?");
   if (has("churn_analysis")) questions.push("What churn signal is visible in the source data?");
+  if (has("unit_economics")) questions.push("How does revenue per user compare across the dataset?");
   if (has("cash_analysis") || has("burn_analysis") || has("runway_analysis")) questions.push("What does the cash, burn, and runway data show?");
   if (has("geography_analysis")) questions.push("Which country or region performs best?");
   if (questions.length === 0) questions.push("Which SaaS fields are available and which metrics need additional source data?");

@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-09-02
-- **Goal**: Fix the selected-dataset AI Assistant SaaS suggestion and deterministic-answer contract for MRR movement datasets.
-- **Durable change**: SaaS MRR movement suggestions come from semantic capability detection, use cache version `v5`, pass through deterministic answer execution before display, and answer directly for current MRR, ARR, MRR movement, New MRR, Expansion MRR, Contraction MRR, Churned MRR, net MRR movement, active customers, plan contribution, top accounts, and churn signals; selected-dataset empty or failed suggestion responses no longer become generic fallback questions.
-- **Verification**: `pnpm test:dataset-ai-assistant`, `pnpm test:saas-semantic-profile`, `pnpm test:dashboard-semantic-profiles`, `pnpm test:analytical-intents`, `pnpm test:question-intent-metric-resolver`, focused ESLint for changed source files, and `pnpm exec tsc --noEmit --pretty false` pass.
-- **Residual risk**: `pnpm test:dataset-intelligence-engine` fails on an existing Marketplace dashboard KPI assertion outside the SaaS Assistant suggestion fix.
+- **Goal**: Fix selected-dataset SaaS Assistant specific-intent execution for MRR movement datasets.
+- **Durable change**: SaaS business questions for churn, MRR, ARR, movement components, net MRR movement, active customers, plan contribution, and account value execute deterministic calculations before generic SaaS semantic capability summaries. Churn-signal answers return churned MRR, churn events, affected customers, highest churn period, source fields, and materiality against current MRR while keeping contraction separate from full churn.
+- **Verification**: `pnpm test:dataset-ai-assistant`, `pnpm test:saas-semantic-profile`, `pnpm test:dashboard-semantic-profiles`, `pnpm test:analytical-intents`, `pnpm test:question-intent-metric-resolver`, `pnpm test:business-semantics`, `pnpm test:local-retail-inventory-snapshots`, `pnpm test:profitability-two-file`, `pnpm test:accountancy-upload-system`, source-only ESLint, `pnpm exec tsc --noEmit --pretty false`, TODO lint, changelog lint, project-record lint, and secret scan pass.
+- **Residual risk**: `pnpm test:dataset-intelligence-engine` fails on an existing Marketplace dashboard KPI assertion outside this targeted SaaS Assistant execution fix.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

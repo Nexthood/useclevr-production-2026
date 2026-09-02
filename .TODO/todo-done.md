@@ -54,6 +54,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1043. SaaS Assistant specific-intent questions execute deterministic calculations before generic semantic capability explanations. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1042. SaaS MRR movement AI Assistant suggestions route through semantic capabilities and deterministic answer execution before appearing in the selected-dataset sidebar. (labels: ai, data, ui, testing; commit: worktree)
 - T-1041. Dataset AI Human Control edit opens a multiline response editor modal and saves edits only after explicit confirmation. (labels: ai, ui, accessibility, testing; commit: worktree)
 - T-1000. Add session-based Ghost Mode for AI requests so UseClevr skips normal conversation history and content-level AI traces while preserving billing, security, operational metadata, provider routing, Local AI behavior, dataset storage, and dataset isolation. (labels: ai, security, ui, testing; commit: worktree)

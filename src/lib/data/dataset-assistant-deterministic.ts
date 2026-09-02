@@ -182,9 +182,6 @@ function answerSaasQuestionDeterministically(input: DatasetAssistantInput): Data
   const question = input.question.toLowerCase();
   const currencyCode = currencyCodeFromRows(input.rows, input.columns);
 
-  if (/field|available|additional source data|source data/.test(question) && /saas|metric|field|source data/.test(question)) {
-    return describeSaasAvailableFields(input, summary);
-  }
   if (/changed|change|across|period|trend|growth/.test(question) && /\bmrr\b|recurring|subscription/.test(question)) {
     return describeSaasMrrTrend(input, summary, currencyCode);
   }
@@ -221,6 +218,9 @@ function answerSaasQuestionDeterministically(input: DatasetAssistantInput): Data
   if (/churn|cancell/.test(question)) {
     return describeSaasChurnSignal(input, summary, currencyCode);
   }
+  if (isExplicitSaasCapabilityQuestion(question)) {
+    return describeSaasAvailableFields(input, summary);
+  }
   if (/retention|cohort/.test(question)) {
     return saasMissingEvidence(input, "SaaS retention or cohort analysis is unavailable because no validated retention or cohort field was found in this dataset.", ["retention or cohort field"], "retention_analysis");
   }
@@ -254,6 +254,15 @@ function hasSaasAssistantEvidence(summary: SaasAssistantSummary) {
 
 function isSaasQuestion(question: string) {
   return /\bsaas\b|\bmrr\b|\barr\b|recurring|subscription|churn|retention|cohort|\bcac\b|\bltv\b|runway|burn|plan|active customers|active accounts|customer.*account|highest-value|highest value|expansion|contraction|upsell|downsell/.test(question.toLowerCase());
+}
+
+function isExplicitSaasCapabilityQuestion(question: string) {
+  const normalized = question.toLowerCase();
+  if (/\bmrr\b|\barr\b|churn|expansion|contraction|new\s+recurring|new\s+mrr|net\s+mrr|active\s+customers?|active\s+accounts?|highest-value|highest\s+value|plan.*contribute|customer.*value|account.*value|growth/.test(normalized)) {
+    return false;
+  }
+  return /available|capabilit|semantic|mapping|mapped|field|source data|support|contain|can be analyzed|can.*analy[sz]e|metrics? can/.test(normalized)
+    && /saas|metric|field|mapping|semantic|source data|dataset/.test(normalized);
 }
 
 function describeSaasMetric(
@@ -430,31 +439,163 @@ function describeSaasPlanContribution(input: DatasetAssistantInput, summary: Saa
 function describeSaasChurnSignal(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
   const churnedMrr = summary.metrics.churned_mrr;
   const churnRate = summary.metrics.churn_rate;
-  if ((churnedMrr?.status !== "available" || churnedMrr.value === null) && (churnRate?.status !== "available" || churnRate.value === null)) {
+  const churnEvidence = summarizeSaasChurnEvidence(input.rows, summary);
+  if ((churnedMrr?.status !== "available" || churnedMrr.value === null) && (churnRate?.status !== "available" || churnRate.value === null) && churnEvidence.events === 0) {
     return saasMissingEvidence(input, "Churn signal is unavailable because no validated churn, cancellation, movement type, or churn-rate field was found in this dataset.", ["churn, movement_type, churned_customers, or churn_rate"], "saas.churn_signal");
   }
+  const churnedMrrValue = churnedMrr?.status === "available" && churnedMrr.value !== null
+    ? churnedMrr.value
+    : churnEvidence.mrr;
+  const customersText = churnEvidence.customers === null
+    ? `${formatNumber(churnEvidence.events)} churn event${churnEvidence.events === 1 ? "" : "s"}`
+    : `${formatNumber(churnEvidence.events)} churn event${churnEvidence.events === 1 ? "" : "s"} across ${formatNumber(churnEvidence.customers)} affected customer${churnEvidence.customers === 1 ? "" : "s"}`;
+  const currentMrr = metricValue(summary, "mrr");
+  const materiality = currentMrr && currentMrr > 0
+    ? `Churned MRR equals ${formatSignedPercent((churnedMrrValue / currentMrr) * 100).replace(/^\+/, "")} of current MRR.`
+    : "UseClevr found churn evidence, but current recurring revenue is unavailable for a materiality ratio.";
   const parts = [
-    churnedMrr?.status === "available" && churnedMrr.value !== null ? `Churned MRR is ${formatValue(churnedMrr.value, currencyCode)}` : null,
+    churnedMrrValue > 0 ? `Churned MRR is ${formatValue(churnedMrrValue, currencyCode)}` : null,
+    churnEvidence.events > 0 ? customersText : null,
     churnRate?.status === "available" && churnRate.value !== null ? `churn rate is ${formatSignedPercent(churnRate.value).replace(/^\+/, "")}` : null,
   ].filter(Boolean);
+  const sourceColumns = churnEvidence.sourceColumns.length > 0
+    ? churnEvidence.sourceColumns
+    : [...(churnedMrr?.sourceColumns ?? []), ...(churnRate?.sourceColumns ?? [])];
   return {
     status: "success",
     answer: [
       `Answer: ${parts.join(", ")}.`,
-      "Evidence: Churn uses validated SaaS churn, movement type, or churn-rate semantics from the Dataset Intelligence Engine.",
-      "Takeaway: This is a direct source-data signal, not a provider interpretation.",
+      [
+        `Evidence: Churned MRR: ${formatValue(churnedMrrValue, currencyCode)}`,
+        `Churn events: ${formatNumber(churnEvidence.events)}`,
+        `Customers affected: ${churnEvidence.customers === null ? "not available" : formatNumber(churnEvidence.customers)}`,
+        `Period with highest churn: ${churnEvidence.highestPeriod ? `${churnEvidence.highestPeriod.period} (${formatValue(churnEvidence.highestPeriod.mrr, currencyCode)})` : "not available"}`,
+        `Source fields: ${sourceColumns.join(", ") || "validated SaaS churn metric"}`,
+      ].join("\n"),
+      `Takeaway: ${materiality} This is a direct source-data signal with no provider interpretation, and contraction is kept separate from full churn.`,
       "Next question: Ask for contraction MRR or highest-value accounts to identify where churn risk matters most.",
     ].join("\n\n"),
     insight: parts.join("; "),
     explanation: "Calculated from validated SaaS churn semantics.",
     recommendation: "Review churned MRR alongside contraction MRR and top-account concentration.",
     data: [
-      ...(churnedMrr?.status === "available" && churnedMrr.value !== null ? [{ metric: "Churned MRR", value: churnedMrr.value }] : []),
+      { metric: "Churned MRR", value: churnedMrrValue },
+      { metric: "Churn events", value: churnEvidence.events },
+      { metric: "Affected customers", value: churnEvidence.customers },
+      { metric: "Highest churn period", value: churnEvidence.highestPeriod?.period ?? null },
       ...(churnRate?.status === "available" && churnRate.value !== null ? [{ metric: "Churn Rate", value: churnRate.value }] : []),
     ],
     chartType: "table",
-    result: saasResult(input, summary, "saas.churn_signal", { churnedMrr: churnedMrr?.value ?? null, churnRate: churnRate?.value ?? null }),
+    result: saasResult(input, summary, "saas.churn_signal", {
+      churnedMrr: round(churnedMrrValue),
+      churnEvents: churnEvidence.events,
+      affectedCustomers: churnEvidence.customers,
+      highestChurnPeriod: churnEvidence.highestPeriod,
+      churnRate: churnRate?.value ?? null,
+      sourceColumns,
+      currentMrr,
+    }),
   };
+}
+
+function summarizeSaasChurnEvidence(rows: Record<string, unknown>[], summary: SaasAssistantSummary) {
+  const mappings = summary.mappings;
+  const periodColumn = mappings.period;
+  const movementColumn = mappings.movement_type;
+  const deltaColumn = mappings.mrr_delta;
+  const beforeColumn = mappings.mrr_before;
+  const afterColumn = mappings.mrr_after || mappings.mrr;
+  const statusColumn = mappings.subscription_status;
+  const customerColumn = mappings.customer_id;
+  const eventDateColumn = mappings.movement_event_date;
+  const latestRows = periodColumn && summary.latestPeriod
+    ? rows.filter((row) => normalizePeriodForSaasAssistant(row[periodColumn]) === summary.latestPeriod)
+    : rows;
+  const sourceColumns = [movementColumn, deltaColumn, beforeColumn, afterColumn, customerColumn, eventDateColumn, statusColumn].filter((column): column is string => Boolean(column));
+  const churnRows = latestRows.flatMap((row) => {
+    const movement = movementColumn ? normalizeSaasState(row[movementColumn]) : "";
+    const status = statusColumn ? normalizeSaasState(row[statusColumn]) : "";
+    const before = beforeColumn ? parseBusinessNumber(row[beforeColumn]) : null;
+    const after = afterColumn ? parseBusinessNumber(row[afterColumn]) : null;
+    const delta = deltaColumn ? parseBusinessNumber(row[deltaColumn]) : null;
+    const hasExplicitChurnMovement = ["churn", "churned", "cancelled", "canceled", "cancellation"].includes(movement);
+    const hasFullLossTransition = before !== null && before > 0 && after !== null && after <= 0;
+    const hasChurnStatus = ["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(status);
+    if (!hasExplicitChurnMovement && !(hasFullLossTransition && (hasChurnStatus || !movementColumn))) return [];
+    const amount = delta !== null
+      ? Math.abs(delta)
+      : before !== null && after !== null
+        ? Math.max(0, before - after)
+        : 0;
+    return [{
+      row,
+      amount,
+      customer: customerColumn ? String(row[customerColumn] ?? "").trim() : "",
+      period: periodColumn ? normalizePeriodForSaasAssistant(row[periodColumn]) : null,
+    }];
+  });
+  const customers = customerColumn
+    ? new Set(churnRows.map((item) => item.customer).filter(Boolean)).size
+    : null;
+  const periodTotals = new Map<string, number>();
+  for (const item of rows) {
+    if (!periodColumn) continue;
+    const period = normalizePeriodForSaasAssistant(item[periodColumn]);
+    if (!period) continue;
+    const evidence = summarizeSaasChurnEvidenceForRow(item, summary);
+    if (!evidence.isChurn) continue;
+    periodTotals.set(period, (periodTotals.get(period) ?? 0) + evidence.amount);
+  }
+  const highestPeriod = Array.from(periodTotals.entries())
+    .map(([period, mrr]) => ({ period, mrr: round(mrr) }))
+    .sort((a, b) => b.mrr - a.mrr)[0] ?? null;
+  return {
+    mrr: round(churnRows.reduce((total, item) => total + item.amount, 0)),
+    events: churnRows.length,
+    customers,
+    highestPeriod,
+    sourceColumns,
+  };
+}
+
+function summarizeSaasChurnEvidenceForRow(row: Record<string, unknown>, summary: SaasAssistantSummary) {
+  const movementColumn = summary.mappings.movement_type;
+  const deltaColumn = summary.mappings.mrr_delta;
+  const beforeColumn = summary.mappings.mrr_before;
+  const afterColumn = summary.mappings.mrr_after || summary.mappings.mrr;
+  const statusColumn = summary.mappings.subscription_status;
+  const movement = movementColumn ? normalizeSaasState(row[movementColumn]) : "";
+  const status = statusColumn ? normalizeSaasState(row[statusColumn]) : "";
+  const before = beforeColumn ? parseBusinessNumber(row[beforeColumn]) : null;
+  const after = afterColumn ? parseBusinessNumber(row[afterColumn]) : null;
+  const delta = deltaColumn ? parseBusinessNumber(row[deltaColumn]) : null;
+  const isChurnMovement = ["churn", "churned", "cancelled", "canceled", "cancellation"].includes(movement);
+  const isFullLossTransition = before !== null && before > 0 && after !== null && after <= 0;
+  const isChurnStatus = ["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(status);
+  const isChurn = isChurnMovement || (isFullLossTransition && (isChurnStatus || !movementColumn));
+  return {
+    isChurn,
+    amount: isChurn
+      ? delta !== null
+        ? Math.abs(delta)
+        : before !== null && after !== null
+          ? Math.max(0, before - after)
+          : 0
+      : 0,
+  };
+}
+
+function normalizeSaasState(value: unknown) {
+  return String(value ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function normalizePeriodForSaasAssistant(value: unknown) {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString().slice(0, 10);
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const parsed = new Date(text);
+  if (Number.isFinite(parsed.getTime()) && /^\d{4}-\d{1,2}-\d{1,2}/.test(text)) return parsed.toISOString().slice(0, 10);
+  return text;
 }
 
 function describeSaasAvailableFields(input: DatasetAssistantInput, summary: SaasAssistantSummary): DatasetAssistantDeterministicResult {
