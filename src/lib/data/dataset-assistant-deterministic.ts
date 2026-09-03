@@ -198,7 +198,7 @@ function answerSaasQuestionDeterministically(input: DatasetAssistantInput): Data
     return describeSaasMetric(input, summary, "contraction_mrr", "Contraction MRR", currencyCode);
   }
   if (/churned\s+mrr|churn\s+mrr/.test(question)) {
-    return describeSaasMetric(input, summary, "churned_mrr", "Churned MRR", currencyCode);
+    return describeSaasChurnedMrr(input, summary, currencyCode);
   }
   if (/\barr\b|annual recurring/.test(question)) {
     return describeSaasMetric(input, summary, "arr", "ARR", currencyCode);
@@ -340,6 +340,17 @@ function describeSaasNetMrrMovement(input: DatasetAssistantInput, summary: SaasA
   if (Object.values(movement).every((value) => value === null)) {
     return saasMissingEvidence(input, "Net MRR movement is unavailable because no validated movement type plus MRR delta fields were found in this dataset.", ["movement_type plus mrr_delta"], "saas.net_mrr_movement");
   }
+  const missing = Object.entries(movement)
+    .filter(([, value]) => value === null)
+    .map(([key]) => ({
+      newMrr: "New MRR",
+      expansionMrr: "Expansion MRR",
+      contractionMrr: "Contraction MRR",
+      churnedMrr: "Churned MRR",
+    }[key] ?? key));
+  if (missing.length > 0) {
+    return saasMissingEvidence(input, `Net MRR movement is incomplete because ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} unavailable; missing movement evidence is not treated as zero.`, missing, "saas.net_mrr_movement");
+  }
   const net = (movement.newMrr ?? 0) + (movement.expansionMrr ?? 0) - (movement.contractionMrr ?? 0) - (movement.churnedMrr ?? 0);
   return {
     status: "success",
@@ -369,20 +380,34 @@ function describeSaasActiveCustomers(input: DatasetAssistantInput, summary: Saas
   if (!customers || customers.status !== "available" || customers.value === null) {
     return saasMissingEvidence(input, "Active customer count is unavailable because no validated customer or account identifier was found in this dataset.", ["customer_id or customer_count"], "saas.active_customers");
   }
+  const state = summary.customerState;
+  const churnedCustomers = state.churnedCustomers ?? null;
+  const totalCustomers = state.totalCustomers ?? customers.value;
   return {
     status: "success",
     answer: [
       `Answer: ${formatNumber(customers.value)} active customers or accounts are represented${summary.latestPeriod ? ` in latest period ${summary.latestPeriod}` : ""}.`,
-      `Evidence: ${customers.reason} Source column${customers.sourceColumns.length === 1 ? "" : "s"}: ${customers.sourceColumns.join(", ")}.`,
+      `Evidence: Total distinct customers: ${formatNumber(totalCustomers)}. Active customers: ${formatNumber(customers.value)}.${churnedCustomers === null ? "" : ` Churned customers: ${formatNumber(churnedCustomers)}.`} Source column${customers.sourceColumns.length === 1 ? "" : "s"}: ${customers.sourceColumns.join(", ")}.`,
       "Takeaway: This count uses SaaS customer/account semantics, not row count as a proxy, and no provider-generated values were used.",
       "Next question: Ask which customers or accounts are highest value.",
     ].join("\n\n"),
     insight: `${formatNumber(customers.value)} active customers represented.`,
     explanation: customers.reason,
     recommendation: "Ask which customers or accounts are highest value.",
-    data: [{ metric: "Active customers", value: customers.value, source: customers.sourceColumns.join(", ") }],
+    data: [
+      { metric: "Total customers", value: totalCustomers, source: customers.sourceColumns.join(", ") },
+      { metric: "Active customers", value: customers.value, source: customers.sourceColumns.join(", ") },
+      { metric: "Churned customers", value: churnedCustomers, source: customers.sourceColumns.join(", ") },
+    ],
     chartType: "kpi",
-    result: saasResult(input, summary, "saas.active_customers", { customers: customers.value, sourceColumns: customers.sourceColumns }),
+    result: saasResult(input, summary, "saas.active_customers", {
+      totalCustomers,
+      customers: customers.value,
+      activeCustomers: customers.value,
+      churnedCustomers,
+      churnShare: state.churnShare,
+      sourceColumns: customers.sourceColumns,
+    }),
   };
 }
 
@@ -436,39 +461,117 @@ function describeSaasPlanContribution(input: DatasetAssistantInput, summary: Saa
   };
 }
 
+function describeSaasChurnedMrr(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
+  const metric = summary.metrics.churned_mrr;
+  const state = summary.customerState;
+  if (metric?.status === "available" && metric.value !== null) {
+    return {
+      status: "success",
+      answer: [
+        `Answer: Churned MRR is ${formatValue(metric.value, currencyCode)}${summary.latestPeriod ? ` for latest period ${summary.latestPeriod}` : ""}.`,
+        `Evidence: ${metric.reason} Source column${metric.sourceColumns.length === 1 ? "" : "s"}: ${metric.sourceColumns.join(", ")}.${state.churnedCustomers === null ? "" : ` Churned customers: ${formatNumber(state.churnedCustomers)}.`}`,
+        "Takeaway: This answer uses validated churn movement or pre-churn MRR evidence; no provider-generated values were used.",
+        "Next question: Ask what churn signal is visible in the source data.",
+      ].join("\n\n"),
+      insight: `Churned MRR: ${formatValue(metric.value, currencyCode)}.`,
+      explanation: metric.reason,
+      recommendation: "Ask what churn signal is visible in the source data.",
+      data: [
+        { metric: "Churned MRR", value: metric.value },
+        { metric: "Churned customers", value: state.churnedCustomers },
+      ],
+      chartType: "table",
+      result: saasResult(input, summary, "saas.churned_mrr", {
+        metric: "churned_mrr",
+        value: round(metric.value),
+        churnedMrr: round(metric.value),
+        churnedCustomers: state.churnedCustomers,
+        sourceColumns: metric.sourceColumns,
+        latestPeriod: summary.latestPeriod,
+      }),
+    };
+  }
+  if (state.churnedCustomers !== null) {
+    if (state.churnedCustomers === 0) {
+      return {
+        status: "success",
+        answer: [
+          `Answer: Churned MRR is ${formatValue(0, currencyCode)} because no churned customers are present in the validated current customer state.`,
+          `Evidence: Churned customers: 0. Source column${state.sourceColumns.length === 1 ? "" : "s"}: ${state.sourceColumns.join(", ")}.`,
+          "Takeaway: This is a confirmed zero from validated churn status evidence, not a missing churn assumption.",
+          "Next question: Ask how many active customers are represented.",
+        ].join("\n\n"),
+        insight: "Churned MRR is confirmed zero because no churned customers were detected.",
+        explanation: "Validated churn status evidence contains no churned customers.",
+        recommendation: "Ask how many active customers are represented.",
+        data: [
+          { metric: "Churned MRR", value: 0 },
+          { metric: "Churned customers", value: 0 },
+        ],
+        chartType: "table",
+        result: saasResult(input, summary, "saas.churned_mrr", {
+          metric: "churned_mrr",
+          value: 0,
+          churnedMrr: 0,
+          churnedCustomers: 0,
+          sourceColumns: state.sourceColumns,
+          latestPeriod: summary.latestPeriod,
+        }),
+      };
+    }
+    return saasMissingEvidence(
+      input,
+      `${formatNumber(state.churnedCustomers)} churned customer${state.churnedCustomers === 1 ? "" : "s"} ${state.churnedCustomers === 1 ? "was" : "were"} detected, but Churned MRR cannot be calculated reliably because no validated pre-churn or churn-movement MRR amount is available.`,
+      ["pre-churn MRR or churn movement MRR amount"],
+      "saas.churned_mrr",
+    );
+  }
+  return saasMissingEvidence(input, missingSaasMetricMessage("churned_mrr", "Churned MRR"), missingSaasMetricFields("churned_mrr"), "saas.churned_mrr");
+}
+
 function describeSaasChurnSignal(input: DatasetAssistantInput, summary: SaasAssistantSummary, currencyCode: string | null): DatasetAssistantDeterministicResult {
   const churnedMrr = summary.metrics.churned_mrr;
   const churnRate = summary.metrics.churn_rate;
   const churnEvidence = summarizeSaasChurnEvidence(input.rows, summary);
-  if ((churnedMrr?.status !== "available" || churnedMrr.value === null) && (churnRate?.status !== "available" || churnRate.value === null) && churnEvidence.events === 0) {
+  const state = summary.customerState;
+  if ((churnedMrr?.status !== "available" || churnedMrr.value === null) && (churnRate?.status !== "available" || churnRate.value === null) && churnEvidence.events === 0 && state.churnedCustomers === null) {
     return saasMissingEvidence(input, "Churn signal is unavailable because no validated churn, cancellation, movement type, or churn-rate field was found in this dataset.", ["churn, movement_type, churned_customers, or churn_rate"], "saas.churn_signal");
   }
-  const churnedMrrValue = churnedMrr?.status === "available" && churnedMrr.value !== null
-    ? churnedMrr.value
-    : churnEvidence.mrr;
-  const customersText = churnEvidence.customers === null
+  const churnedMrrValue = churnedMrr?.status === "available" && churnedMrr.value !== null ? churnedMrr.value : churnEvidence.events > 0 ? churnEvidence.mrr : null;
+  const churnedCustomers = state.churnedCustomers ?? churnEvidence.customers;
+  const activeCustomers = state.activeCustomers ?? null;
+  const totalCustomers = state.totalCustomers ?? (churnedCustomers !== null && activeCustomers !== null ? churnedCustomers + activeCustomers : null);
+  const churnShare = state.churnShare ?? churnRate?.value ?? (totalCustomers && totalCustomers > 0 && churnedCustomers !== null ? round((churnedCustomers / totalCustomers) * 100) : null);
+  const customersText = churnEvidence.events > 0 && churnEvidence.customers === null
     ? `${formatNumber(churnEvidence.events)} churn event${churnEvidence.events === 1 ? "" : "s"}`
-    : `${formatNumber(churnEvidence.events)} churn event${churnEvidence.events === 1 ? "" : "s"} across ${formatNumber(churnEvidence.customers)} affected customer${churnEvidence.customers === 1 ? "" : "s"}`;
+    : churnEvidence.events > 0 && churnEvidence.customers !== null
+      ? `${formatNumber(churnEvidence.events)} churn event${churnEvidence.events === 1 ? "" : "s"} across ${formatNumber(churnEvidence.customers)} affected customer${churnEvidence.customers === 1 ? "" : "s"}`
+      : churnedCustomers !== null
+        ? `${formatNumber(churnedCustomers)} churned customer${churnedCustomers === 1 ? "" : "s"}`
+        : null;
   const currentMrr = metricValue(summary, "mrr");
-  const materiality = currentMrr && currentMrr > 0
+  const materiality = churnedMrrValue !== null && currentMrr && currentMrr > 0
     ? `Churned MRR equals ${formatSignedPercent((churnedMrrValue / currentMrr) * 100).replace(/^\+/, "")} of current MRR.`
-    : "UseClevr found churn evidence, but current recurring revenue is unavailable for a materiality ratio.";
+    : "UseClevr found customer churn evidence, but Churned MRR is unavailable without pre-churn or churn-movement MRR evidence.";
   const parts = [
-    churnedMrrValue > 0 ? `Churned MRR is ${formatValue(churnedMrrValue, currencyCode)}` : null,
-    churnEvidence.events > 0 ? customersText : null,
-    churnRate?.status === "available" && churnRate.value !== null ? `churn rate is ${formatSignedPercent(churnRate.value).replace(/^\+/, "")}` : null,
+    churnedMrrValue !== null ? `Churned MRR is ${formatValue(churnedMrrValue, currencyCode)}` : null,
+    customersText,
+    churnShare !== null ? `customer churn share is ${formatSignedPercent(churnShare).replace(/^\+/, "")}` : null,
   ].filter(Boolean);
-  const sourceColumns = churnEvidence.sourceColumns.length > 0
+  const sourceColumns = churnEvidence.events > 0 && churnEvidence.sourceColumns.length > 0
     ? churnEvidence.sourceColumns
-    : [...(churnedMrr?.sourceColumns ?? []), ...(churnRate?.sourceColumns ?? [])];
+    : [...state.sourceColumns, ...(churnedMrr?.sourceColumns ?? []), ...(churnRate?.sourceColumns ?? [])].filter((value, index, list) => list.indexOf(value) === index);
   return {
     status: "success",
     answer: [
       `Answer: ${parts.join(", ")}.`,
       [
-        `Evidence: Churned MRR: ${formatValue(churnedMrrValue, currencyCode)}`,
+        `Evidence: Customers represented: ${totalCustomers === null ? "not available" : formatNumber(totalCustomers)}`,
+        `Churned customers: ${churnedCustomers === null ? "not available" : formatNumber(churnedCustomers)}`,
+        `Active customers: ${activeCustomers === null ? "not available" : formatNumber(activeCustomers)}`,
+        `Churn share: ${churnShare === null ? "not available" : formatSignedPercent(churnShare).replace(/^\+/, "")}`,
+        `Churned MRR: ${churnedMrrValue === null ? "not available" : formatValue(churnedMrrValue, currencyCode)}`,
         `Churn events: ${formatNumber(churnEvidence.events)}`,
-        `Customers affected: ${churnEvidence.customers === null ? "not available" : formatNumber(churnEvidence.customers)}`,
         `Period with highest churn: ${churnEvidence.highestPeriod ? `${churnEvidence.highestPeriod.period} (${formatValue(churnEvidence.highestPeriod.mrr, currencyCode)})` : "not available"}`,
         `Source fields: ${sourceColumns.join(", ") || "validated SaaS churn metric"}`,
       ].join("\n"),
@@ -479,19 +582,24 @@ function describeSaasChurnSignal(input: DatasetAssistantInput, summary: SaasAssi
     explanation: "Calculated from validated SaaS churn semantics.",
     recommendation: "Review churned MRR alongside contraction MRR and top-account concentration.",
     data: [
+      { metric: "Customers represented", value: totalCustomers },
+      { metric: "Churned customers", value: churnedCustomers },
+      { metric: "Active customers", value: activeCustomers },
+      { metric: "Churn share", value: churnShare },
       { metric: "Churned MRR", value: churnedMrrValue },
       { metric: "Churn events", value: churnEvidence.events },
-      { metric: "Affected customers", value: churnEvidence.customers },
-      { metric: "Highest churn period", value: churnEvidence.highestPeriod?.period ?? null },
-      ...(churnRate?.status === "available" && churnRate.value !== null ? [{ metric: "Churn Rate", value: churnRate.value }] : []),
     ],
     chartType: "table",
     result: saasResult(input, summary, "saas.churn_signal", {
-      churnedMrr: round(churnedMrrValue),
+      churnedMrr: churnedMrrValue === null ? null : round(churnedMrrValue),
       churnEvents: churnEvidence.events,
-      affectedCustomers: churnEvidence.customers,
+      affectedCustomers: churnedCustomers,
+      totalCustomers,
+      activeCustomers,
+      churnedCustomers,
+      churnShare,
       highestChurnPeriod: churnEvidence.highestPeriod,
-      churnRate: churnRate?.value ?? null,
+      churnRate: churnShare,
       sourceColumns,
       currentMrr,
     }),

@@ -1,3 +1,38 @@
+## SaaS AI Assistant Churn Indicator Semantics
+
+1. Interaction title
+Correct SaaS Assistant churn indicator, active customer, Churned MRR, and net movement semantics.
+
+2. What was the user goal
+Fix the remaining deterministic SaaS calculation bugs for the `03_saas_startup` workflow without changing provider routing, Business Semantics architecture, or the 12 SaaS suggested questions.
+
+3. What changed
+The SaaS semantic profile validates explicit churn indicator fields before mapping them to churn semantics. The selected-dataset SaaS Assistant builds latest customer/account state, excludes churned or inactive customers from active customer counts and current MRR/ARR summaries, reports total/active/churned customer counts with lineage, and returns churn prevalence from validated current-state evidence. Churned MRR returns a confirmed zero only when validated churn status proves no churned customers, and returns missing evidence when churned customers exist without pre-churn or churn-movement MRR evidence. Net MRR Movement refuses to substitute zero for unavailable New MRR or Churned MRR. Regression coverage checks the real monthly `03_saas_startup` fixture and a current-state 144-customer fixture with 7 churned and 137 active customers.
+
+4. Problems marked
+blocker: none.
+risk: `pnpm test:dataset-intelligence-engine` still fails on the existing Marketplace dashboard `total_revenue` assertion outside this SaaS churn semantics fix.
+improvement: add an authenticated browser/API assistant fixture for uploaded `03_saas_startup` datasets when stable seeded datasets are available.
+observation: the local `03_saas_startup.csv` contains 144 monthly rows across 12 customer IDs; latest-state semantics produce 12 total customers, 11 active customers, and 1 latest churned customer, while the 144/137/7 current-state scenario is covered by a synthetic fixture.
+
+5. User learning
+The SaaS Assistant treats `churned` as current customer-state evidence when values are valid boolean/status encodings, and it separates known zero churn from missing churn-MRR evidence.
+
+6. AI-agent learning
+SaaS current-state questions must resolve the latest row per customer/account before counting customers or summing current MRR, and movement answers must keep missing component evidence distinct from zero-valued movement evidence.
+
+7. Follow-up tasks
+- Add an authenticated Dataset AI route fixture for uploaded `03_saas_startup` assistant execution when stable seeded datasets are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS AI Assistant Specific-Intent Execution
 
 1. Interaction title

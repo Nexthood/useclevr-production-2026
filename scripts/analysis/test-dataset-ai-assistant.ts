@@ -11,6 +11,10 @@ import { answerPrebookkeepingQuestionDeterministically } from "../../src/lib/acc
 import type { PrebookkeepingCategorization } from "../../src/lib/accountancy/prebookkeeping-categorization";
 import { availableAnalyticalSuggestions } from "../../src/lib/data/analytical-intents";
 import {
+  buildDatasetIntelligenceEngine,
+  buildSaasAssistantSummary,
+} from "../../src/lib/data/dataset-intelligence-engine";
+import {
   buildDatasetIntelligence,
   fallbackSuggestionsForDatasetType,
   generateSuggestions,
@@ -511,7 +515,7 @@ assert.equal(churnSignalAnswer.result.intent, "saas.churn_signal");
 assert.equal(churnSignalAnswer.result.status, "success");
 assert.match(churnSignalAnswer.answer, /Churned MRR is \$643/, "churn-signal answer returns actual churned MRR");
 assert.match(churnSignalAnswer.answer, /Churn events: 1/, "churn-signal answer returns churn event evidence");
-assert.match(churnSignalAnswer.answer, /Customers affected: 1/, "churn-signal answer returns affected customer evidence");
+assert.match(churnSignalAnswer.answer, /Churned customers: 1/, "churn-signal answer returns churned customer evidence");
 assert.match(churnSignalAnswer.answer, /Period with highest churn: 2025-12-01 \(\$643\)/, "churn-signal answer identifies the highest churn period");
 assert.match(churnSignalAnswer.answer, /Source fields: .*movement_type.*mrr_delta.*mrr_before.*mrr_after.*customer_id.*event_date.*customer_status/, "churn-signal answer lists validated source fields");
 assert.match(churnSignalAnswer.answer, /contraction is kept separate from full churn/i, "churn-signal answer does not label contraction as churn");
@@ -543,6 +547,135 @@ assert.equal(missingPlanAnswer.result.status, "missing_evidence");
 assert.match(missingPlanAnswer.answer, /Plan-level recurring revenue is unavailable because no validated plan field was found in this dataset\./);
 assert.doesNotMatch(missingPlanAnswer.answer, /provider route|Gemini|AI_PROVIDER_ERROR|PROVIDER_UNAVAILABLE/i, "missing-plan answer does not route to a provider");
 
+const startupSaasRows = parseRootCsv("test-fixtures/business-models/03_saas_startup.csv");
+const startupSaasColumns = Object.keys(startupSaasRows[0] ?? {});
+const startupSaasEngine = buildDatasetIntelligenceEngine({
+  rows: startupSaasRows,
+  columns: startupSaasColumns,
+  fileName: "03_saas_startup.csv",
+});
+assert.equal(startupSaasEngine.saas?.mappings.churn, "churned", "explicit churned field maps to SaaS churn semantics");
+const startupSaasSummary = buildSaasAssistantSummary({
+  rows: startupSaasRows,
+  columns: startupSaasColumns,
+  fileName: "03_saas_startup.csv",
+});
+assert.equal(startupSaasSummary.customerState.totalCustomers, 12, "monthly SaaS fixture resolves latest state per customer");
+assert.equal(startupSaasSummary.customerState.activeCustomers, 11, "monthly SaaS fixture excludes latest churned customers from active customers");
+assert.equal(startupSaasSummary.customerState.churnedCustomers, 1, "monthly SaaS fixture counts latest churned customers");
+assert.equal(startupSaasSummary.customerState.churnShare, 8.33, "monthly SaaS fixture calculates current churn prevalence from latest customer state");
+
+const startupSaasQuestions = [
+  ...new Set([
+    ...availableAnalyticalSuggestions({
+      datasetId: "fixture:03-saas-startup",
+      datasetType: "SaaS",
+      columns: startupSaasColumns,
+      rows: startupSaasRows,
+    }),
+    ...generateSuggestions(buildDatasetIntelligence(startupSaasRows), "03_saas_startup"),
+    ...fallbackSuggestionsForDatasetType("SaaS"),
+  ]),
+].filter((question) => canAnswerDatasetSuggestionDeterministically({
+  question,
+  datasetId: "fixture:03-saas-startup",
+  datasetType: "SaaS",
+  columns: startupSaasColumns,
+  rows: startupSaasRows,
+})).slice(0, 12);
+
+assert.deepEqual(startupSaasQuestions, [
+  "What is the current MRR?",
+  "What changed in MRR across the available periods?",
+  "What is the current ARR?",
+  "How much New MRR is in the data?",
+  "How much Expansion MRR is in the data?",
+  "How much Contraction MRR is in the data?",
+  "How much Churned MRR is in the data?",
+  "What is the net MRR movement?",
+  "How many active customers are represented?",
+  "Which plan contributes the most SaaS revenue or users?",
+  "Which customers or accounts are highest value?",
+  "What churn signal is visible in the source data?",
+], "03_saas_startup keeps the 12 SaaS sidebar questions");
+
+const startupSaasQuestionMatrix = startupSaasQuestions.map((question) => {
+  const answer = answerDatasetQuestionDeterministically({
+    question,
+    datasetId: "fixture:03-saas-startup",
+    datasetType: "SaaS",
+    columns: startupSaasColumns,
+    rows: startupSaasRows,
+  });
+  assert.ok(answer, `${question} receives a deterministic SaaS answer`);
+  assert.match(String(answer.result.intent), /^saas\./, `${question} uses the SaaS deterministic route`);
+  assert.doesNotMatch(answer.answer, /UseClevr found \d+ SaaS semantic fields/, `${question} does not return the generic SaaS capability response`);
+  assert.doesNotMatch(answer.answer, /PROVIDER_UNAVAILABLE|AI_PROVIDER_ERROR|unsupported_question|provider route is unavailable/i, `${question} does not route to provider failure`);
+  return { question, answer };
+});
+
+const startupMrrAnswer = startupSaasQuestionMatrix.find((entry) => entry.question === "What is the current MRR?")?.answer;
+assert.ok(startupMrrAnswer);
+assert.equal(startupMrrAnswer.result.value, 11477, "current MRR uses latest active customer state for 03_saas_startup");
+const startupActiveAnswer = startupSaasQuestionMatrix.find((entry) => entry.question === "How many active customers are represented?")?.answer;
+assert.ok(startupActiveAnswer);
+assert.equal(startupActiveAnswer.result.totalCustomers, 12);
+assert.equal(startupActiveAnswer.result.activeCustomers, 11);
+assert.equal(startupActiveAnswer.result.churnedCustomers, 1);
+assert.match(startupActiveAnswer.answer, /Total distinct customers: 12\. Active customers: 11\. Churned customers: 1\./);
+const startupChurnSignalAnswer = startupSaasQuestionMatrix.find((entry) => entry.question === "What churn signal is visible in the source data?")?.answer;
+assert.ok(startupChurnSignalAnswer);
+assert.equal(startupChurnSignalAnswer.result.churnedCustomers, 1);
+assert.equal(startupChurnSignalAnswer.result.activeCustomers, 11);
+assert.equal(startupChurnSignalAnswer.result.churnShare, 8.33);
+assert.match(startupChurnSignalAnswer.answer, /Churned customers: 1/);
+assert.match(startupChurnSignalAnswer.answer, /Churn share: 8\.3%/);
+assert.match(startupChurnSignalAnswer.answer, /Source fields: customer_id, churned/);
+assert.match(startupChurnSignalAnswer.answer, /Churned MRR: not available/);
+const startupChurnedMrrAnswer = startupSaasQuestionMatrix.find((entry) => entry.question === "How much Churned MRR is in the data?")?.answer;
+assert.ok(startupChurnedMrrAnswer);
+assert.equal(startupChurnedMrrAnswer.result.status, "missing_evidence");
+assert.match(startupChurnedMrrAnswer.answer, /1 churned customer was detected, but Churned MRR cannot be calculated reliably/);
+assert.doesNotMatch(startupChurnedMrrAnswer.answer, /Churned MRR is 0|Churned MRR is \$0/);
+const startupNetMovementAnswer = startupSaasQuestionMatrix.find((entry) => entry.question === "What is the net MRR movement?")?.answer;
+assert.ok(startupNetMovementAnswer);
+assert.equal(startupNetMovementAnswer.result.status, "missing_evidence");
+assert.match(startupNetMovementAnswer.answer, /missing movement evidence is not treated as zero/);
+
+const churnedCurrentStateRows = buildCurrentStateChurnRows();
+const churnedCurrentStateColumns = Object.keys(churnedCurrentStateRows[0] ?? {});
+const churnedCurrentStateSummary = buildSaasAssistantSummary({
+  rows: churnedCurrentStateRows,
+  columns: churnedCurrentStateColumns,
+  fileName: "saas-current-state-churn.csv",
+});
+assert.equal(churnedCurrentStateSummary.customerState.totalCustomers, 144, "current-state churn fixture represents 144 distinct customers");
+assert.equal(churnedCurrentStateSummary.customerState.churnedCustomers, 7, "current-state churn fixture detects seven churned customers");
+assert.equal(churnedCurrentStateSummary.customerState.activeCustomers, 137, "current-state churn fixture excludes churned customers from active customers");
+const currentStateActiveAnswer = answerDatasetQuestionDeterministically({
+  question: "How many active customers are represented?",
+  datasetId: "fixture:saas-current-state-churn",
+  datasetType: "SaaS",
+  columns: churnedCurrentStateColumns,
+  rows: churnedCurrentStateRows,
+});
+assert.ok(currentStateActiveAnswer);
+assert.equal(currentStateActiveAnswer.result.totalCustomers, 144);
+assert.equal(currentStateActiveAnswer.result.activeCustomers, 137);
+assert.equal(currentStateActiveAnswer.result.churnedCustomers, 7);
+
+const noChurnRows = churnedCurrentStateRows.map((row) => ({ ...row, churned: "0" }));
+const noChurnAnswer = answerDatasetQuestionDeterministically({
+  question: "How much Churned MRR is in the data?",
+  datasetId: "fixture:saas-current-state-no-churn",
+  datasetType: "SaaS",
+  columns: churnedCurrentStateColumns,
+  rows: noChurnRows,
+});
+assert.ok(noChurnAnswer);
+assert.equal(noChurnAnswer.result.status, "success");
+assert.equal(noChurnAnswer.result.churnedMrr, 0, "validated zero churn becomes a confirmed zero Churned MRR answer");
+
 process.stdout.write("ok - dataset AI assistant deterministic responses and Usy isolation\n");
 
 function parseFixtureCsv(fileName: string) {
@@ -554,6 +687,32 @@ function parseFixtureCsv(fileName: string) {
       row[header] = values[index] ?? "";
       return row;
     }, {});
+  });
+}
+
+function parseRootCsv(relativePath: string) {
+  const [headerLine, ...lines] = readFileSync(join(repoRoot, relativePath), "utf8").trim().split(/\r?\n/);
+  const headers = headerLine?.split(",") ?? [];
+  return lines.map((line) => {
+    const values = line.split(",");
+    return headers.reduce<Record<string, string>>((row, header, index) => {
+      row[header] = values[index] ?? "";
+      return row;
+    }, {});
+  });
+}
+
+function buildCurrentStateChurnRows() {
+  return Array.from({ length: 144 }, (_, index) => {
+    const churned = index < 7;
+    const mrr = churned ? 0 : 100 + (index % 5) * 25;
+    return {
+      month: "2026-11-01",
+      customer_id: `CURRENT-${String(index + 1).padStart(3, "0")}`,
+      plan: index % 3 === 0 ? "Scale" : index % 3 === 1 ? "Growth" : "Starter",
+      mrr: String(mrr),
+      churned: churned ? "1" : "0",
+    };
   });
 }
 

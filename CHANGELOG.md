@@ -30,6 +30,7 @@
 
 ### Fixed
 
+- Fix SaaS AI Assistant churn handling so explicit churn indicators drive active-customer counts, churn signals, Churned MRR evidence checks, and net movement completeness.
 - Fix SaaS AI Assistant intent execution so churn, MRR, ARR, movement, customer, plan, and account questions return deterministic answers before generic capability summaries.
 - Fix SaaS AI Assistant suggestions so MRR movement datasets show only semantic-capability questions that answer directly without cloud provider availability.
 - Fix AI Assistant Human Control editing so users review long responses in a multiline dialog, save only confirmed edits, and keep drafted text visible when saving fails.
