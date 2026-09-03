@@ -51,6 +51,15 @@ type PeriodSummary = {
   rows: number;
 };
 
+type MarketplaceAssistantSummary = {
+  gmvColumn: string;
+  marketplaceRevenueColumn: string | null;
+  buyerColumn: string | null;
+  sellerColumn: string | null;
+  dateColumn: string | null;
+  currencyCode: string | null;
+};
+
 const DIMENSION_PATTERNS = [
   /plan/i,
   /startup[_\s-]*stage|stage/i,
@@ -71,6 +80,9 @@ export function answerDatasetQuestionDeterministically(
 ): DatasetAssistantDeterministicResult | null {
   const question = input.question.trim();
   if (!question || input.rows.length === 0) return null;
+
+  const marketplaceResult = answerMarketplaceQuestionDeterministically(input);
+  if (marketplaceResult) return marketplaceResult;
 
   const retailInventoryResult = answerRetailInventoryQuestionDeterministically(input);
   if (retailInventoryResult) return retailInventoryResult;
@@ -163,6 +175,26 @@ export function answerDatasetQuestionDeterministically(
     return describeDatasetSummary({ ...input, revenueColumn, currencyCode, dimensionColumns });
   }
 
+  return null;
+}
+
+function answerMarketplaceQuestionDeterministically(input: DatasetAssistantInput): DatasetAssistantDeterministicResult | null {
+  const summary = buildMarketplaceAssistantSummary(input);
+  if (!summary) return null;
+
+  const question = input.question.toLowerCase();
+  if (/total\s+revenue|revenue\s+total|how\s+much\s+revenue|total\s+sales|total\s+gmv|\bgmv\b/.test(question)) {
+    return describeMarketplaceTotalGmv(input, summary);
+  }
+  if (/revenue.*trend|gmv.*trend|sales.*trend|revenue.*over\s+time|gmv.*over\s+time|over\s+time/.test(question)) {
+    return describeMarketplaceGmvTrend(input, summary);
+  }
+  if (/customer|buyer|purchaser/.test(question) && /most|top|generate|highest|largest|best/.test(question)) {
+    return describeMarketplaceBuyerRanking(input, summary);
+  }
+  if (/supplier|seller|merchant|vendor/.test(question) && /revenue|gmv|risk|drive|largest|most|top/.test(question)) {
+    return describeMarketplaceSellerRanking(input, summary);
+  }
   return null;
 }
 
@@ -812,6 +844,228 @@ function nextSaasQuestion(label: string) {
   if (label === "MRR") return "Next question: Ask what changed in MRR across the available periods.";
   if (label === "ARR") return "Next question: Ask how much New MRR, Expansion MRR, Contraction MRR, or Churned MRR is in the data.";
   return "Next question: Ask for the net MRR movement.";
+}
+
+function buildMarketplaceAssistantSummary(input: DatasetAssistantInput): MarketplaceAssistantSummary | null {
+  const datasetType = input.datasetType.toLowerCase();
+  const gmvColumn = findMarketplaceColumn(input.columns, [/^gmv$/, /^gross_merchandise_value$/, /^gross_merchandise$/], input.rows);
+  const marketplaceRevenueColumn = findMarketplaceColumn(input.columns, [/^platform_fee$/, /^marketplace_revenue$/, /^take_rate_amount$/, /^commission$/], input.rows);
+  const buyerColumn = findMarketplaceColumn(input.columns, [/^buyer_id$/, /^buyer$/, /^purchaser_id$/, /^purchaser$/], input.rows, false);
+  const sellerColumn = findMarketplaceColumn(input.columns, [/^seller_id$/, /^seller$/, /^merchant_id$/, /^merchant$/, /^vendor_id$/], input.rows, false);
+  const dateColumn = findMarketplaceColumn(input.columns, [/^date$/, /^transaction_date$/, /^order_date$/, /^period$/, /^month$/], input.rows, false);
+  const hasMarketplaceShape = Boolean(gmvColumn && (buyerColumn || sellerColumn || marketplaceRevenueColumn || /marketplace/.test(datasetType)));
+  if (!hasMarketplaceShape) return null;
+  return {
+    gmvColumn: gmvColumn!,
+    marketplaceRevenueColumn,
+    buyerColumn,
+    sellerColumn,
+    dateColumn,
+    currencyCode: currencyCodeFromRows(input.rows, input.columns),
+  };
+}
+
+function describeMarketplaceTotalGmv(input: DatasetAssistantInput, summary: MarketplaceAssistantSummary): DatasetAssistantDeterministicResult {
+  const gmv = round(sumMarketplaceColumn(input.rows, summary.gmvColumn));
+  return marketplaceSuccess(input, "marketplace.total_gmv", {
+    answer: `Total GMV is ${formatMarketplaceValue(gmv, summary.currencyCode)}.`,
+    insight: `UseClevr summed ${input.rows.length.toLocaleString("en-US")} validated row${input.rows.length === 1 ? "" : "s"} from "${summary.gmvColumn}".`,
+    takeaway: "GMV is gross merchandise value; it is not labelled as generic company revenue or marketplace platform revenue.",
+    recommendation: "Ask which buyers or sellers drive GMV concentration.",
+    data: [
+      { metric: "Total GMV", value: gmv, source: summary.gmvColumn },
+      { metric: "Marketplace Revenue", value: summary.marketplaceRevenueColumn ? round(sumMarketplaceColumn(input.rows, summary.marketplaceRevenueColumn)) : null, source: summary.marketplaceRevenueColumn },
+    ],
+    result: {
+      metric: "Total GMV",
+      gmv,
+      gmvColumn: summary.gmvColumn,
+      marketplaceRevenueColumn: summary.marketplaceRevenueColumn,
+    },
+  });
+}
+
+function describeMarketplaceGmvTrend(input: DatasetAssistantInput, summary: MarketplaceAssistantSummary): DatasetAssistantDeterministicResult | null {
+  if (!summary.dateColumn) return null;
+  const periods = marketplacePeriods(input.rows, summary.dateColumn, summary.gmvColumn);
+  const latestObserved = periods.at(-1);
+  const completePeriods = periods.filter((period) => period.complete);
+  const latestComparable = completePeriods.at(-1) ?? latestObserved;
+  const previousComparable = completePeriods.length >= 2 ? completePeriods.at(-2) : periods.at(-2);
+  const changePct = latestComparable && previousComparable && previousComparable.gmv !== 0 ? ((latestComparable.gmv - previousComparable.gmv) / previousComparable.gmv) * 100 : null;
+  const latestScope = latestObserved?.complete ? "complete" : "partial/incomplete";
+  const comparableText = latestComparable && previousComparable
+    ? `Latest comparable movement: ${previousComparable.period} ${formatMarketplaceValue(previousComparable.gmv, summary.currencyCode)} to ${latestComparable.period} ${formatMarketplaceValue(latestComparable.gmv, summary.currencyCode)}${changePct === null ? "" : ` (${formatSignedPercent(changePct)})`}.`
+    : "Comparable period movement is unavailable because fewer than two periods have comparable GMV evidence.";
+
+  return marketplaceSuccess(input, "marketplace.gmv_trend", {
+    answer: latestObserved
+      ? `Latest observed GMV is ${formatMarketplaceValue(latestObserved.gmv, summary.currencyCode)} in ${latestObserved.period} (${latestScope}, ${latestObserved.rows.toLocaleString("en-US")} row${latestObserved.rows === 1 ? "" : "s"}). ${comparableText}`
+      : "No valid GMV periods were found.",
+    insight: `Grouped "${summary.gmvColumn}" by "${summary.dateColumn}" and kept the latest observed period even when it is partial.`,
+    takeaway: latestObserved?.complete ? "The latest observed period has complete-period row coverage for this dataset." : "The latest observed period is shown as partial and kept separate from comparable complete-period movement.",
+    recommendation: "Compare buyer and seller concentration against the latest observed GMV period.",
+    data: periods.map((period) => ({
+      period: period.period,
+      gmv: period.gmv,
+      rows: period.rows,
+      complete: period.complete ? "complete" : "partial",
+    })),
+    result: {
+      metric: "GMV trend",
+      periods,
+      latestObservedPeriod: latestObserved?.period ?? null,
+      latestObservedGmv: latestObserved?.gmv ?? null,
+      latestObservedComplete: latestObserved?.complete ?? null,
+      latestComparablePeriod: latestComparable?.period ?? null,
+      latestChangePct: changePct === null ? null : round(changePct, 1),
+      gmvColumn: summary.gmvColumn,
+      dateColumn: summary.dateColumn,
+    },
+  });
+}
+
+function describeMarketplaceBuyerRanking(input: DatasetAssistantInput, summary: MarketplaceAssistantSummary): DatasetAssistantDeterministicResult | null {
+  if (!summary.buyerColumn) return null;
+  const rows = marketplaceEntityRows(input.rows, summary.buyerColumn, summary.gmvColumn);
+  const top = rows[0];
+  return marketplaceSuccess(input, "marketplace.top_buyers", {
+    answer: top
+      ? `Top buyers/customers by GMV: ${top.segment} leads with ${formatMarketplaceValue(top.gmv, summary.currencyCode)}.`
+      : "No buyer groups were available after Marketplace semantic validation.",
+    insight: `Grouped by buyer field "${summary.buyerColumn}" and summed GMV from "${summary.gmvColumn}".`,
+    takeaway: top ? `${top.segment} represents ${top.sharePct.toFixed(1)}% of detected GMV.` : "No buyer GMV concentration could be calculated.",
+    recommendation: "Ask which sellers or merchants drive the most GMV.",
+    data: rows,
+    result: {
+      metric: "Top buyers by GMV",
+      groupBy: "buyer",
+      groupColumn: summary.buyerColumn,
+      gmvColumn: summary.gmvColumn,
+      rows,
+    },
+  });
+}
+
+function describeMarketplaceSellerRanking(input: DatasetAssistantInput, summary: MarketplaceAssistantSummary): DatasetAssistantDeterministicResult | null {
+  if (!summary.sellerColumn) return null;
+  const rows = marketplaceEntityRows(input.rows, summary.sellerColumn, summary.gmvColumn)
+    .map((row) => ({ ...row, inventoryExposure: null, stock: null }));
+  const top = rows[0];
+  return marketplaceSuccess(input, "marketplace.top_sellers", {
+    answer: top
+      ? `Top sellers/merchants by GMV: ${top.segment} leads with ${formatMarketplaceValue(top.gmv, summary.currencyCode)}. Inventory exposure is unavailable because no validated inventory or stock fields are present.`
+      : "No seller or merchant groups were available after Marketplace semantic validation.",
+    insight: `Grouped by seller/merchant field "${summary.sellerColumn}" and summed GMV from "${summary.gmvColumn}".`,
+    takeaway: "Marketplace seller analysis reports seller/merchant concentration and keeps missing inventory evidence unavailable instead of treating it as zero.",
+    recommendation: "Review seller concentration alongside marketplace revenue, refunds, and take rate.",
+    data: rows,
+    result: {
+      metric: "Top sellers by GMV",
+      groupBy: "seller",
+      groupColumn: summary.sellerColumn,
+      gmvColumn: summary.gmvColumn,
+      rows,
+      inventoryExposure: null,
+      stock: null,
+    },
+  });
+}
+
+function marketplaceSuccess(input: DatasetAssistantInput, intent: string, output: {
+  answer: string;
+  insight: string;
+  takeaway: string;
+  recommendation: string;
+  data: Array<Record<string, string | number | null>>;
+  result: Record<string, unknown>;
+}): DatasetAssistantDeterministicResult {
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${output.answer}`,
+      `Insight: ${output.insight}`,
+      `Takeaway: ${output.takeaway}`,
+      `Next question: ${output.recommendation}`,
+    ].join("\n\n"),
+    insight: output.insight,
+    explanation: "Marketplace Assistant calculations use validated GMV, buyer, seller, platform-fee, and period source fields without cloud provider values.",
+    recommendation: output.recommendation,
+    data: output.data,
+    chartType: output.data.length > 1 ? "table" : "kpi",
+    result: {
+      intent,
+      status: "success",
+      confidence: 0.92,
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      ...output.result,
+    },
+  };
+}
+
+function findMarketplaceColumn(columns: string[], patterns: RegExp[], rows: Record<string, unknown>[], requireNumeric = true) {
+  const candidates = columns.filter((column) => {
+    const normalized = column.toLowerCase().trim().replace(/[\s-]+/g, "_");
+    return patterns.some((pattern) => pattern.test(normalized));
+  });
+  if (!requireNumeric) return candidates[0] ?? null;
+  return candidates.find((column) => rows.some((row) => parseBusinessNumber(row[column]) !== null)) ?? null;
+}
+
+function sumMarketplaceColumn(rows: Record<string, unknown>[], column: string) {
+  return rows.reduce((total, row) => total + (parseBusinessNumber(row[column]) ?? 0), 0);
+}
+
+function marketplaceEntityRows(rows: Record<string, unknown>[], entityColumn: string, gmvColumn: string) {
+  const totalGmv = sumMarketplaceColumn(rows, gmvColumn);
+  const groups = new Map<string, { gmv: number; rows: number }>();
+  for (const row of rows) {
+    const segment = String(row[entityColumn] ?? "").trim() || "Unknown";
+    const current = groups.get(segment) ?? { gmv: 0, rows: 0 };
+    current.gmv += parseBusinessNumber(row[gmvColumn]) ?? 0;
+    current.rows += 1;
+    groups.set(segment, current);
+  }
+  return Array.from(groups.entries())
+    .map(([segment, value]) => ({
+      segment,
+      gmv: round(value.gmv),
+      rows: value.rows,
+      sharePct: totalGmv > 0 ? round((value.gmv / totalGmv) * 100, 1) : 0,
+    }))
+    .sort((a, b) => b.gmv - a.gmv || a.segment.localeCompare(b.segment))
+    .slice(0, 10);
+}
+
+function marketplacePeriods(rows: Record<string, unknown>[], dateColumn: string, gmvColumn: string) {
+  const groups = new Map<string, { gmv: number; rows: number }>();
+  for (const row of rows) {
+    const period = monthKey(row[dateColumn]);
+    if (!period) continue;
+    const current = groups.get(period) ?? { gmv: 0, rows: 0 };
+    current.gmv += parseBusinessNumber(row[gmvColumn]) ?? 0;
+    current.rows += 1;
+    groups.set(period, current);
+  }
+  const periods = Array.from(groups.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([period, value]) => ({ period, gmv: round(value.gmv), rows: value.rows, complete: true }));
+  if (periods.length <= 1) return periods;
+  const maxRows = Math.max(...periods.map((period) => period.rows));
+  return periods.map((period) => ({
+    ...period,
+    complete: period.rows >= maxRows * 0.8,
+  }));
+}
+
+function formatMarketplaceValue(value: number, currencyCode: string | null) {
+  if (!currencyCode) return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currencyCode,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 function currencyCodeFromRows(rows: Record<string, unknown>[], columns: string[]) {

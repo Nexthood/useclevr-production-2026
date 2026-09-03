@@ -1,3 +1,38 @@
+## Marketplace AI Assistant GMV Semantics
+
+1. Interaction title
+Correct Marketplace Assistant GMV, buyer, seller, trend, and missing-inventory semantics.
+
+2. What was the user goal
+Continue the existing Marketplace Assistant fix for `04_marketplace_startup` without redesigning the assistant, adding features, changing unrelated modules, or losing the already-verified GMV, buyer, seller, and monthly aggregation calculations.
+
+3. What changed
+The selected-dataset AI Assistant routes Marketplace datasets with GMV evidence through a Marketplace-specific deterministic path before retail and generic revenue handling. Revenue-worded Marketplace questions answer with GMV labels, buyer questions group by buyer fields, supplier-worded questions group by seller/merchant fields, GMV trends include the latest observed period and period completeness, and missing inventory/stock evidence stays unavailable/null instead of zero. Dataset Intelligence Engine compatibility no longer treats GMV as generic Revenue while preserving GMV, Marketplace Revenue, take rate, and marketplace transaction value semantics.
+
+4. Problems marked
+blocker: none.
+risk: the local `04_marketplace_startup` fixture has the same total GMV as the manual test but different buyer/seller IDs, so top-entity assertions use local source values while the implementation remains data-driven for B-0127 and S-0008 in the manually tested source.
+improvement: add an authenticated uploaded-dataset route fixture for Marketplace Assistant execution when stable seeded datasets are available.
+observation: retail inventory intent handling previously intercepted Marketplace seller and trend questions, which caused seller fields to appear as suppliers and missing inventory evidence to become zero-valued exposure.
+
+5. User learning
+Marketplace Assistant revenue wording now reports GMV when the source field is `gross_merchandise_value`, and seller/merchant answers no longer show supplier or inventory-zero language for non-inventory marketplace data.
+
+6. AI-agent learning
+Marketplace GMV must stay separate from generic Revenue and Marketplace Revenue; assistant routing must run domain-specific Marketplace handling before retail inventory and generic metric resolvers.
+
+7. Follow-up tasks
+- Add an authenticated uploaded-dataset route fixture for Marketplace Assistant execution when stable seeded datasets are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS AI Assistant Churn Indicator Semantics
 
 1. Interaction title

@@ -424,6 +424,64 @@ assert.equal(canAnswerDatasetSuggestionDeterministically({
   rows: retailInventoryRows,
 }), true, "supported dead-stock question is allowed as a suggestion");
 
+const marketplaceRows = parseRootCsv("test-fixtures/business-models/04_marketplace_startup.csv");
+const marketplaceColumns = Object.keys(marketplaceRows[0] ?? {});
+const marketplaceQuestions = [
+  "What is the total revenue?",
+  "What are the revenue trends over time?",
+  "Which customers generate the most revenue?",
+  "Which suppliers drive the most revenue or risk?",
+];
+const marketplaceAnswers = marketplaceQuestions.map((question) => {
+  const answer = answerDatasetQuestionDeterministically({
+    question,
+    datasetId: "fixture:04-marketplace-startup",
+    datasetType: "Marketplace",
+    columns: marketplaceColumns,
+    rows: marketplaceRows,
+  });
+  assert.ok(answer, `${question} receives a Marketplace deterministic answer`);
+  assert.equal(answer.status, "success", `${question} succeeds through the deterministic assistant`);
+  assert.match(String(answer.result.intent), /^marketplace\./, `${question} uses the Marketplace route`);
+  assert.doesNotMatch(answer.answer, /PROVIDER_UNAVAILABLE|AI_PROVIDER_ERROR|unsupported_question|provider route is unavailable/i, `${question} does not route to provider failure`);
+  assert.doesNotMatch(answer.answer, /leading supplier signal|inventory exposure at 0|Total revenue is/i, `${question} avoids stale retail/generic wording`);
+  return { question, answer };
+});
+const marketplaceTotal = marketplaceAnswers.find((entry) => entry.question === "What is the total revenue?")?.answer;
+assert.ok(marketplaceTotal);
+assert.equal(marketplaceTotal.result.intent, "marketplace.total_gmv");
+assert.equal(marketplaceTotal.result.gmv, 83778.17);
+assert.equal(marketplaceTotal.result.gmvColumn, "gross_merchandise_value");
+assert.match(marketplaceTotal.answer, /Total GMV is 83,778\.17/);
+assert.doesNotMatch(marketplaceTotal.answer, /Total revenue is/i);
+
+const marketplaceTrend = marketplaceAnswers.find((entry) => entry.question === "What are the revenue trends over time?")?.answer;
+assert.ok(marketplaceTrend);
+assert.equal(marketplaceTrend.result.intent, "marketplace.gmv_trend");
+assert.equal(marketplaceTrend.result.latestObservedPeriod, "2026-04");
+assert.match(marketplaceTrend.answer, /Latest observed GMV is 20,944\.44 in 2026-04/);
+assert.match(marketplaceTrend.answer, /complete|partial\/incomplete/);
+
+const marketplaceBuyers = marketplaceAnswers.find((entry) => entry.question === "Which customers generate the most revenue?")?.answer;
+assert.ok(marketplaceBuyers);
+assert.equal(marketplaceBuyers.result.intent, "marketplace.top_buyers");
+assert.equal(marketplaceBuyers.result.groupColumn, "buyer_id");
+assert.equal((marketplaceBuyers.result.rows as Array<{ segment: string; gmv: number }>)[0]?.segment, "buyer_007");
+assert.equal((marketplaceBuyers.result.rows as Array<{ segment: string; gmv: number }>)[0]?.gmv, 930.88);
+assert.match(marketplaceBuyers.answer, /Top buyers\/customers by GMV/);
+
+const marketplaceSellers = marketplaceAnswers.find((entry) => entry.question === "Which suppliers drive the most revenue or risk?")?.answer;
+assert.ok(marketplaceSellers);
+assert.equal(marketplaceSellers.result.intent, "marketplace.top_sellers");
+assert.equal(marketplaceSellers.result.groupColumn, "seller_id");
+assert.equal((marketplaceSellers.result.rows as Array<{ segment: string; gmv: number; inventoryExposure: null; stock: null }>)[0]?.segment, "seller_005");
+assert.equal((marketplaceSellers.result.rows as Array<{ segment: string; gmv: number; inventoryExposure: null; stock: null }>)[0]?.gmv, 1861.75);
+assert.equal((marketplaceSellers.result.rows as Array<{ segment: string; gmv: number; inventoryExposure: null; stock: null }>)[0]?.inventoryExposure, null);
+assert.equal((marketplaceSellers.result.rows as Array<{ segment: string; gmv: number; inventoryExposure: null; stock: null }>)[0]?.stock, null);
+assert.match(marketplaceSellers.answer, /Top sellers\/merchants by GMV/);
+assert.match(marketplaceSellers.answer, /Inventory exposure is unavailable/);
+assert.doesNotMatch(marketplaceSellers.answer, /supplier signal|0 inventory exposure/i);
+
 const mrrMovementRows = buildMrrMovementRows();
 const mrrMovementColumns = Object.keys(mrrMovementRows[0] ?? {});
 const mrrMovementSuggestions = [

@@ -54,6 +54,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1045. Marketplace Assistant GMV, buyer, seller, period, and missing-inventory answers use marketplace terminology and source-backed null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1044. SaaS Assistant churn indicators drive active-customer, churn-signal, Churned MRR, and net movement answers with current-state and zero-vs-missing semantics. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1043. SaaS Assistant specific-intent questions execute deterministic calculations before generic semantic capability explanations. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1042. SaaS MRR movement AI Assistant suggestions route through semantic capabilities and deterministic answer execution before appearing in the selected-dataset sidebar. (labels: ai, data, ui, testing; commit: worktree)

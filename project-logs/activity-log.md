@@ -1,3 +1,4 @@
+- fixed: route Marketplace Assistant revenue, trend, customer, and supplier-worded questions through GMV, buyer, and seller semantics, include latest observed periods, and keep missing inventory evidence unavailable instead of zero
 - fixed: recognize validated SaaS churn indicator fields in Dataset AI Assistant semantics, exclude churned customers from active current-state counts, report churn prevalence, and keep Churned MRR plus net movement unavailable when movement-MRR evidence is missing
 - fixed: execute selected-dataset SaaS churn, MRR, ARR, movement, active-customer, plan, and account-value questions through deterministic intent calculations before generic SaaS semantic capability summaries
 - fixed: route SaaS MRR movement AI Assistant suggestions through semantic capability checks and deterministic answer execution so the sidebar no longer shows generic selected-dataset prompts that fail when cloud providers are unavailable

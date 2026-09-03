@@ -390,7 +390,7 @@ const COLUMN_SYNONYMS: Array<{
     { role: "Marketplace Revenue", patterns: [/\bplatform_fee\b/, /\bmarketplace_revenue\b/, /\btake_rate_amount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches marketplace platform-fee or take-rate revenue terminology." },
     { role: "Merchant Payout", patterns: [/\bseller_payout\b/, /\bmerchant_payout\b/, /\bpayout\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches merchant or seller payout terminology." },
     { role: "Refund", patterns: [/\brefund_amount\b/, /\brefund\b/, /\breturn_amount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches refund or return amount terminology." },
-    { role: "Revenue", patterns: [/\bsales_amount\b/, /\brevenue\b/, /\bsales\b/, /\border_total\b/, /\bnet_sales\b/, /\bamount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches revenue, sales, amount, or GMV terminology." },
+    { role: "Revenue", patterns: [/\bsales_amount\b/, /\brevenue\b/, /\bsales\b/, /\border_total\b/, /\bnet_sales\b/, /\bamount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches revenue, sales, or amount terminology." },
     { role: "Commission", patterns: [/\bcommission\b/, /\bfee\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches commission or fee terminology." },
     { role: "Cost", patterns: [/\bcost\b/, /\bcogs\b/, /\bexpense\b/, /\bunit_cost\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches cost, COGS, or expense terminology." },
     { role: "Profit", patterns: [/\bprofit\b/, /\bgross_profit\b/, /\bnet_profit\b/, /\bearnings\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches profit or earnings terminology." },
@@ -587,7 +587,7 @@ export function findSemanticColumn(
 }
 
 function compatibleRoles(role: CanonicalSemanticRole): CanonicalSemanticRole[] {
-  if (role === "Revenue") return ["Revenue", "GMV", "Marketplace Revenue"];
+  if (role === "Revenue") return ["Revenue"];
   if (role === "Commission") return ["Commission", "Marketplace Revenue"];
   if (role === "Cost") return ["Cost", "Merchant Payout"];
   if (role === "Seller") return ["Seller", "Merchant"];
@@ -1383,6 +1383,7 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
   const allByRole = (role: CanonicalSemanticRole) => columns.filter((column) => compatibleRoles(role).includes(column.canonicalRole));
   const relationships: RelationshipDetection[] = [];
   const revenue = byRole("Revenue");
+  const gmv = byRole("GMV");
   const cost = byRole("Cost");
   const profit = byRole("Profit");
   const commission = byRole("Commission");
@@ -1406,17 +1407,17 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
     });
   }
 
-  if (revenue && commission && cost && /gmv|gross_merchandise/.test(revenue.normalizedName)) {
+  if (gmv && commission && cost) {
     relationships.push({
       id: "gmv_from_seller_payout_platform_fee",
       label: "GMV = Seller Payout + Platform Fee",
       kind: "identity",
       confidence: 0.82,
-      leftRole: revenue.canonicalRole,
-      outputRole: revenue.canonicalRole,
+      leftRole: gmv.canonicalRole,
+      outputRole: gmv.canonicalRole,
       inputRoles: [cost.canonicalRole, commission.canonicalRole],
-      columns: [revenue.columnName, cost.columnName, commission.columnName],
-      formula: `${revenue.columnName} = ${cost.columnName} + ${commission.columnName}`,
+      columns: [gmv.columnName, cost.columnName, commission.columnName],
+      formula: `${gmv.columnName} = ${cost.columnName} + ${commission.columnName}`,
       explanation: "Marketplace GMV, payout, and platform fee semantics indicate a GMV identity relationship.",
     });
   }
@@ -1452,18 +1453,19 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
     });
   }
 
-  if (revenue && (quantity || buyer || allByRole("Order").length > 0)) {
+  const transactionValue = revenue ?? gmv;
+  if (transactionValue && (quantity || buyer || allByRole("Order").length > 0)) {
     relationships.push({
       id: "average_order_value",
-      label: "Average Order Value",
+      label: transactionValue.canonicalRole === "GMV" ? "Average Transaction Value" : "Average Order Value",
       kind: "ratio",
       confidence: quantity ? 0.72 : buyer ? 0.68 : 0.62,
-      leftRole: revenue.canonicalRole,
-      outputRole: revenue.canonicalRole,
-      inputRoles: quantity ? [revenue.canonicalRole, "Quantity"] : buyer ? [revenue.canonicalRole, buyer.canonicalRole] : [revenue.canonicalRole, "Order"],
-      columns: [revenue.columnName, quantity?.columnName || buyer?.columnName].filter((value): value is string => Boolean(value)),
-      formula: quantity ? `${revenue.columnName} / ${quantity.columnName}` : `${revenue.columnName} / order count`,
-      explanation: "Revenue plus order, buyer, customer, or quantity semantics support average-order-value analysis.",
+      leftRole: transactionValue.canonicalRole,
+      outputRole: transactionValue.canonicalRole,
+      inputRoles: quantity ? [transactionValue.canonicalRole, "Quantity"] : buyer ? [transactionValue.canonicalRole, buyer.canonicalRole] : [transactionValue.canonicalRole, "Order"],
+      columns: [transactionValue.columnName, quantity?.columnName || buyer?.columnName].filter((value): value is string => Boolean(value)),
+      formula: quantity ? `${transactionValue.columnName} / ${quantity.columnName}` : `${transactionValue.columnName} / order count`,
+      explanation: "Revenue or GMV plus order, buyer, customer, or quantity semantics support average transaction value analysis.",
     });
   }
 
@@ -1610,32 +1612,38 @@ function generateKpis(
       explanation: "Average Revenue per User is computed from total revenue divided by total users.",
     });
   }
-  if (revenue && order) {
+  const transactionValue = revenue ?? gmv;
+  if (transactionValue && order) {
     const orderCount = order
       ? new Set(rows.map((row) => String(row[order.columnName] ?? "").trim()).filter(Boolean)).size
       : rows.length;
     kpis.push({
       id: "average_order_value",
-      title: "Average Order Value",
-      value: orderCount > 0 ? round(sumColumn(rows, revenue.columnName) / orderCount) : null,
+      title: transactionValue.canonicalRole === "GMV" ? "Average Transaction Value" : "Average Order Value",
+      value: orderCount > 0 ? round(sumColumn(rows, transactionValue.columnName) / orderCount) : null,
       format: "currency",
-      sourceColumns: [revenue.columnName, order.columnName],
-      confidence: revenue.confidence,
-      explanation: "Average order value is computed from the detected revenue metric divided by the number of distinct orders.",
+      sourceColumns: [transactionValue.columnName, order.columnName],
+      confidence: transactionValue.confidence,
+      explanation: transactionValue.canonicalRole === "GMV"
+        ? "Average transaction value is computed from GMV divided by the number of distinct marketplace transactions."
+        : "Average order value is computed from the detected revenue metric divided by the number of distinct orders.",
     });
   }
   if (customer) kpis.push(uniqueKpi("customers", customer, rows, customer.canonicalRole === "Customer" && /buyer/.test(customer.normalizedName) ? "Buyers / Customers" : "Customers"));
   if (buyer) kpis.push(uniqueKpi("buyers", buyer, rows, "Buyers"));
   if (seller) kpis.push(uniqueKpi("sellers", seller, rows, seller.canonicalRole === "Merchant" ? "Merchants" : "Sellers"));
-  if (revenue && commission && sumColumn(rows, revenue.columnName) > 0) {
+  const takeRateBase = gmv ?? revenue;
+  if (takeRateBase && commission && sumColumn(rows, takeRateBase.columnName) > 0) {
     kpis.push({
       id: "take_rate",
       title: "Take Rate",
-      value: round((sumColumn(rows, commission.columnName) / sumColumn(rows, revenue.columnName)) * 100),
+      value: round((sumColumn(rows, commission.columnName) / sumColumn(rows, takeRateBase.columnName)) * 100),
       format: "percentage",
-      sourceColumns: [commission.columnName, revenue.columnName],
-      confidence: Math.min(commission.confidence, revenue.confidence),
-      explanation: "Take rate is computed from commission divided by revenue or GMV.",
+      sourceColumns: [commission.columnName, takeRateBase.columnName],
+      confidence: Math.min(commission.confidence, takeRateBase.confidence),
+      explanation: takeRateBase.canonicalRole === "GMV"
+        ? "Take rate is computed from marketplace revenue or commission divided by GMV."
+        : "Take rate is computed from commission divided by revenue.",
     });
   }
   const profitValue = profit ? sumColumn(rows, profit.columnName) : revenue && cost ? sumColumn(rows, revenue.columnName) - sumColumn(rows, cost.columnName) : null;
