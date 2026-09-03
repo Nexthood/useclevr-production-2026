@@ -30,7 +30,7 @@
 
 ### Fixed
 
-- Fix Marketplace AI Assistant and selected-dataset metric answers so GMV, buyer, seller, trend, and missing inventory evidence use marketplace-specific labels and calculations.
+- Fix Marketplace AI Assistant and selected-dataset metric answers so standard uploads with Marketplace evidence route GMV totals, trends, buyer rankings, seller rankings, and missing inventory evidence through marketplace-specific labels and calculations.
 - Fix SaaS AI Assistant churn handling so explicit churn indicators drive active-customer counts, churn signals, Churned MRR evidence checks, and net movement completeness.
 - Fix SaaS AI Assistant intent execution so churn, MRR, ARR, movement, customer, plan, and account questions return deterministic answers before generic capability summaries.
 - Fix SaaS AI Assistant suggestions so MRR movement datasets show only semantic-capability questions that answer directly without cloud provider availability.

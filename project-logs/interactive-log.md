@@ -1,3 +1,37 @@
+## Marketplace Generic Intent Routing
+
+1. Interaction title
+Apply Marketplace semantics before generic selected-dataset analytical intents.
+
+2. What was the user goal
+Fix the remaining Marketplace Assistant routing and semantic issue so total revenue, revenue trend, and customer revenue questions use GMV terminology when they resolve from `gross_merchandise_value`, preserve the working seller/merchant path, keep the exact four Marketplace golden questions passing together, and avoid changes to unrelated dataset families.
+
+3. What changed
+The selected-dataset chat route checks Marketplace deterministic answers before generic analytical dispatch, so Marketplace-shaped standard uploads return `marketplace.total_gmv`, `marketplace.gmv_trend`, `marketplace.top_buyers`, and `marketplace.top_sellers` answers before generic `metric.total_revenue`, `trend.monthly_revenue`, or `ranking.top_customers` formatting can win. The metric resolver also uses the Business Semantics profile to recognize Marketplace-shaped datasets whose upload category is `standard`, keeps `gross_merchandise_value` and `gmv` labelled as GMV, and includes latest observed GMV periods while separating partial observed periods from complete comparable periods.
+
+4. Problems marked
+blocker: none.
+risk: the local `04_marketplace_startup` fixture has the same total GMV as the manual test but different top buyer and seller IDs, so local assertions validate the local source values while the implementation remains data-driven for B-0127 and S-0008 in the manually tested uploaded source.
+improvement: add a seeded authenticated dataset-chat route test that exercises the full HTTP route with the manually tested Marketplace upload when stable seed data is available.
+observation: the previous Marketplace formatter worked when the question reached the Marketplace path, but selected-dataset API routing and standard upload categories allowed generic analytical formatting to answer first.
+
+5. User learning
+Marketplace-shaped uploads now answer revenue-worded selected-dataset questions with GMV semantics before generic revenue formatting can label gross merchandise value as revenue.
+
+6. AI-agent learning
+Selected-dataset routes must prioritize domain-specific deterministic answers for detected Marketplace evidence before generic analytical intent execution, especially when the stored upload category is `standard`.
+
+7. Follow-up tasks
+- Add a seeded authenticated dataset-chat route test for the manually tested Marketplace upload when stable seed data is available.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Marketplace Metric Resolver GMV Labels
 
 1. Interaction title

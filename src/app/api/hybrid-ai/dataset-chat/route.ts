@@ -27,7 +27,10 @@ import {
   executeAnalyticalIntent,
   type AnalyticalUnsupportedCode,
 } from "@/lib/data/analytical-intents";
-import { answerDatasetQuestionDeterministically } from "@/lib/data/dataset-assistant-deterministic";
+import {
+  answerDatasetQuestionDeterministically,
+  type DatasetAssistantDeterministicResult,
+} from "@/lib/data/dataset-assistant-deterministic";
 import { resolveDatasetType } from "@/lib/data/dataset-category";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import { buildDatasetIntelligenceEngine, type DatasetIntelligenceEngineResult } from "@/lib/data/dataset-intelligence-engine";
@@ -322,6 +325,74 @@ export async function POST(request: Request) {
       });
     }
 
+    const deterministicInput = {
+      question: latestQuestion,
+      datasetId: dataset.id,
+      datasetType,
+      columns,
+      rows: analysisRows,
+    };
+    let deterministicResult: DatasetAssistantDeterministicResult | null = answerDatasetQuestionDeterministically(deterministicInput);
+    if (isMarketplaceDeterministicResult(deterministicResult)) {
+      const providerStatus = directDataAnalysisStatus();
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Direct data analysis",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: true,
+      });
+      debugLog("[DATASET_AI] Direct Marketplace response generated", {
+        requestId,
+        datasetId: parsed.datasetId,
+        datasetType,
+        userId,
+        tenant: userId,
+        provider: "Direct data analysis",
+        model: "none",
+        stage: "direct_marketplace_answer",
+        durationMs: Date.now() - startedAt,
+        httpStatus: 200,
+      });
+      const trace = await createDatasetChatTrace({
+        ghostMode,
+        userId,
+        datasetId: parsed.datasetId,
+        prompt: latestQuestion,
+        response: deterministicResult.answer,
+        providerName: "Direct data analysis",
+        modelName: "deterministic-result",
+        latencyMs: Date.now() - startedAt,
+      });
+      return NextResponse.json({
+        success: true,
+        traceId: trace?.id ?? null,
+        answer: deterministicResult.answer,
+        content: deterministicResult.answer,
+        insight: deterministicResult.insight,
+        explanation: deterministicResult.explanation,
+        recommendation: deterministicResult.recommendation,
+        data: deterministicResult.data,
+        chartType: deterministicResult.chartType,
+        providerName: "Not required",
+        modelName: "",
+        confidence: confidenceFromResult(deterministicResult.result),
+        mode: "direct",
+        route: "direct",
+        analyticalResult: deterministicResult.result,
+        datasetContext: contextForClient(context),
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
+        providerStatus,
+        requestId,
+      });
+    }
+
     const analyticalResult = executeAnalyticalIntent({
       question: latestQuestion,
       datasetId: dataset.id,
@@ -378,13 +449,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const deterministicResult = answerDatasetQuestionDeterministically({
-      question: latestQuestion,
-      datasetId: dataset.id,
-      datasetType,
-      columns,
-      rows: analysisRows,
-    });
+    deterministicResult ??= answerDatasetQuestionDeterministically(deterministicInput);
     if (deterministicResult) {
       const providerStatus = directDataAnalysisStatus();
       recordAiRequestAudit({
@@ -1501,6 +1566,10 @@ function failedBeforeProviderStatus(code: AnalyticalUnsupportedCode): HybridProv
     fallbackActive: false,
     route: "none",
   };
+}
+
+function isMarketplaceDeterministicResult(result: DatasetAssistantDeterministicResult | null): result is DatasetAssistantDeterministicResult {
+  return String(result?.result?.intent ?? "").startsWith("marketplace.");
 }
 
 function providerStatusLabel(providerType: string, providerName: string) {

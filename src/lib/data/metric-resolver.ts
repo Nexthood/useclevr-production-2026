@@ -6,6 +6,10 @@ import {
   type SemanticSchema,
 } from "@/lib/data/semantic-schema";
 import {
+  buildBusinessSemanticProfile,
+  conceptColumn,
+} from "@/lib/data/business-semantics";
+import {
   classifyQuestionIntent,
   type QuestionIntent,
   type QuestionIntentClassification,
@@ -48,6 +52,7 @@ type MetricResolverInput = {
 };
 
 type RequiredMetric = SemanticField | "margin" | "any_region";
+type RevenuePeriodRow = { period: string; revenue: number; rows: number; complete?: boolean };
 
 export function resolveQuestionMetric(input: MetricResolverInput): MetricResolutionResult {
   const classification = classifyQuestionIntent(input.question);
@@ -298,26 +303,45 @@ function revenueRisk(input: MetricInput): MetricResolutionResult {
 function monthlyRevenue(input: MetricInput): MetricResolutionResult {
   const revenueColumn = requiredColumn(input.schema, "revenue");
   const dateColumn = requiredColumn(input.schema, "date");
-  const rows = groupByPeriod(input.rows, dateColumn, revenueColumn);
-  const latest = rows.at(-1);
-  const previous = rows.at(-2);
-  const changePct = latest && previous && previous.revenue !== 0 ? ((latest.revenue - previous.revenue) / previous.revenue) * 100 : null;
   const marketplaceGmv = isMarketplaceGmvMetric(input, revenueColumn);
+  const rows: RevenuePeriodRow[] = marketplaceGmv ? groupByObservedPeriod(input.rows, dateColumn, revenueColumn) : groupByPeriod(input.rows, dateColumn, revenueColumn);
+  const latest = rows.at(-1);
+  const completeRows = marketplaceGmv ? rows.filter((row) => row.complete) : rows;
+  const latestComparable = completeRows.at(-1) ?? latest;
+  const previousComparable = completeRows.length >= 2 ? completeRows.at(-2) : rows.at(-2);
+  const changePct = latestComparable && previousComparable && previousComparable.revenue !== 0
+    ? ((latestComparable.revenue - previousComparable.revenue) / previousComparable.revenue) * 100
+    : null;
+  const latestPartial = marketplaceGmv && latest ? latest.complete === false : false;
+  const partialPeriodText = latestPartial
+    ? `${formatMonthLabel(latest?.period ?? "")} is the latest observed period and appears partial. ${latestComparable && latestComparable.period !== latest?.period ? `${formatMonthLabel(latestComparable.period)} is the latest complete comparable period. ` : ""}`
+    : "";
   return success(input, {
     metricLabel: marketplaceGmv ? "GMV trend" : "Monthly revenue trend",
     answer: latest
-      ? `${marketplaceGmv ? "Latest Monthly GMV" : "Latest monthly revenue"} is ${formatValue(latest.revenue, input.schema.currencyCode)} in ${latest.period}${changePct === null ? "" : ` (${formatSignedPercent(changePct)} vs previous period)`}.`
+      ? `${partialPeriodText}${marketplaceGmv ? "Latest Monthly GMV" : "Latest monthly revenue"} is ${formatValue(latest.revenue, input.schema.currencyCode)} in ${latest.period}${changePct === null || (latestPartial && latestComparable?.period !== latest.period) ? "" : ` (${formatSignedPercent(changePct)} vs previous period)`}.`
       : marketplaceGmv ? "GMV trend could not be calculated." : "Monthly revenue trend could not be calculated.",
     insight: `Grouped "${revenueColumn}" by "${dateColumn}".`,
     takeaway: marketplaceGmv
-      ? changePct === null ? "More complete periods improve GMV trend interpretation." : changePct < 0 ? "GMV declined in the latest comparable period." : "GMV increased in the latest comparable period."
+      ? latestPartial
+        ? "The latest observed period is shown as partial and kept separate from complete-period GMV movement."
+        : changePct === null ? "More complete periods improve GMV trend interpretation." : changePct < 0 ? "GMV declined in the latest comparable period." : "GMV increased in the latest comparable period."
       : changePct === null ? "More complete periods improve trend interpretation." : changePct < 0 ? "Revenue declined in the latest comparable period." : "Revenue increased in the latest comparable period.",
     nextQuestion: marketplaceGmv ? "Ask: Which buyers or sellers drive the most GMV?" : "Ask: What are the biggest revenue risks?",
-    data: rows.map((row) => ({ period: row.period, [marketplaceGmv ? "gmv" : "revenue"]: round(row.revenue), rows: row.rows })),
+    data: rows.map((row) => ({
+      period: row.period,
+      [marketplaceGmv ? "gmv" : "revenue"]: round(row.revenue),
+      rows: row.rows,
+      ...(marketplaceGmv ? { completeness: row.complete === false ? "partial" : "complete" } : {}),
+    })),
     chartType: "table",
     result: marketplaceGmv
       ? {
-          periods: rows.map((row) => ({ period: row.period, gmv: row.revenue, rows: row.rows })),
+          periods: rows.map((row) => ({ period: row.period, gmv: row.revenue, rows: row.rows, complete: row.complete !== false })),
+          latestObservedPeriod: latest?.period ?? null,
+          latestObservedGmv: latest?.revenue ?? null,
+          latestObservedComplete: latest ? latest.complete !== false : null,
+          latestComparablePeriod: latestComparable?.period ?? null,
           latestChangePct: changePct === null ? null : round(changePct, 1),
           gmvColumn: revenueColumn,
           revenueColumn,
@@ -602,6 +626,27 @@ function groupByPeriod(rows: Record<string, unknown>[], dateColumn: string, reve
   return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([period, value]) => ({ period, revenue: round(value.revenue), rows: value.rows }));
 }
 
+function groupByObservedPeriod(rows: Record<string, unknown>[], dateColumn: string, revenueColumn: string) {
+  const groups = new Map<string, { revenue: number; rows: number }>();
+  for (const row of rows) {
+    const period = monthKey(row[dateColumn]);
+    if (!period) continue;
+    const current = groups.get(period) ?? { revenue: 0, rows: 0 };
+    current.revenue += parseBusinessNumber(row[revenueColumn]) ?? 0;
+    current.rows += 1;
+    groups.set(period, current);
+  }
+  const groupedRows = Array.from(groups.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([period, value]) => ({ period, revenue: round(value.revenue), rows: value.rows, complete: true }));
+  if (groupedRows.length <= 1) return groupedRows;
+  const maxRows = Math.max(...groupedRows.map((row) => row.rows));
+  return groupedRows.map((row) => ({
+    ...row,
+    complete: row.rows >= maxRows * 0.8,
+  }));
+}
+
 function revenueDeclines(rows: Record<string, unknown>[], revenueColumn: string) {
   const dateColumn = Object.keys(rows[0] ?? {}).find((column) => /date|month|period/i.test(column));
   if (!dateColumn) return [];
@@ -634,11 +679,19 @@ function bestAvailableDimension(schema: SemanticSchema, fields: SemanticField[])
 }
 
 function isMarketplaceGmvMetric(input: MetricInput, column: string) {
-  return /marketplace/i.test(input.datasetType) && /^(gmv|gross_merchandise_value|gross_merchandise)$/i.test(normalizedColumn(column));
+  if (!/^(gmv|gross_merchandise_value|gross_merchandise)$/i.test(normalizedColumn(column))) return false;
+  const profile = buildBusinessSemanticProfile({
+    datasetId: input.datasetId,
+    datasetType: input.datasetType,
+    columns: input.columns,
+    rows: input.rows,
+  });
+  return profile.classification.datasetType === "marketplace" && conceptColumn(profile, "gmv") === column;
 }
 
 function marketplaceRankingTitle(field: SemanticField, groupColumn: string) {
   const group = marketplaceGroupBy(field, groupColumn);
+  if (field === "customer" && group === "buyer") return "Top buyers/customers by GMV";
   if (group === "buyer") return "Top buyers by GMV";
   if (group === "seller") return "Top sellers by GMV";
   if (field === "customer") return "Top buyers/customers by GMV";
@@ -686,6 +739,13 @@ function formatNumber(value: number) {
 function formatSignedPercent(value: number) {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)}%`;
+}
+
+function formatMonthLabel(period: string) {
+  const match = period.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return period;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
 function humanize(value: string) {

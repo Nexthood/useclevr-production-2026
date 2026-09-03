@@ -9,7 +9,10 @@ import {
 } from "../../src/lib/data/dataset-assistant-deterministic";
 import { answerPrebookkeepingQuestionDeterministically } from "../../src/lib/accountancy/prebookkeeping-ai-assistant";
 import type { PrebookkeepingCategorization } from "../../src/lib/accountancy/prebookkeeping-categorization";
-import { availableAnalyticalSuggestions } from "../../src/lib/data/analytical-intents";
+import {
+  availableAnalyticalSuggestions,
+  executeAnalyticalIntent,
+} from "../../src/lib/data/analytical-intents";
 import {
   buildDatasetIntelligenceEngine,
   buildSaasAssistantSummary,
@@ -135,6 +138,11 @@ assert.ok(
   datasetRouteSource.indexOf("const prebookkeepingCategorization = readPrebookkeepingCategorization") <
     datasetRouteSource.indexOf("const analyticalResult = executeAnalyticalIntent"),
   "Dataset AI routes pre-bookkeeping questions before generic analytical dispatch",
+);
+assert.ok(
+  datasetRouteSource.indexOf("let deterministicResult: DatasetAssistantDeterministicResult | null = answerDatasetQuestionDeterministically") <
+    datasetRouteSource.indexOf("const analyticalResult = executeAnalyticalIntent"),
+  "Dataset AI checks Marketplace deterministic answers before generic analytical dispatch",
 );
 
 const usySource = readFileSync(join(repoRoot, "src", "components", "ui", "help-chatbox.tsx"), "utf8");
@@ -461,6 +469,52 @@ assert.equal(marketplaceTrend.result.intent, "marketplace.gmv_trend");
 assert.equal(marketplaceTrend.result.latestObservedPeriod, "2026-04");
 assert.match(marketplaceTrend.answer, /Latest observed GMV is 20,944\.44 in 2026-04/);
 assert.match(marketplaceTrend.answer, /complete|partial\/incomplete/);
+
+const marketplacePartialRows = [
+  { date: "2026-03-01", transaction_id: "M-1", buyer_id: "B-1", seller_id: "S-1", gross_merchandise_value: "100", platform_fee: "12" },
+  { date: "2026-03-02", transaction_id: "M-2", buyer_id: "B-2", seller_id: "S-1", gross_merchandise_value: "200", platform_fee: "24" },
+  { date: "2026-04-01", transaction_id: "M-3", buyer_id: "B-1", seller_id: "S-2", gross_merchandise_value: "50", platform_fee: "6" },
+];
+const marketplacePartialColumns = Object.keys(marketplacePartialRows[0] ?? {});
+const marketplaceStandardTotal = executeAnalyticalIntent({
+  question: "What is the total revenue?",
+  datasetId: "fixture:standard-marketplace",
+  datasetType: "standard",
+  columns: marketplacePartialColumns,
+  rows: marketplacePartialRows,
+});
+assert.equal(marketplaceStandardTotal.status, "success");
+if (marketplaceStandardTotal.status === "success") {
+  assert.match(marketplaceStandardTotal.answer, /Total GMV is 350/);
+  assert.doesNotMatch(marketplaceStandardTotal.answer, /Total revenue is|Marketplace Revenue is/);
+}
+const marketplaceStandardTrend = executeAnalyticalIntent({
+  question: "What are the revenue trends over time?",
+  datasetId: "fixture:standard-marketplace",
+  datasetType: "standard",
+  columns: marketplacePartialColumns,
+  rows: marketplacePartialRows,
+});
+assert.equal(marketplaceStandardTrend.status, "success");
+if (marketplaceStandardTrend.status === "success") {
+  assert.match(marketplaceStandardTrend.answer, /April 2026 is the latest observed period and appears partial/);
+  assert.match(marketplaceStandardTrend.answer, /March 2026 is the latest complete comparable period/);
+  assert.match(marketplaceStandardTrend.answer, /Latest Monthly GMV is 50 in 2026-04/);
+}
+const marketplaceStandardBuyers = executeAnalyticalIntent({
+  question: "Which customers generate the most revenue?",
+  datasetId: "fixture:standard-marketplace",
+  datasetType: "standard",
+  columns: marketplacePartialColumns,
+  rows: marketplacePartialRows,
+});
+assert.equal(marketplaceStandardBuyers.status, "success");
+if (marketplaceStandardBuyers.status === "success") {
+  assert.match(marketplaceStandardBuyers.answer, /Top buyers\/customers by GMV/);
+  assert.match(marketplaceStandardBuyers.answer, /detected GMV/);
+  assert.equal((marketplaceStandardBuyers.data as Array<Record<string, unknown>>)[0]?.gmv, 200);
+  assert.equal((marketplaceStandardBuyers.data as Array<Record<string, unknown>>)[0]?.revenue, undefined);
+}
 
 const marketplaceBuyers = marketplaceAnswers.find((entry) => entry.question === "Which customers generate the most revenue?")?.answer;
 assert.ok(marketplaceBuyers);
