@@ -1,3 +1,37 @@
+## Marketplace Metric Resolver GMV Labels
+
+1. Interaction title
+Correct the remaining selected-dataset Marketplace semantic labels.
+
+2. What was the user goal
+Fix only the remaining Marketplace labeling issue so `gross_merchandise_value` displays as GMV across revenue-worded totals, monthly trends, buyer rankings, seller rankings, and missing inventory evidence, without changing calculations, redesigning the assistant, adding features, or touching unrelated dataset types.
+
+3. What changed
+The selected-dataset metric resolver detects Marketplace datasets whose revenue semantic maps to `gmv`, `gross_merchandise_value`, or `gross_merchandise`. Those answers now label totals as Total GMV, monthly answers as Monthly GMV or GMV trend, grouped buyer outputs as buyer/customer GMV, geography and product outputs as GMV by dimension, and Marketplace AOV-style answers as Average Transaction Value. The existing Marketplace Assistant seller path continues to report seller/merchant GMV and leaves missing stock or inventory exposure as unavailable/null.
+
+4. Problems marked
+blocker: none.
+risk: regression-script files are ignored by ESLint configuration, so lint validation covers the changed source file while behavioral regression tests cover the script expectation changes.
+improvement: keep any future Marketplace resolver additions behind the same GMV source-column guard so non-Marketplace revenue datasets keep standard revenue wording.
+observation: the Marketplace Assistant route already passed the four golden questions; the remaining leak was the shared metric resolver returning generic revenue labels for Marketplace rows.
+
+5. User learning
+Marketplace revenue-worded questions now display GMV when the backing source column is GMV, and missing inventory evidence remains unavailable instead of zero-valued.
+
+6. AI-agent learning
+Marketplace GMV labeling must be enforced in both domain-specific assistant routes and shared selected-dataset metric resolver paths.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Marketplace AI Assistant GMV Semantics
 
 1. Interaction title

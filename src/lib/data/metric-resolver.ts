@@ -96,6 +96,18 @@ function calculateIntent(input: MetricResolverInput & {
 function totalRevenue(input: MetricInput): MetricResolutionResult {
   const revenueColumn = requiredColumn(input.schema, "revenue");
   const total = sum(input.rows, revenueColumn);
+  if (isMarketplaceGmvMetric(input, revenueColumn)) {
+    return success(input, {
+      metricLabel: "Total GMV",
+      answer: `Total GMV is ${formatValue(total, input.schema.currencyCode)}.`,
+      insight: `UseClevr summed ${input.rows.length.toLocaleString("en-US")} validated row${input.rows.length === 1 ? "" : "s"} from "${revenueColumn}".`,
+      takeaway: "GMV is gross merchandise value, not generic company revenue.",
+      nextQuestion: "Ask: Which buyers or sellers drive the most GMV?",
+      data: [{ metric: "Total GMV", value: round(total), unit: input.schema.currencyCode ?? "number" }],
+      chartType: "kpi",
+      result: { gmv: round(total), gmvColumn: revenueColumn, revenueColumn },
+    });
+  }
   return success(input, {
     metricLabel: "Total revenue",
     answer: `Total revenue is ${formatValue(total, input.schema.currencyCode)}.`,
@@ -117,19 +129,22 @@ function averageOrderValue(input: MetricInput): MetricResolutionResult {
   const revenue = sum(input.rows, revenueColumn);
   const orderCount = distinctCount(input.rows, orderColumn);
   const aov = orderCount === 0 ? 0 : revenue / orderCount;
+  const marketplaceGmv = isMarketplaceGmvMetric(input, revenueColumn);
   return success(input, {
-    metricLabel: "Average Order Value",
-    answer: `Average Order Value is ${formatValue(aov, input.schema.currencyCode)}.`,
-    insight: `Calculation: ${formatValue(revenue, input.schema.currencyCode)} revenue divided by ${orderCount.toLocaleString("en-US")} distinct orders from "${orderColumn}".`,
-    takeaway: "AOV measures the average revenue per order, not total revenue.",
-    nextQuestion: "Ask: Which customers have the highest average order value?",
+    metricLabel: marketplaceGmv ? "Average Transaction Value" : "Average Order Value",
+    answer: `${marketplaceGmv ? "Average Transaction Value" : "Average Order Value"} is ${formatValue(aov, input.schema.currencyCode)}.`,
+    insight: `Calculation: ${formatValue(revenue, input.schema.currencyCode)} ${marketplaceGmv ? "GMV" : "revenue"} divided by ${orderCount.toLocaleString("en-US")} distinct orders from "${orderColumn}".`,
+    takeaway: marketplaceGmv ? "Average Transaction Value measures average GMV per marketplace transaction." : "AOV measures the average revenue per order, not total revenue.",
+    nextQuestion: marketplaceGmv ? "Ask: Which buyers or sellers drive the most GMV?" : "Ask: Which customers have the highest average order value?",
     data: [
-      { metric: "Average Order Value", value: round(aov), unit: input.schema.currencyCode ?? "number" },
-      { metric: "Revenue", value: round(revenue), unit: input.schema.currencyCode ?? "number" },
+      { metric: marketplaceGmv ? "Average Transaction Value" : "Average Order Value", value: round(aov), unit: input.schema.currencyCode ?? "number" },
+      { metric: marketplaceGmv ? "GMV" : "Revenue", value: round(revenue), unit: input.schema.currencyCode ?? "number" },
       { metric: "Order count", value: orderCount, unit: "count" },
     ],
     chartType: "kpi",
-    result: { averageOrderValue: round(aov), revenue: round(revenue), orderCount, revenueColumn, orderColumn },
+    result: marketplaceGmv
+      ? { averageTransactionValue: round(aov), gmv: round(revenue), orderCount, gmvColumn: revenueColumn, revenueColumn, orderColumn }
+      : { averageOrderValue: round(aov), revenue: round(revenue), orderCount, revenueColumn, orderColumn },
   });
 }
 
@@ -139,18 +154,21 @@ function averageSellingPrice(input: MetricInput): MetricResolutionResult {
   const revenue = sum(input.rows, revenueColumn);
   const quantity = sum(input.rows, quantityColumn);
   const asp = quantity === 0 ? 0 : revenue / quantity;
+  const marketplaceGmv = isMarketplaceGmvMetric(input, revenueColumn);
   return success(input, {
     metricLabel: "Average Selling Price",
     answer: `Average selling price is ${formatValue(asp, input.schema.currencyCode)}.`,
-    insight: `Calculation: ${formatValue(revenue, input.schema.currencyCode)} revenue divided by ${formatNumber(quantity)} units.`,
-    takeaway: "ASP measures average revenue per unit sold.",
+    insight: `Calculation: ${formatValue(revenue, input.schema.currencyCode)} ${marketplaceGmv ? "GMV" : "revenue"} divided by ${formatNumber(quantity)} units.`,
+    takeaway: marketplaceGmv ? "ASP measures average GMV per marketplace unit sold." : "ASP measures average revenue per unit sold.",
     nextQuestion: "Ask: Which products have the highest average selling price?",
     data: [
       { metric: "Average selling price", value: round(asp), unit: input.schema.currencyCode ?? "number" },
       { metric: "Units", value: round(quantity), unit: "count" },
     ],
     chartType: "kpi",
-    result: { averageSellingPrice: round(asp), revenue: round(revenue), quantity: round(quantity), revenueColumn, quantityColumn },
+    result: marketplaceGmv
+      ? { averageSellingPrice: round(asp), gmv: round(revenue), quantity: round(quantity), gmvColumn: revenueColumn, revenueColumn, quantityColumn }
+      : { averageSellingPrice: round(asp), revenue: round(revenue), quantity: round(quantity), revenueColumn, quantityColumn },
   });
 }
 
@@ -190,23 +208,35 @@ function groupedRevenue(input: MetricInput, field: SemanticField | null, label?:
   const groupColumn = requiredColumn(input.schema, field);
   const rows = groupByRevenue(input.rows, groupColumn, revenueColumn).slice(0, 10);
   const top = rows[0];
-  const title = label ?? `Revenue by ${humanize(field)}`;
+  const marketplaceGmv = isMarketplaceGmvMetric(input, revenueColumn);
+  const valueLabel = marketplaceGmv ? "GMV" : "revenue";
+  const title = marketplaceGmv
+    ? marketplaceRankingTitle(field, groupColumn)
+    : label ?? `Revenue by ${humanize(field)}`;
   return success(input, {
     metricLabel: title,
     answer: top
       ? `${title}: ${top.segment} leads with ${formatValue(top.revenue, input.schema.currencyCode)}.`
       : `${title}: no grouped values were found.`,
-    insight: `Grouped by "${groupColumn}" and summed "${revenueColumn}".`,
-    takeaway: top ? `${top.segment} represents ${top.sharePct.toFixed(1)}% of detected revenue.` : "No grouped revenue could be calculated.",
-    nextQuestion: `Ask: What are the biggest ${humanize(field).toLowerCase()} risks?`,
+    insight: `Grouped by "${groupColumn}" and summed ${valueLabel} from "${revenueColumn}".`,
+    takeaway: top ? `${top.segment} represents ${top.sharePct.toFixed(1)}% of detected ${valueLabel}.` : `No grouped ${valueLabel} could be calculated.`,
+    nextQuestion: marketplaceGmv ? "Ask: Which sellers or buyers drive the most GMV?" : `Ask: What are the biggest ${humanize(field).toLowerCase()} risks?`,
     data: rows.map((row) => ({
       segment: row.segment,
-      revenue: round(row.revenue),
+      [marketplaceGmv ? "gmv" : "revenue"]: round(row.revenue),
       rows: row.rows,
       sharePct: round(row.sharePct, 1),
     })),
     chartType: "table",
-    result: { groupBy: field, groupColumn, revenueColumn, rows },
+    result: marketplaceGmv
+      ? {
+          groupBy: marketplaceGroupBy(field, groupColumn),
+          groupColumn,
+          gmvColumn: revenueColumn,
+          revenueColumn,
+          rows: rows.map((row) => ({ segment: row.segment, gmv: row.revenue, rows: row.rows, sharePct: row.sharePct })),
+        }
+      : { groupBy: field, groupColumn, revenueColumn, rows },
   });
 }
 
@@ -214,41 +244,54 @@ function concentration(input: MetricInput, field: SemanticField | null): MetricR
   if (!field) return null;
   const grouped = groupedRevenue(input, field, `${humanize(field)} concentration`);
   if (!grouped || grouped.status !== "success") return grouped;
-  const rows = grouped.result.rows as Array<{ segment: string; sharePct: number; revenue: number; rows: number }>;
+  const marketplaceGmv = typeof grouped.result.gmvColumn === "string";
+  const rows = grouped.result.rows as Array<{ segment: string; sharePct: number; revenue?: number; gmv?: number; rows: number }>;
   const top = rows[0];
+  const valueLabel = marketplaceGmv ? "GMV" : "revenue";
   return {
     ...grouped,
     answer: top
-      ? `Answer: ${humanize(field)} concentration: ${top.segment} accounts for ${top.sharePct.toFixed(1)}% of detected revenue.\n\nInsight: ${top.sharePct >= 50 ? "The dataset shows high concentration risk." : "The dataset does not show a single dominant concentration above 50%."}\n\nTakeaway: ${top.sharePct >= 50 ? "Review dependency on the leading segment." : "Revenue appears more distributed across this dimension."}\n\nNext question: Ask: What are the biggest revenue risks?`
+      ? `Answer: ${humanize(field)} concentration: ${top.segment} accounts for ${top.sharePct.toFixed(1)}% of detected ${valueLabel}.\n\nInsight: ${top.sharePct >= 50 ? "The dataset shows high concentration risk." : "The dataset does not show a single dominant concentration above 50%."}\n\nTakeaway: ${top.sharePct >= 50 ? "Review dependency on the leading segment." : `${valueLabel} appears more distributed across this dimension.`}\n\nNext question: Ask: What are the biggest ${marketplaceGmv ? "GMV" : "revenue"} risks?`
       : grouped.answer,
     insight: top && top.sharePct >= 50 ? "The dataset shows high concentration risk." : "The dataset does not show a single dominant concentration above 50%.",
-    takeaway: top && top.sharePct >= 50 ? "Review dependency on the leading segment." : "Revenue appears more distributed across this dimension.",
+    takeaway: top && top.sharePct >= 50 ? "Review dependency on the leading segment." : `${valueLabel} appears more distributed across this dimension.`,
     result: { ...grouped.result, concentrationSegment: top?.segment ?? null, concentrationSharePct: top?.sharePct ?? null },
   };
 }
 
 function revenueRisk(input: MetricInput): MetricResolutionResult {
   const revenueColumn = requiredColumn(input.schema, "revenue");
+  const marketplaceGmv = isMarketplaceGmvMetric(input, revenueColumn);
   const trendRows = revenueDeclines(input.rows, revenueColumn);
   const concentrationResult = concentration(input, bestAvailableDimension(input.schema, ["customer", "product", "region", "country", "category"]));
   const concentrationRows = concentrationResult?.status === "success"
-    ? (concentrationResult.result.rows as Array<{ segment: string; sharePct: number; revenue: number }>)
+    ? (concentrationResult.result.rows as Array<{ segment: string; sharePct: number; revenue?: number; gmv?: number }>)
     : [];
   const risks = [
-    ...trendRows.map((row) => ({ risk: "Revenue decline", detail: `${row.previousPeriod} to ${row.currentPeriod}`, value: row.changePct, revenue: row.currentRevenue })),
-    ...concentrationRows.slice(0, 3).filter((row) => row.sharePct >= 35).map((row) => ({ risk: "Revenue concentration", detail: row.segment, value: row.sharePct, revenue: row.revenue })),
+    ...trendRows.map((row) => ({
+      risk: marketplaceGmv ? "GMV decline" : "Revenue decline",
+      detail: `${row.previousPeriod} to ${row.currentPeriod}`,
+      value: row.changePct,
+      [marketplaceGmv ? "gmv" : "revenue"]: row.currentRevenue,
+    })),
+    ...concentrationRows.slice(0, 3).filter((row) => row.sharePct >= 35).map((row) => ({
+      risk: marketplaceGmv ? "GMV concentration" : "Revenue concentration",
+      detail: row.segment,
+      value: row.sharePct,
+      [marketplaceGmv ? "gmv" : "revenue"]: (marketplaceGmv ? row.gmv : row.revenue) ?? null,
+    })),
   ];
   return success(input, {
-    metricLabel: "Revenue risks",
+    metricLabel: marketplaceGmv ? "GMV risks" : "Revenue risks",
     answer: risks[0]
-      ? `Biggest revenue risk: ${risks[0].detail} (${formatSignedPercent(Number(risks[0].value))}).`
-      : "No major revenue risk signal was found from the validated fields.",
-    insight: `UseClevr checked revenue movements and concentration from "${revenueColumn}".`,
-    takeaway: risks.length > 0 ? "Prioritize the largest decline or concentration signal first." : "Ask for revenue by segment to inspect risk in more detail.",
-    nextQuestion: "Ask: Which segments are declining?",
+      ? `Biggest ${marketplaceGmv ? "GMV" : "revenue"} risk: ${risks[0].detail} (${formatSignedPercent(Number(risks[0].value))}).`
+      : `No major ${marketplaceGmv ? "GMV" : "revenue"} risk signal was found from the validated fields.`,
+    insight: `UseClevr checked ${marketplaceGmv ? "GMV" : "revenue"} movements and concentration from "${revenueColumn}".`,
+    takeaway: risks.length > 0 ? "Prioritize the largest decline or concentration signal first." : `Ask for ${marketplaceGmv ? "GMV" : "revenue"} by segment to inspect risk in more detail.`,
+    nextQuestion: marketplaceGmv ? "Ask: Which marketplace segments are declining by GMV?" : "Ask: Which segments are declining?",
     data: risks,
     chartType: "table",
-    result: { risks, revenueColumn },
+    result: marketplaceGmv ? { risks, gmvColumn: revenueColumn, revenueColumn } : { risks, revenueColumn },
   });
 }
 
@@ -259,17 +302,28 @@ function monthlyRevenue(input: MetricInput): MetricResolutionResult {
   const latest = rows.at(-1);
   const previous = rows.at(-2);
   const changePct = latest && previous && previous.revenue !== 0 ? ((latest.revenue - previous.revenue) / previous.revenue) * 100 : null;
+  const marketplaceGmv = isMarketplaceGmvMetric(input, revenueColumn);
   return success(input, {
-    metricLabel: "Monthly revenue trend",
+    metricLabel: marketplaceGmv ? "GMV trend" : "Monthly revenue trend",
     answer: latest
-      ? `Latest monthly revenue is ${formatValue(latest.revenue, input.schema.currencyCode)} in ${latest.period}${changePct === null ? "" : ` (${formatSignedPercent(changePct)} vs previous period)`}.`
-      : "Monthly revenue trend could not be calculated.",
+      ? `${marketplaceGmv ? "Latest Monthly GMV" : "Latest monthly revenue"} is ${formatValue(latest.revenue, input.schema.currencyCode)} in ${latest.period}${changePct === null ? "" : ` (${formatSignedPercent(changePct)} vs previous period)`}.`
+      : marketplaceGmv ? "GMV trend could not be calculated." : "Monthly revenue trend could not be calculated.",
     insight: `Grouped "${revenueColumn}" by "${dateColumn}".`,
-    takeaway: changePct === null ? "More complete periods improve trend interpretation." : changePct < 0 ? "Revenue declined in the latest comparable period." : "Revenue increased in the latest comparable period.",
-    nextQuestion: "Ask: What are the biggest revenue risks?",
-    data: rows.map((row) => ({ period: row.period, revenue: round(row.revenue), rows: row.rows })),
+    takeaway: marketplaceGmv
+      ? changePct === null ? "More complete periods improve GMV trend interpretation." : changePct < 0 ? "GMV declined in the latest comparable period." : "GMV increased in the latest comparable period."
+      : changePct === null ? "More complete periods improve trend interpretation." : changePct < 0 ? "Revenue declined in the latest comparable period." : "Revenue increased in the latest comparable period.",
+    nextQuestion: marketplaceGmv ? "Ask: Which buyers or sellers drive the most GMV?" : "Ask: What are the biggest revenue risks?",
+    data: rows.map((row) => ({ period: row.period, [marketplaceGmv ? "gmv" : "revenue"]: round(row.revenue), rows: row.rows })),
     chartType: "table",
-    result: { periods: rows, latestChangePct: changePct === null ? null : round(changePct, 1), revenueColumn, dateColumn },
+    result: marketplaceGmv
+      ? {
+          periods: rows.map((row) => ({ period: row.period, gmv: row.revenue, rows: row.rows })),
+          latestChangePct: changePct === null ? null : round(changePct, 1),
+          gmvColumn: revenueColumn,
+          revenueColumn,
+          dateColumn,
+        }
+      : { periods: rows, latestChangePct: changePct === null ? null : round(changePct, 1), revenueColumn, dateColumn },
   });
 }
 
@@ -579,6 +633,24 @@ function bestAvailableDimension(schema: SemanticSchema, fields: SemanticField[])
   return fields.find((field) => Boolean(semanticColumn(schema, field))) ?? null;
 }
 
+function isMarketplaceGmvMetric(input: MetricInput, column: string) {
+  return /marketplace/i.test(input.datasetType) && /^(gmv|gross_merchandise_value|gross_merchandise)$/i.test(normalizedColumn(column));
+}
+
+function marketplaceRankingTitle(field: SemanticField, groupColumn: string) {
+  const group = marketplaceGroupBy(field, groupColumn);
+  if (group === "buyer") return "Top buyers by GMV";
+  if (group === "seller") return "Top sellers by GMV";
+  if (field === "customer") return "Top buyers/customers by GMV";
+  return `GMV by ${humanize(field)}`;
+}
+
+function marketplaceGroupBy(field: SemanticField, groupColumn: string) {
+  if (/buyer|purchaser/i.test(groupColumn)) return "buyer";
+  if (/seller|merchant|vendor/i.test(groupColumn)) return "seller";
+  return field;
+}
+
 function fallbackGrouping(input: MetricInput, fields: SemanticField[]) {
   const requested = input.classification.requestedGrouping;
   if (requested) {
@@ -618,6 +690,10 @@ function formatSignedPercent(value: number) {
 
 function humanize(value: string) {
   return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function normalizedColumn(column: string) {
+  return column.toLowerCase().trim().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "");
 }
 
 function round(value: number, decimals = 2) {

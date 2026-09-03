@@ -54,6 +54,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1046. Marketplace selected-dataset metric answers label GMV-backed totals, trends, buyer rankings, seller rankings, and missing inventory evidence with Marketplace wording and null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1045. Marketplace Assistant GMV, buyer, seller, period, and missing-inventory answers use marketplace terminology and source-backed null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1044. SaaS Assistant churn indicators drive active-customer, churn-signal, Churned MRR, and net movement answers with current-state and zero-vs-missing semantics. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1043. SaaS Assistant specific-intent questions execute deterministic calculations before generic semantic capability explanations. (labels: ai, data, metrics, testing; commit: worktree)

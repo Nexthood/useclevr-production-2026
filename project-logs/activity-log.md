@@ -1,3 +1,4 @@
+- fixed: label selected-dataset Marketplace metric resolver answers with Total GMV, Monthly GMV, GMV trend, buyer GMV, seller/merchant GMV, and unavailable inventory evidence when revenue-worded intents resolve from gross merchandise value
 - fixed: route Marketplace Assistant revenue, trend, customer, and supplier-worded questions through GMV, buyer, and seller semantics, include latest observed periods, and keep missing inventory evidence unavailable instead of zero
 - fixed: recognize validated SaaS churn indicator fields in Dataset AI Assistant semantics, exclude churned customers from active current-state counts, report churn prevalence, and keep Churned MRR plus net movement unavailable when movement-MRR evidence is missing
 - fixed: execute selected-dataset SaaS churn, MRR, ARR, movement, active-customer, plan, and account-value questions through deterministic intent calculations before generic SaaS semantic capability summaries
