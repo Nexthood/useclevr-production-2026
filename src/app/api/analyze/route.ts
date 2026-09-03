@@ -582,7 +582,7 @@ export async function POST(request: Request) {
     let sqlQuery: string;
     try {
       debugLog('[ANALYZE] Generating SQL query...');
-      sqlQuery = await generateQuery(question, availableColumns);
+      sqlQuery = await generateQuery(question, availableColumns, businessSemanticProfile);
       debugLog('[ANALYZE] Generated SQL metadata:', {
         generatedSql: Boolean(sqlQuery),
         sqlLength: sqlQuery.length,

@@ -10,6 +10,7 @@ export type BusinessSemanticDatasetType =
   | "prebookkeeping"
   | "marketplace"
   | "saas"
+  | "investor"
 
 export type BusinessSemanticDomain =
   | BusinessSemanticDatasetType
@@ -19,6 +20,7 @@ export type BusinessSemanticConfidence = "HIGH" | "MEDIUM" | "LOW"
 
 export type BusinessConcept =
   | "date"
+  | "investment_date"
   | "transaction_id"
   | "customer_id"
   | "product_id"
@@ -243,7 +245,8 @@ const formulaRegistry: FormulaDefinition[] = [
 ]
 
 const conceptRules: ConceptRule[] = [
-  rule("date", "general", ["date", "transaction_date", "order_date", "invoice_date", "month", "period", "billing_month", "event_date"], { requireDate: true }),
+    rule("date", "general", ["date", "transaction_date", "order_date", "invoice_date", "month", "period", "billing_month", "event_date"], { requireDate: true }),
+    rule("investment_date", "general", ["investment_date", "investment date", "date_of_investment"], { requireDate: true }),
   rule("transaction_id", "general", ["transaction_id", "transaction_number", "order_id", "invoice_id", "journal_id", "document_number"]),
   rule("customer_id", "general", ["customer_id", "client_id", "account_id", "buyer_id"]),
   rule("product_id", "general", ["product_id", "sku", "item_id"]),
@@ -454,7 +457,7 @@ export function buildBusinessSemanticPromptBlock(profile: SemanticProfile): stri
     .map((ambiguity) => `${ambiguity.sourceColumn}: ${ambiguity.candidateConcepts.join(" or ")}`)
     .join("; ") || "none"
 
-  return `\nAUTHORITATIVE BUSINESS SEMANTIC PROFILE\nSemantic profile version: ${profile.version}\nDataset type: ${profile.datasetType} (${profile.classificationConfidence})\nRule: no semantic evidence means no metric; no metric evidence means no business claim.\nAvailable metrics: ${available}\nBlocked metrics: ${blocked}\nAmbiguous mappings: ${ambiguous}\nThe assistant must explain only metrics marked available by this deterministic profile and must not override blocked or ambiguous metric restrictions.\n`
+  return `\nAUTHORITATIVE BUSINESS SEMANTIC PROFILE\nSemantic profile version: ${profile.version}\nDataset type: ${profile.datasetType} (${profile.classificationConfidence})\nRule: no semantic evidence means no metric; no metric evidence means no business claim.\n${profile.datasetType === 'investor' ? 'Note: Revenue refers to combined annual revenue of portfolio companies.\n' : ''}Available metrics: ${available}\nBlocked metrics: ${blocked}\nAmbiguous mappings: ${ambiguous}\nThe assistant must explain only metrics marked available by this deterministic profile and must not override blocked or ambiguous metric restrictions.\n`
 }
 
 export function profileSupportsMetric(profile: SemanticProfile, metric: string): boolean {
@@ -462,16 +465,17 @@ export function profileSupportsMetric(profile: SemanticProfile, metric: string):
 }
 
 export function normalizeBusinessSemanticDatasetType(value?: string | null): BusinessSemanticDatasetType | null {
-  const normalized = normalizeName(value ?? "")
-  if (!normalized) return null
-  if (normalized === "retail" || normalized === "local_retail" || normalized === "ecommerce") return "retail"
-  if (normalized === "profitability" || normalized === "profitability_pnl") return "profitability"
-  if (normalized === "accountancy" || normalized === "accounting") return "accountancy"
-  if (normalized === "prebookkeeping" || normalized === "pre_bookkeeping") return "prebookkeeping"
-  if (normalized === "marketplace" || normalized === "marketplace_startup") return "marketplace"
-  if (normalized === "saas" || normalized === "saas_startup" || normalized === "startup") return "saas"
-  if (normalized === "standard" || normalized === "generic" || normalized === "generic_business_data") return "standard"
-  return null
+    const normalized = normalizeName(value ?? "")
+    if (!normalized) return null
+    if (normalized === "retail" || normalized === "local_retail" || normalized === "ecommerce") return "retail"
+    if (normalized === "profitability" || normalized === "profitability_pnl") return "profitability"
+    if (normalized === "accountancy" || normalized === "accounting") return "accountancy"
+    if (normalized === "prebookkeeping" || normalized === "pre_bookkeeping") return "prebookkeeping"
+    if (normalized === "marketplace" || normalized === "marketplace_startup") return "marketplace"
+    if (normalized === "saas" || normalized === "saas_startup" || normalized === "startup") return "saas"
+    if (normalized === "standard" || normalized === "generic" || normalized === "generic_business_data") return "standard"
+    if (normalized === "investor" || normalized === "investment" || normalized === "portfolio") return "investor"
+    return null
 }
 
 function classifyBusinessDataset(input: SemanticDatasetInput): SemanticClassification {
@@ -494,8 +498,9 @@ function classifyBusinessDataset(input: SemanticDatasetInput): SemanticClassific
   if (/profitability|operating_expense|opex|gross_profit|net_profit|cogs/.test(normalizedText)) add("profitability", 5, "Profitability statement terminology detected.")
   if (/gmv|gross_merchandise|commission|take_rate|seller_payout|merchant_payout|marketplace/.test(normalizedText)) add("marketplace", 6, "Marketplace transaction terminology detected.")
   if (/mrr|arr|subscription|recurring|churn|runway|cash_burn|active_customers/.test(normalizedText)) add("saas", 6, "SaaS/subscription terminology detected.")
-  if (/sku|stock|inventory|reorder|store|branch|pos|unit_cost/.test(normalizedText)) add("retail", 5, "Retail inventory or point-of-sale terminology detected.")
-  if (/revenue|sales|customer|date|product/.test(normalizedText)) add("standard", 2, "General business columns detected.")
+if (/sku|stock|inventory|reorder|store|branch|pos|unit_cost/.test(normalizedText)) add("retail", 5, "Retail inventory or point-of-sale terminology detected.")
+    if (/investment|portfolio|annual_revenue|investment_date|portfolio company/i.test(normalizedText)) add("investor", 6, "Investor portfolio terminology detected.")
+    if (/revenue|sales|customer|date|product/.test(normalizedText)) add("standard", 2, "General business columns detected.")
 
   const ranked = Array.from(scores.entries())
     .map(([datasetType, data]) => ({ datasetType, ...data }))

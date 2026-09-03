@@ -84,8 +84,12 @@ export function answerDatasetQuestionDeterministically(
   const marketplaceResult = answerMarketplaceQuestionDeterministically(input);
   if (marketplaceResult) return marketplaceResult;
 
-  const retailInventoryResult = answerRetailInventoryQuestionDeterministically(input);
-  if (retailInventoryResult) return retailInventoryResult;
+// Skip retail inventory check for investor datasets when the question is about revenue trends
+   const isRevenueTrendQuestion = /revenue.*trend|sales.*trend|revenue.*over time|sales.*over time|daily.*revenue|weekly.*revenue|monthly.*revenue/i.test(input.question);
+   if (!(input.datasetType === "investor" && isRevenueTrendQuestion)) {
+     const retailInventoryResult = answerRetailInventoryQuestionDeterministically(input);
+     if (retailInventoryResult) return retailInventoryResult;
+   }
 
   const saasResult = answerSaasQuestionDeterministically(input);
   if (saasResult) return saasResult;

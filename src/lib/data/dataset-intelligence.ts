@@ -76,7 +76,7 @@ export interface DatasetIntelligence {
   generatedAt: string;
 }
 
-export type DatasetKind = 'Retail' | 'Inventory' | 'Sales' | 'Finance' | 'SaaS' | 'Generic';
+export type DatasetKind = 'Retail' | 'Inventory' | 'Sales' | 'Finance' | 'SaaS' | 'Generic' | 'Investor';
 
 const DATASET_TYPE_KEYWORDS: Record<DatasetKind, RegExp[]> = {
   Retail: [
@@ -124,7 +124,7 @@ export function detectDatasetTypeFromColumns(columns: string[], datasetName = ''
   const score = (kind: DatasetKind) =>
     DATASET_TYPE_KEYWORDS[kind].reduce((total, pattern) => total + (pattern.test(text) ? 1 : 0), 0);
 
-  const ranked: DatasetKind[] = ['Retail', 'Inventory', 'SaaS', 'Finance', 'Sales'];
+  const ranked: DatasetKind[] = ['Retail', 'Inventory', 'SaaS', 'Finance', 'Sales', 'Investor'];
   const best = ranked
     .map((kind) => ({ kind, score: score(kind) }))
     .sort((a, b) => b.score - a.score)[0];
@@ -153,6 +153,16 @@ function questionListForDatasetType(kind: DatasetKind): string[] {
       'Which categories generate the most gross profit?',
       'Which SKUs should be discounted, bundled, or stopped?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+    ],
     Inventory: [
       'Which items are below reorder point?',
       'What is the total inventory value?',
@@ -166,6 +176,16 @@ function questionListForDatasetType(kind: DatasetKind): string[] {
       'Which items should be discounted or bundled?',
       'What stock levels create cash-flow risk?',
       'Which products have the fastest inventory turnover?',
+    ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
     ],
     Sales: [
       'What is total sales revenue?',
@@ -181,6 +201,16 @@ function questionListForDatasetType(kind: DatasetKind): string[] {
       'Which opportunities should the owner prioritize?',
       'What changed compared with the previous period?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+    ],
     Finance: [
       'What is the total revenue, cost, and profit?',
       'What is the current gross margin?',
@@ -194,6 +224,16 @@ function questionListForDatasetType(kind: DatasetKind): string[] {
       'Which costs should be reduced first?',
       'What is the monthly operating run rate?',
       'What actions would improve net margin?',
+    ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
     ],
     SaaS: [
       'What is current MRR or recurring revenue?',
@@ -209,6 +249,16 @@ function questionListForDatasetType(kind: DatasetKind): string[] {
       'What cash-flow risks appear from subscriptions?',
       'What should the team improve to grow recurring revenue?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+    ],
     Generic: [
       'What are the key insights in this dataset?',
       'Which columns drive the most important totals?',
@@ -222,6 +272,16 @@ function questionListForDatasetType(kind: DatasetKind): string[] {
       'What actions should the owner take next?',
       'What should be compared against the previous period?',
       'What questions should I ask next about this dataset?',
+    ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
     ],
   };
 
@@ -248,6 +308,16 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'Which branches need stock rebalancing?',
       'What local store actions should happen next?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+    ],
     ecommerce: [
       'What is revenue by country?',
       'What are orders by region?',
@@ -261,6 +331,16 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'Which regions underperform?',
       'What changed in online sales over time?',
       'Which ecommerce actions should happen next?',
+    ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
     ],
     saas: [
       'What is current MRR or ARR?',
@@ -276,6 +356,16 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'Which SaaS metric needs the fastest action?',
       'What should improve recurring revenue?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+    ],
     startup: [
       'What is the runway based on burn rate?',
       'What is monthly burn?',
@@ -289,6 +379,16 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'What should the startup prioritize next?',
       'Where is unit economics pressure highest?',
       'What milestone looks most at risk?',
+    ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
     ],
     investor: [
       'Which portfolio companies have the highest valuation?',
@@ -304,6 +404,16 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'What portfolio actions should happen next?',
       'Where is follow-on capital most justified?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+    ],
     marketplace: [
       'What is GMV by period?',
       'What is take rate or commission revenue?',
@@ -317,6 +427,16 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'Where is marketplace revenue concentrated?',
       'What operational action should happen next?',
       'Which side of the marketplace needs growth?',
+    ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which investments have produced the strongest return?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
     ],
   };
 

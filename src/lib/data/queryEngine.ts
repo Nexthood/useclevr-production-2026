@@ -1,4 +1,5 @@
 import { debugLog } from "@/lib/utils/debug";
+import { SemanticProfile, conceptColumn } from '@/lib/data/business-semantics';
 
 /**
  * Query Engine
@@ -16,7 +17,7 @@ import { getTableColumns } from './datasetEngine';
  * @param columns - Available columns in the dataset
  * @returns Generated SQL query
  */
-export async function generateQuery(question: string, columns: string[] = []): Promise<string> {
+export async function generateQuery(question: string, columns: string[] = [], semanticProfile?: SemanticProfile): Promise<string> {
   const q = question.toLowerCase();
   
   // If no columns provided, get them from dataset
@@ -85,20 +86,40 @@ export async function generateQuery(question: string, columns: string[] = []): P
     }
   }
   
-  // Revenue/profit trends over time
-  if (/trend|growth|over time|by month|by year/i.test(q)) {
-    const timeCol = columns.find(c => /month/i.test(c)) || columns.find(c => /date/i.test(c));
-    const metricCol = hasRevenue ? revenueCol : (hasProfit ? profitCol : null);
-    
-    if (timeCol && metricCol) {
-      return `
-        SELECT ${timeCol}, SUM(${metricCol}) AS ${metricCol}
-        FROM dataset
-        GROUP BY ${timeCol}
-        ORDER BY ${timeCol}
-      `;
-    }
-  }
+// Revenue/profit trends over time
+   if (/trend|growth|over time|by month|by year/i.test(q)) {
+     const timeCol = columns.find(c => /month/i.test(c)) || columns.find(c => /date/i.test(c));
+     const metricCol = hasRevenue ? revenueCol : (hasProfit ? profitCol : null);
+     
+     if (timeCol && metricCol) {
+       if (semanticProfile) {
+         const timeColConcept = conceptColumn(semanticProfile, timeCol as BusinessConcept);
+         const metricColConcept = conceptColumn(semanticProfile, metricCol as BusinessConcept);
+         
+         // Define financial metric concepts that should not be trended with investment_date
+         const financialMetrics = new Set(["revenue", "net_sales", "gross_sales", "amount", "total", "value", "profit", "gross_profit", "net_profit", "operating_profit"]);
+         
+         if (timeColConcept === "investment_date" && financialMetrics.has(metricColConcept)) {
+           // Incompatible: do not generate trend query, fall through to other checks
+         } else {
+           return `
+             SELECT ${timeCol}, SUM(${metricCol}) AS ${metricCol}
+             FROM dataset
+             GROUP BY ${timeCol}
+             ORDER BY ${timeCol}
+           `;
+         }
+       } else {
+         // No semantic profile, generate as before
+         return `
+           SELECT ${timeCol}, SUM(${metricCol}) AS ${metricCol}
+           FROM dataset
+           GROUP BY ${timeCol}
+           ORDER BY ${timeCol}
+         `;
+       }
+     }
+   }
   
   // Top performing products
   if (/top.*product|best.*product|most.*sold|top.*item|by product/i.test(q)) {
