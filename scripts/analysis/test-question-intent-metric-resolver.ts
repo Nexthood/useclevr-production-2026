@@ -52,6 +52,14 @@ const fixtures: Record<string, Fixture> = {
       { order_date: "2025-03-01", order_id: "S-3", revenue: "9000", cogs: "2700", customer_id: "Startup A", product_name: "Pro", category: "Subscription", country: "US", region: "North America", quantity: "9", currency: "USD" },
     ],
   },
+  investor: {
+    datasetType: "investor",
+    rows: [
+      { company_id: "PC-1", annual_revenue: "1000", investment_date: "2025-01-15" },
+      { company_id: "PC-2", annual_revenue: "1500", investment_date: "2025-02-15" },
+      { company_id: "PC-3", annual_revenue: "500", investment_date: "2025-03-15" },
+    ],
+  },
 };
 
 const questionCases: Array<{ dataset: keyof typeof fixtures; question: string; intent: QuestionIntent; answerPattern: RegExp }> = [
@@ -64,6 +72,7 @@ const questionCases: Array<{ dataset: keyof typeof fixtures; question: string; i
   { dataset: "accounting", question: "Average order value by invoice?", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
   { dataset: "restaurant", question: "avg order value", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
   { dataset: "saas", question: "average order value for subscriptions", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
+  { dataset: "investor", question: "What is the total revenue?", intent: "metric.total_revenue", answerPattern: /Combined annual revenue of the portfolio companies/i },
   { dataset: "retail", question: "What is average selling price?", intent: "metric.average_selling_price", answerPattern: /Average selling price/i },
   { dataset: "marketplace", question: "ASP?", intent: "metric.average_selling_price", answerPattern: /Average selling price/i },
   { dataset: "restaurant", question: "average price per item", intent: "metric.average_selling_price", answerPattern: /Average selling price/i },
@@ -104,6 +113,7 @@ const questionCases: Array<{ dataset: keyof typeof fixtures; question: string; i
   { dataset: "saas", question: "customers over time", intent: "trend.customer_growth", answerPattern: /Customer growth/i },
   { dataset: "retail", question: "Revenue forecast", intent: "forecast.revenue", answerPattern: /baseline/i },
   { dataset: "saas", question: "forecast revenue", intent: "forecast.revenue", answerPattern: /baseline/i },
+  { dataset: "investor", question: "What are the revenue trends over time?", intent: "trend.monthly_revenue", answerPattern: /cannot be calculated from this dataset/i },
   { dataset: "retail", question: "compare segment performance", intent: "comparison.segment", answerPattern: /Revenue by|leads with/i },
   { dataset: "restaurant", question: "category compare", intent: "comparison.segment", answerPattern: /Revenue by|leads with/i },
   { dataset: "saas", question: "plan compare", intent: "comparison.segment", answerPattern: /Revenue by|leads with/i },
@@ -195,6 +205,21 @@ const noOrderAov = resolveQuestionMetric({
 assert.equal(noOrderAov.status, "unsupported", "AOV without an order identifier must not fall back to row count");
 if (noOrderAov.status === "unsupported") {
   assert.deepEqual(noOrderAov.missingFields, ["reliable order identifier"]);
+}
+
+const investorTrend = resolveQuestionMetric({
+  question: "What are the revenue trends over time?",
+  datasetId: "fixture:investor",
+  datasetType: fixtures.investor.datasetType,
+  columns: Object.keys(fixtures.investor.rows[0] ?? {}),
+  rows: fixtures.investor.rows,
+});
+assert.equal(investorTrend.status, "success", "Investor revenue trend returns deterministic incompatible-evidence response");
+if (investorTrend.status === "success") {
+  assert.equal(investorTrend.result.status, "incompatible_evidence");
+  assert.equal(investorTrend.result.revenueColumn, "annual_revenue");
+  assert.equal(investorTrend.result.rejectedTimeColumn, "investment_date");
+  assert.doesNotMatch(investorTrend.answer, /Latest monthly revenue|vs previous period/i);
 }
 
 process.stdout.write(`ok - Question Intent Engine and Metric Resolver covered ${questionCases.length} business questions with 0 failed questions\n`);

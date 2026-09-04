@@ -1,5 +1,5 @@
 import { debugLog } from "@/lib/utils/debug";
-import { SemanticProfile, conceptColumn } from '@/lib/data/business-semantics';
+import type { BusinessConcept, SemanticProfile } from '@/lib/data/business-semantics';
 
 /**
  * Query Engine
@@ -51,6 +51,23 @@ export async function generateQuery(question: string, columns: string[] = [], se
   const hasProduct = columns.some(c => /product|item|sku|category/i.test(c));
   const _hasCustomer = columns.some(c => /customer|client/i.test(c));
   const _hasDate = columns.some(c => /date|month|year|time/i.test(c));
+
+  if (/investment.*(activity|changed|change|over time|period)|how many investments.*(over time|by period)|capital.*deployed.*(over time|period)/i.test(q)) {
+    const investmentDateCol = semanticProfile
+      ? sourceColumnForConcept(semanticProfile, "investment_date")
+      : columns.find(c => /investment[_\s-]*date|invested[_\s-]*date|deal[_\s-]*date|funding[_\s-]*date/i.test(c));
+    const investedAmountCol = semanticProfile
+      ? sourceColumnForConcept(semanticProfile, "invested_amount")
+      : columns.find(c => /invested[_\s-]*amount|investment[_\s-]*amount|capital[_\s-]*deployed/i.test(c));
+    if (investmentDateCol) {
+      return `
+        SELECT ${investmentDateCol}, COUNT(*) AS investment_count${investedAmountCol ? `, SUM(${investedAmountCol}) AS capital_deployed` : ""}
+        FROM dataset
+        GROUP BY ${investmentDateCol}
+        ORDER BY ${investmentDateCol}
+      `;
+    }
+  }
   
   // Most profitable / top revenue by region
   if (/most.*profitable|top.*region|top.*area|best.*region/i.test(q)) {
@@ -86,40 +103,20 @@ export async function generateQuery(question: string, columns: string[] = [], se
     }
   }
   
-// Revenue/profit trends over time
-   if (/trend|growth|over time|by month|by year/i.test(q)) {
-     const timeCol = columns.find(c => /month/i.test(c)) || columns.find(c => /date/i.test(c));
-     const metricCol = hasRevenue ? revenueCol : (hasProfit ? profitCol : null);
-     
-     if (timeCol && metricCol) {
-       if (semanticProfile) {
-         const timeColConcept = conceptColumn(semanticProfile, timeCol as BusinessConcept);
-         const metricColConcept = conceptColumn(semanticProfile, metricCol as BusinessConcept);
-         
-         // Define financial metric concepts that should not be trended with investment_date
-         const financialMetrics = new Set(["revenue", "net_sales", "gross_sales", "amount", "total", "value", "profit", "gross_profit", "net_profit", "operating_profit"]);
-         
-         if (timeColConcept === "investment_date" && financialMetrics.has(metricColConcept)) {
-           // Incompatible: do not generate trend query, fall through to other checks
-         } else {
-           return `
-             SELECT ${timeCol}, SUM(${metricCol}) AS ${metricCol}
-             FROM dataset
-             GROUP BY ${timeCol}
-             ORDER BY ${timeCol}
-           `;
-         }
-       } else {
-         // No semantic profile, generate as before
-         return `
-           SELECT ${timeCol}, SUM(${metricCol}) AS ${metricCol}
-           FROM dataset
-           GROUP BY ${timeCol}
-           ORDER BY ${timeCol}
-         `;
-       }
-     }
-   }
+  // Revenue/profit trends over time
+  if (/trend|growth|over time|by month|by year/i.test(q)) {
+    const timeCol = columns.find(c => /month/i.test(c)) || columns.find(c => /date/i.test(c));
+    const metricCol = hasRevenue ? revenueCol : (hasProfit ? profitCol : null);
+
+    if (timeCol && metricCol && (!semanticProfile || isCompatibleTrendAxis(semanticProfile, metricCol, timeCol))) {
+      return `
+        SELECT ${timeCol}, SUM(${metricCol}) AS ${metricCol}
+        FROM dataset
+        GROUP BY ${timeCol}
+        ORDER BY ${timeCol}
+      `;
+    }
+  }
   
   // Top performing products
   if (/top.*product|best.*product|most.*sold|top.*item|by product/i.test(q)) {
@@ -449,4 +446,46 @@ export async function getDatasetSchema(_datasetId?: string): Promise<{ columns: 
 export async function executeQueryPipeline(question: string, columns: string[] = []): Promise<{ sql: string; result: any[] }> {
   const sql = await generateQuery(question, columns);
   return { sql, result: [] };
+}
+
+function sourceColumnForConcept(profile: SemanticProfile, concept: BusinessConcept) {
+  return profile.concepts.find((mapping) => mapping.concept === concept && mapping.status === "confirmed")?.sourceColumn ?? null;
+}
+
+function conceptForSourceColumn(profile: SemanticProfile, sourceColumn: string) {
+  return profile.concepts.find((mapping) => mapping.sourceColumn === sourceColumn && mapping.status === "confirmed")?.concept ?? null;
+}
+
+function isCompatibleTrendAxis(profile: SemanticProfile, metricColumn: string, timeColumn: string) {
+  const metricConcept = conceptForSourceColumn(profile, metricColumn);
+  const timeConcept = conceptForSourceColumn(profile, timeColumn);
+  if (!metricConcept || !timeConcept) return true;
+  if (metricConcept === "portfolio_company_annual_revenue") {
+    return isRevenueMeasurementTimeColumn(timeColumn) && timeConcept !== "investment_date";
+  }
+  if (timeConcept === "investment_date") {
+    return !financialTrendConcepts.has(metricConcept);
+  }
+  return true;
+}
+
+const financialTrendConcepts = new Set<BusinessConcept>([
+  "revenue",
+  "gross_sales",
+  "net_sales",
+  "gross_profit",
+  "operating_profit",
+  "net_profit",
+  "gmv",
+  "marketplace_revenue",
+  "subscription_revenue",
+  "mrr",
+  "arr",
+  "portfolio_company_annual_revenue",
+]);
+
+function isRevenueMeasurementTimeColumn(column: string) {
+  return /^(revenue_period|reporting_period|fiscal_period|financial_period|period_end|year|fiscal_year)$/i.test(
+    column.toLowerCase().trim().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, ""),
+  );
 }

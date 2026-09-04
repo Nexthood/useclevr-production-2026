@@ -82,6 +82,13 @@ export type BusinessConcept =
   | "cash_balance"
   | "runway"
   | "arpu"
+  | "portfolio_company"
+  | "portfolio_company_annual_revenue"
+  | "invested_amount"
+  | "latest_valuation"
+  | "ownership_percent"
+  | "sector"
+  | "stage"
 
 export type SemanticMappingStatus = "confirmed" | "ambiguous" | "rejected"
 export type SemanticKpiStatus = "AVAILABLE" | "PARTIAL" | "BLOCKED" | "AMBIGUOUS" | "NOT_APPLICABLE"
@@ -240,13 +247,16 @@ const formulaRegistry: FormulaDefinition[] = [
   formula("gmv", "GMV", "source-backed marketplace GMV", ["gmv"], ["marketplace"]),
   formula("marketplace_revenue", "Marketplace Revenue", "source-backed platform revenue", ["marketplace_revenue"], ["marketplace"]),
   formula("take_rate", "Take Rate", "marketplace_revenue / gmv * 100", ["marketplace_revenue", "gmv"], ["marketplace"], "ratio"),
+  formula("portfolio_company_annual_revenue", "Portfolio Company Annual Revenue", "source-backed combined annual revenue of portfolio companies", ["portfolio_company_annual_revenue"], ["investor"]),
+  formula("invested_amount", "Invested Capital", "source-backed capital deployed into portfolio companies", ["invested_amount"], ["investor"]),
+  formula("latest_valuation", "Portfolio Company Valuation", "source-backed latest valuation of portfolio companies", ["latest_valuation"], ["investor"]),
   formula("net_movement", "Net Movement", "debit - credit", ["debit", "credit"], ["accountancy", "prebookkeeping"]),
   formula("inventory_value", "Inventory Value", "inventory_on_hand * unit_cost", ["inventory_on_hand", "unit_cost"], ["retail"], "derived"),
 ]
 
 const conceptRules: ConceptRule[] = [
-    rule("date", "general", ["date", "transaction_date", "order_date", "invoice_date", "month", "period", "billing_month", "event_date"], { requireDate: true }),
-    rule("investment_date", "general", ["investment_date", "investment date", "date_of_investment"], { requireDate: true }),
+  rule("date", "general", ["date", "transaction_date", "order_date", "invoice_date", "month", "period", "billing_month", "event_date", "revenue_period", "reporting_period", "fiscal_period", "financial_period", "period_end", "fiscal_year", "year"], { requireDate: true }),
+  rule("investment_date", "investor", ["investment_date", "investment date", "date_of_investment", "invested_date", "deal_date", "funding_date"], { requireDate: true }),
   rule("transaction_id", "general", ["transaction_id", "transaction_number", "order_id", "invoice_id", "journal_id", "document_number"]),
   rule("customer_id", "general", ["customer_id", "client_id", "account_id", "buyer_id"]),
   rule("product_id", "general", ["product_id", "sku", "item_id"]),
@@ -306,6 +316,13 @@ const conceptRules: ConceptRule[] = [
   rule("cash_balance", "saas", ["cash_balance", "cash"], { requireNumeric: true }),
   rule("runway", "saas", ["runway", "runway_months"], { requireNumeric: true }),
   rule("arpu", "saas", ["arpu", "arpa", "average_revenue_per_user"], { requireNumeric: true }),
+  rule("portfolio_company", "investor", ["portfolio_company", "portfolio_company_id", "company_id", "company_name", "company"]),
+  rule("portfolio_company_annual_revenue", "investor", ["annual_revenue", "portfolio_company_revenue", "company_revenue", "portfolio_company_annual_revenue"], { requireNumeric: true }),
+  rule("invested_amount", "investor", ["invested_amount", "investment_amount", "invested_capital", "capital_deployed"], { requireNumeric: true }),
+  rule("latest_valuation", "investor", ["latest_valuation", "current_valuation", "portfolio_company_valuation", "company_valuation", "valuation"], { requireNumeric: true }),
+  rule("ownership_percent", "investor", ["ownership_percent", "ownership", "stake_percent", "equity_percent"], { requireNumeric: true }),
+  rule("sector", "investor", ["sector", "industry"]),
+  rule("stage", "investor", ["stage", "investment_stage", "company_stage"]),
 ]
 
 const ambiguousFinancialNames = new Set(["amount", "total", "value", "balance", "net", "gross"])
@@ -474,7 +491,7 @@ export function normalizeBusinessSemanticDatasetType(value?: string | null): Bus
     if (normalized === "marketplace" || normalized === "marketplace_startup") return "marketplace"
     if (normalized === "saas" || normalized === "saas_startup" || normalized === "startup") return "saas"
     if (normalized === "standard" || normalized === "generic" || normalized === "generic_business_data") return "standard"
-    if (normalized === "investor" || normalized === "investment" || normalized === "portfolio") return "investor"
+    if (normalized === "investor" || normalized === "investment" || normalized === "portfolio" || normalized === "investor_portfolio" || normalized === "vc" || normalized === "private_equity") return "investor"
     return null
 }
 
@@ -498,9 +515,13 @@ function classifyBusinessDataset(input: SemanticDatasetInput): SemanticClassific
   if (/profitability|operating_expense|opex|gross_profit|net_profit|cogs/.test(normalizedText)) add("profitability", 5, "Profitability statement terminology detected.")
   if (/gmv|gross_merchandise|commission|take_rate|seller_payout|merchant_payout|marketplace/.test(normalizedText)) add("marketplace", 6, "Marketplace transaction terminology detected.")
   if (/mrr|arr|subscription|recurring|churn|runway|cash_burn|active_customers/.test(normalizedText)) add("saas", 6, "SaaS/subscription terminology detected.")
-if (/sku|stock|inventory|reorder|store|branch|pos|unit_cost/.test(normalizedText)) add("retail", 5, "Retail inventory or point-of-sale terminology detected.")
-    if (/investment|portfolio|annual_revenue|investment_date|portfolio company/i.test(normalizedText)) add("investor", 6, "Investor portfolio terminology detected.")
-    if (/revenue|sales|customer|date|product/.test(normalizedText)) add("standard", 2, "General business columns detected.")
+  if (/sku|stock|inventory|reorder|store|branch|pos|unit_cost/.test(normalizedText)) add("retail", 5, "Retail inventory or point-of-sale terminology detected.")
+  const hasInvestorPortfolioSignal = /investor|investment|portfolio|investment_date|invested_amount|capital_deployed|latest_valuation|ownership|stake|portfolio_company|company_id/.test(normalizedText)
+  const hasInvestorFinancialSignal = /annual_revenue|valuation|sector|stage/.test(normalizedText)
+  if (hasInvestorPortfolioSignal && (hasInvestorFinancialSignal || explicit === "investor" || explicitBusinessModel === "investor")) {
+    add("investor", 6, "Investor portfolio terminology detected.")
+  }
+  if (/revenue|sales|customer|date|product/.test(normalizedText)) add("standard", 2, "General business columns detected.")
 
   const ranked = Array.from(scores.entries())
     .map(([datasetType, data]) => ({ datasetType, ...data }))

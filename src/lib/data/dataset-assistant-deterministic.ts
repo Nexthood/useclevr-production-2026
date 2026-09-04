@@ -17,6 +17,10 @@ import {
   buildSaasAssistantSummary,
   type SaasAssistantSummary,
 } from "@/lib/data/dataset-intelligence-engine";
+import {
+  buildBusinessSemanticProfile,
+  conceptColumn,
+} from "@/lib/data/business-semantics";
 
 export type DatasetAssistantDeterministicResult = {
   status: "success";
@@ -60,6 +64,15 @@ type MarketplaceAssistantSummary = {
   currencyCode: string | null;
 };
 
+type InvestorAssistantSummary = {
+  annualRevenueColumn: string | null;
+  investmentDateColumn: string | null;
+  portfolioCompanyColumn: string | null;
+  investedAmountColumn: string | null;
+  latestValuationColumn: string | null;
+  currencyCode: string | null;
+};
+
 const DIMENSION_PATTERNS = [
   /plan/i,
   /startup[_\s-]*stage|stage/i,
@@ -84,12 +97,11 @@ export function answerDatasetQuestionDeterministically(
   const marketplaceResult = answerMarketplaceQuestionDeterministically(input);
   if (marketplaceResult) return marketplaceResult;
 
-// Skip retail inventory check for investor datasets when the question is about revenue trends
-   const isRevenueTrendQuestion = /revenue.*trend|sales.*trend|revenue.*over time|sales.*over time|daily.*revenue|weekly.*revenue|monthly.*revenue/i.test(input.question);
-   if (!(input.datasetType === "investor" && isRevenueTrendQuestion)) {
-     const retailInventoryResult = answerRetailInventoryQuestionDeterministically(input);
-     if (retailInventoryResult) return retailInventoryResult;
-   }
+  const investorResult = answerInvestorQuestionDeterministically(input);
+  if (investorResult) return investorResult;
+
+  const retailInventoryResult = answerRetailInventoryQuestionDeterministically(input);
+  if (retailInventoryResult) return retailInventoryResult;
 
   const saasResult = answerSaasQuestionDeterministically(input);
   if (saasResult) return saasResult;
@@ -200,6 +212,263 @@ function answerMarketplaceQuestionDeterministically(input: DatasetAssistantInput
     return describeMarketplaceSellerRanking(input, summary);
   }
   return null;
+}
+
+function answerInvestorQuestionDeterministically(input: DatasetAssistantInput): DatasetAssistantDeterministicResult | null {
+  const summary = buildInvestorAssistantSummary(input);
+  if (!summary) return null;
+
+  const question = input.question.toLowerCase();
+  if (/revenue.*trend|sales.*trend|revenue.*over\s+time|sales.*over\s+time|daily.*revenue|weekly.*revenue|monthly.*revenue/.test(question)) {
+    return describeInvestorRevenueTrendUnavailable(input, summary);
+  }
+  if (/investment.*(activity|changed|change|over\s+time|period)|how\s+many\s+investments.*(over\s+time|by\s+period)|when\s+were\s+most\s+(portfolio\s+)?investments|capital.*deployed.*(over\s+time|period)/.test(question)) {
+    return describeInvestorInvestmentActivity(input, summary);
+  }
+  if (/portfolio\s+companies?.*(annual\s+)?revenue|companies?.*(generate|highest|largest|most).*(annual\s+)?revenue/.test(question)) {
+    return describeInvestorCompanyAnnualRevenueRanking(input, summary);
+  }
+  if (/portfolio\s+companies?.*(highest|largest|top).*valuation|valuation.*portfolio\s+companies?/.test(question)) {
+    return describeInvestorCompanyValuationRanking(input, summary);
+  }
+  return null;
+}
+
+function buildInvestorAssistantSummary(input: DatasetAssistantInput): InvestorAssistantSummary | null {
+  const profile = buildBusinessSemanticProfile({
+    datasetId: input.datasetId,
+    datasetType: input.datasetType,
+    columns: input.columns,
+    rows: input.rows,
+  });
+  if (profile.classification.datasetType !== "investor") return null;
+  const summary: InvestorAssistantSummary = {
+    annualRevenueColumn: conceptColumn(profile, "portfolio_company_annual_revenue"),
+    investmentDateColumn: conceptColumn(profile, "investment_date"),
+    portfolioCompanyColumn: conceptColumn(profile, "portfolio_company"),
+    investedAmountColumn: conceptColumn(profile, "invested_amount"),
+    latestValuationColumn: conceptColumn(profile, "latest_valuation"),
+    currencyCode: currencyCodeFromRows(input.rows, input.columns),
+  };
+  if (!summary.annualRevenueColumn && !summary.investmentDateColumn && !summary.investedAmountColumn && !summary.latestValuationColumn) return null;
+  return summary;
+}
+
+function describeInvestorRevenueTrendUnavailable(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.annualRevenueColumn) {
+    return investorMissingEvidence(input, "Revenue trends over time cannot be calculated because no validated portfolio company annual revenue field was found.", ["annual_revenue"], "investor.revenue_trend");
+  }
+  const timeColumn = summary.investmentDateColumn;
+  return {
+    status: "success",
+    answer: [
+      `Answer: Revenue trends over time cannot be calculated from this dataset. The dataset contains annual revenue for portfolio companies, but no validated historical revenue measurement period.${timeColumn ? ` "${timeColumn}" represents when the investment was made and is not a revenue reporting period.` : ""}`,
+      `Evidence: "${summary.annualRevenueColumn}" is portfolio-company annual revenue.${timeColumn ? ` "${timeColumn}" is an investment activity date.` : ""}`,
+      "Takeaway: A date field alone is insufficient for trend analysis; revenue trends require a revenue, reporting, fiscal, financial, period-end, year, or fiscal-year time dimension.",
+      "Next question: Ask how investment activity changed over time.",
+    ].join("\n\n"),
+    insight: timeColumn
+      ? `UseClevr rejected grouping "${summary.annualRevenueColumn}" by "${timeColumn}" because the metric and time axis have incompatible semantic roles.`
+      : "No validated revenue reporting period was found for portfolio-company annual revenue.",
+    explanation: "The Business Semantics profile permits portfolio-company annual revenue totals, but blocks revenue trend calculation because investment_date is investment activity timing, not revenue measurement timing.",
+    recommendation: "Ask how investment activity changed over time.",
+    data: [
+      { metric: "Portfolio company annual revenue", sourceColumn: summary.annualRevenueColumn, status: "available" },
+      { metric: "Revenue trend period", sourceColumn: timeColumn, status: timeColumn ? "incompatible" : "missing" },
+    ],
+    chartType: "table",
+    result: {
+      intent: "investor.revenue_trend",
+      status: "incompatible_evidence",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      revenueColumn: summary.annualRevenueColumn,
+      rejectedTimeColumn: timeColumn,
+      metricConcept: "portfolio_company_annual_revenue",
+      rejectedTimeConcept: timeColumn ? "investment_date" : null,
+      requiredTimeConcepts: ["revenue_period", "reporting_period", "fiscal_period", "financial_period", "period_end", "year", "fiscal_year"],
+      lineage: [summary.annualRevenueColumn, timeColumn].filter((column): column is string => Boolean(column)),
+    },
+  };
+}
+
+function describeInvestorInvestmentActivity(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.investmentDateColumn) {
+    return investorMissingEvidence(input, "Investment activity over time is unavailable because no validated investment date field was found.", ["investment_date"], "investor.investment_activity");
+  }
+  const periods = investorInvestmentPeriods(input.rows, summary.investmentDateColumn, summary.investedAmountColumn);
+  if (periods.length === 0) {
+    return investorMissingEvidence(input, "Investment activity over time is unavailable because investment dates could not be parsed into periods.", [summary.investmentDateColumn], "investor.investment_activity");
+  }
+  const top = periods.slice().sort((a, b) => b.investments - a.investments || (b.capitalDeployed ?? 0) - (a.capitalDeployed ?? 0))[0];
+  return {
+    status: "success",
+    answer: [
+      `Answer: Investment activity is available across ${periods.length.toLocaleString("en-US")} observed period${periods.length === 1 ? "" : "s"}. ${top ? `${top.period} added the most portfolio compan${top.investments === 1 ? "y" : "ies"} (${top.investments.toLocaleString("en-US")}).` : ""}`,
+      `Evidence: Grouped "${summary.investmentDateColumn}" as an investment activity time axis${summary.investedAmountColumn ? ` and summed capital deployed from "${summary.investedAmountColumn}"` : ""}.`,
+      "Takeaway: Investment date is valid for investment activity, not for portfolio company revenue trends.",
+      "Next question: Ask which portfolio companies generate the most annual revenue.",
+    ].join("\n\n"),
+    insight: top ? `${top.period} has the most investment activity.` : "Investment activity was grouped by validated investment date.",
+    explanation: "Direct data analysis grouped validated investment_date values and did not use provider-generated values.",
+    recommendation: "Review investment activity alongside valuation, sector, and concentration risk.",
+    data: periods,
+    chartType: "table",
+    result: {
+      intent: "investor.investment_activity",
+      status: "success",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      investmentDateColumn: summary.investmentDateColumn,
+      investedAmountColumn: summary.investedAmountColumn,
+      periods,
+    },
+  };
+}
+
+function describeInvestorCompanyAnnualRevenueRanking(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.annualRevenueColumn) {
+    return investorMissingEvidence(input, "Portfolio company annual revenue ranking is unavailable because no validated annual revenue field was found.", ["annual_revenue"], "investor.portfolio_company_annual_revenue_ranking");
+  }
+  const rows = investorRankedRows(input.rows, summary.portfolioCompanyColumn, summary.annualRevenueColumn, "annualRevenue");
+  const top = rows[0];
+  return {
+    status: "success",
+    answer: [
+      top
+        ? `Answer: ${top.portfolioCompany} has the highest portfolio company annual revenue at ${formatInvestorValue(top.annualRevenue, summary.currencyCode)}.`
+        : "Answer: No portfolio company annual revenue ranking could be calculated.",
+      `Evidence: Ranked portfolio companies by "${summary.annualRevenueColumn}".`,
+      "Takeaway: This is portfolio-company annual revenue, not investor revenue.",
+      "Next question: Ask how investment activity changed over time.",
+    ].join("\n\n"),
+    insight: top ? `Top portfolio company by annual revenue: ${top.portfolioCompany}.` : "No portfolio company annual revenue values were found.",
+    explanation: "Direct data analysis ranked validated annual_revenue values by portfolio company.",
+    recommendation: "Review revenue concentration alongside valuation and invested capital.",
+    data: rows,
+    chartType: "table",
+    result: {
+      intent: "investor.portfolio_company_annual_revenue_ranking",
+      status: "success",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      annualRevenueColumn: summary.annualRevenueColumn,
+      portfolioCompanyColumn: summary.portfolioCompanyColumn,
+      rows,
+    },
+  };
+}
+
+function describeInvestorCompanyValuationRanking(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.latestValuationColumn) {
+    return investorMissingEvidence(input, "Portfolio company valuation ranking is unavailable because no validated latest valuation field was found.", ["latest_valuation"], "investor.portfolio_company_valuation_ranking");
+  }
+  const rows = investorRankedRows(input.rows, summary.portfolioCompanyColumn, summary.latestValuationColumn, "latestValuation");
+  const top = rows[0];
+  return {
+    status: "success",
+    answer: [
+      top
+        ? `Answer: ${top.portfolioCompany} has the highest latest valuation at ${formatInvestorValue(top.latestValuation, summary.currencyCode)}.`
+        : "Answer: No portfolio company valuation ranking could be calculated.",
+      `Evidence: Ranked portfolio companies by "${summary.latestValuationColumn}".`,
+      "Takeaway: This uses source-backed portfolio valuation evidence and no provider-generated values.",
+      "Next question: Ask which portfolio companies generate the most annual revenue.",
+    ].join("\n\n"),
+    insight: top ? `Top portfolio company by valuation: ${top.portfolioCompany}.` : "No latest valuation values were found.",
+    explanation: "Direct data analysis ranked validated latest_valuation values by portfolio company.",
+    recommendation: "Compare valuation concentration with invested capital and annual revenue.",
+    data: rows,
+    chartType: "table",
+    result: {
+      intent: "investor.portfolio_company_valuation_ranking",
+      status: "success",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      latestValuationColumn: summary.latestValuationColumn,
+      portfolioCompanyColumn: summary.portfolioCompanyColumn,
+      rows,
+    },
+  };
+}
+
+function investorMissingEvidence(input: DatasetAssistantInput, message: string, missingFields: string[], intent: string): DatasetAssistantDeterministicResult {
+  return {
+    status: "success",
+    answer: [
+      `Answer: ${message}`,
+      "Evidence: Missing evidence is unavailable, not zero.",
+      "Takeaway: UseClevr will not substitute unrelated investor, sales, customer, order, or inventory metrics.",
+      "Next question: Ask about a source-backed Investor portfolio metric.",
+    ].join("\n\n"),
+    insight: message,
+    explanation: "The Investor semantic profile rejected the requested calculation because required source evidence is missing.",
+    recommendation: "Ask about a mapped Investor portfolio metric.",
+    data: missingFields.map((field) => ({ field, status: "missing" })),
+    chartType: "table",
+    result: {
+      intent,
+      status: "missing_evidence",
+      missingFields,
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+    },
+  };
+}
+
+function investorInvestmentPeriods(rows: Record<string, unknown>[], investmentDateColumn: string, investedAmountColumn: string | null) {
+  const groups = new Map<string, { investments: number; capitalDeployed: number }>();
+  for (const row of rows) {
+    const period = monthKey(row[investmentDateColumn]);
+    if (!period) continue;
+    const current = groups.get(period) ?? { investments: 0, capitalDeployed: 0 };
+    current.investments += 1;
+    current.capitalDeployed += investedAmountColumn ? parseBusinessNumber(row[investedAmountColumn]) ?? 0 : 0;
+    groups.set(period, current);
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([period, value]) => ({
+      period,
+      investments: value.investments,
+      capitalDeployed: investedAmountColumn ? round(value.capitalDeployed) : null,
+    }));
+}
+
+function investorRankedRows<TMetricKey extends "annualRevenue" | "latestValuation">(
+  rows: Record<string, unknown>[],
+  portfolioCompanyColumn: string | null,
+  metricColumn: string,
+  metricKey: TMetricKey,
+): Array<{ portfolioCompany: string; rows: number } & Record<TMetricKey, number>> {
+  const groups = new Map<string, { value: number; rows: number }>();
+  for (const [index, row] of rows.entries()) {
+    const company = portfolioCompanyColumn ? String(row[portfolioCompanyColumn] ?? "").trim() : "";
+    const portfolioCompany = company || `Portfolio company ${index + 1}`;
+    const value = parseBusinessNumber(row[metricColumn]);
+    if (value === null) continue;
+    const current = groups.get(portfolioCompany) ?? { value: 0, rows: 0 };
+    current.value += value;
+    current.rows += 1;
+    groups.set(portfolioCompany, current);
+  }
+  return Array.from(groups.entries())
+    .map(([portfolioCompany, value]) => ({
+      portfolioCompany,
+      [metricKey]: round(value.value),
+      rows: value.rows,
+    }) as { portfolioCompany: string; rows: number } & Record<TMetricKey, number>)
+    .sort((a, b) => Number(b[metricKey]) - Number(a[metricKey]) || a.portfolioCompany.localeCompare(b.portfolioCompany))
+    .slice(0, 10);
+}
+
+function formatInvestorValue(value: number, currencyCode: string | null) {
+  if (!currencyCode) return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currencyCode,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export function canAnswerDatasetSuggestionDeterministically(input: DatasetAssistantInput) {

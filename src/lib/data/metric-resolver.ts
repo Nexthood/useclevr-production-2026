@@ -101,6 +101,23 @@ function calculateIntent(input: MetricResolverInput & {
 function totalRevenue(input: MetricInput): MetricResolutionResult {
   const revenueColumn = requiredColumn(input.schema, "revenue");
   const total = sum(input.rows, revenueColumn);
+  if (isInvestorPortfolioAnnualRevenueMetric(input, revenueColumn)) {
+    return success(input, {
+      metricLabel: "Combined portfolio company annual revenue",
+      answer: `Combined annual revenue of the portfolio companies is ${formatValue(total, input.schema.currencyCode)}.`,
+      insight: `UseClevr summed ${input.rows.length.toLocaleString("en-US")} validated portfolio company row${input.rows.length === 1 ? "" : "s"} from "${revenueColumn}".`,
+      takeaway: "This is portfolio-company annual revenue, not investor revenue.",
+      nextQuestion: "Ask: Which portfolio companies generate the most annual revenue?",
+      data: [{ metric: "Combined portfolio company annual revenue", value: round(total), unit: input.schema.currencyCode ?? "number", sourceColumn: revenueColumn }],
+      chartType: "kpi",
+      result: {
+        portfolioCompanyAnnualRevenue: round(total),
+        revenueColumn,
+        annualRevenueColumn: revenueColumn,
+        lineage: [revenueColumn],
+      },
+    });
+  }
   if (isMarketplaceGmvMetric(input, revenueColumn)) {
     return success(input, {
       metricLabel: "Total GMV",
@@ -303,6 +320,9 @@ function revenueRisk(input: MetricInput): MetricResolutionResult {
 function monthlyRevenue(input: MetricInput): MetricResolutionResult {
   const revenueColumn = requiredColumn(input.schema, "revenue");
   const dateColumn = requiredColumn(input.schema, "date");
+  if (!isCompatibleTrendAxis(input, revenueColumn, dateColumn)) {
+    return incompatibleRevenueTrend(input, revenueColumn, dateColumn);
+  }
   const marketplaceGmv = isMarketplaceGmvMetric(input, revenueColumn);
   const rows: RevenuePeriodRow[] = marketplaceGmv ? groupByObservedPeriod(input.rows, dateColumn, revenueColumn) : groupByPeriod(input.rows, dateColumn, revenueColumn);
   const latest = rows.at(-1);
@@ -680,13 +700,83 @@ function bestAvailableDimension(schema: SemanticSchema, fields: SemanticField[])
 
 function isMarketplaceGmvMetric(input: MetricInput, column: string) {
   if (!/^(gmv|gross_merchandise_value|gross_merchandise)$/i.test(normalizedColumn(column))) return false;
-  const profile = buildBusinessSemanticProfile({
+  const profile = businessSemanticProfile(input);
+  return profile.classification.datasetType === "marketplace" && conceptColumn(profile, "gmv") === column;
+}
+
+function isInvestorPortfolioAnnualRevenueMetric(input: MetricInput, column: string) {
+  if (!/^(annual_revenue|portfolio_company_revenue|company_revenue|portfolio_company_annual_revenue)$/i.test(normalizedColumn(column))) return false;
+  const profile = businessSemanticProfile(input);
+  return profile.classification.datasetType === "investor" && conceptColumn(profile, "portfolio_company_annual_revenue") === column;
+}
+
+function isCompatibleTrendAxis(input: MetricInput, metricColumn: string, timeColumn: string) {
+  const profile = businessSemanticProfile(input);
+  const metricConcept = conceptForSourceColumn(profile, metricColumn);
+  const timeConcept = conceptForSourceColumn(profile, timeColumn);
+  if (!metricConcept || !timeConcept) return true;
+  if (metricConcept === "portfolio_company_annual_revenue") {
+    return isRevenueMeasurementTimeColumn(timeColumn) && timeConcept !== "investment_date";
+  }
+  if (timeConcept === "investment_date") {
+    return ![
+      "revenue",
+      "gross_sales",
+      "net_sales",
+      "gross_profit",
+      "operating_profit",
+      "net_profit",
+      "gmv",
+      "marketplace_revenue",
+      "subscription_revenue",
+      "mrr",
+      "arr",
+      "portfolio_company_annual_revenue",
+    ].includes(metricConcept);
+  }
+  return true;
+}
+
+function incompatibleRevenueTrend(input: MetricInput, revenueColumn: string, dateColumn: string): MetricResolutionResult {
+  return success(input, {
+    metricLabel: "Revenue trend unavailable",
+    answer: `Revenue trends over time cannot be calculated from this dataset. The dataset contains annual revenue for portfolio companies, but no validated historical revenue measurement period. "${dateColumn}" represents when the investment was made and is not a revenue reporting period.`,
+    insight: `UseClevr rejected grouping "${revenueColumn}" by "${dateColumn}" because the metric and time axis have incompatible semantic roles.`,
+    takeaway: "A date field alone is insufficient for trend analysis; revenue trends require a revenue, reporting, fiscal, financial, period-end, year, or fiscal-year time dimension.",
+    nextQuestion: "Ask: How has investment activity changed over time?",
+    data: [
+      { metric: "Portfolio company annual revenue", sourceColumn: revenueColumn, status: "available" },
+      { metric: "Revenue trend period", sourceColumn: dateColumn, status: "incompatible" },
+    ],
+    chartType: "table",
+    result: {
+      status: "incompatible_evidence",
+      revenueColumn,
+      rejectedTimeColumn: dateColumn,
+      metricConcept: "portfolio_company_annual_revenue",
+      rejectedTimeConcept: "investment_date",
+      requiredTimeConcepts: ["revenue_period", "reporting_period", "fiscal_period", "financial_period", "period_end", "year", "fiscal_year"],
+      lineage: [revenueColumn, dateColumn],
+    },
+    explanation: "The Business Semantics profile permits portfolio-company annual revenue totals, but blocks revenue trend calculation because investment_date is investment activity timing, not revenue measurement timing.",
+  });
+}
+
+function businessSemanticProfile(input: MetricInput) {
+  return buildBusinessSemanticProfile({
     datasetId: input.datasetId,
     datasetType: input.datasetType,
     columns: input.columns,
     rows: input.rows,
   });
-  return profile.classification.datasetType === "marketplace" && conceptColumn(profile, "gmv") === column;
+}
+
+function conceptForSourceColumn(profile: ReturnType<typeof buildBusinessSemanticProfile>, column: string) {
+  return profile.concepts.find((mapping) => mapping.sourceColumn === column && mapping.status === "confirmed")?.concept ?? null;
+}
+
+function isRevenueMeasurementTimeColumn(column: string) {
+  return /^(revenue_period|reporting_period|fiscal_period|financial_period|period_end|year|fiscal_year)$/i.test(normalizedColumn(column));
 }
 
 function marketplaceRankingTitle(field: SemanticField, groupColumn: string) {

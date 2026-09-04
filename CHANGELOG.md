@@ -30,6 +30,7 @@
 
 ### Fixed
 
+- Fix Investor Portfolio AI Assistant answers so annual revenue is labeled as combined portfolio-company annual revenue, revenue trends reject investment dates as incompatible evidence, and suggested questions stay Investor-specific.
 - Fix Marketplace AI Assistant and selected-dataset metric answers so standard uploads with Marketplace evidence route GMV totals, trends, buyer rankings, seller rankings, and missing inventory evidence through marketplace-specific labels and calculations.
 - Fix SaaS AI Assistant churn handling so explicit churn indicators drive active-customer counts, churn signals, Churned MRR evidence checks, and net movement completeness.
 - Fix SaaS AI Assistant intent execution so churn, MRR, ARR, movement, customer, plan, and account questions return deterministic answers before generic capability summaries.

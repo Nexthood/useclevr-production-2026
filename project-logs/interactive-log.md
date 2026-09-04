@@ -5838,3 +5838,38 @@ Retail inventory chat answers must use semantic mappings for stock, movement, re
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; completed work queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio Semantic Time Axes
+
+1. Interaction title
+Investor Portfolio semantic time axes.
+
+2. What was the user goal
+Fix selected-dataset AI Assistant semantics for Investor Portfolio datasets so `annual_revenue` is portfolio-company annual revenue and `investment_date` cannot drive revenue trends.
+
+3. What changed
+Business Semantics now maps Investor Portfolio concepts for portfolio company, annual revenue, investment date, invested capital, valuation, ownership, sector, and stage. The deterministic assistant answers Investor investment-activity questions before retail/generic fallbacks, rejects revenue trends that pair `annual_revenue` with `investment_date`, and keeps the total revenue intent labeled as combined portfolio-company annual revenue. Analytical and Dataset Intelligence suggestions now return Investor-capability prompts and exclude AOV or incompatible revenue-trend prompts without source order or reporting-period semantics.
+
+4. Problems marked
+blocker: none.
+risk: the workspace does not include a raw `05_investor_portfolio` file, so focused chat validation uses the existing synthetic 45-row fixture with the verified total.
+improvement: add sanitized file-backed `05_investor_portfolio` fixtures when they are available.
+observation: trend analysis requires semantic compatibility between the metric and its time dimension; a date field alone is insufficient.
+
+5. User learning
+Investor Portfolio annual revenue belongs to portfolio companies unless source evidence defines investor revenue separately.
+
+6. AI-agent learning
+Generic deterministic intent handlers must let domain semantics override metric labels and time-axis validity before falling into broad retail or analytical templates.
+
+7. Follow-up tasks
+- Add sanitized file-backed Investor Portfolio chat fixtures when source-safe fixture files are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
