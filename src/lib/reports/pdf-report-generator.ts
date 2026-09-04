@@ -2433,12 +2433,12 @@ function drawInvestorCompanyPerformance(doc: jsPDF, report: Report) {
   if (!investor) return;
   let y = 48;
   
-  y = drawSectionHeading(doc, "Top Companies by Revenue", y);
+  y = drawSectionHeading(doc, "Top Companies by Annual Revenue", y);
   if (investor.revenueByCompany.length > 0) {
-    const revenueData: TableRow[] = investor.revenueByCompany.map(c => [c.name, formatCurrency(c.revenue), "Source value", "Annual revenue."]);
-    y = drawTable(doc, [["Company", "Revenue", "Type", "Notes"], ...revenueData], page.margin, y, [80, 35, 25, 30]);
+    const revenueData: TableRow[] = investor.revenueByCompany.map(c => [c.name, formatCurrency(c.revenue), "Source value", "Portfolio company annual revenue."]);
+    y = drawTable(doc, [["Company", "Annual Revenue", "Type", "Notes"], ...revenueData], page.margin, y, [80, 35, 25, 30]);
   } else {
-    y = drawUnavailable(doc, "Revenue data not available", "Revenue field not found in dataset.", page.margin, y, 174, 20);
+    y = drawUnavailable(doc, "Annual revenue data not available", "Portfolio company annual revenue field not found in dataset.", page.margin, y, 174, 20);
   }
   
   if (investor.runwayRisk !== null && investor.runwayRisk > 0) {

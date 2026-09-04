@@ -85,8 +85,14 @@ export type BusinessConcept =
   | "portfolio_company"
   | "portfolio_company_annual_revenue"
   | "invested_amount"
+  | "entry_valuation"
   | "latest_valuation"
   | "ownership_percent"
+  | "portfolio_company_growth_rate"
+  | "portfolio_company_monthly_burn"
+  | "portfolio_company_runway"
+  | "portfolio_company_employees"
+  | "portfolio_company_status"
   | "sector"
   | "stage"
 
@@ -249,7 +255,11 @@ const formulaRegistry: FormulaDefinition[] = [
   formula("take_rate", "Take Rate", "marketplace_revenue / gmv * 100", ["marketplace_revenue", "gmv"], ["marketplace"], "ratio"),
   formula("portfolio_company_annual_revenue", "Portfolio Company Annual Revenue", "source-backed combined annual revenue of portfolio companies", ["portfolio_company_annual_revenue"], ["investor"]),
   formula("invested_amount", "Invested Capital", "source-backed capital deployed into portfolio companies", ["invested_amount"], ["investor"]),
+  formula("entry_valuation", "Entry Company Valuation", "source-backed entry valuation of portfolio companies", ["entry_valuation"], ["investor"]),
   formula("latest_valuation", "Portfolio Company Valuation", "source-backed latest valuation of portfolio companies", ["latest_valuation"], ["investor"]),
+  formula("portfolio_company_growth_rate", "Portfolio Company Growth Rate", "source-backed portfolio company growth-rate values", ["portfolio_company_growth_rate"], ["investor"], "derived"),
+  formula("portfolio_company_monthly_burn", "Portfolio Company Monthly Burn", "source-backed portfolio company monthly burn values", ["portfolio_company_monthly_burn"], ["investor"], "derived"),
+  formula("portfolio_company_runway", "Portfolio Company Runway", "source-backed portfolio company runway values", ["portfolio_company_runway"], ["investor"], "derived"),
   formula("net_movement", "Net Movement", "debit - credit", ["debit", "credit"], ["accountancy", "prebookkeeping"]),
   formula("inventory_value", "Inventory Value", "inventory_on_hand * unit_cost", ["inventory_on_hand", "unit_cost"], ["retail"], "derived"),
 ]
@@ -319,8 +329,14 @@ const conceptRules: ConceptRule[] = [
   rule("portfolio_company", "investor", ["portfolio_company", "portfolio_company_id", "company_id", "company_name", "company"]),
   rule("portfolio_company_annual_revenue", "investor", ["annual_revenue", "portfolio_company_revenue", "company_revenue", "portfolio_company_annual_revenue"], { requireNumeric: true }),
   rule("invested_amount", "investor", ["invested_amount", "investment_amount", "invested_capital", "capital_deployed"], { requireNumeric: true }),
+  rule("entry_valuation", "investor", ["entry_valuation", "entry_company_valuation", "initial_valuation"], { requireNumeric: true }),
   rule("latest_valuation", "investor", ["latest_valuation", "current_valuation", "portfolio_company_valuation", "company_valuation", "valuation"], { requireNumeric: true }),
   rule("ownership_percent", "investor", ["ownership_percent", "ownership", "stake_percent", "equity_percent"], { requireNumeric: true }),
+  rule("portfolio_company_growth_rate", "investor", ["growth_rate", "company_growth_rate", "portfolio_company_growth_rate", "revenue_growth_rate"], { requireNumeric: true }),
+  rule("portfolio_company_monthly_burn", "investor", ["burn_rate_monthly", "monthly_burn", "monthly_burn_rate", "company_monthly_burn"], { requireNumeric: true }),
+  rule("portfolio_company_runway", "investor", ["runway_months", "company_runway_months", "portfolio_company_runway"], { requireNumeric: true }),
+  rule("portfolio_company_employees", "investor", ["employees", "employee_count", "headcount"], { requireNumeric: true }),
+  rule("portfolio_company_status", "investor", ["status", "portfolio_status", "investment_status", "company_status"]),
   rule("sector", "investor", ["sector", "industry"]),
   rule("stage", "investor", ["stage", "investment_stage", "company_stage"]),
 ]
@@ -514,12 +530,15 @@ function classifyBusinessDataset(input: SemanticDatasetInput): SemanticClassific
   if (/prebookkeeping|invoice|receipt|bank_statement/.test(normalizedText)) add("prebookkeeping", 5, "Pre-bookkeeping upload terminology detected.")
   if (/profitability|operating_expense|opex|gross_profit|net_profit|cogs/.test(normalizedText)) add("profitability", 5, "Profitability statement terminology detected.")
   if (/gmv|gross_merchandise|commission|take_rate|seller_payout|merchant_payout|marketplace/.test(normalizedText)) add("marketplace", 6, "Marketplace transaction terminology detected.")
-  if (/mrr|arr|subscription|recurring|churn|runway|cash_burn|active_customers/.test(normalizedText)) add("saas", 6, "SaaS/subscription terminology detected.")
-  if (/sku|stock|inventory|reorder|store|branch|pos|unit_cost/.test(normalizedText)) add("retail", 5, "Retail inventory or point-of-sale terminology detected.")
   const hasInvestorPortfolioSignal = /investor|investment|portfolio|investment_date|invested_amount|capital_deployed|latest_valuation|ownership|stake|portfolio_company|company_id/.test(normalizedText)
   const hasInvestorFinancialSignal = /annual_revenue|valuation|sector|stage/.test(normalizedText)
+  const hasStrongInvestorPortfolioSignal = hasStrongInvestorPortfolioSchema(input.columns, input.datasetName ?? input.fileName ?? "")
+  const hasSaasSubscriptionSignal = /mrr|arr|subscription|recurring|churn|active_customers/.test(normalizedText)
+  const hasSaasStartupFinanceSignal = /runway|cash_burn|burn_rate/.test(normalizedText) && /saas|startup|billing|subscription|customer|active_customer|user/.test(normalizedText)
+  if (hasSaasSubscriptionSignal || (!hasStrongInvestorPortfolioSignal && hasSaasStartupFinanceSignal)) add("saas", 6, "SaaS/subscription terminology detected.")
+  if (/sku|stock|inventory|reorder|store|branch|pos|unit_cost/.test(normalizedText)) add("retail", 5, "Retail inventory or point-of-sale terminology detected.")
   if (hasInvestorPortfolioSignal && (hasInvestorFinancialSignal || explicit === "investor" || explicitBusinessModel === "investor")) {
-    add("investor", 6, "Investor portfolio terminology detected.")
+    add("investor", hasStrongInvestorPortfolioSignal ? 12 : 6, hasStrongInvestorPortfolioSignal ? "Strong Investor portfolio schema detected." : "Investor portfolio terminology detected.")
   }
   if (/revenue|sales|customer|date|product/.test(normalizedText)) add("standard", 2, "General business columns detected.")
 
@@ -548,6 +567,16 @@ function classifyBusinessDataset(input: SemanticDatasetInput): SemanticClassific
     warnings,
     reason: best.evidence.join(" "),
   }
+}
+
+function hasStrongInvestorPortfolioSchema(columns: string[], datasetName = "") {
+  const text = [datasetName, ...columns].join(" ").toLowerCase().replace(/_/g, " ")
+  const hasCompany = /\bportfolio company\b|\bcompany id\b|\bcompany name\b/.test(text)
+  const hasInvestmentEventDate = /\binvestment date\b|\binvested date\b|\bdeal date\b|\bfunding date\b/.test(text)
+  const hasCapitalOrOwnership = /\binvested amount\b|\binvested capital\b|\binvestment amount\b|\bcapital deployed\b|\bownership\b|\bstake\b/.test(text)
+  const hasCompanyValuation = /\bentry valuation\b|\blatest valuation\b|\bcurrent valuation\b|\bcompany valuation\b|\bvaluation\b/.test(text)
+  const hasPortfolioDescriptor = /\binvestor\b|\bportfolio\b|\bfund\b|\bsector\b|\bstage\b|\bstatus\b/.test(text)
+  return hasCompany && hasInvestmentEventDate && hasPortfolioDescriptor && (hasCapitalOrOwnership || hasCompanyValuation)
 }
 
 function mapColumnsToConcepts(input: {

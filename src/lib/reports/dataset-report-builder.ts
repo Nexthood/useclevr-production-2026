@@ -170,6 +170,12 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     columnMap.expenseCategory = undefined
     columnMap.expenseAmount = undefined
   }
+  if (reportModel === "investor") {
+    columnMap.eventDate = columnMap.eventDate || conceptColumn(businessSemanticProfile, "investment_date") || columnMap.date
+    columnMap.date = undefined
+    columnMap.expenseCategory = undefined
+    columnMap.expenseAmount = undefined
+  }
   const reportProfile = getReportProfile(reportModel)
   traceReportRuntime("buildSemanticContext", {
     datasetId: dataset.id,
@@ -250,7 +256,18 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     financials.reportingPeriod = reportingPeriodFromRecognizedPeriods(rows, columnMap.date)
   }
   if (marketplaceAnalysis) financials.dataConfidence = marketplaceDataConfidence(columnMap)
-  if (investorAnalysis) financials.dataConfidence = investorDataConfidence(columnMap)
+  if (investorAnalysis) {
+    financials.dataConfidence = investorDataConfidence(columnMap)
+    financials.reportingPeriod = null
+    financials.periodTrends = []
+    financials.revenueGrowth = null
+    if (columnMap.revenue) {
+      financials.metricSources = {
+        ...financials.metricSources,
+        revenue: { kind: "source_value" as const, note: `Portfolio company annual revenue from source field: ${columnMap.revenue}.` },
+      }
+    }
+  }
   if (reportModel === "business_consulting") {
     financials.dataConfidence = businessConsultingDataConfidence(columnMap)
     financials.consultantCost = sumColumn(rows, columnMap.consultantCost)
@@ -3204,6 +3221,18 @@ function applyBusinessSemanticProfileToColumnMap(columns: ColumnMap, profile: Se
     columns.operatingProfit = undefined
     columns.netProfit = undefined
   }
+  if (reportModel === "investor") {
+    columns.revenue = conceptColumn(profile, "portfolio_company_annual_revenue") || columns.revenue
+    columns.eventDate = conceptColumn(profile, "investment_date") || columns.eventDate
+    columns.investedAmount = conceptColumn(profile, "invested_amount") || columns.investedAmount
+    columns.valuation = conceptColumn(profile, "latest_valuation") || columns.valuation
+    columns.ownership = conceptColumn(profile, "ownership_percent") || columns.ownership
+    columns.sector = conceptColumn(profile, "sector") || columns.sector
+    columns.stage = conceptColumn(profile, "stage") || columns.stage
+    columns.burn = conceptColumn(profile, "portfolio_company_monthly_burn") || columns.burn
+    columns.runway = conceptColumn(profile, "portfolio_company_runway") || columns.runway
+    columns.growthRate = conceptColumn(profile, "portfolio_company_growth_rate") || columns.growthRate
+  }
 }
 
 function isUnsafeFinancialFallback(column?: string) {
@@ -3369,11 +3398,14 @@ function buildSemanticContext(input: {
   const isEcommerce = input.reportModel === "ecommerce"
   const isSaas = input.reportModel === "saas" || input.reportModel === "startup"
   const isMarketplace = input.reportModel === "marketplace"
+  const isInvestor = input.reportModel === "investor"
   const isBusinessConsulting = input.reportModel === "business_consulting"
   const isProfessionalServices = input.reportModel === "professional_services"
   const mappings: Record<string, string | null> = {
-    date: isBusinessConsulting ? ((input.columnMap.projectStart || input.columnMap.projectEnd) ?? null) : (input.columnMap.date ?? null),
-    revenue: isBusinessConsulting || isProfessionalServices ? (input.columnMap.revenue ?? null) : (isMarketplace ? null : (input.columnMap.revenue || input.columnMap.gmv || null)),
+    date: isInvestor ? null : isBusinessConsulting ? ((input.columnMap.projectStart || input.columnMap.projectEnd) ?? null) : (input.columnMap.date ?? null),
+    investmentDate: isInvestor ? input.columnMap.eventDate ?? null : null,
+    portfolioCompanyAnnualRevenue: isInvestor ? input.columnMap.revenue ?? null : null,
+    revenue: isBusinessConsulting || isProfessionalServices ? (input.columnMap.revenue ?? null) : (isMarketplace || isInvestor ? null : (input.columnMap.revenue || input.columnMap.gmv || null)),
     cogs: isBusinessConsulting || isProfessionalServices ? null : (input.columnMap.cogs ?? null),
     grossProfit: isBusinessConsulting || isProfessionalServices ? (input.columnMap.grossProfit ?? null) : (input.columnMap.grossProfit ?? null),
     operatingExpenses: input.columnMap.operatingExpenses ?? null,
@@ -3381,8 +3413,8 @@ function buildSemanticContext(input: {
     interestExpense: input.columnMap.interestExpense ?? null,
     taxExpense: input.columnMap.taxExpense ?? null,
     netProfit: input.columnMap.netProfit ?? null,
-    expenseCategory: isEcommerce || isSaas || isMarketplace || isBusinessConsulting || isProfessionalServices ? null : input.columnMap.expenseCategory || null,
-    expenseAmount: isEcommerce || isSaas || isMarketplace || isBusinessConsulting || isProfessionalServices ? null : input.columnMap.expenseAmount || null,
+    expenseCategory: isEcommerce || isSaas || isMarketplace || isInvestor || isBusinessConsulting || isProfessionalServices ? null : input.columnMap.expenseCategory || null,
+    expenseAmount: isEcommerce || isSaas || isMarketplace || isInvestor || isBusinessConsulting || isProfessionalServices ? null : input.columnMap.expenseAmount || null,
     vendor: input.columnMap.vendor || null,
     mrr: input.columnMap.mrr || null,
     arr: input.columnMap.arr || null,
@@ -3433,11 +3465,13 @@ function buildSemanticContext(input: {
       : ["date", "revenue", "cost", "netProfit", "users", "pricePerUser", "plan", "startupStage", "company", "country"]
     : isMarketplace
       ? ["date", "gmv", "commission", "order", "buyer", "seller", "refund"]
-      : isBusinessConsulting
-        ? ["date", "revenue", "grossProfit", "consultantCost", "projectStart", "projectEnd"]
-        : isProfessionalServices
-          ? ["date", "revenue", "grossProfit"]
-          : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
+      : isInvestor
+        ? ["portfolioCompanyAnnualRevenue", "investmentDate", "company", "country"]
+        : isBusinessConsulting
+          ? ["date", "revenue", "grossProfit", "consultantCost", "projectStart", "projectEnd"]
+          : isProfessionalServices
+            ? ["date", "revenue", "grossProfit"]
+            : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
   const available = required.filter((key) => Boolean(mappings[key])).length
   return {
     datasetId: input.datasetId,
@@ -3637,6 +3671,9 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
     addKpi(kpis, "Cash Balance", saas?.cashBalance ?? null, "currency")
     addKpi(kpis, "Runway", saas?.runwayMonths ?? null, "number")
   } else if (model === "investor") {
+    kpis.length = 0
+    addKpi(kpis, "Portfolio Companies", columns.companyId ? uniqueCount(rows, columns.companyId) : rows.length, "number")
+    addKpi(kpis, "Portfolio Company Annual Revenue", financials.revenue, "currency")
     addKpi(kpis, "Invested capital", sumColumn(rows, columns.investedAmount), "currency")
     addKpi(kpis, "Portfolio valuation", sumColumn(rows, columns.valuation), "currency")
     addKpi(kpis, "Average ownership", averageColumn(rows, columns.ownership), "percent")
@@ -3724,7 +3761,7 @@ function buildCharts(model: ReportModel, rows: DataRow[], columns: ColumnMap, re
     return charts.slice(0, 4)
   }
   if (model === "investor") {
-    const sectorRevenue = groupedChart(rows, columns.sector, columns.revenue, "Top Sector by Portfolio Revenue")
+    const sectorRevenue = groupedChart(rows, columns.sector, columns.revenue, "Top sector by portfolio company annual revenue")
     const sectorInvested = groupedChart(rows, columns.sector, columns.investedAmount || columns.valuation, "Top Sector by Invested Capital")
     const stage = groupedChart(rows, columns.stage, columns.investedAmount || columns.valuation, "Stage allocation")
     if (sectorRevenue) charts.push(sectorRevenue)
@@ -3815,7 +3852,11 @@ function buildFindings(model: ReportModel, rowCount: number, columns: ColumnMap,
     if (columns.buyer && columns.seller) findings.push("Buyer and seller sides are analyzed separately.")
     if (columns.category || columns.country) findings.push("Category and geography segmentation use marketplace economics.")
   }
-  if (model === "investor" && columns.valuation) findings.push("Portfolio valuation and allocation metrics are included.")
+  if (model === "investor") {
+    if (columns.revenue) findings.push("Portfolio company annual revenue is available from recognized Investor source data.")
+    if (columns.eventDate) findings.push("Investment activity uses investment-date event timing, not revenue reporting periods.")
+    if (columns.valuation) findings.push("Portfolio valuation and allocation metrics are included.")
+  }
   if (model === "business_consulting" && columns.billableHours) findings.push("Billable-hour and project-margin metrics are included.")
   if (model === "business_consulting" && (columns.consultantCost || columns.otherCost)) findings.push("Project costs are recognized from consultant_cost and other_cost fields.")
   if (model === "business_consulting" && (columns.projectStart || columns.projectEnd)) findings.push("Reporting period is derived from project_start and project_end dates.")

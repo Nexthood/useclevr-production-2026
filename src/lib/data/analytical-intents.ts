@@ -214,7 +214,12 @@ export function availableAnalyticalSuggestions(input: {
     const investmentDateColumn = conceptColumn(businessProfile, "investment_date");
     const portfolioCompanyColumn = conceptColumn(businessProfile, "portfolio_company");
     const latestValuationColumn = conceptColumn(businessProfile, "latest_valuation");
+    const growthRateColumn = conceptColumn(businessProfile, "portfolio_company_growth_rate");
+    const runwayColumn = conceptColumn(businessProfile, "portfolio_company_runway");
+    const monthlyBurnColumn = conceptColumn(businessProfile, "portfolio_company_monthly_burn");
+    const investedAmountColumn = conceptColumn(businessProfile, "invested_amount");
     const sectorColumn = conceptColumn(businessProfile, "sector");
+    const stageColumn = conceptColumn(businessProfile, "stage");
     const geographyColumn = conceptColumn(businessProfile, "geography");
 
     if (annualRevenueColumn) {
@@ -224,11 +229,26 @@ export function availableAnalyticalSuggestions(input: {
     if (latestValuationColumn && portfolioCompanyColumn) {
       suggestions.push("Which portfolio companies have the highest valuation?");
     }
+    if (growthRateColumn && portfolioCompanyColumn) {
+      suggestions.push("Which portfolio companies have the highest growth?");
+    }
+    if (runwayColumn && portfolioCompanyColumn) {
+      suggestions.push("Which companies have the shortest runway?");
+    }
+    if (monthlyBurnColumn && portfolioCompanyColumn) {
+      suggestions.push("Which companies have the highest monthly burn?");
+    }
+    if (investedAmountColumn) {
+      suggestions.push("How much capital has been invested?");
+    }
     if (investmentDateColumn) {
       suggestions.push("How has investment activity changed over time?");
     }
     if (sectorColumn) {
       suggestions.push("How is the portfolio distributed by sector?");
+    }
+    if (stageColumn) {
+      suggestions.push("How is the portfolio distributed by stage?");
     }
     if (geographyColumn) {
       suggestions.push("How is the portfolio distributed geographically?");

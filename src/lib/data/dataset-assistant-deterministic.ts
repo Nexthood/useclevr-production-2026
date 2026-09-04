@@ -4,6 +4,7 @@ import {
   detectDatasetSemanticCapabilities,
   findExpenseTypeColumn,
   findMonetaryAmountColumn,
+  normalizePercentValue,
   parseBusinessNumber,
   semanticColumn,
 } from "@/lib/data/semantic-schema";
@@ -69,7 +70,11 @@ type InvestorAssistantSummary = {
   investmentDateColumn: string | null;
   portfolioCompanyColumn: string | null;
   investedAmountColumn: string | null;
+  entryValuationColumn: string | null;
   latestValuationColumn: string | null;
+  growthRateColumn: string | null;
+  monthlyBurnColumn: string | null;
+  runwayColumn: string | null;
   currencyCode: string | null;
 };
 
@@ -231,6 +236,18 @@ function answerInvestorQuestionDeterministically(input: DatasetAssistantInput): 
   if (/portfolio\s+companies?.*(highest|largest|top).*valuation|valuation.*portfolio\s+companies?/.test(question)) {
     return describeInvestorCompanyValuationRanking(input, summary);
   }
+  if (/portfolio\s+companies?.*(highest|largest|top|most).*growth|companies?.*(highest|largest|top|most).*growth|highest.*growth|growth.*portfolio\s+companies?/.test(question)) {
+    return describeInvestorCompanyGrowthRanking(input, summary);
+  }
+  if (/(shortest|lowest|least).*runway|runway.*(risk|shortest|lowest|least)/.test(question)) {
+    return describeInvestorCompanyRunwayRisk(input, summary);
+  }
+  if (/(highest|largest|top|most).*(monthly\s+)?burn|burn.*(highest|largest|top|most)/.test(question)) {
+    return describeInvestorCompanyBurnRanking(input, summary);
+  }
+  if (/capital.*invested|invested.*capital|how\s+much.*invested|total.*invested/.test(question)) {
+    return describeInvestorTotalInvested(input, summary);
+  }
   return null;
 }
 
@@ -247,10 +264,23 @@ function buildInvestorAssistantSummary(input: DatasetAssistantInput): InvestorAs
     investmentDateColumn: conceptColumn(profile, "investment_date"),
     portfolioCompanyColumn: conceptColumn(profile, "portfolio_company"),
     investedAmountColumn: conceptColumn(profile, "invested_amount"),
+    entryValuationColumn: conceptColumn(profile, "entry_valuation"),
     latestValuationColumn: conceptColumn(profile, "latest_valuation"),
+    growthRateColumn: conceptColumn(profile, "portfolio_company_growth_rate"),
+    monthlyBurnColumn: conceptColumn(profile, "portfolio_company_monthly_burn"),
+    runwayColumn: conceptColumn(profile, "portfolio_company_runway"),
     currencyCode: currencyCodeFromRows(input.rows, input.columns),
   };
-  if (!summary.annualRevenueColumn && !summary.investmentDateColumn && !summary.investedAmountColumn && !summary.latestValuationColumn) return null;
+  if (
+    !summary.annualRevenueColumn &&
+    !summary.investmentDateColumn &&
+    !summary.investedAmountColumn &&
+    !summary.entryValuationColumn &&
+    !summary.latestValuationColumn &&
+    !summary.growthRateColumn &&
+    !summary.monthlyBurnColumn &&
+    !summary.runwayColumn
+  ) return null;
   return summary;
 }
 
@@ -310,7 +340,7 @@ function describeInvestorInvestmentActivity(input: DatasetAssistantInput, summar
       "Next question: Ask which portfolio companies generate the most annual revenue.",
     ].join("\n\n"),
     insight: top ? `${top.period} has the most investment activity.` : "Investment activity was grouped by validated investment date.",
-    explanation: "Direct data analysis grouped validated investment_date values and did not use provider-generated values.",
+    explanation: "Direct data analysis grouped validated investment_date values using source data only.",
     recommendation: "Review investment activity alongside valuation, sector, and concentration risk.",
     data: periods,
     chartType: "table",
@@ -372,7 +402,7 @@ function describeInvestorCompanyValuationRanking(input: DatasetAssistantInput, s
         ? `Answer: ${top.portfolioCompany} has the highest latest valuation at ${formatInvestorValue(top.latestValuation, summary.currencyCode)}.`
         : "Answer: No portfolio company valuation ranking could be calculated.",
       `Evidence: Ranked portfolio companies by "${summary.latestValuationColumn}".`,
-      "Takeaway: This uses source-backed portfolio valuation evidence and no provider-generated values.",
+      "Takeaway: This uses source-backed portfolio valuation evidence only.",
       "Next question: Ask which portfolio companies generate the most annual revenue.",
     ].join("\n\n"),
     insight: top ? `Top portfolio company by valuation: ${top.portfolioCompany}.` : "No latest valuation values were found.",
@@ -388,6 +418,135 @@ function describeInvestorCompanyValuationRanking(input: DatasetAssistantInput, s
       latestValuationColumn: summary.latestValuationColumn,
       portfolioCompanyColumn: summary.portfolioCompanyColumn,
       rows,
+    },
+  };
+}
+
+function describeInvestorCompanyGrowthRanking(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.growthRateColumn) {
+    return investorMissingEvidence(input, "Portfolio company growth ranking is unavailable because no validated growth_rate field was found.", ["growth_rate"], "investor.portfolio_company_growth_ranking");
+  }
+  const rows = investorAveragedRows(input.rows, summary.portfolioCompanyColumn, summary.growthRateColumn, "growthRate", "desc");
+  const top = rows[0];
+  return {
+    status: "success",
+    answer: [
+      top
+        ? `Answer: ${top.portfolioCompany} has the highest portfolio company growth rate at ${formatInvestorPercent(top.growthRate)}.`
+        : "Answer: No portfolio company growth ranking could be calculated.",
+      `Evidence: Ranked portfolio companies by "${summary.growthRateColumn}".`,
+      "Takeaway: This uses source-backed portfolio company growth values without grouping annual revenue over time.",
+      "Next question: Ask which companies have the shortest runway.",
+    ].join("\n\n"),
+    insight: top ? `Top portfolio company by growth: ${top.portfolioCompany}.` : "No portfolio company growth values were found.",
+    explanation: "Direct data analysis ranked validated growth_rate values by portfolio company.",
+    recommendation: "Review growth alongside runway, burn, valuation, and invested capital.",
+    data: rows.map((row) => ({ ...row, growthRate: round(row.growthRate, 1) })),
+    chartType: "table",
+    result: {
+      intent: "investor.portfolio_company_growth_ranking",
+      status: "success",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      growthRateColumn: summary.growthRateColumn,
+      portfolioCompanyColumn: summary.portfolioCompanyColumn,
+      rows,
+    },
+  };
+}
+
+function describeInvestorCompanyRunwayRisk(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.runwayColumn) {
+    return investorMissingEvidence(input, "Portfolio company runway ranking is unavailable because no validated runway_months field was found.", ["runway_months"], "investor.portfolio_company_runway_risk");
+  }
+  const rows = investorAveragedRows(input.rows, summary.portfolioCompanyColumn, summary.runwayColumn, "runwayMonths", "asc");
+  const top = rows[0];
+  return {
+    status: "success",
+    answer: [
+      top
+        ? `Answer: ${top.portfolioCompany} has the shortest runway at ${top.runwayMonths.toFixed(1)} months.`
+        : "Answer: No portfolio company runway ranking could be calculated.",
+      `Evidence: Ranked portfolio companies by "${summary.runwayColumn}".`,
+      "Takeaway: Runway is a current portfolio company value here, not a historical trend from investment_date.",
+      "Next question: Ask which companies have the highest monthly burn.",
+    ].join("\n\n"),
+    insight: top ? `${top.portfolioCompany} has the shortest runway.` : "No runway values were found.",
+    explanation: "Direct data analysis ranked validated runway_months values by portfolio company and did not group them by investment_date.",
+    recommendation: "Review shortest runway companies before making follow-on or support decisions.",
+    data: rows.map((row) => ({ ...row, runwayMonths: round(row.runwayMonths, 1) })),
+    chartType: "table",
+    result: {
+      intent: "investor.portfolio_company_runway_risk",
+      status: "success",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      runwayColumn: summary.runwayColumn,
+      portfolioCompanyColumn: summary.portfolioCompanyColumn,
+      rows,
+    },
+  };
+}
+
+function describeInvestorCompanyBurnRanking(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.monthlyBurnColumn) {
+    return investorMissingEvidence(input, "Portfolio company burn ranking is unavailable because no validated burn_rate_monthly field was found.", ["burn_rate_monthly"], "investor.portfolio_company_monthly_burn_ranking");
+  }
+  const rows = investorRankedRows(input.rows, summary.portfolioCompanyColumn, summary.monthlyBurnColumn, "monthlyBurn");
+  const top = rows[0];
+  return {
+    status: "success",
+    answer: [
+      top
+        ? `Answer: ${top.portfolioCompany} has the highest monthly burn at ${formatInvestorValue(top.monthlyBurn, summary.currencyCode)}.`
+        : "Answer: No portfolio company monthly burn ranking could be calculated.",
+      `Evidence: Ranked portfolio companies by "${summary.monthlyBurnColumn}".`,
+      "Takeaway: Burn is a current portfolio company value here, not a historical trend from investment_date.",
+      "Next question: Ask which companies have the shortest runway.",
+    ].join("\n\n"),
+    insight: top ? `${top.portfolioCompany} has the highest monthly burn.` : "No monthly burn values were found.",
+    explanation: "Direct data analysis ranked validated burn_rate_monthly values by portfolio company and did not group them by investment_date.",
+    recommendation: "Review highest-burn companies alongside runway and valuation.",
+    data: rows,
+    chartType: "table",
+    result: {
+      intent: "investor.portfolio_company_monthly_burn_ranking",
+      status: "success",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      monthlyBurnColumn: summary.monthlyBurnColumn,
+      portfolioCompanyColumn: summary.portfolioCompanyColumn,
+      rows,
+    },
+  };
+}
+
+function describeInvestorTotalInvested(input: DatasetAssistantInput, summary: InvestorAssistantSummary): DatasetAssistantDeterministicResult {
+  if (!summary.investedAmountColumn) {
+    return investorMissingEvidence(input, "Invested capital is unavailable because no validated invested_amount field was found.", ["invested_amount"], "investor.total_invested_capital");
+  }
+  const total = input.rows.reduce((sum, row) => sum + (parseBusinessNumber(row[summary.investedAmountColumn!]) ?? 0), 0);
+  return {
+    status: "success",
+    answer: [
+      `Answer: Total invested capital is ${formatInvestorValue(total, summary.currencyCode)}.`,
+      `Evidence: Summed invested capital from "${summary.investedAmountColumn}".`,
+      "Takeaway: This is capital deployed into portfolio companies, not portfolio company revenue or investor profit.",
+      "Next question: Ask which portfolio companies have the highest valuation.",
+    ].join("\n\n"),
+    insight: `UseClevr summed ${input.rows.length.toLocaleString("en-US")} portfolio row${input.rows.length === 1 ? "" : "s"} from "${summary.investedAmountColumn}".`,
+    explanation: "Direct data analysis summed validated invested_amount values.",
+    recommendation: "Review invested capital by sector, stage, and valuation concentration.",
+    data: [{ metric: "Invested capital", value: round(total), sourceColumn: summary.investedAmountColumn }],
+    chartType: "kpi",
+    result: {
+      intent: "investor.total_invested_capital",
+      status: "success",
+      datasetId: input.datasetId,
+      datasetType: input.datasetType,
+      investedAmountColumn: summary.investedAmountColumn,
+      investedCapital: round(total),
+      lineage: [summary.investedAmountColumn],
     },
   };
 }
@@ -435,7 +594,7 @@ function investorInvestmentPeriods(rows: Record<string, unknown>[], investmentDa
     }));
 }
 
-function investorRankedRows<TMetricKey extends "annualRevenue" | "latestValuation">(
+function investorRankedRows<TMetricKey extends "annualRevenue" | "latestValuation" | "monthlyBurn">(
   rows: Record<string, unknown>[],
   portfolioCompanyColumn: string | null,
   metricColumn: string,
@@ -462,6 +621,38 @@ function investorRankedRows<TMetricKey extends "annualRevenue" | "latestValuatio
     .slice(0, 10);
 }
 
+function investorAveragedRows<TMetricKey extends "growthRate" | "runwayMonths">(
+  rows: Record<string, unknown>[],
+  portfolioCompanyColumn: string | null,
+  metricColumn: string,
+  metricKey: TMetricKey,
+  direction: "asc" | "desc",
+): Array<{ portfolioCompany: string; rows: number } & Record<TMetricKey, number>> {
+  const groups = new Map<string, { total: number; rows: number }>();
+  for (const [index, row] of rows.entries()) {
+    const company = portfolioCompanyColumn ? String(row[portfolioCompanyColumn] ?? "").trim() : "";
+    const portfolioCompany = company || `Portfolio company ${index + 1}`;
+    const rawValue = parseBusinessNumber(row[metricColumn]);
+    if (rawValue === null) continue;
+    const value = metricKey === "growthRate" ? normalizePercentValue(rawValue) : rawValue;
+    const current = groups.get(portfolioCompany) ?? { total: 0, rows: 0 };
+    current.total += value;
+    current.rows += 1;
+    groups.set(portfolioCompany, current);
+  }
+  return Array.from(groups.entries())
+    .map(([portfolioCompany, value]) => ({
+      portfolioCompany,
+      [metricKey]: round(value.total / value.rows, 1),
+      rows: value.rows,
+    }) as { portfolioCompany: string; rows: number } & Record<TMetricKey, number>)
+    .sort((a, b) => {
+      const diff = Number(a[metricKey]) - Number(b[metricKey]);
+      return (direction === "asc" ? diff : -diff) || a.portfolioCompany.localeCompare(b.portfolioCompany);
+    })
+    .slice(0, 10);
+}
+
 function formatInvestorValue(value: number, currencyCode: string | null) {
   if (!currencyCode) return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
   return new Intl.NumberFormat("en-US", {
@@ -469,6 +660,10 @@ function formatInvestorValue(value: number, currencyCode: string | null) {
     currency: currencyCode,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function formatInvestorPercent(value: number) {
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value)}%`;
 }
 
 export function canAnswerDatasetSuggestionDeterministically(input: DatasetAssistantInput) {

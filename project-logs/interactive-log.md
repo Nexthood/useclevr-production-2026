@@ -5873,3 +5873,38 @@ Generic deterministic intent handlers must let domain semantics override metric 
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio End-to-End Semantics
+
+1. Interaction title
+Investor Portfolio end-to-end semantics.
+
+2. What was the user goal
+Complete the Investor Portfolio repair so classification, generated reports, dashboards, deterministic AI Assistant answers, suggested questions, and time-axis handling all use Investor-specific semantics for `05_investor_portfolio`.
+
+3. What changed
+Business-model and Business Semantics classification now let a strong Investor Portfolio schema override stale SaaS or startup metadata. Dataset Intelligence, analytical intents, deterministic Assistant handlers, report construction, report profile metadata, and PDF rendering now treat `annual_revenue` as combined portfolio-company annual revenue, `investment_date` as an investment event axis, `latest_valuation` as company valuation, `growth_rate` as company growth, and burn or runway as point-in-time portfolio risk evidence. Regression coverage now exercises the full 45-row Investor fixture, report/dashboard routing, supported Investor questions, incompatible revenue trends, query-engine time-axis refusal, and negative SaaS/order/supplier suggestion controls.
+
+4. Problems marked
+blocker: none.
+risk: the workspace does not include a raw `05_investor_portfolio` customer fixture file, so validation uses the synthetic 45-row fixture with the verified annual revenue total.
+improvement: add sanitized file-backed `05_investor_portfolio` CSV and XLSX fixtures when they are available.
+observation: strong domain schemas must outrank stale persisted metadata before deterministic intent formatting chooses labels and time axes.
+
+5. User learning
+Investor Portfolio revenue-worded prompts refer to portfolio-company annual revenue unless source evidence defines investor revenue separately.
+
+6. AI-agent learning
+Deterministic generic intents must ask the semantic profile whether a metric and time axis are compatible before reporting a trend.
+
+7. Follow-up tasks
+- Add sanitized file-backed Investor Portfolio fixtures when source-safe CSV and XLSX files are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
