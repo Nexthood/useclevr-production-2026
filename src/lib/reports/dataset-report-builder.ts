@@ -219,6 +219,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     financials.netMargin = null
   }
   if (reportModel === "accountancy" || reportModel === "prebookkeeping") {
+    financials.dataConfidence = accountancyLedgerDataConfidence(columnMap)
     financials.revenue = null
     financials.cogs = null
     financials.grossProfit = null
@@ -1152,6 +1153,17 @@ function investorDataConfidence(columns: ColumnMap) {
   const availableRequired = required.filter(Boolean).length
   const availableOptional = optional.filter(Boolean).length
   return Math.round(((availableRequired / required.length) * 85) + ((availableOptional / optional.length) * 15))
+}
+
+function accountancyLedgerDataConfidence(columns: ColumnMap) {
+  const fieldWeights = [
+    { column: columns.debit, weight: 25 },
+    { column: columns.credit, weight: 25 },
+    { column: columns.date, weight: 20 },
+    { column: columns.account, weight: 20 },
+    { column: columns.invoice, weight: 10 },
+  ]
+  return fieldWeights.reduce((total, item) => total + (item.column ? item.weight : 0), 0)
 }
 
 function businessConsultingDataConfidence(columns: ColumnMap) {
@@ -3327,7 +3339,7 @@ function detectColumns(columns: string[]): ColumnMap {
     account: findColumn(columns, [/account/, /ledger/]),
     debit: findColumn(columns, [/debit/]),
     credit: findColumn(columns, [/credit/]),
-    invoice: findColumn(columns, [/invoice/, /receipt/]),
+    invoice: findColumn(columns, [/invoice/, /receipt/, /document/]),
     refund: findColumn(columns, [/refund/, /return_amount/]),
     sellerPayout: findColumn(columns, [/seller_payout/, /merchant_payout/, /payout/]),
     newBuyer: findColumn(columns, [/new_buyer/, /newbuyer/]),
@@ -3399,6 +3411,7 @@ function buildSemanticContext(input: {
   const isSaas = input.reportModel === "saas" || input.reportModel === "startup"
   const isMarketplace = input.reportModel === "marketplace"
   const isInvestor = input.reportModel === "investor"
+  const isAccountancy = input.reportModel === "accountancy" || input.reportModel === "prebookkeeping"
   const isBusinessConsulting = input.reportModel === "business_consulting"
   const isProfessionalServices = input.reportModel === "professional_services"
   const mappings: Record<string, string | null> = {
@@ -3457,6 +3470,10 @@ function buildSemanticContext(input: {
     projectStart: isBusinessConsulting ? input.columnMap.projectStart || null : null,
     projectEnd: isBusinessConsulting ? input.columnMap.projectEnd || null : null,
     billableHours: isBusinessConsulting || isProfessionalServices ? input.columnMap.billableHours || null : null,
+    account: isAccountancy ? input.columnMap.account || null : null,
+    debit: isAccountancy ? input.columnMap.debit || null : null,
+    credit: isAccountancy ? input.columnMap.credit || null : null,
+    invoice: isAccountancy ? input.columnMap.invoice || null : null,
   }
   const hasRecurringSaasFields = Boolean(mappings.mrr || mappings.arr || mappings.customer || mappings.churned)
   const required = isSaas
@@ -3471,7 +3488,9 @@ function buildSemanticContext(input: {
           ? ["date", "revenue", "grossProfit", "consultantCost", "projectStart", "projectEnd"]
           : isProfessionalServices
             ? ["date", "revenue", "grossProfit"]
-            : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
+            : isAccountancy
+              ? ["debit", "credit", "date", "account", "invoice"]
+              : ["date", "revenue", "netProfit", "expenseCategory", "expenseAmount", "vendor"]
   const available = required.filter((key) => Boolean(mappings[key])).length
   return {
     datasetId: input.datasetId,
