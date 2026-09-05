@@ -22,11 +22,16 @@ export default async function DailyHealthPage({ searchParams }: DailyHealthPageP
 
   const params = (await searchParams) || {}
   const window = parseWindow(params.window)
-  const dashboardData = await loadDashboardDatasetAggregation(userId)
+  const selectedDatasetId = parseDatasetId(params.datasetId)
+  const initialDashboardData = await loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId })
+  const activeDatasetId = selectedDatasetId ?? initialDashboardData.latestUpload?.id ?? null
+  const dashboardData = activeDatasetId
+    ? await loadDashboardDatasetAggregation(userId, { datasetId: activeDatasetId, includeCompatibleDatasets: true })
+    : initialDashboardData
   const hasActiveDatasets = dashboardData.activeDatasetCount > 0
   const [today, history] = await Promise.all([
-    hasActiveDatasets ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
-    listDailyHealthBriefs({ userId, limit: windowToLimit(window) }),
+    hasActiveDatasets && activeDatasetId ? getOrCreateDailyHealthBrief({ userId, datasetId: activeDatasetId }) : Promise.resolve(null),
+    activeDatasetId ? listDailyHealthBriefs({ userId, datasetId: activeDatasetId, limit: windowToLimit(window) }) : Promise.resolve([]),
   ])
   const reports = hasActiveDatasets ? mergeToday(today, history).slice(0, windowToLimit(window)) : []
 
@@ -35,7 +40,7 @@ export default async function DailyHealthPage({ searchParams }: DailyHealthPageP
       <div className="mx-auto w-full max-w-[1440px] space-y-7 px-4 pb-8 pt-2 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 sm:p-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <Link href="/app" className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground">
+            <Link href={activeDatasetId ? `/app?datasetId=${encodeURIComponent(activeDatasetId)}` : "/app"} className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground">
               <ArrowLeft className="h-4 w-4" />
               Dashboard
             </Link>
@@ -53,7 +58,7 @@ export default async function DailyHealthPage({ searchParams }: DailyHealthPageP
             {(["today", "yesterday", "7d", "30d"] as const).map((item) => (
               <Link
                 key={item}
-                href={`/app/daily-health?window=${item}`}
+                href={buildDailyHealthHref({ window: item, datasetId: activeDatasetId })}
                 className={[
                   "rounded-lg border px-3 py-2 text-sm font-medium transition",
                   window === item
@@ -239,6 +244,17 @@ function parseWindow(value: string | string[] | undefined) {
   const current = Array.isArray(value) ? value[0] : value
   if (current === "yesterday" || current === "7d" || current === "30d") return current
   return "today"
+}
+
+function parseDatasetId(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null
+}
+
+function buildDailyHealthHref(input: { window: ReturnType<typeof parseWindow>; datasetId: string | null }) {
+  const query = new URLSearchParams({ window: input.window })
+  if (input.datasetId) query.set("datasetId", input.datasetId)
+  return `/app/daily-health?${query.toString()}`
 }
 
 function windowToLimit(value: ReturnType<typeof parseWindow>) {
