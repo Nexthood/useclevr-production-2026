@@ -205,6 +205,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-1050. Dashboard Dataset Library openings preserve the clicked dataset ID through navigation, selected dashboard statistics, semantic analysis, reports, and AI activity without falling back to another dataset. (labels: dashboard, data, testing; commit: worktree)
 - T-1004. Executive Daily Health mounts Generate Report on the default dashboard by using the latest reportable dashboard dataset when no dataset is explicitly selected. (labels: dashboard, reports, ui, testing; commit: worktree)
 - T-1002. Executive Daily Health shows the existing Generate Report action beside View Full Daily Brief and scopes report generation to the active dashboard dataset. (labels: dashboard, reports, ui, testing; commit: worktree)
 - T-942. Render Executive Dashboard tab content in-place without route navigation, page reloads, anchor scrolling, or automatic viewport jumps. (labels: dashboard, ui, stability; commit: worktree)

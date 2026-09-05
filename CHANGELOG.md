@@ -30,6 +30,7 @@
 
 ### Fixed
 
+- Fix Dataset Library dashboard openings so the clicked dataset stays selected across routing, dashboard metrics, semantic profiles, generated reports, and AI activity.
 - Fix dependency security remediation so CI audit enforcement clears patched transitive findings while tracking only current unavoidable residual advisories.
 - Fix public pricing and shared page chrome so translated price text, mobile navigation, CTA buttons, footer links, and the Usy assistant stay inside phone, tablet, and desktop viewports.
 - Fix Investor Portfolio Balanced Scorecard growth scoring so company growth-rate fields count as source portfolio evidence without treating investment dates as growth trend periods.

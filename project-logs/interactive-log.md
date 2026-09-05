@@ -1,3 +1,36 @@
+## Dashboard Selected Dataset Routing
+
+1. Interaction title
+Bind dashboard openings to the selected Dataset Library row.
+
+2. What was the user goal
+Fix the P0 dataset-selection bug so clicking Open dashboard for Marketplace or Investor keeps the entire dashboard, semantic profile, KPI generation, reports, and AI dataset context bound to the clicked dataset ID without falling back to another dataset.
+
+3. What changed
+The authenticated dashboard alias preserves all incoming search parameters when redirecting into the main app dashboard, so `datasetId` survives `/app/dashboard` navigation. The app dashboard uses selected-dataset-scoped statistics for Daily Health, source mix, upload history metadata, AI activity, and missing explicit dataset states. Explicit missing dataset IDs now produce an unavailable selected-dataset state instead of reusing workspace aggregate or latest-dataset data. The regression test uses two neutral standard datasets with Marketplace and Investor schemas, selects them repeatedly in both orders, and verifies dataset ID plus semantic identity never leaks across selections, refresh-equivalent loads, direct URL loads, or back/open-equivalent navigation.
+
+4. Problems marked
+blocker: none.
+risk: this regression exercises the dashboard selection and semantic pipeline directly rather than a full browser session with a seeded authenticated account.
+observation: the row action already emitted `datasetId`, but the authenticated dashboard alias redirected to `/app` without preserving search parameters.
+
+5. User learning
+Dataset Library Open dashboard now treats the clicked dataset ID as authoritative and blocks silent first/latest dataset substitution for explicit dashboard requests.
+
+6. AI-agent learning
+Authenticated route aliases must preserve selected resource search parameters, and dashboard surfaces must consume scoped selected-dataset stats after selection resolution instead of reading original workspace aggregate stats.
+
+7. Follow-up tasks
+- Add a browser-level authenticated Dashboard Library navigation test when stable seeded workspace data is available.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dependency Audit Remediation
 
 1. Interaction title

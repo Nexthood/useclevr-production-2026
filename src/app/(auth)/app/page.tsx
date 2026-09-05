@@ -716,7 +716,7 @@ function selectDashboardDataset(stats: DashboardStats, datasetId: string | null)
   if (!datasetId) return { stats, selectedDataset: null, missing: false }
 
   const selectedDataset = stats.allDatasets.find((dataset) => dataset.id === datasetId) || null
-  if (!selectedDataset) return { stats, selectedDataset: null, missing: true }
+  if (!selectedDataset) return { stats: emptySelectedDatasetStats(stats), selectedDataset: null, missing: true }
 
   const allColumns = unique([
     ...selectedDataset.columns,
@@ -783,6 +783,16 @@ function selectDashboardDataset(stats: DashboardStats, datasetId: string | null)
   return { stats: scopedStats, selectedDataset, missing: false }
 }
 
+function emptySelectedDatasetStats(stats: DashboardStats): DashboardStats {
+  const empty = emptyStats()
+  return {
+    ...empty,
+    hasProfile: stats.hasProfile,
+    hasBusiness: stats.hasBusiness,
+    profile: stats.profile,
+  }
+}
+
 function isReportableDashboardDataset(dataset: DashboardDataset | null | undefined): boolean {
   if (!dataset || dataset.status === "deleted") return false
   const analysisStatus = dataset.analysisStatus || ""
@@ -828,7 +838,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
     selected.selectedDataset.status !== "deleted" &&
     (!selectedAnalysisStatus || new Set(["ready", "completed", "processed"]).has(selectedAnalysisStatus)),
   )
-  const dailyHealthReportDataset = selected.selectedDataset ?? stats.latestDataset
+  const dailyHealthReportDataset = selected.selectedDataset ?? (selectedDatasetId ? null : dashboardStats.latestDataset)
   const dailyHealthReportReady = isReportableDashboardDataset(dailyHealthReportDataset)
   const bbscPreview = selected.selectedDataset
     ? calculateBusinessBalancedScorecard({
@@ -891,10 +901,10 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
         </section>
 
         <ExecutiveDailyHealthSection
-          brief={stats.dashboardData.activeDatasetCount === 0 ? null : dailyBrief}
-          datasetId={stats.dashboardData.activeDatasetCount === 0 ? null : dailyHealthReportDataset?.id ?? null}
+          brief={dashboardStats.dashboardData.activeDatasetCount === 0 ? null : dailyBrief}
+          datasetId={dashboardStats.dashboardData.activeDatasetCount === 0 ? null : dailyHealthReportDataset?.id ?? null}
           reportDisabled={!dailyHealthReportReady}
-          hasActiveDatasets={stats.dashboardData.activeDatasetCount > 0}
+          hasActiveDatasets={dashboardStats.dashboardData.activeDatasetCount > 0}
         />
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
@@ -937,10 +947,10 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
                 <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
                   <Card className="p-5">
-                    <PanelHeader title="Upload History" detail={`${formatNumber(stats.dashboardData.totalRows)} rows processed across ${formatNumber(stats.dashboardData.datasetCount)} dataset${stats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
                     <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                      <SourceMix dashboardData={stats.dashboardData} />
-                      <LatestDatasets datasets={stats.allDatasets.slice(0, 6)} activeDatasetId={selected.selectedDataset?.id ?? null} />
+                      <SourceMix dashboardData={dashboardStats.dashboardData} />
+                      <LatestDatasets datasets={selected.missing ? [] : stats.allDatasets.slice(0, 6)} activeDatasetId={selected.selectedDataset?.id ?? null} />
                     </div>
                   </Card>
                 </DashboardSection>
@@ -972,7 +982,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
                   <Card className="p-5">
                     <PanelHeader title="Recent Analyses and Reports" detail="Latest AI traces, reports, and executive outputs." />
                     <div className="mt-5 space-y-4">
-                      <ActivityList stats={stats} />
+                      <ActivityList stats={dashboardStats} />
                     </div>
                   </Card>
                 </DashboardSection>

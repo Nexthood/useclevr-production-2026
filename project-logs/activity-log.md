@@ -1,3 +1,4 @@
+- fixed: bind Dataset Library Open dashboard navigation to the clicked dataset ID so dashboard metrics, source mix, Daily Health report target, AI activity, and semantic profiles stay selected-dataset scoped without latest-dataset fallback
 - fixed: remediate dependency audit findings with aligned Payload 3.88.0 packages, patched transitive overrides for available fixes, and narrowed residual tracking for only Payload 3.88.0 plus the existing incompatible D3 v2 chain
 - fixed: keep public pricing, translated price labels, public navigation, CTA buttons, footer links, authenticated shell chrome, and the Usy assistant contained across iPhone-sized, Android-sized, tablet, and desktop viewport checks
 - fixed: route Marketplace-shaped selected datasets through Marketplace deterministic answers before generic analytical formatting so standard uploads display GMV totals, latest observed GMV trends, buyer GMV rankings, and seller/merchant GMV rankings

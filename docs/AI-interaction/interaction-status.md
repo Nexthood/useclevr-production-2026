@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-09-05
-- **Goal**: Remediate dependency audit findings from the UI hardening validation branch without changing the responsive/UI hardening implementation.
-- **Durable change**: Payload packages stay aligned on stable `3.88.0`, available transitive security patches resolve through the Payload family upgrade and pnpm workspace overrides, the CI audit allowlist contains only current unavoidable residual advisory IDs, and the residual-risk register documents Payload and D3 exposure plus review triggers.
-- **Verification**: `pnpm install`, `pnpm audit:allowlist`, `pnpm validate:types`, `pnpm validate`, `pnpm exec tsc --noEmit`, focused Payload/upload/MCP/API tests, pricing validation, focused ESLint, Chromium desktop/mobile UI regression, and `git diff --check` pass; raw `pnpm audit` reports only approved residual advisories.
-- **Residual risk**: Raw `pnpm audit` still reports `payload@3.88.0` because the advisory requires an unpublished stable `3.88.1` package, and `d3-color@2.0.0` remains through a D3 v2 parent chain that does not support `d3-color@3.1.0`.
+- **Goal**: Bind dashboard openings from the Dataset Library to the explicitly clicked dataset across routing, dashboard data, semantic profiles, reports, and AI context.
+- **Durable change**: The authenticated dashboard alias preserves search parameters, the dashboard uses selected-dataset-scoped statistics for dashboard surfaces, explicit missing dataset IDs render unavailable state instead of falling back to another dataset, and regression coverage exercises Marketplace and Investor datasets in both selection orders.
+- **Verification**: `pnpm test:dashboard-selected-dataset-routing`, `pnpm test:dashboard-semantic-profiles`, `pnpm test:business-semantics`, `pnpm test:dataset-intelligence-engine`, `pnpm test:dataset-ai-assistant`, focused ESLint, `pnpm exec tsc --noEmit`, `pnpm validate`, `pnpm lint:package`, and `git diff --check` pass.
+- **Residual risk**: None for selected-dataset dashboard routing; stale or incorrect stored business-model metadata remains a separate semantic-normalization concern outside this dataset-identity fix.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
