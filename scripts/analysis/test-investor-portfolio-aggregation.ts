@@ -18,6 +18,37 @@ function nearlyEqual(actual: number | null | undefined, expected: number, messag
   assert(typeof actual === "number" && Math.abs(actual - expected) <= tolerance, `${message}: expected ${expected}, received ${actual}`)
 }
 
+function assertPriorityActionsPagination(text: string, label: string, expectedActions: string[]) {
+  const headingMatches = text.match(/\bPRIORITY ACTIONS\b/g) || []
+  assert(headingMatches.length === 1, `${label}: Priority Actions heading must render exactly once`)
+
+  const pages = text.split("\f").map((pageText) => pageText.trim()).filter(Boolean)
+  const pageWithHeading = pages.find((pageText) => pageText.includes("PRIORITY ACTIONS")) || ""
+  assert(pageWithHeading.length > 0, `${label}: Priority Actions heading must be on a PDF page`)
+
+  const expectedSnippets = expectedActions.slice(0, 4).map(actionSnippet).filter(Boolean)
+  assert(expectedSnippets.length > 0, `${label}: expected actions must be available for Priority Actions regression`)
+
+  const normalizedText = normalizePdfText(text)
+  const followingHeading = normalizePdfText(pageWithHeading.slice(pageWithHeading.indexOf("PRIORITY ACTIONS")))
+  assert(
+    expectedSnippets.some((snippet) => followingHeading.includes(snippet)),
+    `${label}: Priority Actions heading must stay with the first action on the same page`,
+  )
+
+  for (const snippet of expectedSnippets) {
+    assert(normalizedText.includes(snippet), `${label}: Priority Actions must include expected action snippet "${snippet}"`)
+  }
+}
+
+function actionSnippet(action: string) {
+  return normalizePdfText(action).split(" ").slice(0, 8).join(" ")
+}
+
+function normalizePdfText(value: string) {
+  return value.replace(/\s+/g, " ").trim()
+}
+
 function dataset(input: {
   name: string
   rows: Record<string, unknown>[]
@@ -134,6 +165,7 @@ async function assertInvestorFixtureAggregation() {
   const text = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
   assert(text.includes("INVESTOR PORTFOLIO REPORT"), "PDF must use the investor portfolio branch")
   assert(text.includes("INVESTMENT & VALUATION PERFORMANCE"), "PDF must render investor performance section")
+  assertPriorityActionsPagination(text, "investor portfolio", reportInput.recommendations.map((item) => item.recommendedAction))
   assert(!/SAAS EXECUTIVE REPORT|\bMRR\b|\bARR\b|Churned MRR|Expansion MRR|Contraction MRR/i.test(text), "PDF must not render SaaS report content")
   assert(text.includes("Total Invested") && text.includes("$21.25M"), "PDF must show Total Invested as $21.25M")
   assert((text.includes("Aggregate latest company valuations") || text.includes("Total Valuation")) && text.includes("$440.81M"), "PDF must show Aggregate Company Valuations as $440.81M")
