@@ -99,8 +99,9 @@ export function calculateBusinessBalancedScorecard(input: {
   const rows = input.rows.filter(isRecord)
   const columns = input.columns.filter(Boolean)
   const model = normalizeReportModel(input.businessModel)
-  const columnMap = detectBbscColumns(columns)
-  const trend = valueTrend(rows, columnMap.date, columnMap.revenue || columnMap.gmv || columnMap.mrr || columnMap.valuation)
+  const columnMap = detectBbscColumns(columns, model)
+  const trendValueColumn = model === "investor" ? undefined : columnMap.revenue || columnMap.gmv || columnMap.mrr || columnMap.valuation
+  const trend = valueTrend(rows, columnMap.date, trendValueColumn)
   const perspectives = {
     financial: buildPerspective("financial", model, rows, columnMap, trend),
     customer: buildPerspective("customer", model, rows, columnMap, trend),
@@ -223,11 +224,14 @@ function buildMetrics(
   const orders = columns.order ? uniqueCount(rows, columns.order) : sumColumn(rows, columns.quantity)
   const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
   const repeatRate = columns.customer ? repeatCustomerRate(rows, columns.customer) : null
-  const growthRate = trendPercent(rows, columns.date, columns.revenue || columns.gmv || columns.mrr || columns.valuation)
+  const growthRate = model === "investor"
+    ? null
+    : trendPercent(rows, columns.date, columns.revenue || columns.gmv || columns.mrr || columns.valuation)
+  const investorGrowthRate = model === "investor" ? averagePercentColumn(rows, columns.growthRate) : null
   const metrics: Metric[] = []
 
   if (key === "financial") {
-    if (model !== "marketplace") {
+    if (model !== "marketplace" && model !== "investor") {
       addMetric(metrics, "Revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue || columns.gmv, "Revenue is available as a financial performance input.", undefined, "Review revenue trend monthly.")
     }
     addMetric(metrics, "Gross profit", profit, "currency", scoreMargin(margin), columns.profit || columns.cost, "Profitability is calculated from profit or revenue/cost fields.", margin !== null && margin < 10 ? "Margin is below 10%." : undefined, "Review pricing, COGS, and operating costs.")
@@ -238,6 +242,7 @@ function buildMetrics(
       addMetric(metrics, "Runway", averageColumn(rows, columns.runway), "number", scoreTarget(averageColumn(rows, columns.runway), 12, false), columns.runway, "Runway is scored against a 12-month target.", undefined, "Extend runway through revenue growth or cost control.")
     }
     if (model === "investor") {
+      addMetric(metrics, "Portfolio company annual revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue, "Portfolio company annual revenue is included for investor financial context.")
       addMetric(metrics, "Invested capital", sumColumn(rows, columns.investedAmount), "currency", 70, columns.investedAmount, "Invested capital is available for portfolio scoring.")
       addMetric(metrics, "Latest valuation", sumColumn(rows, columns.valuation), "currency", scorePositiveValue(sumColumn(rows, columns.valuation)), columns.valuation, "Portfolio valuation is included in financial performance.")
     }
@@ -321,7 +326,11 @@ function buildMetrics(
   }
 
   if (key === "growth") {
-    addMetric(metrics, "Growth trend", growthRate, "percent", scoreGrowth(growthRate), columns.date, "Growth trend is calculated from dated values.", growthRate !== null && growthRate < 0 ? "Recent trend is negative." : undefined, "Review the drivers behind the latest trend.")
+    if (model === "investor") {
+      addMetric(metrics, "Portfolio growth rate", investorGrowthRate, "percent", scoreGrowth(investorGrowthRate), columns.growthRate, "Portfolio company growth-rate data is available as cross-sectional source evidence.", investorGrowthRate !== null && investorGrowthRate < 0 ? "Average portfolio company growth rate is negative." : undefined, "Review high- and low-growth portfolio companies by stage and sector.")
+    } else {
+      addMetric(metrics, "Growth trend", growthRate, "percent", scoreGrowth(growthRate), columns.date, "Growth trend is calculated from dated values.", growthRate !== null && growthRate < 0 ? "Recent trend is negative." : undefined, "Review the drivers behind the latest trend.")
+    }
     addMetric(metrics, "Product expansion", groupedCount(rows, columns.product || columns.category), "number", scorePositiveValue(groupedCount(rows, columns.product || columns.category)), columns.product || columns.category, "Product/category breadth is included as a growth input.")
     if (model === "business_consulting") {
       addMetric(metrics, "Industry diversity", groupedCount(rows, columns.sector), "number", scorePositiveValue(groupedCount(rows, columns.sector)), columns.sector, "Industry diversity is available from industry field.")
@@ -344,16 +353,20 @@ function buildMetrics(
   return metrics
 }
 
-function detectBbscColumns(columns: string[]) {
+function detectBbscColumns(columns: string[], model: BbscReportModel | string = "generic") {
+  const normalizedModel = normalizeReportModel(model)
+  const isInvestor = normalizedModel === "investor"
   return {
-    revenue: findColumn(columns, [/revenue/, /^sales$/, /amount/, /turnover/, /income/, /net_sales/]),
+    revenue: isInvestor
+      ? findColumn(columns, [/^annual_revenue$/, /portfolio_company_annual_revenue/, /company_annual_revenue/])
+      : findColumn(columns, [/revenue/, /^sales$/, /amount/, /turnover/, /income/, /net_sales/]),
     cost: findColumn(columns, [/^cost$/, /cogs/, /expense/, /unit_cost/, /spend/, /consultant_cost/]),
     profit: findColumn(columns, [/profit/, /gross_margin/, /project_margin/]),
     margin: findColumn(columns, [/margin_pct/, /margin_percent/, /^margin$/]),
     quantity: findColumn(columns, [/quantity/, /^qty$/, /units_sold/, /units/, /volume/]),
     order: findColumn(columns, [/order_id/, /^order$/, /transaction/, /invoice/]),
     customer: findColumn(columns, [/customer_id/, /customer/, /client_id/, /client/, /account_id/]),
-    date: findColumn(columns, [/date/, /month/, /period/, /created_at/]),
+    date: isInvestor ? findInvestorObservationDateColumn(columns) : findColumn(columns, [/date/, /month/, /period/, /created_at/]),
     product: findColumn(columns, [/product_id/, /product/, /^sku$/, /item/]),
     category: findColumn(columns, [/category/, /service_line/]),
     stock: findColumn(columns, [/stock_on_hand/, /stock/, /inventory/]),
@@ -373,11 +386,12 @@ function detectBbscColumns(columns: string[]) {
     runway: findColumn(columns, [/runway/]),
     usage: findColumn(columns, [/active_user/, /usage/, /sessions/, /tickets/, /support/]),
     gmv: findColumn(columns, [/^gmv$/, /gross_merchandise/]),
-    investedAmount: findColumn(columns, [/invested_amount/, /invested_capital/, /investment/]),
-    valuation: findColumn(columns, [/latest_valuation/, /valuation/]),
+    investedAmount: findColumn(columns, [/^invested_amount$/, /^invested_capital$/, /^capital_invested$/, /^total_invested$/]),
+    valuation: findColumn(columns, [/^latest_valuation$/, /^current_valuation$/, /^portfolio_company_valuation$/, /^company_valuation$/]),
     ownership: findColumn(columns, [/ownership/]),
     sector: findColumn(columns, [/sector/, /industry/]),
     stage: findColumn(columns, [/stage/]),
+    growthRate: findColumn(columns, [/^growth_rate$/, /^company_growth_rate$/, /^portfolio_company_growth_rate$/, /^revenue_growth_rate$/]),
     billableHours: findColumn(columns, [/billable_hours/, /hours/]),
     freelancerCost: findColumn(columns, [/freelancer_cost/]),
     adSpend: findColumn(columns, [/ad_spend/]),
@@ -407,6 +421,7 @@ function requiredFieldsFor(key: BbscPerspectiveKey, model: BbscReportModel) {
   if ((model === "saas" || model === "startup") && key === "financial") return ["MRR", "ARR", "burn", "runway"]
   if ((model === "saas" || model === "startup") && key === "customer") return ["customer", "churn", "retention", "LTV"]
   if (model === "investor" && key === "financial") return ["invested capital", "latest valuation", "ownership"]
+  if (model === "investor" && key === "growth") return ["growth_rate", "sector", "stage"]
   if (model === "business_consulting" && key === "processes") return ["billable hours", "cost", "project delivery", "revenue"]
   if (model === "business_consulting" && key === "growth") return ["project dates", "industry", "pipeline stage", "consultant activity"]
   if (model === "professional_services" && key === "processes") return ["hours", "service_line", "channel", "freelancer_cost", "ad_spend"]
@@ -468,6 +483,19 @@ function addMetric(
 
 function findColumn(columns: string[], patterns: RegExp[]) {
   return columns.find((column) => patterns.some((pattern) => pattern.test(column.toLowerCase().trim().replace(/[\s-]+/g, "_"))))
+}
+
+function findInvestorObservationDateColumn(columns: string[]) {
+  return findColumn(columns, [
+    /^reporting_date$/,
+    /^reporting_period$/,
+    /^observation_date$/,
+    /^observation_period$/,
+    /^snapshot_date$/,
+    /^snapshot_period$/,
+    /^as_of_date$/,
+    /^as_of_period$/,
+  ])
 }
 
 function detectedFieldList(columns: ColumnMap) {
@@ -587,6 +615,16 @@ function periodKeyBbsc(value: unknown) {
 function averageColumn(rows: DataRow[], column?: string) {
   if (!column) return null
   const values = rows.map((row) => getNumber(row[column])).filter((value): value is number => value !== null)
+  if (values.length === 0) return null
+  return values.reduce((total, value) => total + value, 0) / values.length
+}
+
+function averagePercentColumn(rows: DataRow[], column?: string) {
+  if (!column) return null
+  const values = rows
+    .map((row) => getNumber(row[column]))
+    .filter((value): value is number => value !== null)
+    .map((value) => (Math.abs(value) <= 1 ? value * 100 : value))
   if (values.length === 0) return null
   return values.reduce((total, value) => total + value, 0) / values.length
 }

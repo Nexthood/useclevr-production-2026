@@ -30,6 +30,7 @@
 
 ### Fixed
 
+- Fix Investor Portfolio Balanced Scorecard growth scoring so company growth-rate fields count as source portfolio evidence without treating investment dates as growth trend periods.
 - Fix Investor Portfolio reports, dashboards, and AI Assistant answers so portfolio revenue, valuation, growth, burn, runway, and investment timing use Investor-specific semantics without SaaS sections or incompatible revenue trends.
 - Fix Marketplace AI Assistant and selected-dataset metric answers so standard uploads with Marketplace evidence route GMV totals, trends, buyer rankings, seller rankings, and missing inventory evidence through marketplace-specific labels and calculations.
 - Fix SaaS AI Assistant churn handling so explicit churn indicators drive active-customer counts, churn signals, Churned MRR evidence checks, and net movement completeness.

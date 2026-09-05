@@ -91,6 +91,13 @@ async function main() {
   assert.deepEqual(reportInput.financials.periodTrends, [], "Investment date must not generate generic financial period trends");
   assert.ok(!reportInput.kpis.some((kpi) => /^Revenue$|^Total Revenue$|MRR|ARR|Churn/i.test(kpi.title)), "Investor report KPIs do not expose SaaS or generic revenue labels");
   assert.ok(reportInput.kpis.some((kpi) => kpi.title === "Portfolio Company Annual Revenue"), "Investor report labels annual_revenue as portfolio company annual revenue");
+  assert.ok(reportInput.bbsc, "Investor report includes a Balanced Scorecard payload");
+  assert.equal(reportInput.bbsc?.perspectives.growth.trend, "unknown", "Investment date must not create a BBSC growth trend");
+  assert.ok(reportInput.bbsc?.perspectives.growth.kpis.some((kpi) => kpi.label === "Portfolio growth rate" && kpi.sourceFields.includes("growth_rate")), "BBSC growth uses growth_rate as cross-sectional portfolio evidence");
+  assert.ok(!reportInput.bbsc?.perspectives.growth.kpis.some((kpi) => kpi.label === "Growth trend" || kpi.sourceFields.includes("investment_date")), "BBSC growth must not derive a trend from investment_date");
+  assert.ok(!reportInput.bbsc?.perspectives.growth.findings.some((finding) => /Growth trend is calculated from dated values/i.test(finding)), "BBSC growth reason must not claim dated growth trend evidence");
+  assert.ok(reportInput.bbsc?.perspectives.financial.kpis.some((kpi) => kpi.label === "Portfolio company annual revenue" && kpi.sourceFields.includes("annual_revenue")), "BBSC financial perspective keeps annual_revenue as portfolio-company annual revenue");
+  assert.ok(!reportInput.bbsc?.perspectives.financial.kpis.some((kpi) => kpi.label === "Revenue" || kpi.sourceFields.includes("investment_date")), "BBSC financial perspective must not label invested_amount or investment_date as generic revenue evidence");
 
   const dashboard = await buildDashboardSemanticAnalysis(dataset("saas") as Parameters<typeof buildDashboardSemanticAnalysis>[0]);
   assert.equal(dashboard.businessProfile, "investor", "Dashboard profile agrees with Investor report routing");

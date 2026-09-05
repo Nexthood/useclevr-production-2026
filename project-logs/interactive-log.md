@@ -5908,3 +5908,38 @@ Deterministic generic intents must ask the semantic profile whether a metric and
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Balanced Scorecard Growth Semantics
+
+1. Interaction title
+Investor Balanced Scorecard growth semantics.
+
+2. What was the user goal
+Fix one remaining Investor Portfolio report issue: the Balanced Scorecard Growth perspective must not describe or score `growth_rate` as a historical trend when the only date field is `investment_date`.
+
+3. What changed
+The Balanced Scorecard column mapper now receives the resolved report model and applies Investor-specific field compatibility. Investor scorecards map `annual_revenue` only as portfolio-company annual revenue, map invested capital and latest valuation through exact Investor aliases, keep `investment_date` out of generic report-period detection, and score `growth_rate` as cross-sectional portfolio-company growth evidence. Focused tests assert that `growth_rate` plus `investment_date` does not create a Growth trend KPI, source field, trend direction, or invalid scorecard reason, and regenerated Investor PDF text excludes the dated-growth claim.
+
+4. Problems marked
+blocker: none.
+risk: generated Investor PDF table cells truncate long finding text, so PDF assertions verify the visible valid prefix and the absence of the invalid dated-growth sentence.
+improvement: add sanitized file-backed `05_investor_portfolio` CSV and XLSX fixtures when they are available.
+observation: scorecard-level generic date aliases need domain compatibility checks just like Assistant trend handlers.
+
+5. User learning
+Investor `investment_date` supports investment activity timing, not historical trends for company growth, revenue, burn, runway, or valuation.
+
+6. AI-agent learning
+Domain-specific report models must reach shared scoring utilities before broad aliases such as `/date/`, `/amount/`, and `/valuation/` select generic metric/time pairings.
+
+7. Follow-up tasks
+- Add sanitized file-backed Investor Portfolio fixtures when source-safe CSV and XLSX files are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
