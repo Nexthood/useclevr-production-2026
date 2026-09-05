@@ -328,6 +328,7 @@ Text rules for this file:
 - Show Free at $0/€0, Pro at €40/month or €480/year, and Business at €420/month or €5,040/year on EUR-default billing surfaces.
 - Use the Free plan with limited AI credits as the only free UseClevr entry point, and do not advertise separate trial periods on public landing or pricing surfaces.
 - Use shared monthly and yearly paid-plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
+- Render public pricing amounts and billing intervals from shared billing data with translation-protected markup so browser translation cannot change the visible number, currency, or period relationship.
 - Show customer-facing plan feature lists from the shared billing plan source, limiting Free to CSV and Excel upload, 50 AI credits, 2 datasets, basic AI insights, retail dashboard, and community support; limiting Pro to 500 AI credits, 25 datasets, AI business analysis, revenue analysis, margin analysis, stock detection, reports, exports, and priority support; and limiting Business to Pro benefits, 5000 AI credits, 250 datasets, larger file uploads, Accounting AI, invoice processing, receipt processing, and dedicated support.
 - Keep future enterprise features hidden from pricing and upgrade surfaces until their customer workflow is production-ready.
 - Show Account settings as a professional control center with centered wide content, Profile,
@@ -582,6 +583,7 @@ Text rules for this file:
 ## Public Content
 
 - Keep the existing homepage, privacy, and terms routes available.
+- Keep public pages, public navigation, call-to-action buttons, pricing cards, footer links, and the Usy assistant contained within phone, tablet, laptop, and desktop viewport widths without clipped text, hidden actions, or horizontal page overflow.
 - Show public news at `/news` with individual news detail pages.
 - Seed five starter news entries for first-use admin testing.
 - Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.

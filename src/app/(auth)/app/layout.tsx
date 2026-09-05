@@ -52,7 +52,7 @@ export default async function AppLayout({
 
   return (
     <FormattingProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen min-w-0 overflow-x-clip bg-background">
         <AppSidebar
           user={session.user}
           businessStatus={businessReadinessStatus}
@@ -64,9 +64,9 @@ export default async function AppLayout({
           }}
           retailStatus={businessReadinessStatus}
         />
-        <div className="transition-[margin] duration-200 md:ml-[var(--app-sidebar-width)]">
+        <div className="min-w-0 transition-[margin] duration-200 md:ml-[var(--app-sidebar-width)]">
           <Topbar />
-          <main className="flex min-h-[calc(100vh-4rem)] flex-col pt-[var(--app-topbar-offset,40px)]">
+          <main className="flex min-h-[calc(100dvh-4rem)] min-w-0 flex-col pt-[var(--app-topbar-offset,40px)]">
             {children}
           </main>
           <HelpChatbox audience={session.user.role === "superadmin" ? "superadmin" : "dashboard"} userRole={session.user.role} />

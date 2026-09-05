@@ -1,3 +1,4 @@
+- fixed: keep public pricing, translated price labels, public navigation, CTA buttons, footer links, authenticated shell chrome, and the Usy assistant contained across iPhone-sized, Android-sized, tablet, and desktop viewport checks
 - fixed: route Marketplace-shaped selected datasets through Marketplace deterministic answers before generic analytical formatting so standard uploads display GMV totals, latest observed GMV trends, buyer GMV rankings, and seller/merchant GMV rankings
 - fixed: label selected-dataset Marketplace metric resolver answers with Total GMV, Monthly GMV, GMV trend, buyer GMV, seller/merchant GMV, and unavailable inventory evidence when revenue-worded intents resolve from gross merchandise value
 - fixed: route Marketplace Assistant revenue, trend, customer, and supplier-worded questions through GMV, buyer, and seller semantics, include latest observed periods, and keep missing inventory evidence unavailable instead of zero

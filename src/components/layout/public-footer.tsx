@@ -7,16 +7,16 @@ export function PublicFooter() {
   return (
     <footer className="border-t border-border/40 bg-background">
       <div className="container mx-auto px-4 md:px-6 py-12">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-8">
-          <div className="max-w-sm">
+        <div className="flex min-w-0 flex-col items-start justify-between gap-8 md:flex-row">
+          <div className="max-w-sm min-w-0">
             <Logo />
             <p className="mt-4 text-sm text-muted-foreground">
               Turn your data into business insights with AI-powered analysis.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-8">
-            <div>
+          <div className="grid w-full min-w-0 grid-cols-1 gap-8 sm:grid-cols-3 md:w-auto">
+            <div className="min-w-0">
               <h3 className="font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
@@ -25,7 +25,7 @@ export function PublicFooter() {
               </ul>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <h3 className="font-semibold mb-4">Legal</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link></li>
@@ -33,7 +33,7 @@ export function PublicFooter() {
               </ul>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <h3 className="font-semibold mb-4">Account</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/login" className="hover:text-foreground transition-colors">Sign in</Link></li>

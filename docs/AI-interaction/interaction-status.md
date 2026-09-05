@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-09-04
-- **Goal**: Correct Investor Portfolio Balanced Scorecard growth semantics without changing working Investor report, Assistant, classification, or KPI behavior.
-- **Durable change**: Investor Portfolio scorecards treat `growth_rate` as cross-sectional portfolio-company growth evidence, keep `investment_date` out of generic date-axis detection, preserve investment activity timing elsewhere, and avoid historical growth, revenue, burn, runway, or valuation trends unless a compatible reporting or observation period exists.
-- **Verification**: `pnpm test:bbsc`, `pnpm exec tsx scripts/analysis/test-investor-questions.ts`, `pnpm test:investor-portfolio-aggregation`, `pnpm exec tsc --noEmit --pretty false`, `pnpm test:dataset-aware-report-profiles`, `pnpm test:business-semantics`, `pnpm test:question-intent-metric-resolver`, `pnpm test:dataset-ai-assistant`, focused ESLint with ignored script warnings suppressed, and regenerated Investor PDF text inspection pass.
-- **Residual risk**: The workspace does not include a raw `05_investor_portfolio` fixture file, so focused chat validation uses the existing synthetic 45-row Investor fixture with the verified `126,384,909.53` annual revenue total.
+- **Date**: 2026-09-05
+- **Goal**: Harden public website pricing, navigation, CTAs, footer, chat, login/signup, and shared authenticated app chrome across mobile, tablet, desktop, browser translation, and text-scaling scenarios without changing product pricing or business logic.
+- **Durable change**: Public pricing displays amount and billing period from shared billing data in translation-protected markup, public pages use contained responsive wrappers and flexible CTA/footer layouts, Usy and Clevr chat panels fit safe-area-aware mobile viewports, and the authenticated shell contains dense topbar controls without widening the page.
+- **Verification**: `pnpm exec tsc --noEmit --pretty false --incremental false`, `pnpm validate`, `pnpm test:pro-pricing`, focused ESLint for changed files, `node ./scripts/validate-pricing.js`, `git diff --check`, Chrome CDP viewport checks for `/`, `/pricing`, `/login`, `/signup`, and unauthenticated `/app` redirect at iPhone-sized, Android-sized, tablet, and desktop widths, plus an iPhone-sized yearly pricing toggle check.
+- **Residual risk**: Native Safari/WebKit is not installed in this Linux workspace, so iPhone/Safari status uses iPhone-sized Chrome emulation plus WebKit-compatible viewport and safe-area CSS instead of a real Safari engine.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

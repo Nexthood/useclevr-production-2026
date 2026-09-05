@@ -38,9 +38,9 @@ export function PublicHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-20 w-full items-center justify-between gap-3 px-4 md:px-6 lg:px-8">
+      <div className="flex h-20 w-full min-w-0 items-center justify-between gap-2 px-4 md:gap-3 md:px-6 lg:px-8">
         {/* Left - Logo */}
-        <Link href="/" className="flex h-16 shrink-0 items-center rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+        <Link href="/" className="flex h-16 min-w-0 shrink items-center rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 sm:shrink-0">
           <Logo className="h-12 w-auto md:h-14" />
         </Link>
         
@@ -49,7 +49,7 @@ export function PublicHeader() {
           {/* Hybrid AI - with popover */}
           <div className="relative">
             <button 
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/10 text-sm font-medium text-primary hover:border-primary/60 hover:bg-primary/15 dark:text-cyan-100 transition-all relative overflow-hidden"
+              className="relative flex items-center gap-1.5 overflow-hidden rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition-all hover:border-primary/60 hover:bg-primary/15 dark:text-cyan-100"
               onMouseEnter={() => setShowHybridAIPopover(true)}
               onMouseLeave={() => setShowHybridAIPopover(false)}
               onClick={() => setShowHybridAIPopover(!showHybridAIPopover)}
@@ -62,7 +62,7 @@ export function PublicHeader() {
             {/* Popover */}
             {showHybridAIPopover && (
               <div 
-                className="absolute top-full mt-2 left-0 w-80 p-5 rounded-xl bg-card/95 backdrop-blur border border-primary/25 shadow-2xl shadow-black/10 dark:shadow-black/40 z-50"
+                className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-primary/25 bg-card/95 p-5 shadow-2xl shadow-black/10 backdrop-blur dark:shadow-black/40"
                 onMouseEnter={() => setShowHybridAIPopover(true)}
                 onMouseLeave={() => setShowHybridAIPopover(false)}
               >
@@ -90,7 +90,7 @@ export function PublicHeader() {
           </div>
 
           {/* Affiliate - premium animated */}
-          <Link href="/affiliate" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-700/30 bg-cyan-500/10 text-sm font-medium text-cyan-800 hover:border-cyan-700/50 hover:bg-cyan-500/15 dark:border-cyan-300/30 dark:text-cyan-100 dark:hover:border-cyan-300/50 transition-all relative overflow-hidden">
+          <Link href="/affiliate" className="relative flex items-center gap-1.5 overflow-hidden rounded-full border border-cyan-700/30 bg-cyan-500/10 px-3 py-1.5 text-sm font-medium text-cyan-800 transition-all hover:border-cyan-700/50 hover:bg-cyan-500/15 dark:border-cyan-300/30 dark:text-cyan-100 dark:hover:border-cyan-300/50">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Affiliate</span>
             <div className="absolute inset-0 animate-sweep-light bg-gradient-to-r from-transparent via-cyan-400/15 to-transparent" />
@@ -112,14 +112,14 @@ export function PublicHeader() {
         </nav>
         
         {/* Right side - Controls and CTAs */}
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           {/* Cloud / Offline Mode Switcher */}
           <div className="relative">
             <button
               onClick={() => setIsOffline(!isOffline)}
               onMouseEnter={() => setShowModePopover(true)}
               onMouseLeave={() => setShowModePopover(false)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all relative overflow-hidden ${
+              className={`relative flex h-10 min-w-10 items-center justify-center gap-1.5 overflow-hidden rounded-full px-2.5 py-1.5 text-sm font-medium transition-all sm:h-auto sm:justify-start sm:px-3 ${
                 isOffline
                   ? "border border-fuchsia-700/25 bg-fuchsia-500/10 text-fuchsia-800 hover:border-fuchsia-700/45 dark:border-fuchsia-200/25 dark:text-fuchsia-100 dark:hover:border-fuchsia-200/45"
                   : "border border-cyan-700/30 bg-cyan-500/10 text-cyan-800 hover:border-cyan-700/50 dark:border-cyan-300/30 dark:text-cyan-100 dark:hover:border-cyan-300/50"
@@ -128,13 +128,13 @@ export function PublicHeader() {
               {isOffline ? (
                 <>
                   <WifiOff className="h-3.5 w-3.5" />
-                  <span>Local AI</span>
-                  <ProductStatusBadge status="beta" />
+                  <span className="hidden sm:inline">Local AI</span>
+                  <ProductStatusBadge status="beta" className="hidden sm:inline-flex" />
                 </>
               ) : (
                 <>
                   <Cloud className="h-3.5 w-3.5" />
-                  <span>Cloud AI</span>
+                  <span className="hidden sm:inline">Cloud AI</span>
                 </>
               )}
             </button>
@@ -142,7 +142,7 @@ export function PublicHeader() {
             {/* Mode Popover */}
             {showModePopover && (
               <div 
-                className="absolute top-full mt-2 right-0 w-72 p-4 rounded-xl bg-card/95 backdrop-blur border border-cyan-700/20 shadow-2xl shadow-black/10 dark:border-cyan-300/20 dark:shadow-black/40 z-50"
+                className="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-cyan-700/20 bg-card/95 p-4 shadow-2xl shadow-black/10 backdrop-blur dark:border-cyan-300/20 dark:shadow-black/40"
                 onMouseEnter={() => setShowModePopover(true)}
                 onMouseLeave={() => setShowModePopover(false)}
               >

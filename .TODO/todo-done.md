@@ -130,6 +130,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-1048. Public pages, public pricing, shared navigation, CTA buttons, footer links, and the Usy assistant stay inside phone, tablet, laptop, and desktop viewports while price labels remain tied to shared billing data. (labels: ui, billing, accessibility, testing; commit: worktree)
 - T-1029. The What You're Missing five-step flow keeps every uppercase heading inside its own card across desktop, tablet, and mobile widths without clipping the Understanding label. (labels: ui, accessibility, testing; commit: 5ba59dfd)
 - T-940. Show geographic dataset analysis through a professional dark BI world map with real location detection, restrained nodes, flow lines, metric cards, hover tooltips, and a clean no-geography empty state. (labels: ui, data, dashboard; commit: worktree)
 - T-938. Show a compact animated multilingual badge in the Usy header with cycling supported languages and a tooltip explaining same-language replies. (labels: ui, ai, accessibility; commit: worktree)

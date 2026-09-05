@@ -282,13 +282,13 @@ assert.ok(checkoutPageSource.includes("BillingIntervalSelector"), "checkout revi
 assert.ok(checkoutPageSource.includes("Billing:"), "checkout review shows the selected billing interval before Stripe")
 assert.ok(checkoutPageSource.includes("Free is active. No checkout required."), "Free checkout path explains that checkout is not required")
 assert.ok(checkoutPageSource.includes("const canReview = !isFreePlan"), "Free plan cannot enter paid checkout review")
-assert.ok(checkoutPageSource.includes('if (plan.tier === "free") return "$0/€0/month";'), "Free checkout displays $0/€0")
+assert.ok(checkoutPageSource.includes('if (plan.tier === "free") return formatPlanPrice(plan);'), "Free checkout derives pricing from the billing formatter")
 assert.equal(checkoutPageSource.includes("requestedAmountMinor"), false, "checkout browser payload does not send an amount override")
 assert.equal(checkoutPageSource.includes("requestedStripePriceId"), false, "checkout browser payload does not send a Stripe Price ID override")
 
 const pricingPageSource = readProjectFile("src/app/(public)/pricing/page.tsx")
 const publicPricingPlansSource = readProjectFile("src/components/billing/public-pricing-plans.tsx")
-assert.ok(publicPricingPlansSource.includes('$0/€0'), "public pricing displays Free as $0/€0")
+assert.ok(publicPricingPlansSource.includes('formatPlanPrice(plan).replace("/month", "")'), "public pricing derives Free pricing from the billing formatter")
 assert.ok(publicPricingPlansSource.includes("BillingIntervalSelector"), "public pricing exposes the Monthly and Yearly selector")
 assert.equal(pricingPageSource.includes("Demo"), false, "public pricing does not show a Demo plan")
 

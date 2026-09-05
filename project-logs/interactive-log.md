@@ -1,3 +1,37 @@
+## Cross-Platform UI Hardening
+
+1. Interaction title
+Harden public pricing, navigation, CTAs, chat, and app chrome across responsive viewports.
+
+2. What was the user goal
+Make the public website and core authenticated shell more robust across iPhone Safari, Android Chrome, tablets, desktop, zoom, text scaling, and browser translation without redesigning the product or changing billing, auth, dataset, AI, routing, or branding behavior.
+
+3. What changed
+Public pricing renders amount and period from shared billing data as structured, translation-protected markup with data attributes for amount, currency, and interval. The yearly selector no longer depends on slicing combined price strings, so yearly amounts display with `/year` and Free remains tied to the billing formatter. Public page wrappers, CTAs, badges, card headers, pricing cards, FAQ cards, and footer columns use `min-w-0`, wrapping, flexible button heights, and mobile grids. The public header constrains popovers and collapses the AI mode pill text on phone widths. The Usy assistant and legacy Clevr chat launcher use safe-area-aware positioning, smaller mobile launchers, hidden phone hover bubbles, dynamic viewport heights, and contained chat panels. The authenticated app shell and topbar use contained width, `100dvh`, and internal touch scrolling for dense mobile controls.
+
+4. Problems marked
+blocker: none.
+risk: this Linux workspace cannot run real Safari/WebKit, so Safari status is inferred from WebKit-compatible CSS patterns and iPhone-sized Chrome emulation rather than a native Safari engine.
+improvement: add a committed browser-regression harness when the project adopts Playwright or another browser test runner.
+observation: the abnormal pricing symptom came from presentation markup that combined amount and interval strings, then stripped a suffix based on UI state; browser translation could mutate the visible period while the billing source values remained correct.
+
+5. User learning
+Public pricing now displays monthly and yearly values from one shared billing source with translation-protected amount and period relationships.
+
+6. AI-agent learning
+Responsive UI hardening in this project should prefer scoped shared-surface fixes, source-backed pricing markup, safe-area viewport units, and focused Chrome CDP checks when Playwright is not installed.
+
+7. Follow-up tasks
+- Add a committed Playwright responsive regression suite when the project chooses Playwright as a dependency.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Marketplace Generic Intent Routing
 
 1. Interaction title
