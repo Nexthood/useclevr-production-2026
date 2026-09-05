@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "reproduce-report-error.mjs",
+    "reproduce-server.mjs",
+    "reproduce-upload-mocked.mjs",
+    "reproduce-upload-real.mjs",
+    "reproduce-upload-superadmin.mjs",
+    "reproduce-upload.mjs",
+    "test-user-cols.mjs"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
