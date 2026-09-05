@@ -266,6 +266,7 @@ Text rules for this file:
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.
 - Support OpenAI, Anthropic, Google Gemini, OpenAI-compatible, Ollama, and managed UseClevr Cloud provider routes.
+- Keep dependency audit enforcement active in CI, remediate advisories with compatible published patches, and document only unavoidable temporary residual advisories with exact package versions, dependency paths, exposure, mitigations, and review triggers.
 - Store user-owned provider API keys only as server-side AES-256-GCM encrypted values with versioned encryption metadata.
 - Require `AI_PROVIDER_ENCRYPTION_KEY` before saving or using provider API keys.
 - Never send decrypted provider keys to the browser, AI traces, audit logs, analytics, provider status payloads, or error responses.

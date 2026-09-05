@@ -510,6 +510,7 @@ moving work between states.
 
 ## Label: security
 
+- T-1049. Dependency security remediation keeps CI audit enforcement active while patched transitive packages resolve to available safe versions and temporary residual entries document only advisories without compatible stable fixes. (labels: security, ci-build, testing; commit: worktree)
 - T-1028. Next.js uses the patched 16.2 release that removes confirmed framework advisories while app routing, proxy security headers, authentication, uploads, reports, billing checkout, and the production-disabled Public AI route keep their existing behavior. (labels: security, deployment, testing; commit: f67ce2f3)
 - T-1024. Chat, analysis, SQL, and email-verification diagnostics log safe metadata instead of complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets. (labels: security, ai, auth, testing; commit: 60aaeb7d)
 - T-602. Restrict local AI install and agent runtime install routes to development mode or explicit super-admin operations on shared deployments. (labels: security, local-ai, auth, api; commit: worktree)

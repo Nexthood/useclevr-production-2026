@@ -1,3 +1,38 @@
+## Dependency Audit Remediation
+
+1. Interaction title
+Remediate dependency audit findings after cross-platform UI hardening.
+
+2. What was the user goal
+Patch every security advisory with a compatible published remediation, keep Payload on a stable aligned 3.x family, avoid Payload 4 canary and unpublished package versions, and document only unavoidable temporary residual risks.
+
+3. What changed
+The Payload package family moves from `3.85.1` to stable `3.88.0` with all direct `@payloadcms/*` packages aligned, which brings Payload's `undici` path to `7.29.0` and removes `image-size` from the installed graph. pnpm workspace overrides resolve compatible patched versions for `fast-uri`, `DOMPurify`, `qs`, and `esbuild`. The CI audit allowlist contains only the remaining current residuals: Payload account-unlock advisory `GHSA-jg8r-5jh2-v2xj` and the existing incompatible D3 v2 chain advisory `GHSA-36jr-mh4h-2g58`. The residual-risk register documents why stable Payload `3.88.1` is unavailable, why Payload 4 canary is not used, why `d3-color@3.1.0` is outside the D3 v2 parent ranges, and why `image-size` is no longer reachable after the Payload upgrade.
+
+4. Problems marked
+blocker: none for the CI audit allowlist gate.
+risk: raw `pnpm audit` still exits nonzero because it reports the approved residual Payload and D3 advisories.
+risk: `pnpm peers check` still reports existing React peer warnings for `react-simple-maps` and an MCP SDK peer mismatch from the Payload plugin chain; runtime checks cover the MCP route used by the app.
+observation: `payload@3.88.1` and `image-size@2.0.3` are not published as stable npm versions, so installing those exact patched versions is impossible in this environment.
+
+5. User learning
+CI uses the project audit allowlist gate for approved residuals while regular dependency patches continue to resolve through package upgrades or narrow pnpm overrides.
+
+6. AI-agent learning
+pnpm 11 reads workspace overrides from `pnpm-workspace.yaml`; `package.json#pnpm.overrides` is ignored and does not update the lockfile.
+
+7. Follow-up tasks
+- Re-check Payload stable releases and remove the temporary Payload residual entry when a patched stable 3.x release is published. (labels: security, ci-build, testing)
+- Plan a separate D3/react-simple-maps upgrade or replacement before removing the D3 residual advisory. (labels: security, ui, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Security residuals: `docs/security/residual-risk-register.md`; release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Cross-Platform UI Hardening
 
 1. Interaction title
