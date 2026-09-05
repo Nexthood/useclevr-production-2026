@@ -36,7 +36,7 @@ const pricingFaqs = getPricingFaqs()
 
 export default function PricingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip">
       <PublicHeader />
 
       <main className="flex-1">
@@ -57,28 +57,28 @@ export default function PricingPage() {
           }
         />
 
-        <section className="container mx-auto px-4 py-8 md:px-6">
-          <div className="mx-auto max-w-6xl">
+        <section className="container mx-auto min-w-0 px-4 py-8 md:px-6">
+          <div className="mx-auto max-w-6xl min-w-0">
             <PublicPricingPlans />
 
             <div className="mt-12">
               <h2 className="mb-8 text-center text-2xl font-bold md:text-3xl">Frequently asked questions</h2>
               <div className="mx-auto grid max-w-3xl gap-4">
                 {pricingFaqs.map((item) => (
-                  <Card key={item.q} className="border-border/50 bg-card p-6">
+                  <Card key={item.q} className="min-w-0 border-border/50 bg-card p-6">
                     {item.tag && (
                       <span className="mb-3 inline-flex rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                         {item.tag}
                       </span>
                     )}
-                    <h3 className="mb-2 text-base font-semibold">{item.q}</h3>
-                    <p className="text-sm text-muted-foreground">{item.a}</p>
+                    <h3 className="mb-2 break-words text-base font-semibold">{item.q}</h3>
+                    <p className="break-words text-sm text-muted-foreground">{item.a}</p>
                   </Card>
                 ))}
               </div>
               <div className="mt-6 text-center">
                 <Link href="/faq">
-                  <Button variant="outline" className="bg-transparent">View all FAQ</Button>
+                  <Button variant="outline" className="h-auto min-h-11 whitespace-normal bg-transparent text-center leading-tight">View all FAQ</Button>
                 </Link>
               </div>
             </div>

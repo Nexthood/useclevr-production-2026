@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-09-04
-- **Goal**: Correct Investor Portfolio Balanced Scorecard growth semantics without changing working Investor report, Assistant, classification, or KPI behavior.
-- **Durable change**: Investor Portfolio scorecards treat `growth_rate` as cross-sectional portfolio-company growth evidence, keep `investment_date` out of generic date-axis detection, preserve investment activity timing elsewhere, and avoid historical growth, revenue, burn, runway, or valuation trends unless a compatible reporting or observation period exists.
-- **Verification**: `pnpm test:bbsc`, `pnpm exec tsx scripts/analysis/test-investor-questions.ts`, `pnpm test:investor-portfolio-aggregation`, `pnpm exec tsc --noEmit --pretty false`, `pnpm test:dataset-aware-report-profiles`, `pnpm test:business-semantics`, `pnpm test:question-intent-metric-resolver`, `pnpm test:dataset-ai-assistant`, focused ESLint with ignored script warnings suppressed, and regenerated Investor PDF text inspection pass.
-- **Residual risk**: The workspace does not include a raw `05_investor_portfolio` fixture file, so focused chat validation uses the existing synthetic 45-row Investor fixture with the verified `126,384,909.53` annual revenue total.
+- **Date**: 2026-09-05
+- **Goal**: Remediate dependency audit findings from the UI hardening validation branch without changing the responsive/UI hardening implementation.
+- **Durable change**: Payload packages stay aligned on stable `3.88.0`, available transitive security patches resolve through the Payload family upgrade and pnpm workspace overrides, the CI audit allowlist contains only current unavoidable residual advisory IDs, and the residual-risk register documents Payload and D3 exposure plus review triggers.
+- **Verification**: `pnpm install`, `pnpm audit:allowlist`, `pnpm validate:types`, `pnpm validate`, `pnpm exec tsc --noEmit`, focused Payload/upload/MCP/API tests, pricing validation, focused ESLint, Chromium desktop/mobile UI regression, and `git diff --check` pass; raw `pnpm audit` reports only approved residual advisories.
+- **Residual risk**: Raw `pnpm audit` still reports `payload@3.88.0` because the advisory requires an unpublished stable `3.88.1` package, and `d3-color@2.0.0` remains through a D3 v2 parent chain that does not support `d3-color@3.1.0`.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

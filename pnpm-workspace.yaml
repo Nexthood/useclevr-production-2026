@@ -1,6 +1,12 @@
 packages:
   - .
 
+overrides:
+  dompurify: 3.4.14
+  esbuild: 0.25.12
+  fast-uri: 3.1.6
+  qs: 6.16.0
+
 allowBuilds:
   core-js: true
   esbuild: true
