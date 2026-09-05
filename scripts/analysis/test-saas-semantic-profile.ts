@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import * as fs from "node:fs"
+import * as path from "node:path"
 
+import { parseCSVStreaming } from "../../src/lib/data/csvLoader"
 import { resolveBusinessModel } from "../../src/lib/data/business-model"
 import {
   buildDatasetIntelligenceEngine,
@@ -80,6 +82,44 @@ async function pdfText(reportInput: Awaited<ReturnType<typeof buildDatasetReport
   }
 }
 
+async function parseFixture(filePath: string) {
+  const buffer = fs.readFileSync(filePath)
+  const file = new File([buffer], path.basename(filePath), { type: "text/csv" })
+  return parseCSVStreaming(file, 1000)
+}
+
+function assertPriorityActionsPagination(text: string, label: string, expectedActions: string[]) {
+  const headingMatches = text.match(/\bPRIORITY ACTIONS\b/g) || []
+  assert.equal(headingMatches.length, 1, `${label}: Priority Actions heading must render exactly once`)
+
+  const pages = text.split("\f").map((pageText) => pageText.trim()).filter(Boolean)
+  assert.ok(pages.length >= 10, `${label}: regression PDF must cross enough pages to exercise pagination`)
+  const pageWithHeading = pages.find((pageText) => pageText.includes("PRIORITY ACTIONS")) || ""
+  assert.ok(pageWithHeading, `${label}: Priority Actions heading must be on a PDF page`)
+
+  const expectedSnippets = expectedActions.slice(0, 4).map(actionSnippet).filter(Boolean)
+  assert.ok(expectedSnippets.length > 0, `${label}: expected actions must be available for Priority Actions regression`)
+
+  const normalizedText = normalizePdfText(text)
+  const followingHeading = normalizePdfText(pageWithHeading.slice(pageWithHeading.indexOf("PRIORITY ACTIONS")))
+  assert.ok(
+    expectedSnippets.some((snippet) => followingHeading.includes(snippet)),
+    `${label}: Priority Actions heading must stay with the first action on the same page`,
+  )
+
+  for (const snippet of expectedSnippets) {
+    assert.ok(normalizedText.includes(snippet), `${label}: Priority Actions must include expected action snippet "${snippet}"`)
+  }
+}
+
+function actionSnippet(action: string) {
+  return normalizePdfText(action).split(" ").slice(0, 8).join(" ")
+}
+
+function normalizePdfText(value: string) {
+  return value.replace(/\s+/g, " ").trim()
+}
+
 async function main() {
   const subscriptionRows = [
     { billing_month: "2026-06", customer_id: "cus_1", subscription_id: "sub_1", plan: "Pro", subscription_status: "active", mrr: 100, arr: 1200 },
@@ -156,6 +196,11 @@ async function main() {
   const subscriptionPdf = await pdfText(mrrOnlyReport, "saas_subscription_pdf")
   assert.match(subscriptionPdf, /RECURRING REVENUE & GROWTH/i)
   assert.match(subscriptionPdf, /ARR[\s\S]*\$3\.0K/i)
+
+  const saasFixture = await parseFixture(path.join(process.cwd(), "test-fixtures", "business-models", "03_saas_startup.csv"))
+  const saasFixtureReport = await buildDatasetReportInput(makeDataset("03_saas_startup", saasFixture.previewRows, saasFixture.columns))
+  const saasFixturePdf = await pdfText(saasFixtureReport, "03_saas_startup")
+  assertPriorityActionsPagination(saasFixturePdf, "03_saas_startup", saasFixtureReport.recommendations.map((item) => item.recommendedAction))
 
   const partialPeriodRows = [
     ...Array.from({ length: 10 }, (_, index) => ({ month: "2026-01", revenue: 100 + index, users: 10, plan: "Pro" })),

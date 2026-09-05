@@ -465,6 +465,7 @@ function validateQuestion(question: Question, payload: CompanySetupPayload, requ
 export function BusinessProfileQuestionWizard() {
   const router = useRouter()
   const [payload, setPayload] = useState<CompanySetupPayload>(emptyCompanySetupPayload)
+  const [savedPayload, setSavedPayload] = useState<CompanySetupPayload>(emptyCompanySetupPayload)
   const [isLoading, setIsLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -502,6 +503,9 @@ export function BusinessProfileQuestionWizard() {
   const activeQuestion = visibleQuestions[Math.min(activeIndex, visibleQuestions.length - 1)] || visibleQuestions[0]
   const displayQuestion = useMemo(() => contextualQuestion(activeQuestion, payload), [activeQuestion, payload])
   const progress = Math.round(((Math.min(activeIndex, visibleQuestions.length - 1) + 1) / visibleQuestions.length) * 100)
+  const reviewIndex = Math.max(0, visibleQuestions.findIndex((question) => question.id === "review"))
+  const savedStatus = savedPayload.setupStatus
+  const hasSavedProfile = savedStatus.completed || completed
 
   const update = useCallback(<K extends keyof CompanySetupPayload>(section: K, values: Partial<CompanySetupPayload[K]>) => {
     setPayload((previous) => {
@@ -531,6 +535,7 @@ export function BusinessProfileQuestionWizard() {
         if (data.payload) {
           const normalized = normalizeCompanySetupPayload(data.payload as Partial<CompanySetupPayload>)
           setPayload(normalized)
+          setSavedPayload(normalized)
           setCompleted(normalized.setupStatus.completed)
         }
       } finally {
@@ -546,8 +551,23 @@ export function BusinessProfileQuestionWizard() {
 
   useEffect(() => {
     setValidationMessage(null)
-    if (isOpen && !completed) questionHeadingRef.current?.focus()
-  }, [activeIndex, completed, isOpen])
+    if (isOpen) questionHeadingRef.current?.focus()
+  }, [activeIndex, isOpen])
+
+  function openProfileEditor() {
+    setPayload(savedPayload)
+    setValidationMessage(null)
+    setSaveMessage(null)
+    setActiveIndex(hasSavedProfile ? reviewIndex : 0)
+    setIsOpen(true)
+  }
+
+  function closeProfileEditor() {
+    setPayload(savedPayload)
+    setValidationMessage(null)
+    setSaveMessage(null)
+    setIsOpen(false)
+  }
 
   async function save(nextIndex?: number, markComplete = false, validateCurrent = false) {
     if (validateCurrent) {
@@ -574,8 +594,9 @@ export function BusinessProfileQuestionWizard() {
         ? normalizeCompanySetupPayload(data.payload as Partial<CompanySetupPayload>)
         : normalized
       setPayload(savedPayload)
-      setSaveMessage(markComplete ? "Business Profile completed and ready for future analysis." : "Progress saved.")
-      if (markComplete) setCompleted(savedPayload.setupStatus.completed)
+      setSavedPayload(savedPayload)
+      setSaveMessage(markComplete ? "Business Profile saved for future analysis." : "Progress saved.")
+      setCompleted(savedPayload.setupStatus.completed)
       if (typeof nextIndex === "number") setActiveIndex(Math.max(0, Math.min(nextIndex, visibleQuestions.length - 1)))
       router.refresh()
     } catch {
@@ -866,14 +887,14 @@ export function BusinessProfileQuestionWizard() {
 
   return (
     <div className="space-y-4 text-center">
-      <Button type="button" onClick={() => setIsOpen(true)} size="lg" className="min-w-56">
+      <Button type="button" onClick={openProfileEditor} size="lg" className="min-w-56">
         <Sparkles className="mr-2 h-4 w-4" />
-        Business Profile Setup
+        {hasSavedProfile ? "Edit Business Profile" : "Business Profile Setup"}
       </Button>
 
-      {(completed || status.completed) && <SavedProfileSummary payload={payload} status={status} />}
+      {hasSavedProfile && <SavedProfileSummary payload={savedPayload} status={savedStatus} />}
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={(open) => (open ? openProfileEditor() : closeProfileEditor())}>
         <DialogContent className="max-h-[calc(100vh-2rem)] max-w-md overflow-y-auto p-0">
           <div className="border-b border-border p-5">
             <DialogHeader className="pr-8">
@@ -886,25 +907,11 @@ export function BusinessProfileQuestionWizard() {
           </div>
 
           <div className="space-y-5 p-5">
-            {completed ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center text-emerald-700 shadow-sm transition-all duration-300 dark:text-emerald-300">
-                <CheckCircle2 className="mb-3 h-14 w-14" />
-                <h3 className="text-xl font-semibold">Business Profile completed</h3>
-                <p className="mt-2 text-sm">Future AI analysis will use these confirmed business details to personalize tax, payroll, fixed-cost, margin, cash-flow, and risk commentary.</p>
-                <p className="mt-2 text-xs text-emerald-800/80 dark:text-emerald-200/80">You can edit the profile any time as the business changes.</p>
-                <Button type="button" className="mt-5" onClick={() => setIsOpen(false)}>
-                  View saved profile summary
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <h3 ref={questionHeadingRef} tabIndex={-1} className="text-xl font-semibold text-foreground outline-none">{displayQuestion.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{displayQuestion.helper}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-background p-4 transition-colors duration-200">{renderQuestion()}</div>
-              </>
-            )}
+            <div>
+              <h3 ref={questionHeadingRef} tabIndex={-1} className="text-xl font-semibold text-foreground outline-none">{displayQuestion.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{displayQuestion.helper}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-background p-4 transition-colors duration-200">{renderQuestion()}</div>
             {validationMessage && (
               <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {validationMessage}
@@ -917,26 +924,29 @@ export function BusinessProfileQuestionWizard() {
             )}
           </div>
 
-          {!completed && (
-            <DialogFooter className="gap-3 border-t border-border p-5 sm:justify-between">
+          <DialogFooter className="gap-3 border-t border-border p-5 sm:justify-between">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Button type="button" variant="outline" onClick={() => setActiveIndex(Math.max(activeIndex - 1, 0))} disabled={activeIndex === 0 || isSaving} className="w-full sm:w-auto">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
-                {activeQuestion.optional && activeQuestion.id !== "review" && (
-                  <Button type="button" variant="ghost" onClick={skip} disabled={isSaving}>Skip optional question</Button>
-                )}
-                <Button type="button" variant="outline" onClick={() => save(undefined, false, true)} disabled={isSaving}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Save progress
-                </Button>
-                <Button type="button" onClick={next} disabled={isSaving}>
-                  {activeQuestion.id === "review" ? "Confirm profile" : "Next"}
-                  {activeQuestion.id !== "review" && <ArrowRight className="ml-2 h-4 w-4" />}
-                </Button>
-              </div>
-            </DialogFooter>
-          )}
+              <Button type="button" variant="ghost" onClick={closeProfileEditor} disabled={isSaving} className="w-full sm:w-auto">
+                Cancel
+              </Button>
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+              {activeQuestion.optional && activeQuestion.id !== "review" && (
+                <Button type="button" variant="ghost" onClick={skip} disabled={isSaving}>Skip optional question</Button>
+              )}
+              <Button type="button" variant="outline" onClick={() => save(undefined, false, true)} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                {hasSavedProfile ? "Save changes" : "Save progress"}
+              </Button>
+              <Button type="button" onClick={next} disabled={isSaving}>
+                {activeQuestion.id === "review" ? "Save Changes" : "Next"}
+                {activeQuestion.id !== "review" && <ArrowRight className="ml-2 h-4 w-4" />}
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

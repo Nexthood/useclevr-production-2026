@@ -1252,35 +1252,27 @@ function drawExecutiveResultsSummary(doc: jsPDF, report: Report, financials: Rep
   }
 
   if (summary.highlights.length > 0) {
-    y = drawSectionHeading(doc, "Performance Highlights", y, 16);
-    y = drawSummaryItems(doc, summary.highlights, y, 2, 8, 70) + layout.sectionGap;
+    y = drawSummarySection(doc, "Performance Highlights", summary.highlights, y, 2, 8, 70) + layout.sectionGap;
   }
 
   if (summary.health.length > 0) {
-    y = drawSectionHeading(doc, "Business Health", y, 14);
-    y = drawSummaryItems(doc, summary.health, y, 2, 8, 55) + layout.sectionGap;
+    y = drawSummarySection(doc, "Business Health", summary.health, y, 2, 8, 55) + layout.sectionGap;
   }
 
   if (report.reportProfile?.id === "saas_startup" && summary.actions.length > 0) {
-    y = drawSectionHeading(doc, "Priority Actions", y, 24);
-    y = drawSummaryItems(doc, summary.actions, y, 3, 8) + layout.sectionGap;
+    y = drawSummarySection(doc, "Priority Actions", summary.actions, y, 3, 8) + layout.sectionGap;
   }
 
   if (summary.findings.length > 0) {
-    y = drawSectionHeading(doc, "Top Findings", y, 50);
-    y = drawSummaryItems(doc, summary.findings, y, 3, 8) + layout.sectionGap;
-    if (report.reportProfile?.id === "saas_startup" && summary.actions.length > 0) {
-      y = drawSectionHeading(doc, "Priority Actions", y, 8);
-    }
+    y = drawSummarySection(doc, "Top Findings", summary.findings, y, 3, 8) + layout.sectionGap;
   }
 
   if (report.reportProfile?.id !== "saas_startup" && summary.actions.length > 0) {
-    y = drawSectionHeading(doc, "Priority Actions", y, 24);
-    y = drawSummaryItems(doc, summary.actions, y, 3, 8) + layout.sectionGap;
+    y = drawSummarySection(doc, "Priority Actions", summary.actions, y, 3, 8) + layout.sectionGap;
   }
 
   if (summary.status.length > 0 && y < 250) {
-    y = drawSectionHeading(doc, "Data / Analysis Status", y, 8);
+    y = drawSectionHeading(doc, "Data / Analysis Status", y, summaryItemHeight(doc, summary.status[0], 8));
     drawSummaryItems(doc, summary.status, y, 1, 8);
   }
 }
@@ -1786,6 +1778,24 @@ function drawSummaryMetricGrid(doc: jsPDF, metrics: SummaryMetric[], y: number) 
   return cursorY + totalHeight;
 }
 
+function summaryItemHeight(doc: jsPDF, item: SummaryItem, rowHeight: number, labelWidth = 38) {
+  const lineHeight = 7.5;
+  const labelColumnWidth = labelWidth;
+  const detailWidth = 174 - labelColumnWidth - 8;
+  const labelLines = doc.splitTextToSize(cleanText(item.label), labelColumnWidth - 4);
+  const detailLines = doc.splitTextToSize(cleanText(item.detail), detailWidth);
+  const maxLines = Math.max(labelLines.length, detailLines.length);
+  return Math.max(rowHeight, maxLines * lineHeight + 4);
+}
+
+function drawSummarySection(doc: jsPDF, title: string, items: SummaryItem[], y: number, limit: number, rowHeight: number, labelWidth = 38) {
+  const minimumFollowingHeight = items
+    .slice(0, limit)
+    .reduce((total, item) => total + summaryItemHeight(doc, item, rowHeight, labelWidth), 0) || layout.minimumNarrativeBlock;
+  const sectionY = drawSectionHeading(doc, title, y, minimumFollowingHeight);
+  return drawSummaryItems(doc, items, sectionY, limit, rowHeight, labelWidth);
+}
+
 function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: number, rowHeight: number, labelWidth = 38) {
   const fontSize = 6.8;
   const lineHeight = 7.5;
@@ -1793,10 +1803,7 @@ function drawSummaryItems(doc: jsPDF, items: SummaryItem[], y: number, limit: nu
   const detailWidth = 174 - labelColumnWidth - 8;
 
   const getItemHeight = (item: SummaryItem) => {
-    const labelLines = doc.splitTextToSize(cleanText(item.label), labelColumnWidth - 4);
-    const detailLines = doc.splitTextToSize(cleanText(item.detail), detailWidth);
-    const maxLines = Math.max(labelLines.length, detailLines.length);
-    return maxLines * lineHeight + 4;
+    return summaryItemHeight(doc, item, rowHeight, labelColumnWidth);
   };
 
   const itemsSubset = items.slice(0, limit);

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
+import { combineBusinessSemanticProfiles, type MultiFileSemanticInput } from "@/lib/data/business-semantics"
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import { and, desc, eq } from "drizzle-orm"
 
@@ -65,16 +66,17 @@ const COLUMN_ALIASES = {
 
 export async function loadDashboardDatasetAggregation(
   userId: string | null,
-  options: { datasetId?: string | null } = {},
+  options: { datasetId?: string | null; includeCompatibleDatasets?: boolean } = {},
 ): Promise<NormalizedDashboardData> {
   if (!userId) return emptyDashboardData()
 
+  const loadCompatibleScope = Boolean(options.datasetId && options.includeCompatibleDatasets)
   const rows = await db.query.datasets.findMany({
-    where: options.datasetId
+    where: options.datasetId && !loadCompatibleScope
       ? and(eq(datasets.userId, userId), eq(datasets.id, options.datasetId))
       : eq(datasets.userId, userId),
     orderBy: [desc(datasets.createdAt)],
-    limit: options.datasetId ? 1 : 500,
+    limit: options.datasetId && !loadCompatibleScope ? 1 : 500,
     columns: {
       id: true,
       name: true,
@@ -129,7 +131,9 @@ export async function loadDashboardDatasetAggregation(
     }
   })
 
-  const activeDatasets = normalizedDatasets.filter((dataset) => dataset.status !== "deleted")
+  const activeDatasets = options.datasetId && options.includeCompatibleDatasets
+    ? filterDashboardDatasetsBySemanticCompatibility(normalizedDatasets, options.datasetId)
+    : normalizedDatasets.filter((dataset) => dataset.status !== "deleted")
 
   const allColumns = unique([
     ...activeDatasets.flatMap((dataset) => dataset.columns),
@@ -159,6 +163,27 @@ export async function loadDashboardDatasetAggregation(
   }
 }
 
+export function filterDashboardDatasetsBySemanticCompatibility(
+  datasetList: DashboardAggregatedDataset[],
+  selectedDatasetId: string,
+): DashboardAggregatedDataset[] {
+  const activeDatasets = datasetList.filter((dataset) => dataset.status !== "deleted")
+  const selectedDataset = activeDatasets.find((dataset) => dataset.id === selectedDatasetId)
+  if (!selectedDataset) return []
+
+  const selectedInput = toSemanticInput(selectedDataset)
+  const compatibleDatasets = activeDatasets.filter((dataset) => {
+    if (dataset.id === selectedDataset.id) return true
+    const combined = combineBusinessSemanticProfiles([selectedInput, toSemanticInput(dataset)])
+    return !combined.contradictions.some((issue) => issue.severity === "BLOCKING")
+  })
+
+  return [
+    selectedDataset,
+    ...compatibleDatasets.filter((dataset) => dataset.id !== selectedDataset.id),
+  ]
+}
+
 export function getDashboardDataFingerprint(data: NormalizedDashboardData) {
   return [
     data.datasetCount,
@@ -172,6 +197,18 @@ export function getDashboardDataFingerprint(data: NormalizedDashboardData) {
 
 export function normalizeDashboardColumnName(column: string) {
   return column.toLowerCase().trim().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "")
+}
+
+function toSemanticInput(dataset: DashboardAggregatedDataset): MultiFileSemanticInput {
+  return {
+    datasetId: dataset.id,
+    datasetType: dataset.datasetType,
+    businessModel: dataset.businessModel,
+    fileName: dataset.fileName,
+    datasetName: dataset.name,
+    columns: dataset.columns,
+    rows: dataset.data,
+  }
 }
 
 function detectColumnAliases(columns: string[]): NormalizedDashboardData["detectedColumns"] {

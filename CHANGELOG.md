@@ -30,6 +30,7 @@
 
 ### Fixed
 
+- Fix dashboard dataset switching so the Executive Dashboard and Executive Daily Health use the selected dataset context while compatible files stay grouped.
 - Fix Dataset Library dashboard openings so the clicked dataset stays selected across routing, dashboard metrics, semantic profiles, generated reports, and AI activity.
 - Fix dependency security remediation so CI audit enforcement clears patched transitive findings while tracking only current unavoidable residual advisories.
 - Fix public pricing and shared page chrome so translated price text, mobile navigation, CTA buttons, footer links, and the Usy assistant stay inside phone, tablet, and desktop viewports.

@@ -5177,6 +5177,41 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Dashboard Selected Dataset Health Isolation
+
+1. Interaction title
+Dashboard selected dataset health isolation.
+
+2. What was the user goal
+Apply a P0 quick fix so Open dashboard and dataset switching bind the Executive Dashboard to the clicked dataset ID, keep selected-dataset context after refresh, and keep Executive Daily Health scoped to the selected dataset plus existing semantically compatible files.
+
+3. What changed
+The dashboard page now loads explicit `datasetId` context directly before calculating dashboard metrics. Executive Daily Health now receives the active dataset ID, uses dataset-scoped cache keys, preserves that scope in the full brief page links, and loads only the selected dataset plus files accepted by the existing business-semantic merge compatibility checks. Regression coverage now exercises SaaS, Marketplace, Investor, Marketplace to Investor to Marketplace switching, refresh-equivalent reloads, and compatible SaaS multi-file scope.
+
+4. Problems marked
+blocker: none.
+risk: the current branch is `main`, and pushing it can trigger source-branch production automation.
+improvement: add a browser-level smoke test for Dataset Library Open dashboard navigation when stable seeded dashboard fixtures exist.
+observation: workspace-level Daily Health cache keys must include selected-dataset scope when the source data is selected-dataset scoped.
+
+5. User learning
+Dashboard reports already use selected-dataset semantics; this fix isolates the interactive dashboard and Daily Health context around the active dataset.
+
+6. AI-agent learning
+Selected dashboard state must enter the server data loader before stats, metrics, Daily Health, and cache lookup run.
+
+7. Follow-up tasks
+- Add seeded browser smoke coverage for Dataset Library Open dashboard navigation when stable safe fixtures are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Production Superadmin Verification Flow Alignment
 
 1. Interaction title
