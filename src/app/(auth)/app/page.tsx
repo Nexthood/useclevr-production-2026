@@ -810,13 +810,13 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const selectedDatasetId = parseDatasetId(params.datasetId)
   const session = await auth()
   const userId = session?.user?.id ?? null
-  const [stats, dailyBrief] = await Promise.all([
-    getStats(userId, null),
-    userId && !selectedDatasetId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
-  ])
+  const stats = await getStats(userId, selectedDatasetId)
   const activeDatasetId = selectedDatasetId ?? stats.latestDataset?.id ?? null
   const selected = selectDashboardDataset(stats, activeDatasetId)
   const dashboardStats = selected.stats
+  const dailyBrief = userId && activeDatasetId
+    ? await getOrCreateDailyHealthBrief({ userId, datasetId: activeDatasetId })
+    : null
   const semanticAnalysis = selected.selectedDataset
     ? await buildDashboardSemanticAnalysis(selected.selectedDataset).catch(() => null)
     : null
@@ -1145,6 +1145,7 @@ function ExecutiveDailyHealthSection({
   const priorities = brief?.todaysPriorities.slice(0, 3) ?? []
   const recommendations = brief?.recommendedActions.slice(0, 3) ?? []
   const criticalAlerts = brief?.alerts.filter((alert) => alert.severity === "critical") ?? []
+  const dailyHealthHref = datasetId ? `/app/daily-health?datasetId=${encodeURIComponent(datasetId)}` : "/app/daily-health"
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1167,7 +1168,7 @@ function ExecutiveDailyHealthSection({
             />
           )}
           {hasActiveDatasets ? (
-            <Link href="/app/daily-health" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 dark:text-cyan-100">
+            <Link href={dailyHealthHref} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 dark:text-cyan-100">
               View Full Daily Brief
               <ArrowRight className="h-4 w-4" />
             </Link>

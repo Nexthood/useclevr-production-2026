@@ -3,11 +3,17 @@ import fs from "node:fs"
 
 import Papa from "papaparse"
 
+import {
+  filterDashboardDatasetsBySemanticCompatibility,
+  type DashboardAggregatedDataset,
+} from "../../src/lib/data/dashboard-dataset-aggregation"
 import { buildDashboardSemanticAnalysis } from "../../src/lib/data/dashboard-semantic-profile"
+import type { BusinessModel } from "../../src/lib/data/business-model"
 
 type DashboardDatasetInput = Parameters<typeof buildDashboardSemanticAnalysis>[0]
 
 const marketplaceRows = loadCsvRows("test-fixtures/business-models/04_marketplace_startup.csv")
+const saasRows = loadCsvRows("test-fixtures/business-models/03_saas_startup.csv")
 const investorRows = Array.from({ length: 12 }, (_, index) => ({
   company_id: `PC-${String(index + 1).padStart(3, "0")}`,
   company_name: `Portfolio Company ${index + 1}`,
@@ -60,6 +66,7 @@ async function main() {
   await assertRefreshKeepsDataset(marketplaceDataset)
   await assertDirectUrlKeepsDataset(investorDataset)
   await assertBackThenOpenKeepsDataset(investorDataset, marketplaceDataset)
+  assertDashboardCompatibilityScopeSwitchSequence()
 
   process.stdout.write("Dashboard selected-dataset routing regression passed.\n")
 }
@@ -77,9 +84,44 @@ function assertDashboardPageDoesNotFallbackForExplicitMissingDataset() {
   const source = fs.readFileSync("src/app/(auth)/app/page.tsx", "utf8")
   assert.match(source, /if \(!selectedDataset\) return \{ stats: emptySelectedDatasetStats\(stats\), selectedDataset: null, missing: true \}/, "missing explicit dataset IDs must render unavailable state instead of aggregate/latest dashboard data")
   assert.match(source, /selectedDatasetId \? null : dashboardStats\.latestDataset/, "daily-health report target must not fall back to another dataset for an explicit missing dataset ID")
+  assert.match(source, /getStats\(userId, selectedDatasetId\)/, "dashboard must load an explicit selected dataset directly instead of loading workspace context first")
+  assert.match(source, /getOrCreateDailyHealthBrief\(\{ userId, datasetId: activeDatasetId \}\)/, "daily health must use the active selected dataset scope")
   assert.match(source, /brief=\{dashboardStats\.dashboardData\.activeDatasetCount === 0 \? null : dailyBrief\}/, "daily health uses selected dashboard stats")
   assert.match(source, /<SourceMix dashboardData=\{dashboardStats\.dashboardData\}/, "source mix uses selected dashboard stats")
   assert.match(source, /<ActivityList stats=\{dashboardStats\}/, "AI activity uses selected dashboard stats")
+}
+
+function assertDashboardCompatibilityScopeSwitchSequence() {
+  const saasA = aggregatedDataset({ id: "scope-saas-a", rows: saasRows, businessModel: "saas" })
+  const saasB = aggregatedDataset({ id: "scope-saas-b", rows: saasRows, businessModel: "saas" })
+  const marketplace = aggregatedDataset({ id: "scope-marketplace", rows: marketplaceRows, businessModel: "marketplace" })
+  const investor = aggregatedDataset({ id: "scope-investor", rows: investorRows, businessModel: "investor" })
+  const datasets = [saasA, marketplace, investor, saasB]
+
+  assert.deepEqual(
+    filterDashboardDatasetsBySemanticCompatibility(datasets, saasA.id).map((dataset) => dataset.id),
+    [saasA.id, saasB.id],
+    "SaaS daily health scope must include only the selected SaaS dataset and compatible SaaS datasets",
+  )
+  assert.deepEqual(
+    filterDashboardDatasetsBySemanticCompatibility(datasets, marketplace.id).map((dataset) => dataset.id),
+    [marketplace.id],
+    "Marketplace daily health scope must exclude SaaS and Investor datasets",
+  )
+  assert.deepEqual(
+    filterDashboardDatasetsBySemanticCompatibility(datasets, investor.id).map((dataset) => dataset.id),
+    [investor.id],
+    "Investor daily health scope must exclude SaaS and Marketplace datasets",
+  )
+  assert.deepEqual(
+    [
+      filterDashboardDatasetsBySemanticCompatibility(datasets, marketplace.id)[0]?.businessModel,
+      filterDashboardDatasetsBySemanticCompatibility(datasets, investor.id)[0]?.businessModel,
+      filterDashboardDatasetsBySemanticCompatibility(datasets, marketplace.id)[0]?.businessModel,
+    ],
+    ["marketplace", "investor", "marketplace"],
+    "Marketplace to Investor to Marketplace switching must replace the active daily health scope each time",
+  )
 }
 
 async function assertSwitchSequence(sequence: DashboardDatasetInput[]) {
@@ -149,6 +191,34 @@ function datasetInput(input: {
     data: input.rows,
     datasetType: "standard",
     businessModel: null,
+    analysisStatus: "ready",
+    status: "ready",
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    analysis: { uploadSource: "standard" },
+    aiInsights: null,
+    precomputedMetrics: null,
+    detectedColumns: null,
+  }
+}
+
+function aggregatedDataset(input: {
+  id: string
+  rows: Record<string, unknown>[]
+  businessModel: BusinessModel
+}): DashboardAggregatedDataset {
+  const columns = Object.keys(input.rows[0] ?? {})
+  return {
+    id: input.id,
+    name: `Scoped ${input.businessModel} dataset`,
+    fileName: `${input.id}.csv`,
+    fileSize: 1000,
+    rowCount: input.rows.length,
+    columnCount: columns.length,
+    columns,
+    data: input.rows,
+    datasetType: "standard",
+    businessModel: input.businessModel,
     analysisStatus: "ready",
     status: "ready",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
