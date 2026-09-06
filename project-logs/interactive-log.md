@@ -3639,6 +3639,41 @@ For compact governance KPI cards, use a separate compact rendering branch when o
 9. Minimal destination
 Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## ESLint MJS Project Parsing
+
+1. Interaction title
+ESLint MJS project parsing.
+
+2. What was the user goal
+Resolve only the existing ESLint pre-push blocker that prevents the reviewed ChatGPT MCP/OAuth commit from reaching beta.
+
+3. What changed
+The flat ESLint config now points type-aware parsing at a dedicated ESLint TypeScript project. The lint project extends the app TypeScript config and includes TypeScript, JavaScript, and MJS files, so root repro scripts parse in the normal pre-push lint gate without ignoring files, disabling Husky, weakening rules, or changing ChatGPT MCP/OAuth behavior.
+
+4. Problems marked
+blocker: none after the previously failing ESLint command passes.
+risk: the normal beta push, remote CI, test deployment, production promotion, and production endpoint verification still need to complete before ChatGPT OAuth discovery resumes.
+improvement: keep future lint-only files in the dedicated ESLint project when ESLint uses type-aware parser options.
+observation: `parserOptions.project` requires every linted JavaScript and MJS file to belong to the configured TypeScript project.
+
+5. User learning
+The pre-push lint failure came from TypeScript project membership, not from invalid repro script syntax.
+
+6. AI-agent learning
+Type-aware ESLint config needs an ESLint-specific tsconfig when the lint surface is broader than the app build TypeScript include list.
+
+7. Follow-up tasks
+- Retry the normal beta push and wait for CI and test deployment after the lint config commit passes hooks.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Production Verification Email Delivery
 
 1. Interaction title

@@ -304,3 +304,4 @@
 - changed: secure the ChatGPT MCP integration with OAuth 2.1 authorization, explicit UseClevr consent, PKCE S256, signed scoped access tokens, protected-resource discovery, authorization-server discovery, JWKS, and tenant-isolation regression coverage
 - changed: add a ChatGPT MCP integration that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing upload and Business Intelligence workflow while keeping dataset access owner-scoped
 - fixed: resolve the beta ChatGPT MCP/OAuth compatibility blocker by using the current beta semantic schema service for source-backed MCP analysis diagnostics instead of importing feature-branch-only Business Semantics code
+- fixed: route ESLint type-aware parsing through a dedicated lint TypeScript project that includes root JavaScript and MJS repro scripts without ignoring the files or weakening rules

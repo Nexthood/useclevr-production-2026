@@ -34,7 +34,7 @@ export default [
         ecmaVersion: 2022,
         sourceType: "module",
         ecmaFeatures: { jsx: true },
-        project: `${CWD}/tsconfig.json`,
+        project: `${CWD}/tsconfig.eslint.json`,
         tsconfigRootDir: CWD,
       },
     },
