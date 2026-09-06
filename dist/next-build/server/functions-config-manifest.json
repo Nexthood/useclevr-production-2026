@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "functions": {
+    "/_middleware": {
+      "runtime": "nodejs",
+      "matchers": [
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$",
+          "originalSource": "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+        }
+      ]
+    },
+    "/api/accountancy/upload": {},
+    "/api/admin/replay-event": {},
+    "/api/ai-providers": {},
+    "/api/ai-providers/[id]": {},
+    "/api/ai-providers/[id]/default": {},
+    "/api/ai-providers/[id]/priority": {},
+    "/api/ai-providers/health": {},
+    "/api/ai-providers/mode": {},
+    "/api/ai-providers/routing": {},
+    "/api/ai-providers/test": {},
+    "/api/auth/[...nextauth]": {},
+    "/api/business/setup": {},
+    "/api/chatgpt/mcp": {},
+    "/api/chatgpt/oauth/authorize": {},
+    "/api/chatgpt/oauth/jwks": {},
+    "/api/chatgpt/oauth/token": {},
+    "/api/debug/resend-status": {},
+    "/api/hybrid-ai/chat": {},
+    "/api/hybrid-ai/dataset-chat": {},
+    "/api/integrations/retail": {},
+    "/api/integrations/retail/[connectionId]/disconnect": {},
+    "/api/integrations/retail/[connectionId]/sync": {},
+    "/api/integrations/retail/square/callback": {},
+    "/api/integrations/retail/square/connect": {},
+    "/api/integrations/retail/square/webhooks": {},
+    "/api/mcp": {},
+    "/api/mcp/tokens": {},
+    "/api/mcp/tokens/[id]": {},
+    "/api/prebookkeeping/categorize": {},
+    "/api/prebookkeeping/export": {},
+    "/api/prebookkeeping/review": {},
+    "/api/search": {},
+    "/api/search/suggest": {},
+    "/api/webhooks/square": {},
+    "/api/webhooks/stripe": {}
+  }
+}
