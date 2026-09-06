@@ -6225,3 +6225,17 @@ Domain-specific report models must reach shared scoring utilities before broad a
 9. Minimal destination
 Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## 2026-09-06 - Protect local ChatGPT OAuth private key
+
+1. Goal
+Prevent the local ChatGPT MCP OAuth private key from being accidentally committed.
+
+2. Change
+Added `chatgpt-mcp-oauth-private.pem` to `.gitignore`.
+
+3. Security
+The private key remains local and is not tracked or committed.
+
+4. Verification
+Git no longer reports `chatgpt-mcp-oauth-private.pem` as an untracked file.

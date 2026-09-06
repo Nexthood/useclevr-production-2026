@@ -320,3 +320,4 @@
 - Show plan price and a secure checkout button in the Upgrade to Pro modal, then start Stripe Checkout directly with a visible error if payment setup fails.
 - Center billing review panel to prevent sidebar squeezing on Account/Settings page
 - Fix Retail Inventory Analyst build by using a browser-safe CSV parser in the client component
+- changed: ignore the local ChatGPT MCP OAuth private key so it cannot be accidentally committed to the repository

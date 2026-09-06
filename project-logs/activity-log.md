@@ -322,3 +322,4 @@
 - fixed: enforce Investor Portfolio semantic time axes so `annual_revenue` answers as combined portfolio-company annual revenue, `investment_date` stays an investment activity axis, revenue trends reject incompatible time evidence, and Investor suggestions exclude order/AOV prompts without source order semantics
 - fixed: complete Investor Portfolio end-to-end semantics so strong portfolio schemas override stale SaaS metadata, reports and dashboards stay Investor-scoped, and deterministic Assistant answers cover annual revenue, valuation, growth, investment activity, burn, and runway without incompatible trend axes
 - fixed: score Investor Portfolio Balanced Scorecard growth from source growth-rate distribution and portfolio diversification while keeping `investment_date` out of historical growth, revenue, burn, runway, and valuation trends
+- changed: exclude the local ChatGPT MCP OAuth private key from Git tracking
