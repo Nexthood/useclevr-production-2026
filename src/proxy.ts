@@ -14,6 +14,10 @@ const apiPrefix = "/api"
 const publicApiPrefixes = ["/api/auth"]
 const publicApiPaths = [
   "/api/health",
+  "/api/chatgpt/mcp",
+  "/api/chatgpt/oauth/authorize",
+  "/api/chatgpt/oauth/jwks",
+  "/api/chatgpt/oauth/token",
   "/api/debug/resend-status",
   "/api/mcp",
   "/api/payload/mcp",
@@ -61,7 +65,17 @@ export default function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
   const cspHeader = buildContentSecurityPolicy({ nonce, pathname })
 
-  if (isMcpSubdomain && pathname !== "/api/mcp" && pathname !== "/api/payload/mcp") {
+  if (
+    isMcpSubdomain &&
+    pathname !== "/api/mcp" &&
+    pathname !== "/api/payload/mcp" &&
+    pathname !== "/api/chatgpt/mcp" &&
+    pathname !== "/api/chatgpt/oauth/authorize" &&
+    pathname !== "/api/chatgpt/oauth/jwks" &&
+    pathname !== "/api/chatgpt/oauth/token" &&
+    pathname !== "/.well-known/oauth-authorization-server" &&
+    pathname !== "/.well-known/oauth-protected-resource"
+  ) {
     const response = new NextResponse("Not Found", { status: 404 })
     applyRuntimeSecurityHeaders(response.headers, {
       csp: cspHeader,

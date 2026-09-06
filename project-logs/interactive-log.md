@@ -5495,3 +5495,145 @@ SaaS alias matching must use normalized full-column semantics; generic row count
 
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT Apps SDK MCP Integration MVP
+
+1. Interaction title
+ChatGPT Apps SDK MCP integration MVP.
+
+1. What was the user goal
+Expose UseClevr to ChatGPT through the current MCP/App architecture without rebuilding analytics, replacing Gemini, duplicating business logic, changing billing, or affecting existing dashboards.
+
+1. What changed
+The app now has a ChatGPT-facing streamable HTTP MCP JSON-RPC endpoint with initialize, tool discovery, and tool invocation handling. The endpoint exposes owned-dataset listing, authorized dataset analysis, and CSV/Excel upload through the existing UseClevr upload and Business Intelligence workflow. Bearer-token and session auth resolve to a concrete UseClevr user, dataset access stays owner-scoped, upload uses the canonical upload action with explicit server auth context, and strict dataset computations can read row-table backed datasets. The proxy allows only the new MCP and protected-resource metadata paths on MCP subdomains. The smoke test verifies proxy exposure, protected-resource metadata, unauthenticated rejection, and unauthorized request handling.
+
+1. Problems marked
+blocker: OpenAI public submission still requires a production OAuth 2.1 authorization server and consent flow for per-user ChatGPT distribution.
+risk: the local database audit table is behind the TypeScript schema for optional audit columns, so ChatGPT MCP audit logging stays best-effort and quiet for that migration gap.
+improvement: add live credentialed MCP end-to-end tests after a per-user ChatGPT OAuth/token flow exists.
+observation: the existing upload action is the right single source of truth for CSV/Excel parsing, credit handling, storage, and Business Intelligence generation.
+
+1. User learning
+UseClevr can expose ChatGPT capabilities safely by wrapping owned datasets and existing analysis outputs instead of creating a parallel analytics engine.
+
+1. AI-agent learning
+ChatGPT MCP integration code should keep tool outputs structured and compact, avoid raw file or row logging, and use explicit user context when a non-browser MCP call invokes server actions.
+
+1. Follow-up tasks
+- Configure a production OAuth 2.1 authorization server and ChatGPT consent flow before public OpenAI submission.
+- Add credentialed MCP integration coverage for authorized list, upload, analyze, invalid input, and cross-tenant rejection after OAuth tokens exist.
+
+1. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+1. Minimal destination
+Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT MCP Beta Semantic Compatibility
+
+1. Interaction title
+ChatGPT MCP beta semantic compatibility.
+
+2. What was the user goal
+Fix only the beta compatibility blocker that stopped the reviewed ChatGPT MCP/OAuth commit during the normal pre-push gate.
+
+3. What changed
+The feature branch contains `business-semantics.ts`, but beta does not. The ChatGPT MCP analysis service now uses beta's existing semantic schema service to generate source-backed semantic diagnostics for MCP responses. This keeps OAuth, MCP auth, upload, dataset ownership, and Business Intelligence behavior unchanged while removing the feature-branch-only import.
+
+4. Problems marked
+blocker: none in the beta compatibility fix after focused TypeScript and MCP verification.
+risk: live endpoint verification still depends on the normal beta push, CI, test deploy, main merge, and production deploy completing.
+improvement: align the ChatGPT MCP semantic response with the newer Business Semantics layer when that layer reaches beta through its own reviewed workflow.
+observation: cherry-picking feature-branch work onto beta must avoid importing branch-only semantic modules unless the complete dependency chain is intentionally deployed.
+
+5. User learning
+The current beta branch already has a source-backed semantic schema service that can support ChatGPT MCP diagnostics without backporting the newer Business Semantics engine.
+
+6. AI-agent learning
+Compatibility fixes for deployment branches should reuse existing branch-local services before bringing a larger feature-branch dependency chain into the release.
+
+7. Follow-up tasks
+- Resume the normal beta push and deployment workflow after the compatibility fix passes required checks.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT MCP OAuth 2.1 Authentication
+
+1. Interaction title
+ChatGPT MCP OAuth 2.1 authentication.
+
+2. What was the user goal
+Make the existing ChatGPT MCP endpoint production-ready for OpenAI Apps SDK/MCP OAuth account linking without redesigning tools, analytics, Gemini, billing, dashboards, uploads, or web authentication.
+
+3. What changed
+The app now publishes protected-resource metadata, OAuth authorization-server metadata, and a JWKS endpoint. The ChatGPT OAuth flow validates ChatGPT client and redirect values, requires PKCE S256, redirects unauthenticated users through existing UseClevr login, displays explicit scoped consent, stores one-time authorization codes in the existing database, exchanges valid codes for short-lived RS256 access tokens, and verifies bearer tokens against issuer, audience, resource, expiry, signature, and scopes before `/api/chatgpt/mcp` runs tools. The proxy allows only the required MCP and OAuth paths on MCP subdomains, and the focused MCP test covers valid auth, missing auth, malformed or expired auth, wrong resource, insufficient scope, PKCE validation, cross-tenant rejection, and existing auth route behavior.
+
+4. Problems marked
+blocker: live ChatGPT testing needs a real ChatGPT app/client registration plus production OAuth key and URL environment values.
+risk: production databases must apply the new OAuth-code table migration before the first authorization-code exchange.
+improvement: add browser-level consent-flow automation after the ChatGPT app registration exists.
+observation: the existing owner-scoped dataset query remains the authorization boundary for ChatGPT analysis tools.
+
+5. User learning
+ChatGPT account linking can reuse the existing UseClevr user session and dataset ownership model while giving ChatGPT only scoped, short-lived MCP access.
+
+6. AI-agent learning
+ChatGPT OAuth code should keep client validation, consent, auth-code persistence, JWT signing, JWKS publishing, and resource-server verification isolated from business analytics and upload logic.
+
+7. Follow-up tasks
+- Register the live ChatGPT app/client and set the production OAuth environment values before OpenAI submission.
+- Run browser-level consent and live ChatGPT MCP tool invocation after ChatGPT registration is available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT MCP Authentication Challenge Metadata
+
+1. Interaction title
+ChatGPT MCP authentication challenge metadata.
+
+2. What was the user goal
+Fix the remaining OpenAI MCP authentication-challenge compatibility issue by adding `_meta["mcp/www_authenticate"]` to relevant ChatGPT MCP authentication responses without changing tools, analytics, Gemini, billing, uploads, dashboards, or deployment state.
+
+3. What changed
+The MCP endpoint now builds one OAuth challenge value that includes protected-resource metadata, requested scope, OAuth error, and error description. Unauthenticated and invalid-token HTTP 401 responses include the same value in the `WWW-Authenticate` header and `_meta["mcp/www_authenticate"]`. Scope-related tool authorization failures return a JSON-RPC error result with `_meta["mcp/www_authenticate"]` and the matching HTTP header. Focused tests assert missing-token, malformed-token, insufficient-scope, header, metadata, and valid authenticated request behavior.
+
+4. Problems marked
+blocker: none in code for the authentication-challenge issue.
+risk: live ChatGPT testing still depends on deploying the pending MCP/OAuth changes and setting production registration/environment values.
+improvement: add live ChatGPT Developer Mode account-linking coverage after deployment.
+observation: cross-tenant authorization failures stay ordinary forbidden errors and do not prompt OAuth re-linking.
+
+5. User learning
+ChatGPT requires both HTTP OAuth discovery signals and MCP-level challenge metadata before it reliably opens the account-linking UI.
+
+6. AI-agent learning
+Use one shared challenge builder so the HTTP header and MCP `_meta` value remain byte-for-byte aligned across auth failures.
+
+7. Follow-up tasks
+- Run a live ChatGPT Developer Mode account-linking test after deployment and environment configuration.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

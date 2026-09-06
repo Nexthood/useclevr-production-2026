@@ -1554,6 +1554,29 @@ export const mcpTokens = pgTable(
   }),
 );
 
+export const chatGptMcpOAuthCodes = pgTable(
+  "ChatGptMcpOAuthCode",
+  {
+    id: text("id").primaryKey(),
+    codeHash: varchar("codeHash", { length: 255 }).notNull(),
+    userId: text("userId").notNull(),
+    clientId: text("clientId").notNull(),
+    redirectUri: text("redirectUri").notNull(),
+    resource: text("resource").notNull(),
+    scopes: text("scopes").array().notNull().$type<McpTokenScope[]>(),
+    codeChallenge: text("codeChallenge").notNull(),
+    codeChallengeMethod: varchar("codeChallengeMethod", { length: 20 }).notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    usedAt: timestamp("usedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    codeHashIdx: uniqueIndex("ChatGptMcpOAuthCode_codeHash_key").on(table.codeHash),
+    userIdIdx: index("ChatGptMcpOAuthCode_userId_idx").on(table.userId),
+    expiresAtIdx: index("ChatGptMcpOAuthCode_expiresAt_idx").on(table.expiresAt),
+  }),
+);
+
 export const mcpAuditActions = [
   "invoke_tool",
   "list_tools",

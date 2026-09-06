@@ -2,6 +2,8 @@
 
 ### Added
 
+- Add OAuth 2.1 account linking for ChatGPT connections so users grant scoped UseClevr dataset access before ChatGPT can call their datasets.
+- Add a ChatGPT connection that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing business intelligence workflow.
 - Add schema-flexible SaaS analysis so subscription snapshots, transactional SaaS data, customer cohorts, SaaS financials, and hybrid startup datasets receive relevant metrics and report sections from detected fields.
 - Add Marketplace startup profile end-to-end with GMV, platform revenue, take rate, seller payout, refunds, buyer/seller intelligence, category and geography performance, balanced scorecard, PDF sections, dashboard command center metrics, and dataset-aware report profile routing.
 - Add dataset-aware executive report profiles so standard generated reports select retail, e-commerce, SaaS, marketplace, investor, consulting, services, generic, profitability, or ledger framing and retail reports prioritize sales, margin, inventory, product, category, supplier, and reorder actions.
@@ -30,6 +32,8 @@
 ### Fixed
 
 - Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes without a blocking Resend domain pre-check or message-id requirement.
+- Fix ChatGPT account-linking deployment compatibility so OAuth discovery can publish through the normal release workflow while dataset analysis stays source-backed.
+- Fix ChatGPT account linking prompts so authentication and scope failures return the MCP challenge metadata ChatGPT requires to start OAuth.
 - Fix production superadmin verification so the official admin account follows the same password-verified 6-digit email flow as the working test app and logs safe delivery diagnostics for real login and resend requests.
 - Fix verification email delivery handling so production never treats console delivery or ambiguous Resend responses as a sent login code.
 - Fix production superadmin sign-in so the official built-in admin account can authenticate on the app domain while redirects stay on the active configured host.
