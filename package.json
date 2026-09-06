@@ -80,6 +80,7 @@
     "test:segment-decline-presentation": "node -r tsx/esm scripts/analysis/test-segment-decline-presentation.ts",
     "test:analytical-intents": "node -r tsx/esm scripts/analysis/test-analytical-intents.ts",
     "test:dataset-ai-assistant": "node -r tsx/esm scripts/analysis/test-dataset-ai-assistant.ts",
+    "test:chatgpt-mcp": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/analysis/test-chatgpt-mcp-integration.ts",
     "test:ai-transparency": "node -r tsx/esm scripts/legal/test-ai-transparency-disclosures.ts",
     "test:business-profile-ssot": "node -r tsx/esm scripts/business/test-business-profile-ssot.ts",
     "test:business-profile-context": "node -r tsx/esm scripts/business/test-accountancy-business-profile-source.ts",

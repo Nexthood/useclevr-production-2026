@@ -1,6 +1,6 @@
 import type { DatasetRecord } from '@/lib/data/csv-analyzer';
 import { db } from '@/lib/db';
-import { datasets } from '@/lib/db/schema';
+import { datasetRows, datasets } from '@/lib/db/schema';
 import { debugLog, debugError } from '@/lib/utils/debug';
 import {
   aggregateData,
@@ -30,8 +30,17 @@ export async function executeStrictSQL(datasetId: string, question: string, user
     return { success: false, error: 'Dataset not found' };
   }
 
-  const data = (dataset.data as Record<string, any>[]) || [];
+  let data = (dataset.data as Record<string, any>[]) || [];
   const columns = (dataset.columns as string[]) || [];
+
+  if (data.length === 0) {
+    const rows = await db!.query.datasetRows.findMany({
+      where: eq(datasetRows.datasetId, datasetId),
+      columns: { data: true },
+      orderBy: (rows, { asc }) => [asc(rows.rowIndex)],
+    });
+    data = rows.map((row) => row.data as Record<string, any>);
+  }
 
   if (data.length === 0) {
     return { success: false, error: 'Dataset has no data' };

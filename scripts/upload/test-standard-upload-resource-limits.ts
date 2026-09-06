@@ -163,6 +163,8 @@ async function main() {
   const simpleRoute = readProjectFile("src/app/api/upload/simple/route.ts")
   assert.ok(simpleRoute.includes("await assertStandardUploadFile(uploadFile)"), "standard simple route validates file before parsing")
   assert.ok(simpleRoute.includes("payload.status"), "standard simple route preserves upload validation status")
+  assert.ok(simpleRoute.includes("isSaasMrrMovementUpload(businessModel, parsed.columns)"), "simple upload detects SaaS MRR movement datasets before row persistence")
+  assert.ok(simpleRoute.includes("storeFullRowsForSaasMrrMovement ? parsed.previewRows.length : SIMPLE_ROW_INSERT_LIMIT"), "simple upload stores full rows only for SaaS MRR movement datasets")
 
   const uploadRoute = readProjectFile("src/app/api/upload/route.ts")
   assert.ok(uploadRoute.includes("UPLOAD_FILE_TOO_LARGE"), "canonical upload API maps file-size failures")

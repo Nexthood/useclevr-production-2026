@@ -2,6 +2,8 @@
 
 ### Added
 
+- Add OAuth 2.1 account linking for ChatGPT connections so users grant scoped UseClevr dataset access before ChatGPT can call their datasets.
+- Add a ChatGPT connection that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing business intelligence workflow.
 - Add an authoritative business semantics layer so dashboards, AI answers, and generated reports use evidence-backed metric permissions, ambiguity warnings, source lineage, and domain isolation before presenting business KPIs.
 - Add schema-flexible SaaS analysis so subscription snapshots, transactional SaaS data, customer cohorts, SaaS financials, and hybrid startup datasets receive relevant metrics and report sections from detected fields.
 - Add Marketplace startup profile end-to-end with GMV, platform revenue, take rate, seller payout, refunds, buyer/seller intelligence, category and geography performance, balanced scorecard, PDF sections, dashboard command center metrics, and dataset-aware report profile routing.
@@ -30,6 +32,9 @@
 
 ### Fixed
 
+- Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes without a blocking Resend domain pre-check or message-id requirement.
+- Fix ChatGPT account-linking deployment compatibility so OAuth discovery can publish through the normal release workflow while dataset analysis stays source-backed.
+- Fix ChatGPT account linking prompts so authentication and scope failures return the MCP challenge metadata ChatGPT requires to start OAuth.
 - Fix Dataset Library dashboard openings so the clicked dataset stays selected across routing, dashboard metrics, semantic profiles, generated reports, and AI activity.
 - Fix dependency security remediation so CI audit enforcement clears patched transitive findings while tracking only current unavoidable residual advisories.
 - Fix public pricing and shared page chrome so translated price text, mobile navigation, CTA buttons, footer links, and the Usy assistant stay inside phone, tablet, and desktop viewports.
@@ -110,6 +115,8 @@
 
 ### Dev
 
+- Patch dependency audit validation so beta source checks use a fixed URI parser without allowing unapproved high-severity findings.
+- Add a dedicated ESLint TypeScript project for JavaScript and MJS scripts so the pre-push lint gate parses root repro scripts without weakening lint rules.
 - Document Payload 3.85.1 residual security risk with approved advisory allowlist so CI tracks the exact blocked undici and image-size transitive HIGH findings without suppressing new vulnerabilities.
 - Pin CI workflow actions to immutable upstream commits and run the existing moderate-threshold dependency audit in source validation.
 - Centralize Free plan price labels through the shared billing formatter so pricing validation blocks hardcoded euro amounts in UI files.
@@ -313,3 +320,4 @@
 - Show plan price and a secure checkout button in the Upgrade to Pro modal, then start Stripe Checkout directly with a visible error if payment setup fails.
 - Center billing review panel to prevent sidebar squeezing on Account/Settings page
 - Fix Retail Inventory Analyst build by using a browser-safe CSV parser in the client component
+- changed: ignore the local ChatGPT MCP OAuth private key so it cannot be accidentally committed to the repository

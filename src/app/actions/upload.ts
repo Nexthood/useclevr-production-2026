@@ -74,6 +74,14 @@ type UploadCSVResult = {
   demoCreditsRemaining?: number;
 };
 
+type UploadAuthContext = {
+  user: {
+    id: string;
+    email?: string | null;
+    role?: string | null;
+  };
+};
+
 const UPLOAD_STAGES = {
   AUTH_CHECKED: "auth_checked",
   FORMDATA_VALIDATED: "formdata_validated",
@@ -157,7 +165,10 @@ async function cleanupCreatedUploadDataset(db: NonNullable<ReturnType<typeof get
 /**
  * Upload CSV file and store in database
  */
-export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
+export async function uploadCSV(
+  formData: FormData,
+  authContext?: UploadAuthContext,
+): Promise<UploadCSVResult> {
   try {
     const fail = (
       step: string,
@@ -181,7 +192,7 @@ export async function uploadCSV(formData: FormData): Promise<UploadCSVResult> {
     // Check authentication
     let session;
     try {
-      session = await auth();
+      session = authContext ?? await auth();
     } catch (authError) {
       return fail(
         UPLOAD_STAGES.AUTH_CHECKED,

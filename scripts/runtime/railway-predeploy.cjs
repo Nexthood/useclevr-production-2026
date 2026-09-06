@@ -311,6 +311,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0025_billing_settings.sql"),
   readMigrationStatement("src/lib/db/migrations/0026_ai_cost_log_schema.sql"),
   readMigrationStatement("src/lib/db/migrations/0027_credit_ledger_current_columns.sql"),
+  readMigrationStatement("src/lib/db/migrations/0028_chatgpt_mcp_oauth_codes.sql"),
 ];
 
 const constraints = [

@@ -56,3 +56,6 @@ Thumbs.db
 
 # Railway local project link
 .railway/
+
+# Local ChatGPT OAuth private key
+chatgpt-mcp-oauth-private.pem
