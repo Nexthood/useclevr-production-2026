@@ -57,6 +57,13 @@ moving work between states.
 
 ## Label: ai
 
+- T-1047. Selected-dataset Marketplace questions use Marketplace deterministic routing before generic analytical dispatch for GMV totals, GMV trends, buyer GMV rankings, and seller or merchant GMV rankings. (labels: ai, api, data, metrics, testing; commit: worktree)
+- T-1046. Marketplace selected-dataset metric answers label GMV-backed totals, trends, buyer rankings, seller rankings, and missing inventory evidence with Marketplace wording and null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)
+- T-1045. Marketplace Assistant GMV, buyer, seller, period, and missing-inventory answers use marketplace terminology and source-backed null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)
+- T-1044. SaaS Assistant churn indicators drive active-customer, churn-signal, Churned MRR, and net movement answers with current-state and zero-vs-missing semantics. (labels: ai, data, metrics, testing; commit: worktree)
+- T-1043. SaaS Assistant specific-intent questions execute deterministic calculations before generic semantic capability explanations. (labels: ai, data, metrics, testing; commit: worktree)
+- T-1042. SaaS MRR movement AI Assistant suggestions route through semantic capabilities and deterministic answer execution before appearing in the selected-dataset sidebar. (labels: ai, data, ui, testing; commit: worktree)
+- T-1041. Dataset AI Human Control edit opens a multiline response editor modal and saves edits only after explicit confirmation. (labels: ai, ui, accessibility, testing; commit: worktree)
 - T-1000. Add session-based Ghost Mode for AI requests so UseClevr skips normal conversation history and content-level AI traces while preserving billing, security, operational metadata, provider routing, Local AI behavior, dataset storage, and dataset isolation. (labels: ai, security, ui, testing; commit: worktree)
 - T-992. Strengthen dataset-aware AI analysis with marketplace semantic roles, deterministic dashboard KPIs, governance source disclosure, and Business plan intelligence value copy. (labels: ai, data, dashboard, billing, testing; commit: worktree)
 - T-981. Stabilize AI Governance server rendering on fresh installations by applying all AI provider, audit, interaction-trace, and override table dependencies before the page reads governance data. (labels: ai, deployment, stability, testing; commit: worktree)
@@ -126,6 +133,7 @@ moving work between states.
 
 ## Label: ui
 
+- T-1048. Public pages, public pricing, shared navigation, CTA buttons, footer links, and the Usy assistant stay inside phone, tablet, laptop, and desktop viewports while price labels remain tied to shared billing data. (labels: ui, billing, accessibility, testing; commit: worktree)
 - T-1029. The What You're Missing five-step flow keeps every uppercase heading inside its own card across desktop, tablet, and mobile widths without clipping the Understanding label. (labels: ui, accessibility, testing; commit: 5ba59dfd)
 - T-940. Show geographic dataset analysis through a professional dark BI world map with real location detection, restrained nodes, flow lines, metric cards, hover tooltips, and a clean no-geography empty state. (labels: ui, data, dashboard; commit: worktree)
 - T-938. Show a compact animated multilingual badge in the Usy header with cycling supported languages and a tooltip explaining same-language replies. (labels: ui, ai, accessibility; commit: worktree)
@@ -189,6 +197,7 @@ moving work between states.
 
 ## Label: business
 
+- T-1039. Implement the authoritative business semantics layer that classifies datasets, maps supported concepts, blocks unsupported KPIs, records lineage, and protects dashboard, AI, and report outputs from unsupported business claims. (labels: business, data, metrics, ai, reporting; commit: worktree)
 - T-987. Route Accountancy, Business, Tax, Compliance, and Reporting Business Profile context through one current-tenant loader, and show profile load failures separately from missing field values. (labels: business, reporting, caching; commit: worktree)
 - T-968. Load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database. (labels: business, auth, api, testing; commit: worktree)
 - T-967. Log Accountancy Business Profile load diagnostics with authenticated request status, organization lookup result, response shape, query stage, and stack traces for deployed backend failures. (labels: business, logging, testing; commit: worktree)
@@ -199,6 +208,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-1050. Dashboard Dataset Library openings preserve the clicked dataset ID through navigation, selected dashboard statistics, semantic analysis, reports, and AI activity without falling back to another dataset. (labels: dashboard, data, testing; commit: worktree)
 - T-1004. Executive Daily Health mounts Generate Report on the default dashboard by using the latest reportable dashboard dataset when no dataset is explicitly selected. (labels: dashboard, reports, ui, testing; commit: worktree)
 - T-1002. Executive Daily Health shows the existing Generate Report action beside View Full Daily Brief and scopes report generation to the active dashboard dataset. (labels: dashboard, reports, ui, testing; commit: worktree)
 - T-942. Render Executive Dashboard tab content in-place without route navigation, page reloads, anchor scrolling, or automatic viewport jumps. (labels: dashboard, ui, stability; commit: worktree)
@@ -504,6 +514,7 @@ moving work between states.
 
 ## Label: security
 
+- T-1049. Dependency security remediation keeps CI audit enforcement active while patched transitive packages resolve to available safe versions and temporary residual entries document only advisories without compatible stable fixes. (labels: security, ci-build, testing; commit: worktree)
 - T-1028. Next.js uses the patched 16.2 release that removes confirmed framework advisories while app routing, proxy security headers, authentication, uploads, reports, billing checkout, and the production-disabled Public AI route keep their existing behavior. (labels: security, deployment, testing; commit: f67ce2f3)
 - T-1024. Chat, analysis, SQL, and email-verification diagnostics log safe metadata instead of complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets. (labels: security, ai, auth, testing; commit: 60aaeb7d)
 - T-602. Restrict local AI install and agent runtime install routes to development mode or explicit super-admin operations on shared deployments. (labels: security, local-ai, auth, api; commit: worktree)
@@ -605,6 +616,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1040. Dataset AI retail and inventory suggested questions return deterministic answers or missing-evidence responses without provider routing. (labels: ai, data, testing; commit: worktree)
 - T-890. Add a Bring Your Own AI provider connector with encrypted OpenAI-compatible provider storage, connection testing, Account settings controls, and analysis fallback routing. (labels: ai, ui, security, api; commit: worktree)
 - T-723. Enhance local AI and mock AI documentation with router priority, mock guard logic, endpoint coverage, and local bridge details. (labels: ai, docs; commit: worktree)
 - T-724. Extend sales planning with stage gate reviews, product focus quality criteria, sales tolerances, and lessons integration. (labels: sales, docs; commit: worktree)

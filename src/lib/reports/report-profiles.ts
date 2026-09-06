@@ -77,7 +77,7 @@ const profiles: Record<ReportProfileId, ReportProfile> = {
   investor_portfolio: {
     id: "investor_portfolio",
     title: "Investor Portfolio Report",
-    primaryMetrics: ["Portfolio Companies", "Invested Capital", "Estimated Stake Value", "MOIC", "Entry vs Latest Valuation", "Revenue Growth"],
+    primaryMetrics: ["Portfolio Companies", "Invested Capital", "Portfolio Company Annual Revenue", "Aggregate Company Valuations", "Average Ownership", "Growth"],
     secondaryMetrics: ["Burn Rate", "Runway", "Stage Exposure", "Sector Exposure", "Country Exposure", "Watchlist"],
     sections: [
       { id: "investor-summary", title: "Investor Portfolio Summary" },

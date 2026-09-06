@@ -300,14 +300,14 @@ addMessage("assistant",
     <>
       {/* Floating Chat Button with Pulse Animation */}
       <div 
-        className="fixed bottom-7 right-7 z-50"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] right-3 z-50 sm:bottom-7 sm:right-7"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Idle Prompt Badge */}
         {!isOpen && isIdle && (
-          <div className="absolute -top-10 right-0 bg-background border border-border/50 rounded-full px-3 py-1 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-            <p className="text-xs text-muted-foreground whitespace-nowrap">
+          <div className="absolute -top-10 right-0 hidden max-w-[calc(100vw-2rem)] rounded-full border border-border/50 bg-background px-3 py-1 shadow-sm animate-in fade-in slide-in-from-bottom-2 sm:block">
+            <p className="whitespace-nowrap text-xs text-muted-foreground">
               {CLEVR_CONFIG.idlePrompts[idlePromptIndex]}
             </p>
           </div>
@@ -327,7 +327,7 @@ addMessage("assistant",
               }
             }
           }}
-          className={`relative h-14 w-14 rounded-full bg-primary shadow-lg transition-all duration-300 flex items-center justify-center group ${getAnimationClass()}`}
+          className={`group relative flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg transition-all duration-300 sm:h-14 sm:w-14 ${getAnimationClass()}`}
           aria-label={isOpen ? "Close chat" : "Open chat"}
         >
           {/* Outer Glow Effect */}
@@ -349,7 +349,7 @@ addMessage("assistant",
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-20 right-20 w-80 sm:w-96 bg-background rounded-2xl shadow-2xl border border-border/50 z-50 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200">
+        <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)] top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-50 flex max-h-[calc(100dvh-5.5rem)] flex-col overflow-hidden rounded-2xl border border-border/50 bg-background shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-200 sm:inset-x-auto sm:bottom-20 sm:right-20 sm:top-auto sm:h-auto sm:max-h-[calc(100dvh-7rem)] sm:w-96">
           {/* Header */}
           <div className="bg-primary p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -362,14 +362,14 @@ addMessage("assistant",
           </div>
 
           {/* Messages */}
-          <div className="h-80 overflow-y-auto p-4 space-y-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:h-80">
             {isFirstInteraction ? (
               <div className="space-y-4">
                 <div className="flex gap-3">
                   <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                  <div className="bg-muted rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
+                  <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-muted p-3">
                     <p className="text-sm">{CLEVR_CONFIG.greeting[greetingIndex]}</p>
                   </div>
                 </div>
@@ -377,12 +377,12 @@ addMessage("assistant",
                 {/* Quick Actions */}
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground font-medium ml-11">Quick actions</p>
-                  <div className="grid grid-cols-2 gap-2 ml-11">
+                  <div className="ml-11 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                     {CLEVR_CONFIG.quickActions.map((action) => (
                       <button
                         key={action.id}
                         onClick={getQuickActionHandler(action.id)}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left text-sm"
+                        className="flex min-w-0 items-center gap-2 rounded-lg bg-muted/50 p-2 text-left text-sm transition-colors hover:bg-muted"
                       >
                         <action.icon className="h-4 w-4 text-primary flex-shrink-0" />
                         <span className="truncate">{action.label}</span>
@@ -404,7 +404,7 @@ addMessage("assistant",
                       </div>
                     )}
                     
-                    <div className={`max-w-[80%] ${message.role === "user" ? "order-first" : ""}`}>
+                    <div className={`max-w-[86%] min-w-0 ${message.role === "user" ? "order-first" : ""}`}>
                       <div
                         className={`rounded-2xl p-3 text-sm ${
                           message.role === "user"
@@ -412,7 +412,7 @@ addMessage("assistant",
                             : "bg-muted rounded-tl-sm"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <p className="whitespace-pre-wrap break-words">{message.content}</p>
                       </div>
 
                       {/* Suggested Actions */}

@@ -1,3 +1,378 @@
+## Dashboard Selected Dataset Routing
+
+1. Interaction title
+Bind dashboard openings to the selected Dataset Library row.
+
+2. What was the user goal
+Fix the P0 dataset-selection bug so clicking Open dashboard for Marketplace or Investor keeps the entire dashboard, semantic profile, KPI generation, reports, and AI dataset context bound to the clicked dataset ID without falling back to another dataset.
+
+3. What changed
+The authenticated dashboard alias preserves all incoming search parameters when redirecting into the main app dashboard, so `datasetId` survives `/app/dashboard` navigation. The app dashboard uses selected-dataset-scoped statistics for Daily Health, source mix, upload history metadata, AI activity, and missing explicit dataset states. Explicit missing dataset IDs now produce an unavailable selected-dataset state instead of reusing workspace aggregate or latest-dataset data. The regression test uses two neutral standard datasets with Marketplace and Investor schemas, selects them repeatedly in both orders, and verifies dataset ID plus semantic identity never leaks across selections, refresh-equivalent loads, direct URL loads, or back/open-equivalent navigation.
+
+4. Problems marked
+blocker: none.
+risk: this regression exercises the dashboard selection and semantic pipeline directly rather than a full browser session with a seeded authenticated account.
+observation: the row action already emitted `datasetId`, but the authenticated dashboard alias redirected to `/app` without preserving search parameters.
+
+5. User learning
+Dataset Library Open dashboard now treats the clicked dataset ID as authoritative and blocks silent first/latest dataset substitution for explicit dashboard requests.
+
+6. AI-agent learning
+Authenticated route aliases must preserve selected resource search parameters, and dashboard surfaces must consume scoped selected-dataset stats after selection resolution instead of reading original workspace aggregate stats.
+
+7. Follow-up tasks
+- Add a browser-level authenticated Dashboard Library navigation test when stable seeded workspace data is available.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dependency Audit Remediation
+
+1. Interaction title
+Remediate dependency audit findings after cross-platform UI hardening.
+
+2. What was the user goal
+Patch every security advisory with a compatible published remediation, keep Payload on a stable aligned 3.x family, avoid Payload 4 canary and unpublished package versions, and document only unavoidable temporary residual risks.
+
+3. What changed
+The Payload package family moves from `3.85.1` to stable `3.88.0` with all direct `@payloadcms/*` packages aligned, which brings Payload's `undici` path to `7.29.0` and removes `image-size` from the installed graph. pnpm workspace overrides resolve compatible patched versions for `fast-uri`, `DOMPurify`, `qs`, and `esbuild`. The CI audit allowlist contains only the remaining current residuals: Payload account-unlock advisory `GHSA-jg8r-5jh2-v2xj` and the existing incompatible D3 v2 chain advisory `GHSA-36jr-mh4h-2g58`. The residual-risk register documents why stable Payload `3.88.1` is unavailable, why Payload 4 canary is not used, why `d3-color@3.1.0` is outside the D3 v2 parent ranges, and why `image-size` is no longer reachable after the Payload upgrade.
+
+4. Problems marked
+blocker: none for the CI audit allowlist gate.
+risk: raw `pnpm audit` still exits nonzero because it reports the approved residual Payload and D3 advisories.
+risk: `pnpm peers check` still reports existing React peer warnings for `react-simple-maps` and an MCP SDK peer mismatch from the Payload plugin chain; runtime checks cover the MCP route used by the app.
+observation: `payload@3.88.1` and `image-size@2.0.3` are not published as stable npm versions, so installing those exact patched versions is impossible in this environment.
+
+5. User learning
+CI uses the project audit allowlist gate for approved residuals while regular dependency patches continue to resolve through package upgrades or narrow pnpm overrides.
+
+6. AI-agent learning
+pnpm 11 reads workspace overrides from `pnpm-workspace.yaml`; `package.json#pnpm.overrides` is ignored and does not update the lockfile.
+
+7. Follow-up tasks
+- Re-check Payload stable releases and remove the temporary Payload residual entry when a patched stable 3.x release is published. (labels: security, ci-build, testing)
+- Plan a separate D3/react-simple-maps upgrade or replacement before removing the D3 residual advisory. (labels: security, ui, testing)
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Security residuals: `docs/security/residual-risk-register.md`; release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Cross-Platform UI Hardening
+
+1. Interaction title
+Harden public pricing, navigation, CTAs, chat, and app chrome across responsive viewports.
+
+2. What was the user goal
+Make the public website and core authenticated shell more robust across iPhone Safari, Android Chrome, tablets, desktop, zoom, text scaling, and browser translation without redesigning the product or changing billing, auth, dataset, AI, routing, or branding behavior.
+
+3. What changed
+Public pricing renders amount and period from shared billing data as structured, translation-protected markup with data attributes for amount, currency, and interval. The yearly selector no longer depends on slicing combined price strings, so yearly amounts display with `/year` and Free remains tied to the billing formatter. Public page wrappers, CTAs, badges, card headers, pricing cards, FAQ cards, and footer columns use `min-w-0`, wrapping, flexible button heights, and mobile grids. The public header constrains popovers and collapses the AI mode pill text on phone widths. The Usy assistant and legacy Clevr chat launcher use safe-area-aware positioning, smaller mobile launchers, hidden phone hover bubbles, dynamic viewport heights, and contained chat panels. The authenticated app shell and topbar use contained width, `100dvh`, and internal touch scrolling for dense mobile controls.
+
+4. Problems marked
+blocker: none.
+risk: this Linux workspace cannot run real Safari/WebKit, so Safari status is inferred from WebKit-compatible CSS patterns and iPhone-sized Chrome emulation rather than a native Safari engine.
+improvement: add a committed browser-regression harness when the project adopts Playwright or another browser test runner.
+observation: the abnormal pricing symptom came from presentation markup that combined amount and interval strings, then stripped a suffix based on UI state; browser translation could mutate the visible period while the billing source values remained correct.
+
+5. User learning
+Public pricing now displays monthly and yearly values from one shared billing source with translation-protected amount and period relationships.
+
+6. AI-agent learning
+Responsive UI hardening in this project should prefer scoped shared-surface fixes, source-backed pricing markup, safe-area viewport units, and focused Chrome CDP checks when Playwright is not installed.
+
+7. Follow-up tasks
+- Add a committed Playwright responsive regression suite when the project chooses Playwright as a dependency.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Marketplace Generic Intent Routing
+
+1. Interaction title
+Apply Marketplace semantics before generic selected-dataset analytical intents.
+
+2. What was the user goal
+Fix the remaining Marketplace Assistant routing and semantic issue so total revenue, revenue trend, and customer revenue questions use GMV terminology when they resolve from `gross_merchandise_value`, preserve the working seller/merchant path, keep the exact four Marketplace golden questions passing together, and avoid changes to unrelated dataset families.
+
+3. What changed
+The selected-dataset chat route checks Marketplace deterministic answers before generic analytical dispatch, so Marketplace-shaped standard uploads return `marketplace.total_gmv`, `marketplace.gmv_trend`, `marketplace.top_buyers`, and `marketplace.top_sellers` answers before generic `metric.total_revenue`, `trend.monthly_revenue`, or `ranking.top_customers` formatting can win. The metric resolver also uses the Business Semantics profile to recognize Marketplace-shaped datasets whose upload category is `standard`, keeps `gross_merchandise_value` and `gmv` labelled as GMV, and includes latest observed GMV periods while separating partial observed periods from complete comparable periods.
+
+4. Problems marked
+blocker: none.
+risk: the local `04_marketplace_startup` fixture has the same total GMV as the manual test but different top buyer and seller IDs, so local assertions validate the local source values while the implementation remains data-driven for B-0127 and S-0008 in the manually tested uploaded source.
+improvement: add a seeded authenticated dataset-chat route test that exercises the full HTTP route with the manually tested Marketplace upload when stable seed data is available.
+observation: the previous Marketplace formatter worked when the question reached the Marketplace path, but selected-dataset API routing and standard upload categories allowed generic analytical formatting to answer first.
+
+5. User learning
+Marketplace-shaped uploads now answer revenue-worded selected-dataset questions with GMV semantics before generic revenue formatting can label gross merchandise value as revenue.
+
+6. AI-agent learning
+Selected-dataset routes must prioritize domain-specific deterministic answers for detected Marketplace evidence before generic analytical intent execution, especially when the stored upload category is `standard`.
+
+7. Follow-up tasks
+- Add a seeded authenticated dataset-chat route test for the manually tested Marketplace upload when stable seed data is available.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Marketplace Metric Resolver GMV Labels
+
+1. Interaction title
+Correct the remaining selected-dataset Marketplace semantic labels.
+
+2. What was the user goal
+Fix only the remaining Marketplace labeling issue so `gross_merchandise_value` displays as GMV across revenue-worded totals, monthly trends, buyer rankings, seller rankings, and missing inventory evidence, without changing calculations, redesigning the assistant, adding features, or touching unrelated dataset types.
+
+3. What changed
+The selected-dataset metric resolver detects Marketplace datasets whose revenue semantic maps to `gmv`, `gross_merchandise_value`, or `gross_merchandise`. Those answers now label totals as Total GMV, monthly answers as Monthly GMV or GMV trend, grouped buyer outputs as buyer/customer GMV, geography and product outputs as GMV by dimension, and Marketplace AOV-style answers as Average Transaction Value. The existing Marketplace Assistant seller path continues to report seller/merchant GMV and leaves missing stock or inventory exposure as unavailable/null.
+
+4. Problems marked
+blocker: none.
+risk: regression-script files are ignored by ESLint configuration, so lint validation covers the changed source file while behavioral regression tests cover the script expectation changes.
+improvement: keep any future Marketplace resolver additions behind the same GMV source-column guard so non-Marketplace revenue datasets keep standard revenue wording.
+observation: the Marketplace Assistant route already passed the four golden questions; the remaining leak was the shared metric resolver returning generic revenue labels for Marketplace rows.
+
+5. User learning
+Marketplace revenue-worded questions now display GMV when the backing source column is GMV, and missing inventory evidence remains unavailable instead of zero-valued.
+
+6. AI-agent learning
+Marketplace GMV labeling must be enforced in both domain-specific assistant routes and shared selected-dataset metric resolver paths.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Marketplace AI Assistant GMV Semantics
+
+1. Interaction title
+Correct Marketplace Assistant GMV, buyer, seller, trend, and missing-inventory semantics.
+
+2. What was the user goal
+Continue the existing Marketplace Assistant fix for `04_marketplace_startup` without redesigning the assistant, adding features, changing unrelated modules, or losing the already-verified GMV, buyer, seller, and monthly aggregation calculations.
+
+3. What changed
+The selected-dataset AI Assistant routes Marketplace datasets with GMV evidence through a Marketplace-specific deterministic path before retail and generic revenue handling. Revenue-worded Marketplace questions answer with GMV labels, buyer questions group by buyer fields, supplier-worded questions group by seller/merchant fields, GMV trends include the latest observed period and period completeness, and missing inventory/stock evidence stays unavailable/null instead of zero. Dataset Intelligence Engine compatibility no longer treats GMV as generic Revenue while preserving GMV, Marketplace Revenue, take rate, and marketplace transaction value semantics.
+
+4. Problems marked
+blocker: none.
+risk: the local `04_marketplace_startup` fixture has the same total GMV as the manual test but different buyer/seller IDs, so top-entity assertions use local source values while the implementation remains data-driven for B-0127 and S-0008 in the manually tested source.
+improvement: add an authenticated uploaded-dataset route fixture for Marketplace Assistant execution when stable seeded datasets are available.
+observation: retail inventory intent handling previously intercepted Marketplace seller and trend questions, which caused seller fields to appear as suppliers and missing inventory evidence to become zero-valued exposure.
+
+5. User learning
+Marketplace Assistant revenue wording now reports GMV when the source field is `gross_merchandise_value`, and seller/merchant answers no longer show supplier or inventory-zero language for non-inventory marketplace data.
+
+6. AI-agent learning
+Marketplace GMV must stay separate from generic Revenue and Marketplace Revenue; assistant routing must run domain-specific Marketplace handling before retail inventory and generic metric resolvers.
+
+7. Follow-up tasks
+- Add an authenticated uploaded-dataset route fixture for Marketplace Assistant execution when stable seeded datasets are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS AI Assistant Churn Indicator Semantics
+
+1. Interaction title
+Correct SaaS Assistant churn indicator, active customer, Churned MRR, and net movement semantics.
+
+2. What was the user goal
+Fix the remaining deterministic SaaS calculation bugs for the `03_saas_startup` workflow without changing provider routing, Business Semantics architecture, or the 12 SaaS suggested questions.
+
+3. What changed
+The SaaS semantic profile validates explicit churn indicator fields before mapping them to churn semantics. The selected-dataset SaaS Assistant builds latest customer/account state, excludes churned or inactive customers from active customer counts and current MRR/ARR summaries, reports total/active/churned customer counts with lineage, and returns churn prevalence from validated current-state evidence. Churned MRR returns a confirmed zero only when validated churn status proves no churned customers, and returns missing evidence when churned customers exist without pre-churn or churn-movement MRR evidence. Net MRR Movement refuses to substitute zero for unavailable New MRR or Churned MRR. Regression coverage checks the real monthly `03_saas_startup` fixture and a current-state 144-customer fixture with 7 churned and 137 active customers.
+
+4. Problems marked
+blocker: none.
+risk: `pnpm test:dataset-intelligence-engine` still fails on the existing Marketplace dashboard `total_revenue` assertion outside this SaaS churn semantics fix.
+improvement: add an authenticated browser/API assistant fixture for uploaded `03_saas_startup` datasets when stable seeded datasets are available.
+observation: the local `03_saas_startup.csv` contains 144 monthly rows across 12 customer IDs; latest-state semantics produce 12 total customers, 11 active customers, and 1 latest churned customer, while the 144/137/7 current-state scenario is covered by a synthetic fixture.
+
+5. User learning
+The SaaS Assistant treats `churned` as current customer-state evidence when values are valid boolean/status encodings, and it separates known zero churn from missing churn-MRR evidence.
+
+6. AI-agent learning
+SaaS current-state questions must resolve the latest row per customer/account before counting customers or summing current MRR, and movement answers must keep missing component evidence distinct from zero-valued movement evidence.
+
+7. Follow-up tasks
+- Add an authenticated Dataset AI route fixture for uploaded `03_saas_startup` assistant execution when stable seeded datasets are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS AI Assistant Specific-Intent Execution
+
+1. Interaction title
+Fix SaaS Assistant deterministic intent execution before generic capability responses.
+
+2. What was the user goal
+Ensure the selected-dataset AI Assistant answers SaaS MRR movement questions, especially "What churn signal is visible in the source data?", with deterministic calculations instead of the generic SaaS semantic capability summary.
+
+3. What changed
+The SaaS deterministic assistant routes specific MRR, ARR, movement, churn, active-customer, plan, and account-value questions before explicit capability and mapping questions. Churn-signal answers return churned MRR, churn events, affected customers, highest churn period, source fields, and materiality against current MRR while keeping contraction separate from full churn. The SaaS semantic suggestion order keeps the churn-signal question inside the advertised deterministic suggestion set.
+
+4. Problems marked
+blocker: none.
+risk: full dataset-intelligence regression still carries an existing Marketplace KPI assertion failure outside this targeted SaaS Assistant execution fix.
+improvement: add an authenticated API route fixture for `saas_subscription_mrr_movements_test` when stable test user dataset seeding exists.
+observation: the exact production question contained "source data", and the previous capability matcher treated that phrase as a request for available SaaS fields before checking the churn intent.
+
+5. User learning
+SaaS Assistant business questions now execute before capability discovery, so source-data wording no longer prevents churn, MRR, ARR, customer, plan, or account calculations.
+
+6. AI-agent learning
+Capability summaries must be opt-in for explicit support, mapping, field, and available-metric questions; business metric words in the same question must keep deterministic calculation priority.
+
+7. Follow-up tasks
+- Add an authenticated Dataset AI route fixture for SaaS MRR movement chat execution when stable seeded datasets are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS AI Assistant Deterministic Suggestion Routing
+
+1. Interaction title
+Fix SaaS MRR movement AI Assistant suggestions and deterministic answer routing.
+
+2. What was the user goal
+Ensure the selected-dataset AI Assistant shows SaaS MRR movement suggestions only when the selected dataset has a deterministic answer path, remove generic fallback leakage, invalidate stale suggestion caches, and preserve recent Retail behavior.
+
+3. What changed
+The suggestion route uses cache key `suggestions_dataset_v5_${datasetId}`. SaaS semantic suggestions from the Dataset Intelligence Engine are prioritized before broader generated suggestions and filtered through the canonical deterministic answer pipeline. The deterministic assistant now answers current MRR, current ARR, MRR changes by period, New MRR, Expansion MRR, Contraction MRR, Churned MRR, net MRR movement, active customers, top accounts, plan contribution, and churn signals from SaaS semantic mappings. Recognized SaaS questions with missing evidence return deterministic unavailable answers instead of provider routing. The client no longer creates generic fallback suggestions for selected datasets and shows a neutral empty state when the server returns none.
+
+4. Problems marked
+blocker: none.
+risk: `pnpm test:dataset-intelligence-engine` fails on an existing Marketplace dashboard KPI assertion outside this SaaS Assistant fix.
+improvement: add a browser-backed authenticated suggestion route test when stable assistant fixtures are available.
+observation: the previous selected-dataset sidebar could display generic prompts because the server returned zero deterministic suggestions and the client replaced that empty response with local generic fallback suggestions.
+
+5. User learning
+Selected-dataset suggestions now follow a hard contract: a shown SaaS suggestion has a deterministic answer path and does not require Gemini or another cloud provider to be available.
+
+6. AI-agent learning
+Suggestion eligibility must call the same deterministic answer pipeline that handles execution, otherwise semantic suggestion generation and answer routing drift apart.
+
+7. Follow-up tasks
+- Add a browser-backed authenticated suggestion route test when stable assistant fixtures are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## AI Assistant Human Control Response Editor
+
+1. Interaction title
+Replace AI Assistant Human Control edit prompt with a response editor dialog.
+
+2. What was the user goal
+Remove the browser prompt from Human Control Edit and provide a UseClevr-styled modal for reviewing and editing long AI responses before an override is saved.
+
+3. What changed
+The AI Assistant opens a centered dark/glass dialog with title, helper text, accessible multiline textarea, Cancel, and Save changes controls. Opening Edit does not record an override. Save changes requires non-empty text, sends the original and edited values to the override API, updates the displayed assistant message after persistence, preserves message metadata, and marks Human Control state as Edit only after successful save. Persistence failure leaves the dialog open with the draft and inline error.
+
+4. Problems marked
+blocker: none.
+risk: no browser-run visual smoke test runs in this session, so responsive layout verification is covered by code review and static assertions.
+improvement: add a browser interaction test for the AI Assistant Human Control edit modal when the app has a stable test fixture for authenticated assistant sessions.
+observation: the previous edit path used a blocking browser prompt and updated the override state before the user confirmed an edit.
+
+5. User learning
+Human Control Edit now behaves like an intentional review step: Cancel discards the draft, and Save changes is the only path that records an edit override.
+
+6. AI-agent learning
+Governance controls that collect user-edited AI text must defer override state changes until persistence succeeds, especially when users can cancel or retry failed saves.
+
+7. Follow-up tasks
+- Add a browser interaction test for the AI Assistant Human Control edit modal when authenticated assistant fixtures are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production Sign-Up Profile Schema Failure
+
+1. Interaction title
+Restore production sign-up profile creation on `app.useclevr.com`.
+
+2. What was the user goal
+Reproduce one controlled production sign-up failure, capture the exact server-side failure chain, compare the exact operation with TEST, apply the smallest safe fix, and verify real production sign-up succeeds.
+
+3. What changed
+Railway predeploy now runs the existing profile regional-preferences migration before app startup. The production database had `Profile.themePreference` and `Profile.billingSettings`, but not `Profile.regionalPreferences`, while the deployed Drizzle schema includes `regionalPreferences` in `Profile` inserts.
+
+4. Problems marked
+blocker: none.
+risk: existing superadmin login completion still requires the real password and received 6-digit code.
+observation: `POST /login` returned HTTP 200 with server-action payload `{ error: "Account setup failed. Please try again." }`; local replay of the same server action captured PostgreSQL `42703` at the `Profile` insert with `column "regionalPreferences" of relation "Profile" does not exist`; after the migration, live production sign-up reached the 6-digit verification step and Resend returned HTTP 200 with a message id.
+
+5. User learning
+The production sign-up failure was a schema drift issue in the profile insert, not a frontend, DNS, auth-cookie, or Resend deliverability problem.
+
+6. AI-agent learning
+When a Next server action returns a generic UI error with HTTP 200, capture the `text/x-component` response and verify whether the action returned an error object before chasing network or frontend causes.
+
+7. Follow-up tasks
+- Test existing superadmin login with the real password and received 6-digit code.
+
+8. Instruction sources
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
 ## Production Auth Verification Email Fix
 
 1. Interaction title
@@ -5461,6 +5836,41 @@ The standard upload path stores `datasetType: standard`, so SaaS/startup preserv
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Authoritative Business Semantics Engine
+
+1. Interaction title
+Authoritative Business Semantics Engine.
+
+2. What was the user goal
+Implement a centralized UseClevr business semantics engine that classifies datasets, maps columns to canonical business concepts, gates KPIs, records lineage, detects ambiguity and contradictions, supports multi-file semantic reasoning, and prevents dashboard, AI, export, PDF, and report outputs from fabricating unsupported metrics.
+
+3. What changed
+The data layer now builds a versioned business semantic profile with dataset/domain classification, canonical concept mappings, formula definitions, metric permissions, missing evidence, ambiguity flags, lineage records, and multi-file compatibility checks. Generated reports, Profitability reports, the legacy dashboard builder, and AI Analyst prompts consume the profile so ambiguous generic fields such as amount, total, value, balance, net, and gross do not become revenue or profit without stronger evidence. Marketplace GMV, SaaS recurring revenue, accountancy ledger movement, Profitability P&L, retail, and standard semantics stay isolated. Focused regression coverage validates generic ambiguity, marketplace GMV separation, accountancy ledger gating, SaaS MRR/ARR/runway permissions, multi-file currency contradictions, prompt governance text, and dashboard metadata.
+
+4. Problems marked
+blocker: none.
+risk: generated report full-row fixture validation currently fails before report assertions because the SheetJS helper cannot save the test workbook at `/tmp/useclevr-full-row-report-semantic-test/UseClevr_Full_Report_Test_Dataset.xlsx` in that script path, while direct XLSX temp-file writing works.
+improvement: route additional deterministic export and PDF-only branches through the business semantic profile as future report families migrate to the central contract.
+observation: scattered legacy revenue fallbacks can turn generic financial columns into business KPIs unless every presentation path checks metric permission before calculation or narration.
+
+5. User learning
+Business KPI output now depends on explicit semantic evidence, not convenient numeric headers.
+
+6. AI-agent learning
+Column aliases must distinguish source concepts, metric permission, and presentation labels; GMV, revenue, ledger movement, SaaS recurring revenue, and P&L profit are separate concepts even when files use similar numeric column names.
+
+7. Follow-up tasks
+- T-1039. Implement the authoritative business semantics layer that classifies datasets, maps supported concepts, blocks unsupported KPIs, records lineage, and protects dashboard, AI, and report outputs from unsupported business claims.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; completed work queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## SaaS Executive Report Reporting Period Metadata
 
 1. Interaction title
@@ -5592,6 +6002,31 @@ Compatibility fixes for deployment branches should reuse existing branch-local s
 
 7. Follow-up tasks
 - Resume the normal beta push and deployment workflow after the compatibility fix passes required checks.
+## Dataset AI Retail Suggested-Question Contract
+
+1. Interaction title
+Dataset AI Retail suggested-question contract.
+
+2. What was the user goal
+Fix the Dataset AI Assistant so every shown retail or inventory suggested question has a valid answer path, with core retail KPI questions answered deterministically instead of falling through to unavailable cloud providers.
+
+3. What changed
+The semantic schema maps explicit retail inventory concepts for stock on hand, units sold, reorder point, unit cost, and supplier. Dataset AI answers retail inventory questions through deterministic handlers for top products, low stock, dead stock, inventory valuation, reorder recommendations, product margins, supplier exposure, revenue trends, slow movers, inventory cash-flow risk, category gross profit, merchandising actions, stock coverage, and turnover. The suggestion generator uses a new cache version and filters generated and fallback candidates through deterministic answer capability before returning them. Regression tests cover all twelve retail suggested questions, the production dead-stock wording, missing unit-cost valuation refusal, and unsupported suggestion exclusion.
+
+4. Problems marked
+blocker: none.
+risk: provider-answerable interpretive suggestions remain intentionally conservative because this route cannot prove provider availability during suggestion generation.
+improvement: keep future retail suggested-question wording tied to deterministic capability checks before adding it to contextual lists.
+observation: retail fallback suggestions previously bypassed every capability check except gross margin.
+
+5. User learning
+Dataset AI suggested questions are a contract: a shown question must calculate deterministically from mapped data or stay out of the suggestion list.
+
+6. AI-agent learning
+Retail inventory chat answers must use semantic mappings for stock, movement, reorder points, costs, products, suppliers, categories, and dates; arbitrary numeric columns are not valid substitutes.
+
+7. Follow-up tasks
+- T-1040. Dataset AI retail and inventory suggested questions return deterministic answers or missing-evidence responses without provider routing.
 
 8. Instruction sources
 - AGENTS.md
@@ -5628,6 +6063,33 @@ ChatGPT OAuth code should keep client validation, consent, auth-code persistence
 7. Follow-up tasks
 - Register the live ChatGPT app/client and set the production OAuth environment values before OpenAI submission.
 - Run browser-level consent and live ChatGPT MCP tool invocation after ChatGPT registration is available.
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; completed work queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio Semantic Time Axes
+
+1. Interaction title
+Investor Portfolio semantic time axes.
+
+2. What was the user goal
+Fix selected-dataset AI Assistant semantics for Investor Portfolio datasets so `annual_revenue` is portfolio-company annual revenue and `investment_date` cannot drive revenue trends.
+
+3. What changed
+Business Semantics now maps Investor Portfolio concepts for portfolio company, annual revenue, investment date, invested capital, valuation, ownership, sector, and stage. The deterministic assistant answers Investor investment-activity questions before retail/generic fallbacks, rejects revenue trends that pair `annual_revenue` with `investment_date`, and keeps the total revenue intent labeled as combined portfolio-company annual revenue. Analytical and Dataset Intelligence suggestions now return Investor-capability prompts and exclude AOV or incompatible revenue-trend prompts without source order or reporting-period semantics.
+
+4. Problems marked
+blocker: none.
+risk: the workspace does not include a raw `05_investor_portfolio` file, so focused chat validation uses the existing synthetic 45-row fixture with the verified total.
+improvement: add sanitized file-backed `05_investor_portfolio` fixtures when they are available.
+observation: trend analysis requires semantic compatibility between the metric and its time dimension; a date field alone is insufficient.
+
+5. User learning
+Investor Portfolio annual revenue belongs to portfolio companies unless source evidence defines investor revenue separately.
+
+6. AI-agent learning
+Generic deterministic intent handlers must let domain semantics override metric labels and time-axis validity before falling into broad retail or analytical templates.
+
+7. Follow-up tasks
+- Add sanitized file-backed Investor Portfolio chat fixtures when source-safe fixture files are available.
 
 8. Instruction sources
 - AGENTS.md
@@ -5663,6 +6125,33 @@ Use one shared challenge builder so the HTTP header and MCP `_meta` value remain
 
 7. Follow-up tasks
 - Run a live ChatGPT Developer Mode account-linking test after deployment and environment configuration.
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio End-to-End Semantics
+
+1. Interaction title
+Investor Portfolio end-to-end semantics.
+
+2. What was the user goal
+Complete the Investor Portfolio repair so classification, generated reports, dashboards, deterministic AI Assistant answers, suggested questions, and time-axis handling all use Investor-specific semantics for `05_investor_portfolio`.
+
+3. What changed
+Business-model and Business Semantics classification now let a strong Investor Portfolio schema override stale SaaS or startup metadata. Dataset Intelligence, analytical intents, deterministic Assistant handlers, report construction, report profile metadata, and PDF rendering now treat `annual_revenue` as combined portfolio-company annual revenue, `investment_date` as an investment event axis, `latest_valuation` as company valuation, `growth_rate` as company growth, and burn or runway as point-in-time portfolio risk evidence. Regression coverage now exercises the full 45-row Investor fixture, report/dashboard routing, supported Investor questions, incompatible revenue trends, query-engine time-axis refusal, and negative SaaS/order/supplier suggestion controls.
+
+4. Problems marked
+blocker: none.
+risk: the workspace does not include a raw `05_investor_portfolio` customer fixture file, so validation uses the synthetic 45-row fixture with the verified annual revenue total.
+improvement: add sanitized file-backed `05_investor_portfolio` CSV and XLSX fixtures when they are available.
+observation: strong domain schemas must outrank stale persisted metadata before deterministic intent formatting chooses labels and time axes.
+
+5. User learning
+Investor Portfolio revenue-worded prompts refer to portfolio-company annual revenue unless source evidence defines investor revenue separately.
+
+6. AI-agent learning
+Deterministic generic intents must ask the semantic profile whether a metric and time axis are compatible before reporting a trend.
+
+7. Follow-up tasks
+- Add sanitized file-backed Investor Portfolio fixtures when source-safe CSV and XLSX files are available.
 
 8. Instruction sources
 - AGENTS.md
@@ -5699,6 +6188,33 @@ For pnpm v11 projects, test lockfile-only transitive patch remediation and produ
 7. Follow-up tasks
 - Commit and push the lockfile remediation, then rerun beta CI and test deployment endpoint verification.
 - Triage remaining moderate and low audit findings in a separate approved dependency task.
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Balanced Scorecard Growth Semantics
+
+1. Interaction title
+Investor Balanced Scorecard growth semantics.
+
+2. What was the user goal
+Fix one remaining Investor Portfolio report issue: the Balanced Scorecard Growth perspective must not describe or score `growth_rate` as a historical trend when the only date field is `investment_date`.
+
+3. What changed
+The Balanced Scorecard column mapper now receives the resolved report model and applies Investor-specific field compatibility. Investor scorecards map `annual_revenue` only as portfolio-company annual revenue, map invested capital and latest valuation through exact Investor aliases, keep `investment_date` out of generic report-period detection, and score `growth_rate` as cross-sectional portfolio-company growth evidence. Focused tests assert that `growth_rate` plus `investment_date` does not create a Growth trend KPI, source field, trend direction, or invalid scorecard reason, and regenerated Investor PDF text excludes the dated-growth claim.
+
+4. Problems marked
+blocker: none.
+risk: generated Investor PDF table cells truncate long finding text, so PDF assertions verify the visible valid prefix and the absence of the invalid dated-growth sentence.
+improvement: add sanitized file-backed `05_investor_portfolio` CSV and XLSX fixtures when they are available.
+observation: scorecard-level generic date aliases need domain compatibility checks just like Assistant trend handlers.
+
+5. User learning
+Investor `investment_date` supports investment activity timing, not historical trends for company growth, revenue, burn, runway, or valuation.
+
+6. AI-agent learning
+Domain-specific report models must reach shared scoring utilities before broad aliases such as `/date/`, `/amount/`, and `/valuation/` select generic metric/time pairings.
+
+7. Follow-up tasks
+- Add sanitized file-backed Investor Portfolio fixtures when source-safe CSV and XLSX files are available.
 
 8. Instruction sources
 - AGENTS.md
@@ -5708,3 +6224,4 @@ For pnpm v11 projects, test lockfile-only transitive patch remediation and produ
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

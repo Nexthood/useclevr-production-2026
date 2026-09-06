@@ -257,6 +257,48 @@ export interface SaasSemanticResolution {
   explanation: string;
 }
 
+export type SaasAssistantSummaryRow = {
+  label: string;
+  value: number;
+  sharePct?: number;
+  rows?: number;
+  sourceColumns: string[];
+};
+
+export type SaasAssistantPeriodRow = {
+  period: string;
+  mrr: number | null;
+  netMovement: number | null;
+  activeCustomers: number | null;
+  rows: number;
+};
+
+export type SaasAssistantCustomerState = {
+  totalCustomers: number | null;
+  activeCustomers: number | null;
+  churnedCustomers: number | null;
+  churnShare: number | null;
+  sourceColumns: string[];
+  activeRows: Record<string, unknown>[];
+  churnedRows: Record<string, unknown>[];
+  latestRows: Record<string, unknown>[];
+};
+
+export type SaasAssistantSummary = {
+  profile: SaasProfileId;
+  confidence: number;
+  mappings: Partial<Record<SaasCanonicalConcept, string>>;
+  metrics: Record<string, SaasResolvedMetric>;
+  suggestedQuestions: string[];
+  latestPeriod: string | null;
+  periodRows: SaasAssistantPeriodRow[];
+  planRows: SaasAssistantSummaryRow[];
+  customerRows: SaasAssistantSummaryRow[];
+  movementRows: SaasAssistantSummaryRow[];
+  customerState: SaasAssistantCustomerState;
+  dataGaps: string[];
+};
+
 export interface DynamicKpi {
   id: string;
   title: string;
@@ -348,7 +390,7 @@ const COLUMN_SYNONYMS: Array<{
     { role: "Marketplace Revenue", patterns: [/\bplatform_fee\b/, /\bmarketplace_revenue\b/, /\btake_rate_amount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches marketplace platform-fee or take-rate revenue terminology." },
     { role: "Merchant Payout", patterns: [/\bseller_payout\b/, /\bmerchant_payout\b/, /\bpayout\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches merchant or seller payout terminology." },
     { role: "Refund", patterns: [/\brefund_amount\b/, /\brefund\b/, /\breturn_amount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches refund or return amount terminology." },
-    { role: "Revenue", patterns: [/\bsales_amount\b/, /\brevenue\b/, /\bsales\b/, /\border_total\b/, /\bnet_sales\b/, /\bamount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches revenue, sales, amount, or GMV terminology." },
+    { role: "Revenue", patterns: [/\bsales_amount\b/, /\brevenue\b/, /\bsales\b/, /\border_total\b/, /\bnet_sales\b/, /\bamount\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches revenue, sales, or amount terminology." },
     { role: "Commission", patterns: [/\bcommission\b/, /\bfee\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches commission or fee terminology." },
     { role: "Cost", patterns: [/\bcost\b/, /\bcogs\b/, /\bexpense\b/, /\bunit_cost\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches cost, COGS, or expense terminology." },
     { role: "Profit", patterns: [/\bprofit\b/, /\bgross_profit\b/, /\bnet_profit\b/, /\bearnings\b/], valueTypes: ["Money", "Number"], explanation: "Column name matches profit or earnings terminology." },
@@ -545,7 +587,7 @@ export function findSemanticColumn(
 }
 
 function compatibleRoles(role: CanonicalSemanticRole): CanonicalSemanticRole[] {
-  if (role === "Revenue") return ["Revenue", "GMV", "Marketplace Revenue"];
+  if (role === "Revenue") return ["Revenue"];
   if (role === "Commission") return ["Commission", "Marketplace Revenue"];
   if (role === "Cost") return ["Cost", "Merchant Payout"];
   if (role === "Seller") return ["Seller", "Merchant"];
@@ -701,7 +743,7 @@ export function resolveSaasSemanticProfile(input: Pick<DatasetIntelligenceEngine
   const valueSignals = collectSaasValueSignals(input.rows, columns);
 
   for (const concept of Object.keys(SAAS_CONCEPT_ALIASES) as SaasCanonicalConcept[]) {
-    const column = findSaasConceptColumn(columns, concept);
+    const column = findSaasConceptColumn(columns, concept, input.rows);
     if (column) {
       mappings[concept] = column;
       evidence.push({
@@ -787,8 +829,11 @@ export function resolveSaasSemanticProfile(input: Pick<DatasetIntelligenceEngine
   };
 }
 
-function findSaasConceptColumn(columns: string[], concept: SaasCanonicalConcept) {
-  return findColumnByNormalizedAlias(columns, SAAS_CONCEPT_ALIASES[concept]);
+function findSaasConceptColumn(columns: string[], concept: SaasCanonicalConcept, rows: Record<string, unknown>[]) {
+  const column = findColumnByNormalizedAlias(columns, SAAS_CONCEPT_ALIASES[concept]);
+  if (!column) return undefined;
+  if (concept === "churn" && !isValidatedSaasChurnColumn(rows, column)) return undefined;
+  return column;
 }
 
 function findColumnByNormalizedAlias(columns: string[], aliases: string[]) {
@@ -807,6 +852,19 @@ function collectSaasValueSignals(rows: Record<string, unknown>[], columns: strin
     if (!signals.plan && planMatches >= Math.ceil(values.length * 0.5)) signals.plan = column;
   }
   return signals;
+}
+
+function isValidatedSaasChurnColumn(rows: Record<string, unknown>[], column: string) {
+  const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== undefined && String(value).trim() !== "").slice(0, 100);
+  if (values.length === 0) return false;
+  const statuses = values.map(normalizeSaasBooleanStatus);
+  const known = statuses.filter((status) => status !== "unknown").length;
+  if (known >= Math.ceil(values.length * 0.8) && statuses.some((status) => status === "positive" || status === "negative")) return true;
+  if (/churn.*date|cancel.*date/i.test(column)) {
+    const dateValues = values.filter((value) => Number.isFinite(new Date(String(value)).getTime())).length;
+    return dateValues >= Math.ceil(values.length * 0.8);
+  }
+  return false;
 }
 
 function scoreSaasGroup(mappings: Partial<Record<SaasCanonicalConcept, string>>, concepts: SaasCanonicalConcept[]) {
@@ -876,7 +934,7 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
   const averageRevenuePerUser = revenue.status === "available" && revenue.value && users.status === "available" && users.value && users.value > 0
     ? resolvedValue(round(revenue.value / users.value), [revenueField, usersField].filter((value): value is string => Boolean(value)), "Average revenue per user is revenue divided by additive users, seats, or licenses.")
     : unavailableMetric("Average revenue per user requires revenue and additive users, seats, or licenses.");
-  const movementSnapshotRows = mappings.mrr_after ? latestActiveRowsByCustomer(sourceRows, mappings.customer_id, mappings.subscription_status, mappings.movement_event_date) : sourceRows;
+  const movementSnapshotRows = mappings.mrr_after ? latestActiveRowsByCustomer(sourceRows, mappings.customer_id, mappings.subscription_status, mappings.movement_event_date, mappings.churn) : sourceRows;
   const mrr = mappings.mrr
     ? resolvedSum(sourceRows, mappings.mrr, "MRR uses only source MRR fields.")
     : resolvedSum(movementSnapshotRows, mappings.mrr_after, "MRR uses latest-period active customer MRR after movement values.");
@@ -919,14 +977,13 @@ function buildSaasResolvedMetrics(rows: Record<string, unknown>[], mappings: Par
   };
 }
 
-function latestActiveRowsByCustomer(rows: Record<string, unknown>[], customerColumn?: string, statusColumn?: string, eventDateColumn?: string) {
+function latestActiveRowsByCustomer(rows: Record<string, unknown>[], customerColumn?: string, statusColumn?: string, eventDateColumn?: string, churnColumn?: string) {
   if (!customerColumn) return rows;
   const activeByCustomer = new Map<string, { row: Record<string, unknown>; time: number; index: number }>();
   rows.forEach((row, index) => {
     const customer = String(row[customerColumn] ?? "").trim();
     if (!customer) return;
-    const status = statusColumn ? String(row[statusColumn] ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_") : "active";
-    if (["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(status)) return;
+    if (resolveSaasChurnStatus(row, churnColumn, statusColumn) === "positive") return;
     const time = eventDateColumn ? new Date(String(row[eventDateColumn] ?? "")).getTime() : NaN;
     const previous = activeByCustomer.get(customer);
     if (!previous || (Number.isFinite(time) && time > previous.time) || (!Number.isFinite(previous.time) && index > previous.index)) {
@@ -1039,14 +1096,286 @@ function evaluateSaasPeriodComparability(rows: Record<string, unknown>[], period
 function buildSaasSuggestedQuestions(capabilities: SaasCapabilityId[]) {
   const has = (capability: SaasCapabilityId) => capabilities.includes(capability);
   const questions: string[] = [];
+  if (has("mrr_analysis")) questions.push("What is the current MRR?");
   if (has("mrr_analysis")) questions.push("What changed in MRR across the available periods?");
+  if (has("arr_analysis")) questions.push("What is the current ARR?");
+  if (has("mrr_analysis")) questions.push("How much New MRR is in the data?");
+  if (has("mrr_analysis")) questions.push("How much Expansion MRR is in the data?");
+  if (has("mrr_analysis")) questions.push("How much Contraction MRR is in the data?");
+  if (has("churn_analysis")) questions.push("How much Churned MRR is in the data?");
+  if (has("mrr_analysis")) questions.push("What is the net MRR movement?");
+  if (has("customer_analysis")) questions.push("How many active customers are represented?");
   if (has("plan_performance")) questions.push("Which plan contributes the most SaaS revenue or users?");
-  if (has("unit_economics")) questions.push("How does revenue per user compare across the dataset?");
+  if (has("customer_analysis") && has("mrr_analysis")) questions.push("Which customers or accounts are highest value?");
   if (has("churn_analysis")) questions.push("What churn signal is visible in the source data?");
+  if (has("unit_economics")) questions.push("How does revenue per user compare across the dataset?");
   if (has("cash_analysis") || has("burn_analysis") || has("runway_analysis")) questions.push("What does the cash, burn, and runway data show?");
   if (has("geography_analysis")) questions.push("Which country or region performs best?");
   if (questions.length === 0) questions.push("Which SaaS fields are available and which metrics need additional source data?");
-  return questions.slice(0, 6);
+  return questions.slice(0, 12);
+}
+
+export function buildSaasAssistantSummary(input: Pick<DatasetIntelligenceEngineInput, "rows" | "columns" | "fileName">): SaasAssistantSummary {
+  const rows = input.rows.filter((row) => row && typeof row === "object" && !Array.isArray(row));
+  const columns = input.columns?.length ? input.columns : getColumns({ rows, columns: input.columns });
+  const saas = resolveSaasSemanticProfile({ rows, columns, fileName: input.fileName });
+  const sourceRows = latestRowsByPeriod(rows, saas.mappings.period);
+  const customerState = summarizeSaasAssistantCustomerState(sourceRows, saas.mappings);
+  const snapshotRows = customerState.activeRows.length > 0
+    ? customerState.activeRows
+    : saas.mappings.mrr_after
+      ? latestActiveRowsByCustomer(sourceRows, saas.mappings.customer_id, saas.mappings.subscription_status, saas.mappings.movement_event_date, saas.mappings.churn)
+      : sourceRows;
+  const valueColumn = saas.mappings.mrr_after || saas.mappings.mrr || saas.mappings.arr || saas.mappings.subscription_revenue || saas.mappings.revenue || saas.mappings.users;
+  const latestPeriod = saas.periodComparability.latestPeriod ?? latestRowsByPeriodKey(rows, saas.mappings.period);
+  const metrics = buildSaasAssistantMetrics(saas.metrics, saas.mappings, snapshotRows, customerState);
+
+  return {
+    profile: saas.profile,
+    confidence: saas.confidence,
+    mappings: saas.mappings,
+    metrics,
+    suggestedQuestions: saas.suggestedQuestions,
+    latestPeriod,
+    periodRows: summarizeSaasAssistantPeriods(rows, saas.mappings),
+    planRows: summarizeSaasAssistantDimension(snapshotRows, saas.mappings.plan, valueColumn),
+    customerRows: summarizeSaasAssistantDimension(snapshotRows, saas.mappings.customer_id, valueColumn, saas.mappings.company),
+    movementRows: summarizeSaasAssistantMovements(saas.metrics),
+    customerState,
+    dataGaps: saas.dataGaps,
+  };
+}
+
+function buildSaasAssistantMetrics(
+  metrics: Record<string, SaasResolvedMetric>,
+  mappings: Partial<Record<SaasCanonicalConcept, string>>,
+  activeRows: Record<string, unknown>[],
+  customerState: SaasAssistantCustomerState,
+) {
+  const next = { ...metrics };
+  const activeSourceColumns = customerState.sourceColumns.length > 0 ? customerState.sourceColumns : [mappings.customer_id].filter((value): value is string => Boolean(value));
+  if (customerState.activeCustomers !== null && activeSourceColumns.length > 0) {
+    next.customers = resolvedValue(customerState.activeCustomers, activeSourceColumns, "Customers count latest customer/account state and exclude validated churned or inactive records.");
+  }
+  if (customerState.churnedCustomers !== null && customerState.sourceColumns.length > 0) {
+    next.churned_customers = resolvedValue(customerState.churnedCustomers, customerState.sourceColumns, "Churned customers count latest customer/account state with validated churn status.");
+  }
+  if (customerState.churnShare !== null && customerState.sourceColumns.length > 0) {
+    next.churn_rate = resolvedValue(customerState.churnShare, customerState.sourceColumns, "Customer churn share is churned customers divided by customers with validated current churn state.");
+  }
+  if (activeRows.length > 0 && mappings.mrr) {
+    next.mrr = resolvedValue(round(sumColumn(activeRows, mappings.mrr)), [mappings.mrr, ...activeSourceColumns].filter(uniqueString), "MRR uses latest-period active customer/account MRR values.");
+  }
+  if (activeRows.length > 0 && mappings.arr) {
+    next.arr = resolvedValue(round(sumColumn(activeRows, mappings.arr)), [mappings.arr, ...activeSourceColumns].filter(uniqueString), "ARR uses latest-period active customer/account ARR values.");
+  } else if (next.mrr?.status === "available" && next.mrr.value !== null && !mappings.arr) {
+    next.arr = resolvedValue(round(next.mrr.value * 12), next.mrr.sourceColumns, "ARR is annualized only from current MRR when ARR is not present.");
+  }
+  return next;
+}
+
+function summarizeSaasAssistantPeriods(rows: Record<string, unknown>[], mappings: Partial<Record<SaasCanonicalConcept, string>>): SaasAssistantPeriodRow[] {
+  const periodColumn = mappings.period;
+  if (!periodColumn) return [];
+  const periodKeys = Array.from(new Set(rows
+    .map((row) => normalizePeriodKey(row[periodColumn]))
+    .filter((value): value is string => Boolean(value))))
+    .sort();
+  return periodKeys.map((period) => {
+    const periodRows = rows.filter((row) => normalizePeriodKey(row[periodColumn]) === period);
+    const snapshotRows = mappings.mrr_after
+      ? latestActiveRowsByCustomer(periodRows, mappings.customer_id, mappings.subscription_status, mappings.movement_event_date, mappings.churn)
+      : summarizeSaasAssistantCustomerState(periodRows, mappings).activeRows;
+    const activeRows = snapshotRows.length > 0 ? snapshotRows : periodRows;
+    const mrrColumn = mappings.mrr_after || mappings.mrr;
+    const mrr = mrrColumn ? round(sumColumn(activeRows, mrrColumn)) : null;
+    const movement = aggregateMrrMovements(periodRows, mappings.movement_type, mappings.mrr_delta);
+    const netMovement = netMrrMovementValue(movement);
+    const activeCustomers = mappings.customer_id
+      ? uniqueCountFromRows(activeRows, mappings.customer_id)
+      : mappings.customer_count
+        ? round(sumColumn(periodRows, mappings.customer_count))
+        : null;
+    return {
+      period,
+      mrr,
+      netMovement,
+      activeCustomers,
+      rows: periodRows.length,
+    };
+  });
+}
+
+function summarizeSaasAssistantCustomerState(
+  rows: Record<string, unknown>[],
+  mappings: Partial<Record<SaasCanonicalConcept, string>>,
+): SaasAssistantCustomerState {
+  const customerColumn = mappings.customer_id;
+  const churnColumn = mappings.churn;
+  const statusColumn = mappings.subscription_status;
+  const eventDateColumn = mappings.movement_event_date;
+  const sourceColumns = [customerColumn, churnColumn, statusColumn].filter(uniqueString);
+  if (!customerColumn) {
+    return {
+      totalCustomers: null,
+      activeCustomers: null,
+      churnedCustomers: null,
+      churnShare: null,
+      sourceColumns,
+      activeRows: [],
+      churnedRows: [],
+      latestRows: rows,
+    };
+  }
+
+  const latestRows = latestRowsByCustomer(rows, customerColumn, eventDateColumn);
+  const activeRows: Record<string, unknown>[] = [];
+  const churnedRows: Record<string, unknown>[] = [];
+  let eligibleCustomers = 0;
+  let churnedCustomers = 0;
+
+  for (const row of latestRows) {
+    const status = resolveSaasChurnStatus(row, churnColumn, statusColumn);
+    if (status === "positive") {
+      churnedRows.push(row);
+      churnedCustomers += 1;
+      eligibleCustomers += 1;
+      continue;
+    }
+    activeRows.push(row);
+    if (status === "negative") eligibleCustomers += 1;
+  }
+
+  const totalCustomers = latestRows.length;
+  const activeCustomers = activeRows.length;
+  return {
+    totalCustomers,
+    activeCustomers,
+    churnedCustomers: sourceColumns.length > 1 ? churnedCustomers : null,
+    churnShare: eligibleCustomers > 0 && sourceColumns.length > 1 ? round((churnedCustomers / eligibleCustomers) * 100) : null,
+    sourceColumns,
+    activeRows,
+    churnedRows,
+    latestRows,
+  };
+}
+
+function latestRowsByCustomer(rows: Record<string, unknown>[], customerColumn: string, eventDateColumn?: string) {
+  const latestRows = new Map<string, { row: Record<string, unknown>; time: number; index: number }>();
+  rows.forEach((row, index) => {
+    const customer = String(row[customerColumn] ?? "").trim();
+    if (!customer) return;
+    const time = eventDateColumn ? new Date(String(row[eventDateColumn] ?? "")).getTime() : NaN;
+    const previous = latestRows.get(customer);
+    if (!previous || (Number.isFinite(time) && time > previous.time) || (!Number.isFinite(previous.time) && index > previous.index)) {
+      latestRows.set(customer, { row, time: Number.isFinite(time) ? time : -Infinity, index });
+    }
+  });
+  return Array.from(latestRows.values()).map((item) => item.row);
+}
+
+function resolveSaasChurnStatus(row: Record<string, unknown>, churnColumn?: string, statusColumn?: string) {
+  const churnStatus = churnColumn ? normalizeSaasBooleanStatus(row[churnColumn]) : "unknown";
+  const subscriptionStatus = statusColumn ? normalizeSaasLifecycleStatus(row[statusColumn]) : "unknown";
+  if (churnStatus === "positive" || subscriptionStatus === "positive") return "positive";
+  if (churnStatus === "unknown" && subscriptionStatus === "unknown") return "unknown";
+  if (churnStatus === "negative" || subscriptionStatus === "negative") return "negative";
+  return "unknown";
+}
+
+function normalizeSaasLifecycleStatus(value: unknown) {
+  const normalized = normalizeSaasStatusToken(value);
+  if (["churn", "churned", "cancelled", "canceled", "inactive", "expired"].includes(normalized)) return "positive";
+  if (["active", "trial", "past_due", "paused", "renewed", "retained"].includes(normalized)) return "negative";
+  return "unknown";
+}
+
+function normalizeSaasBooleanStatus(value: unknown) {
+  const normalized = normalizeSaasStatusToken(value);
+  if (["true", "yes", "1", "y", "churned", "cancelled", "canceled", "lost"].includes(normalized)) return "positive";
+  if (["false", "no", "0", "n", "active", "retained", "existing", "not_churned"].includes(normalized)) return "negative";
+  return "unknown";
+}
+
+function normalizeSaasStatusToken(value: unknown) {
+  return String(value ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "");
+}
+
+function summarizeSaasAssistantDimension(
+  rows: Record<string, unknown>[],
+  dimensionColumn: string | undefined,
+  valueColumn: string | undefined,
+  labelColumn?: string,
+): SaasAssistantSummaryRow[] {
+  if (!dimensionColumn || !valueColumn) return [];
+  const total = sumColumn(rows, valueColumn);
+  const groups = new Map<string, { value: number; rows: number; labels: Map<string, number> }>();
+  for (const row of rows) {
+    const key = String(row[dimensionColumn] ?? "").trim();
+    if (!key) continue;
+    const value = toNumber(row[valueColumn]) ?? 0;
+    const current = groups.get(key) ?? { value: 0, rows: 0, labels: new Map<string, number>() };
+    current.value += value;
+    current.rows += 1;
+    if (labelColumn) {
+      const label = String(row[labelColumn] ?? "").trim();
+      if (label) current.labels.set(label, (current.labels.get(label) ?? 0) + 1);
+    }
+    groups.set(key, current);
+  }
+  return Array.from(groups.entries())
+    .map(([key, value]) => {
+      const label = Array.from(value.labels.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || key;
+      return {
+        label,
+        value: round(value.value),
+        sharePct: total > 0 ? round((value.value / total) * 100) : 0,
+        rows: value.rows,
+        sourceColumns: [dimensionColumn, valueColumn, labelColumn].filter((column): column is string => Boolean(column)),
+      };
+    })
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+}
+
+function uniqueString(value: string | undefined | null, index: number, list: Array<string | undefined | null>): value is string {
+  return Boolean(value) && list.indexOf(value) === index;
+}
+
+function summarizeSaasAssistantMovements(metrics: Record<string, SaasResolvedMetric>): SaasAssistantSummaryRow[] {
+  return [
+    ["New MRR", metrics.new_mrr],
+    ["Expansion MRR", metrics.expansion_mrr],
+    ["Contraction MRR", metrics.contraction_mrr],
+    ["Churned MRR", metrics.churned_mrr],
+  ].flatMap(([label, metric]) => {
+    const item = metric as SaasResolvedMetric | undefined;
+    return item?.status === "available" && item.value !== null
+      ? [{ label: String(label), value: item.value, sourceColumns: item.sourceColumns }]
+      : [];
+  });
+}
+
+function latestRowsByPeriodKey(rows: Record<string, unknown>[], periodColumn?: string) {
+  if (!periodColumn) return null;
+  return rows
+    .map((row) => normalizePeriodKey(row[periodColumn]))
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1) ?? null;
+}
+
+function netMrrMovementValue(metrics: Partial<Record<"new_mrr" | "expansion_mrr" | "contraction_mrr" | "churned_mrr", SaasResolvedMetric>>) {
+  const newMrr = metricNumber(metrics.new_mrr);
+  const expansionMrr = metricNumber(metrics.expansion_mrr);
+  const contractionMrr = metricNumber(metrics.contraction_mrr);
+  const churnedMrr = metricNumber(metrics.churned_mrr);
+  if ([newMrr, expansionMrr, contractionMrr, churnedMrr].every((value) => value === null)) return null;
+  return round((newMrr ?? 0) + (expansionMrr ?? 0) - (contractionMrr ?? 0) - (churnedMrr ?? 0));
+}
+
+function metricNumber(metric?: SaasResolvedMetric) {
+  return metric?.status === "available" && metric.value !== null ? metric.value : null;
 }
 
 function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetection[] {
@@ -1054,6 +1383,7 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
   const allByRole = (role: CanonicalSemanticRole) => columns.filter((column) => compatibleRoles(role).includes(column.canonicalRole));
   const relationships: RelationshipDetection[] = [];
   const revenue = byRole("Revenue");
+  const gmv = byRole("GMV");
   const cost = byRole("Cost");
   const profit = byRole("Profit");
   const commission = byRole("Commission");
@@ -1077,17 +1407,17 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
     });
   }
 
-  if (revenue && commission && cost && /gmv|gross_merchandise/.test(revenue.normalizedName)) {
+  if (gmv && commission && cost) {
     relationships.push({
       id: "gmv_from_seller_payout_platform_fee",
       label: "GMV = Seller Payout + Platform Fee",
       kind: "identity",
       confidence: 0.82,
-      leftRole: revenue.canonicalRole,
-      outputRole: revenue.canonicalRole,
+      leftRole: gmv.canonicalRole,
+      outputRole: gmv.canonicalRole,
       inputRoles: [cost.canonicalRole, commission.canonicalRole],
-      columns: [revenue.columnName, cost.columnName, commission.columnName],
-      formula: `${revenue.columnName} = ${cost.columnName} + ${commission.columnName}`,
+      columns: [gmv.columnName, cost.columnName, commission.columnName],
+      formula: `${gmv.columnName} = ${cost.columnName} + ${commission.columnName}`,
       explanation: "Marketplace GMV, payout, and platform fee semantics indicate a GMV identity relationship.",
     });
   }
@@ -1123,18 +1453,19 @@ function detectRelationships(columns: SemanticColumnScan[]): RelationshipDetecti
     });
   }
 
-  if (revenue && (quantity || buyer || allByRole("Order").length > 0)) {
+  const transactionValue = revenue ?? gmv;
+  if (transactionValue && (quantity || buyer || allByRole("Order").length > 0)) {
     relationships.push({
       id: "average_order_value",
-      label: "Average Order Value",
+      label: transactionValue.canonicalRole === "GMV" ? "Average Transaction Value" : "Average Order Value",
       kind: "ratio",
       confidence: quantity ? 0.72 : buyer ? 0.68 : 0.62,
-      leftRole: revenue.canonicalRole,
-      outputRole: revenue.canonicalRole,
-      inputRoles: quantity ? [revenue.canonicalRole, "Quantity"] : buyer ? [revenue.canonicalRole, buyer.canonicalRole] : [revenue.canonicalRole, "Order"],
-      columns: [revenue.columnName, quantity?.columnName || buyer?.columnName].filter((value): value is string => Boolean(value)),
-      formula: quantity ? `${revenue.columnName} / ${quantity.columnName}` : `${revenue.columnName} / order count`,
-      explanation: "Revenue plus order, buyer, customer, or quantity semantics support average-order-value analysis.",
+      leftRole: transactionValue.canonicalRole,
+      outputRole: transactionValue.canonicalRole,
+      inputRoles: quantity ? [transactionValue.canonicalRole, "Quantity"] : buyer ? [transactionValue.canonicalRole, buyer.canonicalRole] : [transactionValue.canonicalRole, "Order"],
+      columns: [transactionValue.columnName, quantity?.columnName || buyer?.columnName].filter((value): value is string => Boolean(value)),
+      formula: quantity ? `${transactionValue.columnName} / ${quantity.columnName}` : `${transactionValue.columnName} / order count`,
+      explanation: "Revenue or GMV plus order, buyer, customer, or quantity semantics support average transaction value analysis.",
     });
   }
 
@@ -1281,32 +1612,38 @@ function generateKpis(
       explanation: "Average Revenue per User is computed from total revenue divided by total users.",
     });
   }
-  if (revenue && order) {
+  const transactionValue = revenue ?? gmv;
+  if (transactionValue && order) {
     const orderCount = order
       ? new Set(rows.map((row) => String(row[order.columnName] ?? "").trim()).filter(Boolean)).size
       : rows.length;
     kpis.push({
       id: "average_order_value",
-      title: "Average Order Value",
-      value: orderCount > 0 ? round(sumColumn(rows, revenue.columnName) / orderCount) : null,
+      title: transactionValue.canonicalRole === "GMV" ? "Average Transaction Value" : "Average Order Value",
+      value: orderCount > 0 ? round(sumColumn(rows, transactionValue.columnName) / orderCount) : null,
       format: "currency",
-      sourceColumns: [revenue.columnName, order.columnName],
-      confidence: revenue.confidence,
-      explanation: "Average order value is computed from the detected revenue metric divided by the number of distinct orders.",
+      sourceColumns: [transactionValue.columnName, order.columnName],
+      confidence: transactionValue.confidence,
+      explanation: transactionValue.canonicalRole === "GMV"
+        ? "Average transaction value is computed from GMV divided by the number of distinct marketplace transactions."
+        : "Average order value is computed from the detected revenue metric divided by the number of distinct orders.",
     });
   }
   if (customer) kpis.push(uniqueKpi("customers", customer, rows, customer.canonicalRole === "Customer" && /buyer/.test(customer.normalizedName) ? "Buyers / Customers" : "Customers"));
   if (buyer) kpis.push(uniqueKpi("buyers", buyer, rows, "Buyers"));
   if (seller) kpis.push(uniqueKpi("sellers", seller, rows, seller.canonicalRole === "Merchant" ? "Merchants" : "Sellers"));
-  if (revenue && commission && sumColumn(rows, revenue.columnName) > 0) {
+  const takeRateBase = gmv ?? revenue;
+  if (takeRateBase && commission && sumColumn(rows, takeRateBase.columnName) > 0) {
     kpis.push({
       id: "take_rate",
       title: "Take Rate",
-      value: round((sumColumn(rows, commission.columnName) / sumColumn(rows, revenue.columnName)) * 100),
+      value: round((sumColumn(rows, commission.columnName) / sumColumn(rows, takeRateBase.columnName)) * 100),
       format: "percentage",
-      sourceColumns: [commission.columnName, revenue.columnName],
-      confidence: Math.min(commission.confidence, revenue.confidence),
-      explanation: "Take rate is computed from commission divided by revenue or GMV.",
+      sourceColumns: [commission.columnName, takeRateBase.columnName],
+      confidence: Math.min(commission.confidence, takeRateBase.confidence),
+      explanation: takeRateBase.canonicalRole === "GMV"
+        ? "Take rate is computed from marketplace revenue or commission divided by GMV."
+        : "Take rate is computed from commission divided by revenue.",
     });
   }
   const profitValue = profit ? sumColumn(rows, profit.columnName) : revenue && cost ? sumColumn(rows, revenue.columnName) - sumColumn(rows, cost.columnName) : null;

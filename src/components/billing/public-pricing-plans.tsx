@@ -5,7 +5,9 @@ import { Card } from "@/components/ui/card"
 import {
   formatRecurringPrice,
   getCheckoutMarketOptions,
+  type CheckoutMarketPrice,
   type BillingInterval,
+  type SupportedCurrency,
 } from "@/lib/billing/launch-pricing"
 import { billingPlans, formatPlanPrice, type BillingPlan } from "@/lib/billing/plans"
 import { Building2, Check, Sparkles, Zap } from "lucide-react"
@@ -48,6 +50,7 @@ function PricingCard({ plan, billingInterval }: { plan: BillingPlan; billingInte
   const Icon = planIcon[plan.tier]
   const isPro = plan.tier === "pro"
   const launchPrices = plan.id === "pro_monthly" ? getCheckoutMarketOptions("pro", billingInterval) : []
+  const primaryPrice = getPublicPlanPrice(plan, billingInterval)
   const href =
     plan.tier === "free"
       ? "/signup"
@@ -55,14 +58,15 @@ function PricingCard({ plan, billingInterval }: { plan: BillingPlan; billingInte
 
   return (
     <Card
+      data-public-pricing-card={plan.tier}
       className={[
-        "flex h-full flex-col space-y-5 border-border/50 bg-card p-6",
+        "flex h-full min-w-0 flex-col space-y-5 border-border/50 bg-card p-6",
         isPro ? "relative border-2 border-primary/50 shadow-lg shadow-primary/10" : "",
       ].join(" ")}
     >
       {isPro && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <div className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+          <div className="max-w-[calc(100vw-3rem)] rounded-full bg-primary px-3 py-1 text-center text-xs font-medium leading-tight text-primary-foreground">
             Most Popular
           </div>
         </div>
@@ -76,18 +80,15 @@ function PricingCard({ plan, billingInterval }: { plan: BillingPlan; billingInte
           <h3 className="mb-1 text-xl font-bold">{plan.name}</h3>
           <p className="text-sm text-muted-foreground">{plan.description}</p>
         </div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold tracking-tight">
-            {formatPublicPlanPrice(plan, billingInterval).replace(billingInterval === "yearly" ? "/year" : "/month", "")}
-          </span>
-          <span className="text-sm text-muted-foreground">/{billingInterval === "yearly" ? "year" : "month"}</span>
-        </div>
+        <RecurringPriceDisplay price={primaryPrice} size="large" />
         {launchPrices.length > 0 && (
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div className="flex min-w-0 flex-wrap gap-2 text-xs">
             {launchPrices.map((price) => (
-              <span key={`${price.billingInterval}-${price.currency}`} className="rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
-                {price.displayPrice}
-              </span>
+              <RecurringPriceDisplay
+                key={`${price.billingInterval}-${price.currency}`}
+                price={getMarketPriceDisplay(price)}
+                size="pill"
+              />
             ))}
           </div>
         )}
@@ -105,7 +106,7 @@ function PricingCard({ plan, billingInterval }: { plan: BillingPlan; billingInte
       <Link href={href} className="block" prefetch={false}>
         <Button
           variant={isPro ? "default" : "outline"}
-          className={isPro ? "w-full" : "w-full bg-transparent"}
+          className={isPro ? "min-h-11 w-full whitespace-normal text-center leading-tight" : "min-h-11 w-full whitespace-normal bg-transparent text-center leading-tight"}
         >
           {ctaLabel[plan.tier]}
         </Button>
@@ -144,11 +145,95 @@ function BillingIntervalSelector({
   )
 }
 
-function formatPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval) {
-  if (plan.tier === "free") return formatPlanPrice(plan)
+type PublicPriceDisplay = {
+  amountText: string
+  period: BillingInterval
+  amountMinor: number | null
+  currency: SupportedCurrency | "MULTI"
+}
+
+function getPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval): PublicPriceDisplay {
+  if (plan.tier === "free") {
+    return {
+      amountText: formatPlanPrice(plan).replace("/month", ""),
+      period: "monthly",
+      amountMinor: 0,
+      currency: "MULTI",
+    }
+  }
+
   const market = getCheckoutMarketOptions(plan.tier, billingInterval).find((option) => option.market === "eu")
   if (market?.amountMinor !== null && market?.amountMinor !== undefined) {
-    return formatRecurringPrice(market.amountMinor, market.currency, billingInterval)
+    return getMarketPriceDisplay(market)
   }
-  return billingInterval === "yearly" ? "Unavailable/year" : "Unavailable/month"
+
+  return {
+    amountText: "Unavailable",
+    period: billingInterval,
+    amountMinor: null,
+    currency: "EUR",
+  }
+}
+
+function getMarketPriceDisplay(price: CheckoutMarketPrice): PublicPriceDisplay {
+  return {
+    amountText: formatCurrencyAmount(price.amountMinor, price.currency),
+    period: price.billingInterval,
+    amountMinor: price.amountMinor,
+    currency: price.currency,
+  }
+}
+
+function formatCurrencyAmount(amountMinor: number | null, currency: SupportedCurrency) {
+  if (amountMinor === null) return "Unavailable"
+
+  return formatRecurringPrice(amountMinor, currency, "monthly").replace("/month", "")
+}
+
+function RecurringPriceDisplay({
+  price,
+  size,
+}: {
+  price: PublicPriceDisplay
+  size: "large" | "pill"
+}) {
+  const periodLabel = price.period === "yearly" ? "year" : "month"
+  const ariaLabel =
+    price.amountMinor === null
+      ? `Unavailable per ${periodLabel}`
+      : `${price.amountText} per ${periodLabel}`
+
+  if (size === "pill") {
+    return (
+      <span
+        className="notranslate inline-flex max-w-full min-w-0 flex-wrap items-baseline gap-0.5 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground"
+        translate="no"
+        data-public-price="market"
+        data-price-amount-minor={price.amountMinor ?? undefined}
+        data-price-currency={price.currency}
+        data-billing-period={price.period}
+        aria-label={ariaLabel}
+      >
+        <span className="break-words">{price.amountText}</span>
+        <span className="text-muted-foreground">/{periodLabel}</span>
+      </span>
+    )
+  }
+
+  return (
+    <div
+      className="notranslate flex min-w-0 flex-wrap items-baseline gap-x-1 gap-y-0.5"
+      translate="no"
+      data-public-price="primary"
+      data-price-amount-minor={price.amountMinor ?? undefined}
+      data-price-currency={price.currency}
+      data-billing-period={price.period}
+      aria-label={ariaLabel}
+    >
+      <span className="max-w-full break-words text-4xl font-bold tracking-tight sm:text-[2.5rem]">
+        {price.amountText}
+      </span>
+      <span className="text-sm text-muted-foreground">/{periodLabel}</span>
+    </div>
+  )
 }

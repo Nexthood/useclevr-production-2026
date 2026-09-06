@@ -75,7 +75,7 @@ function buildInvestorRows() {
       entry_valuation: isLast ? 12720000 : 4000000,
       latest_valuation: isLast ? 14010475.74 : 9700000,
       ownership_percent: isLast ? 15.545 : 13.7,
-      revenue: isLast ? 3184909.53 : 2800000,
+      annual_revenue: isLast ? 3184909.53 : 2800000,
       growth_rate: 18 + (index % 9),
       runway_months: 12 + (index % 18),
     }
@@ -102,6 +102,10 @@ async function assertInvestorFixtureAggregation() {
   assert(investor.companiesByStatus.find((item) => item.status === "Exited")?.count === 5, "exited companies must remain 5")
   assert(investor.companiesByStatus.find((item) => item.status === "Watchlist")?.count === 2, "watchlist companies must remain 2")
   nearlyEqual(reportInput.financials?.revenue, 126384909.53, "portfolio revenue must remain source revenue sum", 0.02)
+  assert(reportInput.bbsc?.perspectives.growth.trend === "unknown", "Investor BBSC growth perspective must not derive a trend from investment_date")
+  assert(reportInput.bbsc?.perspectives.growth.kpis.some((kpi) => kpi.label === "Portfolio growth rate" && kpi.sourceFields.includes("growth_rate")), "Investor BBSC growth perspective must use growth_rate as cross-sectional evidence")
+  assert(!reportInput.bbsc?.perspectives.growth.kpis.some((kpi) => kpi.label === "Growth trend" || kpi.sourceFields.includes("investment_date")), "Investor BBSC growth perspective must not use investment_date as trend evidence")
+  assert(!reportInput.bbsc?.perspectives.growth.findings.some((finding) => /Growth trend is calculated from dated values/i.test(finding)), "Investor BBSC growth reason must not claim dated growth trend evidence")
 
   console.log(JSON.stringify({
     resolvedReportType: reportInput.reportType,
@@ -130,8 +134,11 @@ async function assertInvestorFixtureAggregation() {
   const text = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
   assert(text.includes("INVESTOR PORTFOLIO REPORT"), "PDF must use the investor portfolio branch")
   assert(text.includes("INVESTMENT & VALUATION PERFORMANCE"), "PDF must render investor performance section")
+  assert(!/SAAS EXECUTIVE REPORT|\bMRR\b|\bARR\b|Churned MRR|Expansion MRR|Contraction MRR/i.test(text), "PDF must not render SaaS report content")
   assert(text.includes("Total Invested") && text.includes("$21.25M"), "PDF must show Total Invested as $21.25M")
   assert((text.includes("Aggregate latest company valuations") || text.includes("Total Valuation")) && text.includes("$440.81M"), "PDF must show Aggregate Company Valuations as $440.81M")
+  assert(text.includes("Portfolio company growth-rate data is available as"), "PDF must describe Investor growth as cross-sectional source evidence")
+  assert(!text.includes("Growth trend is calculated from dated values."), "PDF must not describe Investor growth as a dated trend")
   assert(!text.includes("$91.1K"), "PDF must not show the old investment-date sum")
   assert(!text.includes("$188.72M"), "PDF must not show entry valuation as aggregate company valuation")
 
@@ -139,6 +146,7 @@ async function assertInvestorFixtureAggregation() {
     pdfPath: report.pdfPath,
     pdfContainsTotalInvested: text.includes("$21.25M"),
     pdfContainsAggregateCompanyValuations: text.includes("$440.81M"),
+    pdfContainsCrossSectionalGrowthReason: text.includes("Portfolio company growth-rate data is available as"),
   }, null, 2))
 
   deleteReport(report.id)

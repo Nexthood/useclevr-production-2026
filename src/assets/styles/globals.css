@@ -3,6 +3,25 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    min-width: 0;
+    overflow-x: clip;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  img,
+  svg,
+  canvas,
+  video {
+    max-width: 100%;
+  }
+
   :root {
     /* Default to light mode so server-rendered pages do not flash dark containers. */
     --workspace-bg: #F4F7FB;

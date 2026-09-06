@@ -80,7 +80,7 @@ export function normalizeBusinessModel(value?: string | null): BusinessModel | n
   if (normalized === "online_shop" || normalized === "online_store" || normalized === "e_commerce") return "ecommerce"
   if (normalized === "software_as_a_service" || normalized === "subscription") return "saas"
   if (normalized === "venture" || normalized === "early_stage") return "startup"
-  if (normalized === "portfolio" || normalized === "vc" || normalized === "private_equity") return "investor"
+  if (normalized === "portfolio" || normalized === "investor_portfolio" || normalized === "vc" || normalized === "private_equity") return "investor"
   return null
 }
 
@@ -94,6 +94,10 @@ export function resolveBusinessModel(input: BusinessModelResolutionInput): Busin
   if (datasetType === "profitability") return "generic"
 
   const explicit = normalizeBusinessModel(input.explicit)
+  const schemaModel = detectBusinessModelFromColumns(input.columns || [], input.datasetName || "")
+  if (schemaModel === "investor" && (!explicit || explicit === "generic" || explicit === "saas" || explicit === "startup")) {
+    return "investor"
+  }
   if (explicit && explicit !== "generic") return explicit
 
   const analysisModel = extractBusinessModelFromAnalysis(input.analysis)
@@ -102,7 +106,6 @@ export function resolveBusinessModel(input: BusinessModelResolutionInput): Busin
   const uploadModel = detectBusinessModelFromUploadSource(input.uploadSource, input.datasetType)
   if (uploadModel) return uploadModel
 
-  const schemaModel = detectBusinessModelFromColumns(input.columns || [], input.datasetName || "")
   if (schemaModel !== "generic") return schemaModel
 
   const datasetModel = normalizeBusinessModel(input.datasetType)
@@ -119,6 +122,8 @@ export function detectBusinessModelFromColumns(columns: string[], datasetName = 
     /\bmovement type\b/.test(text) &&
     /\bmrr before\b|\bmrr after\b|\bmrr delta\b/.test(text)
   if (hasMrrMovementSignature || hasRecurringMovementColumns) return "saas"
+
+  if (hasStrongInvestorPortfolioSchema(text)) return "investor"
 
   const hasStartupFinance =
     /\brunway\b|\bburn rate\b|\bcash burn\b|\bfunding\b|\bfunding round\b|\braise\b/.test(text)
@@ -151,6 +156,15 @@ export function detectBusinessModelFromColumns(columns: string[], datasetName = 
   if (best.model === "local_retail" && ecommerceGeo && !/store|branch|pos|inventory|stock|reorder/.test(text)) return "ecommerce"
 
   return best.model
+}
+
+function hasStrongInvestorPortfolioSchema(text: string) {
+  const hasCompany = /\bportfolio company\b|\bcompany id\b|\bcompany name\b/.test(text)
+  const hasInvestmentEventDate = /\binvestment date\b|\binvested date\b|\bdeal date\b|\bfunding date\b/.test(text)
+  const hasCapitalOrOwnership = /\binvested amount\b|\binvested capital\b|\binvestment amount\b|\bcapital deployed\b|\bownership\b|\bstake\b/.test(text)
+  const hasCompanyValuation = /\bentry valuation\b|\blatest valuation\b|\bcurrent valuation\b|\bcompany valuation\b|\bvaluation\b/.test(text)
+  const hasPortfolioDescriptor = /\binvestor\b|\bportfolio\b|\bfund\b|\bsector\b|\bstage\b|\bstatus\b/.test(text)
+  return hasCompany && hasInvestmentEventDate && hasPortfolioDescriptor && (hasCapitalOrOwnership || hasCompanyValuation)
 }
 
 export function getBusinessModelRedirect(input: BusinessModelRouteInput) {

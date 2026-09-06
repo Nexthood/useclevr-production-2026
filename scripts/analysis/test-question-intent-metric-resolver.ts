@@ -52,18 +52,27 @@ const fixtures: Record<string, Fixture> = {
       { order_date: "2025-03-01", order_id: "S-3", revenue: "9000", cogs: "2700", customer_id: "Startup A", product_name: "Pro", category: "Subscription", country: "US", region: "North America", quantity: "9", currency: "USD" },
     ],
   },
+  investor: {
+    datasetType: "investor",
+    rows: [
+      { company_id: "PC-1", annual_revenue: "1000", investment_date: "2025-01-15" },
+      { company_id: "PC-2", annual_revenue: "1500", investment_date: "2025-02-15" },
+      { company_id: "PC-3", annual_revenue: "500", investment_date: "2025-03-15" },
+    ],
+  },
 };
 
 const questionCases: Array<{ dataset: keyof typeof fixtures; question: string; intent: QuestionIntent; answerPattern: RegExp }> = [
   { dataset: "retail", question: "What is total revenue?", intent: "metric.total_revenue", answerPattern: /Total revenue/i },
-  { dataset: "marketplace", question: "How much revenue did we make?", intent: "metric.total_revenue", answerPattern: /Total revenue/i },
+  { dataset: "marketplace", question: "How much revenue did we make?", intent: "metric.total_revenue", answerPattern: /Total GMV/i },
   { dataset: "accounting", question: "Revenue total please", intent: "metric.total_revenue", answerPattern: /Total revenue/i },
   { dataset: "restaurant", question: "Show total sales", intent: "metric.total_revenue", answerPattern: /Total revenue/i },
   { dataset: "retail", question: "What is the average order value?", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
-  { dataset: "marketplace", question: "AOV?", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
+  { dataset: "marketplace", question: "AOV?", intent: "metric.average_order_value", answerPattern: /Average Transaction Value/i },
   { dataset: "accounting", question: "Average order value by invoice?", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
   { dataset: "restaurant", question: "avg order value", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
   { dataset: "saas", question: "average order value for subscriptions", intent: "metric.average_order_value", answerPattern: /Average Order Value/i },
+  { dataset: "investor", question: "What is the total revenue?", intent: "metric.total_revenue", answerPattern: /Combined annual revenue of the portfolio companies/i },
   { dataset: "retail", question: "What is average selling price?", intent: "metric.average_selling_price", answerPattern: /Average selling price/i },
   { dataset: "marketplace", question: "ASP?", intent: "metric.average_selling_price", answerPattern: /Average selling price/i },
   { dataset: "restaurant", question: "average price per item", intent: "metric.average_selling_price", answerPattern: /Average selling price/i },
@@ -76,7 +85,7 @@ const questionCases: Array<{ dataset: keyof typeof fixtures; question: string; i
   { dataset: "retail", question: "Revenue concentration", intent: "analysis.sales_concentration", answerPattern: /concentration/i },
   { dataset: "saas", question: "Are sales concentrated?", intent: "analysis.sales_concentration", answerPattern: /concentration/i },
   { dataset: "retail", question: "Revenue by country", intent: "analysis.revenue_by_country", answerPattern: /Revenue by Country/i },
-  { dataset: "marketplace", question: "Sales by country", intent: "analysis.revenue_by_country", answerPattern: /Revenue by Country/i },
+  { dataset: "marketplace", question: "Sales by country", intent: "analysis.revenue_by_country", answerPattern: /GMV by Country/i },
   { dataset: "accounting", question: "country revenue", intent: "analysis.revenue_by_country", answerPattern: /Revenue by Country/i },
   { dataset: "retail", question: "Revenue by category", intent: "analysis.revenue_by_category", answerPattern: /Revenue by Category/i },
   { dataset: "restaurant", question: "sales by category", intent: "analysis.revenue_by_category", answerPattern: /Revenue by Category/i },
@@ -84,15 +93,15 @@ const questionCases: Array<{ dataset: keyof typeof fixtures; question: string; i
   { dataset: "retail", question: "Who are the top customers?", intent: "ranking.top_customers", answerPattern: /Top customers/i },
   { dataset: "accounting", question: "best customers", intent: "ranking.top_customers", answerPattern: /Top customers/i },
   { dataset: "saas", question: "customers with most revenue", intent: "ranking.top_customers", answerPattern: /Top customers/i },
-  { dataset: "marketplace", question: "who are top customer accounts?", intent: "ranking.top_customers", answerPattern: /Top customers/i },
+  { dataset: "marketplace", question: "who are top customer accounts?", intent: "ranking.top_customers", answerPattern: /Top buyers\/customers by GMV/i },
   { dataset: "retail", question: "Top products", intent: "ranking.top_products", answerPattern: /Top products/i },
-  { dataset: "marketplace", question: "best products", intent: "ranking.top_products", answerPattern: /Top products/i },
+  { dataset: "marketplace", question: "best products", intent: "ranking.top_products", answerPattern: /GMV by Product/i },
   { dataset: "restaurant", question: "product performance", intent: "ranking.top_products", answerPattern: /Top products/i },
   { dataset: "retail", question: "Top regions", intent: "ranking.top_regions", answerPattern: /Top regions/i },
   { dataset: "accounting", question: "best countries", intent: "ranking.top_regions", answerPattern: /Top regions/i },
   { dataset: "saas", question: "regions with most revenue", intent: "ranking.top_regions", answerPattern: /Top regions/i },
   { dataset: "retail", question: "What are the biggest revenue risks?", intent: "risk.revenue", answerPattern: /revenue risk/i },
-  { dataset: "marketplace", question: "sales risk", intent: "risk.revenue", answerPattern: /revenue risk|No major revenue risk/i },
+  { dataset: "marketplace", question: "sales risk", intent: "risk.revenue", answerPattern: /GMV risk|No major GMV risk/i },
   { dataset: "restaurant", question: "risk in revenue", intent: "risk.revenue", answerPattern: /revenue risk/i },
   { dataset: "saas", question: "weak revenue areas", intent: "risk.revenue", answerPattern: /revenue risk|No major revenue risk/i },
   { dataset: "retail", question: "customer concentration risk", intent: "risk.customer_concentration", answerPattern: /Customer concentration/i },
@@ -104,6 +113,7 @@ const questionCases: Array<{ dataset: keyof typeof fixtures; question: string; i
   { dataset: "saas", question: "customers over time", intent: "trend.customer_growth", answerPattern: /Customer growth/i },
   { dataset: "retail", question: "Revenue forecast", intent: "forecast.revenue", answerPattern: /baseline/i },
   { dataset: "saas", question: "forecast revenue", intent: "forecast.revenue", answerPattern: /baseline/i },
+  { dataset: "investor", question: "What are the revenue trends over time?", intent: "trend.monthly_revenue", answerPattern: /cannot be calculated from this dataset/i },
   { dataset: "retail", question: "compare segment performance", intent: "comparison.segment", answerPattern: /Revenue by|leads with/i },
   { dataset: "restaurant", question: "category compare", intent: "comparison.segment", answerPattern: /Revenue by|leads with/i },
   { dataset: "saas", question: "plan compare", intent: "comparison.segment", answerPattern: /Revenue by|leads with/i },
@@ -195,6 +205,21 @@ const noOrderAov = resolveQuestionMetric({
 assert.equal(noOrderAov.status, "unsupported", "AOV without an order identifier must not fall back to row count");
 if (noOrderAov.status === "unsupported") {
   assert.deepEqual(noOrderAov.missingFields, ["reliable order identifier"]);
+}
+
+const investorTrend = resolveQuestionMetric({
+  question: "What are the revenue trends over time?",
+  datasetId: "fixture:investor",
+  datasetType: fixtures.investor.datasetType,
+  columns: Object.keys(fixtures.investor.rows[0] ?? {}),
+  rows: fixtures.investor.rows,
+});
+assert.equal(investorTrend.status, "success", "Investor revenue trend returns deterministic incompatible-evidence response");
+if (investorTrend.status === "success") {
+  assert.equal(investorTrend.result.status, "incompatible_evidence");
+  assert.equal(investorTrend.result.revenueColumn, "annual_revenue");
+  assert.equal(investorTrend.result.rejectedTimeColumn, "investment_date");
+  assert.doesNotMatch(investorTrend.answer, /Latest monthly revenue|vs previous period/i);
 }
 
 process.stdout.write(`ok - Question Intent Engine and Metric Resolver covered ${questionCases.length} business questions with 0 failed questions\n`);

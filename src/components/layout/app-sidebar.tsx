@@ -224,7 +224,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      <aside className="fixed left-0 top-16 z-50 hidden h-[calc(100vh-4rem)] w-[var(--app-sidebar-width)] flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex">
+      <aside className="fixed left-0 top-16 z-50 hidden h-[calc(100dvh-4rem)] w-[var(--app-sidebar-width)] flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex">
         <div className="relative flex h-full min-h-0 flex-col">{sidebarContent}</div>
       </aside>
 
@@ -238,7 +238,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
           />
           <aside
             id="app-mobile-sidebar"
-            className="relative z-[121] flex h-full w-[min(82vw,280px)] flex-col border-r border-sidebar-border bg-sidebar shadow-2xl"
+            className="relative z-[121] flex h-[100dvh] w-[min(86vw,300px)] max-w-[calc(100vw-3.5rem)] flex-col border-r border-sidebar-border bg-sidebar shadow-2xl"
           >
             {sidebarContent}
           </aside>

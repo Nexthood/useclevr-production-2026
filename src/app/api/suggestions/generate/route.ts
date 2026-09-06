@@ -4,6 +4,7 @@ import { prebookkeepingSuggestedQuestions } from "@/lib/accountancy/prebookkeepi
 import { getDb } from "@/lib/db"
 import { datasets, appSettings, datasetRows } from "@/lib/db/schema"
 import { availableAnalyticalSuggestions } from "@/lib/data/analytical-intents"
+import { canAnswerDatasetSuggestionDeterministically } from "@/lib/data/dataset-assistant-deterministic"
 import { resolveDatasetType } from "@/lib/data/dataset-category"
 import type { DatasetKind, DatasetRecord } from "@/lib/data/dataset-intelligence"
 import {
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dataset not found" }, { status: 404 })
     }
 
-    const datasetKey = `suggestions_dataset_v3_${datasetId}`
+    const datasetKey = `suggestions_dataset_v5_${datasetId}`
     const [cached] = await db
       .select()
       .from(appSettings)
@@ -106,14 +107,8 @@ export async function POST(request: Request) {
       cached: false,
     })
   } catch (error) {
-    const fallbackType = detectDatasetTypeFromColumns([], "")
-    const fallbackSuggestions = fallbackSuggestionsForDatasetType(fallbackType).map((text) => ({
-      id: `sug_${uuidv4()}`,
-      text,
-      createdAt: new Date().toISOString(),
-    }))
     return NextResponse.json({
-      suggestions: fallbackSuggestions,
+      suggestions: [],
       error: error instanceof Error ? error.message : "Failed to generate suggestions",
       fallback: true,
     })
@@ -137,11 +132,19 @@ function buildStandardSuggestions(input: {
     ? generateSuggestions(buildDatasetIntelligence(input.rows as DatasetRecord[]), input.datasetName)
     : fallbackSuggestionsForDatasetType(input.datasetType)
   const grossMarginQuestion = "What is the current gross margin?"
-  const filteredGeneratedSuggestions = generatedSuggestions.filter((suggestion) =>
+  const candidates = [...new Set([
+    ...analyticalSuggestions,
+    ...generatedSuggestions,
+    ...fallbackSuggestionsForDatasetType(input.datasetType),
+  ])]
+
+  return candidates.filter((suggestion) =>
     suggestion !== grossMarginQuestion || analyticalSuggestions.includes(grossMarginQuestion)
-  )
-  const filteredFallbackSuggestions = fallbackSuggestionsForDatasetType(input.datasetType).filter((suggestion) =>
-    suggestion !== grossMarginQuestion || analyticalSuggestions.includes(grossMarginQuestion)
-  )
-  return [...new Set([...analyticalSuggestions, ...filteredGeneratedSuggestions, ...filteredFallbackSuggestions])].slice(0, 12)
+  ).filter((suggestion) => canAnswerDatasetSuggestionDeterministically({
+    question: suggestion,
+    datasetId: input.datasetId,
+    datasetType: input.datasetType,
+    columns: input.columns,
+    rows: input.rows,
+  })).slice(0, 12)
 }

@@ -4,6 +4,7 @@
 
 - Add OAuth 2.1 account linking for ChatGPT connections so users grant scoped UseClevr dataset access before ChatGPT can call their datasets.
 - Add a ChatGPT connection that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing business intelligence workflow.
+- Add an authoritative business semantics layer so dashboards, AI answers, and generated reports use evidence-backed metric permissions, ambiguity warnings, source lineage, and domain isolation before presenting business KPIs.
 - Add schema-flexible SaaS analysis so subscription snapshots, transactional SaaS data, customer cohorts, SaaS financials, and hybrid startup datasets receive relevant metrics and report sections from detected fields.
 - Add Marketplace startup profile end-to-end with GMV, platform revenue, take rate, seller payout, refunds, buyer/seller intelligence, category and geography performance, balanced scorecard, PDF sections, dashboard command center metrics, and dataset-aware report profile routing.
 - Add dataset-aware executive report profiles so standard generated reports select retail, e-commerce, SaaS, marketplace, investor, consulting, services, generic, profitability, or ledger framing and retail reports prioritize sales, margin, inventory, product, category, supplier, and reorder actions.
@@ -34,6 +35,19 @@
 - Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes without a blocking Resend domain pre-check or message-id requirement.
 - Fix ChatGPT account-linking deployment compatibility so OAuth discovery can publish through the normal release workflow while dataset analysis stays source-backed.
 - Fix ChatGPT account linking prompts so authentication and scope failures return the MCP challenge metadata ChatGPT requires to start OAuth.
+- Fix Dataset Library dashboard openings so the clicked dataset stays selected across routing, dashboard metrics, semantic profiles, generated reports, and AI activity.
+- Fix dependency security remediation so CI audit enforcement clears patched transitive findings while tracking only current unavoidable residual advisories.
+- Fix public pricing and shared page chrome so translated price text, mobile navigation, CTA buttons, footer links, and the Usy assistant stay inside phone, tablet, and desktop viewports.
+- Fix Investor Portfolio Balanced Scorecard growth scoring so company growth-rate fields count as source portfolio evidence without treating investment dates as growth trend periods.
+- Fix Investor Portfolio reports, dashboards, and AI Assistant answers so portfolio revenue, valuation, growth, burn, runway, and investment timing use Investor-specific semantics without SaaS sections or incompatible revenue trends.
+- Fix Marketplace AI Assistant and selected-dataset metric answers so standard uploads with Marketplace evidence route GMV totals, trends, buyer rankings, seller rankings, and missing inventory evidence through marketplace-specific labels and calculations.
+- Fix SaaS AI Assistant churn handling so explicit churn indicators drive active-customer counts, churn signals, Churned MRR evidence checks, and net movement completeness.
+- Fix SaaS AI Assistant intent execution so churn, MRR, ARR, movement, customer, plan, and account questions return deterministic answers before generic capability summaries.
+- Fix SaaS AI Assistant suggestions so MRR movement datasets show only semantic-capability questions that answer directly without cloud provider availability.
+- Fix AI Assistant Human Control editing so users review long responses in a multiline dialog, save only confirmed edits, and keep drafted text visible when saving fails.
+- Fix Dataset AI Assistant retail and inventory suggestions so shown stock, reorder, dead-stock, margin, supplier, and inventory-value questions have deterministic answer paths and do not fail when cloud providers are unavailable.
+- Fix production sign-up so new accounts create their profile and receive the 6-digit verification code on the app domain.
+- Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes through the same working email-send path as the test app.
 - Fix production superadmin verification so the official admin account follows the same password-verified 6-digit email flow as the working test app and logs safe delivery diagnostics for real login and resend requests.
 - Fix verification email delivery handling so production never treats console delivery or ambiguous Resend responses as a sent login code.
 - Fix production superadmin sign-in so the official built-in admin account can authenticate on the app domain while redirects stay on the active configured host.

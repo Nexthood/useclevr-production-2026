@@ -8,9 +8,14 @@ export type SemanticField =
   | "net_margin"
   | "date"
   | "quantity"
+  | "units_sold"
+  | "stock_on_hand"
+  | "reorder_point"
+  | "unit_cost"
   | "currency"
   | "product"
   | "customer"
+  | "supplier"
   | "seller"
   | "buyer"
   | "category"
@@ -118,6 +123,33 @@ const FIELD_RULES: FieldRule[] = [
     validator: isMostlyNumeric,
   },
   {
+    field: "units_sold",
+    exact: ["units_sold", "quantity_sold", "qty_sold", "sold_units", "sales_units", "units_sold_recent", "recent_units_sold"],
+    contains: ["units_sold", "quantity_sold", "qty_sold", "sold_units", "sales_units", "sell_through"],
+    rejectContains: ["stock", "inventory", "on_hand", "available", "reorder"],
+    validator: isMostlyNumeric,
+  },
+  {
+    field: "stock_on_hand",
+    exact: ["stock_on_hand", "stock", "inventory", "inventory_qty", "inventory_quantity", "quantity_on_hand", "qty_on_hand", "on_hand", "available_stock", "stock_level", "current_stock"],
+    contains: ["stock_on_hand", "inventory_qty", "inventory_quantity", "quantity_on_hand", "qty_on_hand", "on_hand", "available_stock", "stock_level", "current_stock"],
+    rejectContains: ["stockout", "risk", "reorder"],
+    validator: isMostlyNumeric,
+  },
+  {
+    field: "reorder_point",
+    exact: ["reorder_point", "reorder_level", "reorder_threshold", "minimum_stock", "min_stock", "safety_stock", "par_level"],
+    contains: ["reorder_point", "reorder_level", "reorder_threshold", "minimum_stock", "min_stock", "safety_stock", "par_level"],
+    validator: isMostlyNumeric,
+  },
+  {
+    field: "unit_cost",
+    exact: ["unit_cost", "unit_cogs", "cost_per_unit", "purchase_cost", "supplier_cost", "vendor_cost", "product_cost", "procurement_cost"],
+    contains: ["unit_cost", "unit_cogs", "cost_per_unit", "purchase_cost", "supplier_cost", "vendor_cost", "product_cost", "procurement_cost"],
+    rejectContains: ["total", "revenue", "sales", "price", "margin"],
+    validator: isMostlyNumeric,
+  },
+  {
     field: "currency",
     exact: ["currency", "currency_code", "iso_currency"],
     contains: ["currency"],
@@ -131,6 +163,11 @@ const FIELD_RULES: FieldRule[] = [
     field: "seller",
     exact: ["seller", "seller_id", "merchant", "merchant_id", "vendor", "vendor_id"],
     contains: ["seller", "merchant", "vendor"],
+  },
+  {
+    field: "supplier",
+    exact: ["supplier", "supplier_id", "supplier_name", "vendor", "vendor_id", "vendor_name", "brand", "manufacturer"],
+    contains: ["supplier", "vendor", "manufacturer"],
   },
   {
     field: "buyer",

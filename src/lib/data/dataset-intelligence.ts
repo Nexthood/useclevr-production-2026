@@ -76,7 +76,7 @@ export interface DatasetIntelligence {
   generatedAt: string;
 }
 
-export type DatasetKind = 'Retail' | 'Inventory' | 'Sales' | 'Finance' | 'SaaS' | 'Generic';
+export type DatasetKind = 'Retail' | 'Inventory' | 'Sales' | 'Finance' | 'SaaS' | 'Generic' | 'Investor';
 
 const DATASET_TYPE_KEYWORDS: Record<DatasetKind, RegExp[]> = {
   Retail: [
@@ -116,6 +116,13 @@ const DATASET_TYPE_KEYWORDS: Record<DatasetKind, RegExp[]> = {
     /plan|seat|account/i,
     /ltv|cac/i,
   ],
+  Investor: [
+    /investor|investment|portfolio/i,
+    /portfolio company|company_id|company_name/i,
+    /investment_date|invested_amount|capital_deployed/i,
+    /latest_valuation|valuation|ownership|stake/i,
+    /annual_revenue|sector|stage/i,
+  ],
   Generic: [/.^/],
 };
 
@@ -124,7 +131,9 @@ export function detectDatasetTypeFromColumns(columns: string[], datasetName = ''
   const score = (kind: DatasetKind) =>
     DATASET_TYPE_KEYWORDS[kind].reduce((total, pattern) => total + (pattern.test(text) ? 1 : 0), 0);
 
-  const ranked: DatasetKind[] = ['Retail', 'Inventory', 'SaaS', 'Finance', 'Sales'];
+  if (hasStrongInvestorPortfolioSchema(text)) return 'Investor';
+
+  const ranked: DatasetKind[] = ['Retail', 'Inventory', 'SaaS', 'Finance', 'Sales', 'Investor'];
   const best = ranked
     .map((kind) => ({ kind, score: score(kind) }))
     .sort((a, b) => b.score - a.score)[0];
@@ -209,6 +218,20 @@ function questionListForDatasetType(kind: DatasetKind): string[] {
       'What cash-flow risks appear from subscriptions?',
       'What should the team improve to grow recurring revenue?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which portfolio companies have the highest valuation?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed by stage?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'Which companies have the shortest runway?',
+      'Which companies have the highest monthly burn?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+      'How much capital has been invested?',
+    ],
     Generic: [
       'What are the key insights in this dataset?',
       'Which columns drive the most important totals?',
@@ -291,6 +314,8 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'What milestone looks most at risk?',
     ],
     investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
       'Which portfolio companies have the highest valuation?',
       'What is invested capital by sector?',
       'What is ownership by company?',
@@ -298,8 +323,11 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'Where is portfolio performance strongest?',
       'Which companies create concentration risk?',
       'What geography is relevant to the portfolio?',
+      'Which portfolio companies have the highest growth?',
+      'Which companies have the shortest runway?',
+      'Which companies have the highest monthly burn?',
       'Which sectors underperform?',
-      'What is valuation change over time?',
+      'Which investments have experienced the largest company valuation increase?',
       'Which investment needs review first?',
       'What portfolio actions should happen next?',
       'Where is follow-on capital most justified?',
@@ -318,6 +346,20 @@ export function fallbackSuggestionsForBusinessModel(model: string): string[] {
       'What operational action should happen next?',
       'Which side of the marketplace needs growth?',
     ],
+    Investor: [
+      'What is the total portfolio company revenue?',
+      'Which portfolio companies generate the most annual revenue?',
+      'Which portfolio companies have the highest valuation?',
+      'How is the portfolio distributed by sector?',
+      'How is the portfolio distributed by stage?',
+      'How is the portfolio distributed geographically?',
+      'Which portfolio companies have the highest growth?',
+      'Which companies have the shortest runway?',
+      'Which companies have the highest monthly burn?',
+      'What is the portfolio concentration risk?',
+      'How has investment activity changed over time?',
+      'How much capital has been invested?',
+    ],
   };
 
   return (suggestions[model] || questionListForDatasetType('Generic')).slice(0, 12);
@@ -332,6 +374,40 @@ export function generateSuggestions(intelligence: DatasetIntelligence, datasetNa
   const cols = intelligence.schema.columns;
   const numericCols = intelligence.metrics.numericColumns;
   const datasetType = detectDatasetTypeFromColumns(cols.map((column) => column.name), datasetName);
+  const semanticSaasSuggestions = intelligence.semanticMetadata.saas?.suggestedQuestions ?? [];
+
+  if (datasetType === 'Investor') {
+    const columnNames = cols.map((column) => column.name);
+    const text = [datasetName, ...columnNames].join(' ').toLowerCase();
+    const investorSuggestions: string[] = [];
+    const hasAnnualRevenue = /annual_revenue|portfolio_company_revenue|company_revenue/.test(text);
+    const hasCompany = /portfolio_company|company_id|company_name|\bcompany\b/.test(text);
+    const hasInvestmentDate = /investment_date|invested_date|deal_date|funding_date/.test(text);
+    const hasValuation = /latest_valuation|current_valuation|valuation/.test(text);
+    const hasGrowth = /growth_rate|company_growth_rate|portfolio_company_growth_rate/.test(text);
+    const hasRunway = /runway_months|company_runway_months/.test(text);
+    const hasBurn = /burn_rate_monthly|monthly_burn|monthly_burn_rate/.test(text);
+    const hasInvestedAmount = /invested_amount|investment_amount|invested_capital|capital_deployed/.test(text);
+    const hasStage = /stage|investment_stage|company_stage/.test(text);
+    const hasStatus = /status|portfolio_status|investment_status|company_status/.test(text);
+    const hasSector = /sector|industry/.test(text);
+    const hasGeography = /country|region|geography|location|market/.test(text);
+
+    if (hasAnnualRevenue) investorSuggestions.push('What is the total portfolio company revenue?');
+    if (hasAnnualRevenue && hasCompany) investorSuggestions.push('Which portfolio companies generate the most annual revenue?');
+    if (hasValuation && hasCompany) investorSuggestions.push('Which portfolio companies have the highest valuation?');
+    if (hasGrowth && hasCompany) investorSuggestions.push('Which portfolio companies have the highest growth?');
+    if (hasRunway && hasCompany) investorSuggestions.push('Which companies have the shortest runway?');
+    if (hasBurn && hasCompany) investorSuggestions.push('Which companies have the highest monthly burn?');
+    if (hasInvestedAmount) investorSuggestions.push('How much capital has been invested?');
+    if (hasInvestmentDate) investorSuggestions.push('How has investment activity changed over time?');
+    if (hasSector) investorSuggestions.push('How is the portfolio distributed by sector?');
+    if (hasStage) investorSuggestions.push('How is the portfolio distributed by stage?');
+    if (hasGeography) investorSuggestions.push('How is the portfolio distributed geographically?');
+    if (hasStatus) investorSuggestions.push('Which portfolio companies are on the watchlist?');
+    if (hasCompany) investorSuggestions.push('What is the portfolio concentration risk?');
+    return [...new Set(investorSuggestions)].slice(0, 12);
+  }
   
   // Get actual column names for different categories
   const regionCol = dims.geographicColumns[0] || 
@@ -403,9 +479,19 @@ export function generateSuggestions(intelligence: DatasetIntelligence, datasetNa
   suggestions.push(`How many rows are in this dataset?`);
   
   const contextualSuggestions = questionListForDatasetType(datasetType);
-  const uniqueSuggestions = [...new Set([...contextualSuggestions, ...suggestions])].slice(0, 12);
+  const uniqueSuggestions = [...new Set([...semanticSaasSuggestions, ...contextualSuggestions, ...suggestions])].slice(0, 12);
   
   return uniqueSuggestions;
+}
+
+function hasStrongInvestorPortfolioSchema(text: string) {
+  const normalized = text.replace(/_/g, ' ');
+  const hasCompany = /\bportfolio company\b|\bcompany id\b|\bcompany name\b/.test(normalized);
+  const hasInvestmentEventDate = /\binvestment date\b|\binvested date\b|\bdeal date\b|\bfunding date\b/.test(normalized);
+  const hasCapitalOrOwnership = /\binvested amount\b|\binvested capital\b|\binvestment amount\b|\bcapital deployed\b|\bownership\b|\bstake\b/.test(normalized);
+  const hasCompanyValuation = /\bentry valuation\b|\blatest valuation\b|\bcurrent valuation\b|\bcompany valuation\b|\bvaluation\b/.test(normalized);
+  const hasPortfolioDescriptor = /\binvestor\b|\bportfolio\b|\bfund\b|\bsector\b|\bstage\b|\bstatus\b/.test(normalized);
+  return hasCompany && hasInvestmentEventDate && hasPortfolioDescriptor && (hasCapitalOrOwnership || hasCompanyValuation);
 }
 
 /**

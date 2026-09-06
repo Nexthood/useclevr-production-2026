@@ -41,22 +41,22 @@ export default async function Topbar() {
 
   return (
     <div className="app-topbar sticky top-0 z-[110] min-h-16 border-b border-border/60 bg-background/95 backdrop-blur-sm">
-      <div className="flex min-h-16 min-w-0 flex-1 items-center gap-3 overflow-visible px-4">
+      <div className="flex min-h-16 min-w-0 flex-1 items-center gap-3 overflow-visible px-4 pr-16 md:pr-4">
         <Link href="/app" className="flex shrink-0 items-center gap-2">
           <Logo className="h-12 w-auto" />
         </Link>
 
-        <nav className="flex min-w-0 flex-1 items-center justify-end gap-4 overflow-visible">
+        <nav className="flex min-w-0 flex-1 touch-pan-x items-center justify-end gap-1 overflow-x-auto overflow-y-visible [-webkit-overflow-scrolling:touch] sm:gap-2 md:gap-4">
           <HybridAiButton
             subscriptionTier={usage.subscriptionTier}
             userEmail={session?.user?.email ?? null}
             userRole={session?.user?.role ?? null}
-            className="flex h-11 items-center gap-2 whitespace-nowrap rounded-md border-0 bg-transparent px-3 text-foreground shadow-none hover:bg-muted/50 [&_svg]:text-muted-foreground"
+            className="hidden h-11 items-center gap-2 whitespace-nowrap rounded-md border-0 bg-transparent px-3 text-foreground shadow-none hover:bg-muted/50 sm:flex [&_svg]:text-muted-foreground"
           />
 
           <Search />
 
-          <div className="h-7 w-px bg-border/30" />
+          <div className="hidden h-7 w-px bg-border/30 sm:block" />
 
           <TopbarSection
             icon={<BriefcaseBusiness className="h-4 w-4" />}
@@ -100,7 +100,7 @@ export default async function Topbar() {
             </TopbarSection>
           )}
 
-          <div className="h-7 w-px bg-border/30" />
+          <div className="hidden h-7 w-px bg-border/30 sm:block" />
 
           <TopbarSection
             icon={<HelpCircle className="h-4 w-4" />}
@@ -112,7 +112,7 @@ export default async function Topbar() {
             <TopbarPanelLink href="/contact">Send feedback</TopbarPanelLink>
           </TopbarSection>
 
-          <div className="h-7 w-px bg-border/30" />
+          <div className="hidden h-7 w-px bg-border/30 sm:block" />
 
           <ThemeToggle className="bg-transparent" />
 

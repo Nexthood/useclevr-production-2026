@@ -35,6 +35,7 @@ Text rules for this file:
 - Show uploaded datasets in structured tables with row counts.
 - Store dataset category metadata for standard, retail, profitability, accountancy, and pre-bookkeeping uploads.
 - Scan uploaded datasets with the Dataset Intelligence Engine to detect file structure, semantic column meanings, value types, business model, relationships, KPI candidates, dashboard metadata, confidence scores, and explainability.
+- Build an authoritative business semantic profile before dashboard, AI Analyst, and generated-report outputs calculate or describe business metrics; classify supported dataset domains, map source columns to canonical concepts, expose ambiguity, block unsupported KPIs, record lineage, and keep marketplace, SaaS, accountancy, retail, profitability, and standard semantics isolated.
 - Keep the Dataset Intelligence Engine modular with detector registries for current CSV and Excel-style tables and future PDF, image OCR, SQL, Snowflake, and API sources.
 - Run Enterprise Dataset Intelligence scanners through a central orchestration foundation with registry-based scanner discovery, ordered execution, immutable shared context, progress reporting, structured logs, failure recovery, retry, resume, cancellation, and execution reports.
 - Profile uploaded CSV and Excel physical structure with the Enterprise Dataset Intelligence structure scanner, including file metadata, encoding, delimiter, separators, language, timezone, worksheet layout, duplicate headers and rows, hidden and merged worksheet elements, data regions, footer rows, column data types, missing ratios, unique ratios, health scores, recommendations, fingerprints, confidence scores, and scanner step logs.
@@ -71,7 +72,8 @@ Text rules for this file:
 - Resolve SaaS and startup uploads through a SaaS semantic capability profile that detects subscription snapshot, transactional SaaS, customer cohort, SaaS financial, hybrid SaaS, and generic SaaS structures; maps full-column canonical concepts; separates semantic confidence from capability coverage; derives only source-backed SaaS metrics; gates report sections by available capabilities; and sends matching suggested questions to AI context.
 - Resolve SaaS MRR movement uploads with customer identity, plan, seats, MRR before, MRR after, MRR delta, movement type, period, and customer status columns as SaaS subscription movement data; render SaaS dashboard and report metrics from latest-period active customer state, aggregate movement MRR by movement type, and exclude e-commerce Revenue, Orders, Average Order Value, GMV, inventory, and COGS semantics.
 - Render generic business generated reports with reliable invoice IDs as transaction identifiers when stronger order or transaction IDs are absent, exact `cost` fields as generic business cost totals, explicit `profit` fields as source-backed profit, profit margin as profit divided by revenue, no net-profit label for generic `profit` fields, and executive summaries that distinguish available gross profitability from unavailable operating and net profitability inputs.
-- Render investor portfolio generated reports with Total Invested summed from invested amount fields, Aggregate Company Valuations summed from latest valuation fields, portfolio company counts from company IDs, ownership averaged across portfolio rows, status counts from portfolio status, and portfolio revenue summed from revenue fields.
+- Render investor portfolio generated reports with Investor Portfolio classification from strong portfolio schemas, Total Invested summed from invested amount fields, Aggregate Company Valuations summed from latest valuation fields, portfolio company counts from company IDs, ownership averaged across portfolio rows, status counts from portfolio status, and combined portfolio-company annual revenue summed from annual revenue fields.
+- Score Investor Portfolio Balanced Scorecard growth from cross-sectional portfolio company growth-rate fields, sector diversification, and stage diversification; do not use investment dates as reporting periods for growth-rate, annual-revenue, burn, runway, or valuation trends.
 - Resolve standard generated reports with debit, credit, and account or journal column evidence as accountancy ledger reports before financial metric construction.
 - Render accountancy ledger generated PDFs through the ledger report branch when the resolved report type or profile is accountancy or accountancy ledger, show Total Debits, Total Credits, Net Movement, and row/document KPIs, and keep Revenue, Gross Profit, Operating Profit, Net Profit, and margins unavailable without explicit P&L fields and account classification.
 - Render paired Profitability generated reports with revenue and complete operating-expense uploads as a source-aware Profitability P&L: derive Operating Profit as Revenue minus Operating Expenses only when COGS is unavailable from the paired input contract, keep Operating Profit unavailable when the expense input is explicitly partial, keep COGS, Gross Profit, and Gross Margin unavailable without COGS, keep Interest Expense and Tax Expense unavailable unless explicit source rows exist, calculate Net Profit only from source-backed interest and tax inputs, display the full source reporting period, and mark expense category, expense amount, and period requirements available from the same canonical paired expense state used by Cost Intelligence.
@@ -91,6 +93,7 @@ Text rules for this file:
 - Show retail-specific reports, inventory metrics, low-stock items, dead-stock items, products, and SKU details only inside the Retail workspace.
 - Show dataset library rows with dataset type, upload source, destination module, and analysis status.
 - Show only the working primary destination action in Dataset Library row actions, using Open dashboard for standard datasets and Open module for module-scoped datasets.
+- Open a dashboard from a Dataset Library row by preserving the row dataset ID through navigation, selected dashboard statistics, semantic profile generation, report actions, and AI activity; render an unavailable state instead of falling back to another dataset when an explicit dataset ID cannot be loaded.
 - Route dataset library clicks to the matching workspace for retail, profitability, accountancy, and pre-bookkeeping datasets.
 - Delete selected Dataset Library rows only after user confirmation.
 - Select and delete multiple datasets from Risk Intelligence and Dataset Library management controls without removing the existing single-dataset delete action.
@@ -109,6 +112,16 @@ Text rules for this file:
 - Enable session-based Ghost Mode for AI requests so UseClevr skips normal conversation history and content-level AI traces while preserving billing, security, operational metadata, cloud provider routing, Local AI behavior, dataset storage, and dataset isolation.
 - Classify every selected-dataset AI Analyst question into a structured business intent before metric calculation or provider routing.
 - Resolve selected-dataset metric questions through deterministic calculations for revenue, average order value, average selling price, order count, customer count, revenue grouping, rankings, concentration, risk, trend, customer growth, forecast baselines, comparisons, and margin.
+- Resolve selected-dataset Marketplace revenue-worded questions with Marketplace semantics before generic analytical formatting: label gross merchandise value as GMV, label GMV-backed totals as Total GMV, label GMV-backed monthly answers as Monthly GMV or GMV trend, keep platform fee as Marketplace Revenue, group buyer questions by buyer fields, group seller or supplier-worded questions by seller/merchant fields, include the latest observed period in GMV trends, separate partial observed periods from complete comparable periods, and render missing inventory/stock evidence as unavailable instead of zero.
+- Resolve selected-dataset Investor Portfolio questions with Investor semantics before generic analytical formatting: label `annual_revenue` as combined annual revenue of portfolio companies, preserve `annual_revenue` lineage, rank companies by annual revenue, latest valuation, growth rate, runway, monthly burn, and invested capital from source fields, reject revenue trend calculations when the only time field is `investment_date`, keep `investment_date` available for investment activity, and require semantic compatibility between every trended metric and its time dimension because a date field alone is insufficient.
+- Resolve selected-dataset retail and inventory questions through deterministic calculations for top products, low stock, dead stock, inventory valuation, reorder recommendations, margin ranking, supplier exposure, revenue trends, slow-moving stock, inventory cash-flow risk, category gross profit, merchandising actions, stock coverage, and inventory turnover when validated source semantics provide the required fields.
+- Return deterministic missing-evidence answers for selected-dataset retail and inventory KPI questions when validated source fields are unavailable, and do not route those known KPI questions to a cloud provider.
+- Return deterministic SaaS MRR movement answers for current MRR, current ARR, MRR change by period, New MRR, Expansion MRR, Contraction MRR, Churned MRR, net MRR movement, active customers, top accounts, plan contribution, and churn signals when validated SaaS source fields are available.
+- Execute specific selected-dataset SaaS metric intents before generic SaaS semantic capability explanations, so source-data churn, MRR, ARR, movement, active-customer, plan, and account-value questions return grounded calculations when validated fields are available.
+- Interpret validated SaaS churn indicator fields such as churned, is_churned, churn_flag, is_churn, cancelled, and canceled as current churn state only when their values match supported boolean or status encodings.
+- Calculate selected-dataset SaaS active customers from latest customer/account state, exclude validated churned or inactive customers, and report total, active, and churned customer counts with source lineage.
+- Keep SaaS Churned MRR and net MRR movement unavailable when customer churn exists without validated pre-churn or churn-movement MRR evidence; treat validated zero churn as zero and missing churn evidence as unavailable.
+- Return deterministic missing-evidence answers for recognized SaaS metric questions when validated source fields are unavailable, including plan, churn, customer, cohort, retention, CAC, LTV, runway, burn, MRR, ARR, and movement fields.
 - Return a precise missing-data explanation when a requested metric lacks required validated columns, and do not replace the requested metric with a generic revenue summary.
 - Refuse selected-dataset expense calculations when no validated expense category, cost field, debit classification, or trusted expense mapping exists, and offer only alternatives supported by the detected dataset semantics.
 - Route supported dataset-aware AI Assistant KPI questions through a central analytical intent registry before provider routing.
@@ -122,12 +135,13 @@ Text rules for this file:
 - Keep Dataset AI Assistant state, selected dataset routing, retry behavior, and dataset-grounded conversation separate from the Usy floating product assistant.
 - Show classified Dataset AI Assistant failure states for no dataset selected, missing dataset, unauthorized request, empty dataset, provider unavailable, provider timeout, missing provider configuration, invalid provider response, network interruption, and internal failure.
 - Preserve the failed Dataset AI Assistant question and show one retry action for the corresponding response state.
+- Let AI Assistant users edit Human Control responses in a centered multiline dialog; save confirmed non-empty edits through override tracking; keep canceled edits and failed-save drafts from replacing the displayed answer.
 - Log Dataset AI Assistant request diagnostics with request ID, dataset ID, dataset type, tenant, user ID, provider, model, processing stage, duration, HTTP status, and sanitized error only.
 - Map uploaded dataset columns to canonical business fields with normalized names, confidence values, original column references, ambiguity handling, and dataset-scoped schema state.
 - Calculate gross margin deterministically from revenue plus COGS, revenue plus validated gross profit, or validated gross margin fields.
 - Never calculate gross margin from operating expenses alone and never infer COGS from an ambiguous generic cost field.
 - Return structured unsupported analysis messages for missing revenue, missing COGS, ambiguous cost mapping, zero revenue, mixed currency, invalid numeric values, unavailable dataset context, unsupported dataset type, and insufficient data.
-- Filter AI Assistant suggested questions by selected-dataset semantic capabilities before showing financial KPI prompts.
+- Filter AI Assistant suggested questions by selected-dataset semantic capabilities and deterministic answer capability before showing dataset KPI prompts.
 - Show deterministic KPI results with Direct data analysis status and Last provider: Not required when no AI provider is needed.
 - Answer declining sales segment questions from validated dataset rows by detecting a time column, sales or revenue metric, and segment-like dimensions before provider routing.
 - Compare declining sales segment results across the two latest complete periods and exclude sparse trailing periods from period-over-period comparisons.
@@ -144,7 +158,8 @@ Text rules for this file:
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
 - Generate at least 10 contextual AI Assistant suggestions automatically after dataset selection by detecting retail, inventory, sales, finance, SaaS, or generic data from the dataset columns.
-- Cache AI Assistant suggestions per selected dataset and show fallback suggestions when generation fails.
+- Cache AI Assistant suggestions per selected dataset and semantic suggestion version; show selected-dataset suggestions only when the server verifies semantic capability and deterministic answer execution for the selected dataset.
+- Show a neutral empty state when selected-dataset suggestion generation returns no supported questions.
 - Keep AI answers within the uploaded dataset scope.
 - Show geographic dataset visualizations only when uploaded rows contain country, city, region, market, location, state, province, territory, area, or zone columns.
 - Show a professional dark BI world map with detected location nodes, restrained flow lines, compact metric cards, hover tooltips, and top-location summaries when geographic columns are available.
@@ -252,6 +267,7 @@ Text rules for this file:
 - Route AI analysis and assistant chat through the universal AI adapter before using the default cloud fallback.
 - Route dataset executive summaries, predictive summaries, analyst narratives, investigation findings, comparison narratives, query explanations, and report chat through the universal AI adapter before using the default cloud fallback.
 - Support OpenAI, Anthropic, Google Gemini, OpenAI-compatible, Ollama, and managed UseClevr Cloud provider routes.
+- Keep dependency audit enforcement active in CI, remediate advisories with compatible published patches, and document only unavoidable temporary residual advisories with exact package versions, dependency paths, exposure, mitigations, and review triggers.
 - Store user-owned provider API keys only as server-side AES-256-GCM encrypted values with versioned encryption metadata.
 - Require `AI_PROVIDER_ENCRYPTION_KEY` before saving or using provider API keys.
 - Never send decrypted provider keys to the browser, AI traces, audit logs, analytics, provider status payloads, or error responses.
@@ -314,6 +330,7 @@ Text rules for this file:
 - Show Free at $0/€0, Pro at €40/month or €480/year, and Business at €420/month or €5,040/year on EUR-default billing surfaces.
 - Use the Free plan with limited AI credits as the only free UseClevr entry point, and do not advertise separate trial periods on public landing or pricing surfaces.
 - Use shared monthly and yearly paid-plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
+- Render public pricing amounts and billing intervals from shared billing data with translation-protected markup so browser translation cannot change the visible number, currency, or period relationship.
 - Show customer-facing plan feature lists from the shared billing plan source, limiting Free to CSV and Excel upload, 50 AI credits, 2 datasets, basic AI insights, retail dashboard, and community support; limiting Pro to 500 AI credits, 25 datasets, AI business analysis, revenue analysis, margin analysis, stock detection, reports, exports, and priority support; and limiting Business to Pro benefits, 5000 AI credits, 250 datasets, larger file uploads, Accounting AI, invoice processing, receipt processing, and dedicated support.
 - Keep future enterprise features hidden from pricing and upgrade surfaces until their customer workflow is production-ready.
 - Show Account settings as a professional control center with centered wide content, Profile,
@@ -568,6 +585,7 @@ Text rules for this file:
 ## Public Content
 
 - Keep the existing homepage, privacy, and terms routes available.
+- Keep public pages, public navigation, call-to-action buttons, pricing cards, footer links, and the Usy assistant contained within phone, tablet, laptop, and desktop viewport widths without clipped text, hidden actions, or horizontal page overflow.
 - Show public news at `/news` with individual news detail pages.
 - Seed five starter news entries for first-use admin testing.
 - Serve homepage, privacy, and terms copy from Payload when CMS content exists, and keep fallback copy available.

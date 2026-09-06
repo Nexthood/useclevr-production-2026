@@ -3,6 +3,14 @@
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import type { DataTableColumn } from "@/components/ui/data-table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { GHOST_MODE_STORAGE_KEY } from "@/lib/ai/ghost-mode"
 import {
@@ -76,6 +84,11 @@ type ProviderStatus = {
 
 type OverrideAction = "accept" | "reject" | "edit" | "undo"
 
+type ResponseEditorState = {
+  message: AssistantMessage
+  draft: string
+}
+
 type HistoryEntry = {
   id: string
   prompt: string
@@ -88,19 +101,7 @@ type HistoryEntry = {
 
 const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
 const GHOST_MODE_NOTICE_KEY = "useclevr_ghost_mode_notice_seen"
-
-const FALLBACK_SUGGESTIONS = [
-  "What are the key insights in this dataset?",
-  "What are the top 10 records by value?",
-  "Which categories perform best?",
-  "What trends appear over time?",
-  "Where are values unusually high or low?",
-  "What data quality issues should be reviewed?",
-  "Which segments need attention?",
-  "What risks does this data reveal?",
-  "What actions should I take next?",
-  "What should I compare against the previous period?",
-]
+const SUGGESTION_CLIENT_CACHE_VERSION = "v5"
 
 function buildWelcomeMessage(): AssistantMessage {
   return {
@@ -250,6 +251,10 @@ export function AiAssistantWorkspace() {
   const [showGhostNotice, setShowGhostNotice] = React.useState(false)
   const [feedbackMap, setFeedbackMap] = React.useState<Record<string, "positive" | "negative">>({})
   const [overrideMap, setOverrideMap] = React.useState<Record<string, OverrideAction>>({})
+  const [responseEditor, setResponseEditor] = React.useState<ResponseEditorState | null>(null)
+  const [responseEditorError, setResponseEditorError] = React.useState("")
+  const [savingResponseEdit, setSavingResponseEdit] = React.useState(false)
+  const responseEditorTextareaRef = React.useRef<HTMLTextAreaElement | null>(null)
   const initialUrlQuestionRef = React.useRef<string | null>(null)
   const initialUrlQuestionAskedRef = React.useRef(false)
   const previousDatasetIdRef = React.useRef(selectedDatasetId)
@@ -257,6 +262,12 @@ export function AiAssistantWorkspace() {
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isAsking])
+
+  React.useEffect(() => {
+    if (!responseEditor) return
+    const timeout = window.setTimeout(() => responseEditorTextareaRef.current?.focus(), 0)
+    return () => window.clearTimeout(timeout)
+  }, [responseEditor])
 
   React.useEffect(() => {
     if (ghostMode) {
@@ -472,8 +483,11 @@ export function AiAssistantWorkspace() {
   }
 
   async function recordOverride(message: AssistantMessage, action: OverrideAction) {
+    if (action === "edit") {
+      openResponseEditor(message)
+      return
+    }
     setOverrideMap((prev) => ({ ...prev, [message.id]: action }))
-    const editedValue = action === "edit" ? window.prompt("Edit this AI suggestion before using it.", message.content) : null
     try {
       await fetch("/api/ai-governance/overrides", {
         method: "POST",
@@ -483,12 +497,63 @@ export function AiAssistantWorkspace() {
           datasetId: message.datasetId,
           action,
           originalValue: message.content,
-          editedValue,
+          editedValue: null,
           reason: action === "accept" ? "User accepted AI suggestion" : action === "undo" ? "User undid a prior AI decision" : undefined,
         }),
       })
     } catch (error) {
       debugError("[AI_GOVERNANCE] Override feedback failed", error)
+    }
+  }
+
+  function openResponseEditor(message: AssistantMessage) {
+    setResponseEditor({ message, draft: message.content })
+    setResponseEditorError("")
+  }
+
+  function closeResponseEditor() {
+    if (savingResponseEdit) return
+    setResponseEditor(null)
+    setResponseEditorError("")
+  }
+
+  async function saveResponseEdit() {
+    if (!responseEditor || savingResponseEdit) return
+    if (!responseEditor.draft.trim()) {
+      setResponseEditorError("Edited response cannot be empty.")
+      return
+    }
+
+    setSavingResponseEdit(true)
+    setResponseEditorError("")
+    try {
+      const response = await fetch("/api/ai-governance/overrides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          traceId: responseEditor.message.traceId,
+          datasetId: responseEditor.message.datasetId,
+          action: "edit",
+          originalValue: responseEditor.message.content,
+          editedValue: responseEditor.draft,
+        }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(typeof body.error === "string" ? body.error : "Edited response could not be saved.")
+      }
+
+      const editedMessageId = responseEditor.message.id
+      const editedContent = responseEditor.draft
+      setMessages((current) => current.map((message) =>
+        message.id === editedMessageId ? { ...message, content: editedContent } : message
+      ))
+      setOverrideMap((prev) => ({ ...prev, [editedMessageId]: "edit" }))
+      setResponseEditor(null)
+    } catch (error) {
+      setResponseEditorError(error instanceof Error ? error.message : "Edited response could not be saved.")
+    } finally {
+      setSavingResponseEdit(false)
     }
   }
 
@@ -500,8 +565,9 @@ export function AiAssistantWorkspace() {
 
   async function generateSuggestions(force = false) {
     if (!selectedDatasetId || isGeneratingSuggestions) return
-    if (!force && suggestionsByDataset[selectedDatasetId]?.length) {
-      setSavedSuggestions(suggestionsByDataset[selectedDatasetId])
+    const suggestionCacheKey = `${SUGGESTION_CLIENT_CACHE_VERSION}:${selectedDatasetId}`
+    if (!force && suggestionsByDataset[suggestionCacheKey]?.length) {
+      setSavedSuggestions(suggestionsByDataset[suggestionCacheKey])
       return
     }
     setIsGeneratingSuggestions(true)
@@ -514,31 +580,19 @@ export function AiAssistantWorkspace() {
       if (response.ok) {
         const body = await response.json()
         const nextSuggestions = Array.isArray(body.suggestions) ? body.suggestions : []
-        const usableSuggestions = nextSuggestions.length > 0
-          ? nextSuggestions
-          : FALLBACK_SUGGESTIONS.map((text, index) => ({
-              id: `fallback-${selectedDatasetId}-${index}`,
-              text,
-              createdAt: new Date().toISOString(),
-            }))
-        setSavedSuggestions(usableSuggestions)
+        setSavedSuggestions(nextSuggestions)
         setSuggestionsByDataset((current) => ({
           ...current,
-          [selectedDatasetId]: usableSuggestions,
+          [suggestionCacheKey]: nextSuggestions,
         }))
       } else {
         throw new Error("Suggestion generation failed")
       }
     } catch {
-      const fallbackSuggestions = FALLBACK_SUGGESTIONS.map((text, index) => ({
-        id: `fallback-${selectedDatasetId}-${index}`,
-        text,
-        createdAt: new Date().toISOString(),
-      }))
-      setSavedSuggestions(fallbackSuggestions)
+      setSavedSuggestions([])
       setSuggestionsByDataset((current) => ({
         ...current,
-        [selectedDatasetId]: fallbackSuggestions,
+        [suggestionCacheKey]: [],
       }))
     }
     finally { setIsGeneratingSuggestions(false) }
@@ -550,7 +604,7 @@ export function AiAssistantWorkspace() {
       return
     }
 
-    const cached = suggestionsByDataset[selectedDatasetId]
+    const cached = suggestionsByDataset[`${SUGGESTION_CLIENT_CACHE_VERSION}:${selectedDatasetId}`]
     if (cached?.length) {
       setSavedSuggestions(cached)
       return
@@ -618,6 +672,62 @@ export function AiAssistantWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+      <Dialog open={Boolean(responseEditor)} onOpenChange={(open) => {
+        if (!open) closeResponseEditor()
+      }}>
+        <DialogContent className="flex max-h-[85vh] max-w-[min(900px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-950/95 p-0 text-slate-50 shadow-[0_32px_120px_rgba(2,6,23,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl dark:bg-card/95 sm:max-w-[820px]">
+          <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+            <DialogHeader className="pr-8">
+              <DialogTitle>Edit AI response</DialogTitle>
+              <DialogDescription className="text-slate-300">
+                Review and edit this response before saving it.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="min-h-0 flex-1 px-5 py-4 sm:px-6">
+            <label htmlFor="ai-response-editor" className="sr-only">
+              Edited AI response
+            </label>
+            <textarea
+              id="ai-response-editor"
+              ref={responseEditorTextareaRef}
+              value={responseEditor?.draft ?? ""}
+              onChange={(event) => {
+                setResponseEditor((current) => current ? { ...current, draft: event.target.value } : current)
+                if (responseEditorError) setResponseEditorError("")
+              }}
+              className="min-h-[320px] max-h-[55vh] w-full resize-y overflow-y-auto rounded-lg border border-white/10 bg-slate-900/80 px-4 py-3 text-sm leading-6 text-slate-50 shadow-inner outline-none transition placeholder:text-slate-400 focus:border-primary/60 focus:ring-2 focus:ring-primary/30 sm:min-h-[380px]"
+              aria-label="Edited AI response"
+              disabled={savingResponseEdit}
+            />
+            {responseEditorError && (
+              <p className="mt-2 text-sm text-destructive" role="alert">
+                {responseEditorError}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="border-t border-white/10 px-5 pb-5 pt-4 sm:px-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeResponseEditor}
+              disabled={savingResponseEdit}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={saveResponseEdit}
+              disabled={savingResponseEdit || !responseEditor?.draft.trim()}
+              className="gap-2"
+            >
+              {savingResponseEdit && <Loader2 className="h-4 w-4 animate-spin" />}
+              {savingResponseEdit ? "Saving" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Left Sidebar - Datasets */}
       <aside
         className={`flex-shrink-0 border-r border-border bg-card transition-all duration-200 ${
@@ -985,7 +1095,7 @@ export function AiAssistantWorkspace() {
                       </div>
                     ) : allSuggestionsCombined.length === 0 ? (
                       <p className="px-1 py-2 text-xs text-muted-foreground">
-                        {selectedDatasetId ? "Preparing fallback suggestions..." : "Select a dataset to see suggestions"}
+                        {selectedDatasetId ? "No supported suggested questions are available for this dataset yet. You can still ask a question below." : "Select a dataset to see suggestions"}
                       </p>
                     ) : (
                       allSuggestionsCombined.map((question, index) => (
