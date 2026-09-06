@@ -305,3 +305,4 @@
 - changed: add a ChatGPT MCP integration that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing upload and Business Intelligence workflow while keeping dataset access owner-scoped
 - fixed: resolve the beta ChatGPT MCP/OAuth compatibility blocker by using the current beta semantic schema service for source-backed MCP analysis diagnostics instead of importing feature-branch-only Business Semantics code
 - fixed: route ESLint type-aware parsing through a dedicated lint TypeScript project that includes root JavaScript and MJS repro scripts without ignoring the files or weakening rules
+- fixed: resolve the beta dependency audit blocker by refreshing the lockfile to the patched transitive URI parser version while keeping the allowlist limited to reviewed residual high-severity advisories

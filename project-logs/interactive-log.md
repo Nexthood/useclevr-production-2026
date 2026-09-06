@@ -5672,3 +5672,39 @@ Use one shared challenge builder so the HTTP header and MCP `_meta` value remain
 
 9. Minimal destination
 Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Beta CI Fast URI Audit Remediation
+
+1. Interaction title
+Beta CI fast-uri audit remediation.
+
+2. What was the user goal
+Investigate only the beta CI security audit failure after the reviewed ChatGPT MCP/OAuth commits reached `origin/beta`, identify the exact high advisories, determine whether the ChatGPT work introduced them, and apply only a safe minimal remediation if one exists.
+
+3. What changed
+The failed GitHub Actions run and local `pnpm audit:allowlist` both reported four unapproved high advisories against `fast-uri@3.1.5`: `GHSA-5jgf-p345-68v8`, `GHSA-f65p-4m7j-42xc`, `GHSA-fph4-wmhf-6fwf`, and `GHSA-jqff-g426-hqxp`. The dependency was already present through `ajv` under Payload packages, Payload MCP, and dev-time commitlint paths; the ChatGPT commits changed `package.json` only by adding the `test:chatgpt-mcp` script and did not change package dependencies. The lockfile now resolves the existing transitive `fast-uri` dependency to `3.1.7`, which clears all unapproved high findings without changing application code or the audit allowlist.
+
+4. Problems marked
+blocker: beta CI still needs a new run after committing and pushing the lockfile remediation.
+risk: a workspace-level forced override for `fast-uri` cleared the audit but caused Next.js production build to fail while parsing TypeScript `--showConfig`; the final remediation keeps only the lockfile resolution and removes the override setting.
+improvement: triage the remaining unapproved moderate and low audit findings in a separate dependency task.
+observation: GitHub published the four reviewed `fast-uri` advisories on 2026-09-02, so the allowlist was not stale for these findings; it correctly failed on new unreviewed high-severity advisories.
+
+5. User learning
+The beta CI failure was caused by new advisory feed data for an existing transitive dependency, not by the ChatGPT MCP/OAuth feature introducing a new dependency.
+
+6. AI-agent learning
+For pnpm v11 projects, test lockfile-only transitive patch remediation and production build behavior separately from workspace override settings because an override can change package-manager/runtime behavior beyond the final resolved version.
+
+7. Follow-up tasks
+- Commit and push the lockfile remediation, then rerun beta CI and test deployment endpoint verification.
+- Triage remaining moderate and low audit findings in a separate approved dependency task.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
