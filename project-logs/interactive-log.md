@@ -5212,6 +5212,41 @@ Investor canonical metric tests must include distractor columns such as investme
 9. Minimal destination
 Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Production ChatGPT OAuth Token Exchange
+
+1. Interaction title
+Production ChatGPT OAuth token exchange.
+
+2. What was the user goal
+Investigate only the production ChatGPT OAuth failure that occurs after the UseClevr consent page redirects back to ChatGPT, then make the smallest production-safe fix for the authorization-code callback and token-exchange path.
+
+3. What changed
+The token endpoint now accepts ChatGPT's authorization-code token request without a `resource` form field, defaults the exchange to the advertised UseClevr ChatGPT MCP resource, and still rejects any provided mismatched resource. The focused ChatGPT MCP integration test now uses the CIMD client identifier `https://chatgpt.com/oauth/client.json`, asserts advertised issuer and CIMD metadata, verifies stored redirect URI, state, PKCE challenge, S256 method, one-time code consumption, and token exchange without a client secret.
+
+4. Problems marked
+blocker: none.
+risk: the local Railway native log command exits without returning production log lines from this shell, so investigation used production metadata and a non-secret live dummy token request to confirm the deployed `resource is required` error.
+improvement: add a bounded operator script for sanitized Railway HTTP OAuth log retrieval when native CLI auth is unavailable.
+observation: production metadata advertises `authorization_response_iss_parameter_supported: true`, and the authorize route already returns `iss=https://app.useclevr.com` while preserving `state`.
+
+5. User learning
+ChatGPT's token callback can omit `resource`; UseClevr must bind the token exchange to the stored authorization code and advertised MCP resource instead of requiring an extra token form parameter.
+
+6. AI-agent learning
+OAuth metadata compatibility tests must exercise the exact public CIMD client id and the exact token request shape that ChatGPT sends, including absence of a client secret and optional resource handling.
+
+7. Follow-up tasks
+- Add a sanitized Railway OAuth HTTP-log helper if repeated production OAuth diagnostics need CLI-independent evidence.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Production Superadmin Verification Flow Alignment
 
 1. Interaction title

@@ -2,14 +2,17 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 
 const MCP_WWW_AUTHENTICATE_META_KEY = "mcp/www_authenticate";
+const CHATGPT_CIMD_CLIENT_ID = "https://chatgpt.com/oauth/client.json";
+const CHATGPT_REDIRECT_URI = "https://chatgpt.com/connector_platform_oauth_redirect";
+const CHATGPT_MCP_RESOURCE = "https://app.useclevr.com/api/chatgpt/mcp";
 
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 process.env.CHATGPT_MCP_OAUTH_PRIVATE_KEY = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
 process.env.CHATGPT_MCP_OAUTH_KEY_ID = "test-chatgpt-mcp-key";
 process.env.CHATGPT_MCP_OAUTH_ISSUER = "https://app.useclevr.com";
-process.env.CHATGPT_MCP_RESOURCE_URL = "https://app.useclevr.com/api/chatgpt/mcp";
-process.env.CHATGPT_MCP_ALLOWED_CLIENT_IDS = "https://chatgpt.com/useclevr-client.json";
-process.env.CHATGPT_MCP_ALLOWED_REDIRECT_URIS = "https://chatgpt.com/connector_platform_oauth_redirect";
+process.env.CHATGPT_MCP_RESOURCE_URL = CHATGPT_MCP_RESOURCE;
+process.env.CHATGPT_MCP_ALLOWED_CLIENT_IDS = CHATGPT_CIMD_CLIENT_ID;
+process.env.CHATGPT_MCP_ALLOWED_REDIRECT_URIS = CHATGPT_REDIRECT_URI;
 process.env.AUTH_SECRET ||= "test-chatgpt-mcp-auth-secret";
 process.env.NEXTAUTH_SECRET ||= "test-chatgpt-mcp-auth-secret";
 
@@ -18,7 +21,9 @@ async function main() {
     { GET: getAuthorizationServer },
     { GET: getProtectedResource },
     { GET: getMcp, POST: postMcp },
+    { POST: postOAuthToken },
     {
+      createChatGptAuthorizationCode,
       createPkceS256Challenge,
       issueChatGptAccessToken,
       validateAuthorizationRequest,
@@ -26,7 +31,7 @@ async function main() {
       verifyPkceS256,
     },
     { getDb },
-    { datasetRows, datasets, users },
+    { chatGptMcpOAuthCodes, datasetRows, datasets, users },
     { default: proxy },
     { NextRequest },
     { eq },
@@ -34,6 +39,7 @@ async function main() {
     import("../../src/app/.well-known/oauth-authorization-server/route"),
     import("../../src/app/.well-known/oauth-protected-resource/route"),
     import("../../src/app/api/chatgpt/mcp/route"),
+    import("../../src/app/api/chatgpt/oauth/token/route"),
     import("../../src/lib/chatgpt/oauth"),
     import("../../src/lib/db"),
     import("../../src/lib/db/schema"),
@@ -79,7 +85,7 @@ async function main() {
   );
   assert.equal(metadataResponse.status, 200);
   const metadata = await metadataResponse.json();
-  assert.equal(metadata.resource, "https://app.useclevr.com/api/chatgpt/mcp");
+  assert.equal(metadata.resource, CHATGPT_MCP_RESOURCE);
   assert.deepEqual(metadata.bearer_methods_supported, ["header"]);
   assert.ok(metadata.scopes_supported.includes("dataset:read"));
   assert.deepEqual(metadata.authorization_servers, ["https://app.useclevr.com"]);
@@ -92,6 +98,8 @@ async function main() {
   const authorizationServer = await authorizationServerResponse.json();
   assert.equal(authorizationServer.issuer, "https://app.useclevr.com");
   assert.equal(authorizationServer.token_endpoint_auth_methods_supported[0], "none");
+  assert.equal(authorizationServer.authorization_response_iss_parameter_supported, true);
+  assert.equal(authorizationServer.client_id_metadata_document_supported, true);
   assert.ok(authorizationServer.code_challenge_methods_supported.includes("S256"));
 
   const codeVerifier = "A".repeat(43);
@@ -101,15 +109,20 @@ async function main() {
 
   const authorizationRequestUrl = new URL("https://app.useclevr.com/api/chatgpt/oauth/authorize");
   authorizationRequestUrl.searchParams.set("response_type", "code");
-  authorizationRequestUrl.searchParams.set("client_id", "https://chatgpt.com/useclevr-client.json");
-  authorizationRequestUrl.searchParams.set("redirect_uri", "https://chatgpt.com/connector_platform_oauth_redirect");
+  authorizationRequestUrl.searchParams.set("client_id", CHATGPT_CIMD_CLIENT_ID);
+  authorizationRequestUrl.searchParams.set("redirect_uri", CHATGPT_REDIRECT_URI);
   authorizationRequestUrl.searchParams.set("code_challenge", codeChallenge);
   authorizationRequestUrl.searchParams.set("code_challenge_method", "S256");
   authorizationRequestUrl.searchParams.set("scope", "dataset:read dataset:write");
-  authorizationRequestUrl.searchParams.set("resource", "https://app.useclevr.com/api/chatgpt/mcp");
-  authorizationRequestUrl.searchParams.set("state", "test-state");
+  authorizationRequestUrl.searchParams.set("resource", CHATGPT_MCP_RESOURCE);
+  authorizationRequestUrl.searchParams.set("state", "test-state%2Bbyte-for-byte");
   const parsedAuthorization = validateAuthorizationRequest(new NextRequest(authorizationRequestUrl));
-  assert.equal(parsedAuthorization.clientId, "https://chatgpt.com/useclevr-client.json");
+  assert.equal(parsedAuthorization.clientId, CHATGPT_CIMD_CLIENT_ID);
+  assert.equal(parsedAuthorization.redirectUri, CHATGPT_REDIRECT_URI);
+  assert.equal(parsedAuthorization.resource, CHATGPT_MCP_RESOURCE);
+  assert.equal(parsedAuthorization.codeChallenge, codeChallenge);
+  assert.equal(parsedAuthorization.codeChallengeMethod, "S256");
+  assert.equal(parsedAuthorization.state, "test-state%2Bbyte-for-byte");
   assert.deepEqual(parsedAuthorization.scopes, ["dataset:read", "dataset:write"]);
 
   const wrongPkceMethodUrl = new URL(authorizationRequestUrl);
@@ -158,7 +171,7 @@ async function main() {
     request: new NextRequest("https://app.useclevr.com/api/chatgpt/mcp"),
     userId: "chatgpt_mcp_valid_user",
     scopes: ["dataset:read", "dataset:write"],
-    clientId: "https://chatgpt.com/useclevr-client.json",
+    clientId: CHATGPT_CIMD_CLIENT_ID,
   });
   const validAuth = await verifyChatGptAccessToken(
     new NextRequest("https://app.useclevr.com/api/chatgpt/mcp", {
@@ -262,6 +275,63 @@ async function main() {
 
   const db = getDb();
   assert.ok(db, "DATABASE_URL is required for ChatGPT MCP tenant isolation smoke coverage.");
+  const oauthUserId = `chatgpt_mcp_oauth_user_${Date.now()}`;
+  try {
+    const authorizationCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
+    const tokenParams = new URLSearchParams();
+    tokenParams.set("grant_type", "authorization_code");
+    tokenParams.set("code", authorizationCode);
+    tokenParams.set("redirect_uri", CHATGPT_REDIRECT_URI);
+    tokenParams.set("client_id", CHATGPT_CIMD_CLIENT_ID);
+    tokenParams.set("code_verifier", codeVerifier);
+
+    const tokenResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: tokenParams.toString(),
+      }),
+    );
+    assert.equal(tokenResponse.status, 200);
+    const tokenBody = await tokenResponse.json();
+    assert.equal(tokenBody.token_type, "Bearer");
+    assert.equal(tokenBody.scope, "dataset:read dataset:write");
+    assert.equal(typeof tokenBody.access_token, "string");
+    const tokenAuth = await verifyChatGptAccessToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/mcp", {
+        headers: { authorization: `Bearer ${tokenBody.access_token}` },
+      }),
+    );
+    assert.equal(tokenAuth.userId, oauthUserId);
+    assert.equal(tokenAuth.clientId, CHATGPT_CIMD_CLIENT_ID);
+
+    const reusedCodeResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: tokenParams.toString(),
+      }),
+    );
+    assert.equal(reusedCodeResponse.status, 400);
+    assert.equal((await reusedCodeResponse.json()).error, "invalid_grant");
+
+    const wrongResourceCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
+    const wrongResourceParams = new URLSearchParams(tokenParams);
+    wrongResourceParams.set("code", wrongResourceCode);
+    wrongResourceParams.set("resource", "https://app.useclevr.com/api/other-mcp");
+    const wrongResourceResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: wrongResourceParams.toString(),
+      }),
+    );
+    assert.equal(wrongResourceResponse.status, 400);
+    assert.equal((await wrongResourceResponse.json()).error, "invalid_target");
+  } finally {
+    await db.delete(chatGptMcpOAuthCodes).where(eq(chatGptMcpOAuthCodes.userId, oauthUserId));
+  }
+
   const userAId = `chatgpt_mcp_user_a_${Date.now()}`;
   const userBId = `chatgpt_mcp_user_b_${Date.now()}`;
   const datasetBId = `chatgpt_mcp_dataset_b_${Date.now()}`;
@@ -302,7 +372,7 @@ async function main() {
       request: new NextRequest("https://app.useclevr.com/api/chatgpt/mcp"),
       userId: userAId,
       scopes: ["dataset:read"],
-      clientId: "https://chatgpt.com/useclevr-client.json",
+      clientId: CHATGPT_CIMD_CLIENT_ID,
     });
     const crossTenantResponse = await postMcp(
       new NextRequest("https://app.useclevr.com/api/chatgpt/mcp", {
