@@ -8768,7 +8768,7 @@ snapshots:
   xss@1.0.15:
     dependencies:
       commander: 2.20.3
-      cssfilter: 0.0.10In Railway → Production → Variables prüfen wir diese Werte:
+      cssfilter: 0.0.10
 
   xtend@4.0.2: {}
 
