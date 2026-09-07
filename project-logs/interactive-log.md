@@ -5221,19 +5221,19 @@ Production ChatGPT OAuth token exchange.
 Investigate only the production ChatGPT OAuth failure that occurs after the UseClevr consent page redirects back to ChatGPT, then make the smallest production-safe fix for the authorization-code callback and token-exchange path.
 
 3. What changed
-The token endpoint now accepts ChatGPT's authorization-code token request without a `resource` form field, defaults the exchange to the advertised UseClevr ChatGPT MCP resource, and still rejects any provided mismatched resource. The focused ChatGPT MCP integration test now uses the CIMD client identifier `https://chatgpt.com/oauth/client.json`, asserts advertised issuer and CIMD metadata, verifies stored redirect URI, state, PKCE challenge, S256 method, one-time code consumption, and token exchange without a client secret.
+The authorize response builder now returns `iss` and preserves the raw incoming OAuth `state` query value on the ChatGPT callback URL. The token endpoint accepts ChatGPT's authorization-code token request without a `resource` form field, defaults the exchange to the advertised UseClevr ChatGPT MCP resource, and still rejects any provided mismatched resource. The focused ChatGPT MCP integration test now uses the CIMD client identifier `https://chatgpt.com/oauth/client.json`, asserts advertised issuer and CIMD metadata, verifies stored redirect URI, raw state, PKCE challenge, S256 method, one-time code consumption, and token exchange without a client secret.
 
 4. Problems marked
 blocker: none.
-risk: the local Railway native log command exits without returning production log lines from this shell, so investigation used production metadata and a non-secret live dummy token request to confirm the deployed `resource is required` error.
+risk: the local Railway native log command exits without returning production log lines from this shell, so investigation used production metadata and non-secret live dummy token requests to confirm the deployed `resource is required` error and the explicit-resource `invalid_grant` path.
 improvement: add a bounded operator script for sanitized Railway HTTP OAuth log retrieval when native CLI auth is unavailable.
-observation: production metadata advertises `authorization_response_iss_parameter_supported: true`, and the authorize route already returns `iss=https://app.useclevr.com` while preserving `state`.
+observation: production metadata advertises `authorization_response_iss_parameter_supported: true`, and OpenAI hosts compare the returned `iss` exactly before exchanging the authorization code.
 
 5. User learning
-ChatGPT's token callback can omit `resource`; UseClevr must bind the token exchange to the stored authorization code and advertised MCP resource instead of requiring an extra token form parameter.
+UseClevr must return exactly matching OAuth callback parameters to ChatGPT and bind the token exchange to the stored authorization code plus advertised MCP resource.
 
 6. AI-agent learning
-OAuth metadata compatibility tests must exercise the exact public CIMD client id and the exact token request shape that ChatGPT sends, including absence of a client secret and optional resource handling.
+OAuth metadata compatibility tests must exercise the exact public CIMD client id, raw authorization-response state preservation, issuer echo, and the exact token request shape that ChatGPT sends.
 
 7. Follow-up tasks
 - Add a sanitized Railway OAuth HTTP-log helper if repeated production OAuth diagnostics need CLI-independent evidence.

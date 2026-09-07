@@ -19,6 +19,7 @@ import type { NextRequest } from "next/server";
 
 export const CHATGPT_MCP_REQUIRED_SCOPE: McpTokenScope = "dataset:read";
 export const CHATGPT_MCP_SUPPORTED_SCOPES: McpTokenScope[] = ["dataset:read", "dataset:write"];
+export const CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS = 303;
 
 const DEFAULT_ACCESS_TOKEN_SECONDS = 60 * 60;
 const AUTHORIZATION_CODE_SECONDS = 10 * 60;
@@ -34,6 +35,7 @@ type AuthorizationRequest = {
   codeChallengeMethod: "S256";
   scopes: McpTokenScope[];
   state?: string;
+  stateParam?: string;
   resource: string;
 };
 
@@ -154,7 +156,8 @@ export function validateAuthorizationRequest(request: NextRequest): Authorizatio
     codeChallenge,
     codeChallengeMethod: "S256",
     scopes: parseRequestedScopes(params.get("scope")),
-    state: params.get("state") || undefined,
+    state: params.has("state") ? params.get("state") || "" : undefined,
+    stateParam: readRawQueryParam(request.nextUrl.search, "state"),
     resource,
   };
 }
@@ -174,6 +177,20 @@ export function buildLoginRedirect(request: NextRequest) {
   const loginUrl = new URL("/login", request.nextUrl.origin);
   loginUrl.searchParams.set("callbackUrl", `${request.nextUrl.pathname}${request.nextUrl.search}`);
   return loginUrl;
+}
+
+export function buildChatGptAuthorizationResponseRedirect(input: {
+  request: NextRequest;
+  authorization: Pick<AuthorizationRequest, "redirectUri" | "state" | "stateParam">;
+  code?: string;
+  error?: string;
+}) {
+  const redirectUrl = new URL(input.authorization.redirectUri);
+  if (input.error) redirectUrl.searchParams.set("error", input.error);
+  if (input.code) redirectUrl.searchParams.set("code", input.code);
+  redirectUrl.searchParams.set("iss", getChatGptOAuthIssuer(input.request));
+  appendStateParam(redirectUrl, input.authorization);
+  return redirectUrl;
 }
 
 export function createConsentToken(userId: string, authorization: AuthorizationRequest) {
@@ -423,8 +440,35 @@ function validateStoredAuthorizationRequest(value: unknown): AuthorizationReques
     codeChallengeMethod: "S256",
     scopes: normalizeAllowedScopes(record.scopes as McpTokenScope[]),
     state: typeof record.state === "string" ? record.state : undefined,
+    stateParam: typeof record.stateParam === "string" ? record.stateParam : undefined,
     resource: record.resource,
   };
+}
+
+function appendStateParam(
+  redirectUrl: URL,
+  authorization: Pick<AuthorizationRequest, "state" | "stateParam">,
+) {
+  if (typeof authorization.stateParam === "string") {
+    redirectUrl.searchParams.delete("state");
+    redirectUrl.search = `${redirectUrl.search}${redirectUrl.search ? "&" : "?"}state=${authorization.stateParam}`;
+    return;
+  }
+  if (typeof authorization.state === "string") {
+    redirectUrl.searchParams.set("state", authorization.state);
+  }
+}
+
+function readRawQueryParam(search: string, name: string) {
+  const query = search.startsWith("?") ? search.slice(1) : search;
+  if (!query) return undefined;
+  const encodedName = encodeURIComponent(name);
+  for (const part of query.split("&")) {
+    const equalsAt = part.indexOf("=");
+    const key = equalsAt === -1 ? part : part.slice(0, equalsAt);
+    if (key === encodedName) return equalsAt === -1 ? "" : part.slice(equalsAt + 1);
+  }
+  return undefined;
 }
 
 function signJwt(payload: AccessTokenClaims) {

@@ -323,4 +323,4 @@
 - fixed: complete Investor Portfolio end-to-end semantics so strong portfolio schemas override stale SaaS metadata, reports and dashboards stay Investor-scoped, and deterministic Assistant answers cover annual revenue, valuation, growth, investment activity, burn, and runway without incompatible trend axes
 - fixed: score Investor Portfolio Balanced Scorecard growth from source growth-rate distribution and portfolio diversification while keeping `investment_date` out of historical growth, revenue, burn, runway, and valuation trends
 - changed: exclude the local ChatGPT MCP OAuth private key from Git tracking
-- fixed: allow ChatGPT OAuth token exchange to omit the optional resource form field while binding issued tokens to the advertised UseClevr MCP resource
+- fixed: preserve ChatGPT OAuth callback issuer and raw state, and allow token exchange to bind omitted resource requests to the advertised UseClevr MCP resource

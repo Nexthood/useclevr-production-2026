@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
+import { createServer } from "node:http";
 
 const MCP_WWW_AUTHENTICATE_META_KEY = "mcp/www_authenticate";
 const CHATGPT_CIMD_CLIENT_ID = "https://chatgpt.com/oauth/client.json";
@@ -23,17 +24,21 @@ async function main() {
     { GET: getMcp, POST: postMcp },
     { POST: postOAuthToken },
     {
+      CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS,
+      buildChatGptAuthorizationResponseRedirect,
       createChatGptAuthorizationCode,
+      createConsentToken,
       createPkceS256Challenge,
       issueChatGptAccessToken,
       validateAuthorizationRequest,
       verifyChatGptAccessToken,
+      verifyConsentToken,
       verifyPkceS256,
     },
     { getDb },
     { chatGptMcpOAuthCodes, datasetRows, datasets, users },
     { default: proxy },
-    { NextRequest },
+    { NextRequest, NextResponse },
     { eq },
   ] = await Promise.all([
     import("../../src/app/.well-known/oauth-authorization-server/route"),
@@ -107,23 +112,63 @@ async function main() {
   assert.equal(verifyPkceS256(codeVerifier, codeChallenge), true);
   assert.equal(verifyPkceS256("B".repeat(43), codeChallenge), false);
 
-  const authorizationRequestUrl = new URL("https://app.useclevr.com/api/chatgpt/oauth/authorize");
-  authorizationRequestUrl.searchParams.set("response_type", "code");
-  authorizationRequestUrl.searchParams.set("client_id", CHATGPT_CIMD_CLIENT_ID);
-  authorizationRequestUrl.searchParams.set("redirect_uri", CHATGPT_REDIRECT_URI);
-  authorizationRequestUrl.searchParams.set("code_challenge", codeChallenge);
-  authorizationRequestUrl.searchParams.set("code_challenge_method", "S256");
-  authorizationRequestUrl.searchParams.set("scope", "dataset:read dataset:write");
-  authorizationRequestUrl.searchParams.set("resource", CHATGPT_MCP_RESOURCE);
-  authorizationRequestUrl.searchParams.set("state", "test-state%2Bbyte-for-byte");
+  const rawState = "test-state%20with%2bencoded%3Dbytes";
+  const authorizationRequestUrl = new URL(
+    `https://app.useclevr.com/api/chatgpt/oauth/authorize?${[
+      ["response_type", "code"],
+      ["client_id", CHATGPT_CIMD_CLIENT_ID],
+      ["redirect_uri", CHATGPT_REDIRECT_URI],
+      ["code_challenge", codeChallenge],
+      ["code_challenge_method", "S256"],
+      ["scope", "dataset:read dataset:write"],
+      ["resource", CHATGPT_MCP_RESOURCE],
+    ].map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join("&")}&state=${rawState}`,
+  );
   const parsedAuthorization = validateAuthorizationRequest(new NextRequest(authorizationRequestUrl));
   assert.equal(parsedAuthorization.clientId, CHATGPT_CIMD_CLIENT_ID);
   assert.equal(parsedAuthorization.redirectUri, CHATGPT_REDIRECT_URI);
   assert.equal(parsedAuthorization.resource, CHATGPT_MCP_RESOURCE);
   assert.equal(parsedAuthorization.codeChallenge, codeChallenge);
   assert.equal(parsedAuthorization.codeChallengeMethod, "S256");
-  assert.equal(parsedAuthorization.state, "test-state%2Bbyte-for-byte");
+  assert.equal(parsedAuthorization.state, "test-state with+encoded=bytes");
+  assert.equal(parsedAuthorization.stateParam, rawState);
   assert.deepEqual(parsedAuthorization.scopes, ["dataset:read", "dataset:write"]);
+  const consentAuthorization = verifyConsentToken(
+    createConsentToken("chatgpt_mcp_consent_user", parsedAuthorization),
+    "chatgpt_mcp_consent_user",
+  );
+  const authorizationRedirect = buildChatGptAuthorizationResponseRedirect({
+    request: new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/authorize"),
+    authorization: consentAuthorization,
+    code: "test-code",
+  });
+  const allowRedirectResponse = NextResponse.redirect(
+    authorizationRedirect,
+    CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS,
+  );
+  assert.equal(CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS, 303);
+  assert.equal(allowRedirectResponse.status, 303);
+  const allowLocation = new URL(requireHeader(allowRedirectResponse, "location"));
+  assert.equal(allowLocation.origin + allowLocation.pathname, CHATGPT_REDIRECT_URI);
+  assert.equal(allowLocation.searchParams.get("code"), "test-code");
+  assert.equal(allowLocation.searchParams.get("iss"), "https://app.useclevr.com");
+  assert.match(allowLocation.toString(), new RegExp(`[?&]state=${rawState}(?:&|$)`));
+
+  const cancelRedirectResponse = NextResponse.redirect(
+    buildChatGptAuthorizationResponseRedirect({
+      request: new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/authorize"),
+      authorization: consentAuthorization,
+      error: "access_denied",
+    }),
+    CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS,
+  );
+  assert.equal(cancelRedirectResponse.status, 303);
+  const cancelLocation = new URL(requireHeader(cancelRedirectResponse, "location"));
+  assert.equal(cancelLocation.origin + cancelLocation.pathname, CHATGPT_REDIRECT_URI);
+  assert.equal(cancelLocation.searchParams.get("error"), "access_denied");
+  assert.equal(cancelLocation.searchParams.get("iss"), "https://app.useclevr.com");
+  assert.match(cancelLocation.toString(), new RegExp(`[?&]state=${rawState}(?:&|$)`));
+  await assertPost303RedirectUsesGet();
 
   const wrongPkceMethodUrl = new URL(authorizationRequestUrl);
   wrongPkceMethodUrl.searchParams.set("code_challenge_method", "plain");
@@ -315,6 +360,48 @@ async function main() {
     assert.equal(reusedCodeResponse.status, 400);
     assert.equal((await reusedCodeResponse.json()).error, "invalid_grant");
 
+    const wrongClientCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
+    const wrongClientParams = new URLSearchParams(tokenParams);
+    wrongClientParams.set("code", wrongClientCode);
+    wrongClientParams.set("client_id", "https://chatgpt.com/oauth/other-client.json");
+    const wrongClientResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: wrongClientParams.toString(),
+      }),
+    );
+    assert.equal(wrongClientResponse.status, 400);
+    assert.equal((await wrongClientResponse.json()).error, "invalid_grant");
+
+    const wrongRedirectCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
+    const wrongRedirectParams = new URLSearchParams(tokenParams);
+    wrongRedirectParams.set("code", wrongRedirectCode);
+    wrongRedirectParams.set("redirect_uri", "https://chatgpt.com/connector/oauth/other-callback");
+    const wrongRedirectResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: wrongRedirectParams.toString(),
+      }),
+    );
+    assert.equal(wrongRedirectResponse.status, 400);
+    assert.equal((await wrongRedirectResponse.json()).error, "invalid_grant");
+
+    const wrongVerifierCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
+    const wrongVerifierParams = new URLSearchParams(tokenParams);
+    wrongVerifierParams.set("code", wrongVerifierCode);
+    wrongVerifierParams.set("code_verifier", "B".repeat(43));
+    const wrongVerifierResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: wrongVerifierParams.toString(),
+      }),
+    );
+    assert.equal(wrongVerifierResponse.status, 400);
+    assert.equal((await wrongVerifierResponse.json()).error, "invalid_grant");
+
     const wrongResourceCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
     const wrongResourceParams = new URLSearchParams(tokenParams);
     wrongResourceParams.set("code", wrongResourceCode);
@@ -328,6 +415,36 @@ async function main() {
     );
     assert.equal(wrongResourceResponse.status, 400);
     assert.equal((await wrongResourceResponse.json()).error, "invalid_target");
+
+    const omittedResourceCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
+    const omittedResourceParams = new URLSearchParams(tokenParams);
+    omittedResourceParams.set("code", omittedResourceCode);
+    omittedResourceParams.delete("resource");
+    const omittedResourceResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: omittedResourceParams.toString(),
+      }),
+    );
+    assert.equal(omittedResourceResponse.status, 200);
+    assert.equal((await omittedResourceResponse.json()).token_type, "Bearer");
+
+    const expiredCode = await createChatGptAuthorizationCode(oauthUserId, parsedAuthorization);
+    await db.update(chatGptMcpOAuthCodes)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(chatGptMcpOAuthCodes.userId, oauthUserId));
+    const expiredParams = new URLSearchParams(tokenParams);
+    expiredParams.set("code", expiredCode);
+    const expiredCodeResponse = await postOAuthToken(
+      new NextRequest("https://app.useclevr.com/api/chatgpt/oauth/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: expiredParams.toString(),
+      }),
+    );
+    assert.equal(expiredCodeResponse.status, 400);
+    assert.equal((await expiredCodeResponse.json()).error, "invalid_grant");
   } finally {
     await db.delete(chatGptMcpOAuthCodes).where(eq(chatGptMcpOAuthCodes.userId, oauthUserId));
   }
@@ -429,6 +546,47 @@ function readMcpAuthChallenge(body: unknown) {
   assert.equal(challenge.length, 1);
   assert.equal(typeof challenge[0], "string");
   return challenge[0];
+}
+
+function requireHeader(response: Response, name: string) {
+  const value = response.headers.get(name);
+  assert.ok(value, `${name} header is required.`);
+  return value;
+}
+
+async function assertPost303RedirectUsesGet() {
+  const requests: Array<{ method?: string; url?: string }> = [];
+  const server = createServer((request, response) => {
+    requests.push({ method: request.method, url: request.url });
+    if (request.url?.startsWith("/start")) {
+      const host = request.headers.host;
+      response.writeHead(303, { Location: `http://${host}/callback?ok=1` });
+      response.end();
+      return;
+    }
+    response.writeHead(200, { "Content-Type": "text/plain" });
+    response.end("ok");
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === "object", "mock callback server must bind a port.");
+    const response = await fetch(`http://127.0.0.1:${address.port}/start`, {
+      method: "POST",
+      body: "consent=approved",
+      redirect: "follow",
+    });
+    assert.equal(response.status, 200);
+    assert.equal(requests[0]?.method, "POST");
+    assert.equal(requests[0]?.url, "/start");
+    assert.equal(requests[1]?.method, "GET");
+    assert.equal(requests[1]?.url, "/callback?ok=1");
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+    });
+  }
 }
 
 main().catch((error) => {

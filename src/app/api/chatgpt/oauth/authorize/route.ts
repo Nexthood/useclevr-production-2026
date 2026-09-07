@@ -1,10 +1,11 @@
 import {
   ChatGptOAuthError,
+  CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS,
+  buildChatGptAuthorizationResponseRedirect,
   buildLoginRedirect,
   createChatGptAuthorizationCode,
   createConsentToken,
   getChatGptConsentUser,
-  getChatGptOAuthIssuer,
   validateAuthorizationRequest,
   verifyConsentToken,
 } from "@/lib/chatgpt/oauth";
@@ -46,19 +47,20 @@ export async function POST(request: NextRequest) {
     }
 
     const authorization = verifyConsentToken(consentToken, user.id);
-    const redirectUrl = new URL(authorization.redirectUri);
     if (!approved) {
-      redirectUrl.searchParams.set("error", "access_denied");
-      if (authorization.state) redirectUrl.searchParams.set("state", authorization.state);
-      redirectUrl.searchParams.set("iss", getChatGptOAuthIssuer(request));
-      return NextResponse.redirect(redirectUrl);
+      return NextResponse.redirect(buildChatGptAuthorizationResponseRedirect({
+        request,
+        authorization,
+        error: "access_denied",
+      }), CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS);
     }
 
     const code = await createChatGptAuthorizationCode(user.id, authorization);
-    redirectUrl.searchParams.set("code", code);
-    if (authorization.state) redirectUrl.searchParams.set("state", authorization.state);
-    redirectUrl.searchParams.set("iss", getChatGptOAuthIssuer(request));
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(buildChatGptAuthorizationResponseRedirect({
+      request,
+      authorization,
+      code,
+    }), CHATGPT_OAUTH_CONSENT_REDIRECT_STATUS);
   } catch (error) {
     return oauthErrorResponse(error);
   }
