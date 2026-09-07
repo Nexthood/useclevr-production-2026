@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const clientId = requireParam(params, "client_id");
     const redirectUri = requireParam(params, "redirect_uri");
     const codeVerifier = requireParam(params, "code_verifier");
-    const resource = requireParam(params, "resource");
+    const resource = params.get("resource") || getChatGptMcpResource(request);
     if (resource !== getChatGptMcpResource(request)) {
       throw new ChatGptOAuthError("invalid_target", "OAuth resource does not match this MCP server.");
     }
