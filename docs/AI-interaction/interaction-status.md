@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-09-06
-- **Goal**: Fix the production ChatGPT OAuth failure that occurs after the UseClevr consent page redirects back to ChatGPT.
-- **Durable change**: The ChatGPT OAuth authorize response preserves the raw callback `state` and exact issuer, and the token endpoint accepts the standard authorization-code request without a `resource` form field while binding the exchange to the advertised UseClevr MCP resource.
-- **Verification**: `pnpm test:chatgpt-mcp`, `pnpm validate:types`, `pnpm lint:secrets`, and `pnpm validate:release` pass.
-- **Residual risk**: Fresh ChatGPT end-to-end OAuth connection testing must run after deployment; Railway HTTP log retrieval from this local shell exits without returning log lines, so production evidence uses live metadata plus non-secret dummy token requests.
+- **Date**: 2026-09-08
+- **Goal**: Implement the Usy secretariat capability layer without changing the visible Usy shell or the separate Dataset AI Assistant.
+- **Durable change**: Usy answers approved product questions through deterministic server-side knowledge, routes uploaded-data analysis requests to the Dataset AI Assistant, refuses restricted information, and sends only explicitly confirmed department contact requests to the configured n8n webhook.
+- **Verification**: `node -r tsx/esm scripts/ai/test-usy-secretariat.ts`, `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:todos`, `pnpm lint:changelog`, `pnpm lint:secrets`, and targeted ESLint for Usy app code pass.
+- **Residual risk**: Future product areas require approved Usy knowledge updates before Usy can answer them deterministically; browser-level contact-flow coverage remains a follow-up.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

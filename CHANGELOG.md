@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add Usy secretariat answers and confirmed contact handoff so users get product guidance, safe AI Assistant routing, and department contact requests without exposing internal details.
 - Add OAuth 2.1 account linking for ChatGPT connections so users grant scoped UseClevr dataset access before ChatGPT can call their datasets.
 - Add a ChatGPT connection that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing business intelligence workflow.
 - Add an authoritative business semantics layer so dashboards, AI answers, and generated reports use evidence-backed metric permissions, ambiguity warnings, source lineage, and domain isolation before presenting business KPIs.

@@ -1,3 +1,38 @@
+## Usy Secretariat Capability Layer
+
+1. Interaction title
+Implement secure Usy secretariat capabilities.
+
+2. What was the user goal
+Add backend Usy logic, structured UseClevr knowledge, safe routing away from uploaded-data analysis, multilingual replies, and confirmed department contact handoff through n8n without changing the visible Usy shell or the separate AI Assistant.
+
+3. What changed
+Usy product guidance now runs through deterministic server-side knowledge, role-aware intent routing, safe restricted-information refusal, business-term explanations, and Dataset AI Assistant routing for uploaded-data analysis requests. The floating chatbox keeps its existing layout and sends questions to the dedicated Usy chat endpoint. Confirmed contact requests collect department, request, name, optional company, reply email, and language, show a summary, and send only validated confirmed payloads to the configured n8n webhook with bearer authentication, server-side rate limits, and authenticated tenant metadata when available. Documentation now states the webhook contract, environment variables, authentication method, payload, and responses. Focused tests cover product facts, unknown fallback, language handling, AI Assistant routing, contact category detection, confirmation gating, invalid and rate-limited requests, missing webhook env, webhook payload shape, and internal-information refusal.
+
+4. Problems marked
+blocker: none.
+risk: Usy uses deterministic phrase and keyword routing, so future product areas require approved knowledge updates before Usy can answer them.
+improvement: add browser-level Usy contact-flow coverage after stable seeded UI test fixtures exist.
+observation: contact detection must distinguish sales-analysis wording from Sales department handoff wording.
+
+5. User learning
+Usy now acts as UseClevr Secretariat for product navigation and contact handoff, while uploaded-data KPI, forecast, trend, risk, and performance analysis remains in the Dataset AI Assistant.
+
+6. AI-agent learning
+Short department words such as Sales and IT need contact-verb or word-boundary handling so deterministic routing does not steal ordinary business-analysis questions.
+
+7. Follow-up tasks
+- Add browser-level Usy contact-flow coverage after stable seeded UI test fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; webhook guide: `docs/AI-interaction/developer-guides/usy-contact-handoff.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dashboard Selected Dataset Routing
 
 1. Interaction title
