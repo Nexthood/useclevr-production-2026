@@ -1,3 +1,38 @@
+## Dependency Audit Patch
+
+1. Interaction title
+Patch dependency advisories blocking source validation.
+
+2. What was the user goal
+Fix only the dependency security advisories that block GitHub Validate Source, keep the approved residual advisory allowlist unchanged, and avoid modifying Usy, application behavior, UI, OAuth, business logic, AI logic, or contact logic.
+
+3. What changed
+The direct dependency metadata now pins Next.js to the patched 16.3.3 release, Sharp to the patched 0.35.4 range, and js-yaml to the patched 4.3.2 range. The workspace override map now forces Hono to 4.13.5 for the transitive Payload MCP path and forces transitive js-yaml 4.x consumers to 4.3.2. The lockfile resolves `@payloadcms/plugin-mcp` and Payload packages at 3.88.0, keeps `@modelcontextprotocol/sdk` at 1.30.0, and resolves `@hono/node-server` against `hono@4.13.5`.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: none.
+observation: direct js-yaml moved to 4.3.2, but a transitive 4.3.1 copy remained until the workspace override forced 4.3.2 for 4.x consumers.
+
+5. User learning
+The source audit gate now passes with only the existing approved residual d3-color and Payload advisories.
+
+6. AI-agent learning
+When pnpm audit still reports a patched direct dependency, the AI agent must inspect transitive resolution and use narrow overrides before changing the audit allowlist.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Usy Secretariat Acceptance Completion
 
 1. Interaction title

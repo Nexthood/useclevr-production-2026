@@ -117,6 +117,7 @@
 
 ### Dev
 
+- Patch source dependency audit inputs so validation passes with only the approved residual advisories.
 - Patch dependency audit validation so beta source checks use a fixed URI parser without allowing unapproved high-severity findings.
 - Add a dedicated ESLint TypeScript project for JavaScript and MJS scripts so the pre-push lint gate parses root repro scripts without weakening lint rules.
 - Document Payload 3.85.1 residual security risk with approved advisory allowlist so CI tracks the exact blocked undici and image-size transitive HIGH findings without suppressing new vulnerabilities.
