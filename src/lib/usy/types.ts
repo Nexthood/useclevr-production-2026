@@ -44,6 +44,17 @@ export type UsyContactDraft = {
   awaitingConfirmation?: boolean;
 };
 
+export type UsyIntent =
+  | "product_information"
+  | "getting_started"
+  | "account_help"
+  | "technical_support"
+  | "billing"
+  | "contact_request"
+  | "ai_analysis_request"
+  | "security_request"
+  | "unknown";
+
 export type UsyChatSource = "knowledge";
 
 export type UsyChatAction = "submit_contact" | "clear_contact";
@@ -54,4 +65,5 @@ export type UsyChatResponse = {
   followUps: string[];
   contactDraft?: UsyContactDraft | null;
   action?: UsyChatAction;
+  intent?: UsyIntent;
 };

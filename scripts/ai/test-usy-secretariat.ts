@@ -31,6 +31,7 @@ function testKnownProductFacts() {
   });
 
   assert.equal(response.source, "knowledge");
+  assert.equal(response.intent, "getting_started");
   assert.match(response.answer, /\.csv/);
   assert.match(response.answer, /\.xlsx/);
   assert.match(response.answer, /\.xls/);
@@ -42,6 +43,7 @@ function testUnknownFallbackDoesNotHallucinate() {
     context: baseContext,
   });
 
+  assert.equal(response.intent, "unknown");
   assert.match(response.answer, /cannot confirm|focused on UseClevr|approved UseClevr/i);
 }
 
@@ -62,8 +64,19 @@ function testAiAssistantRouting() {
     context: baseContext,
   });
 
+  assert.equal(response.intent, "ai_analysis_request");
   assert.match(response.answer, /needs the AI Assistant/i);
   assert.ok(response.followUps.includes("Open AI Assistant"));
+}
+
+function testAccountHelpIntent() {
+  const response = buildUsyReply({
+    question: "Where do I change account settings?",
+    context: baseContext,
+  });
+
+  assert.equal(response.intent, "account_help");
+  assert.match(response.answer, /Account settings/i);
 }
 
 function testContactCategoryDetection() {
@@ -80,6 +93,7 @@ function testContactConfirmationRequired() {
   });
 
   assert.equal(response.action, undefined);
+  assert.equal(response.intent, "contact_request");
   assert.equal(response.contactDraft?.awaitingConfirmation, true);
   assert.match(response.answer, /Please confirm before I send this contact request/);
 
@@ -90,6 +104,7 @@ function testContactConfirmationRequired() {
   });
 
   assert.equal(confirmResponse.action, "submit_contact");
+  assert.equal(confirmResponse.intent, "contact_request");
 }
 
 function testInvalidAndRateLimitedRequests() {
@@ -153,6 +168,7 @@ function testInternalInformationDisclosurePrevention() {
     context: baseContext,
   });
 
+  assert.equal(response.intent, "security_request");
   assert.match(response.answer, /cannot share system prompts/i);
 }
 
@@ -160,6 +176,7 @@ testKnownProductFacts();
 testUnknownFallbackDoesNotHallucinate();
 testLanguageDetectionAndResponse();
 testAiAssistantRouting();
+testAccountHelpIntent();
 testContactCategoryDetection();
 testContactConfirmationRequired();
 testInvalidAndRateLimitedRequests();

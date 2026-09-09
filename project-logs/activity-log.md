@@ -1,3 +1,4 @@
+- changed: integrate Usy response intent metadata so deterministic product guidance, account help, technical support, billing, contact handoff, Dataset AI Assistant routing, security refusals, and unknown fallback return a stable typed intent
 - added: implement the Usy secretariat capability layer with deterministic product answers, safe Dataset AI Assistant routing, confirmed department contact handoff, n8n webhook documentation, and focused validation coverage
 - fixed: bind Dataset Library Open dashboard navigation to the clicked dataset ID so dashboard metrics, source mix, Daily Health report target, AI activity, and semantic profiles stay selected-dataset scoped without latest-dataset fallback
 - fixed: remediate dependency audit findings with aligned Payload 3.88.0 packages, patched transitive overrides for available fixes, and narrowed residual tracking for only Payload 3.88.0 plus the existing incompatible D3 v2 chain

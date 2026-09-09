@@ -14,10 +14,29 @@ import {
   missingContactFields,
 } from "@/lib/usy/contact";
 import { detectUsyLanguage, normalizeUsyText } from "@/lib/usy/language";
-import type { SupportedUsyLanguage, UsyChatResponse, UsyContactDraft, UsyContext, UsyRole } from "@/lib/usy/types";
+import type { SupportedUsyLanguage, UsyChatResponse, UsyContactDraft, UsyContext, UsyIntent, UsyRole } from "@/lib/usy/types";
 
-type UsyIntent = {
-  id: string;
+type ProductIntentId =
+  | "languages"
+  | "capabilities"
+  | "file-formats"
+  | "uploads"
+  | "upload-trouble"
+  | "datasets"
+  | "dashboard"
+  | "credits"
+  | "plans"
+  | "billing"
+  | "reports"
+  | "retail"
+  | "accountancy"
+  | "governance"
+  | "integrations"
+  | "account"
+  | "support";
+
+type ProductIntentRule = {
+  id: ProductIntentId;
   keywords: string[];
   roles?: UsyRole[];
   minScore?: number;
@@ -28,6 +47,26 @@ type UsyIntent = {
 const fallbackFollowUps = ["Upload my first dataset", "Explain my dashboard", "How do AI credits work?", "Contact support"];
 const pricingFollowUps = ["Compare Free vs Pro", "Upgrade to Pro", "Business plan", "Billing & invoices"];
 const platformRoles: UsyRole[] = ["admin", "superadmin"];
+
+const usyIntentByProductIntent: Record<ProductIntentId, UsyIntent> = {
+  languages: "product_information",
+  capabilities: "product_information",
+  "file-formats": "getting_started",
+  uploads: "getting_started",
+  "upload-trouble": "technical_support",
+  datasets: "getting_started",
+  dashboard: "getting_started",
+  credits: "account_help",
+  plans: "billing",
+  billing: "billing",
+  reports: "product_information",
+  retail: "product_information",
+  accountancy: "product_information",
+  governance: "security_request",
+  integrations: "product_information",
+  account: "account_help",
+  support: "technical_support",
+};
 
 const businessTerms = [
   {
@@ -52,7 +91,7 @@ const businessTerms = [
   },
 ];
 
-const productIntents: UsyIntent[] = [
+const productIntents: ProductIntentRule[] = [
   {
     id: "languages",
     keywords: ["languages", "which languages", "speak german", "spreek je nederlands", "hablas español", "beszélsz magyarul", "vorbești română"],
@@ -164,6 +203,13 @@ const productIntents: UsyIntent[] = [
     followUps: ["Retail integrations", "AI providers", "Local AI", "Contact support"],
   },
   {
+    id: "account",
+    keywords: ["account", "settings", "profile", "email address", "login", "sign in", "organization", "workspace"],
+    answer: () =>
+      "Account settings manage your profile, sign-in details, organization context, plan visibility, billing entry points, and workspace preferences where your role has access. Security-sensitive account changes stay inside the secure settings flow.",
+    followUps: ["Open settings", "Billing help", "Contact support", "AI credits"],
+  },
+  {
     id: "support",
     keywords: ["support", "ticket", "help", "troubleshoot", "human", "technical support"],
     answer: () =>
@@ -190,6 +236,7 @@ export function buildUsyReply(input: {
         followUps: fallbackFollowUps,
         contactDraft: null,
         action: "clear_contact",
+        intent: "contact_request",
       };
     }
 
@@ -200,6 +247,7 @@ export function buildUsyReply(input: {
         followUps: [],
         contactDraft: input.contactDraft,
         action: "submit_contact",
+        intent: "contact_request",
       };
     }
   }
@@ -213,6 +261,7 @@ export function buildUsyReply(input: {
         source: "knowledge",
         followUps: ["Sales", "Technical Support", "Billing", "Management", "Executive Management"],
         contactDraft: draft,
+        intent: "contact_request",
       };
     }
 
@@ -228,19 +277,20 @@ export function buildUsyReply(input: {
       source: "knowledge",
       followUps: ["Confirm", "Cancel"],
       contactDraft: completeDraft,
+      intent: "contact_request",
     };
   }
 
   if (asksForRestrictedInformation(normalized)) {
-    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings", "Use AI Assistant"]);
+    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings", "Use AI Assistant"], "security_request");
   }
 
   if (!platformRoles.includes(context.role) && asksForAdminOnlyArea(normalized)) {
-    return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps);
+    return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps, "security_request");
   }
 
   if (requiresAiAssistant(normalized)) {
-    return knowledgeAnswer(localizedCommon("aiAssistant", language), ["Open AI Assistant", "Choose a dataset", "Generate a report", "Upload data"]);
+    return knowledgeAnswer(localizedCommon("aiAssistant", language), ["Open AI Assistant", "Choose a dataset", "Generate a report", "Upload data"], "ai_analysis_request");
   }
 
   const intent = detectProductIntent(normalized, context.role);
@@ -248,15 +298,16 @@ export function buildUsyReply(input: {
     return knowledgeAnswer(
       `${localizedIntentAnswer(intent.id, context, language) ?? intent.answer(context)}\n\n${localizedCommon("nextStep", language)} ${nextStepForIntent(intent.id, context, language)}`,
       intent.followUps,
+      usyIntentByProductIntent[intent.id],
     );
   }
 
   const term = businessTerms.find((entry) => entry.keywords.some((keyword) => normalized.includes(normalizeUsyText(keyword))));
   if (term) {
-    return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"]);
+    return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"], "product_information");
   }
 
-  return knowledgeAnswer(localizedCommon("unknown", language), fallbackFollowUps);
+  return knowledgeAnswer(localizedCommon("unknown", language), fallbackFollowUps, "unknown");
 }
 
 export function roleFromAudience(audience: UsyContext["audience"], sessionRole?: string | null): UsyRole {
@@ -277,7 +328,7 @@ function detectProductIntent(normalized: string, role: UsyRole) {
     .sort((a, b) => b.score - a.score)[0]?.intent ?? null;
 }
 
-function scoreIntent(normalized: string, tokens: Set<string>, intent: UsyIntent) {
+function scoreIntent(normalized: string, tokens: Set<string>, intent: ProductIntentRule) {
   return intent.keywords.reduce((score, keyword) => {
     const normalizedKeyword = normalizeUsyText(keyword);
     if (!normalizedKeyword) return score;
@@ -382,11 +433,12 @@ function nextStepForIntent(intentId: string, context: UsyContext, language: Supp
   return "open the matching UseClevr area, and I can help you decide what to check first.";
 }
 
-function knowledgeAnswer(answer: string, followUps: string[]): UsyChatResponse {
+function knowledgeAnswer(answer: string, followUps: string[], intent: UsyIntent): UsyChatResponse {
   return {
     answer,
     source: "knowledge",
     followUps: followUps.slice(0, 5),
+    intent,
   };
 }
 

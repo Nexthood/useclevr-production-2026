@@ -1,3 +1,38 @@
+## Usy Intent Metadata Integration
+
+1. Interaction title
+Integrate Usy response intent metadata.
+
+2. What was the user goal
+Preserve the existing uncommitted `UsyIntent` contract change in `src/lib/usy/types.ts`, review it, and integrate it into the completed Usy implementation without discarding unrelated work.
+
+3. What changed
+Usy chat responses now return a typed `intent` value for deterministic product answers, getting-started guidance, account help, technical support, billing, contact handoff, AI Assistant routing, security refusals, business-term answers, and unknown fallback. The router uses a separate internal product-intent rule type so the exported response intent remains the public API contract. Account settings guidance now has its own deterministic Usy product path. The existing Usy script test asserts intent values across upload guidance, unknown fallback, uploaded-data analysis routing, account help, contact confirmation, and restricted-information refusal.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: keep future Usy answer categories mapped to the exported response intent when new product areas are added.
+observation: the interrupted type change was sound but needed runtime wiring before clients could depend on it.
+
+5. User learning
+Usy responses now include stable intent metadata that callers can use without parsing answer text.
+
+6. AI-agent learning
+When a shared exported type name overlaps an internal router concept, the AI agent must rename the internal shape and map it into the public contract explicitly.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Usy Secretariat Capability Layer
 
 1. Interaction title
