@@ -51,19 +51,19 @@ export function detectContactCategory(message: string): UsyContactCategory | nul
 export function isContactRequest(message: string) {
   const normalized = normalizeUsyText(message);
   const contactVerb = /\b(contact|speak|talk|connect|reach|message|email|call|support ticket|human|agent|representative)\b/.test(normalized) ||
-    /\b(kontakt|sprechen|kontaktieren|spreek|contact|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez)\b/.test(normalized);
+    /\b(kontakt|kontaktiere|kontaktieren|sprechen|spreek|contact|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez)\b/.test(normalized);
   const department = /\b(sales|billing|management|executive|technical support|it support|support)\b/.test(normalized);
   return contactVerb || (department && /\b(help|request|need|want|please|with|about)\b/.test(normalized));
 }
 
 export function isConfirmation(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(yes|confirm|confirmed|send|submit|ok|okay|please send|go ahead|ja|bestatig|bestaetig|verstuur|enviar|si|sí|igen|kuldd|küldd|da|trimite)\b/.test(normalized);
+  return /^(yes|confirm|confirmed|send|submit|ok|okay|please send|go ahead|ja|senden|bestatigen|bestaetigen|bestatig|bestaetig|verstuur|versturen|bevestig|bevestigen|enviar|confirmar|si|sí|igen|kuldd|küldd|kuld|küld|megerositem|megerősítem|da|trimite|confirma|confirmă)\b/.test(normalized);
 }
 
 export function isCancellation(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(no|cancel|stop|do not send|dont send|don't send|nein|annuleer|cancelar|nem|megse|nu|opreste|oprește)\b/.test(normalized);
+  return /^(no|cancel|stop|do not send|dont send|don't send|nein|abbrechen|annuleer|annuleren|cancelar|nem|megse|mégse|nu|opreste|oprește)\b/.test(normalized);
 }
 
 export function mergeContactDraft(
@@ -80,7 +80,7 @@ export function mergeContactDraft(
     /(?:company is|company:|from company|for company|firma|unternehmen|bedrijf|empresa|ceg|cég|compania)\s+([^.,;\n]+)/i,
   ]);
   const explicitMessage = extractField(message, [
-    /(?:message is|message:|request is|request:|about|regarding|because|issue is|problem is)\s+(.+)/i,
+    /(?:message is|message:|request is|request:|about|regarding|because|issue is|problem is|anliegen:|anfrage:|nachricht:|verzoek:|bericht:|mensaje:|solicitud:|problema:|uzenet:|üzenet:|keres:|kérés:|cerere:|mesaj:|problema este)\s+(.+)/i,
   ]);
   const trimmed = message.trim();
   const usableMessage =
@@ -94,7 +94,7 @@ export function mergeContactDraft(
     senderName: previous?.senderName ?? name,
     company: previous?.company ?? company,
     replyEmail: previous?.replyEmail ?? extractedEmail,
-    language,
+    language: previous?.language ?? language,
     awaitingConfirmation: false,
   };
 }
@@ -121,7 +121,7 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
       `Sprache: ${draft.language}`,
       `Nachricht: ${draft.message}`,
       "",
-      "Antworte mit \"send\" oder \"confirm\", um sie zu senden, oder mit \"cancel\", um abzubrechen.",
+      "Antworte mit \"senden\" oder \"bestätigen\", um sie zu senden, oder mit \"abbrechen\", um abzubrechen.",
     ].filter(Boolean).join("\n");
   }
   if (draft.language === "dutch") {
@@ -135,7 +135,7 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
       `Taal: ${draft.language}`,
       `Bericht: ${draft.message}`,
       "",
-      "Antwoord met \"send\" of \"confirm\" om te versturen, of \"cancel\" om te stoppen.",
+      "Antwoord met \"versturen\" of \"bevestigen\" om te versturen, of \"annuleren\" om te stoppen.",
     ].filter(Boolean).join("\n");
   }
   if (draft.language === "spanish") {
@@ -149,7 +149,7 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
       `Idioma: ${draft.language}`,
       `Mensaje: ${draft.message}`,
       "",
-      "Responde con \"send\" o \"confirm\" para enviarla, o \"cancel\" para cancelarla.",
+      "Responde con \"enviar\" o \"confirmar\" para enviarla, o \"cancelar\" para cancelarla.",
     ].filter(Boolean).join("\n");
   }
   if (draft.language === "hungarian") {
@@ -163,7 +163,7 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
       `Nyelv: ${draft.language}`,
       `Üzenet: ${draft.message}`,
       "",
-      "Írd azt, hogy \"send\" vagy \"confirm\" a küldéshez, vagy \"cancel\" a megszakításhoz.",
+      "Írd azt, hogy \"küld\" vagy \"megerősítem\" a küldéshez, vagy \"mégse\" a megszakításhoz.",
     ].filter(Boolean).join("\n");
   }
   if (draft.language === "romanian") {
@@ -177,7 +177,7 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
       `Limbă: ${draft.language}`,
       `Mesaj: ${draft.message}`,
       "",
-      "Răspunde cu \"send\" sau \"confirm\" ca să o trimit, ori \"cancel\" ca să oprești.",
+      "Răspunde cu \"trimite\" sau \"confirmă\" ca să o trimit, ori \"oprește\" ca să oprești.",
     ].filter(Boolean).join("\n");
   }
   return [
@@ -196,13 +196,46 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
 
 export function buildMissingContactFieldsAnswer(draft: UsyContactDraft) {
   const missing = missingContactFields(draft);
-  const labels: Record<(typeof missing)[number], string> = {
-    category: "department: Sales, Technical Support / IT, Billing, Management, or Executive Management",
-    message: "your request",
-    senderName: "your name",
-    replyEmail: "your reply email",
+  const labelsByLanguage: Record<SupportedUsyLanguage, Record<(typeof missing)[number], string>> = {
+    english: {
+      category: "department: Sales, Technical Support / IT, Billing, Management, or Executive Management",
+      message: "your request",
+      senderName: "your name",
+      replyEmail: "your reply email",
+    },
+    german: {
+      category: "Abteilung: Sales, Technical Support / IT, Billing, Management oder Executive Management",
+      message: "dein Anliegen",
+      senderName: "deinen Namen",
+      replyEmail: "deine Antwort-E-Mail",
+    },
+    dutch: {
+      category: "afdeling: Sales, Technical Support / IT, Billing, Management of Executive Management",
+      message: "je verzoek",
+      senderName: "je naam",
+      replyEmail: "je antwoord-e-mail",
+    },
+    spanish: {
+      category: "departamento: Sales, Technical Support / IT, Billing, Management o Executive Management",
+      message: "tu solicitud",
+      senderName: "tu nombre",
+      replyEmail: "tu email de respuesta",
+    },
+    hungarian: {
+      category: "részleg: Sales, Technical Support / IT, Billing, Management vagy Executive Management",
+      message: "a kérésed",
+      senderName: "a neved",
+      replyEmail: "a válasz e-mailed",
+    },
+    romanian: {
+      category: "departament: Sales, Technical Support / IT, Billing, Management sau Executive Management",
+      message: "cererea ta",
+      senderName: "numele tău",
+      replyEmail: "emailul pentru răspuns",
+    },
   };
 
+  const labels = labelsByLanguage[draft.language ?? "english"];
   const requestedFields = missing.map((field) => labels[field]).join(", ");
   if (draft.language === "german") return `Ich kann diese Kontaktanfrage vorbereiten. Bitte sende ${requestedFields}. Unternehmen ist optional.`;
   if (draft.language === "dutch") return `Ik kan deze contactaanvraag voorbereiden. Stuur ${requestedFields}. Bedrijf is optioneel.`;
@@ -254,7 +287,7 @@ function extractField(message: string, patterns: RegExp[]) {
 
 function isOnlyCollectionMessage(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(contact|speak|talk|connect|reach|message|email|call|i need|i want|can i|please)\b/.test(normalized);
+  return /^(contact|speak|talk|connect|reach|message|email|call|i need|i want|can i|please|bitte kontaktiere|kontakt|kontaktiere|spreek|contactar|hablar|beszelni|kapcsolat|vorbesc|contactez)\b/.test(normalized);
 }
 
 function matchesKeyword(normalized: string, keyword: string) {

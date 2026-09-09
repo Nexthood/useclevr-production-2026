@@ -78,6 +78,7 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)
 - T-999. Risk Intelligence and Dataset Library management controls select and delete multiple datasets through one confirmed bulk action while preserving single-dataset deletion, active-dataset recovery, and retryable partial-failure handling. (labels: workflow, data, ui, testing; commit: c4c05f3c)
 - T-703. Add pre-commit hooks (lint:todos, lint:changelog, lint:secrets, lint:package) and pre-push hooks (types, dist validate, lint, workflows). Verified fully implemented. (labels: workflow, ci-build; commit: worktree)
 - T-851. Distribute the project phase map into active and deferred TODO queues with explicit phase gates. (labels: workflow, docs; commit: worktree)

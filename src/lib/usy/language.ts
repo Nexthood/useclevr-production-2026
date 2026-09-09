@@ -14,21 +14,22 @@ export function detectUsyLanguage(question: string): SupportedUsyLanguage {
   const normalized = normalizeUsyText(question);
 
   if (
-    /\b(deutsch|sprichst|sprechen|kannst du|was kann|hochladen|rechnung|gutschrift|datensatz|bericht|umsatz|marge|lager|unterstutzung|unterstuetzung)\b/.test(
+    /\b(deutsch|bitte|kontakt|kontaktiere|sprichst|sprechen|kannst du|kann ich|wie kann|was ist|was kann|fur wen|für wen|gedacht|hochladen|rechnung|gutschrift|schlussel|schlüssel|datensatz|bericht|umsatz|marge|lager|handler|händler|verkauf|verkaufsanalyse|prognose|unterstutzung|unterstuetzung)\b/.test(
       normalized,
     )
   ) {
     return "german";
   }
   if (
-    /\b(nederlands|spreek|talen|wat kan|uploaden|factuur|gegevensset|gegevens|tegoed|abonnement|voorraad|ondersteuning)\b/.test(
+    /\b(nederlands|spreek|talen|wat kan|wat is|voor wie|hoe kan|kan ik|uploaden|factuur|gegevensset|gegevens|tegoed|abonnement|omzet|marge|winkelier|voorraad|ondersteuning)\b/.test(
       normalized,
     )
   ) {
     return "dutch";
   }
   if (
-    /\b(espanol|español|hablas|idiomas|que puede|que puedes|subir|factura|creditos|créditos|conjunto de datos|inventario|ingresos|soporte)\b/.test(
+    /[¿¡ñ]/i.test(question) ||
+    /\b(espanol|español|explicame|explícame|arquitectura|interna|hablas|idiomas|que es|para quien|como puedo|puedo|que puede|que puedes|subir|factura|creditos|créditos|conjunto de datos|inventario|ingresos|margen|soporte)\b/.test(
       normalized,
     )
   ) {
@@ -36,7 +37,7 @@ export function detectUsyLanguage(question: string): SupportedUsyLanguage {
   }
   if (
     /[áéíóöőúüű]/i.test(question) ||
-    /\b(magyar|magyarazd|magyarázd|mit tud|beszelsz|beszélsz|nyelv|feltoltes|feltöltés|szamla|számla|kredit|adat|adatkeszlet|adatkészlet|keszlet|készlet|bevetel|bevétel|tamogatas|támogatás)\b/.test(
+    /\b(magyar|magyarazd|magyarázd|mit tud|mi az|kinek|hogyan tudok|tudok|beszelsz|beszélsz|nyelv|feltoltes|feltöltés|szamla|számla|kredit|adat|adatkeszlet|adatkészlet|keszlet|készlet|arbevetel|árbevétel|bevetel|bevétel|arres|árrés|tamogatas|támogatás)\b/.test(
       normalized,
     )
   ) {
@@ -44,7 +45,7 @@ export function detectUsyLanguage(question: string): SupportedUsyLanguage {
   }
   if (
     /[ăâîșşțţ]/i.test(question) ||
-    /\b(romana|română|vorbesti|vorbești|limbi|ce poate|incarcare|încărcare|factura|credite|set de date|abonament|stoc|suport)\b/.test(
+    /\b(romana|română|vorbesti|vorbești|limbi|ce este|pentru cine|cum pot|pot sa|pot să|ce poate|incarcare|încărcare|factura|credite|set de date|abonament|venit|marja|stoc|suport)\b/.test(
       normalized,
     )
   ) {

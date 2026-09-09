@@ -47,6 +47,46 @@ type ProductIntentRule = {
 const fallbackFollowUps = ["Upload my first dataset", "Explain my dashboard", "How do AI credits work?", "Contact support"];
 const pricingFollowUps = ["Compare Free vs Pro", "Upgrade to Pro", "Business plan", "Billing & invoices"];
 const platformRoles: UsyRole[] = ["admin", "superadmin"];
+const intentStopWords = new Set([
+  "what",
+  "does",
+  "useclevr",
+  "with",
+  "your",
+  "you",
+  "can",
+  "how",
+  "who",
+  "for",
+  "the",
+  "and",
+  "ist",
+  "was",
+  "wie",
+  "wer",
+  "wen",
+  "fur",
+  "und",
+  "kann",
+  "ich",
+  "wat",
+  "hoe",
+  "voor",
+  "wie",
+  "que",
+  "como",
+  "para",
+  "puedo",
+  "mit",
+  "tud",
+  "hogyan",
+  "kinek",
+  "ce",
+  "cum",
+  "pot",
+  "pentru",
+  "cine",
+]);
 
 const usyIntentByProductIntent: Record<ProductIntentId, UsyIntent> = {
   languages: "product_information",
@@ -100,10 +140,36 @@ const productIntents: ProductIntentRule[] = [
   },
   {
     id: "capabilities",
-    keywords: ["what can you do", "what does useclevr do", "how can you help", "capabilities", "mit tudsz", "was kannst du", "wat kun je", "que puedes hacer", "ce poți face"],
+    keywords: [
+      "what can you do",
+      "what does useclevr do",
+      "what is useclevr",
+      "who is it for",
+      "who is useclevr for",
+      "how can you help",
+      "small business",
+      "capabilities",
+      "was ist useclevr",
+      "fur wen",
+      "für wen",
+      "wer ist useclevr",
+      "kleines unternehmen",
+      "mit tudsz",
+      "mi az useclevr",
+      "kinek",
+      "wat kun je",
+      "wat is useclevr",
+      "voor wie",
+      "que puedes hacer",
+      "que es useclevr",
+      "para quien",
+      "ce poți face",
+      "ce este useclevr",
+      "pentru cine",
+    ],
     minScore: 4,
     answer: () =>
-      "UseClevr helps teams upload business files, review datasets and dashboards, ask the AI Assistant about uploaded data, create reports, manage credits and billing, use Retail and Accountancy areas, and review AI governance tools.",
+      "UseClevr is for business owners, retail teams, operators, accountants, and growing teams that need clear decisions from CSV or Excel business data. Upload a file, review the dashboard, use the AI Assistant for dataset-specific questions, and create reports for the next business decision.",
     followUps: ["Upload my first dataset", "Explain my dashboard", "Which plan do I need?", "Contact support"],
   },
   {
@@ -115,9 +181,36 @@ const productIntents: ProductIntentRule[] = [
   },
   {
     id: "uploads",
-    keywords: ["upload", "first dataset", "import", "dataset type", "upload mode", "hochladen", "uploaden", "subir", "feltöltés", "încărcare"],
+    keywords: [
+      "upload",
+      "first dataset",
+      "import",
+      "dataset type",
+      "upload mode",
+      "start analysis",
+      "sales analysis",
+      "revenue analysis",
+      "hochladen",
+      "verkaufsanalyse",
+      "umsatzanalyse",
+      "analyse starten",
+      "uploaden",
+      "verkoopanalyse",
+      "omzetanalyse",
+      "subir",
+      "analisis de ventas",
+      "análisis de ventas",
+      "feltöltés",
+      "ertekesitesi elemzes",
+      "értékesítési elemzés",
+      "ertekesitesi elemzest",
+      "értékesítési elemzést",
+      "încărcare",
+      "analiza vanzarilor",
+      "analiza vânzărilor",
+    ],
     answer: () =>
-      `Open Upload and add a CSV or Excel file. UseClevr accepts these dataset types: ${usyProductFacts.uploadDatasetTypes.join(", ")}. Clear headers and consistent rows produce the best dashboard and AI Assistant results.`,
+      `Open Upload and add the CSV or Excel file that contains the sales, revenue, margin, inventory, or accounting data you want to review. UseClevr accepts these dataset types: ${usyProductFacts.uploadDatasetTypes.join(", ")}. After processing, open the dashboard and use the AI Assistant for dataset-specific questions.`,
     followUps: ["File formats", "Why is my upload blocked?", "Open datasets", "Analyze my dataset"],
   },
   {
@@ -174,9 +267,9 @@ const productIntents: ProductIntentRule[] = [
   },
   {
     id: "retail",
-    keywords: ["retail", "inventory", "stock", "sku", "pos", "square", "voorraad", "inventario", "készlet", "stoc"],
+    keywords: ["retail", "retailer", "small retailer", "shop owner", "inventory", "stock", "sku", "pos", "square", "handler", "händler", "einzelhandel", "voorraad", "winkelier", "inventario", "minorista", "készlet", "kereskedo", "kereskedő", "stoc", "retailer mic"],
     answer: () =>
-      "Retail helps review inventory, stock risk, dead stock, product performance, margins, revenue, and point-of-sale integration status. Upload CSV or Excel exports, or use the Retail integrations area where connectors are available.",
+      "Retail teams use UseClevr to turn sales and inventory exports into margin, revenue, stock-risk, dead-stock, and product-performance guidance. Upload CSV or Excel exports first, then review the Retail dashboard or ask the AI Assistant about the selected dataset.",
     followUps: ["Retail uploads", "Retail integrations", "Low stock", "Ask AI Assistant"],
   },
   {
@@ -229,11 +322,12 @@ export function buildUsyReply(input: {
   const normalized = normalizeUsyText(question);
 
   if (input.contactDraft?.awaitingConfirmation) {
+    const contactLanguage = input.contactDraft.language ?? language;
     if (isCancellation(question)) {
       return {
-        answer: localizedCommon("contactCancelled", language),
+        answer: localizedCommon("contactCancelled", contactLanguage),
         source: "knowledge",
-        followUps: fallbackFollowUps,
+        followUps: localizeFollowUps(fallbackFollowUps, contactLanguage),
         contactDraft: null,
         action: "clear_contact",
         intent: "contact_request",
@@ -242,7 +336,7 @@ export function buildUsyReply(input: {
 
     if (isConfirmation(question)) {
       return {
-        answer: localizedCommon("contactSubmitting", language),
+        answer: localizedCommon("contactSubmitting", contactLanguage),
         source: "knowledge",
         followUps: [],
         contactDraft: input.contactDraft,
@@ -252,14 +346,22 @@ export function buildUsyReply(input: {
     }
   }
 
+  if (asksForRestrictedInformation(normalized)) {
+    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings", "Use AI Assistant"], "security_request", language);
+  }
+
+  if (!platformRoles.includes(context.role) && asksForAdminOnlyArea(normalized)) {
+    return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps, "security_request", language);
+  }
+
   if (input.contactDraft || isContactRequest(question)) {
-    const draft = mergeContactDraft(input.contactDraft, question, language);
+    const draft = mergeContactDraft(input.contactDraft, question, input.contactDraft?.language ?? language);
     const missing = missingContactFields(draft);
     if (missing.length > 0) {
       return {
         answer: buildMissingContactFieldsAnswer(draft),
         source: "knowledge",
-        followUps: ["Sales", "Technical Support", "Billing", "Management", "Executive Management"],
+        followUps: localizeFollowUps(["Sales", "Technical Support", "Billing", "Management", "Executive Management"], draft.language ?? language),
         contactDraft: draft,
         intent: "contact_request",
       };
@@ -275,22 +377,14 @@ export function buildUsyReply(input: {
     return {
       answer: buildContactSummary(completeDraft),
       source: "knowledge",
-      followUps: ["Confirm", "Cancel"],
+      followUps: localizeFollowUps(["Confirm", "Cancel"], completeDraft.language),
       contactDraft: completeDraft,
       intent: "contact_request",
     };
   }
 
-  if (asksForRestrictedInformation(normalized)) {
-    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings", "Use AI Assistant"], "security_request");
-  }
-
-  if (!platformRoles.includes(context.role) && asksForAdminOnlyArea(normalized)) {
-    return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps, "security_request");
-  }
-
   if (requiresAiAssistant(normalized)) {
-    return knowledgeAnswer(localizedCommon("aiAssistant", language), ["Open AI Assistant", "Choose a dataset", "Generate a report", "Upload data"], "ai_analysis_request");
+    return knowledgeAnswer(localizedCommon("aiAssistant", language), ["Open AI Assistant", "Choose a dataset", "Generate a report", "Upload data"], "ai_analysis_request", language);
   }
 
   const intent = detectProductIntent(normalized, context.role);
@@ -299,15 +393,16 @@ export function buildUsyReply(input: {
       `${localizedIntentAnswer(intent.id, context, language) ?? intent.answer(context)}\n\n${localizedCommon("nextStep", language)} ${nextStepForIntent(intent.id, context, language)}`,
       intent.followUps,
       usyIntentByProductIntent[intent.id],
+      language,
     );
   }
 
   const term = businessTerms.find((entry) => entry.keywords.some((keyword) => normalized.includes(normalizeUsyText(keyword))));
   if (term) {
-    return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"], "product_information");
+    return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"], "product_information", language);
   }
 
-  return knowledgeAnswer(localizedCommon("unknown", language), fallbackFollowUps, "unknown");
+  return knowledgeAnswer(localizedCommon("unknown", language), fallbackFollowUps, "unknown", language);
 }
 
 export function roleFromAudience(audience: UsyContext["audience"], sessionRole?: string | null): UsyRole {
@@ -334,7 +429,10 @@ function scoreIntent(normalized: string, tokens: Set<string>, intent: ProductInt
     if (!normalizedKeyword) return score;
     if (normalized === normalizedKeyword) return score + 8;
     if (normalized.includes(normalizedKeyword)) return score + (normalizedKeyword.includes(" ") ? 5 : 3);
-    return score + normalizedKeyword.split(" ").filter((part) => tokens.has(part)).length;
+    return score + normalizedKeyword
+      .split(" ")
+      .filter((part) => part.length > 2 && !intentStopWords.has(part) && tokens.has(part))
+      .length;
   }, 0);
 }
 
@@ -342,20 +440,61 @@ function requiresAiAssistant(normalized: string) {
   const analysisSignals = [
     "analyse my",
     "analyze my",
+    "analyze this",
     "my sales",
     "my revenue",
     "my uploaded",
     "uploaded file",
+    "why is my revenue",
+    "why is revenue",
+    "revenue down",
+    "sales down",
     "why did revenue decline",
     "why did sales decline",
     "create a forecast",
+    "can i create a forecast",
     "forecast my",
+    "worst margin",
     "which products have the lowest margin",
     "lowest margin",
+    "lowest-margin products",
     "find risks",
     "find trends",
     "business performance",
     "kpi for my",
+    "warum ist mein umsatz",
+    "umsatz gesunken",
+    "umsatz gefallen",
+    "warum sind meine verkaufe",
+    "warum sind meine verkäufe",
+    "welche produkte haben die schlechteste marge",
+    "schlechteste marge",
+    "niedrigste marge",
+    "forecast erstellen",
+    "prognose erstellen",
+    "kan ik een forecast",
+    "waarom is mijn omzet",
+    "omzet gedaald",
+    "slechtste marge",
+    "puedo crear un forecast",
+    "puedo hacer un forecast",
+    "por que bajaron mis ingresos",
+    "por qué bajaron mis ingresos",
+    "productos tienen el peor margen",
+    "tudok forecastot",
+    "tudok elorejelzest",
+    "tudok előrejelzést",
+    "miert csokkent a bevetelem",
+    "miért csökkent a bevételem",
+    "legrosszabb arres",
+    "legrosszabb árrés",
+    "pot crea un forecast",
+    "pot face o prognoza",
+    "pot face o prognoză",
+    "de ce a scazut venitul",
+    "de ce a scăzut venitul",
+    "cea mai slaba marja",
+    "cea mai slabă marjă",
   ];
   return analysisSignals.some((signal) => normalized.includes(signal));
 }
@@ -363,18 +502,58 @@ function requiresAiAssistant(normalized: string) {
 function asksForRestrictedInformation(normalized: string) {
   const restrictedSignals = [
     "system prompt",
+    "system instructions",
     "developer prompt",
     "api key",
+    "api keys",
     "secret",
     "webhook",
     "token",
     "password",
     "internal architecture",
     "security details",
+    "customer data",
     "another user",
     "another customer",
     "other customer's data",
+    "other customers data",
     "database credentials",
+    "system anweisung",
+    "systemanweisung",
+    "api schlussel",
+    "api-schlussel",
+    "geheimnis",
+    "interne architektur",
+    "andere kunden",
+    "daten anderer kunden",
+    "systeeminstructies",
+    "systeemprompt",
+    "api sleutel",
+    "geheim",
+    "interne architectuur",
+    "andere klanten",
+    "data van andere klanten",
+    "instrucciones del sistema",
+    "prompt del sistema",
+    "clave api",
+    "secreto",
+    "arquitectura interna",
+    "otros clientes",
+    "datos de otros clientes",
+    "rendszerutasitas",
+    "rendszer prompt",
+    "api kulcs",
+    "titok",
+    "belso architektura",
+    "mas ugyfel",
+    "mas ugyfelek",
+    "mas ugyfel adata",
+    "instructiuni de sistem",
+    "prompt de sistem",
+    "cheie api",
+    "arhitectura interna",
+    "alti clienti",
+    "datele altui client",
   ];
   return restrictedSignals.some((signal) => normalized.includes(signal));
 }
@@ -385,13 +564,48 @@ function asksForAdminOnlyArea(normalized: string) {
   );
 }
 
-function buildCreditsAnswer(context: UsyContext) {
+function buildCreditsAnswer(context: UsyContext, language: SupportedUsyLanguage = "english") {
   const usageText =
     context.usage?.unlimited
       ? context.usage.unlimitedLabel || "unlimited usage"
       : typeof context.usage?.analysisCount === "number" && typeof context.usage?.total === "number"
         ? `${context.usage.analysisCount}/${context.usage.total}`
         : null;
+  if (language === "german") {
+    return [
+      "AI-Credits steuern enthaltene AI-Aktionen wie Uploads, Analysen, Assistant-Fragen und Reports im aktiven Plan.",
+      usageText ? `Aktuell sichtbare Nutzung: ${usageText}.` : null,
+      "Erfolgreiche Uploads verbrauchen Upload-Credits. Fehlgeschlagene Uploads verbrauchen keine Upload-Credits. Gelöschte Datasets stellen verbrauchte Credits nicht wieder her.",
+    ].filter(Boolean).join(" ");
+  }
+  if (language === "dutch") {
+    return [
+      "AI credits sturen inbegrepen AI-acties zoals uploads, analyses, Assistant-vragen en rapporten binnen het actieve plan.",
+      usageText ? `Zichtbaar gebruik nu: ${usageText}.` : null,
+      "Succesvolle uploads gebruiken uploadcredits. Mislukte uploads gebruiken geen uploadcredits. Verwijderde datasets herstellen verbruikte credits niet.",
+    ].filter(Boolean).join(" ");
+  }
+  if (language === "spanish") {
+    return [
+      "Los créditos AI controlan acciones incluidas como cargas, análisis, preguntas al Assistant e informes según el plan activo.",
+      usageText ? `Uso visible actual: ${usageText}.` : null,
+      "Las cargas correctas consumen créditos de upload. Las cargas fallidas no consumen créditos. Eliminar datasets no restaura créditos consumidos.",
+    ].filter(Boolean).join(" ");
+  }
+  if (language === "hungarian") {
+    return [
+      "Az AI kreditek az aktív csomagban elérhető AI műveleteket kezelik, például uploadot, elemzést, Assistant-kérdést és riportot.",
+      usageText ? `Jelenleg látható használat: ${usageText}.` : null,
+      "A sikeres uploadok upload kreditet fogyasztanak. A sikertelen uploadok nem fogyasztanak kreditet. Dataset törlése nem állítja vissza az elhasznált kreditet.",
+    ].filter(Boolean).join(" ");
+  }
+  if (language === "romanian") {
+    return [
+      "Creditele AI controlează acțiuni incluse precum uploaduri, analize, întrebări către Assistant și rapoarte în planul activ.",
+      usageText ? `Utilizare vizibilă curentă: ${usageText}.` : null,
+      "Uploadurile reușite consumă credite de upload. Uploadurile eșuate nu consumă credite. Ștergerea seturilor de date nu restaurează creditele consumate.",
+    ].filter(Boolean).join(" ");
+  }
   return [
     "AI credits control included AI-powered actions such as uploads, analysis, assistant requests, and reports according to the active plan.",
     usageText ? `Current visible usage: ${usageText}.` : null,
@@ -399,9 +613,24 @@ function buildCreditsAnswer(context: UsyContext) {
   ].filter(Boolean).join(" ");
 }
 
-function buildUploadLimitAnswer(context: UsyContext) {
+function buildUploadLimitAnswer(context: UsyContext, language: SupportedUsyLanguage = "english") {
   const limit = context.usage?.total ?? 2;
   const used = context.usage?.analysisCount ?? limit;
+  if (language === "german") {
+    return `Deine Upload-Credits sind aufgebraucht (${used}/${limit}). Öffne Billing Settings, um Pro- und Business-Kapazität zu vergleichen.`;
+  }
+  if (language === "dutch") {
+    return `Je uploadcredits zijn op (${used}/${limit}). Open Billing Settings om Pro- en Business-capaciteit te vergelijken.`;
+  }
+  if (language === "spanish") {
+    return `Tus créditos de upload están agotados (${used}/${limit}). Abre Billing Settings para comparar la capacidad de Pro y Business.`;
+  }
+  if (language === "hungarian") {
+    return `Elfogytak az upload kreditjeid (${used}/${limit}). Nyisd meg a Billing Settings részt a Pro és Business kapacitás összehasonlításához.`;
+  }
+  if (language === "romanian") {
+    return `Creditele tale de upload sunt epuizate (${used}/${limit}). Deschide Billing Settings ca să compari capacitatea Pro și Business.`;
+  }
   const creditCopy = buildUploadCreditLimitCopy({ used, limit, remaining: 0 });
 
   return [
@@ -433,13 +662,159 @@ function nextStepForIntent(intentId: string, context: UsyContext, language: Supp
   return "open the matching UseClevr area, and I can help you decide what to check first.";
 }
 
-function knowledgeAnswer(answer: string, followUps: string[], intent: UsyIntent): UsyChatResponse {
+function knowledgeAnswer(answer: string, followUps: string[], intent: UsyIntent, language: SupportedUsyLanguage = "english"): UsyChatResponse {
   return {
     answer,
     source: "knowledge",
-    followUps: followUps.slice(0, 5),
+    followUps: localizeFollowUps(followUps, language).slice(0, 5),
     intent,
   };
+}
+
+function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) {
+  if (language === "english") return followUps;
+
+  const labels: Record<SupportedUsyLanguage, Record<string, string>> = {
+    english: {},
+    german: {
+      "Analyze my dataset": "Dataset analysieren",
+      "Accountancy uploads": "Accountancy-Uploads",
+      "AI benchmarking": "AI-Benchmarking",
+      "AI credits": "AI-Credits",
+      "AI providers": "AI-Provider",
+      "AI traces": "AI-Traces",
+      "Ask AI Assistant": "AI Assistant fragen",
+      "Billing & invoices": "Billing und Rechnungen",
+      "Billing help": "Billing-Hilfe",
+      "Business plan": "Business-Plan",
+      "Choose a dataset": "Dataset auswählen",
+      "Compare Free vs Pro": "Free und Pro vergleichen",
+      "Contact support": "Support kontaktieren",
+      "Explain AI credits": "AI-Credits erklären",
+      "Explain KPIs": "KPIs erklären",
+      "Explain my dashboard": "Dashboard erklären",
+      "File formats": "Dateiformate",
+      "Generate a report": "Report erstellen",
+      "Help me analyze my data": "Datenanalyse starten",
+      "How do AI credits work?": "Wie funktionieren AI-Credits?",
+      "Open AI Assistant": "AI Assistant öffnen",
+      "Open AI Governance": "AI Governance öffnen",
+      "Open Dashboard": "Dashboard öffnen",
+      "Open dashboard": "Dashboard öffnen",
+      "Open datasets": "Datasets öffnen",
+      "Open settings": "Einstellungen öffnen",
+      "Prepare my CSV": "CSV vorbereiten",
+      "Provider status": "Provider-Status",
+      "Retail integrations": "Retail-Integrationen",
+      "Retail uploads": "Retail-Uploads",
+      "Review transactions": "Transaktionen prüfen",
+      "Talk to Sales": "Mit Sales sprechen",
+      "Troubleshoot upload": "Upload prüfen",
+      "Upload another file": "Weitere Datei hochladen",
+      "Upload data": "Daten hochladen",
+      "Upload limit": "Upload-Limit",
+      "Upload my first dataset": "Erstes Dataset hochladen",
+      "Upgrade to Pro": "Auf Pro upgraden",
+      "Use AI Assistant": "AI Assistant nutzen",
+      "View billing": "Billing öffnen",
+      "What can Usy help with?": "Wobei hilft Usy?",
+      "What can you do?": "Was kannst du?",
+      "Which plan do I need?": "Welchen Plan brauche ich?",
+      "Why is my upload blocked?": "Warum ist mein Upload blockiert?",
+      Confirm: "Bestätigen",
+      Cancel: "Abbrechen",
+    },
+    dutch: {
+      "Analyze my dataset": "Dataset analyseren",
+      "Ask AI Assistant": "AI Assistant vragen",
+      "Contact support": "Support contacteren",
+      "Explain AI credits": "AI credits uitleggen",
+      "Explain my dashboard": "Dashboard uitleggen",
+      "Generate a report": "Rapport maken",
+      "Help me analyze my data": "Data-analyse starten",
+      "How do AI credits work?": "Hoe werken AI credits?",
+      "Open AI Assistant": "AI Assistant openen",
+      "Open Dashboard": "Dashboard openen",
+      "Open dashboard": "Dashboard openen",
+      "Open settings": "Instellingen openen",
+      "Upload data": "Data uploaden",
+      "Upload my first dataset": "Eerste dataset uploaden",
+      "Use AI Assistant": "AI Assistant gebruiken",
+      "What can Usy help with?": "Waarmee helpt Usy?",
+      "What can you do?": "Wat kun je?",
+      "Which plan do I need?": "Welk plan heb ik nodig?",
+      Confirm: "Bevestigen",
+      Cancel: "Annuleren",
+    },
+    spanish: {
+      "Analyze my dataset": "Analizar mi dataset",
+      "Ask AI Assistant": "Preguntar a AI Assistant",
+      "Contact support": "Contactar soporte",
+      "Explain AI credits": "Explicar créditos AI",
+      "Explain my dashboard": "Explicar dashboard",
+      "Generate a report": "Crear informe",
+      "Help me analyze my data": "Analizar mis datos",
+      "How do AI credits work?": "Cómo funcionan los créditos AI",
+      "Open AI Assistant": "Abrir AI Assistant",
+      "Open Dashboard": "Abrir dashboard",
+      "Open dashboard": "Abrir dashboard",
+      "Open settings": "Abrir configuración",
+      "Upload data": "Subir datos",
+      "Upload my first dataset": "Subir primer dataset",
+      "Use AI Assistant": "Usar AI Assistant",
+      "What can Usy help with?": "En qué ayuda Usy",
+      "What can you do?": "Qué puedes hacer",
+      "Which plan do I need?": "Qué plan necesito",
+      Confirm: "Confirmar",
+      Cancel: "Cancelar",
+    },
+    hungarian: {
+      "Analyze my dataset": "Dataset elemzése",
+      "Ask AI Assistant": "AI Assistant megkérdezése",
+      "Contact support": "Support kapcsolat",
+      "Explain AI credits": "AI kreditek magyarázata",
+      "Explain my dashboard": "Dashboard magyarázata",
+      "Generate a report": "Riport készítése",
+      "Help me analyze my data": "Adataim elemzése",
+      "How do AI credits work?": "Hogyan működnek az AI kreditek?",
+      "Open AI Assistant": "AI Assistant megnyitása",
+      "Open Dashboard": "Dashboard megnyitása",
+      "Open dashboard": "Dashboard megnyitása",
+      "Open settings": "Beállítások megnyitása",
+      "Upload data": "Adatok feltöltése",
+      "Upload my first dataset": "Első dataset feltöltése",
+      "Use AI Assistant": "AI Assistant használata",
+      "What can Usy help with?": "Miben segít Usy?",
+      "What can you do?": "Mit tudsz?",
+      "Which plan do I need?": "Melyik csomag kell?",
+      Confirm: "Megerősítés",
+      Cancel: "Megszakítás",
+    },
+    romanian: {
+      "Analyze my dataset": "Analizează setul de date",
+      "Ask AI Assistant": "Întreabă AI Assistant",
+      "Contact support": "Contactează suportul",
+      "Explain AI credits": "Explică creditele AI",
+      "Explain my dashboard": "Explică dashboardul",
+      "Generate a report": "Creează raport",
+      "Help me analyze my data": "Analizează datele mele",
+      "How do AI credits work?": "Cum funcționează creditele AI?",
+      "Open AI Assistant": "Deschide AI Assistant",
+      "Open Dashboard": "Deschide dashboardul",
+      "Open dashboard": "Deschide dashboardul",
+      "Open settings": "Deschide setările",
+      "Upload data": "Încarcă date",
+      "Upload my first dataset": "Încarcă primul set de date",
+      "Use AI Assistant": "Folosește AI Assistant",
+      "What can Usy help with?": "Cu ce ajută Usy?",
+      "What can you do?": "Ce poți face?",
+      "Which plan do I need?": "Ce plan îmi trebuie?",
+      Confirm: "Confirmă",
+      Cancel: "Anulează",
+    },
+  };
+
+  return followUps.map((followUp) => labels[language][followUp] ?? followUp);
 }
 
 function localizedIntentAnswer(intentId: string, context: UsyContext, language: SupportedUsyLanguage) {
@@ -451,17 +826,17 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
     english: {},
     german: {
       languages: `Ja. Ich kann auf ${supportedUsyLanguageLabel} helfen.`,
-      capabilities: "UseClevr hilft Teams beim Hochladen von Geschäftsdaten, beim Prüfen von Datasets und Dashboards, bei Fragen an den AI Assistant, bei Berichten, Credits, Billing, Retail, Accountancy und AI-Governance.",
+      capabilities: "UseClevr ist für Inhaber, Händler, Operations-Teams, Buchhaltung und wachsende Teams gedacht, die aus CSV- oder Excel-Geschäftsdaten klare Entscheidungen ableiten wollen. Lade Daten hoch, prüfe das Dashboard und stelle dataset-spezifische Fragen im AI Assistant.",
       "file-formats": `UseClevr unterstützt ${uploadFormats} für Standard-Datasets. Spezialisierte Accountancy-Uploads siehst du im Accountancy-Bereich.`,
-      uploads: `Öffne Upload und füge eine CSV- oder Excel-Datei hinzu. UseClevr akzeptiert diese Dataset-Typen: ${uploadTypes}. Klare Spaltenüberschriften und konsistente Zeilen liefern die besten Ergebnisse.`,
-      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context) : "Prüfe, ob die Datei CSV oder Excel ist, klare Header hat, keine temporäre Tabellenkalkulations-Sperrdatei ist und innerhalb deiner Planlimits liegt.",
+      uploads: `Öffne Upload und füge die CSV- oder Excel-Datei mit Verkaufs-, Umsatz-, Margen-, Bestands- oder Buchhaltungsdaten hinzu. UseClevr akzeptiert diese Dataset-Typen: ${uploadTypes}. Danach öffnest du das Dashboard oder fragst den AI Assistant zum ausgewählten Dataset.`,
+      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context, language) : "Prüfe, ob die Datei CSV oder Excel ist, klare Header hat, keine temporäre Tabellenkalkulations-Sperrdatei ist und innerhalb deiner Planlimits liegt.",
       datasets: "Datasets sind die hochgeladenen Dateien, die UseClevr für Dashboards, Berichte und AI-Assistant-Kontext verwendet.",
       dashboard: "Das Dashboard fasst KPIs, Business Health, Risiken, Chancen, Empfehlungen, Aktivität und Berichtsaktionen zusammen.",
-      credits: buildCreditsAnswer(context),
-      plans: `Free enthält ${plans.free.monthlyCredits} AI-Credits und bis zu ${plans.free.maxDatasets} Datasets. Pro kostet ${plans.pro.priceText}. Business kostet ${plans.business.priceText}.`,
+      credits: buildCreditsAnswer(context, language),
+      plans: `Free enthält ${plans.free.monthlyCredits} AI-Credits und bis zu ${plans.free.maxDatasets} Datasets. Pro kostet €40/Monat. Business kostet €420/Monat.`,
       billing: "Billing, Abos, Zahlungsdaten, Checkout, Rechnungen und Planaktionen werden in den sicheren Billing- und Account-Einstellungen verwaltet.",
       reports: "Berichte verwandeln abgeschlossene Analysen in teilbare Management-Zusammenfassungen mit PDF- oder Excel-Downloads, wenn diese Exporte verfügbar sind.",
-      retail: "Retail unterstützt Inventar, Bestandsrisiken, Dead Stock, Produktleistung, Margen, Umsatz und Integrationsstatus.",
+      retail: "UseClevr hilft kleinen Händlern, Verkaufs- und Bestandsdaten in Umsatz-, Margen-, Stock-Risk-, Dead-Stock- und Produktleistungs-Hinweise zu übersetzen. Lade zuerst CSV- oder Excel-Exporte hoch und nutze danach Dashboard oder AI Assistant.",
       accountancy: "Accountancy unterstützt bookkeeping-orientierte Uploads, Rechnungs- und Belegverarbeitung, Steuerprüfung, Kategorisierung, Review-Queues und Exporte.",
       governance: "AI Governance erklärt Transparenz, Provider-Status, menschliche Kontrolle und Audit-Bereitschaft. Admin-Ansichten bleiben rollenbeschränkt.",
       integrations: "UseClevr unterstützt Datei-Uploads, aktivierte Retail-Integrationen, Local-AI-Hilfen und BYOK-AI-Provider-Einstellungen.",
@@ -469,17 +844,17 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
     },
     dutch: {
       languages: `Ja. Ik kan helpen in ${supportedUsyLanguageLabel}.`,
-      capabilities: "UseClevr helpt teams met uploads, datasets, dashboards, vragen aan de AI Assistant, rapporten, credits, billing, Retail, Accountancy en AI Governance.",
+      capabilities: "UseClevr is bedoeld voor ondernemers, retailers, operationele teams, accountants en groeiende teams die uit CSV- of Excel-bedrijfsdata duidelijke beslissingen willen halen. Upload data, bekijk het dashboard en gebruik de AI Assistant voor datasetvragen.",
       "file-formats": `UseClevr ondersteunt ${uploadFormats} voor standaarddatasets. Gespecialiseerde Accountancy-uploads staan in de Accountancy-omgeving.`,
       uploads: `Open Upload en voeg een CSV- of Excel-bestand toe. UseClevr accepteert deze datasettypen: ${uploadTypes}.`,
-      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context) : "Controleer of het bestand CSV of Excel is, duidelijke headers heeft, geen tijdelijk spreadsheet-lockbestand is en binnen je planlimieten valt.",
+      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context, language) : "Controleer of het bestand CSV of Excel is, duidelijke headers heeft, geen tijdelijk spreadsheet-lockbestand is en binnen je planlimieten valt.",
       datasets: "Datasets zijn de geüploade bestanden die UseClevr gebruikt voor dashboards, rapporten en AI Assistant-context.",
       dashboard: "Het dashboard vat KPI's, business health, risico's, kansen, aanbevelingen, activiteit en rapportacties samen.",
-      credits: buildCreditsAnswer(context),
-      plans: `Free bevat ${plans.free.monthlyCredits} AI credits en maximaal ${plans.free.maxDatasets} datasets. Pro kost ${plans.pro.priceText}. Business kost ${plans.business.priceText}.`,
+      credits: buildCreditsAnswer(context, language),
+      plans: `Free bevat ${plans.free.monthlyCredits} AI credits en maximaal ${plans.free.maxDatasets} datasets. Pro kost €40/maand. Business kost €420/maand.`,
       billing: "Billing, abonnementen, betalingsgegevens, checkout, facturen en planacties staan in de veilige billing- en accountinstellingen.",
       reports: "Rapporten zetten afgeronde analyses om in deelbare managementsamenvattingen met PDF- of Excel-downloads wanneer die exports beschikbaar zijn.",
-      retail: "Retail ondersteunt voorraad, voorraadrisico's, dead stock, productprestaties, marges, omzet en integratiestatus.",
+      retail: "UseClevr helpt kleine retailers om verkoop- en voorraaddata om te zetten in omzet-, marge-, voorraadrisico-, dead-stock- en productprestatie-inzichten.",
       accountancy: "Accountancy ondersteunt bookkeeping-uploads, factuur- en bonverwerking, belastingreview, categorisatie, reviewqueues en exports.",
       governance: "AI Governance legt transparantie, providerstatus, menselijke controle en auditgereedheid uit. Adminweergaven blijven rolgebonden.",
       integrations: "UseClevr ondersteunt bestandsuploads, actieve Retail-integraties, Local AI-hulpen en BYOK AI-providerinstellingen.",
@@ -487,14 +862,14 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
     },
     spanish: {
       languages: `Sí. Puedo ayudar en ${supportedUsyLanguageLabel}.`,
-      capabilities: "UseClevr ayuda con cargas, datasets, dashboards, preguntas al AI Assistant, informes, créditos, facturación, Retail, Accountancy y AI Governance.",
+      capabilities: "UseClevr es para dueños de negocio, retailers, equipos de operaciones, contabilidad y equipos en crecimiento que necesitan decisiones claras desde datos CSV o Excel. Sube datos, revisa el dashboard y usa AI Assistant para preguntas sobre datasets.",
       "file-formats": `UseClevr admite ${uploadFormats} para datasets estándar. Las cargas especializadas de Accountancy aparecen dentro del área Accountancy.`,
       uploads: `Abre Upload y añade un archivo CSV o Excel. UseClevr acepta estos tipos de dataset: ${uploadTypes}.`,
-      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context) : "Comprueba que el archivo sea CSV o Excel, tenga encabezados claros, no sea un archivo temporal de bloqueo y esté dentro de los límites de tu plan.",
+      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context, language) : "Comprueba que el archivo sea CSV o Excel, tenga encabezados claros, no sea un archivo temporal de bloqueo y esté dentro de los límites de tu plan.",
       datasets: "Los datasets son los archivos subidos que UseClevr usa para dashboards, informes y contexto del AI Assistant.",
       dashboard: "El dashboard resume KPI, salud del negocio, riesgos, oportunidades, recomendaciones, actividad y acciones de informes.",
-      credits: buildCreditsAnswer(context),
-      plans: `Free incluye ${plans.free.monthlyCredits} créditos AI y hasta ${plans.free.maxDatasets} datasets. Pro cuesta ${plans.pro.priceText}. Business cuesta ${plans.business.priceText}.`,
+      credits: buildCreditsAnswer(context, language),
+      plans: `Free incluye ${plans.free.monthlyCredits} créditos AI y hasta ${plans.free.maxDatasets} datasets. Pro cuesta €40/mes. Business cuesta €420/mes.`,
       billing: "Facturación, suscripciones, pagos, checkout, facturas y acciones de plan se gestionan en la configuración segura de billing y cuenta.",
       reports: "Los informes convierten análisis completados en resúmenes de gestión compartibles con descargas PDF o Excel cuando estén disponibles.",
       retail: "Retail ayuda con inventario, riesgos de stock, dead stock, rendimiento de producto, márgenes, ingresos e integraciones.",
@@ -505,14 +880,14 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
     },
     hungarian: {
       languages: `Igen. Tudok segíteni ezeken a nyelveken: ${supportedUsyLanguageLabel}.`,
-      capabilities: "A UseClevr segít feltöltésekben, datasetekben, dashboardokban, AI Assistant kérdésekben, riportokban, kreditekben, billingben, Retailben, Accountancyben és AI Governance témákban.",
+      capabilities: "A UseClevr vállalkozóknak, retail csapatoknak, operációs vezetőknek, könyvelésnek és növekvő csapatoknak készül, akik CSV vagy Excel üzleti adatokból akarnak dönthető képet kapni. Tölts fel adatot, nézd meg a dashboardot, és dataset-kérdéshez használd az AI Assistantot.",
       "file-formats": `A UseClevr ${uploadFormats} formátumokat támogat standard datasetekhez. A speciális Accountancy feltöltések az Accountancy területen láthatók.`,
       uploads: `Nyisd meg az Upload részt, és adj hozzá CSV vagy Excel fájlt. A támogatott dataset típusok: ${uploadTypes}.`,
-      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context) : "Ellenőrizd, hogy a fájl CSV vagy Excel, van világos fejléc, nem ideiglenes táblázat-zárfájl, és belefér a csomagod limitjeibe.",
+      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context, language) : "Ellenőrizd, hogy a fájl CSV vagy Excel, van világos fejléc, nem ideiglenes táblázat-zárfájl, és belefér a csomagod limitjeibe.",
       datasets: "A datasetek azok a feltöltött fájlok, amelyeket a UseClevr dashboardokhoz, riportokhoz és AI Assistant kontextushoz használ.",
       dashboard: "A dashboard összefoglalja a KPI-ket, üzleti egészséget, kockázatokat, lehetőségeket, ajánlásokat, aktivitást és riport műveleteket.",
-      credits: buildCreditsAnswer(context),
-      plans: `A Free ${plans.free.monthlyCredits} AI kreditet és legfeljebb ${plans.free.maxDatasets} datasetet tartalmaz. A Pro ára ${plans.pro.priceText}. A Business ára ${plans.business.priceText}.`,
+      credits: buildCreditsAnswer(context, language),
+      plans: `A Free ${plans.free.monthlyCredits} AI kreditet és legfeljebb ${plans.free.maxDatasets} datasetet tartalmaz. A Pro ára €40/hó. A Business ára €420/hó.`,
       billing: "A billing, előfizetés, fizetési adatok, checkout, számlák és csomagműveletek a biztonságos billing és account beállításokban kezelhetők.",
       reports: "A riportok a befejezett elemzéseket megosztható vezetői összefoglalókká alakítják PDF vagy Excel letöltéssel, amikor elérhető.",
       retail: "A Retail segít készlet, készletkockázat, dead stock, termékteljesítmény, margin, bevétel és integrációs állapot áttekintésében.",
@@ -523,14 +898,14 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
     },
     romanian: {
       languages: `Da. Te pot ajuta în ${supportedUsyLanguageLabel}.`,
-      capabilities: "UseClevr ajută cu uploaduri, seturi de date, dashboarduri, întrebări pentru AI Assistant, rapoarte, credite, billing, Retail, Accountancy și AI Governance.",
+      capabilities: "UseClevr este pentru antreprenori, retaileri, echipe operaționale, contabilitate și echipe în creștere care vor decizii clare din date CSV sau Excel. Încarcă date, verifică dashboardul și folosește AI Assistant pentru întrebări despre setul de date.",
       "file-formats": `UseClevr acceptă ${uploadFormats} pentru seturi de date standard. Uploadurile specializate Accountancy apar în zona Accountancy.`,
       uploads: `Deschide Upload și adaugă un fișier CSV sau Excel. UseClevr acceptă aceste tipuri de seturi de date: ${uploadTypes}.`,
-      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context) : "Verifică dacă fișierul este CSV sau Excel, are antete clare, nu este un fișier temporar de blocare și se încadrează în limitele planului.",
+      "upload-trouble": context.usage?.limitReached ? buildUploadLimitAnswer(context, language) : "Verifică dacă fișierul este CSV sau Excel, are antete clare, nu este un fișier temporar de blocare și se încadrează în limitele planului.",
       datasets: "Seturile de date sunt fișierele încărcate pe care UseClevr le folosește pentru dashboarduri, rapoarte și contextul AI Assistant.",
       dashboard: "Dashboardul sumarizează KPI-uri, sănătatea afacerii, riscuri, oportunități, recomandări, activitate și acțiuni de raportare.",
-      credits: buildCreditsAnswer(context),
-      plans: `Free include ${plans.free.monthlyCredits} credite AI și până la ${plans.free.maxDatasets} seturi de date. Pro costă ${plans.pro.priceText}. Business costă ${plans.business.priceText}.`,
+      credits: buildCreditsAnswer(context, language),
+      plans: `Free include ${plans.free.monthlyCredits} credite AI și până la ${plans.free.maxDatasets} seturi de date. Pro costă €40/lună. Business costă €420/lună.`,
       billing: "Billingul, abonamentele, plățile, checkoutul, facturile și acțiunile de plan se gestionează în setările securizate de billing și cont.",
       reports: "Rapoartele transformă analizele finalizate în rezumate de management partajabile cu descărcări PDF sau Excel când sunt disponibile.",
       retail: "Retail ajută cu inventar, riscuri de stoc, dead stock, performanța produselor, marje, venituri și statusul integrărilor.",

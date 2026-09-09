@@ -1,3 +1,38 @@
+## Usy Secretariat Acceptance Completion
+
+1. Interaction title
+Complete Usy Secretariat acceptance requirements.
+
+2. What was the user goal
+Continue the existing Usy Secretariat implementation without rebuilding the prior `UsyIntent` contract, router metadata, or focused tests, then close only the remaining acceptance gaps.
+
+3. What changed
+Usy language detection now covers realistic English, German, Dutch, Spanish, Hungarian, and Romanian product, analysis, contact, and security questions. Router scoring ignores generic question words for partial matches so unrelated questions keep the unknown fallback and role-specific terms can win. Product-fit, upload-analysis-start, retail, pricing, credit, and upload-limit replies are more secretary-like and localized. Dataset-specific sales, revenue, forecast, product-margin, trend, KPI, and performance questions route to AI Assistant instead of product or billing fallback. Restricted requests for system instructions, API keys, internal architecture, secrets, webhooks, and other customers' data refuse explicitly. Contact drafts preserve their original language, request missing fields in that language, preview complete details, and submit only after explicit confirmation.
+
+4. Problems marked
+blocker: none.
+risk: deterministic multilingual keyword routing needs new approved phrases and tests when UseClevr adds product areas or supported-language examples.
+improvement: add browser-level contact-flow coverage when stable authenticated fixtures exist.
+observation: hyphenated and accented security terms need language-specific detection before generic accent heuristics run.
+
+5. User learning
+Usy now acts as the UseClevr Secretariat for product guidance, safe routing, and contact preparation while dataset analysis stays in the separate AI Assistant.
+
+6. AI-agent learning
+The AI agent must check scoring side effects when adding semantic keywords; repeated partial matches from generic words can override the intended fallback.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Usy Intent Metadata Integration
 
 1. Interaction title

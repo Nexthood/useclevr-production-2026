@@ -1,7 +1,6 @@
 import {
   billingPlans,
   publicMonthlyPlanPrices,
-  publicProMonthlyLaunchPrices,
 } from "@/lib/billing/plans";
 import { allowedUploadDatasetCategories } from "@/lib/data/dataset-category";
 import type { SupportedUsyLanguage, UsyContactCategory } from "@/lib/usy/types";
@@ -56,8 +55,6 @@ export const usyProductFacts = {
   } satisfies Record<UsyContactCategory, string>,
 } as const;
 
-export const proLaunchPriceText = publicProMonthlyLaunchPrices.map((price) => price.label).join(", ");
-
 export function getPlanSummary() {
   const free = billingPlans.find((plan) => plan.id === "free");
   const pro = billingPlans.find((plan) => plan.id === "pro_monthly");
@@ -73,7 +70,7 @@ export function getPlanSummary() {
     },
     pro: {
       name: pro?.name ?? "Pro",
-      priceText: proLaunchPriceText,
+      priceText: `€${publicMonthlyPlanPrices.pro}/month`,
       monthlyCredits: pro?.limits.monthlyCredits ?? 500,
       maxDatasets: pro?.limits.maxDatasets ?? 25,
       maxFileSizeMb: pro?.limits.maxFileSizeMb ?? 100,

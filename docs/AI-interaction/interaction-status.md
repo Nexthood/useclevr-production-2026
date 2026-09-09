@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-09-09
-- **Goal**: Preserve the interrupted `UsyIntent` type change and wire it into the completed Usy implementation.
-- **Durable change**: Usy chat responses now include typed intent metadata for product information, getting-started guidance, account help, technical support, billing, contact handoff, Dataset AI Assistant routing, security refusals, and unknown fallback.
-- **Verification**: `AUTH_SECRET=test DATABASE_URL=postgresql://ci:ci@localhost:5432/ci pnpm exec node -r tsx/esm scripts/ai/test-usy-secretariat.ts` and `pnpm exec tsc --noEmit --pretty false --incremental false` pass.
-- **Residual risk**: Future Usy knowledge additions must map each new router rule to the exported response intent contract.
+- **Goal**: Complete the existing Usy Secretariat implementation against the final acceptance requirements without rebuilding earlier Usy intent work.
+- **Durable change**: Usy keeps supported-language replies stable across English, German, Dutch, Spanish, Hungarian, and Romanian; routes dataset-analysis and forecast questions to AI Assistant; refuses restricted requests explicitly; and requires preview plus confirmation before contact handoff.
+- **Verification**: `AUTH_SECRET=test DATABASE_URL=postgresql://ci:ci@localhost:5432/ci pnpm exec node -r tsx/esm scripts/ai/test-usy-secretariat.ts` and `AUTH_SECRET=test DATABASE_URL=postgresql://ci:ci@localhost:5432/ci pnpm exec tsc --noEmit --pretty false --incremental false` pass.
+- **Residual risk**: Usy uses deterministic multilingual keyword routing, so new product areas and new supported-language phrasings require approved knowledge and regression test updates.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
