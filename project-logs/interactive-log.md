@@ -1,3 +1,143 @@
+## Dependency Audit Patch
+
+1. Interaction title
+Patch dependency advisories blocking source validation.
+
+2. What was the user goal
+Fix only the dependency security advisories that block GitHub Validate Source, keep the approved residual advisory allowlist unchanged, and avoid modifying Usy, application behavior, UI, OAuth, business logic, AI logic, or contact logic.
+
+3. What changed
+The direct dependency metadata now pins Next.js to the patched 16.3.3 release, Sharp to the patched 0.35.4 range, and js-yaml to the patched 4.3.2 range. The workspace override map now forces Hono to 4.13.5 for the transitive Payload MCP path and forces transitive js-yaml 4.x consumers to 4.3.2. The lockfile resolves `@payloadcms/plugin-mcp` and Payload packages at 3.88.0, keeps `@modelcontextprotocol/sdk` at 1.30.0, and resolves `@hono/node-server` against `hono@4.13.5`.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: none.
+observation: direct js-yaml moved to 4.3.2, but a transitive 4.3.1 copy remained until the workspace override forced 4.3.2 for 4.x consumers.
+
+5. User learning
+The source audit gate now passes with only the existing approved residual d3-color and Payload advisories.
+
+6. AI-agent learning
+When pnpm audit still reports a patched direct dependency, the AI agent must inspect transitive resolution and use narrow overrides before changing the audit allowlist.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Secretariat Acceptance Completion
+
+1. Interaction title
+Complete Usy Secretariat acceptance requirements.
+
+2. What was the user goal
+Continue the existing Usy Secretariat implementation without rebuilding the prior `UsyIntent` contract, router metadata, or focused tests, then close only the remaining acceptance gaps.
+
+3. What changed
+Usy language detection now covers realistic English, German, Dutch, Spanish, Hungarian, and Romanian product, analysis, contact, and security questions. Router scoring ignores generic question words for partial matches so unrelated questions keep the unknown fallback and role-specific terms can win. Product-fit, upload-analysis-start, retail, pricing, credit, and upload-limit replies are more secretary-like and localized. Dataset-specific sales, revenue, forecast, product-margin, trend, KPI, and performance questions route to AI Assistant instead of product or billing fallback. Restricted requests for system instructions, API keys, internal architecture, secrets, webhooks, and other customers' data refuse explicitly. Contact drafts preserve their original language, request missing fields in that language, preview complete details, and submit only after explicit confirmation.
+
+4. Problems marked
+blocker: none.
+risk: deterministic multilingual keyword routing needs new approved phrases and tests when UseClevr adds product areas or supported-language examples.
+improvement: add browser-level contact-flow coverage when stable authenticated fixtures exist.
+observation: hyphenated and accented security terms need language-specific detection before generic accent heuristics run.
+
+5. User learning
+Usy now acts as the UseClevr Secretariat for product guidance, safe routing, and contact preparation while dataset analysis stays in the separate AI Assistant.
+
+6. AI-agent learning
+The AI agent must check scoring side effects when adding semantic keywords; repeated partial matches from generic words can override the intended fallback.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Intent Metadata Integration
+
+1. Interaction title
+Integrate Usy response intent metadata.
+
+2. What was the user goal
+Preserve the existing uncommitted `UsyIntent` contract change in `src/lib/usy/types.ts`, review it, and integrate it into the completed Usy implementation without discarding unrelated work.
+
+3. What changed
+Usy chat responses now return a typed `intent` value for deterministic product answers, getting-started guidance, account help, technical support, billing, contact handoff, AI Assistant routing, security refusals, business-term answers, and unknown fallback. The router uses a separate internal product-intent rule type so the exported response intent remains the public API contract. Account settings guidance now has its own deterministic Usy product path. The existing Usy script test asserts intent values across upload guidance, unknown fallback, uploaded-data analysis routing, account help, contact confirmation, and restricted-information refusal.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: keep future Usy answer categories mapped to the exported response intent when new product areas are added.
+observation: the interrupted type change was sound but needed runtime wiring before clients could depend on it.
+
+5. User learning
+Usy responses now include stable intent metadata that callers can use without parsing answer text.
+
+6. AI-agent learning
+When a shared exported type name overlaps an internal router concept, the AI agent must rename the internal shape and map it into the public contract explicitly.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Secretariat Capability Layer
+
+1. Interaction title
+Implement secure Usy secretariat capabilities.
+
+2. What was the user goal
+Add backend Usy logic, structured UseClevr knowledge, safe routing away from uploaded-data analysis, multilingual replies, and confirmed department contact handoff through n8n without changing the visible Usy shell or the separate AI Assistant.
+
+3. What changed
+Usy product guidance now runs through deterministic server-side knowledge, role-aware intent routing, safe restricted-information refusal, business-term explanations, and Dataset AI Assistant routing for uploaded-data analysis requests. The floating chatbox keeps its existing layout and sends questions to the dedicated Usy chat endpoint. Confirmed contact requests collect department, request, name, optional company, reply email, and language, show a summary, and send only validated confirmed payloads to the configured n8n webhook with bearer authentication, server-side rate limits, and authenticated tenant metadata when available. Documentation now states the webhook contract, environment variables, authentication method, payload, and responses. Focused tests cover product facts, unknown fallback, language handling, AI Assistant routing, contact category detection, confirmation gating, invalid and rate-limited requests, missing webhook env, webhook payload shape, and internal-information refusal.
+
+4. Problems marked
+blocker: none.
+risk: Usy uses deterministic phrase and keyword routing, so future product areas require approved knowledge updates before Usy can answer them.
+improvement: add browser-level Usy contact-flow coverage after stable seeded UI test fixtures exist.
+observation: contact detection must distinguish sales-analysis wording from Sales department handoff wording.
+
+5. User learning
+Usy now acts as UseClevr Secretariat for product navigation and contact handoff, while uploaded-data KPI, forecast, trend, risk, and performance analysis remains in the Dataset AI Assistant.
+
+6. AI-agent learning
+Short department words such as Sales and IT need contact-verb or word-boundary handling so deterministic routing does not steal ordinary business-analysis questions.
+
+7. Follow-up tasks
+- Add browser-level Usy contact-flow coverage after stable seeded UI test fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; webhook guide: `docs/AI-interaction/developer-guides/usy-contact-handoff.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dashboard Selected Dataset Routing
 
 1. Interaction title

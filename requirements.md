@@ -546,8 +546,8 @@ Text rules for this file:
 - Center the main Usy avatar inside the welcome card with generous whitespace.
 - Animate the Usy avatar with a reduced-motion-safe compact breathing pulse, close soft outer glow, and subtle floating motion.
 - Let Usy answer public, dashboard, and operator FAQ scope according to the current audience.
-- Let Usy use the Hybrid AI chat endpoint when available with current route, page module, user role, plan, and usage context.
-- Let Usy fall back to intent-scored UseClevr guidance when AI is unavailable.
+- Let Usy use the dedicated deterministic Usy chat endpoint with current route, user role, plan, and usage context.
+- Let Usy answer only from approved UseClevr knowledge, structured intent routing, and safe fallback wording.
 - Match short natural Usy messages such as price pro, business price, upload not working, forecast failed, and credits to the correct topic.
 - Keep Usy guidance role-aware for public visitors, normal users, admins, and superadmins.
 - Let admin and superadmin Usy act as UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status.
@@ -564,6 +564,12 @@ Text rules for this file:
 - Show up to five contextual follow-up suggestion chips directly below the latest Usy answer.
 - Let users click any Usy follow-up chip to send that question immediately.
 - Keep Usy focused on AI companion guidance and do not show an embedded support request form inside the assistant panel.
+- Route Usy product answers through deterministic approved UseClevr knowledge, role-aware intent routing, and same-language response handling instead of free-form provider fallback.
+- Keep Usy separate from the Dataset AI Assistant; Usy directs uploaded-data analysis, KPI, forecast, trend, risk, and business-performance questions to the Dataset AI Assistant or the matching existing feature.
+- Let Usy prepare contact requests for Sales, Technical Support / IT, Billing, Management, and Executive Management by collecting category, request, name, optional company, reply email, and language.
+- Require explicit user confirmation on a Usy contact-request summary before UseClevr sends the server-side handoff.
+- Send confirmed Usy contact requests only from the server to the configured n8n webhook with validated payloads, rate limits, bearer authentication, and authenticated user and organization identifiers only when available for the current tenant.
+- Tell users truthfully when the Usy contact handoff is not configured, and never expose webhook URLs, webhook secrets, contact email addresses, system prompts, internal architecture, admin-only information, or another customer's data.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.
 - Answer display, contrast, and text-size questions in public and dashboard FAQ.

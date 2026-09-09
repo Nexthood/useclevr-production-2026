@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add Usy secretariat answers and confirmed contact handoff so users get product guidance, safe AI Assistant routing, and department contact requests without exposing internal details.
 - Add OAuth 2.1 account linking for ChatGPT connections so users grant scoped UseClevr dataset access before ChatGPT can call their datasets.
 - Add a ChatGPT connection that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing business intelligence workflow.
 - Add an authoritative business semantics layer so dashboards, AI answers, and generated reports use evidence-backed metric permissions, ambiguity warnings, source lineage, and domain isolation before presenting business KPIs.
@@ -32,6 +33,7 @@
 
 ### Fixed
 
+- Fix Usy Secretariat replies so supported-language questions keep their language, dataset analysis requests route to AI Assistant, restricted requests receive explicit refusals, and contact handoffs wait for confirmation.
 - Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes without a blocking Resend domain pre-check or message-id requirement.
 - Fix ChatGPT account-linking deployment compatibility so OAuth discovery can publish through the normal release workflow while dataset analysis stays source-backed.
 - Fix ChatGPT account linking prompts so authentication and scope failures return the MCP challenge metadata ChatGPT requires to start OAuth.
@@ -115,6 +117,7 @@
 
 ### Dev
 
+- Patch source dependency audit inputs so validation passes with only the approved residual advisories.
 - Patch dependency audit validation so beta source checks use a fixed URI parser without allowing unapproved high-severity findings.
 - Add a dedicated ESLint TypeScript project for JavaScript and MJS scripts so the pre-push lint gate parses root repro scripts without weakening lint rules.
 - Document Payload 3.85.1 residual security risk with approved advisory allowlist so CI tracks the exact blocked undici and image-size transitive HIGH findings without suppressing new vulnerabilities.

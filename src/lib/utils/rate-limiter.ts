@@ -11,7 +11,7 @@ interface RateLimitEntry {
 const rateLimitMap = new Map<string, RateLimitEntry>()
 
 // Clean up old entries every 5 minutes
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now()
   for (const [key, entry] of rateLimitMap.entries()) {
     if (entry.resetTime < now) {
@@ -19,6 +19,7 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000)
+cleanupInterval.unref?.()
 
 /**
  * Check if request exceeds rate limit

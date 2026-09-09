@@ -57,6 +57,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1054. Usy answers approved product questions through deterministic knowledge, routes uploaded-data analysis to the Dataset AI Assistant, and sends confirmed department contact handoffs through the configured n8n webhook. (labels: ai, api, security, workflow; commit: worktree)
 - T-1047. Selected-dataset Marketplace questions use Marketplace deterministic routing before generic analytical dispatch for GMV totals, GMV trends, buyer GMV rankings, and seller or merchant GMV rankings. (labels: ai, api, data, metrics, testing; commit: worktree)
 - T-1046. Marketplace selected-dataset metric answers label GMV-backed totals, trends, buyer rankings, seller rankings, and missing inventory evidence with Marketplace wording and null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)
 - T-1045. Marketplace Assistant GMV, buyer, seller, period, and missing-inventory answers use marketplace terminology and source-backed null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)
@@ -77,6 +78,7 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)
 - T-999. Risk Intelligence and Dataset Library management controls select and delete multiple datasets through one confirmed bulk action while preserving single-dataset deletion, active-dataset recovery, and retryable partial-failure handling. (labels: workflow, data, ui, testing; commit: c4c05f3c)
 - T-703. Add pre-commit hooks (lint:todos, lint:changelog, lint:secrets, lint:package) and pre-push hooks (types, dist validate, lint, workflows). Verified fully implemented. (labels: workflow, ci-build; commit: worktree)
 - T-851. Distribute the project phase map into active and deferred TODO queues with explicit phase gates. (labels: workflow, docs; commit: worktree)
@@ -514,6 +516,7 @@ moving work between states.
 
 ## Label: security
 
+- T-1056. Patch the blocking dependency advisories for Next.js, Sharp, js-yaml, and Hono without changing application behavior or approved residual allowlist entries. (labels: security, ci-build, testing; commit: worktree)
 - T-1049. Dependency security remediation keeps CI audit enforcement active while patched transitive packages resolve to available safe versions and temporary residual entries document only advisories without compatible stable fixes. (labels: security, ci-build, testing; commit: worktree)
 - T-1028. Next.js uses the patched 16.2 release that removes confirmed framework advisories while app routing, proxy security headers, authentication, uploads, reports, billing checkout, and the production-disabled Public AI route keep their existing behavior. (labels: security, deployment, testing; commit: f67ce2f3)
 - T-1024. Chat, analysis, SQL, and email-verification diagnostics log safe metadata instead of complete user messages, dataset rows, SQL result data, verification codes, or authentication secrets. (labels: security, ai, auth, testing; commit: 60aaeb7d)
