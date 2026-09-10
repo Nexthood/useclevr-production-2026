@@ -328,3 +328,5 @@
 - fixed: score Investor Portfolio Balanced Scorecard growth from source growth-rate distribution and portfolio diversification while keeping `investment_date` out of historical growth, revenue, burn, runway, and valuation trends
 - changed: exclude the local ChatGPT MCP OAuth private key from Git tracking
 - fixed: preserve ChatGPT OAuth callback issuer and raw state, and allow token exchange to bind omitted resource requests to the advertised UseClevr MCP resource
+- fixed: make Usy answer and quick actions follow the current supported message language, keep the language badge on the resolved language, refuse restricted German security and customer-data requests, return only the approved Pro monthly price for direct Pro price questions, and read supported upload extensions from the standard upload validator
+- changed: polish the Usy composer send button as a circular cyan-to-purple primary action with white icon, glow, hover, pressed, focus-visible, and disabled states while preserving the existing composer layout and submit behavior

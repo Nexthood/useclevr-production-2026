@@ -11,6 +11,7 @@ import {
 export { MAX_UPLOAD_BYTES, MAX_UPLOAD_COLUMNS, MAX_UPLOAD_ROWS } from "@/lib/upload/upload-limits"
 
 export type StandardUploadFileKind = "csv" | "xlsx" | "xls"
+export const STANDARD_UPLOAD_FORMAT_EXTENSIONS = [".csv", ".xlsx", ".xls"] as const
 
 export class UploadValidationError extends Error {
   readonly code: string
@@ -51,9 +52,8 @@ export function sanitizeUploadFileNameForLog(fileName: string) {
 
 export function getStandardUploadFileKind(fileName: string): StandardUploadFileKind | null {
   const normalized = fileName.toLowerCase()
-  if (normalized.endsWith(".csv")) return "csv"
-  if (normalized.endsWith(".xlsx")) return "xlsx"
-  if (normalized.endsWith(".xls")) return "xls"
+  const extension = STANDARD_UPLOAD_FORMAT_EXTENSIONS.find((candidate) => normalized.endsWith(candidate))
+  if (extension) return extension.slice(1) as StandardUploadFileKind
   return null
 }
 

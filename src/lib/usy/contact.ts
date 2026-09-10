@@ -42,7 +42,7 @@ export function detectContactCategory(message: string): UsyContactCategory | nul
     ["management", ["management", "manager", "leiding", "vezetoseg", "conducere", "geschaftsfuhrung", "geschaeftsfuehrung"]],
     ["billing", ["billing", "invoice", "invoices", "subscription", "payment", "stripe", "factuur", "factura", "rechnung", "szamla", "számla", "abonament"]],
     ["technical_support", ["technical", "support", "it", "bug", "error", "broken", "upload failed", "troubleshoot", "technisch", "technik", "suport", "tamogatas", "támogatás"]],
-    ["sales", ["sales", "pricing", "demo", "upgrade", "plan", "quote", "verkauf", "sales", "verkoop", "ventas", "ertekesites", "értékesítés", "vanzari", "vânzări"]],
+    ["sales", ["sales", "pricing", "demo", "upgrade", "plan", "quote", "verkauf", "vertrieb", "sales", "verkoop", "ventas", "ertekesites", "értékesítés", "vanzari", "vânzări"]],
   ];
 
   return categoryKeywords.find(([, keywords]) => keywords.some((keyword) => matchesKeyword(normalized, keyword)))?.[0] ?? null;

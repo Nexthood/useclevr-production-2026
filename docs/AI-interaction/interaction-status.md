@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-09-09
-- **Goal**: Patch only the dependency advisories blocking GitHub Validate Source without changing application behavior or Usy.
-- **Durable change**: Dependency metadata now resolves patched Next.js, Sharp, js-yaml, and Hono versions while Payload, the MCP plugin, and the approved residual audit allowlist stay unchanged.
-- **Verification**: `node ./scripts/security/audit-allowlist.cjs`, `node ./scripts/check-package-json.js`, and `node ./node_modules/typescript/bin/tsc --noEmit --pretty false --incremental false` pass.
-- **Residual risk**: The audit still reports only the approved residual d3-color and Payload advisories.
+- **Date**: 2026-09-10
+- **Goal**: Polish only the existing Usy message composer send button without redesigning the composer or chat window.
+- **Durable change**: The bottom-right composer submit button is now a 44px circular cyan-to-purple primary action with centered white icon, subtle glow, hover, pressed, focus-visible, loading, and disabled states.
+- **Verification**: `pnpm validate:types` and `git diff --check` pass.
+- **Residual risk**: Live browser review remains useful for exact contrast and touch feel.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

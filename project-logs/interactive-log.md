@@ -6414,3 +6414,73 @@ The private key remains local and is not tracked or committed.
 
 4. Verification
 Git no longer reports `chatgpt-mcp-oauth-private.pem` as an untracked file.
+
+## Usy Acceptance Regression Patch
+
+1. Interaction title
+Usy acceptance regression patch.
+
+2. What was the user goal
+Fix the remaining live UI Usy acceptance issues without redesigning Usy, changing unrelated AI, OAuth, billing, Business Profile, or committing changes.
+
+3. What changed
+Usy chat responses now include the resolved supported language, and the chatbox language badge displays that resolved language instead of rotating through unrelated language labels. The router gives current German pricing questions the centralized Pro monthly price only, refuses German system-prompt, API-key, internal-architecture, and other-customer-data requests as security/privacy requests, and keeps dataset analysis questions routed to Dataset AI Assistant. Quick-action labels now resolve through the central follow-up map for English, German, Dutch, Spanish, Hungarian, and Romanian. Upload guidance reads the approved standard upload extensions from the upload validation source and preserves the dataset-type list. German Vertrieb contact requests map to Sales and remain confirmation-gated.
+
+4. Problems marked
+blocker: none.
+risk: Usy language detection remains deterministic keyword detection, so new supported-language phrasing needs focused examples and tests.
+improvement: add browser-level Usy badge verification when stable live UI fixtures exist.
+observation: the visible random badge came from a timer in the chatbox header, not from the server-side language detector.
+
+5. User learning
+Usy now treats the current message as the response-language source for supported-language requests and reports that language to the UI.
+
+6. AI-agent learning
+Acceptance fixes for Usy should update the centralized copy, routing, and knowledge modules rather than cloning per-language router branches.
+
+7. Follow-up tasks
+- Add browser-level Usy badge verification when stable live UI fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Send Button Polish
+
+1. Interaction title
+Usy send button polish.
+
+2. What was the user goal
+Improve only the existing Usy message composer send button so it matches the premium UseClevr/Usy interface without redesigning the composer or chat window.
+
+3. What changed
+The existing bottom-right composer submit button is now a 44px circular primary action with the Usy cyan-to-purple gradient, centered white arrow or loading icon, subtle glow, stronger focus-visible ring, hover lift, pressed scale, and a polished disabled state for empty input.
+
+4. Problems marked
+blocker: none.
+risk: visual verification in a live browser remains useful for exact contrast and touch feel.
+improvement: add browser screenshot coverage for Usy composer states when stable UI fixtures exist.
+observation: the existing Button base class supports this polish through Tailwind overrides without a new component or design-system change.
+
+5. User learning
+The Usy composer send action now reads as the primary action while preserving position, keyboard submit behavior, and accessibility labels.
+
+6. AI-agent learning
+For small Usy UI polish, target the local control class first and reuse the existing Usy gradient/shadow language before introducing any new component or token.
+
+7. Follow-up tasks
+- Add browser screenshot coverage for Usy composer states when stable UI fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
