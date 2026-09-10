@@ -136,7 +136,7 @@ const productIntents: ProductIntentRule[] = [
     id: "languages",
     keywords: ["languages", "which languages", "speak german", "spreek je nederlands", "hablas español", "beszélsz magyarul", "vorbești română"],
     answer: () => `Yes. I can help in ${supportedUsyLanguageLabel}.`,
-    followUps: ["What can you do?", "Explain AI credits", "Help me analyze my data", "Which plan do I need?"],
+    followUps: ["What can you do?", "Explain AI credits", "Open AI Assistant", "Which plan do I need?"],
   },
   {
     id: "capabilities",
@@ -742,7 +742,7 @@ function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) 
       "Explain my dashboard": "Dashboard erklären",
       "File formats": "Dateiformate",
       "Generate a report": "Report erstellen",
-      "Help me analyze my data": "Datenanalyse starten",
+      
       "How do AI credits work?": "Wie funktionieren AI-Credits?",
       "Open AI Assistant": "AI Assistant öffnen",
       "Open AI Governance": "AI Governance öffnen",
@@ -806,7 +806,7 @@ function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) 
       "Export bookkeeping": "Boekhouding exporteren",
       "File formats": "Bestandsformaten",
       "Generate a report": "Rapport maken",
-      "Help me analyze my data": "Data-analyse starten",
+      
       "How do AI credits work?": "Hoe werken AI credits?",
       "Local AI": "Local AI",
       "Low stock": "Lage voorraad",
@@ -866,7 +866,7 @@ function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) 
       "Export bookkeeping": "Exportar bookkeeping",
       "File formats": "Formatos de archivo",
       "Generate a report": "Crear informe",
-      "Help me analyze my data": "Analizar mis datos",
+      
       "How do AI credits work?": "Cómo funcionan los créditos AI",
       "Local AI": "Local AI",
       "Low stock": "Stock bajo",
@@ -926,7 +926,7 @@ function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) 
       "Export bookkeeping": "Bookkeeping export",
       "File formats": "Fájlformátumok",
       "Generate a report": "Riport készítése",
-      "Help me analyze my data": "Adataim elemzése",
+      
       "How do AI credits work?": "Hogyan működnek az AI kreditek?",
       "Local AI": "Local AI",
       "Low stock": "Alacsony készlet",
@@ -986,7 +986,7 @@ function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) 
       "Export bookkeeping": "Exportă bookkeeping",
       "File formats": "Formate de fișiere",
       "Generate a report": "Creează raport",
-      "Help me analyze my data": "Analizează datele mele",
+      
       "How do AI credits work?": "Cum funcționează creditele AI?",
       "Local AI": "Local AI",
       "Low stock": "Stoc redus",
