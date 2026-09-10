@@ -14,7 +14,7 @@ export function detectUsyLanguage(question: string): SupportedUsyLanguage {
   const normalized = normalizeUsyText(question);
 
   if (
-    /\b(deutsch|bitte|kontakt|kontaktiere|sprichst|sprechen|kannst du|kann ich|wie kann|was ist|was kann|fur wen|für wen|gedacht|hochladen|rechnung|gutschrift|schlussel|schlüssel|datensatz|bericht|umsatz|marge|lager|handler|händler|verkauf|verkaufsanalyse|prognose|unterstutzung|unterstuetzung)\b/.test(
+    /\b(deutsch|bitte|kontakt|kontaktiere|sprichst|sprechen|senden|bestatigen|bestaetigen|kannst du|kann ich|wie kann|was ist|was kann|was kostet|welche|daten|deine|gib mir|zeige mir|fur wen|für wen|gedacht|hochladen|rechnung|gutschrift|schlussel|schlüssel|datensatz|bericht|umsatz|marge|lager|handler|händler|verkauf|verkaufsanalyse|prognose|unterstutzung|unterstuetzung)\b/.test(
       normalized,
     )
   ) {

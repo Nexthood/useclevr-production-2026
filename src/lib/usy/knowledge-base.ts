@@ -3,6 +3,7 @@ import {
   publicMonthlyPlanPrices,
 } from "@/lib/billing/plans";
 import { allowedUploadDatasetCategories } from "@/lib/data/dataset-category";
+import { STANDARD_UPLOAD_FORMAT_EXTENSIONS } from "@/lib/upload/upload-security";
 import type { SupportedUsyLanguage, UsyContactCategory } from "@/lib/usy/types";
 
 export const supportedUsyLanguages: SupportedUsyLanguage[] = [
@@ -26,7 +27,7 @@ export const usyContactCategories: UsyContactCategory[] = [
 
 export const usyProductFacts = {
   productName: "UseClevr",
-  uploadFormats: [".csv", ".xlsx", ".xls"],
+  uploadFormats: [...STANDARD_UPLOAD_FORMAT_EXTENSIONS],
   uploadDatasetTypes: [...allowedUploadDatasetCategories],
   persistentDisclaimer: "UseClevr AI can make mistakes. Verify important business and financial information.",
   routes: {

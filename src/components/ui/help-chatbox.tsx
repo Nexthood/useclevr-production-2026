@@ -5,6 +5,7 @@ import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer";
 import { Button } from "@/components/ui/button";
 import type {
   HelpChatboxAudience,
+  SupportedUsyLanguage,
   UsyChatResponse,
   UsyContactDraft,
   UsyUsageContext,
@@ -49,14 +50,14 @@ const capabilities = [
   "Troubleshooting",
 ];
 
-const usyLanguageBadges = [
-  { flag: "🇬🇧", label: "English" },
-  { flag: "🇩🇪", label: "Deutsch" },
-  { flag: "🇳🇱", label: "Nederlands" },
-  { flag: "🇪🇸", label: "Español" },
-  { flag: "🇭🇺", label: "Magyar" },
-  { flag: "🇷🇴", label: "Română" },
-] as const;
+const usyLanguageBadges = {
+  english: { flag: "🇬🇧", label: "English" },
+  german: { flag: "🇩🇪", label: "Deutsch" },
+  dutch: { flag: "🇳🇱", label: "Nederlands" },
+  spanish: { flag: "🇪🇸", label: "Español" },
+  hungarian: { flag: "🇭🇺", label: "Magyar" },
+  romanian: { flag: "🇷🇴", label: "Română" },
+} as const satisfies Record<SupportedUsyLanguage, { flag: string; label: string }>;
 
 function SuggestionChip({
   label,
@@ -94,7 +95,7 @@ function UsyLanguageBadge({
   showHint,
   onHintChange,
 }: {
-  language: (typeof usyLanguageBadges)[number];
+  language: (typeof usyLanguageBadges)[SupportedUsyLanguage];
   visible: boolean;
   showHint: boolean;
   onHintChange: (show: boolean) => void;
@@ -192,8 +193,7 @@ export function HelpChatbox({
   const [isAsking, setIsAsking] = useState(false);
   const [usage, setUsage] = useState<UsyUsageContext | null>(null);
   const [contactDraft, setContactDraft] = useState<UsyContactDraft | null>(null);
-  const [languageBadgeIndex, setLanguageBadgeIndex] = useState(0);
-  const [languageBadgeVisible, setLanguageBadgeVisible] = useState(true);
+  const [currentUsyLanguage, setCurrentUsyLanguage] = useState<SupportedUsyLanguage>("english");
   const [showLanguageHint, setShowLanguageHint] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -217,24 +217,7 @@ export function HelpChatbox({
   }, [messages, isAsking]);
 
   useEffect(() => {
-    if (!open) {
-      setShowLanguageHint(false);
-      return;
-    }
-
-    let fadeTimeout: number | null = null;
-    const interval = window.setInterval(() => {
-      setLanguageBadgeVisible(false);
-      fadeTimeout = window.setTimeout(() => {
-        setLanguageBadgeIndex((current) => (current + 1) % usyLanguageBadges.length);
-        setLanguageBadgeVisible(true);
-      }, 220);
-    }, 2000);
-
-    return () => {
-      window.clearInterval(interval);
-      if (fadeTimeout !== null) window.clearTimeout(fadeTimeout);
-    };
+    if (!open) setShowLanguageHint(false);
   }, [open]);
 
   useEffect(() => {
@@ -291,8 +274,10 @@ export function HelpChatbox({
           answer: "Usy could not answer right now. Please try again shortly.",
           source: "knowledge",
           followUps: ["What can you do?", "Contact support"],
+          language: "english",
         } satisfies UsyChatResponse);
 
+      setCurrentUsyLanguage(result.language);
       setContactDraft(result.contactDraft ?? null);
 
       if (result.action === "submit_contact" && result.contactDraft) {
@@ -378,8 +363,8 @@ export function HelpChatbox({
                   UseClevr AI Business Assistant
                 </p>
                 <UsyLanguageBadge
-                  language={usyLanguageBadges[languageBadgeIndex]}
-                  visible={languageBadgeVisible}
+                  language={usyLanguageBadges[currentUsyLanguage]}
+                  visible
                   showHint={showLanguageHint}
                   onHintChange={setShowLanguageHint}
                 />
@@ -541,13 +526,13 @@ export function HelpChatbox({
                   type="submit"
                   size="icon"
                   disabled={!query.trim() || isAsking}
-                  className="h-9 w-9 rounded-full bg-gradient-to-br from-cyan-200 via-sky-200 to-fuchsia-200 text-slate-950 shadow-[0_0_22px_rgba(34,211,238,0.28)] hover:opacity-95"
+                  className="h-11 w-11 shrink-0 rounded-full border border-cyan-100/35 bg-gradient-to-br from-cyan-300 via-sky-400 to-fuchsia-400 text-white shadow-[0_12px_30px_rgba(34,211,238,0.28),0_0_22px_rgba(216,180,254,0.16),inset_0_1px_0_rgba(255,255,255,0.34)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-50/70 hover:shadow-[0_16px_36px_rgba(34,211,238,0.36),0_0_28px_rgba(216,180,254,0.24),inset_0_1px_0_rgba(255,255,255,0.42)] active:translate-y-0 active:scale-95 focus-visible:ring-2 focus-visible:ring-cyan-100 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:border-white/10 disabled:bg-none disabled:bg-slate-700/75 disabled:text-slate-300/70 disabled:opacity-100 disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_22px_rgba(2,6,23,0.22)]"
                   aria-label="Send message to Usy"
                 >
                   {isAsking ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ArrowUp className="h-4 w-4" />
+                    <ArrowUp className="h-5 w-5" />
                   )}
                 </Button>
               </div>

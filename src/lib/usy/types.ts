@@ -63,6 +63,7 @@ export type UsyChatResponse = {
   answer: string;
   source: UsyChatSource;
   followUps: string[];
+  language: SupportedUsyLanguage;
   contactDraft?: UsyContactDraft | null;
   action?: UsyChatAction;
   intent?: UsyIntent;
