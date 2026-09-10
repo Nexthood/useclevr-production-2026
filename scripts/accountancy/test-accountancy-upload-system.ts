@@ -25,8 +25,11 @@ const baseMeta = (uploadType: AccountancyUploadType, fileName: string, mimeType:
 
 async function run() {
   await testCommaCsv();
+  await testVerifiedBankCsvRegression();
   await testSemicolonCsv();
   await testExcel();
+  await testVerifiedExcelEquivalentData();
+  await testExcelInvalidDateDoesNotCrash();
   await testLegacyXls();
   await testMultiSheetExcel();
   await testExcelRejectsNonTabularFirstSheet();
@@ -34,6 +37,7 @@ async function run() {
   await testSpreadsheetExportVariants();
   await testExcelNoValidSheetExplainsRejectedSheets();
   await testTextPdfInvoice();
+  await testMachineReadablePdfInvoiceVariant();
   await testScannedPdf();
   await testImageReceipts();
   await testCsvBankExport();
@@ -43,6 +47,8 @@ async function run() {
   await testQifBankExport();
   await testQfxBankExport();
   testPrebookkeepingCategorization();
+  testBankFeeLearningRuleSafety();
+  testVatMissingConfigRequiresReview();
   testPrebookkeepingExports();
   testPrebookkeepingAssistantFallback();
   testLegacyCategorizationReviewSummaryNormalization();
@@ -64,6 +70,69 @@ async function testCommaCsv() {
   assert.equal(parsed.rowCount, 1);
 }
 
+async function testVerifiedBankCsvRegression() {
+  const csv = [
+    "date,description,amount,currency,reference",
+    "2026-08-01,Webshop payout,+1210,EUR,PAYOUT-0801",
+    "2026-08-03,Office supplies,-121,EUR,OFFICE-0803",
+    "2026-08-05,Retail customer payment,+605,EUR,PAY-0805",
+    "2026-08-10,Monthly bank fee,-15,EUR,FEE-0810",
+    "2026-08-12,Consulting payment,+968,EUR,CONSULT-0812",
+    "2026-08-15,Marketing payment,-363,EUR,MKT-0815",
+  ].join("\n");
+
+  const parsed = await parseAccountancyUploadBuffer(
+    Buffer.from(csv),
+    baseMeta("csv", "verified-bank.csv", "text/csv"),
+  );
+  const categorization = normalizePrebookkeepingCategorization(categorizePrebookkeepingRows(parsed.rows));
+
+  assert.equal(parsed.rowCount, 6);
+  assert.deepEqual(categorization.transactions.map((row) => row.transactionDate), [
+    "2026-08-01",
+    "2026-08-03",
+    "2026-08-05",
+    "2026-08-10",
+    "2026-08-12",
+    "2026-08-15",
+  ]);
+  assert.deepEqual(categorization.transactions.map((row) => row.amount), [1210, -121, 605, -15, 968, -363]);
+  assert.deepEqual(categorization.transactions.map((row) => row.currency), ["EUR", "EUR", "EUR", "EUR", "EUR", "EUR"]);
+  assert.deepEqual(categorization.transactions.map((row) => row.invoiceReference), [
+    "PAYOUT-0801",
+    "OFFICE-0803",
+    "PAY-0805",
+    "FEE-0810",
+    "CONSULT-0812",
+    "MKT-0815",
+  ]);
+
+  const income = categorization.transactions.reduce((sum, row) => sum + Math.max(row.amount ?? 0, 0), 0);
+  const expenses = categorization.transactions.reduce((sum, row) => sum + Math.abs(Math.min(row.amount ?? 0, 0)), 0);
+  assert.equal(income, 2783);
+  assert.equal(expenses, 499);
+  assert.equal(income - expenses, 2284);
+
+  const reviewed = {
+    ...categorization,
+    transactions: categorization.transactions.map((transaction) => ({
+      ...transaction,
+      reviewed: true,
+      reviewStatus: "reviewed" as const,
+    })),
+  };
+  const exportResult = buildPrebookkeepingExport({
+    datasetName: "Verified Bank",
+    categorization: reviewed,
+    format: "csv",
+    scope: "all",
+  });
+  const exportBody = String(exportResult.body);
+  for (const expected of ["2026-08-01", "1210", "605", "968", "121", "15", "363", "EUR", "FEE-0810"]) {
+    assert.ok(exportBody.includes(expected), `accountant export preserves ${expected}`);
+  }
+}
+
 async function testSemicolonCsv() {
   const parsed = await parseAccountancyUploadBuffer(
     Buffer.from("\uFEFFdate;description;amount\r\n2026-01-01;Office;12,50\r\n"),
@@ -83,6 +152,56 @@ async function testExcel() {
   assert.equal(parsed.selectedSheet, "Sheet1");
   assert.equal(parsed.rowCount, 1);
   assert.deepEqual(parsed.columns, ["date", "description", "amount"]);
+}
+
+async function testVerifiedExcelEquivalentData() {
+  const parsed = await parseAccountancyUploadBuffer(
+    workbookBuffer([
+      ["date", "description", "amount", "currency", "reference"],
+      [new Date(Date.UTC(2026, 7, 1)), "Webshop payout", 1210, "EUR", "PAYOUT-0801"],
+      [46237, "Office supplies", -121, "EUR", "OFFICE-0803"],
+      ["2026-08-05", "Retail customer payment", 605, "EUR", "PAY-0805"],
+      ["2026-08-10", "Monthly bank fee", -15, "EUR", "FEE-0810"],
+      ["2026-08-12", "Consulting payment", 968, "EUR", "CONSULT-0812"],
+      ["2026-08-15", "Marketing payment", -363, "EUR", "MKT-0815"],
+    ]),
+    baseMeta("excel", "verified-bank.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+  );
+  const categorization = categorizePrebookkeepingRows(parsed.rows);
+  assert.equal(parsed.rowCount, 6);
+  assert.deepEqual(categorization.transactions.map((row) => row.transactionDate), [
+    "2026-08-01",
+    "2026-08-03",
+    "2026-08-05",
+    "2026-08-10",
+    "2026-08-12",
+    "2026-08-15",
+  ]);
+  assert.deepEqual(categorization.transactions.map((row) => row.amount), [1210, -121, 605, -15, 968, -363]);
+}
+
+async function testExcelInvalidDateDoesNotCrash() {
+  const workbook = XLSX.utils.book_new();
+  const sheet = {
+    "!ref": "A1:C2",
+    A1: { t: "s", v: "date" },
+    B1: { t: "s", v: "description" },
+    C1: { t: "s", v: "amount" },
+    A2: { t: "d", v: "not-a-date" },
+    B2: { t: "s", v: "Office supplies" },
+    C2: { t: "n", v: -121 },
+  } as XLSX.WorkSheet;
+  XLSX.utils.book_append_sheet(workbook, sheet, "Transactions");
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  const parsed = await parseAccountancyUploadBuffer(
+    buffer,
+    baseMeta("excel", "invalid-date.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+  );
+  const categorization = categorizePrebookkeepingRows(parsed.rows);
+  assert.equal(parsed.rowCount, 1);
+  assert.equal(parsed.rows[0]?.date, null);
+  assert.equal(categorization.transactions[0]?.transactionDate, null);
+  assert.ok(categorization.missingDataWarnings.some((warning) => warning.includes("missing a date")));
 }
 
 async function testLegacyXls() {
@@ -241,7 +360,8 @@ async function testTextPdfInvoice() {
   const parsed = await parseAccountancyUploadBuffer(pdf, baseMeta("pdf", "invoice.pdf", "application/pdf"));
   assert.equal(parsed.route, "accountancy_pdf_document_processor");
   assert.equal(parsed.documentTextStatus, "embedded_text");
-  assert.deepEqual(parsed.columns, ["transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]);
+  assert.deepEqual(parsed.columns, ["document_type", "transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]);
+  assert.equal(parsed.rows[0]?.document_type, "invoice");
   assert.equal(parsed.rows[0]?.transaction_date, "2026-01-31");
   assert.equal(parsed.rows[0]?.supplier_customer, "ACME Ltd");
   assert.equal(parsed.rows[0]?.invoice_reference, "INV-1001");
@@ -259,6 +379,36 @@ async function testTextPdfInvoice() {
   assert.equal(categorization.reviewSummary.totalCount, 1);
   assert.equal(categorization.vatTaxSummary.rowsWithTax, 1);
   assert.equal(categorization.vatTaxSummary.total, 21);
+}
+
+async function testMachineReadablePdfInvoiceVariant() {
+  const pdf = Buffer.from(
+    [
+      "%PDF-1.4",
+      "(Invoice: INV-TEST-2026-0818)",
+      "(Date: 2026-08-18)",
+      "(Currency: EUR)",
+      "(Business software license:)",
+      "(1 x 250.00 = 250.00)",
+      "(Implementation service:)",
+      "(2 x 125.00 = 250.00)",
+      "(Net: EUR 500.00)",
+      "(VAT (21%): EUR 105.00)",
+      "(Total: EUR 605.00)",
+      "%%EOF",
+    ].join("\n"),
+  );
+  const parsed = await parseAccountancyUploadBuffer(pdf, baseMeta("pdf", "invoice-test.pdf", "application/pdf"));
+  assert.equal(parsed.documentTextStatus, "embedded_text");
+  assert.equal(parsed.rows[0]?.document_type, "invoice");
+  assert.equal(parsed.rows[0]?.invoice_reference, "INV-TEST-2026-0818");
+  assert.equal(parsed.rows[0]?.transaction_date, "2026-08-18");
+  assert.equal(parsed.rows[0]?.currency, "EUR");
+  assert.equal(parsed.rows[0]?.subtotal, 500);
+  assert.equal(parsed.rows[0]?.vat_tax, 105);
+  assert.equal(parsed.rows[0]?.amount, 605);
+  assert.ok(parsed.extractedData.some((field) => field.field === "taxRate" && field.value === "21"));
+  assert.equal((parsed.rows[0]?.line_items as Record<string, unknown>[]).length, 2);
 }
 
 async function testScannedPdf() {
@@ -363,6 +513,11 @@ function testUiWiring() {
   assert.ok(source.includes('formData.append("uploadType", selectedType)'), "selected upload type is submitted");
   assert.ok(source.includes("resetSelectedFileState"), "tab switching clears selected file and errors");
   assert.ok(source.includes("fileInputRef.current.value = \"\""), "file input is cleared on tab switch");
+  assert.ok(source.includes('label: "CSV"'), "visible Accountancy upload choices include CSV");
+  assert.ok(source.includes('label: "Excel"'), "visible Accountancy upload choices include Excel");
+  assert.ok(source.includes('label: "PDF / Scan"'), "visible Accountancy upload choices include PDF / Scan");
+  assert.ok(!source.includes('label: "Receipts/Invoices"'), "receipts/invoices are not a separate visible file-format choice");
+  assert.ok(!source.includes('label: "Bank exports"'), "bank exports are not a separate visible file-format choice");
   assert.ok(!source.includes("simulateExtraction"), "mock extraction is removed");
   assert.ok(!source.includes("Math.random() * 1000"), "random mock transactions are removed");
 }
@@ -440,6 +595,28 @@ function testPrebookkeepingCategorization() {
   assert.equal(summary.incomeTotal, 100);
   assert.equal(summary.expenseTotal, 112);
   assert.equal(summary.vatTaxSummary.total, 29);
+}
+
+function testBankFeeLearningRuleSafety() {
+  const summary = categorizePrebookkeepingRows(
+    [{ date: "2026-08-10", description: "Monthly bank fee", amount: -15, currency: "EUR", reference: "FEE-0810" }],
+    [{ descriptionKeyword: "monthly bank fee", category: "equity" }],
+  );
+  const transaction = summary.transactions[0];
+  assert.equal(transaction?.category, "bank_fees");
+  assert.notEqual(transaction?.category, "equity");
+  assert.ok((transaction?.confidence ?? 0) < 0.96, "bank fee must not inherit high-confidence Equity from a bad learned rule");
+}
+
+function testVatMissingConfigRequiresReview() {
+  const summary = categorizePrebookkeepingRows([
+    { date: "2026-08-03", description: "Office supplies", amount: -121, currency: "EUR", reference: "OFFICE-0803" },
+  ]);
+  const transaction = summary.transactions[0];
+  assert.equal(transaction?.vatStatus, "missing");
+  assert.equal(transaction?.vatNeedsReview, true);
+  assert.equal(transaction?.vatTax, null);
+  assert.match(transaction?.vatReason || "", /no configured VAT rate/i);
 }
 
 function testPrebookkeepingExports() {

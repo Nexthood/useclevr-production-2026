@@ -438,9 +438,10 @@ export async function processAccountancyUpload(input: {
     throw new AccountancyUploadError(
       "parsing",
       "PARSING_FAILED",
-      error instanceof Error ? error.message : "The file could not be parsed.",
+      userFacingParseMessage(input.uploadType),
       422,
       false,
+      { diagnostic: error instanceof Error ? error.message : "The file could not be parsed." },
     );
   }
 
@@ -788,7 +789,7 @@ function parseExcelUpload(buffer: Buffer, meta: AccountancyUploadMeta): Accounta
   const objectRows = selected.dataRows.map((row) => {
     const record: Record<string, unknown> = {};
     selected.headers.forEach((header, index) => {
-      record[header] = row[index] === "" ? null : row[index];
+      record[header] = normalizeSpreadsheetCellValue(row[index], header);
     });
     return record;
   });
@@ -1029,13 +1030,14 @@ function parsePdfUpload(buffer: Buffer, _meta: AccountancyUploadMeta): Accountan
   return {
     route: scannerRequired ? "receipt_document_scanner" : uploadSpecs.pdf.route,
     columns: extractedData.length > 0
-      ? ["transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]
+      ? ["document_type", "transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]
       : ["document_status", "description", "reason"],
     rows,
     rowCount: rows.length,
-    columnCount: extractedData.length > 0 ? 9 : 3,
+    columnCount: extractedData.length > 0 ? 10 : 3,
     columnTypes: extractedData.length > 0
       ? {
+          document_type: "text",
           transaction_date: "date",
           description: "text",
           supplier_customer: "text",
@@ -1167,8 +1169,68 @@ function isNonEmptyRow(row: unknown[]) {
 }
 
 function normalizeExcelCell(value: unknown) {
-  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Date) return formatSpreadsheetDate(value) || "";
   return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeSpreadsheetCellValue(value: unknown, header: string) {
+  if (value === "") return null;
+  if (value instanceof Date) return formatSpreadsheetDate(value);
+  if (isDateHeader(header)) {
+    if (typeof value === "number") return excelSerialDateToIso(value) ?? value;
+    if (typeof value === "string") return normalizeSpreadsheetDateString(value);
+  }
+  return value ?? null;
+}
+
+function isDateHeader(header: string) {
+  return /date|datum|posted|posting|booking|value date|invoice date/i.test(header);
+}
+
+function formatSpreadsheetDate(value: Date) {
+  if (!Number.isFinite(value.getTime())) return null;
+  const year = value.getUTCFullYear();
+  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(value.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function excelSerialDateToIso(value: number) {
+  if (!Number.isFinite(value) || value < 1 || value > 2958465) return null;
+  const parsed = XLSX.SSF.parse_date_code(value);
+  if (!parsed || !parsed.y || !parsed.m || !parsed.d) return null;
+  return `${String(parsed.y).padStart(4, "0")}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+}
+
+function normalizeSpreadsheetDateString(value: string) {
+  const text = value.trim();
+  if (!text) return null;
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(text);
+  if (iso) return formatDateParts(Number(iso[1]), Number(iso[2]), Number(iso[3])) ?? null;
+
+  const slash = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(text);
+  if (slash) {
+    const first = Number(slash[1]);
+    const second = Number(slash[2]);
+    const year = normalizeYear(Number(slash[3]));
+    if (first > 12) return formatDateParts(year, second, first) ?? null;
+    if (second > 12) return formatDateParts(year, first, second) ?? null;
+  }
+
+  const parsed = new Date(text);
+  return Number.isFinite(parsed.getTime()) ? formatSpreadsheetDate(parsed) : null;
+}
+
+function normalizeYear(value: number) {
+  return value < 100 ? 2000 + value : value;
+}
+
+function formatDateParts(year: number, month: number, day: number) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return formatSpreadsheetDate(date);
 }
 
 function looksLikeMostlyNumeric(value: unknown) {
@@ -1264,7 +1326,7 @@ function tagValue(block: string, tag: string) {
 function extractPdfText(buffer: Buffer) {
   const text = `${buffer.toString("utf8")}\n${buffer.toString("latin1")}`;
   const literalStrings = Array.from(text.matchAll(/\(([^()]{2,200})\)/g)).map((match) => match[1]);
-  const readable = literalStrings.length > 0 ? literalStrings.join("\n") : text;
+  const readable = literalStrings.length > 0 ? `${literalStrings.join("\n")}\n${text}` : text;
   return readable.replace(/[^\S\r\n]+/g, " ").replace(/[^\x20-\x7E\r\n€£$-]/g, " ").trim();
 }
 
@@ -1273,14 +1335,17 @@ function extractAccountingFields(text: string) {
   const add = (field: string, value: string | undefined, confidence = 0.8) => {
     if (value && value.trim()) fields.push({ field, value: value.trim(), confidence });
   };
+  const moneyPattern = String.raw`((?:EUR|USD|GBP|CHF|HUF|RON|€|\$|£)?\s?-?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)`;
 
+  add("documentType", detectAccountingDocumentType(text), 0.8);
   add("supplier", /(?:supplier|vendor|merchant|from)[:\s]+([A-Za-z0-9 &.,'-]{2,80})/i.exec(text)?.[1], 0.75);
   add("invoiceNumber", /(?:invoice|receipt)\s*(?:number|no|#)?[:\s#-]+([A-Z0-9-]{3,40})/i.exec(text)?.[1], 0.85);
   add("date", /(?:date|invoice date)[:\s]+(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i.exec(text)?.[1], 0.8);
   add("currency", /\b(EUR|USD|GBP|CHF|HUF|RON|€|\$|£)\b/i.exec(text)?.[1], 0.75);
-  add("subtotal", /(?:subtotal|net amount)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
-  add("tax", /(?:vat|tax|gst)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
-  add("total", /\b(?:total|amount due|grand total)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.85);
+  add("subtotal", new RegExp(String.raw`(?:subtotal|net(?:\s+amount)?)[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.75);
+  add("taxRate", /(?:vat|tax|gst)\s*\(\s*(\d+(?:[.,]\d+)?)\s*%\s*\)/i.exec(text)?.[1], 0.75);
+  add("tax", new RegExp(String.raw`(?:vat|tax|gst)(?:\s*\([^)]+\))?[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.75);
+  add("total", new RegExp(String.raw`\b(?:total|amount due|grand total)[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.85);
   const lineItems = extractLineItems(text);
   if (lineItems.length > 0) fields.push({ field: "lineItems", value: lineItems, confidence: 0.65 });
   return fields;
@@ -1288,6 +1353,7 @@ function extractAccountingFields(text: string) {
 
 function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
   const valueFor = (field: string) => extractedData.find((item) => item.field === field)?.value;
+  const documentType = stringOrNull(valueFor("documentType"));
   const supplier = stringOrNull(valueFor("supplier"));
   const invoiceNumber = stringOrNull(valueFor("invoiceNumber"));
   const total = parseLocalizedNumber(valueFor("total"));
@@ -1297,6 +1363,7 @@ function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
 
   return [
     {
+      document_type: documentType,
       transaction_date: stringOrNull(valueFor("date")),
       description: [supplier, invoiceNumber ? `invoice ${invoiceNumber}` : null].filter(Boolean).join(" - ") || "Extracted accounting document",
       supplier_customer: supplier,
@@ -1310,18 +1377,39 @@ function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
   ];
 }
 
+function detectAccountingDocumentType(text: string) {
+  if (/\binvoice\b/i.test(text)) return "invoice";
+  if (/\breceipt\b/i.test(text)) return "receipt";
+  return undefined;
+}
+
 function extractLineItems(text: string) {
   const seen = new Set<string>();
-  return text
+  const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .map((line) => /^(?:item|line item)[:\s-]+(.+?)\s+(?:qty[:\s]+)?(\d+(?:[.,]\d+)?)\s+(?:total[:\s]+)?([€$£]?\s?\d[\d.,]*)$/i.exec(line))
-    .filter((match): match is RegExpExecArray => Boolean(match))
-    .map((match) => ({
-      description: match[1]?.trim() || "",
-      quantity: parseLocalizedNumber(match[2]),
-      total: parseLocalizedNumber(match[3]),
-    }))
+    .filter(Boolean);
+
+  const items = lines
+    .map((line) => {
+      const inline = /^(?:item|line item)[:\s-]+(.+?)\s+(?:qty[:\s]+)?(\d+(?:[.,]\d+)?)\s+(?:total[:\s]+)?([€$£]?\s?\d[\d.,]*)$/i.exec(line);
+      if (inline) {
+        return {
+          description: inline[1]?.trim() || "",
+          quantity: parseLocalizedNumber(inline[2]),
+          total: parseLocalizedNumber(inline[3]),
+        };
+      }
+
+      const invoiceLine = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*x\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)\s*=\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)$/i.exec(line);
+      if (!invoiceLine) return null;
+      return {
+        description: invoiceLine[1]?.replace(/:$/, "").trim() || "",
+        quantity: parseLocalizedNumber(invoiceLine[2]),
+        total: parseLocalizedNumber(invoiceLine[4]),
+      };
+    })
+    .filter((item): item is { description: string; quantity: number; total: number } => Boolean(item))
     .filter((item) => item.description && Number.isFinite(item.quantity) && Number.isFinite(item.total))
     .filter((item) => {
       const key = `${item.description.toLowerCase()}|${item.quantity}|${item.total}`;
@@ -1329,6 +1417,24 @@ function extractLineItems(text: string) {
       seen.add(key);
       return true;
     });
+
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    const description = lines[index]?.replace(/:$/, "").trim() || "";
+    const amountLine = /^(\d+(?:[.,]\d+)?)\s*x\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)\s*=\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)$/i.exec(lines[index + 1] || "");
+    if (!description || !amountLine || /^(invoice|date|currency|net|vat|tax|total|subtotal)\b/i.test(description)) continue;
+    const item = {
+      description,
+      quantity: parseLocalizedNumber(amountLine[1]),
+      total: parseLocalizedNumber(amountLine[3]),
+    };
+    if (!Number.isFinite(item.quantity) || !Number.isFinite(item.total)) continue;
+    const key = `${item.description.toLowerCase()}|${item.quantity}|${item.total}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(item);
+  }
+
+  return items;
 }
 
 function stringOrNull(value: unknown) {
@@ -1362,6 +1468,16 @@ function displayUploadType(uploadType: AccountancyUploadType) {
   if (uploadType === "receipt") return "Receipts/Invoices";
   if (uploadType === "bank") return "Bank export";
   return uploadType.toUpperCase();
+}
+
+function userFacingParseMessage(uploadType: AccountancyUploadType) {
+  if (uploadType === "excel") {
+    return "We couldn't read one or more transaction dates from this Excel file. Review the date column and try again.";
+  }
+  if (uploadType === "pdf" || uploadType === "receipt") {
+    return "We couldn't extract accounting fields from this document. Review the document text or upload a clearer file.";
+  }
+  return "We couldn't read this file. Review the file format and try again.";
 }
 
 function safeLogMeta(

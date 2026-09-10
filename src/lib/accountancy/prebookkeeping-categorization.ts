@@ -731,6 +731,10 @@ function classifyTransaction(input: {
     return true;
   };
 
+  if (has(/bank(?:ing)? fee|service fee|service charge|card fee|transaction fee|payment processing fee|stripe fee|square fee|paypal fee/i, "bank or payment fee keyword")) {
+    return { category: "bank_fees", confidence: 0.88, reasons };
+  }
+
   const learnedMatch = learningRules.find((rule) => {
     if (rule.supplierKey && input.supplierCustomer?.toLowerCase().includes(rule.supplierKey)) return true;
     if (rule.merchantKey && text.includes(rule.merchantKey)) return true;
@@ -752,7 +756,7 @@ function classifyTransaction(input: {
   if (has(/vat|tax|hmrc|irs|belasting|btw|corporate tax|sales tax/i, "tax keyword")) {
     return { category: "taxes", confidence: 0.9, reasons };
   }
-  if (has(/bank fee|service charge|card fee|transaction fee|stripe fee|square fee|paypal fee/i, "bank or payment fee keyword")) {
+  if (has(/bank(?:ing)? fee|service fee|service charge|card fee|transaction fee|payment processing fee|stripe fee|square fee|paypal fee/i, "bank or payment fee keyword")) {
     return { category: "bank_fees", confidence: 0.86, reasons };
   }
   if (has(/transfer|internal transfer|savings|owner draw|capital injection|loan repayment/i, "transfer keyword")) {

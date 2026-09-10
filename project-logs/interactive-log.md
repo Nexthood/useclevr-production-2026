@@ -1,3 +1,38 @@
+## Accountancy Upload Reliability Patch
+
+1. Interaction title
+Accountancy upload reliability patch.
+
+2. What was the user goal
+Fix verified Pre-bookkeeping and Accountancy upload failures for Excel dates, machine-readable PDF invoice extraction, bank-fee categorization, and visible upload choices without changing Business Profile, VAT calculations, tenant isolation, billing, OAuth, Usy, or unrelated systems.
+
+3. What changed
+Accountancy Excel parsing now normalizes valid native Date cells, Excel serial dates, ISO date strings, and common spreadsheet date strings while converting invalid date cells to row-level missing-date review data instead of crashing. Machine-readable PDF extraction now keeps raw text alongside literal PDF strings, recognizes invoice document type, net amounts, VAT rates, VAT amounts with currency labels, totals, and line items, then feeds the existing Pre-bookkeeping rows and review/export path. Bank and payment fee language now outranks bad learned Equity rules. The upload UI shows CSV, Excel, and PDF / Scan as file-format choices while the legacy receipt and bank upload types remain available in the underlying processor.
+
+4. Problems marked
+blocker: none.
+risk: scanned/image-only PDF extraction still depends on a future OCR/document-vision integration because no existing repository capability performs document OCR.
+improvement: add production smoke coverage for Accountancy PDF and Excel uploads when sanitized browser fixtures exist.
+observation: the 96% Equity bank-fee result came from learned-rule precedence, not the deterministic bank-fee keyword rule.
+
+5. User learning
+Verified CSV imports remain intact while Excel dates, machine-readable PDF invoices, and bank-fee categorization now use safer Accountancy parsing and Pre-bookkeeping review paths.
+
+6. AI-agent learning
+Accountancy upload fixes must protect the existing Pre-bookkeeping dataset persistence, review, and export flow while converting parser exceptions into row-level review evidence whenever possible.
+
+7. Follow-up tasks
+- Add production smoke coverage for Accountancy PDF and Excel uploads when sanitized browser fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dependency Audit Patch
 
 1. Interaction title

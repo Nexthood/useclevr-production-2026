@@ -437,16 +437,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     }
   }
 
-  const allFileTypeOptions: { type: UploadType; label: string; icon: React.ReactNode; accept: string }[] = [
+  const fileTypeOptions: { type: UploadType; label: string; icon: React.ReactNode; accept: string }[] = [
     { type: "csv", label: "CSV", icon: <FileText className="h-4 w-4" />, accept: ".csv,text/csv,application/csv,application/vnd.ms-excel,application/octet-stream" },
     { type: "excel", label: "Excel", icon: <FileText className="h-4 w-4" />, accept: ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" },
-    { type: "pdf", label: "PDF", icon: <FileText className="h-4 w-4" />, accept: ".pdf,application/pdf" },
-    { type: "receipt", label: "Receipts/Invoices", icon: <Receipt className="h-4 w-4" />, accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" },
-    { type: "bank", label: "Bank exports", icon: <FileText className="h-4 w-4" />, accept: ".csv,.xlsx,.xls,.ofx,.qif,.qfx,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream" },
+    { type: "pdf", label: "PDF / Scan", icon: <FileText className="h-4 w-4" />, accept: ".pdf,application/pdf" },
   ]
-  const fileTypeOptions = datasetType === "accountancy"
-    ? allFileTypeOptions.filter((option) => option.type === "csv" || option.type === "excel")
-    : allFileTypeOptions
 
   const selectedOption = fileTypeOptions.find((opt) => opt.type === selectedType)
 
@@ -472,7 +467,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-3">
         {fileTypeOptions.map((option) => (
           <button
             key={option.type}
@@ -698,7 +693,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
               ) : (
                 <>
                   <h3 className="text-base font-semibold">
-                    Drop {selectedType === "receipt" ? "receipts/invoices" : selectedType === "bank" ? "bank exports" : selectedType.toUpperCase()} here
+                    Drop {selectedOption?.label || selectedType.toUpperCase()} here
                   </h3>
                   <p className="text-xs text-muted-foreground">or click to browse</p>
                   <div className="mt-3 border-t border-border/40 pt-3">
