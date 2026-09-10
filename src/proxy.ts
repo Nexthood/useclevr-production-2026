@@ -9,6 +9,7 @@ import {
 
 const MCP_SUBDOMAIN_PATTERN = /^mcp(?:-test)?\.useclevr\.com(:?\d+)?$/;
 const MCP_TEST_SUBDOMAIN_PATTERN = /^mcp-test\.useclevr\.com(:?\d+)?$/
+const PRODUCTION_APP_HOST = "app.useclevr.com"
 
 const apiPrefix = "/api"
 const publicApiPrefixes = ["/api/auth"]
@@ -42,6 +43,17 @@ function isDemoRoute(pathname: string) {
   return pathname === "/demo" || pathname.startsWith("/demo/")
 }
 
+function hostnameFromHostHeader(host: string) {
+  const normalizedHost = host.trim().toLowerCase()
+  if (!normalizedHost) return ""
+
+  try {
+    return new URL(`http://${normalizedHost}`).hostname
+  } catch {
+    return normalizedHost.split(":")[0] || ""
+  }
+}
+
 function applyResponseSecurityHeaders(request: NextRequest, response: NextResponse, cspHeader: string) {
   applyRuntimeSecurityHeaders(response.headers, {
     csp: cspHeader,
@@ -61,6 +73,7 @@ export default function proxy(request: NextRequest) {
   const host = request.headers.get("host") || ""
   const isMcpSubdomain = MCP_SUBDOMAIN_PATTERN.test(host)
   const isMcpTestSubdomain = MCP_TEST_SUBDOMAIN_PATTERN.test(host)
+  const isProductionAppHost = hostnameFromHostHeader(host) === PRODUCTION_APP_HOST
   // Generate CSP Nonce
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
   const cspHeader = buildContentSecurityPolicy({ nonce, pathname })
@@ -90,6 +103,13 @@ export default function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce)
   requestHeaders.set("x-useclevr-pathname", pathname)
   requestHeaders.set("Content-Security-Policy", cspHeader)
+
+  if (isProductionAppHost && pathname === "/") {
+    const appEntryUrl = nextUrl.clone()
+    appEntryUrl.pathname = isLoggedIn ? "/app" : "/login"
+    appEntryUrl.search = ""
+    return redirectWithCsp(request, appEntryUrl, cspHeader)
+  }
 
   if (isMcpTestSubdomain && (pathname === "/api/mcp" || pathname === "/api/payload/mcp")) {
     requestHeaders.set("x-internal-trusted-proxy", "1")
