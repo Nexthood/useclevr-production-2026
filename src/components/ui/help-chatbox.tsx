@@ -16,20 +16,30 @@ import { usePathname } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
+const placeholderMap = {
+  english: "Ask Usy about UseClevr or get help...",
+  german: "Frag Usy zu UseClevr oder hol dir Hilfe...",
+  dutch: "Vraag Usy over UseClevr of krijg hulp...",
+  spanish: "Pregunta a Usy sobre UseClevr o pide ayuda...",
+  hungarian: "Kérdezd Usyt a UseClevrről, vagy kérj segítséget...",
+  romanian: "Întreabă Usy despre UseClevr sau cere ajutor..."
+} as const satisfies Record<SupportedUsyLanguage, string>;
+
+const quickActionMap = {
+  english: "Open AI Assistant",
+  german: "KI-Assistent öffnen",
+  dutch: "AI-assistent openen",
+  spanish: "Abrir asistente de IA",
+  hungarian: "AI-asszisztens megnyitása",
+  romanian: "Deschide asistentul AI"
+} as const satisfies Record<SupportedUsyLanguage, string>;
+
 type ChatMessage = {
   role: "user" | "assistant";
   text: string;
   source?: "knowledge";
   followUps?: string[];
 };
-
-const starterSuggestions = [
-  "What can you do?",
-  "Explain AI credits",
-  "Why is my upload blocked?",
-  "Which plan do I need?",
-  "Help me analyze my data",
-];
 
 const capabilities = [
   "Uploads",
@@ -197,6 +207,33 @@ export function HelpChatbox({
   const [showLanguageHint, setShowLanguageHint] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const starterSuggestions = [
+    "What can you do?",
+    "Explain AI credits",
+    "Why is my upload blocked?",
+    "Which plan do I need?",
+    quickActionMap[currentUsyLanguage] || quickActionMap.english,
+  ];
+
+  const capabilities = [
+    "Uploads",
+    "Datasets",
+    "Dashboards",
+    "AI Analysis",
+    "Forecasting",
+    "Reports",
+    "Business Intelligence",
+    "KPIs",
+    "CSV imports",
+    "Retail Analytics",
+    "Inventory",
+    "Billing",
+    "Credits",
+    "Settings",
+    "Integrations",
+    "Troubleshooting",
+  ];
 
   useEffect(() => {
     const openChat = () => setOpen(true);
@@ -516,7 +553,7 @@ export function HelpChatbox({
                     submitQuestion(query);
                   }
                 }}
-                placeholder="Ask Usy anything about your business..."
+                placeholder={placeholderMap[currentUsyLanguage] || placeholderMap.english}
                 rows={1}
                 className="max-h-24 min-h-9 w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-5 text-white placeholder:text-slate-400 focus:outline-none"
               />

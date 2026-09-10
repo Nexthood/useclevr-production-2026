@@ -1,6 +1,9 @@
 import assert from "node:assert/strict"
 
+import { NextRequest } from "next/server"
+
 import { normalizePublicAuthBaseUrl, resolveAuthRedirect } from "../../src/lib/auth/redirect-origin"
+import proxy from "../../src/proxy"
 
 assert.equal(
   resolveAuthRedirect("https://app.useclevr.com/app", "https://app.useclevr.com"),
@@ -48,5 +51,35 @@ assert.equal(
   resolveAuthRedirect("/app", "http://localhost:3100"),
   "http://localhost:3100/app",
 )
+
+const anonymousAppRootResponse = proxy(
+  new NextRequest("https://app.useclevr.com/", {
+    method: "GET",
+    headers: { host: "app.useclevr.com" },
+  }),
+)
+assert.equal(anonymousAppRootResponse.status, 307)
+assert.equal(anonymousAppRootResponse.headers.get("location"), "https://app.useclevr.com/login")
+
+const signedInAppRootResponse = proxy(
+  new NextRequest("https://app.useclevr.com/", {
+    method: "GET",
+    headers: {
+      cookie: "authjs.session-token=test-session",
+      host: "app.useclevr.com",
+    },
+  }),
+)
+assert.equal(signedInAppRootResponse.status, 307)
+assert.equal(signedInAppRootResponse.headers.get("location"), "https://app.useclevr.com/app")
+
+const marketingRootResponse = proxy(
+  new NextRequest("https://www.useclevr.com/", {
+    method: "GET",
+    headers: { host: "www.useclevr.com" },
+  }),
+)
+assert.equal(marketingRootResponse.status, 200)
+assert.equal(marketingRootResponse.headers.get("location"), null)
 
 console.log("Auth redirect origin checks passed.")

@@ -103,6 +103,41 @@ When a shared exported type name overlaps an internal router concept, the AI age
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Production App Domain Root Routing
+
+1. Interaction title
+Production app domain root routing.
+
+2. What was the user goal
+Investigate and fix the production routing issue where `https://www.useclevr.com` loads and `https://app.useclevr.com/` returns HTTP 500, without redesigning the marketing site, touching Usy, committing, pushing, or deploying.
+
+3. What changed
+The proxy now routes only `app.useclevr.com/` to the existing application entry flow: signed-out requests redirect to `/login`, and requests with an existing auth or Payload session cookie redirect to `/app`. The public marketing host root stays untouched. The auth redirect regression test now covers signed-out app-root routing, signed-in app-root routing, and non-redirect behavior for the marketing host root.
+
+4. Problems marked
+blocker: none.
+risk: production needs deploy-time verification after this source change reaches Railway because the current live app still runs the previous routing behavior.
+improvement: add a production smoke check that asserts `app.useclevr.com/` returns a redirect and `www.useclevr.com/` remains the public marketing site.
+observation: external checks show `www.useclevr.com` is served by LiteSpeed marketing hosting while `app.useclevr.com` is served by Railway and responds healthy on `/api/health`; the failure is isolated to the app host bare root.
+
+5. User learning
+The production app hostname reaches Railway correctly, and the bare app root now belongs to the existing auth/app entry flow instead of the public homepage route.
+
+6. AI-agent learning
+Domain routing fixes should verify host-specific behavior with the proxy before changing landing page code, auth internals, OAuth, Stripe, or Railway domain mappings.
+
+7. Follow-up tasks
+- Add a production smoke check that asserts `app.useclevr.com/` returns a redirect and `www.useclevr.com/` remains the public marketing site.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Usy Secretariat Capability Layer
 
 1. Interaction title

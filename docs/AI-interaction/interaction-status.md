@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-09-10
-- **Goal**: Polish only the existing Usy message composer send button without redesigning the composer or chat window.
-- **Durable change**: The bottom-right composer submit button is now a 44px circular cyan-to-purple primary action with centered white icon, subtle glow, hover, pressed, focus-visible, loading, and disabled states.
-- **Verification**: `pnpm validate:types` and `git diff --check` pass.
-- **Residual risk**: Live browser review remains useful for exact contrast and touch feel.
+- **Goal**: Investigate and fix the production routing issue where `www.useclevr.com` loads and `app.useclevr.com/` returns HTTP 500.
+- **Durable change**: The proxy routes only `app.useclevr.com/` through the existing application entry flow: signed-out users go to `/login`, signed-in users go to `/app`, and the marketing host root remains unchanged.
+- **Verification**: `pnpm test:auth` and `pnpm validate:types` pass.
+- **Residual risk**: Production still needs deploy-time verification after this source change reaches Railway.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

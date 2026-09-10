@@ -79,14 +79,29 @@ function toDetails(row: {
   }
 }
 
+function normalizeLocation(location: string): string {
+  const parts = location.split(",").map((part) => part.trim())
+  const seen = new Set<string>()
+  const unique: string[] = []
+  for (const part of parts) {
+    const lower = part.toLowerCase()
+    if (!seen.has(lower)) {
+      seen.add(lower)
+      unique.push(part)
+    }
+  }
+  return unique.join(", ")
+}
+
 function setupToDetails(input: unknown): BusinessDetails {
   const setup = normalizeCompanySetupPayload(input as Partial<CompanySetupPayload>)
   const raw = (input && typeof input === "object" ? input : {}) as Record<string, unknown>
   const text = (value: unknown) => (typeof value === "string" ? value : "")
-  const location = [
+  const locationParts = [
     setup.companyInfo.country || setup.companyInfo.taxResidenceCountry || setup.companyInfo.countryOfRegistration,
     setup.companyInfo.stateRegion,
-  ].filter(Boolean).join(", ")
+  ].filter(Boolean)
+  const location = normalizeLocation(locationParts.join(", "))
 
   return {
     businessName: setup.companyInfo.companyName || text(raw.businessName),

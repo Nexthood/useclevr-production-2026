@@ -60,6 +60,17 @@ assert.match(read("src/app/(auth)/app/accountancy/reporting/page.tsx"), /getBusi
 assert.match(analyzeSource, /getCompanySetup\(effectiveUserId\)/, "AI analysis reads the shared company setup");
 assert.match(datasetAnalyzeSource, /getCompanySetup\(userId\)/, "Dataset analysis reads the shared company setup");
 
+// --- Business Profile Edit Functionality ---
+assert.match(wizardSource, /Edit Business Profile/, "completed profile exposes Edit Business Profile button");
+assert.match(wizardSource, /setCompleted\(false\)/, "Edit Business Profile reopens wizard for editing");
+assert.match(wizardSource, /completed \|\| status\.completed/, "SavedProfileSummary shown when profile is complete");
+assert.match(wizardSource, /cache: "no-store"/, "wizard load uses no-store cache for fresh data on edit");
+
+// --- Location Normalization ---
+assert.match(businessStoreSource, /normalizeLocation/, "location normalization function exists");
+assert.match(businessStoreSource, /seen\.has\(lower\)/, "location normalization deduplicates identical components");
+assert.match(businessStoreSource, /unique\.join\(/, "location normalization joins unique components only");
+
 process.stdout.write("ok - business profile single source of truth\n");
 
 function read(relativePath: string) {
