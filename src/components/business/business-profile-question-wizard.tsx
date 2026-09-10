@@ -892,9 +892,14 @@ export function BusinessProfileQuestionWizard() {
                 <h3 className="text-xl font-semibold">Business Profile completed</h3>
                 <p className="mt-2 text-sm">Future AI analysis will use these confirmed business details to personalize tax, payroll, fixed-cost, margin, cash-flow, and risk commentary.</p>
                 <p className="mt-2 text-xs text-emerald-800/80 dark:text-emerald-200/80">You can edit the profile any time as the business changes.</p>
-                <Button type="button" className="mt-5" onClick={() => setIsOpen(false)}>
-                  View saved profile summary
-                </Button>
+                <div className="mt-5 flex flex-col gap-3 w-full max-w-xs">
+                  <Button type="button" variant="outline" onClick={() => setCompleted(false)}>
+                    Edit Business Profile
+                  </Button>
+                  <Button type="button" onClick={() => setIsOpen(false)}>
+                    View saved profile summary
+                  </Button>
+                </div>
               </div>
             ) : (
               <>

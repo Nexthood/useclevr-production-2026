@@ -23,7 +23,7 @@ const placeholderMap = {
   spanish: "Pregunta a Usy sobre UseClevr o pide ayuda...",
   hungarian: "Kérdezd Usyt a UseClevrről, vagy kérj segítséget...",
   romanian: "Întreabă Usy despre UseClevr sau cere ajutor..."
-};
+} as const satisfies Record<SupportedUsyLanguage, string>;
 
 const quickActionMap = {
   english: "Open AI Assistant",
@@ -32,7 +32,7 @@ const quickActionMap = {
   spanish: "Abrir asistente de IA",
   hungarian: "AI-asszisztens megnyitása",
   romanian: "Deschide asistentul AI"
-};
+} as const satisfies Record<SupportedUsyLanguage, string>;
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -40,14 +40,6 @@ type ChatMessage = {
   source?: "knowledge";
   followUps?: string[];
 };
-
-const starterSuggestions = [
-  "What can you do?",
-  "Explain AI credits",
-  "Why is my upload blocked?",
-  "Which plan do I need?",
-  quickActionMap[currentUsyLanguage] || quickActionMap.english,
-];
 
 const capabilities = [
   "Uploads",
@@ -215,6 +207,33 @@ export function HelpChatbox({
   const [showLanguageHint, setShowLanguageHint] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const starterSuggestions = [
+    "What can you do?",
+    "Explain AI credits",
+    "Why is my upload blocked?",
+    "Which plan do I need?",
+    quickActionMap[currentUsyLanguage] || quickActionMap.english,
+  ];
+
+  const capabilities = [
+    "Uploads",
+    "Datasets",
+    "Dashboards",
+    "AI Analysis",
+    "Forecasting",
+    "Reports",
+    "Business Intelligence",
+    "KPIs",
+    "CSV imports",
+    "Retail Analytics",
+    "Inventory",
+    "Billing",
+    "Credits",
+    "Settings",
+    "Integrations",
+    "Troubleshooting",
+  ];
 
   useEffect(() => {
     const openChat = () => setOpen(true);
