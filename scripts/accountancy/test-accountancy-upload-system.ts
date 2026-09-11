@@ -12,6 +12,10 @@ import {
   categorizePrebookkeepingRows,
   normalizePrebookkeepingCategorization,
 } from "../../src/lib/accountancy/prebookkeeping-categorization";
+import {
+  applyPrebookkeepingReviewUpdate,
+  buildPrebookkeepingLearningRuleValues,
+} from "../../src/lib/accountancy/prebookkeeping-review-updates";
 import { answerPrebookkeepingQuestionDeterministically } from "../../src/lib/accountancy/prebookkeeping-ai-assistant";
 import { buildPrebookkeepingExport, PrebookkeepingExportError } from "../../src/lib/accountancy/prebookkeeping-export";
 
@@ -48,6 +52,7 @@ async function run() {
   await testQfxBankExport();
   testPrebookkeepingCategorization();
   testBankFeeLearningRuleSafety();
+  testManualBankFeeCategoryPersistence();
   testVatMissingConfigRequiresReview();
   testPrebookkeepingExports();
   testPrebookkeepingAssistantFallback();
@@ -532,6 +537,7 @@ function testApiRouteWiring() {
   const reviewRoute = readFileSync("src/app/api/prebookkeeping/review/route.ts", "utf8");
   const exportRoute = readFileSync("src/app/api/prebookkeeping/export/route.ts", "utf8");
   const reviewWorkspace = readFileSync("src/components/accountancy/prebookkeeping-review-workspace.tsx", "utf8");
+  const railwayPredeploy = readFileSync("scripts/runtime/railway-predeploy.cjs", "utf8");
   assert.ok(route.includes("processAccountancyUpload"), "API route uses Accountancy processor");
   assert.ok(route.includes("stage"), "API route returns staged errors");
   assert.ok(route.includes("error.details"), "API route returns structured credit exhaustion details");
@@ -550,7 +556,9 @@ function testApiRouteWiring() {
   assert.ok(prebookkeepingPage.includes("normalizePrebookkeepingCategorization"), "Pre-bookkeeping page normalizes legacy review summaries before rendering");
   assert.ok(prebookkeepingPage.includes("StartCategorizationButton"), "Pre-bookkeeping page exposes a categorization action for legacy datasets");
   assert.ok(reviewRoute.includes("prebookkeepingLearningRules"), "manual category edits persist learning rules");
+  assert.ok(reviewRoute.includes("buildPrebookkeepingLearningRuleValues"), "manual review edits use the shared review update helper");
   assert.ok(reviewRoute.includes("prebookkeepingAuditEvents"), "review actions write audit events");
+  assert.ok(railwayPredeploy.includes("0023_prebookkeeping_vat_learning.sql"), "Railway predeploy applies the learning-rule VAT columns used by review PATCH");
   assert.ok(exportRoute.includes("buildPrebookkeepingExport"), "exports use the dedicated transaction export generator");
   assert.ok(exportRoute.includes("isSupportedPrebookkeepingExportFormat"), "unsupported accountant-package formats return Coming soon");
   assert.ok(exportRoute.includes("parseRowIndexes"), "filtered exports pass selected row indexes into the export generator");
@@ -606,6 +614,82 @@ function testBankFeeLearningRuleSafety() {
   assert.equal(transaction?.category, "bank_fees");
   assert.notEqual(transaction?.category, "equity");
   assert.ok((transaction?.confidence ?? 0) < 0.96, "bank fee must not inherit high-confidence Equity from a bad learned rule");
+}
+
+function testManualBankFeeCategoryPersistence() {
+  const initial = normalizePrebookkeepingCategorization(categorizePrebookkeepingRows([
+    { date: "2026-08-10", description: "Monthly bank fee", amount: -15, currency: "EUR", reference: "FEE-0810" },
+  ]));
+  const staleEquityCategorization = normalizePrebookkeepingCategorization({
+    ...initial,
+    transactions: initial.transactions.map((transaction) => ({
+      ...transaction,
+      category: "equity",
+      suggestedCategory: "equity",
+      confidence: 0.96,
+      reviewed: false,
+      reviewStatus: "pending",
+      needsReview: true,
+      reasons: ["learned user rule"],
+    })),
+  });
+
+  assert.equal(staleEquityCategorization.transactions[0]?.category, "equity");
+  assert.equal(staleEquityCategorization.categoryCounts.equity, 1);
+
+  const now = new Date("2026-08-20T00:00:00.000Z");
+  const update = applyPrebookkeepingReviewUpdate({
+    categorization: staleEquityCategorization,
+    rowIndexes: [0],
+    action: "change_category",
+    body: { category: "bank_fees" },
+  });
+  const learningRules = buildPrebookkeepingLearningRuleValues({
+    action: "change_category",
+    categorization: staleEquityCategorization,
+    updated: update.updated,
+    effectiveRowIndexes: update.effectiveRowIndexes,
+    userId: "user_test",
+    now,
+    idFactory: () => "prebook_rule_test",
+  });
+
+  const persistedDataset = {
+    id: "dataset_test",
+    analysis: {
+      prebookkeepingCategorization: update.updated,
+    },
+  };
+  const reloaded = normalizePrebookkeepingCategorization(persistedDataset.analysis.prebookkeepingCategorization);
+
+  assert.equal(update.effectiveRowIndexes.length, 1);
+  assert.equal(reloaded.transactions.length, 1, "manual category edit updates the same transaction without creating a duplicate");
+  assert.equal(reloaded.transactions[0]?.rowIndex, 0);
+  assert.equal(reloaded.transactions[0]?.category, "bank_fees");
+  assert.equal(reloaded.transactions[0]?.reviewed, true);
+  assert.equal(reloaded.transactions[0]?.reviewStatus, "reviewed");
+  assert.equal(reloaded.transactions[0]?.reasons[0], "manual category edit");
+  assert.equal(reloaded.categoryCounts.bank_fees, 1);
+  assert.equal(reloaded.categoryCounts.equity, 0);
+  assert.equal(reloaded.reviewSummary.reviewedCount, 1);
+  assert.equal(reloaded.reviewSummary.manualCorrections, 1);
+  assert.equal(reloaded.reviewSummary.reviewProgressPercent, 100);
+  assert.equal(reloaded.reviewSummary.status, "ready_for_accountant");
+  assert.equal(learningRules.length, 1);
+  assert.equal(learningRules[0]?.category, "bank_fees");
+  assert.equal(learningRules[0]?.source, "manual_edit");
+  assert.ok("countryKey" in (learningRules[0] || {}), "learning-rule persistence includes the VAT learning schema columns");
+  assert.ok("vatRate" in (learningRules[0] || {}), "learning-rule persistence includes the VAT rate schema column");
+
+  const exportResult = buildPrebookkeepingExport({
+    datasetName: "Manual Bank Fee Review",
+    categorization: reloaded,
+    format: "csv",
+    scope: "reviewed",
+  });
+  const exportBody = String(exportResult.body);
+  assert.ok(exportBody.includes("Bank Fees"), "accountant export uses the corrected Bank Fees category");
+  assert.ok(!exportBody.includes("Equity"), "accountant export does not keep the stale Equity category");
 }
 
 function testVatMissingConfigRequiresReview() {

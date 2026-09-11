@@ -1,3 +1,38 @@
+## Prebookkeeping Category Review Persistence Fix
+
+1. Interaction title
+Prebookkeeping category review persistence fix.
+
+2. What was the user goal
+Fix the existing Category dropdown workflow so manual category changes such as Monthly bank fee from Equity to Bank Fees persist through `PATCH /api/prebookkeeping/review`, reload correctly, update review counts, and feed accountant exports without changing the category choices or unrelated systems.
+
+3. What changed
+The review mutation logic now lives in a shared Accountancy helper used by the PATCH route and focused regression tests. The route still performs the same authenticated, tenant-scoped Pre-bookkeeping dataset lookup, updates the same dataset analysis record, writes audit events, writes learning rules, and returns the refreshed categorization. Railway predeploy now applies the existing `0023_prebookkeeping_vat_learning.sql` migration so production has the `countryKey` and `vatRate` columns that manual review learning-rule inserts already use. The focused Accountancy regression now covers Monthly bank fee starting as Equity, manually changing to Bank Fees, persisting to the same transaction, reloading as Bank Fees, updating counts, creating one learning rule, and exporting Bank Fees in the accountant CSV.
+
+4. Problems marked
+blocker: none.
+risk: production must run the updated predeploy before the deployed PATCH route can rely on the learning-rule VAT columns.
+improvement: link the local Railway project for future direct runtime log inspection from this checkout.
+observation: the Category dropdown and category choices were already correct; the 500 path was in the server persistence transaction after the selected category reached the API.
+
+5. User learning
+The category review failure is a production schema/predeploy gap in the learning-rule persistence path, not a reason to remove or redesign the Category dropdown.
+
+6. AI-agent learning
+When a route inserts columns added by a later migration, the AI agent must verify that Railway predeploy includes that migration, not only that the schema file and local tests know about the columns.
+
+7. Follow-up tasks
+- Link the local Railway project for future direct runtime log inspection from this checkout.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Accountancy Page Render Boundary Fix
 
 1. Interaction title
