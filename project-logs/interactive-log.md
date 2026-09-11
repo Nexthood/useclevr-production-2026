@@ -1,3 +1,38 @@
+## Accountancy Page Render Boundary Fix
+
+1. Interaction title
+Accountancy page render boundary fix.
+
+2. What was the user goal
+Fix the production `/app/accountancy` runtime exception `TypeError: e.useState is not a function or its return value is not iterable` after Business Profile loading succeeds, without modifying Business Profile, tax/VAT calculations, parsing, categorization, Usy, billing, auth, tenant isolation, Retail, or unrelated UI.
+
+3. What changed
+The Accountancy page no longer imports and renders the hook-based shared `DataTable` from the Server Component page. It now renders the existing bookkeeping queue rows through a local server-safe static table, preserving the same queue links, status labels, and Accountancy upload/page layout. The focused Business Profile source regression now asserts that the Accountancy server page does not re-import or render the hook-based shared table.
+
+4. Problems marked
+blocker: none.
+risk: other server pages still import the shared hook-based `DataTable`; this fix intentionally changes only the confirmed Accountancy crash path.
+improvement: add a broader shared-component boundary audit when the team schedules cross-page hardening.
+observation: the Railway log order shows Business Profile loading succeeds before the Accountancy page reaches the hook-based table render path.
+
+5. User learning
+The Accountancy production 500 comes from a client/server component boundary issue in the page UI path, not from Business Profile, company setup, tax/VAT data, or upload parsing.
+
+6. AI-agent learning
+When a Server Component page imports a shared component that calls React hooks without a client boundary, the AI agent should either keep render props server-side or isolate the interactive component behind an explicit client wrapper instead of adding a broad client boundary blindly.
+
+7. Follow-up tasks
+- Add a broader shared-component boundary audit when the team schedules cross-page hardening.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Accountancy Upload Reliability Patch
 
 1. Interaction title

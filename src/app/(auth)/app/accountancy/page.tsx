@@ -2,7 +2,6 @@ import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-la
 import { AccountancyPackageForm } from "@/components/accountancy/accountancy-package-form"
 import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import {
   MISSING_BUSINESS_PROFILE_VALUE,
   displayBusinessProfileValue,
@@ -328,16 +327,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
             />
           </Card>
 
-          <DataTable
-            title="Bookkeeping queue"
-            description="Current bookkeeping work with direct links to the next action."
-            emptyMessage="No bookkeeping tasks available."
-            rows={bookkeepingRows}
-            columns={bookkeepingColumns}
-            rowKey={(row) => String(row.id)}
-            minWidth="min-w-[760px]"
-            selectable
-          />
+          <BookkeepingQueue rows={bookkeepingRows} />
         </div>
       </div>
     </DashboardSubpageLayout>
@@ -482,41 +472,73 @@ function CloseStep({ label, complete, href }: { label: string; complete: boolean
   )
 }
 
-const bookkeepingColumns: DataTableColumn<Record<string, unknown>>[] = [
-  {
-    key: "title",
-    header: "Bookkeeping area",
-    render: (row) => (
-      <div>
-        <Link href={String(row.href)} className="font-medium text-foreground transition hover:text-primary">
-          {String(row.title)}
-        </Link>
-        <div>
-          <Link href={String(row.href)} className="text-xs text-primary hover:underline">
-            Open
-          </Link>
-        </div>
-        <p className="text-xs text-muted-foreground">{String(row.description)}</p>
+function BookkeepingQueue({
+  rows,
+}: {
+  rows: { id: string; title: string; description: string; status: string; href: string }[]
+}) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card/95 shadow-[0_18px_50px_rgba(8,13,30,0.08),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
+      <div className="border-b border-border/50 bg-muted/25 px-5 py-4">
+        <h2 className="text-sm font-semibold text-foreground">Bookkeeping queue</h2>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground/90">
+          Current bookkeeping work with direct links to the next action.
+        </p>
       </div>
-    ),
-  },
-  {
-    key: "status",
-    header: "Status",
-    render: (row) => (
-      <span className="inline-flex rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground">
-        {String(row.status)}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    header: "Action",
-    align: "right",
-    render: (row) => (
-      <Link href={String(row.href)} className="text-xs font-medium text-primary hover:underline">
-        Continue
-      </Link>
-    ),
-  },
-]
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="border-b border-border/50 bg-muted/35 text-muted-foreground">
+            <tr>
+              <th scope="col" className="px-4 py-3 text-left font-semibold tracking-tight">
+                Bookkeeping area
+              </th>
+              <th scope="col" className="px-4 py-3 text-left font-semibold tracking-tight">
+                Status
+              </th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold tracking-tight">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/35">
+            {rows.length === 0 ? (
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={3}>
+                  No bookkeeping tasks available.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr key={row.id} className="border-b border-transparent transition-colors duration-200 hover:bg-muted/45">
+                  <td className="px-4 py-3 align-middle text-foreground">
+                    <div>
+                      <Link href={row.href} className="font-medium text-foreground transition hover:text-primary">
+                        {row.title}
+                      </Link>
+                      <div>
+                        <Link href={row.href} className="text-xs text-primary hover:underline">
+                          Open
+                        </Link>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{row.description}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 align-middle text-foreground">
+                    <span className="inline-flex rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right align-middle text-foreground">
+                    <Link href={row.href} className="text-xs font-medium text-primary hover:underline">
+                      Continue
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

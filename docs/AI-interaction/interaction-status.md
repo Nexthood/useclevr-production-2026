@@ -4,10 +4,10 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-09-10
-- **Goal**: Fix Accountancy and Pre-bookkeeping upload reliability for Excel dates, machine-readable PDF invoices, bank-fee categorization, and visible upload format choices.
-- **Durable change**: Accountancy uploads normalize spreadsheet dates safely, extract invoice fields from machine-readable PDFs, protect bank-fee categorization from bad learned Equity rules, and show CSV, Excel, and PDF / Scan as the visible upload formats while preserving existing Pre-bookkeeping persistence, review, and export flow.
-- **Verification**: `node -r tsx/esm scripts/accountancy/test-accountancy-upload-system.ts`, `pnpm validate:types`, and `git diff --check` pass.
-- **Residual risk**: Scanned/image-only PDF extraction still requires a separate OCR/document-vision integration decision because no existing repository capability performs document OCR.
+- **Date**: 2026-09-11
+- **Goal**: Fix the production `/app/accountancy` runtime exception after Business Profile loading succeeds.
+- **Durable change**: The Accountancy page renders its bookkeeping queue through a local server-safe table instead of importing the shared hook-based `DataTable` into the Server Component page.
+- **Verification**: `node -r tsx/esm scripts/business/test-accountancy-business-profile-source.ts` and `pnpm validate:types` pass.
+- **Residual risk**: Other server pages still import the shared hook-based `DataTable`; this fix changes only the confirmed Accountancy crash path.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)
