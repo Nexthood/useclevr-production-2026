@@ -6694,3 +6694,38 @@ For admin endpoint 403 notifications, trace the caller first and gate privileged
 
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Session Currency Pin
+
+1. Interaction title
+Stripe checkout session currency pin.
+
+2. What was the user goal
+Fix the unaccepted Stripe currency behavior so Business US yearly presents $5,800/year in USD only with no EUR selector or localized currency option, and verify the actual session configuration instead of assuming adaptive pricing solved it.
+
+3. What changed
+Subscription Checkout session creation now pins `currency` to the validated market currency in addition to disabling Stripe adaptive pricing. Checkout API routes pass the centralized resolved amount into Stripe Price validation, and the service rejects active recurring Prices whose currency, interval, or unit amount differ from the selected market. The focused billing regression now models a Business US yearly USD Price with EUR `currency_options` and proves the final Checkout Session still sends the USD Price ID, `currency: "usd"`, $5,800 yearly amount validation, USD metadata, and disabled adaptive pricing.
+
+4. Problems marked
+blocker: live Stripe Price retrieval remains unavailable from this checkout because local env does not define `STRIPE_PRICE_BUSINESS_USD_YEARLY` or fallback `STRIPE_PRICE_BUSINESS_USD_ANNUAL`, and the linked Railway token cannot verify the project over the API.
+risk: none.
+improvement: verify the production Stripe Price object after production credentials or deploy logs are available; confirm active=true, currency=usd, unit_amount=580000, recurring.interval=year, and note any `currency_options` keys.
+observation: Stripe documentation states Checkout localizes multi-currency Prices unless the Session `currency` parameter overrides that behavior; the previous fix disabled adaptive pricing but did not pin the Session currency.
+
+5. User learning
+Business US yearly checkout must send both the existing USD Price ID and a Checkout Session currency of `usd` to prevent Stripe from presenting EUR when the Price supports multiple currencies.
+
+6. AI-agent learning
+Stripe fixed-currency checkout tests must assert the final Session `currency` parameter, not only the Price ID and adaptive-pricing flag.
+
+7. Follow-up tasks
+- Verify the production Stripe Price object after production credentials or deploy logs are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

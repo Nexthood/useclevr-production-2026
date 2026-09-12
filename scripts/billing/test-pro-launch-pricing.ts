@@ -289,6 +289,11 @@ const stripeMock = {
         id: priceId,
         active: true,
         currency: "usd",
+        unit_amount: 580000,
+        currency_options: {
+          eur: { unit_amount: 519991 },
+          usd: { unit_amount: 580000 },
+        },
         recurring: { interval: "year" },
       })
     },
@@ -312,6 +317,7 @@ const stripeCheckoutRegression = createStripeCheckoutSession({
   userEmail: "business-us@example.com",
   priceId: businessUsYearly.stripePriceId!,
   expectedCurrency: businessUsYearly.currency,
+  expectedAmountMinor: businessUsYearly.amountMinor,
   expectedInterval: "year",
   plan: businessUsYearly.plan,
   successUrl: "https://useclevr.test/checkout/success",
@@ -324,6 +330,7 @@ const stripeCheckoutRegression = createStripeCheckoutSession({
 }).then(() => {
   const createdCheckoutSession = createdCheckoutSessionParams as {
     adaptive_pricing?: { enabled?: boolean }
+    currency?: string
     line_items?: Array<{ price?: string; quantity?: number }>
     subscription_data?: { metadata?: Record<string, string> }
   }
@@ -336,6 +343,11 @@ const stripeCheckoutRegression = createStripeCheckoutSession({
     createdCheckoutSession.adaptive_pricing,
     { enabled: false },
     "Business US yearly checkout disables Stripe adaptive currency conversion",
+  )
+  assert.equal(
+    createdCheckoutSession.currency,
+    "usd",
+    "Business US yearly checkout pins the Checkout Session to USD even when the Price has EUR currency options",
   )
   assert.equal(
     createdCheckoutSession.subscription_data?.metadata?.resolvedCurrency,
@@ -369,6 +381,9 @@ assert.ok(checkoutPageSource.includes('if (plan.tier === "free") return formatPl
 assert.equal(checkoutPageSource.includes("requestedAmountMinor"), false, "checkout browser payload does not send an amount override")
 assert.equal(checkoutPageSource.includes("requestedStripePriceId"), false, "checkout browser payload does not send a Stripe Price ID override")
 
+const checkoutRouteSource = readProjectFile("src/app/api/checkout/route.ts")
+assert.ok(checkoutRouteSource.includes("expectedAmountMinor: Number(checkoutPriceMetadata.resolvedAmountMinor)"), "checkout API validates the resolved amount before Stripe session creation")
+
 const pricingPageSource = readProjectFile("src/app/(public)/pricing/page.tsx")
 const publicPricingPlansSource = readProjectFile("src/components/billing/public-pricing-plans.tsx")
 assert.ok(publicPricingPlansSource.includes('formatPlanPrice(plan).replace("/month", "")'), "public pricing derives Free pricing from the billing formatter")
@@ -377,6 +392,7 @@ assert.equal(pricingPageSource.includes("Demo"), false, "public pricing does not
 
 const checkoutConfirmSource = readProjectFile("src/app/api/checkout/confirm/route.ts")
 assert.ok(checkoutConfirmSource.includes("The Free plan does not require checkout."), "checkout API refuses Free checkout")
+assert.ok(checkoutConfirmSource.includes("expectedAmountMinor: Number(checkoutPriceMetadata.resolvedAmountMinor)"), "checkout confirm validates the resolved amount before Stripe session creation")
 
 const checkoutOptionsSource = readProjectFile("src/app/api/checkout/options/route.ts")
 assert.ok(checkoutOptionsSource.includes('getCheckoutMarketOptions("business", "monthly")'), "Business checkout exposes shared monthly market options")
@@ -386,6 +402,8 @@ const stripeCheckoutSource = readProjectFile("src/services/stripe/checkout.ts")
 assert.ok(stripeCheckoutSource.includes("stripe.prices.retrieve"), "checkout validates Stripe Price IDs before session creation")
 assert.ok(stripeCheckoutSource.includes("!price.active"), "checkout rejects inactive Stripe prices")
 assert.ok(stripeCheckoutSource.includes("price.recurring.interval !== input.expectedInterval"), "checkout validates the selected recurring interval")
+assert.ok(stripeCheckoutSource.includes("price.unit_amount !== input.expectedAmountMinor"), "checkout validates the selected recurring amount")
+assert.ok(stripeCheckoutSource.includes("sessionCreateParams.currency = sessionCurrency"), "checkout pins the session currency for multi-currency Stripe prices")
 assert.ok(stripeCheckoutSource.includes("adaptive_pricing"), "checkout disables Stripe adaptive currency conversion")
 
 const webhookSource = readProjectFile("src/services/stripe/webhook.ts")

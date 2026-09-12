@@ -18,6 +18,7 @@ export interface CreateStripeCheckoutOptions {
   customerId?: string | null;
   priceId: string;
   expectedCurrency?: string;
+  expectedAmountMinor?: number | null;
   expectedInterval?: "month" | "year";
   plan?: string;
   successUrl: string;
@@ -41,6 +42,7 @@ export async function createStripeCheckoutSession({
   customerId,
   priceId,
   expectedCurrency,
+  expectedAmountMinor,
   expectedInterval = "month",
   plan,
   successUrl,
@@ -51,6 +53,7 @@ export async function createStripeCheckoutSession({
   await validateStripeSubscriptionPrice(stripe, {
     priceId,
     expectedCurrency,
+    expectedAmountMinor,
     expectedInterval,
     plan,
   });
@@ -73,6 +76,10 @@ export async function createStripeCheckoutSession({
     cancel_url: cancelUrl,
     allow_promotion_codes: true,
   };
+  const sessionCurrency = normalizeStripeCurrency(expectedCurrency);
+  if (sessionCurrency) {
+    sessionCreateParams.currency = sessionCurrency;
+  }
   (
     sessionCreateParams as Stripe.Checkout.SessionCreateParams & {
       adaptive_pricing: { enabled: boolean };
@@ -95,6 +102,7 @@ async function validateStripeSubscriptionPrice(
   input: {
     priceId: string;
     expectedCurrency?: string;
+    expectedAmountMinor?: number | null;
     expectedInterval?: "month" | "year";
     plan?: string;
   },
@@ -120,6 +128,21 @@ async function validateStripeSubscriptionPrice(
       "The selected Stripe price currency does not match the selected market.",
     );
   }
+
+  if (typeof input.expectedAmountMinor === "number" && price.unit_amount !== input.expectedAmountMinor) {
+    throw new StripeCheckoutConfigurationError(
+      planCode === "pro" ? "invalid_pro_price_mapping" : "invalid_business_price_mapping",
+      "The selected Stripe price amount does not match the selected market.",
+    );
+  }
+}
+
+function normalizeStripeCurrency(currency?: string | null): string | undefined {
+  const normalized = currency?.trim().toLowerCase();
+  if (normalized === "eur" || normalized === "gbp" || normalized === "usd" || normalized === "cad") {
+    return normalized;
+  }
+  return undefined;
 }
 
 export async function retrieveStripeCustomerCountry(customerId: string): Promise<string | null> {
