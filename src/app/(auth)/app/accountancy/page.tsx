@@ -2,7 +2,7 @@ import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-la
 import { AccountancyPackageForm } from "@/components/accountancy/accountancy-package-form"
 import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { getAccountingContext } from "@/lib/accountancy/accounting-context"
 import {
   MISSING_BUSINESS_PROFILE_VALUE,
   displayBusinessProfileValue,
@@ -109,6 +109,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
 
   const profileComplete = !profileLoadFailed && getSetupCompleted(companySetup)
   const companyName = getCompanyName(companySetup)
+  const accountingContext = getAccountingContext(companySetup)
   const sharedBusinessProfile = businessProfileResult.profile ?? {
     taxCountry: null,
     currency: null,
@@ -117,17 +118,25 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
     payroll: null,
     fixedCosts: null,
   }
-  const taxPeriod = displayBusinessProfileValue(sharedBusinessProfile.fiscalYear)
-  const taxCountry = displayBusinessProfileValue(sharedBusinessProfile.taxCountry)
-  const currency = displayBusinessProfileValue(sharedBusinessProfile.currency)
-  const taxSummary = displayBusinessProfileValue(sharedBusinessProfile.vatSalesTax)
+  const taxPeriod = displayBusinessProfileValue(accountingContext.fiscalPeriod ?? sharedBusinessProfile.fiscalYear)
+  const taxCountry = displayBusinessProfileValue(accountingContext.country ?? sharedBusinessProfile.taxCountry)
+  const currency = displayBusinessProfileValue(accountingContext.currency ?? sharedBusinessProfile.currency)
+  const legalStructure = displayBusinessProfileValue(accountingContext.legalStructure)
+  const taxSystem = displayBusinessProfileValue(accountingContext.taxSystem ?? sharedBusinessProfile.vatSalesTax)
+  const vatRegistered = formatBooleanProfileValue(accountingContext.vatRegistered)
+  const defaultVatRate = formatRateProfileValue(accountingContext.defaultVatRate)
+  const businessType = displayBusinessProfileValue(accountingContext.businessType ?? accountingContext.industry)
   const payrollSummary = displayBusinessProfileValue(sharedBusinessProfile.payroll)
   const fixedCostSummary = displayBusinessProfileValue(sharedBusinessProfile.fixedCosts)
   const profileContextRows = [
     { label: "Tax country", value: taxCountry },
     { label: "Currency", value: currency },
+    { label: "Legal structure", value: legalStructure },
     { label: "Fiscal year", value: taxPeriod || MISSING_BUSINESS_PROFILE_VALUE },
-    { label: "VAT/sales tax", value: taxSummary },
+    { label: "Tax system", value: taxSystem },
+    { label: "VAT registered", value: vatRegistered },
+    { label: "Default VAT rate", value: defaultVatRate },
+    { label: "Business type", value: businessType },
     { label: "Payroll", value: payrollSummary },
     { label: "Fixed costs", value: fixedCostSummary },
   ]
@@ -197,7 +206,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
             <h2 className="text-sm font-semibold text-foreground mb-3">Quick actions</h2>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Upload financial CSV or Excel files here, or send invoices and receipts to Pre-bookkeeping.
+                Upload financial CSV, Excel, or PDF files here, or send review-ready documents to Pre-bookkeeping.
               </p>
               <Link
                 href="/app/prebookkeeping"
@@ -246,8 +255,8 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
                 </div>
                 <h2 className="text-2xl font-semibold text-foreground">Accountancy workspace</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Upload accounting CSV or Excel files for bookkeeping review, tax checks, and monthly reporting.
-                  Invoices, receipts, and bank exports stay in the dedicated Pre-bookkeeping workflow.
+                  Upload accounting CSV, Excel, or machine-readable PDF files for bookkeeping review, tax checks, and monthly reporting.
+                  Bank transactions, invoices, receipts, and accounting exports are detected after upload.
                 </p>
                 {!profileLoadFailed && !profileComplete && (
                   <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
@@ -262,8 +271,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground">Business Profile context</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Bookkeeping uses saved setup values for tax country, currency, fiscal year, VAT/sales tax, payroll, and
-                fixed-cost assumptions.
+                Bookkeeping uses saved setup values for country, currency, legal structure, tax system, VAT status, fiscal period, and business type.
               </p>
             </div>
             {profileLoadFailed ? (
@@ -274,8 +282,12 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
               <div className="grid gap-2 text-sm">
                 <ProfileContextRow label="Tax country" value={taxCountry} />
                 <ProfileContextRow label="Currency" value={currency} />
+                <ProfileContextRow label="Legal structure" value={legalStructure} />
                 <ProfileContextRow label="Fiscal year" value={taxPeriod} />
-                <ProfileContextRow label="VAT/sales tax" value={taxSummary} />
+                <ProfileContextRow label="Tax system" value={taxSystem} />
+                <ProfileContextRow label="VAT registered" value={vatRegistered} />
+                <ProfileContextRow label="Default VAT rate" value={defaultVatRate} />
+                <ProfileContextRow label="Business type" value={businessType} />
                 <ProfileContextRow label="Payroll" value={payrollSummary} />
                 <ProfileContextRow label="Fixed costs" value={fixedCostSummary} />
               </div>
@@ -328,16 +340,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
             />
           </Card>
 
-          <DataTable
-            title="Bookkeeping queue"
-            description="Current bookkeeping work with direct links to the next action."
-            emptyMessage="No bookkeeping tasks available."
-            rows={bookkeepingRows}
-            columns={bookkeepingColumns}
-            rowKey={(row) => String(row.id)}
-            minWidth="min-w-[760px]"
-            selectable
-          />
+          <BookkeepingQueue rows={bookkeepingRows} />
         </div>
       </div>
     </DashboardSubpageLayout>
@@ -361,7 +364,7 @@ function AccountancyEmptyState() {
               </div>
               <h2 className="text-2xl font-semibold text-foreground">Accountancy workspace</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Accountancy is ready. Upload accounting CSV or Excel files to start bookkeeping review, tax checks, and monthly reporting.
+                Accountancy is ready. Upload accounting CSV, Excel, or machine-readable PDF files to start bookkeeping review, tax checks, and monthly reporting.
               </p>
             </div>
           </Card>
@@ -453,6 +456,17 @@ function formatAccountancyPercent(value: unknown) {
   return `${value.toFixed(1)}%`
 }
 
+function formatBooleanProfileValue(value: boolean | null) {
+  if (value === true) return "Yes"
+  if (value === false) return "No"
+  return MISSING_BUSINESS_PROFILE_VALUE
+}
+
+function formatRateProfileValue(value: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) return MISSING_BUSINESS_PROFILE_VALUE
+  return `${value}%`
+}
+
 function serializeAccountancyError(error: unknown) {
   if (error instanceof Error) {
     return {
@@ -482,41 +496,73 @@ function CloseStep({ label, complete, href }: { label: string; complete: boolean
   )
 }
 
-const bookkeepingColumns: DataTableColumn<Record<string, unknown>>[] = [
-  {
-    key: "title",
-    header: "Bookkeeping area",
-    render: (row) => (
-      <div>
-        <Link href={String(row.href)} className="font-medium text-foreground transition hover:text-primary">
-          {String(row.title)}
-        </Link>
-        <div>
-          <Link href={String(row.href)} className="text-xs text-primary hover:underline">
-            Open
-          </Link>
-        </div>
-        <p className="text-xs text-muted-foreground">{String(row.description)}</p>
+function BookkeepingQueue({
+  rows,
+}: {
+  rows: { id: string; title: string; description: string; status: string; href: string }[]
+}) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-border/60 bg-card/95 shadow-[0_18px_50px_rgba(8,13,30,0.08),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
+      <div className="border-b border-border/50 bg-muted/25 px-5 py-4">
+        <h2 className="text-sm font-semibold text-foreground">Bookkeeping queue</h2>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground/90">
+          Current bookkeeping work with direct links to the next action.
+        </p>
       </div>
-    ),
-  },
-  {
-    key: "status",
-    header: "Status",
-    render: (row) => (
-      <span className="inline-flex rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground">
-        {String(row.status)}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    header: "Action",
-    align: "right",
-    render: (row) => (
-      <Link href={String(row.href)} className="text-xs font-medium text-primary hover:underline">
-        Continue
-      </Link>
-    ),
-  },
-]
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="border-b border-border/50 bg-muted/35 text-muted-foreground">
+            <tr>
+              <th scope="col" className="px-4 py-3 text-left font-semibold tracking-tight">
+                Bookkeeping area
+              </th>
+              <th scope="col" className="px-4 py-3 text-left font-semibold tracking-tight">
+                Status
+              </th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold tracking-tight">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/35">
+            {rows.length === 0 ? (
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={3}>
+                  No bookkeeping tasks available.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr key={row.id} className="border-b border-transparent transition-colors duration-200 hover:bg-muted/45">
+                  <td className="px-4 py-3 align-middle text-foreground">
+                    <div>
+                      <Link href={row.href} className="font-medium text-foreground transition hover:text-primary">
+                        {row.title}
+                      </Link>
+                      <div>
+                        <Link href={row.href} className="text-xs text-primary hover:underline">
+                          Open
+                        </Link>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{row.description}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 align-middle text-foreground">
+                    <span className="inline-flex rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right align-middle text-foreground">
+                    <Link href={row.href} className="text-xs font-medium text-primary hover:underline">
+                      Continue
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

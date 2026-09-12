@@ -1,3 +1,4 @@
+import { getAccountingContext } from "@/lib/accountancy/accounting-context";
 import type { CompanySetupPayload, TaxEntry } from "@/lib/business/company-setup";
 import type { PrebookkeepingCategory } from "@/lib/accountancy/prebookkeeping-categorization";
 
@@ -62,8 +63,10 @@ type NormalizedVatLearningRule = {
 };
 
 export function buildBusinessTaxProfile(setup: CompanySetupPayload | null | undefined): BusinessTaxProfile {
+  const accountingContext = getAccountingContext(setup);
   const taxEntries = Array.isArray(setup?.taxSettings.taxEntries) ? setup.taxSettings.taxEntries : [];
   const defaultVatRate = firstNumber(
+    accountingContext.defaultVatRate,
     setup?.taxSettings.standardTaxRate,
     ...taxEntries
       .filter((entry) => isDefaultTaxEntry(entry))
@@ -91,20 +94,16 @@ export function buildBusinessTaxProfile(setup: CompanySetupPayload | null | unde
   ]);
 
   return {
-    taxCountry: firstText(
-      setup?.companyInfo.taxResidenceCountry,
-      setup?.companyInfo.countryOfRegistration,
-      setup?.companyInfo.country,
-    ),
-    vatRegistered,
+    taxCountry: accountingContext.country,
+    vatRegistered: accountingContext.vatRegistered ?? vatRegistered,
     defaultVatRate,
     reducedVatRate,
     zeroVatRate,
     reverseChargeEnabled: setup?.taxSettings.reverseChargeEnabled === "yes" || taxEntries.some((entry) => /reverse/i.test(`${entry.taxType} ${entry.notes}`)),
-    fiscalYear: fiscalYearLabel(setup?.companyInfo.fiscalYearStart, setup?.companyInfo.fiscalYearEnd),
-    currency: firstText(setup?.currencySettings.primaryCurrency, setup?.currencySettings.reportingCurrency),
-    taxRegime: firstText(setup?.taxSettings.taxType),
-    businessType: firstText(setup?.companyInfo.businessType, setup?.companyInfo.industry, setup?.revenueModel.businessModels?.[0]),
+    fiscalYear: accountingContext.fiscalPeriod,
+    currency: accountingContext.currency,
+    taxRegime: accountingContext.taxSystem,
+    businessType: firstText(accountingContext.businessType, accountingContext.industry),
     availableRates: configuredRates,
     source: "business_profile",
   };

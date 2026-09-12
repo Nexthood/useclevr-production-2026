@@ -1,10 +1,12 @@
 import { getBusinessModelRedirect } from "@/lib/data/business-model";
+import { getAccountingContext, type AccountingContext } from "@/lib/accountancy/accounting-context";
 import {
   categorizePrebookkeepingRows,
   createDefaultPrebookkeepingReviewSummary,
   isPrebookkeepingCategorization,
   normalizePrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization";
+import { buildBusinessTaxProfile, type BusinessTaxProfile } from "@/lib/accountancy/prebookkeeping-vat";
 import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, prebookkeepingLearningRules, type DatasetBusinessModel } from "@/lib/db/schema";
@@ -12,6 +14,7 @@ import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/c
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
@@ -93,9 +96,89 @@ export class AccountancyUploadError extends Error {
   }
 }
 
+async function runAccountancyUploadStep<T>(
+  stage: AccountancyUploadStage,
+  code: string,
+  message: string,
+  action: () => Promise<T>,
+  status = 500,
+  retryable = true,
+): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    if (error instanceof AccountancyUploadError) throw error;
+    debugError("[ACCOUNTANCY-UPLOAD] staged dependency failed", {
+      stage,
+      code,
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
+    });
+    throw new AccountancyUploadError(stage, code, message, status, retryable, {
+      diagnostic: error instanceof Error ? error.message : "Unexpected dependency failure.",
+    });
+  }
+}
+
+async function safeReleaseUploadCredits(operationId: string, reason: string) {
+  try {
+    await releaseCredits(operationId, reason);
+  } catch (error) {
+    debugError("[ACCOUNTANCY-UPLOAD] credit release failed", {
+      operationId,
+      reason,
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
+    });
+  }
+}
+
+async function loadUploadCreditUsage(
+  userId: string,
+  role: string | null,
+  email: string | null,
+  context: string,
+): Promise<UploadCreditUsage | null> {
+  try {
+    return await getAnalystCreditUsage(userId, role, email);
+  } catch (error) {
+    debugError("[ACCOUNTANCY-UPLOAD] credit usage unavailable", {
+      context,
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
+    });
+    return null;
+  }
+}
+
+async function loadAccountingContextForUpload(userId: string): Promise<AccountingContextResult> {
+  try {
+    const setup = await getCompanySetup(userId);
+    return {
+      accountingContext: getAccountingContext(setup),
+      taxProfile: buildBusinessTaxProfile(setup),
+      warnings: [],
+    };
+  } catch (error) {
+    debugError("[ACCOUNTANCY-UPLOAD] Business Profile context unavailable", {
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
+    });
+    return {
+      accountingContext: getAccountingContext(null),
+      taxProfile: buildBusinessTaxProfile(null),
+      warnings: ["Business Profile context was unavailable, so neutral accounting context was used."],
+    };
+  }
+}
+
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const PREVIEW_ROW_COUNT = 20;
 const MAX_EXCEL_HEADER_SCAN_ROWS = 30;
+
+type UploadCreditUsage = Awaited<ReturnType<typeof getAnalystCreditUsage>>;
+
+type AccountingContextResult = {
+  accountingContext: AccountingContext;
+  taxProfile: BusinessTaxProfile;
+  warnings: string[];
+};
 
 interface ExcelSheetProfile {
   sheetName: string;
@@ -349,11 +432,18 @@ export async function processAccountancyUpload(input: {
   const datasetName = input.fileName.replace(/\.(csv|xlsx|xls|pdf|jpg|jpeg|png|webp|ofx|qif|qfx)$/i, "");
   const uploadCreditOperationId = `accountancy-upload:${input.userId}:${datasetId}`;
 
-  const spendingLimitCheck = await checkSpendingLimits(input.userId)
+  const spendingLimitCheck = await runAccountancyUploadStep(
+    "validation",
+    "UPLOAD_CREDIT_CHECK_FAILED",
+    "Upload credit checks are temporarily unavailable. Please try again.",
+    () => checkSpendingLimits(input.userId),
+    503,
+    true,
+  )
   if (spendingLimitCheck.blocked) {
-    const usage = await getAnalystCreditUsage(input.userId, input.role ?? null, input.email ?? null)
-    const used = usage.usedCredits ?? Math.max(0, (usage.total ?? 0) - (usage.remainingCredits ?? 0))
-    const limit = usage.total ?? 0
+    const usage = await loadUploadCreditUsage(input.userId, input.role ?? null, input.email ?? null, "spending_limit_blocked")
+    const used = usage?.usedCredits ?? Math.max(0, (usage?.total ?? 0) - (usage?.remainingCredits ?? 0))
+    const limit = usage?.total ?? 0
     throw new AccountancyUploadError(
       "validation",
       "UPLOAD_SPENDING_LIMIT_REACHED",
@@ -363,45 +453,52 @@ export async function processAccountancyUpload(input: {
       {
         used,
         limit,
-        remaining: usage.availableCredits ?? 0,
+        remaining: usage?.availableCredits ?? 0,
         usage: {
           limitReached: true,
           analysisCount: used,
           total: limit,
-          availableCredits: usage.availableCredits ?? 0,
-          reservedCredits: usage.reservedCredits ?? 0,
+          availableCredits: usage?.availableCredits ?? 0,
+          reservedCredits: usage?.reservedCredits ?? 0,
           usedCredits: used,
-          remainingCredits: usage.remainingCredits ?? 0,
-          subscriptionTier: usage.subscriptionTier,
-          unlimited: usage.unlimited,
-          unlimitedLabel: usage.unlimitedLabel,
+          remainingCredits: usage?.remainingCredits ?? 0,
+          subscriptionTier: usage?.subscriptionTier,
+          unlimited: usage?.unlimited,
+          unlimitedLabel: usage?.unlimitedLabel,
         },
       },
     )
   }
 
-  const reservation = await reserveCredits({
-    userId: input.userId,
-    operationId: uploadCreditOperationId,
-    idempotencyKey: uploadCreditOperationId,
-    estimatedCredits: 1,
-    feature: "dataset_upload",
-    source: "accountancy_upload",
-    role: input.role ?? null,
-    email: input.email ?? null,
-    metadata: {
-      datasetId,
-      fileName: input.fileName,
-      datasetType: input.datasetType,
-      uploadType: input.uploadType,
-      checksum,
-    },
-  });
+  const reservation = await runAccountancyUploadStep(
+    "validation",
+    "UPLOAD_CREDIT_RESERVATION_FAILED",
+    "Upload credit reservation is temporarily unavailable. Please try again.",
+    () => reserveCredits({
+      userId: input.userId,
+      operationId: uploadCreditOperationId,
+      idempotencyKey: uploadCreditOperationId,
+      estimatedCredits: 1,
+      feature: "dataset_upload",
+      source: "accountancy_upload",
+      role: input.role ?? null,
+      email: input.email ?? null,
+      metadata: {
+        datasetId,
+        fileName: input.fileName,
+        datasetType: input.datasetType,
+        uploadType: input.uploadType,
+        checksum,
+      },
+    }),
+    503,
+    true,
+  );
 
   if (!reservation.success) {
-    const usage = await getAnalystCreditUsage(input.userId, input.role ?? null, input.email ?? null);
-    const used = usage.usedCredits ?? Math.max(0, (usage.total ?? 0) - (usage.remainingCredits ?? 0));
-    const limit = usage.total ?? 0;
+    const usage = await loadUploadCreditUsage(input.userId, input.role ?? null, input.email ?? null, "credit_reservation_rejected");
+    const used = usage?.usedCredits ?? Math.max(0, (usage?.total ?? 0) - (usage?.remainingCredits ?? 0));
+    const limit = usage?.total ?? 0;
     throw new AccountancyUploadError(
       "validation",
       "UPLOAD_CREDITS_EXHAUSTED",
@@ -411,18 +508,18 @@ export async function processAccountancyUpload(input: {
       {
         used,
         limit,
-        remaining: usage.availableCredits ?? 0,
+        remaining: usage?.availableCredits ?? 0,
         usage: {
           limitReached: true,
           analysisCount: used,
           total: limit,
-          availableCredits: usage.availableCredits ?? 0,
-          reservedCredits: usage.reservedCredits ?? 0,
+          availableCredits: usage?.availableCredits ?? 0,
+          reservedCredits: usage?.reservedCredits ?? 0,
           usedCredits: used,
-          remainingCredits: usage.remainingCredits ?? 0,
-          subscriptionTier: usage.subscriptionTier,
-          unlimited: usage.unlimited,
-          unlimitedLabel: usage.unlimitedLabel,
+          remainingCredits: usage?.remainingCredits ?? 0,
+          subscriptionTier: usage?.subscriptionTier,
+          unlimited: usage?.unlimited,
+          unlimitedLabel: usage?.unlimitedLabel,
         },
       },
     );
@@ -432,15 +529,16 @@ export async function processAccountancyUpload(input: {
   try {
     parsed = await parseAccountancyUploadBuffer(input.buffer, requestMeta);
   } catch (error) {
-    await releaseCredits(uploadCreditOperationId, "accountancy_upload_parse_failed");
+    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_parse_failed");
     if (error instanceof AccountancyUploadError) throw error;
     debugError("[ACCOUNTANCY-UPLOAD] parsing failed", safeLogMeta(input, "parsing", error));
     throw new AccountancyUploadError(
       "parsing",
       "PARSING_FAILED",
-      error instanceof Error ? error.message : "The file could not be parsed.",
+      userFacingParseMessage(input.uploadType),
       422,
       false,
+      { diagnostic: error instanceof Error ? error.message : "The file could not be parsed." },
     );
   }
 
@@ -460,7 +558,7 @@ export async function processAccountancyUpload(input: {
   try {
     storage = await storeUploadedFile(input.buffer, input.fileName, input.mimeType || inferMimeType(input.fileName));
   } catch (error) {
-    await releaseCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
+    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", error));
     throw new AccountancyUploadError(
       "storage",
@@ -472,7 +570,7 @@ export async function processAccountancyUpload(input: {
   }
 
   if (!storage.success) {
-    await releaseCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
+    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", storage.error));
     throw new AccountancyUploadError(
       "storage",
@@ -487,21 +585,33 @@ export async function processAccountancyUpload(input: {
   const businessModel: DatasetBusinessModel = "generic";
   const redirectTo = getBusinessModelRedirect({ datasetType: input.datasetType, businessModel, datasetId });
   const precomputedMetrics = parsed.rows.length > 0 ? computePrecomputedMetrics(parsed.rows, parsed.columns) : null;
-  const learningRules =
-    input.datasetType === "prebookkeeping"
-      ? await db.query.prebookkeepingLearningRules.findMany({
-          where: eq(prebookkeepingLearningRules.userId, input.userId),
-          columns: {
-            supplierKey: true,
-            descriptionKeyword: true,
-            merchantKey: true,
-            category: true,
-          },
-        })
-      : [];
+  const accountingContextResult = await loadAccountingContextForUpload(input.userId);
+  const uploadWarnings = [...parsed.warnings, ...accountingContextResult.warnings];
+  let learningRules: Array<{
+    supplierKey: string | null;
+    descriptionKeyword: string | null;
+    merchantKey: string | null;
+    category: string;
+  }> = [];
+  if (input.datasetType === "prebookkeeping") {
+    try {
+      learningRules = await db.query.prebookkeepingLearningRules.findMany({
+        where: eq(prebookkeepingLearningRules.userId, input.userId),
+        columns: {
+          supplierKey: true,
+          descriptionKeyword: true,
+          merchantKey: true,
+          category: true,
+        },
+      });
+    } catch (error) {
+      debugError("[ACCOUNTANCY-UPLOAD] learning rules unavailable", safeLogMeta(input, "database", error));
+      uploadWarnings.push("Saved category learning rules were unavailable, so deterministic categorization was used.");
+    }
+  }
   const prebookkeepingCategorization =
     input.datasetType === "prebookkeeping" && parsed.rows.length > 0
-      ? categorizePrebookkeepingRows(parsed.rows, learningRules)
+      ? categorizePrebookkeepingRows(parsed.rows, learningRules, { taxProfile: accountingContextResult.taxProfile })
       : null;
   const reviewSummary = prebookkeepingCategorization
     ? prebookkeepingCategorization.reviewSummary
@@ -539,7 +649,8 @@ export async function processAccountancyUpload(input: {
       duplicateColumns: parsed.duplicateColumns,
       documentTextStatus: parsed.documentTextStatus,
       extractedData: parsed.extractedData,
-      warnings: parsed.warnings,
+      warnings: uploadWarnings,
+      accountingContext: accountingContextResult.accountingContext,
       reviewSummary,
       categorizationStatus: prebookkeepingCategorization ? "ready_for_review" : undefined,
       prebookkeepingCategorization,
@@ -571,7 +682,7 @@ export async function processAccountancyUpload(input: {
       }
     });
   } catch (error) {
-    await releaseCredits(uploadCreditOperationId, "accountancy_upload_database_failed");
+    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_database_failed");
     await deleteFile(storage.storageKey).catch(() => false);
     debugError("[ACCOUNTANCY-UPLOAD] database failed", safeLogMeta(input, "database", error));
     throw new AccountancyUploadError(
@@ -583,24 +694,30 @@ export async function processAccountancyUpload(input: {
     );
   }
 
-  const finalized = await finalizeCredits({
-    operationId: uploadCreditOperationId,
-    actualCredits: 1,
-    metadata: {
-      datasetId,
-      rowCount: parsed.rowCount,
-      datasetType: input.datasetType,
-      uploadType: input.uploadType,
-      checksum,
-    },
-  });
+  let finalized: Awaited<ReturnType<typeof finalizeCredits>>;
+  try {
+    finalized = await finalizeCredits({
+      operationId: uploadCreditOperationId,
+      actualCredits: 1,
+      metadata: {
+        datasetId,
+        rowCount: parsed.rowCount,
+        datasetType: input.datasetType,
+        uploadType: input.uploadType,
+        checksum,
+      },
+    });
+  } catch (error) {
+    debugError("[ACCOUNTANCY-UPLOAD] credit finalization failed", safeLogMeta(input, "database", error));
+    finalized = { success: false, remainingCredits: 0, creditsDeducted: 0, error: "Credit finalization failed." };
+  }
   if (!finalized.success) {
     await db.transaction(async (tx) => {
       await tx.delete(datasetRows).where(eq(datasetRows.datasetId, datasetId));
       await tx.delete(datasets).where(eq(datasets.id, datasetId));
     }).catch(() => undefined);
     await deleteFile(storage.storageKey).catch(() => false);
-    await releaseCredits(uploadCreditOperationId, "accountancy_upload_credit_finalization_failed");
+    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_credit_finalization_failed");
     throw new AccountancyUploadError(
       "database",
       "CREDIT_SETTLEMENT_ERROR",
@@ -640,7 +757,7 @@ export async function processAccountancyUpload(input: {
       headers: parsed.columns,
       rows: parsed.previewRows.slice(0, 5),
     },
-    warnings: parsed.warnings,
+    warnings: uploadWarnings,
   };
 }
 
@@ -788,7 +905,7 @@ function parseExcelUpload(buffer: Buffer, meta: AccountancyUploadMeta): Accounta
   const objectRows = selected.dataRows.map((row) => {
     const record: Record<string, unknown> = {};
     selected.headers.forEach((header, index) => {
-      record[header] = row[index] === "" ? null : row[index];
+      record[header] = normalizeSpreadsheetCellValue(row[index], header);
     });
     return record;
   });
@@ -1029,13 +1146,14 @@ function parsePdfUpload(buffer: Buffer, _meta: AccountancyUploadMeta): Accountan
   return {
     route: scannerRequired ? "receipt_document_scanner" : uploadSpecs.pdf.route,
     columns: extractedData.length > 0
-      ? ["transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]
+      ? ["document_type", "transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]
       : ["document_status", "description", "reason"],
     rows,
     rowCount: rows.length,
-    columnCount: extractedData.length > 0 ? 9 : 3,
+    columnCount: extractedData.length > 0 ? 10 : 3,
     columnTypes: extractedData.length > 0
       ? {
+          document_type: "text",
           transaction_date: "date",
           description: "text",
           supplier_customer: "text",
@@ -1167,8 +1285,68 @@ function isNonEmptyRow(row: unknown[]) {
 }
 
 function normalizeExcelCell(value: unknown) {
-  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Date) return formatSpreadsheetDate(value) || "";
   return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeSpreadsheetCellValue(value: unknown, header: string) {
+  if (value === "") return null;
+  if (value instanceof Date) return formatSpreadsheetDate(value);
+  if (isDateHeader(header)) {
+    if (typeof value === "number") return excelSerialDateToIso(value) ?? value;
+    if (typeof value === "string") return normalizeSpreadsheetDateString(value);
+  }
+  return value ?? null;
+}
+
+function isDateHeader(header: string) {
+  return /date|datum|posted|posting|booking|value date|invoice date/i.test(header);
+}
+
+function formatSpreadsheetDate(value: Date) {
+  if (!Number.isFinite(value.getTime())) return null;
+  const year = value.getUTCFullYear();
+  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(value.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function excelSerialDateToIso(value: number) {
+  if (!Number.isFinite(value) || value < 1 || value > 2958465) return null;
+  const parsed = XLSX.SSF.parse_date_code(value);
+  if (!parsed || !parsed.y || !parsed.m || !parsed.d) return null;
+  return `${String(parsed.y).padStart(4, "0")}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+}
+
+function normalizeSpreadsheetDateString(value: string) {
+  const text = value.trim();
+  if (!text) return null;
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(text);
+  if (iso) return formatDateParts(Number(iso[1]), Number(iso[2]), Number(iso[3])) ?? null;
+
+  const slash = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(text);
+  if (slash) {
+    const first = Number(slash[1]);
+    const second = Number(slash[2]);
+    const year = normalizeYear(Number(slash[3]));
+    if (first > 12) return formatDateParts(year, second, first) ?? null;
+    if (second > 12) return formatDateParts(year, first, second) ?? null;
+  }
+
+  const parsed = new Date(text);
+  return Number.isFinite(parsed.getTime()) ? formatSpreadsheetDate(parsed) : null;
+}
+
+function normalizeYear(value: number) {
+  return value < 100 ? 2000 + value : value;
+}
+
+function formatDateParts(year: number, month: number, day: number) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return formatSpreadsheetDate(date);
 }
 
 function looksLikeMostlyNumeric(value: unknown) {
@@ -1264,7 +1442,7 @@ function tagValue(block: string, tag: string) {
 function extractPdfText(buffer: Buffer) {
   const text = `${buffer.toString("utf8")}\n${buffer.toString("latin1")}`;
   const literalStrings = Array.from(text.matchAll(/\(([^()]{2,200})\)/g)).map((match) => match[1]);
-  const readable = literalStrings.length > 0 ? literalStrings.join("\n") : text;
+  const readable = literalStrings.length > 0 ? `${literalStrings.join("\n")}\n${text}` : text;
   return readable.replace(/[^\S\r\n]+/g, " ").replace(/[^\x20-\x7E\r\n€£$-]/g, " ").trim();
 }
 
@@ -1273,14 +1451,17 @@ function extractAccountingFields(text: string) {
   const add = (field: string, value: string | undefined, confidence = 0.8) => {
     if (value && value.trim()) fields.push({ field, value: value.trim(), confidence });
   };
+  const moneyPattern = String.raw`((?:EUR|USD|GBP|CHF|HUF|RON|€|\$|£)?\s?-?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)`;
 
+  add("documentType", detectAccountingDocumentType(text), 0.8);
   add("supplier", /(?:supplier|vendor|merchant|from)[:\s]+([A-Za-z0-9 &.,'-]{2,80})/i.exec(text)?.[1], 0.75);
   add("invoiceNumber", /(?:invoice|receipt)\s*(?:number|no|#)?[:\s#-]+([A-Z0-9-]{3,40})/i.exec(text)?.[1], 0.85);
   add("date", /(?:date|invoice date)[:\s]+(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i.exec(text)?.[1], 0.8);
   add("currency", /\b(EUR|USD|GBP|CHF|HUF|RON|€|\$|£)\b/i.exec(text)?.[1], 0.75);
-  add("subtotal", /(?:subtotal|net amount)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
-  add("tax", /(?:vat|tax|gst)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.75);
-  add("total", /\b(?:total|amount due|grand total)[:\s]+([€$£]?\s?\d[\d.,]*)/i.exec(text)?.[1], 0.85);
+  add("subtotal", new RegExp(String.raw`(?:subtotal|net(?:\s+amount)?)[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.75);
+  add("taxRate", /(?:vat|tax|gst)\s*\(\s*(\d+(?:[.,]\d+)?)\s*%\s*\)/i.exec(text)?.[1], 0.75);
+  add("tax", new RegExp(String.raw`(?:vat|tax|gst)(?:\s*\([^)]+\))?[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.75);
+  add("total", new RegExp(String.raw`\b(?:total|amount due|grand total)[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.85);
   const lineItems = extractLineItems(text);
   if (lineItems.length > 0) fields.push({ field: "lineItems", value: lineItems, confidence: 0.65 });
   return fields;
@@ -1288,6 +1469,7 @@ function extractAccountingFields(text: string) {
 
 function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
   const valueFor = (field: string) => extractedData.find((item) => item.field === field)?.value;
+  const documentType = stringOrNull(valueFor("documentType"));
   const supplier = stringOrNull(valueFor("supplier"));
   const invoiceNumber = stringOrNull(valueFor("invoiceNumber"));
   const total = parseLocalizedNumber(valueFor("total"));
@@ -1297,6 +1479,7 @@ function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
 
   return [
     {
+      document_type: documentType,
       transaction_date: stringOrNull(valueFor("date")),
       description: [supplier, invoiceNumber ? `invoice ${invoiceNumber}` : null].filter(Boolean).join(" - ") || "Extracted accounting document",
       supplier_customer: supplier,
@@ -1310,18 +1493,39 @@ function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
   ];
 }
 
+function detectAccountingDocumentType(text: string) {
+  if (/\binvoice\b/i.test(text)) return "invoice";
+  if (/\breceipt\b/i.test(text)) return "receipt";
+  return undefined;
+}
+
 function extractLineItems(text: string) {
   const seen = new Set<string>();
-  return text
+  const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .map((line) => /^(?:item|line item)[:\s-]+(.+?)\s+(?:qty[:\s]+)?(\d+(?:[.,]\d+)?)\s+(?:total[:\s]+)?([€$£]?\s?\d[\d.,]*)$/i.exec(line))
-    .filter((match): match is RegExpExecArray => Boolean(match))
-    .map((match) => ({
-      description: match[1]?.trim() || "",
-      quantity: parseLocalizedNumber(match[2]),
-      total: parseLocalizedNumber(match[3]),
-    }))
+    .filter(Boolean);
+
+  const items = lines
+    .map((line) => {
+      const inline = /^(?:item|line item)[:\s-]+(.+?)\s+(?:qty[:\s]+)?(\d+(?:[.,]\d+)?)\s+(?:total[:\s]+)?([€$£]?\s?\d[\d.,]*)$/i.exec(line);
+      if (inline) {
+        return {
+          description: inline[1]?.trim() || "",
+          quantity: parseLocalizedNumber(inline[2]),
+          total: parseLocalizedNumber(inline[3]),
+        };
+      }
+
+      const invoiceLine = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*x\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)\s*=\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)$/i.exec(line);
+      if (!invoiceLine) return null;
+      return {
+        description: invoiceLine[1]?.replace(/:$/, "").trim() || "",
+        quantity: parseLocalizedNumber(invoiceLine[2]),
+        total: parseLocalizedNumber(invoiceLine[4]),
+      };
+    })
+    .filter((item): item is { description: string; quantity: number; total: number } => Boolean(item))
     .filter((item) => item.description && Number.isFinite(item.quantity) && Number.isFinite(item.total))
     .filter((item) => {
       const key = `${item.description.toLowerCase()}|${item.quantity}|${item.total}`;
@@ -1329,6 +1533,24 @@ function extractLineItems(text: string) {
       seen.add(key);
       return true;
     });
+
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    const description = lines[index]?.replace(/:$/, "").trim() || "";
+    const amountLine = /^(\d+(?:[.,]\d+)?)\s*x\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)\s*=\s*([€$£]?\s?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)$/i.exec(lines[index + 1] || "");
+    if (!description || !amountLine || /^(invoice|date|currency|net|vat|tax|total|subtotal)\b/i.test(description)) continue;
+    const item = {
+      description,
+      quantity: parseLocalizedNumber(amountLine[1]),
+      total: parseLocalizedNumber(amountLine[3]),
+    };
+    if (!Number.isFinite(item.quantity) || !Number.isFinite(item.total)) continue;
+    const key = `${item.description.toLowerCase()}|${item.quantity}|${item.total}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(item);
+  }
+
+  return items;
 }
 
 function stringOrNull(value: unknown) {
@@ -1362,6 +1584,16 @@ function displayUploadType(uploadType: AccountancyUploadType) {
   if (uploadType === "receipt") return "Receipts/Invoices";
   if (uploadType === "bank") return "Bank export";
   return uploadType.toUpperCase();
+}
+
+function userFacingParseMessage(uploadType: AccountancyUploadType) {
+  if (uploadType === "excel") {
+    return "We couldn't read one or more transaction dates from this Excel file. Review the date column and try again.";
+  }
+  if (uploadType === "pdf" || uploadType === "receipt") {
+    return "We couldn't extract accounting fields from this document. Review the document text or upload a clearer file.";
+  }
+  return "We couldn't read this file. Review the file format and try again.";
 }
 
 function safeLogMeta(

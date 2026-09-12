@@ -1,3 +1,6 @@
+- fixed: persist Pre-bookkeeping manual category review changes by sharing the PATCH update logic with regression coverage and applying the learning-rule VAT migration in Railway predeploy
+- fixed: render the Accountancy bookkeeping queue through a server-safe local table so `/app/accountancy` avoids the shared hook-based DataTable server render failure after Business Profile loads
+- fixed: stabilize Accountancy uploads by normalizing Excel dates, extracting machine-readable PDF invoice fields, protecting bank-fee categorization from bad learned Equity rules, and showing CSV, Excel, and PDF / Scan as file-format choices
 - fixed: patch the blocking dependency audit inputs so Next.js, Sharp, js-yaml, and Hono resolve to patched versions while the source audit gate keeps only the approved residual advisories
 - fixed: complete Usy Secretariat acceptance coverage with stable supported-language replies, semantic dataset-analysis routing to AI Assistant, explicit restricted-information refusals, localized contact collection, and confirmation-gated contact handoff
 - changed: integrate Usy response intent metadata so deterministic product guidance, account help, technical support, billing, contact handoff, Dataset AI Assistant routing, security refusals, and unknown fallback return a stable typed intent

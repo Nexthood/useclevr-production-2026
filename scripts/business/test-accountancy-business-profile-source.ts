@@ -38,6 +38,9 @@ assert.ok(accountancyPage.includes("getSetupCompleted(companySetup)"), "Accounta
 assert.ok(accountancyPage.includes("getCompanyName(companySetup)"), "Accountancy null-guards companyInfo before reading the company name")
 assert.ok(accountancyPage.includes("formatAccountancyCount(focusedDataset.rowCount)"), "Accountancy null-guards focused dataset row counts")
 assert.ok(accountancyPage.includes("formatAccountancyCount(focusedDataset.columnCount)"), "Accountancy null-guards focused dataset column counts")
+assert.ok(accountancyPage.includes("function BookkeepingQueue"), "Accountancy renders the bookkeeping queue through a server-safe local table")
+assert.ok(!accountancyPage.includes("@/components/ui/data-table"), "Accountancy does not import the hook-based shared DataTable into the server page")
+assert.ok(!accountancyPage.includes("<DataTable"), "Accountancy does not render the hook-based shared DataTable from the server page")
 assert.ok(!accountancyPage.includes("getBusinessProfileContext"), "Accountancy Overview does not use a separate profile context query")
 assert.ok(!accountancyPage.includes("value || MISSING_PROFILE_VALUE"), "Accountancy Overview does not hide valid falsy values")
 

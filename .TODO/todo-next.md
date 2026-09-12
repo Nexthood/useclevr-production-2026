@@ -19,6 +19,7 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1057. Restore the production Accountancy upload, review, Business Profile, categorization, export, and visible upload-choice workflow for CSV, Excel, and PDF files. (labels: workflow, upload, testing, business)
 - T-849. Run the complete new-user acceptance journey through signup, CSV upload, verified KPIs and charts, dataset-specific AI answers, report review, support, and plan selection; fix every blocker that requires developer intervention. (labels: workflow, testing, upload, ai, dashboard)
 - T-850. Implement the lightweight CSV privacy shield with sensitive-column detection, a clear warning, optional stable-placeholder anonymization, anonymized AI input, and a compact privacy report. (labels: ai, data, security, upload)
 - T-853. Complete the sales-validation kit with current screenshots, privacy-safe founder and SME demo datasets, a repeatable demo script, pricing and trial guidance, and a short demo video. (labels: sales, docs, testing)

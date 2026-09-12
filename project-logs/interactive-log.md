@@ -1,3 +1,108 @@
+## Prebookkeeping Category Review Persistence Fix
+
+1. Interaction title
+Prebookkeeping category review persistence fix.
+
+2. What was the user goal
+Fix the existing Category dropdown workflow so manual category changes such as Monthly bank fee from Equity to Bank Fees persist through `PATCH /api/prebookkeeping/review`, reload correctly, update review counts, and feed accountant exports without changing the category choices or unrelated systems.
+
+3. What changed
+The review mutation logic now lives in a shared Accountancy helper used by the PATCH route and focused regression tests. The route still performs the same authenticated, tenant-scoped Pre-bookkeeping dataset lookup, updates the same dataset analysis record, writes audit events, writes learning rules, and returns the refreshed categorization. Railway predeploy now applies the existing `0023_prebookkeeping_vat_learning.sql` migration so production has the `countryKey` and `vatRate` columns that manual review learning-rule inserts already use. The focused Accountancy regression now covers Monthly bank fee starting as Equity, manually changing to Bank Fees, persisting to the same transaction, reloading as Bank Fees, updating counts, creating one learning rule, and exporting Bank Fees in the accountant CSV.
+
+4. Problems marked
+blocker: none.
+risk: production must run the updated predeploy before the deployed PATCH route can rely on the learning-rule VAT columns.
+improvement: link the local Railway project for future direct runtime log inspection from this checkout.
+observation: the Category dropdown and category choices were already correct; the 500 path was in the server persistence transaction after the selected category reached the API.
+
+5. User learning
+The category review failure is a production schema/predeploy gap in the learning-rule persistence path, not a reason to remove or redesign the Category dropdown.
+
+6. AI-agent learning
+When a route inserts columns added by a later migration, the AI agent must verify that Railway predeploy includes that migration, not only that the schema file and local tests know about the columns.
+
+7. Follow-up tasks
+- Link the local Railway project for future direct runtime log inspection from this checkout.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Page Render Boundary Fix
+
+1. Interaction title
+Accountancy page render boundary fix.
+
+2. What was the user goal
+Fix the production `/app/accountancy` runtime exception `TypeError: e.useState is not a function or its return value is not iterable` after Business Profile loading succeeds, without modifying Business Profile, tax/VAT calculations, parsing, categorization, Usy, billing, auth, tenant isolation, Retail, or unrelated UI.
+
+3. What changed
+The Accountancy page no longer imports and renders the hook-based shared `DataTable` from the Server Component page. It now renders the existing bookkeeping queue rows through a local server-safe static table, preserving the same queue links, status labels, and Accountancy upload/page layout. The focused Business Profile source regression now asserts that the Accountancy server page does not re-import or render the hook-based shared table.
+
+4. Problems marked
+blocker: none.
+risk: other server pages still import the shared hook-based `DataTable`; this fix intentionally changes only the confirmed Accountancy crash path.
+improvement: add a broader shared-component boundary audit when the team schedules cross-page hardening.
+observation: the Railway log order shows Business Profile loading succeeds before the Accountancy page reaches the hook-based table render path.
+
+5. User learning
+The Accountancy production 500 comes from a client/server component boundary issue in the page UI path, not from Business Profile, company setup, tax/VAT data, or upload parsing.
+
+6. AI-agent learning
+When a Server Component page imports a shared component that calls React hooks without a client boundary, the AI agent should either keep render props server-side or isolate the interactive component behind an explicit client wrapper instead of adding a broad client boundary blindly.
+
+7. Follow-up tasks
+- Add a broader shared-component boundary audit when the team schedules cross-page hardening.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Upload Reliability Patch
+
+1. Interaction title
+Accountancy upload reliability patch.
+
+2. What was the user goal
+Fix verified Pre-bookkeeping and Accountancy upload failures for Excel dates, machine-readable PDF invoice extraction, bank-fee categorization, and visible upload choices without changing Business Profile, VAT calculations, tenant isolation, billing, OAuth, Usy, or unrelated systems.
+
+3. What changed
+Accountancy Excel parsing now normalizes valid native Date cells, Excel serial dates, ISO date strings, and common spreadsheet date strings while converting invalid date cells to row-level missing-date review data instead of crashing. Machine-readable PDF extraction now keeps raw text alongside literal PDF strings, recognizes invoice document type, net amounts, VAT rates, VAT amounts with currency labels, totals, and line items, then feeds the existing Pre-bookkeeping rows and review/export path. Bank and payment fee language now outranks bad learned Equity rules. The upload UI shows CSV, Excel, and PDF / Scan as file-format choices while the legacy receipt and bank upload types remain available in the underlying processor.
+
+4. Problems marked
+blocker: none.
+risk: scanned/image-only PDF extraction still depends on a future OCR/document-vision integration because no existing repository capability performs document OCR.
+improvement: add production smoke coverage for Accountancy PDF and Excel uploads when sanitized browser fixtures exist.
+observation: the 96% Equity bank-fee result came from learned-rule precedence, not the deterministic bank-fee keyword rule.
+
+5. User learning
+Verified CSV imports remain intact while Excel dates, machine-readable PDF invoices, and bank-fee categorization now use safer Accountancy parsing and Pre-bookkeeping review paths.
+
+6. AI-agent learning
+Accountancy upload fixes must protect the existing Pre-bookkeeping dataset persistence, review, and export flow while converting parser exceptions into row-level review evidence whenever possible.
+
+7. Follow-up tasks
+- Add production smoke coverage for Accountancy PDF and Excel uploads when sanitized browser fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Dependency Audit Patch
 
 1. Interaction title
