@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
-import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
@@ -83,8 +82,8 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   const isOffline = connectionMode === "offline"
   const _isHybrid = connectionMode === "hybrid"
   const isPlanLimitReached = uploadStatus === "limit-reached"
-  const isCreditExhausted = Boolean(creditExhaustedInfo && creditExhaustedInfo.remaining <= 0)
-  const isUploadBlocked = isPlanLimitReached || isCreditExhausted
+  const isCreditExhausted = false
+  const isUploadBlocked = isPlanLimitReached
 
   const getConnectionIcon = (mode: ConnectionMode) => {
     switch (mode) {
@@ -109,35 +108,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
   }
 
   const refreshCreditStatus = React.useCallback(async () => {
-    try {
-      const response = await fetch("/api/usage/credits", { cache: "no-store" })
-      if (!response.ok) return
-      const usage = await response.json().catch(() => null)
-      if (!isRecord(usage) || usage.unlimited === true) {
-        setCreditExhaustedInfo(null)
-        return
-      }
-
-      const credits = isRecord(usage.credits) ? usage.credits : {}
-      const used = safeNumber(credits.used) ?? safeNumber(usage.usedCredits) ?? safeNumber(usage.analysisCount) ?? 0
-      const limit = safeNumber(credits.total) ?? safeNumber(usage.total) ?? 0
-      const remaining = safeNumber(credits.available) ?? safeNumber(usage.availableCredits) ?? 0
-      if (limit > 0 && remaining <= 0) {
-        const creditCopy = buildUploadCreditLimitCopy({ used, limit, remaining: 0 })
-        setCreditExhaustedInfo({ used, limit, remaining: 0 })
-        setUpgradeModalData({ currentCount: used, limit, planName: "Free" })
-        setUpgradeModalCopy({
-          title: creditCopy.title,
-          description: creditCopy.inlineMessage,
-          usageLabel: creditCopy.usageLabel,
-        })
-        setUploadStatus("limit-reached")
-      } else {
-        setCreditExhaustedInfo(null)
-      }
-    } catch (error) {
-      debugError("[ACCOUNTANCY-UPLOAD] Failed to refresh credit status:", error)
-    }
+    setCreditExhaustedInfo(null)
   }, [])
 
   React.useEffect(() => {
@@ -278,7 +249,6 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         setUploadStatus("success")
         setProcessingStep(5)
         setProcessingLabel("Ready for review")
-        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
         refreshCreditStatus()
 
         const result = validateUploadApiResponse(await response.json().catch(() => ({})))

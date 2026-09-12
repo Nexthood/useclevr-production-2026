@@ -1,5 +1,6 @@
 import { getBusinessModelRedirect } from "@/lib/data/business-model";
 import { getAccountingContext, type AccountingContext } from "@/lib/accountancy/accounting-context";
+import { resolveAccountancyUploadEntitlement } from "@/lib/accountancy/upload-entitlements";
 import {
   categorizePrebookkeepingRows,
   createDefaultPrebookkeepingReviewSummary,
@@ -10,10 +11,6 @@ import { buildBusinessTaxProfile, type BusinessTaxProfile } from "@/lib/accounta
 import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, prebookkeepingLearningRules, type DatasetBusinessModel } from "@/lib/db/schema";
-import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
-import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
-import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
-import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
@@ -96,58 +93,6 @@ export class AccountancyUploadError extends Error {
   }
 }
 
-async function runAccountancyUploadStep<T>(
-  stage: AccountancyUploadStage,
-  code: string,
-  message: string,
-  action: () => Promise<T>,
-  status = 500,
-  retryable = true,
-): Promise<T> {
-  try {
-    return await action();
-  } catch (error) {
-    if (error instanceof AccountancyUploadError) throw error;
-    debugError("[ACCOUNTANCY-UPLOAD] staged dependency failed", {
-      stage,
-      code,
-      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
-    });
-    throw new AccountancyUploadError(stage, code, message, status, retryable, {
-      diagnostic: error instanceof Error ? error.message : "Unexpected dependency failure.",
-    });
-  }
-}
-
-async function safeReleaseUploadCredits(operationId: string, reason: string) {
-  try {
-    await releaseCredits(operationId, reason);
-  } catch (error) {
-    debugError("[ACCOUNTANCY-UPLOAD] credit release failed", {
-      operationId,
-      reason,
-      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
-    });
-  }
-}
-
-async function loadUploadCreditUsage(
-  userId: string,
-  role: string | null,
-  email: string | null,
-  context: string,
-): Promise<UploadCreditUsage | null> {
-  try {
-    return await getAnalystCreditUsage(userId, role, email);
-  } catch (error) {
-    debugError("[ACCOUNTANCY-UPLOAD] credit usage unavailable", {
-      context,
-      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
-    });
-    return null;
-  }
-}
-
 async function loadAccountingContextForUpload(userId: string): Promise<AccountingContextResult> {
   try {
     const setup = await getCompanySetup(userId);
@@ -171,8 +116,6 @@ async function loadAccountingContextForUpload(userId: string): Promise<Accountin
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const PREVIEW_ROW_COUNT = 20;
 const MAX_EXCEL_HEADER_SCAN_ROWS = 30;
-
-type UploadCreditUsage = Awaited<ReturnType<typeof getAnalystCreditUsage>>;
 
 type AccountingContextResult = {
   accountingContext: AccountingContext;
@@ -430,106 +373,15 @@ export async function processAccountancyUpload(input: {
 
   const datasetId = `acct_${Date.now()}_${checksum.slice(0, 8)}`;
   const datasetName = input.fileName.replace(/\.(csv|xlsx|xls|pdf|jpg|jpeg|png|webp|ofx|qif|qfx)$/i, "");
-  const uploadCreditOperationId = `accountancy-upload:${input.userId}:${datasetId}`;
-
-  const spendingLimitCheck = await runAccountancyUploadStep(
-    "validation",
-    "UPLOAD_CREDIT_CHECK_FAILED",
-    "Upload credit checks are temporarily unavailable. Please try again.",
-    () => checkSpendingLimits(input.userId),
-    503,
-    true,
-  )
-  if (spendingLimitCheck.blocked) {
-    const usage = await loadUploadCreditUsage(input.userId, input.role ?? null, input.email ?? null, "spending_limit_blocked")
-    const used = usage?.usedCredits ?? Math.max(0, (usage?.total ?? 0) - (usage?.remainingCredits ?? 0))
-    const limit = usage?.total ?? 0
-    throw new AccountancyUploadError(
-      "validation",
-      "UPLOAD_SPENDING_LIMIT_REACHED",
-      spendingLimitCheck.reason || "Spending limit reached.",
-      402,
-      false,
-      {
-        used,
-        limit,
-        remaining: usage?.availableCredits ?? 0,
-        usage: {
-          limitReached: true,
-          analysisCount: used,
-          total: limit,
-          availableCredits: usage?.availableCredits ?? 0,
-          reservedCredits: usage?.reservedCredits ?? 0,
-          usedCredits: used,
-          remainingCredits: usage?.remainingCredits ?? 0,
-          subscriptionTier: usage?.subscriptionTier,
-          unlimited: usage?.unlimited,
-          unlimitedLabel: usage?.unlimitedLabel,
-        },
-      },
-    )
-  }
-
-  const reservation = await runAccountancyUploadStep(
-    "validation",
-    "UPLOAD_CREDIT_RESERVATION_FAILED",
-    "Upload credit reservation is temporarily unavailable. Please try again.",
-    () => reserveCredits({
-      userId: input.userId,
-      operationId: uploadCreditOperationId,
-      idempotencyKey: uploadCreditOperationId,
-      estimatedCredits: 1,
-      feature: "dataset_upload",
-      source: "accountancy_upload",
-      role: input.role ?? null,
-      email: input.email ?? null,
-      metadata: {
-        datasetId,
-        fileName: input.fileName,
-        datasetType: input.datasetType,
-        uploadType: input.uploadType,
-        checksum,
-      },
-    }),
-    503,
-    true,
-  );
-
-  if (!reservation.success) {
-    const usage = await loadUploadCreditUsage(input.userId, input.role ?? null, input.email ?? null, "credit_reservation_rejected");
-    const used = usage?.usedCredits ?? Math.max(0, (usage?.total ?? 0) - (usage?.remainingCredits ?? 0));
-    const limit = usage?.total ?? 0;
-    throw new AccountancyUploadError(
-      "validation",
-      "UPLOAD_CREDITS_EXHAUSTED",
-      buildUploadCreditLimitInlineMessage(limit),
-      402,
-      false,
-      {
-        used,
-        limit,
-        remaining: usage?.availableCredits ?? 0,
-        usage: {
-          limitReached: true,
-          analysisCount: used,
-          total: limit,
-          availableCredits: usage?.availableCredits ?? 0,
-          reservedCredits: usage?.reservedCredits ?? 0,
-          usedCredits: used,
-          remainingCredits: usage?.remainingCredits ?? 0,
-          subscriptionTier: usage?.subscriptionTier,
-          unlimited: usage?.unlimited,
-          unlimitedLabel: usage?.unlimitedLabel,
-        },
-      },
-    );
-  }
+  const uploadEntitlement = resolveAccountancyUploadEntitlement({
+    datasetType: input.datasetType,
+    uploadType: input.uploadType,
+  });
 
   let parsed: AccountancyParsedUpload;
   try {
     parsed = await parseAccountancyUploadBuffer(input.buffer, requestMeta);
   } catch (error) {
-    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_parse_failed");
     if (error instanceof AccountancyUploadError) throw error;
     debugError("[ACCOUNTANCY-UPLOAD] parsing failed", safeLogMeta(input, "parsing", error));
     throw new AccountancyUploadError(
@@ -558,7 +410,6 @@ export async function processAccountancyUpload(input: {
   try {
     storage = await storeUploadedFile(input.buffer, input.fileName, input.mimeType || inferMimeType(input.fileName));
   } catch (error) {
-    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", error));
     throw new AccountancyUploadError(
       "storage",
@@ -570,7 +421,6 @@ export async function processAccountancyUpload(input: {
   }
 
   if (!storage.success) {
-    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", storage.error));
     throw new AccountancyUploadError(
       "storage",
@@ -651,6 +501,7 @@ export async function processAccountancyUpload(input: {
       extractedData: parsed.extractedData,
       warnings: uploadWarnings,
       accountingContext: accountingContextResult.accountingContext,
+      uploadEntitlement,
       reviewSummary,
       categorizationStatus: prebookkeepingCategorization ? "ready_for_review" : undefined,
       prebookkeepingCategorization,
@@ -682,46 +533,12 @@ export async function processAccountancyUpload(input: {
       }
     });
   } catch (error) {
-    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_database_failed");
     await deleteFile(storage.storageKey).catch(() => false);
     debugError("[ACCOUNTANCY-UPLOAD] database failed", safeLogMeta(input, "database", error));
     throw new AccountancyUploadError(
       "database",
       "DATABASE_FAILED",
       error instanceof Error ? error.message : "The dataset could not be saved.",
-      500,
-      true,
-    );
-  }
-
-  let finalized: Awaited<ReturnType<typeof finalizeCredits>>;
-  try {
-    finalized = await finalizeCredits({
-      operationId: uploadCreditOperationId,
-      actualCredits: 1,
-      metadata: {
-        datasetId,
-        rowCount: parsed.rowCount,
-        datasetType: input.datasetType,
-        uploadType: input.uploadType,
-        checksum,
-      },
-    });
-  } catch (error) {
-    debugError("[ACCOUNTANCY-UPLOAD] credit finalization failed", safeLogMeta(input, "database", error));
-    finalized = { success: false, remainingCredits: 0, creditsDeducted: 0, error: "Credit finalization failed." };
-  }
-  if (!finalized.success) {
-    await db.transaction(async (tx) => {
-      await tx.delete(datasetRows).where(eq(datasetRows.datasetId, datasetId));
-      await tx.delete(datasets).where(eq(datasets.id, datasetId));
-    }).catch(() => undefined);
-    await deleteFile(storage.storageKey).catch(() => false);
-    await safeReleaseUploadCredits(uploadCreditOperationId, "accountancy_upload_credit_finalization_failed");
-    throw new AccountancyUploadError(
-      "database",
-      "CREDIT_SETTLEMENT_ERROR",
-      "The Accountancy upload could not be saved with a finalized upload credit. Please try again.",
       500,
       true,
     );
