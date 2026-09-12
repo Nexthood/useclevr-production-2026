@@ -64,7 +64,7 @@ export function TopbarNoticeActivityDrawer({ className = "" }: { className?: str
       >
         <Bell className="h-4 w-4" aria-hidden="true" />
         {notices.length > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+          <span className="absolute top-0 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
             {notices.length > 9 ? "9+" : notices.length}
           </span>
         )}
