@@ -6,6 +6,7 @@ import {
   normalizeAccountancyUploadType,
   processAccountancyUpload,
 } from "@/lib/accountancy/upload-processing";
+import { getPrebookkeepingLimitInfo, getPrebookkeepingLimitError } from "@/lib/usage/dataset-limits";
 import { debugError } from "@/lib/utils/debug";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -38,6 +39,30 @@ export async function POST(request: Request) {
 
     if (!datasetType) {
       return structuredError("validation", "INVALID_DATASET_TYPE", "Select Accountancy or Pre-bookkeeping before uploading.", 400, false);
+    }
+
+    if (datasetType === "prebookkeeping") {
+      const prebookkeepingLimitInfo = await getPrebookkeepingLimitInfo(userId, session.user.role ?? null, session.user.email ?? null);
+      const prebookkeepingLimitError = getPrebookkeepingLimitError(prebookkeepingLimitInfo);
+      if (prebookkeepingLimitError) {
+        const [, ...messageParts] = prebookkeepingLimitError.split("|");
+        return structuredError(
+          "validation",
+          "DATASET_LIMIT_REACHED",
+          messageParts.filter(Boolean).join(" ") || "Pre-bookkeeping upload limit reached.",
+          403,
+          false,
+          {
+            datasetLimit: {
+              limitReached: true,
+              currentCount: prebookkeepingLimitInfo.currentCount,
+              limit: prebookkeepingLimitInfo.limit,
+              planName: prebookkeepingLimitInfo.planName,
+              tier: prebookkeepingLimitInfo.tier,
+            },
+          },
+        );
+      }
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

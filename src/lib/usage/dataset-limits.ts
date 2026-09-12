@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
-import { eq, count } from "drizzle-orm"
+import { and, eq, count } from "drizzle-orm"
 import { getBillingPlanByTier } from "@/lib/billing/plans"
 import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
@@ -13,7 +13,7 @@ export interface DatasetLimitInfo {
   tier: string
 }
 
-export async function getDatasetLimitInfo(userId: string, role?: string | null, _email?: string | null): Promise<DatasetLimitInfo> {
+export async function getDatasetLimitInfo(userId: string, role?: string | null, _email?: string | null, datasetType?: string | null): Promise<DatasetLimitInfo> {
   const isSuperadmin = isSuperAdminUserId(userId) || isUnlimitedCreditRole(role)
 
   if (isSuperadmin) {
@@ -52,10 +52,13 @@ export async function getDatasetLimitInfo(userId: string, role?: string | null, 
   let currentCount = 0
   if (db) {
     try {
+      const whereClause = datasetType
+        ? and(eq(datasets.userId, userId), eq(datasets.datasetType, datasetType))
+        : eq(datasets.userId, userId)
       const [{ count: total }] = await db
         .select({ count: count() })
         .from(datasets)
-        .where(eq(datasets.userId, userId))
+        .where(whereClause)
       currentCount = total ?? 0
     } catch {
       currentCount = 0
@@ -71,8 +74,16 @@ export async function getDatasetLimitInfo(userId: string, role?: string | null, 
   }
 }
 
-export function getDatasetLimitError(limitInfo: DatasetLimitInfo): string | null {
+export function getDatasetLimitError(limitInfo: DatasetLimitInfo, itemLabel = "datasets"): string | null {
   if (limitInfo.canCreate) return null
   if (limitInfo.limit === Infinity) return null
-  return `DATASET_LIMIT_REACHED|Your current plan (${limitInfo.planName}) allows up to ${limitInfo.limit} datasets. You currently have ${limitInfo.currentCount} datasets.`
+  return `DATASET_LIMIT_REACHED|Your current plan (${limitInfo.planName}) allows up to ${limitInfo.limit} ${itemLabel}. You currently have ${limitInfo.currentCount} ${itemLabel}.`
+}
+
+export async function getPrebookkeepingLimitInfo(userId: string, role?: string | null, email?: string | null): Promise<DatasetLimitInfo> {
+  return getDatasetLimitInfo(userId, role, email, "prebookkeeping")
+}
+
+export function getPrebookkeepingLimitError(limitInfo: DatasetLimitInfo): string | null {
+  return getDatasetLimitError(limitInfo, "pre-bookkeeping uploads")
 }

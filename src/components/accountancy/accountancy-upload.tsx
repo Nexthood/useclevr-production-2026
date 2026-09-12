@@ -327,11 +327,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
           return
         }
 
-        if (result.datasetLimit?.limitReached === true) {
+        if (result.code === "DATASET_LIMIT_REACHED" || result.datasetLimit?.limitReached === true) {
           const datasetLimit = {
-            currentCount: safeNumber(result.datasetLimit.currentCount) ?? 0,
-            limit: safeNumber(result.datasetLimit.limit) ?? 0,
-            planName: safeString(result.datasetLimit.planName) ?? "Free",
+            currentCount: safeNumber(result.datasetLimit?.currentCount) ?? 0,
+            limit: safeNumber(result.datasetLimit?.limit) ?? 0,
+            planName: safeString(result.datasetLimit?.planName) ?? "Free",
           }
           setUploadStatus("limit-reached")
           setLimitReachedInfo(datasetLimit)
