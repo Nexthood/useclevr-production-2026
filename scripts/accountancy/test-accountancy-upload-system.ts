@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import * as XLSX from "xlsx";
 import {
   AccountancyUploadError,
@@ -42,6 +42,8 @@ async function run() {
   await testExcelNoValidSheetExplainsRejectedSheets();
   await testTextPdfInvoice();
   await testMachineReadablePdfInvoiceVariant();
+  await testProductionMachineReadablePdfInvoiceFixture();
+  await testIncompletePdfDoesNotCreateReadyReviewPlaceholder();
   await testScannedPdf();
   await testImageReceipts();
   await testCsvBankExport();
@@ -416,10 +418,59 @@ async function testMachineReadablePdfInvoiceVariant() {
   assert.equal((parsed.rows[0]?.line_items as Record<string, unknown>[]).length, 2);
 }
 
+async function testProductionMachineReadablePdfInvoiceFixture() {
+  const fixturePath = ["/home/csaba/Documents/03_test_invoice.pdf", "/home/csaba/Downloads/03_test_invoice.pdf"].find((path) => existsSync(path));
+  assert.ok(fixturePath, "03_test_invoice.pdf fixture must exist for machine-readable PDF regression coverage");
+
+  const parsed = await parseAccountancyUploadBuffer(
+    readFileSync(fixturePath),
+    baseMeta("pdf", "03_test_invoice.pdf", "application/pdf"),
+  );
+  const row = parsed.rows[0];
+
+  assert.equal(parsed.documentTextStatus, "embedded_text");
+  assert.equal(row?.document_type, "invoice");
+  assert.equal(row?.transaction_date, "2026-08-18");
+  assert.equal(row?.supplier_customer, "Demo Supplier B.V.");
+  assert.equal(row?.invoice_reference, "INV-TEST-2026-0818");
+  assert.equal(row?.amount, 605);
+  assert.equal(row?.currency, "EUR");
+  assert.equal(row?.subtotal, 500);
+  assert.equal(row?.vat_tax, 105);
+  assert.match(String(row?.description), /Demo Supplier B\.V\./);
+  assert.doesNotMatch(String(row?.description), /Extracted accounting document/);
+  assert.ok(parsed.extractedData.some((field) => field.field === "taxRate" && field.value === "21"));
+  assert.ok(parsed.extractedData.some((field) => field.field === "gross" && field.value === "EUR 605.00"));
+  assert.deepEqual(row?.line_items, [
+    { description: "Business software license", quantity: 1, total: 250 },
+    { description: "Implementation service", quantity: 2, total: 250 },
+  ]);
+
+  const categorization = categorizePrebookkeepingRows(parsed.rows);
+  assert.equal(categorization.reviewSummary.totalCount, 1);
+  assert.equal(categorization.status, "ready_for_review");
+  assert.equal(categorization.transactions[0]?.amount, 605);
+  assert.equal(categorization.transactions[0]?.currency, "EUR");
+}
+
+async function testIncompletePdfDoesNotCreateReadyReviewPlaceholder() {
+  const pdf = Buffer.from("%PDF-1.4\n(Invoice: INV-MISSING-TOTAL)\n(Currency: EUR)\n%%EOF");
+  const parsed = await parseAccountancyUploadBuffer(pdf, baseMeta("pdf", "incomplete-invoice.pdf", "application/pdf"));
+
+  assert.equal(parsed.route, "accountancy_pdf_document_processor");
+  assert.equal(parsed.documentTextStatus, "extraction_incomplete");
+  assert.deepEqual(parsed.columns, ["document_status", "description", "reason", "extracted_fields"]);
+  assert.equal(parsed.rows[0]?.document_status, "extraction_incomplete");
+  assert.equal(parsed.rows[0]?.description, "Document review required");
+  assert.doesNotMatch(JSON.stringify(parsed.rows), /Extracted accounting document/);
+  assert.match(parsed.warnings.join(" "), /Manual document review is required/);
+}
+
 async function testScannedPdf() {
   const parsed = await parseAccountancyUploadBuffer(Buffer.from("%PDF-1.4\n%%EOF"), baseMeta("pdf", "scan.pdf", "application/pdf"));
   assert.equal(parsed.route, "receipt_document_scanner");
   assert.equal(parsed.documentTextStatus, "scanner_required");
+  assert.match(parsed.warnings.join(" "), /No embedded text/);
 }
 
 async function testImageReceipts() {
@@ -551,6 +602,9 @@ function testApiRouteWiring() {
   assert.ok(entitlementIndex > processUploadStart && entitlementIndex < parseIndex, "Accountancy entitlement routing happens before parsing");
   assert.ok(processor.indexOf("if (existingDataset)", processUploadStart) < entitlementIndex, "duplicate existing datasets return before entitlement routing");
   assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows, learningRules, { taxProfile: accountingContextResult.taxProfile })"), "Pre-bookkeeping uploads start categorization with Business Profile tax context");
+  assert.ok(processor.includes("shouldCategorizePrebookkeepingUpload(parsed)"), "incomplete PDF extraction rows do not enter ready-for-review categorization");
+  assert.ok(processor.includes("decodePdfContentStreams"), "machine-readable compressed PDF content streams are decoded before accounting extraction");
+  assert.ok(processor.includes('parsed.documentTextStatus === "extraction_incomplete"'), "incomplete PDF extraction shows document review status");
   assert.ok(processor.includes("accountingContext: accountingContextResult.accountingContext"), "Accountancy uploads save accounting context metadata");
   assert.ok(processor.includes("createDefaultPrebookkeepingReviewSummary(parsed.rowCount"), "Accountancy uploads initialize review summary defaults");
   assert.ok(processor.includes("hasCompleteReviewSummary"), "legacy review summaries are backfilled with safe defaults");

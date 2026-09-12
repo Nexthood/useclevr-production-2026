@@ -19,6 +19,7 @@ import { and, asc, eq } from "drizzle-orm";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { createHash } from "node:crypto";
+import { inflateSync } from "node:zlib";
 
 export type AccountancyDatasetType = "accountancy" | "prebookkeeping";
 export type AccountancyUploadType = "csv" | "excel" | "pdf" | "receipt" | "bank";
@@ -44,7 +45,7 @@ export interface AccountancyParsedUpload {
   sheetNames?: string[];
   selectedSheet?: string;
   duplicateColumns?: string[];
-  documentTextStatus?: "embedded_text" | "scanner_required" | "image_scanner";
+  documentTextStatus?: "embedded_text" | "scanner_required" | "image_scanner" | "extraction_incomplete";
   warnings: string[];
 }
 
@@ -460,7 +461,7 @@ export async function processAccountancyUpload(input: {
     }
   }
   const prebookkeepingCategorization =
-    input.datasetType === "prebookkeeping" && parsed.rows.length > 0
+    input.datasetType === "prebookkeeping" && shouldCategorizePrebookkeepingUpload(parsed)
       ? categorizePrebookkeepingRows(parsed.rows, learningRules, { taxProfile: accountingContextResult.taxProfile })
       : null;
   const reviewSummary = prebookkeepingCategorization
@@ -486,7 +487,11 @@ export async function processAccountancyUpload(input: {
     status: "ready",
     analysisStatus: "ready",
     analysisProgress: 100,
-    analysisMessage: prebookkeepingCategorization ? "Ready for review." : "Accountancy upload processed.",
+    analysisMessage: prebookkeepingCategorization
+      ? "Ready for review."
+      : parsed.documentTextStatus === "extraction_incomplete"
+        ? "Document review required."
+        : "Accountancy upload processed.",
     analysisError: null,
     analysis: {
       dataset_type: input.datasetType,
@@ -606,6 +611,10 @@ async function ensureExistingPrebookkeepingCategorization(datasetId: string, ana
   await updatePrebookkeepingCategorization(datasetId, existingAnalysis, categorization);
 
   return categorization;
+}
+
+function shouldCategorizePrebookkeepingUpload(parsed: AccountancyParsedUpload) {
+  return parsed.rows.length > 0 && parsed.documentTextStatus !== "scanner_required" && parsed.documentTextStatus !== "image_scanner" && parsed.documentTextStatus !== "extraction_incomplete";
 }
 
 async function updatePrebookkeepingCategorization(
@@ -945,30 +954,33 @@ function parsePdfUpload(buffer: Buffer, _meta: AccountancyUploadMeta): Accountan
   const hasAccountingSignal = /invoice|receipt|supplier|vendor|merchant|subtotal|total|tax|vat|amount due/i.test(text);
   const scannerRequired = text.trim().length < 80 && !hasAccountingSignal;
   const extractedData = scannerRequired ? [] : extractAccountingFields(text);
+  const extractionComplete = !scannerRequired && hasRequiredAccountingFields(extractedData);
+  const extractionIncomplete = !scannerRequired && !extractionComplete;
 
-  if (!scannerRequired && extractedData.length === 0) {
-    throw new AccountancyUploadError(
-      "extraction",
-      "PDF_EXTRACTION_FAILED",
-      "The PDF contains text, but no accounting fields could be extracted.",
-      422,
-      false,
-    );
-  }
-
-  const rows = extractedData.length > 0
+  const rows = extractionComplete
     ? buildAccountingDocumentRows(extractedData)
+    : extractionIncomplete
+      ? [
+          {
+            document_status: "extraction_incomplete",
+            description: "Document review required",
+            reason: "Required accounting fields could not be extracted from embedded PDF text.",
+            extracted_fields: extractedData,
+          },
+        ]
     : [{ document_status: "scanner_required", description: "OCR required", reason: "No embedded PDF text detected" }];
 
   return {
     route: scannerRequired ? "receipt_document_scanner" : uploadSpecs.pdf.route,
-    columns: extractedData.length > 0
+    columns: extractionComplete
       ? ["document_type", "transaction_date", "description", "supplier_customer", "amount", "currency", "vat_tax", "invoice_reference", "subtotal", "line_items"]
-      : ["document_status", "description", "reason"],
+      : extractionIncomplete
+        ? ["document_status", "description", "reason", "extracted_fields"]
+        : ["document_status", "description", "reason"],
     rows,
     rowCount: rows.length,
-    columnCount: extractedData.length > 0 ? 10 : 3,
-    columnTypes: extractedData.length > 0
+    columnCount: extractionComplete ? 10 : extractionIncomplete ? 4 : 3,
+    columnTypes: extractionComplete
       ? {
           document_type: "text",
           transaction_date: "date",
@@ -981,11 +993,17 @@ function parsePdfUpload(buffer: Buffer, _meta: AccountancyUploadMeta): Accountan
           subtotal: "decimal",
           line_items: "json",
         }
+      : extractionIncomplete
+        ? { document_status: "text", description: "text", reason: "text", extracted_fields: "json" }
       : { document_status: "text", description: "text", reason: "text" },
     previewRows: rows,
     extractedData,
-    documentTextStatus: scannerRequired ? "scanner_required" : "embedded_text",
-    warnings: scannerRequired ? ["No embedded text was detected, so the document was routed to the scanner flow."] : [],
+    documentTextStatus: scannerRequired ? "scanner_required" : extractionIncomplete ? "extraction_incomplete" : "embedded_text",
+    warnings: scannerRequired
+      ? ["No embedded text was detected, so the document was routed to the scanner flow."]
+      : extractionIncomplete
+        ? ["Embedded PDF text was detected, but required accounting fields were incomplete. Manual document review is required."]
+        : [],
   };
 }
 
@@ -1257,10 +1275,161 @@ function tagValue(block: string, tag: string) {
 }
 
 function extractPdfText(buffer: Buffer) {
-  const text = `${buffer.toString("utf8")}\n${buffer.toString("latin1")}`;
-  const literalStrings = Array.from(text.matchAll(/\(([^()]{2,200})\)/g)).map((match) => match[1]);
-  const readable = literalStrings.length > 0 ? `${literalStrings.join("\n")}\n${text}` : text;
+  const utf8 = buffer.toString("utf8");
+  const latin1 = buffer.toString("latin1");
+  const decodedStreams = decodePdfContentStreams(latin1);
+  const text = [utf8, latin1, ...decodedStreams].join("\n");
+  const literalStrings = parsePdfLiteralStrings(text);
+  const readable = literalStrings.length > 0 ? `${literalStrings.join("\n")}\n${decodedStreams.join("\n")}\n${text}` : text;
   return readable.replace(/[^\S\r\n]+/g, " ").replace(/[^\x20-\x7E\r\n€£$-]/g, " ").trim();
+}
+
+function decodePdfContentStreams(pdfText: string) {
+  const streams: string[] = [];
+  const streamPattern = /(<<[\s\S]*?>>)\s*stream\r?\n?([\s\S]*?)\r?\n?endstream/g;
+
+  for (const match of pdfText.matchAll(streamPattern)) {
+    const filters = extractPdfStreamFilters(match[1] || "");
+    if (filters.length === 0) continue;
+
+    const decoded = decodePdfStream(match[2] || "", filters);
+    if (decoded) streams.push(decoded);
+  }
+
+  return streams;
+}
+
+function extractPdfStreamFilters(dictionary: string) {
+  const filterMatch = /\/Filter\s*(?:\[\s*([^\]]+)\]|\s*\/([A-Za-z0-9]+))/i.exec(dictionary);
+  if (!filterMatch) return [];
+  if (filterMatch[2]) return [filterMatch[2]];
+  return Array.from((filterMatch[1] || "").matchAll(/\/([A-Za-z0-9]+)/g)).map((match) => match[1]).filter(Boolean);
+}
+
+function decodePdfStream(streamBody: string, filters: string[]) {
+  let data = Buffer.from(streamBody.replace(/^\r?\n/, "").replace(/\r?\n$/, ""), "latin1");
+
+  for (const filter of filters) {
+    try {
+      if (filter === "ASCII85Decode" || filter === "A85") {
+        data = decodeAscii85(data.toString("latin1"));
+      } else if (filter === "FlateDecode" || filter === "Fl") {
+        data = inflateSync(data);
+      } else {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return data.toString("utf8");
+}
+
+function decodeAscii85(input: string) {
+  const bytes: number[] = [];
+  const sanitized = input.replace(/\s+/g, "").replace(/^<~/, "").replace(/~>$/, "");
+  let group: number[] = [];
+
+  for (const char of sanitized) {
+    if (char === "z" && group.length === 0) {
+      bytes.push(0, 0, 0, 0);
+      continue;
+    }
+
+    const code = char.charCodeAt(0);
+    if (code < 33 || code > 117) continue;
+    group.push(code - 33);
+
+    if (group.length === 5) {
+      appendAscii85Group(bytes, group, 4);
+      group = [];
+    }
+  }
+
+  if (group.length > 0) {
+    const outputBytes = group.length - 1;
+    while (group.length < 5) group.push(84);
+    appendAscii85Group(bytes, group, outputBytes);
+  }
+
+  return Buffer.from(bytes);
+}
+
+function appendAscii85Group(bytes: number[], group: number[], outputBytes: number) {
+  let value = 0;
+  for (const digit of group) value = value * 85 + digit;
+  const decoded = [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff];
+  bytes.push(...decoded.slice(0, outputBytes));
+}
+
+function parsePdfLiteralStrings(text: string) {
+  const values: string[] = [];
+
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] !== "(") continue;
+
+    let value = "";
+    let depth = 1;
+    let cursor = index + 1;
+
+    while (cursor < text.length && depth > 0) {
+      const char = text[cursor] || "";
+
+      if (char === "\\") {
+        const parsed = parsePdfEscapedCharacter(text, cursor);
+        value += parsed.value;
+        cursor = parsed.nextIndex;
+        continue;
+      }
+
+      if (char === "(") {
+        depth += 1;
+        if (depth > 1) value += char;
+        cursor += 1;
+        continue;
+      }
+
+      if (char === ")") {
+        depth -= 1;
+        if (depth > 0) value += char;
+        cursor += 1;
+        continue;
+      }
+
+      value += char;
+      cursor += 1;
+    }
+
+    if (depth === 0) {
+      const cleaned = value.replace(/\s+/g, " ").trim();
+      if (cleaned.length >= 2 && cleaned.length <= 300) values.push(cleaned);
+      index = cursor - 1;
+    }
+  }
+
+  return values;
+}
+
+function parsePdfEscapedCharacter(text: string, slashIndex: number) {
+  const next = text[slashIndex + 1] || "";
+  if (/[0-7]/.test(next)) {
+    const octal = text.slice(slashIndex + 1).match(/^[0-7]{1,3}/)?.[0] || "";
+    return { value: String.fromCharCode(Number.parseInt(octal, 8)), nextIndex: slashIndex + 1 + octal.length };
+  }
+
+  const escapes: Record<string, string> = {
+    n: "\n",
+    r: "\r",
+    t: "\t",
+    b: "\b",
+    f: "\f",
+    "(": "(",
+    ")": ")",
+    "\\": "\\",
+  };
+
+  return { value: escapes[next] ?? next, nextIndex: slashIndex + 2 };
 }
 
 function extractAccountingFields(text: string) {
@@ -1271,17 +1440,25 @@ function extractAccountingFields(text: string) {
   const moneyPattern = String.raw`((?:EUR|USD|GBP|CHF|HUF|RON|€|\$|£)?\s?-?\d[\d.,]*(?:\s?(?:EUR|USD|GBP|CHF|HUF|RON))?)`;
 
   add("documentType", detectAccountingDocumentType(text), 0.8);
-  add("supplier", /(?:supplier|vendor|merchant|from)[:\s]+([A-Za-z0-9 &.,'-]{2,80})/i.exec(text)?.[1], 0.75);
-  add("invoiceNumber", /(?:invoice|receipt)\s*(?:number|no|#)?[:\s#-]+([A-Z0-9-]{3,40})/i.exec(text)?.[1], 0.85);
+  add("supplier", /(?:^|\n)(?:supplier|vendor|merchant|from)[:\s]+([A-Za-z0-9 &.,'-]{2,80})/i.exec(text)?.[1] || detectSupplierName(text), 0.75);
+  add("invoiceNumber", /(?:^|\n)(?:invoice|receipt)\s*(?:number|no)?\s*[:#-]\s*([A-Z0-9-]{3,40})/i.exec(text)?.[1], 0.85);
   add("date", /(?:date|invoice date)[:\s]+(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i.exec(text)?.[1], 0.8);
-  add("currency", /\b(EUR|USD|GBP|CHF|HUF|RON|€|\$|£)\b/i.exec(text)?.[1], 0.75);
+  add("currency", detectCurrency(text), 0.75);
   add("subtotal", new RegExp(String.raw`(?:subtotal|net(?:\s+amount)?)[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.75);
   add("taxRate", /(?:vat|tax|gst)\s*\(\s*(\d+(?:[.,]\d+)?)\s*%\s*\)/i.exec(text)?.[1], 0.75);
   add("tax", new RegExp(String.raw`(?:vat|tax|gst)(?:\s*\([^)]+\))?[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.75);
-  add("total", new RegExp(String.raw`\b(?:total|amount due|grand total)[:\s]+${moneyPattern}`, "i").exec(text)?.[1], 0.85);
+  const total = new RegExp(String.raw`\b(?:total|amount due|grand total)[:\s]+${moneyPattern}`, "i").exec(text)?.[1];
+  add("total", total, 0.85);
+  add("gross", total, 0.85);
   const lineItems = extractLineItems(text);
   if (lineItems.length > 0) fields.push({ field: "lineItems", value: lineItems, confidence: 0.65 });
   return fields;
+}
+
+function hasRequiredAccountingFields(extractedData: Record<string, unknown>[]) {
+  const valueFor = (field: string) => extractedData.find((item) => item.field === field)?.value;
+  const total = parseLocalizedNumber(valueFor("total") ?? valueFor("gross"));
+  return Boolean(stringOrNull(valueFor("date"))) && Number.isFinite(total);
 }
 
 function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
@@ -1289,7 +1466,7 @@ function buildAccountingDocumentRows(extractedData: Record<string, unknown>[]) {
   const documentType = stringOrNull(valueFor("documentType"));
   const supplier = stringOrNull(valueFor("supplier"));
   const invoiceNumber = stringOrNull(valueFor("invoiceNumber"));
-  const total = parseLocalizedNumber(valueFor("total"));
+  const total = parseLocalizedNumber(valueFor("total") ?? valueFor("gross"));
   const tax = parseLocalizedNumber(valueFor("tax"));
   const subtotal = parseLocalizedNumber(valueFor("subtotal"));
   const lineItems = valueFor("lineItems");
@@ -1316,14 +1493,38 @@ function detectAccountingDocumentType(text: string) {
   return undefined;
 }
 
+function detectSupplierName(text: string) {
+  const lines = readableAccountingLines(text);
+  const billToIndex = lines.findIndex((line) => /^bill\s+to\b/i.test(line));
+  const searchLines = billToIndex > 0 ? lines.slice(0, billToIndex) : lines.slice(0, 20);
+  return searchLines.find(
+    (line) =>
+      !/^(test\s+)?invoice\b|^receipt\b|^date\b|^currency\b|^vat\b|^tax\b|^subtotal\b|^total\b|^net\b/i.test(line) &&
+      !/^\d/.test(line) &&
+      /\b(?:b\.?v\.?|ltd|llc|inc|gmbh|s\.?r\.?l\.?|kft|supplier|company)\b/i.test(line),
+  );
+}
+
+function detectCurrency(text: string) {
+  const explicit = /(?:currency|valuta)[:\s]+(EUR|USD|GBP|CHF|HUF|RON|€|\$|£)\b/i.exec(text)?.[1];
+  if (explicit) return explicit;
+  return /\b(EUR|USD|GBP|CHF|HUF|RON)\b/i.exec(text)?.[1] || /[€$£]/.exec(text)?.[0];
+}
+
 function extractLineItems(text: string) {
   const seen = new Set<string>();
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const lines = readableAccountingLines(text);
+  const items: Array<{ description: string; quantity: number; total: number }> = [];
+  const addLineItem = (description: string, quantity: number, total: number) => {
+    const normalizedDescription = description.replace(/:$/, "").trim();
+    if (!normalizedDescription || !Number.isFinite(quantity) || !Number.isFinite(total)) return;
+    const key = `${normalizedDescription.toLowerCase()}|${quantity}|${total}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    items.push({ description: normalizedDescription, quantity, total });
+  };
 
-  const items = lines
+  lines
     .map((line) => {
       const inline = /^(?:item|line item)[:\s-]+(.+?)\s+(?:qty[:\s]+)?(\d+(?:[.,]\d+)?)\s+(?:total[:\s]+)?([€$£]?\s?\d[\d.,]*)$/i.exec(line);
       if (inline) {
@@ -1344,12 +1545,7 @@ function extractLineItems(text: string) {
     })
     .filter((item): item is { description: string; quantity: number; total: number } => Boolean(item))
     .filter((item) => item.description && Number.isFinite(item.quantity) && Number.isFinite(item.total))
-    .filter((item) => {
-      const key = `${item.description.toLowerCase()}|${item.quantity}|${item.total}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    .forEach((item) => addLineItem(item.description, item.quantity, item.total));
 
   for (let index = 0; index < lines.length - 1; index += 1) {
     const description = lines[index]?.replace(/:$/, "").trim() || "";
@@ -1360,14 +1556,70 @@ function extractLineItems(text: string) {
       quantity: parseLocalizedNumber(amountLine[1]),
       total: parseLocalizedNumber(amountLine[3]),
     };
-    if (!Number.isFinite(item.quantity) || !Number.isFinite(item.total)) continue;
-    const key = `${item.description.toLowerCase()}|${item.quantity}|${item.total}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    items.push(item);
+    addLineItem(item.description, item.quantity, item.total);
+  }
+
+  for (const item of extractPositionedPdfLineItems(text)) {
+    addLineItem(item.description, item.quantity, item.total);
+  }
+
+  if (items.length === 0) {
+    const pdfRowPattern = /\(([^()]{2,120})\)\s*Tj[\s\S]{0,180}?\((\d+(?:[.,]\d+)?)\)\s*Tj[\s\S]{0,180}?\(\d[\d.,]*\)\s*Tj[\s\S]{0,180}?\((\d[\d.,]*)\)\s*Tj/g;
+    for (const match of text.matchAll(pdfRowPattern)) {
+      const description = match[1] || "";
+      if (/^(description|qty|unit|net|vat|tax|total|subtotal|synthetic document)\b/i.test(description)) continue;
+      addLineItem(description, parseLocalizedNumber(match[2]), parseLocalizedNumber(match[3]));
+    }
+  }
+
+  const descriptionHeaderIndex = lines.findIndex((line, index) => /^description$/i.test(line) && /^qty$/i.test(lines[index + 1] || ""));
+  if (items.length === 0 && descriptionHeaderIndex >= 0) {
+    for (let index = descriptionHeaderIndex + 4; index < lines.length - 3; index += 4) {
+      const description = lines[index]?.replace(/:$/, "").trim() || "";
+      const quantity = parseLocalizedNumber(lines[index + 1]);
+      const total = parseLocalizedNumber(lines[index + 3]);
+      if (!description || /^(net|vat|tax|total|subtotal|synthetic document)\b/i.test(description)) break;
+      addLineItem(description, quantity, total);
+    }
   }
 
   return items;
+}
+
+function extractPositionedPdfLineItems(text: string) {
+  const positionedText = Array.from(text.matchAll(/BT\s+1\s+0\s+0\s+1\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Tm\s+\(([^()]*)\)\s*Tj/g)).map(
+    (match) => ({
+      x: Number(match[1]),
+      y: Number(match[2]),
+      text: match[3]?.replace(/\\([()\\])/g, "$1").trim() || "",
+    }),
+  );
+  const byY = new Map<number, typeof positionedText>();
+  for (const item of positionedText) {
+    if (item.x < 5) continue;
+    if (!item.text) continue;
+    const y = Math.round(item.y * 100) / 100;
+    byY.set(y, [...(byY.get(y) || []), item]);
+  }
+
+  return Array.from(byY.values())
+    .map((row) => {
+      const sorted = row.sort((a, b) => a.x - b.x);
+      return {
+        description: sorted.find((item) => item.x >= 5 && item.x < 200)?.text || "",
+        quantity: parseLocalizedNumber(sorted.find((item) => item.x >= 220 && item.x < 320)?.text),
+        total: parseLocalizedNumber(sorted.find((item) => item.x >= 380)?.text),
+      };
+    })
+    .filter((item) => item.description && !/^(description|qty|unit|net|vat|tax|total|subtotal)\b/i.test(item.description));
+}
+
+function readableAccountingLines(text: string) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^(?:BT|ET|q|Q|cm|Tm|Tf|TL|Td|Tj|T\*|rg|RG|re|f\*|S|n|m|l|\d+\s+\d+\s+obj|endobj|stream|endstream)\b/.test(line));
 }
 
 function stringOrNull(value: unknown) {
