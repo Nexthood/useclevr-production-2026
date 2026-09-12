@@ -335,3 +335,4 @@
 - changed: polish the Usy composer send button as a circular cyan-to-purple primary action with white icon, glow, hover, pressed, focus-visible, and disabled states while preserving the existing composer layout and submit behavior
 - fixed: route the production app-host root through the existing auth/app entry flow while leaving the public marketing host root untouched
 - fixed: disable Stripe Checkout adaptive currency conversion for subscription sessions and prove Business US yearly resolves the existing USD yearly Price ID with $5,800/year USD checkout metadata
+- fixed: stop normal checkout users from requesting admin discount rules, keep admin discount requests on admin screens, and separate 401 session guidance from 403 forbidden guidance in global notices

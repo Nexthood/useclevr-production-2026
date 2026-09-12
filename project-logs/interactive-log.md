@@ -6659,3 +6659,38 @@ For Stripe currency bugs, inspect both regional Price-ID selection and Checkout 
 
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Admin Discount Access Gate
+
+1. Interaction title
+Admin discount access gate.
+
+2. What was the user goal
+Fix the normal-user admin discounts 403 notification so normal users never request `/api/admin/discounts`, never see an admin-discount 403 toast, and never receive admin discount data while admin discount functionality and backend authorization stay protected.
+
+3. What changed
+The checkout settings page now reads the settings session role and loads admin discount rules only for superadmin sessions. Normal users clear checkout discount state locally and return before the admin endpoint fetch. The global notice message helper now treats 401 as an unauthenticated/session problem and 403 as authenticated forbidden access. A focused security regression verifies the normal-user no-fetch path, no admin-discount 403 session-expired toast path, admin management requests, and protected API semantics.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: add a browser-level checkout smoke test when stable authenticated fixtures exist.
+observation: the root cause was the checkout settings client fetching an admin-only endpoint for every user, while the shared notice provider incorrectly mapped 403 to the session-expired message.
+
+5. User learning
+Normal checkout users no longer touch admin discount endpoints, and forbidden responses no longer claim the session expired.
+
+6. AI-agent learning
+For admin endpoint 403 notifications, trace the caller first and gate privileged data fetches at the source instead of weakening RBAC or globally suppressing forbidden responses.
+
+7. Follow-up tasks
+- Add a browser-level checkout smoke test when stable authenticated fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
