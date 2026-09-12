@@ -1,9 +1,6 @@
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
-import { auth } from "@/lib/auth/auth"
-import { resolveNewsPrimaryCtaHref } from "@/lib/public/news-cta-routing"
 import { ArrowDown, ArrowRight, BarChart3, Brain, CheckCircle2, Database, LineChart, ShieldCheck, Sparkles, Target, TrendingDown, TrendingUp, Zap } from "lucide-react"
-import Link from "next/link"
 
 export const metadata = {
   title: "What You're Missing - UseClevr",
@@ -102,10 +99,7 @@ const actionSequence = [
   { label: "Action", value: "Review discounting, acquisition cost, and product mix." },
 ]
 
-export default async function NewsPage() {
-  const session = await auth()
-  const primaryCtaHref = resolveNewsPrimaryCtaHref(Boolean(session))
-
+export default function NewsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#080A14] text-[#F5F7FB]">
       <PublicHeader />
@@ -318,16 +312,6 @@ export default async function NewsPage() {
                   <p className="mt-4 text-base leading-7 text-white">{item.value}</p>
                 </div>
               ))}
-            </div>
-
-            <div className="mt-12 flex justify-center">
-              <Link
-                href={primaryCtaHref}
-                className="inline-flex items-center gap-2 rounded-full border border-[#79E6E3]/30 bg-[#79E6E3]/10 px-5 py-3 text-sm font-semibold text-[#F5F7FB] shadow-[0_18px_60px_rgba(121,230,227,0.12)] transition hover:border-[#A1EFEA]/60 hover:bg-[#79E6E3]/15"
-              >
-                Start finding hidden insight
-                <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
           </div>
         </section>
