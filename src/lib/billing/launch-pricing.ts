@@ -168,7 +168,7 @@ const approvedYearlyAmountByPlanAndMarket: Record<CheckoutPlanSlug, Record<Check
   },
 }
 
-const proMarketByCurrency: Record<SupportedCurrency, CheckoutMarket> = {
+export const proMarketByCurrency: Record<SupportedCurrency, CheckoutMarket> = {
   EUR: "eu",
   GBP: "uk",
   USD: "us",
@@ -436,6 +436,60 @@ function getPriceEnvNames(plan: CheckoutPlanSlug, market: CheckoutMarket, billin
   }
 
   return plan === "pro" ? proPriceEnvNamesByMarket[market] : businessPriceEnvNamesByMarket[market]
+}
+
+export type CanonicalPlanPrice = {
+  planId: string;
+  tier: "free" | "pro" | "business";
+  market: CheckoutMarket;
+  billingInterval: BillingInterval;
+  currency: SupportedCurrency;
+  amountMinor: number;
+  displayPrice: string;
+  stripePriceId: string | undefined;
+  enabled: boolean;
+};
+
+export function resolvePlanPrice(
+  planId: string,
+  market: CheckoutMarket,
+  billingInterval: BillingInterval,
+): CanonicalPlanPrice | null {
+  if (planId === "free" || planId === "demo") {
+    const currency = checkoutMarkets.find((entry) => entry.market === market)?.currency ?? "EUR";
+    return {
+      planId,
+      tier: "free",
+      market,
+      billingInterval,
+      currency,
+      amountMinor: 0,
+      displayPrice: "Free",
+      stripePriceId: undefined,
+      enabled: true,
+    };
+  }
+
+  const slug: CheckoutPlanSlug =
+    planId === "business" || planId === "business_monthly" || planId === "business_annual"
+      ? "business"
+      : planId === "pro" || planId === "pro_monthly" || planId === "pro_annual"
+        ? "pro"
+        : normalizeCheckoutPlanSlug(planId);
+  const option = getCheckoutMarketOptions(slug, billingInterval).find((entry) => entry.market === market);
+  if (!option) return null;
+
+  return {
+    planId,
+    tier: slug,
+    market,
+    billingInterval,
+    currency: option.currency,
+    amountMinor: option.amountMinor ?? 0,
+    displayPrice: option.displayPrice,
+    stripePriceId: option.stripePriceId,
+    enabled: option.enabled,
+  };
 }
 
 function readFirstConfiguredEnv(names: string[]): string | undefined {

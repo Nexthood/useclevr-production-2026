@@ -10,7 +10,10 @@ import {
   getSubscriptionTierForStripePriceId,
   resolveCheckoutMarketPrice,
   resolveCheckoutProPrice,
+  resolvePlanPrice,
   resolveProPriceForCountry,
+  type CheckoutMarket,
+  type BillingInterval,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing"
 import {
@@ -20,6 +23,7 @@ import {
   formatPlanPrice,
   getBillingPlan,
   getBillingPlanByTier,
+  getPlanPriceForMarket,
   normalizeBillingPlanId,
   normalizeSubscriptionTier,
 } from "@/lib/billing/plans"
@@ -323,6 +327,139 @@ assert.equal(getFixedProPrice("EUR").label, "€40/month")
 assert.equal(getFixedProPrice("GBP").label, "£39/month")
 assert.equal(getFixedProPrice("USD").label, "$45/month")
 assert.equal(getFixedProPrice("CAD").label, "CA$55/month")
+
+const markets: CheckoutMarket[] = ["eu", "uk", "us", "ca"]
+const intervals: BillingInterval[] = ["monthly", "yearly"]
+
+const expectedMonthlyAmounts: Record<string, Record<string, number>> = {
+  pro: { eu: 4000, uk: 3900, us: 4500, ca: 5500 },
+  business: { eu: 42000, uk: 40950, us: 47250, ca: 57750 },
+}
+const expectedYearlyAmounts: Record<string, Record<string, number>> = {
+  pro: { eu: 48000, uk: 41000, us: 55000, ca: 77500 },
+  business: { eu: 504000, uk: 432000, us: 580000, ca: 815000 },
+}
+const expectedCurrencies: Record<CheckoutMarket, SupportedCurrency> = {
+  eu: "EUR", uk: "GBP", us: "USD", ca: "CAD",
+}
+
+for (const market of markets) {
+  const resolved = resolvePlanPrice("free", market, "monthly")
+  assert.ok(resolved, `Free ${market} resolves`)
+  assert.equal(resolved!.tier, "free", `Free ${market} tier`)
+  assert.equal(resolved!.amountMinor, 0, `Free ${market} amount is zero`)
+  assert.equal(resolved!.displayPrice, "Free", `Free ${market} display is market-neutral`)
+  assert.equal(resolved!.enabled, true, `Free ${market} enabled (no checkout needed)`)
+  assert.equal(resolved!.stripePriceId, undefined, `Free ${market} has no Stripe price ID`)
+}
+
+for (const market of markets) {
+  const resolved = resolvePlanPrice("demo", market, "monthly")
+  assert.ok(resolved, `Demo ${market} resolves`)
+  assert.equal(resolved!.tier, "free", `Demo ${market} tier is free`)
+  assert.equal(resolved!.amountMinor, 0, `Demo ${market} amount is zero`)
+  assert.equal(resolved!.displayPrice, "Free", `Demo ${market} display is market-neutral`)
+  assert.equal(resolved!.stripePriceId, undefined, `Demo ${market} has no Stripe price ID`)
+}
+
+for (const planSlug of ["pro", "business"] as const) {
+  for (const market of markets) {
+    for (const interval of intervals) {
+      const planId = interval === "yearly"
+        ? planSlug === "pro" ? "pro_annual" : "business_annual"
+        : planSlug === "pro" ? "pro_monthly" : "business_monthly"
+      const resolved = resolvePlanPrice(planId, market, interval)
+      assert.ok(resolved, `${planSlug} ${market} ${interval} resolves`)
+
+      const expectedAmounts = interval === "monthly" ? expectedMonthlyAmounts : expectedYearlyAmounts
+      const expectedAmount = expectedAmounts[planSlug][market]
+
+      assert.equal(resolved!.currency, expectedCurrencies[market], `${planSlug} ${market} ${interval} currency`)
+      assert.equal(resolved!.amountMinor, expectedAmount, `${planSlug} ${market} ${interval} approved amount`)
+      assert.equal(resolved!.enabled, true, `${planSlug} ${market} ${interval} has Stripe price configured`)
+      assert.ok(resolved!.stripePriceId, `${planSlug} ${market} ${interval} has a Stripe Price ID`)
+    }
+  }
+}
+
+assert.equal(resolvePlanPrice("pro_monthly", "eu", "monthly")?.displayPrice, "€40/month", "Pro EU monthly display price")
+assert.equal(resolvePlanPrice("pro_monthly", "uk", "monthly")?.displayPrice, "£39/month", "Pro UK monthly display price")
+assert.equal(resolvePlanPrice("pro_monthly", "us", "monthly")?.displayPrice, "$45/month", "Pro US monthly display price")
+assert.equal(resolvePlanPrice("pro_monthly", "ca", "monthly")?.displayPrice, "CA$55/month", "Pro CA monthly display price")
+
+assert.equal(resolvePlanPrice("pro_annual", "eu", "yearly")?.displayPrice, "€480/year", "Pro EU yearly display price")
+assert.equal(resolvePlanPrice("pro_annual", "uk", "yearly")?.displayPrice, "£410/year", "Pro UK yearly display price")
+assert.equal(resolvePlanPrice("pro_annual", "us", "yearly")?.displayPrice, "$550/year", "Pro US yearly display price")
+assert.equal(resolvePlanPrice("pro_annual", "ca", "yearly")?.displayPrice, "CA$775/year", "Pro CA yearly display price")
+
+assert.equal(resolvePlanPrice("business_monthly", "eu", "monthly")?.displayPrice, "€420/month", "Business EU monthly display price")
+assert.equal(resolvePlanPrice("business_monthly", "uk", "monthly")?.displayPrice, "£410/month", "Business UK monthly display price")
+assert.equal(resolvePlanPrice("business_monthly", "us", "monthly")?.displayPrice, "$473/month", "Business US monthly display price")
+assert.equal(resolvePlanPrice("business_monthly", "ca", "monthly")?.displayPrice, "CA$578/month", "Business CA monthly display price")
+
+assert.equal(resolvePlanPrice("business_annual", "eu", "yearly")?.displayPrice, "€5,040/year", "Business EU yearly display price")
+assert.equal(resolvePlanPrice("business_annual", "uk", "yearly")?.displayPrice, "£4,320/year", "Business UK yearly display price")
+assert.equal(resolvePlanPrice("business_annual", "us", "yearly")?.displayPrice, "$5,800/year", "Business US yearly display price")
+assert.equal(resolvePlanPrice("business_annual", "ca", "yearly")?.displayPrice, "CA$8,150/year", "Business CA yearly display price")
+
+assert.equal(resolvePlanPrice("business_monthly", "eu", "monthly")?.stripePriceId, "price_business_eur_test", "Business EU Stripe price ID")
+assert.equal(resolvePlanPrice("business_monthly", "uk", "monthly")?.stripePriceId, "price_business_gbp_test", "Business UK Stripe price ID")
+assert.equal(resolvePlanPrice("business_monthly", "us", "monthly")?.stripePriceId, "price_business_usd_test", "Business US Stripe price ID")
+assert.equal(resolvePlanPrice("business_monthly", "ca", "monthly")?.stripePriceId, "price_business_cad_test", "Business CA Stripe price ID")
+
+assert.equal(getBillingPlan("free").price, 0, "Free plan price field is zero in billingPlans")
+assert.equal(resolvePlanPrice("free", "eu", "monthly")?.amountMinor, 0, "Free EU amountMinor is zero")
+
+const freePlan = getBillingPlan("free")
+assert.equal(formatPlanPrice(freePlan), "$0/€0/month", "formatPlanPrice keeps Free as zero on backward-compat path")
+assert.equal(getPlanPriceForMarket(freePlan, "eu", "monthly")?.displayPrice, "Free", "Free shows market-neutral display via canonical resolver")
+assert.equal(getPlanPriceForMarket(freePlan, "us", "monthly")?.displayPrice, "Free", "Free shows market-neutral display for US market")
+
+const proPlan = getBillingPlan("pro_monthly")
+assert.equal(getPlanPriceForMarket(proPlan, "us", "monthly")?.displayPrice, "$45/month", "Pro US display via canonical resolver")
+assert.equal(getPlanPriceForMarket(proPlan, "us", "monthly")?.currency, "USD", "Pro US currency via canonical resolver")
+assert.equal(getPlanPriceForMarket(proPlan, "ca", "yearly")?.displayPrice, "CA$775/year", "Pro CA yearly display via canonical resolver")
+
+const businessPlan = getBillingPlan("business_monthly")
+assert.equal(getPlanPriceForMarket(businessPlan, "eu", "monthly")?.displayPrice, "€420/month", "Business EU display via canonical resolver")
+assert.equal(getPlanPriceForMarket(businessPlan, "us", "yearly")?.displayPrice, "$5,800/year", "Business US yearly display via canonical resolver")
+
+for (const market of markets) {
+  for (const interval of intervals) {
+    const option = getCheckoutMarketOptions("business", interval).find((o) => o.market === market)!
+    const resolved = resolvePlanPrice("business_monthly", market, interval)
+    assert.equal(resolved?.amountMinor, option.amountMinor, `Business ${market} ${interval} amount matches getCheckoutMarketOptions`)
+    assert.equal(resolved?.enabled, option.enabled, `Business ${market} ${interval} enabled matches getCheckoutMarketOptions`)
+    assert.equal(resolved?.stripePriceId, option.stripePriceId, `Business ${market} ${interval} Stripe ID matches getCheckoutMarketOptions`)
+  }
+}
+
+for (const market of markets) {
+  for (const interval of intervals) {
+    const option = getCheckoutMarketOptions("pro", interval).find((o) => o.market === market)!
+    const resolved = resolvePlanPrice("pro_monthly", market, interval)
+    assert.equal(resolved?.amountMinor, option.amountMinor, `Pro ${market} ${interval} amount matches getCheckoutMarketOptions`)
+    assert.equal(resolved?.enabled, option.enabled, `Pro ${market} ${interval} enabled matches getCheckoutMarketOptions`)
+    assert.equal(resolved?.stripePriceId, option.stripePriceId, `Pro ${market} ${interval} Stripe ID matches getCheckoutMarketOptions`)
+  }
+}
+
+const checkoutPage = readProjectFile("src/app/(auth)/app/settings/checkout/page.tsx")
+assert.ok(checkoutPage.includes('if (plan.tier === "free") return formatPlanPrice(plan);'), "Free checkout derives pricing from the billing formatter")
+assert.ok(checkoutPage.includes('formatPlanPrice(getBillingPlan("free"))'), "Free button uses Free plan price, not selected plan price")
+assert.ok(!checkoutPage.includes('formatPlanPrice(plan)}</span>'), "Free button does not show selected plan price")
+assert.ok(checkoutPage.includes('!option.enabled'), "checkout gates disabled market display on enabled flag")
+
+const upgradeModal = readProjectFile("src/components/shared/upgrade-modal.tsx")
+assert.ok(upgradeModal.includes("getPlanPriceForMarket"), "UpgradeModal uses canonical pricing resolver for Business")
+
+const subscriptionSelector = readProjectFile("src/components/billing/subscription-plan-selector.tsx")
+assert.ok(!subscriptionSelector.includes("option.market === \"eu\""), "SubscriptionPlanSelector no longer hardcodes EU market lookup")
+assert.ok(subscriptionSelector.includes("getPlanPriceForMarket"), "SubscriptionPlanSelector uses canonical pricing resolver")
+
+const billingPlansSource = readProjectFile("src/lib/billing/plans.ts")
+assert.ok(billingPlansSource.includes("resolvePlanPrice"), "formatPlanPrice delegates to canonical resolver")
+assert.ok(!billingPlansSource.includes('return `€${plan.price}/month`'), "formatPlanPrice no longer hardcodes EUR from plan.price for Business")
 
 for (const [name, value] of Object.entries(previousEnv)) {
   if (value === undefined) {
