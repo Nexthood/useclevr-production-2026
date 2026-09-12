@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { getDatasetCategoryDestinationLabel, resolveDatasetType } from "@/lib/data/dataset-category"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
-import { desc, eq } from "drizzle-orm"
+import { and, desc, eq, ne } from "drizzle-orm"
 import { redirect } from "next/navigation"
 
 export const metadata = {
@@ -36,7 +36,7 @@ export default async function DatasetsPage() {
       columns: datasets.columns,
     })
     .from(datasets)
-    .where(eq(datasets.userId, session.user.id))
+    .where(and(eq(datasets.userId, session.user.id), ne(datasets.datasetType, "prebookkeeping")))
     .orderBy(desc(datasets.createdAt))
     .limit(100)
 
