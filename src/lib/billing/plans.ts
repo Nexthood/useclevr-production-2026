@@ -1,10 +1,14 @@
 import {
-  formatMonthlyPrice,
   getFixedProPrice,
   getCheckoutMarketOptions,
   getProLaunchPrices,
   getProStripePriceId,
   getStripePriceIdForCheckout,
+  proMarketByCurrency,
+  resolvePlanPrice,
+  type CanonicalPlanPrice,
+  type CheckoutMarket,
+  type BillingInterval,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing";
 
@@ -261,17 +265,24 @@ export function normalizeSubscriptionTier(tier: string | null | undefined): Bill
 }
 
 export function formatPlanPrice(plan: BillingPlan) {
-  if (plan.price === 0) return "$0/€0/month";
-  if (plan.id === "pro_monthly") return formatMonthlyPrice(getFixedProPrice("EUR").amountMinor, "EUR");
-  return `€${plan.price}/month`;
+  if (plan.tier === "free") return "$0/€0/month";
+  const resolved = resolvePlanPrice(plan.id, "eu", "monthly");
+  return resolved?.displayPrice ?? "$0/€0/month";
 }
 
 export function formatPlanPriceForCurrency(plan: BillingPlan, currency: SupportedCurrency = "EUR") {
-  if (plan.price === 0) return "$0/€0/month";
-  if (plan.id === "pro_monthly") {
-    return formatMonthlyPrice(getFixedProPrice(currency).amountMinor, currency);
-  }
-  return formatPlanPrice(plan);
+  if (plan.tier === "free") return "$0/€0/month";
+  const market = proMarketByCurrency[currency] ?? "eu";
+  const resolved = resolvePlanPrice(plan.id, market, "monthly");
+  return resolved?.displayPrice ?? "$0/€0/month";
+}
+
+export function getPlanPriceForMarket(
+  plan: BillingPlan,
+  market: CheckoutMarket,
+  billingInterval: BillingInterval,
+): CanonicalPlanPrice | null {
+  return resolvePlanPrice(plan.id, market, billingInterval);
 }
 
 export function getDatasetLimitForTier(tier: string | null | undefined): number {

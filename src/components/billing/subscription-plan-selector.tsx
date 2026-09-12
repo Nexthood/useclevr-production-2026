@@ -2,11 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import {
-  formatRecurringPrice,
-  getCheckoutMarketOptions,
   type BillingInterval,
 } from "@/lib/billing/launch-pricing"
-import { formatPlanPrice, type BillingPlan } from "@/lib/billing/plans"
+import { formatPlanPrice, getPlanPriceForMarket, type BillingPlan } from "@/lib/billing/plans"
 import Link from "next/link"
 import * as React from "react"
 
@@ -108,9 +106,9 @@ function BillingIntervalSelector({
 
 function formatSubscriptionPlanPrice(plan: BillingPlan, billingInterval: BillingInterval) {
   if (plan.tier === "free") return formatPlanPrice(plan)
-  const market = getCheckoutMarketOptions(plan.tier, billingInterval).find((option) => option.market === "eu")
-  if (market?.amountMinor !== null && market?.amountMinor !== undefined) {
-    return formatRecurringPrice(market.amountMinor, market.currency, billingInterval)
+  const resolved = getPlanPriceForMarket(plan, "eu", billingInterval)
+  if (resolved?.amountMinor !== null && resolved?.amountMinor !== undefined) {
+    return resolved.displayPrice
   }
   return formatPlanPrice(plan)
 }

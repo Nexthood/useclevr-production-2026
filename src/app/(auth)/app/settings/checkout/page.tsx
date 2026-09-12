@@ -12,7 +12,7 @@ import {
   type CheckoutMarket,
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing";
-import { billingPlans, formatPlanPrice, getBillingPlan, normalizeBillingPlanId, type BillingPlan } from "@/lib/billing/plans";
+import { billingPlans, formatPlanPrice, getBillingPlan, getPlanPriceForMarket, normalizeBillingPlanId, type BillingPlan } from "@/lib/billing/plans";
 
 type DiscountRule = {
   id: string;
@@ -284,7 +284,7 @@ function CheckoutClient() {
                       aria-hidden="true"
                     />
                   </span>
-                  <span className="mt-1 block text-sm font-medium text-foreground">{formatPlanPrice(plan)}</span>
+                  <span className="mt-1 block text-sm font-medium text-foreground">{formatPlanPrice(getBillingPlan("free"))}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">Included plan. No checkout required.</span>
                 </button>
                 {paidPlans.map((candidate) => {
@@ -663,7 +663,9 @@ function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket, bil
   if (plan.tier === "free") return formatPlanPrice(plan);
 
   if (plan.id === "pro_monthly" || plan.id === "business_monthly") {
-    return getSelectedMarketOption(plan, market, billingInterval)?.displayPrice ?? formatPlanPrice(plan);
+    const option = getSelectedMarketOption(plan, market, billingInterval);
+    if (!option || !option.enabled) return "Unavailable";
+    return option.displayPrice;
   }
 
   return formatPlanPrice(plan);
