@@ -547,9 +547,13 @@ function testApiRouteWiring() {
   assert.ok(processor.includes("finalizeCredits"), "Accountancy processor finalizes successful upload credits");
   assert.ok(processor.includes("releaseCredits"), "Accountancy processor releases failed upload reservations");
   assert.ok(processor.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy processor blocks exhausted upload credits");
-  assert.ok(processor.indexOf("reserveCredits") < processor.indexOf("parseAccountancyUploadBuffer"), "Accountancy credit reservation happens before parsing");
-  assert.ok(processor.indexOf("if (existingDataset)") < processor.indexOf("const reservation = await reserveCredits"), "duplicate existing datasets return before a new credit reservation");
-  assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows, learningRules)"), "Pre-bookkeeping uploads start categorization automatically");
+  const processUploadStart = processor.indexOf("export async function processAccountancyUpload");
+  const reservationIndex = processor.indexOf("const reservation = await runAccountancyUploadStep", processUploadStart);
+  const parseIndex = processor.indexOf("parsed = await parseAccountancyUploadBuffer", processUploadStart);
+  assert.ok(reservationIndex > processUploadStart && reservationIndex < parseIndex, "Accountancy credit reservation happens before parsing");
+  assert.ok(processor.indexOf("if (existingDataset)", processUploadStart) < reservationIndex, "duplicate existing datasets return before a new credit reservation");
+  assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows, learningRules, { taxProfile: accountingContextResult.taxProfile })"), "Pre-bookkeeping uploads start categorization with Business Profile tax context");
+  assert.ok(processor.includes("accountingContext: accountingContextResult.accountingContext"), "Accountancy uploads save accounting context metadata");
   assert.ok(processor.includes("createDefaultPrebookkeepingReviewSummary(parsed.rowCount"), "Accountancy uploads initialize review summary defaults");
   assert.ok(processor.includes("hasCompleteReviewSummary"), "legacy review summaries are backfilled with safe defaults");
   assert.ok(prebookkeepingPage.includes("Ready for review"), "Pre-bookkeeping page shows ready-for-review status");

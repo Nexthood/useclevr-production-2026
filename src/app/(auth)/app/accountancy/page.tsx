@@ -2,6 +2,7 @@ import { DashboardSubpageLayout } from "@/components/layout/dashboard-subpage-la
 import { AccountancyPackageForm } from "@/components/accountancy/accountancy-package-form"
 import { AccountancyUpload } from "@/components/accountancy/accountancy-upload"
 import { Card } from "@/components/ui/card"
+import { getAccountingContext } from "@/lib/accountancy/accounting-context"
 import {
   MISSING_BUSINESS_PROFILE_VALUE,
   displayBusinessProfileValue,
@@ -108,6 +109,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
 
   const profileComplete = !profileLoadFailed && getSetupCompleted(companySetup)
   const companyName = getCompanyName(companySetup)
+  const accountingContext = getAccountingContext(companySetup)
   const sharedBusinessProfile = businessProfileResult.profile ?? {
     taxCountry: null,
     currency: null,
@@ -116,17 +118,25 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
     payroll: null,
     fixedCosts: null,
   }
-  const taxPeriod = displayBusinessProfileValue(sharedBusinessProfile.fiscalYear)
-  const taxCountry = displayBusinessProfileValue(sharedBusinessProfile.taxCountry)
-  const currency = displayBusinessProfileValue(sharedBusinessProfile.currency)
-  const taxSummary = displayBusinessProfileValue(sharedBusinessProfile.vatSalesTax)
+  const taxPeriod = displayBusinessProfileValue(accountingContext.fiscalPeriod ?? sharedBusinessProfile.fiscalYear)
+  const taxCountry = displayBusinessProfileValue(accountingContext.country ?? sharedBusinessProfile.taxCountry)
+  const currency = displayBusinessProfileValue(accountingContext.currency ?? sharedBusinessProfile.currency)
+  const legalStructure = displayBusinessProfileValue(accountingContext.legalStructure)
+  const taxSystem = displayBusinessProfileValue(accountingContext.taxSystem ?? sharedBusinessProfile.vatSalesTax)
+  const vatRegistered = formatBooleanProfileValue(accountingContext.vatRegistered)
+  const defaultVatRate = formatRateProfileValue(accountingContext.defaultVatRate)
+  const businessType = displayBusinessProfileValue(accountingContext.businessType ?? accountingContext.industry)
   const payrollSummary = displayBusinessProfileValue(sharedBusinessProfile.payroll)
   const fixedCostSummary = displayBusinessProfileValue(sharedBusinessProfile.fixedCosts)
   const profileContextRows = [
     { label: "Tax country", value: taxCountry },
     { label: "Currency", value: currency },
+    { label: "Legal structure", value: legalStructure },
     { label: "Fiscal year", value: taxPeriod || MISSING_BUSINESS_PROFILE_VALUE },
-    { label: "VAT/sales tax", value: taxSummary },
+    { label: "Tax system", value: taxSystem },
+    { label: "VAT registered", value: vatRegistered },
+    { label: "Default VAT rate", value: defaultVatRate },
+    { label: "Business type", value: businessType },
     { label: "Payroll", value: payrollSummary },
     { label: "Fixed costs", value: fixedCostSummary },
   ]
@@ -196,7 +206,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
             <h2 className="text-sm font-semibold text-foreground mb-3">Quick actions</h2>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Upload financial CSV or Excel files here, or send invoices and receipts to Pre-bookkeeping.
+                Upload financial CSV, Excel, or PDF files here, or send review-ready documents to Pre-bookkeeping.
               </p>
               <Link
                 href="/app/prebookkeeping"
@@ -245,8 +255,8 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
                 </div>
                 <h2 className="text-2xl font-semibold text-foreground">Accountancy workspace</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Upload accounting CSV or Excel files for bookkeeping review, tax checks, and monthly reporting.
-                  Invoices, receipts, and bank exports stay in the dedicated Pre-bookkeeping workflow.
+                  Upload accounting CSV, Excel, or machine-readable PDF files for bookkeeping review, tax checks, and monthly reporting.
+                  Bank transactions, invoices, receipts, and accounting exports are detected after upload.
                 </p>
                 {!profileLoadFailed && !profileComplete && (
                   <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
@@ -261,8 +271,7 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground">Business Profile context</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Bookkeeping uses saved setup values for tax country, currency, fiscal year, VAT/sales tax, payroll, and
-                fixed-cost assumptions.
+                Bookkeeping uses saved setup values for country, currency, legal structure, tax system, VAT status, fiscal period, and business type.
               </p>
             </div>
             {profileLoadFailed ? (
@@ -273,8 +282,12 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
               <div className="grid gap-2 text-sm">
                 <ProfileContextRow label="Tax country" value={taxCountry} />
                 <ProfileContextRow label="Currency" value={currency} />
+                <ProfileContextRow label="Legal structure" value={legalStructure} />
                 <ProfileContextRow label="Fiscal year" value={taxPeriod} />
-                <ProfileContextRow label="VAT/sales tax" value={taxSummary} />
+                <ProfileContextRow label="Tax system" value={taxSystem} />
+                <ProfileContextRow label="VAT registered" value={vatRegistered} />
+                <ProfileContextRow label="Default VAT rate" value={defaultVatRate} />
+                <ProfileContextRow label="Business type" value={businessType} />
                 <ProfileContextRow label="Payroll" value={payrollSummary} />
                 <ProfileContextRow label="Fixed costs" value={fixedCostSummary} />
               </div>
@@ -351,7 +364,7 @@ function AccountancyEmptyState() {
               </div>
               <h2 className="text-2xl font-semibold text-foreground">Accountancy workspace</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Accountancy is ready. Upload accounting CSV or Excel files to start bookkeeping review, tax checks, and monthly reporting.
+                Accountancy is ready. Upload accounting CSV, Excel, or machine-readable PDF files to start bookkeeping review, tax checks, and monthly reporting.
               </p>
             </div>
           </Card>
@@ -441,6 +454,17 @@ function formatAccountancyMoney(value: unknown) {
 function formatAccountancyPercent(value: unknown) {
   if (typeof value !== "number" || Number.isNaN(value)) return "No data"
   return `${value.toFixed(1)}%`
+}
+
+function formatBooleanProfileValue(value: boolean | null) {
+  if (value === true) return "Yes"
+  if (value === false) return "No"
+  return MISSING_BUSINESS_PROFILE_VALUE
+}
+
+function formatRateProfileValue(value: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) return MISSING_BUSINESS_PROFILE_VALUE
+  return `${value}%`
 }
 
 function serializeAccountancyError(error: unknown) {

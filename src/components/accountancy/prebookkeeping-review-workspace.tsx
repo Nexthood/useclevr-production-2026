@@ -10,8 +10,7 @@ import {
   type CategorizedTransaction,
   type PrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization";
-import { Bot, Check, Download, Loader2, Sparkles } from "lucide-react";
-import Link from "next/link";
+import { Check, Download, Loader2, Sparkles } from "lucide-react";
 import * as React from "react";
 
 type FilterKey =
@@ -633,25 +632,6 @@ export function PrebookkeepingReviewWorkspace({
         </div>
       </Card>
 
-      <Card className="border-border bg-card p-5">
-        <div className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" />
-          <h3 className="text-base font-semibold text-foreground">Ask AI about this bookkeeping</h3>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {[
-            "Why are operating expenses so high?",
-            "Show duplicate transactions.",
-            "Which suppliers increased spending?",
-            "What should I review before sending this to my accountant?",
-            "Summarize this month's finances.",
-          ].map((question) => (
-            <Link key={question} href={`/app/assistant?datasetId=${datasetId}&question=${encodeURIComponent(question)}`} className="rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted">
-              {question}
-            </Link>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }
