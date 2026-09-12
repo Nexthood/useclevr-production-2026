@@ -6624,3 +6624,38 @@ For small Usy UI polish, target the local control class first and reuse the exis
 
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Fixed Currency
+
+1. Interaction title
+Stripe checkout fixed currency.
+
+2. What was the user goal
+Fix only Stripe subscription Checkout currency behavior so US, EU, UK, and Canada billing markets use their configured regional Stripe Price currency only, with Business US yearly showing $5,800/year in USD and no adaptive conversion.
+
+3. What changed
+Subscription Checkout session creation now sends Stripe `adaptive_pricing` disabled after validating the selected recurring Price ID against the resolved market currency and interval. The focused billing pricing regression now proves Business US yearly resolves the existing USD yearly Price ID, preserves the $5,800/year amount, records USD metadata, and creates Checkout with adaptive currency conversion disabled.
+
+4. Problems marked
+blocker: none.
+risk: the pinned Stripe SDK TypeScript definitions do not expose the newer `adaptive_pricing` Checkout parameter, so the service attaches it through a typed compatibility cast while still sending the runtime parameter to Stripe.
+improvement: upgrade Stripe SDK types when the project updates Stripe so the compatibility cast can be removed.
+observation: the root cause was not regional Price-ID resolution; Checkout validated the USD Price ID but did not explicitly disable Stripe adaptive pricing on the session.
+
+5. User learning
+Business US yearly checkout now uses the centralized billing resolver and opens Stripe Checkout with the configured USD yearly Price ID only.
+
+6. AI-agent learning
+For Stripe currency bugs, inspect both regional Price-ID selection and Checkout session options because a correct fixed-currency Price can still display converted currency when adaptive pricing remains enabled.
+
+7. Follow-up tasks
+- Upgrade Stripe SDK types when the project updates Stripe so the Checkout adaptive pricing compatibility cast can be removed.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

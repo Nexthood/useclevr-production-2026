@@ -60,7 +60,7 @@ export async function createStripeCheckoutSession({
     ...(metadata ?? {}),
   }
 
-  const session = await stripe.checkout.sessions.create({
+  const sessionCreateParams: Stripe.Checkout.SessionCreateParams = {
     ...(customerId ? { customer: customerId } : { customer_email: userEmail }),
     client_reference_id: userId,
     metadata: mergedMetadata,
@@ -72,7 +72,16 @@ export async function createStripeCheckoutSession({
     success_url: successUrl,
     cancel_url: cancelUrl,
     allow_promotion_codes: true,
-  });
+  };
+  (
+    sessionCreateParams as Stripe.Checkout.SessionCreateParams & {
+      adaptive_pricing: { enabled: boolean };
+    }
+  ).adaptive_pricing = {
+    enabled: false,
+  };
+
+  const session = await stripe.checkout.sessions.create(sessionCreateParams);
 
   if (!session.url) {
     throw new Error("Stripe did not return a checkout URL.");
@@ -142,3 +151,9 @@ export async function createStripeBillingPortalSession({
     return_url: returnUrl,
   });
 }
+
+export const __stripeCheckoutTestHooks = {
+  setStripeClientForTest(stripe: Stripe | null) {
+    _stripe = stripe;
+  },
+};
