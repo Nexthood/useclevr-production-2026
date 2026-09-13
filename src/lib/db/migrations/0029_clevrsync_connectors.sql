@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS "ClevrSyncConnector" (
   "createdAt" timestamp DEFAULT now() NOT NULL,
   "updatedAt" timestamp DEFAULT now() NOT NULL,
   CONSTRAINT "ClevrSyncConnector_userId_fkey"
-    FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE cascade
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE cascade
 );
 
 CREATE INDEX IF NOT EXISTS "ClevrSyncConnector_userId_idx"
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS "ClevrSyncRun" (
   CONSTRAINT "ClevrSyncRun_connectorId_fkey"
     FOREIGN KEY ("connectorId") REFERENCES "ClevrSyncConnector"("id") ON DELETE cascade,
   CONSTRAINT "ClevrSyncRun_userId_fkey"
-    FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE cascade,
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE cascade,
   CONSTRAINT "ClevrSyncRun_datasetId_fkey"
     FOREIGN KEY ("datasetId") REFERENCES "Dataset"("id") ON DELETE set null
 );
