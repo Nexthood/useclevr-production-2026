@@ -23,4 +23,4 @@
             font-mono text-xs text-muted-foreground
             transition-all duration-300
             ${3===a||4===a?"opacity-100":"opacity-0"}
-          `,children:[(0,d.jsx)("span",{className:"text-primary",children:"SELECT"})," ",l[g].replace(/^SELECT/i,"").split("FROM")[0],(0,d.jsx)("span",{className:"text-muted-foreground/60",children:"FROM..."})]})]})}}};var b=require("../../../../webpack-runtime.js");b.C(a);var c=b.X(0,[1083,8574,2969,518,1415,2982,2861,9308,9884,6841,6919,4884,9791,5284,3148,3053,3156,1767,6176,9275,8499,2513,887,668],()=>b(b.s=345712));module.exports=c})();
+          `,children:[(0,d.jsx)("span",{className:"text-primary",children:"SELECT"})," ",l[g].replace(/^SELECT/i,"").split("FROM")[0],(0,d.jsx)("span",{className:"text-muted-foreground/60",children:"FROM..."})]})]})}}};var b=require("../../../../webpack-runtime.js");b.C(a);var c=b.X(0,[1083,8574,2969,518,1415,2982,2861,9308,9884,6841,6919,4884,9791,5284,3148,3053,3156,1767,6131,9275,8499,7621,887,668],()=>b(b.s=345712));module.exports=c})();
