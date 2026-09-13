@@ -59,7 +59,7 @@ export function AccountancyUpload({
   const [uploadProgress, setUploadProgress] = React.useState(0)
   const [uploadStatus, setUploadStatus] = React.useState<"idle" | "uploading" | "success" | "error" | "offline" | "limit-reached">("idle")
   const [errorMessage, setErrorMessage] = React.useState("")
-  const [limitReachedInfo, setLimitReachedInfo] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
+  const [limitReachedInfo, setLimitReachedInfo] = React.useState<{currentCount: number, limit: number, planName: string, tier?: string} | null>(null)
   const [creditExhaustedInfo, setCreditExhaustedInfo] = React.useState<{used: number, limit: number, remaining: number} | null>(null)
   const [currentFileName, setCurrentFileName] = React.useState("")
   const [processingStep, setProcessingStep] = React.useState(0)
@@ -332,22 +332,28 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
             currentCount: safeNumber(result.datasetLimit?.currentCount) ?? 0,
             limit: safeNumber(result.datasetLimit?.limit) ?? 0,
             planName: safeString(result.datasetLimit?.planName) ?? "Free",
+            tier: safeString(result.datasetLimit?.tier) ?? undefined,
           }
           setUploadStatus("limit-reached")
           setLimitReachedInfo(datasetLimit)
           setUpgradeModalData(datasetLimit)
+          const isAccountancy = datasetType === "accountancy"
+          const isFree = datasetLimit.tier === "free"
           setUpgradeModalCopy({
-            title: "Free plan limit reached",
-            description:
-              "You have reached the maximum number of datasets included in your Free plan. Continue analyzing your business by upgrading your account.",
-            usageLabel: "datasets included",
+            title: isAccountancy ? "Accountancy dataset limit reached" : "Free plan limit reached",
+            description: isAccountancy
+              ? `You have reached the maximum number of Accountancy datasets included in your ${datasetLimit.planName} plan. You can remove an existing Accountancy dataset and upload a new one${isFree ? "." : ", or upgrade your account for more datasets."}`
+              : "You have reached the maximum number of datasets included in your Free plan. Continue analyzing your business by upgrading your account.",
+            usageLabel: isAccountancy ? `${datasetLimit.currentCount} / ${datasetLimit.limit} Accountancy datasets` : "datasets included",
           })
           setShowUpgradeModal(true)
           setProcessingStep(0)
           showNotice({
             type: "info",
-            title: "Free plan limit reached",
-            message: "Upgrade to continue uploading and analyzing new datasets.",
+            title: isAccountancy ? "Accountancy dataset limit reached" : "Free plan limit reached",
+            message: isAccountancy
+              ? `Remove an existing Accountancy dataset to upload a new one${isFree ? "." : ", or upgrade your plan."}`
+              : "Upgrade to continue uploading and analyzing new datasets.",
           })
           return
         } else if (result.usage?.limitReached === true) {
@@ -584,7 +590,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                 <div className="mx-auto max-w-2xl space-y-5 text-left">
                   <div className="text-center">
                     <h3 className="text-lg font-semibold text-foreground">
-                      {creditExhaustedInfo ? buildUploadCreditLimitCopy(creditExhaustedInfo).title : "Free plan limit reached"}
+                      {creditExhaustedInfo ? buildUploadCreditLimitCopy(creditExhaustedInfo).title : (datasetType === "accountancy" ? "Accountancy dataset limit reached" : "Free plan limit reached")}
                     </h3>
                     {creditExhaustedInfo ? (
                       <div className="mt-2 space-y-2 text-sm text-muted-foreground">
@@ -595,12 +601,16 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
                       </div>
                     ) : (
                       <p className="mt-2 text-sm text-muted-foreground">
-                        You have reached the maximum number of datasets included in your Free plan.
+                        {datasetType === "accountancy"
+                          ? `You have reached the maximum number of Accountancy datasets included in your ${limitReachedInfo?.planName || "Free"} plan. Remove an existing Accountancy dataset to upload a new one${limitReachedInfo?.tier === "free" ? "." : ", or upgrade your account for more datasets."}`
+                          : "You have reached the maximum number of datasets included in your Free plan."}
                       </p>
                     )}
                     {!creditExhaustedInfo && (
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Continue analyzing your business by upgrading your account.
+                        {datasetType === "accountancy"
+                          ? `Remove an existing Accountancy dataset to upload a new one${limitReachedInfo?.tier === "free" ? "." : ", or upgrade your account for more datasets."}`
+                          : "Continue analyzing your business by upgrading your account."}
                       </p>
                     )}
                   </div>
@@ -639,7 +649,9 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
                   {limitReachedInfo && (
                     <p className="text-center text-xs text-muted-foreground">
-                      Current usage: {limitReachedInfo.currentCount} of {limitReachedInfo.limit} datasets included in {limitReachedInfo.planName}.
+                      {datasetType === "accountancy"
+                        ? `${limitReachedInfo.currentCount} / ${limitReachedInfo.limit} Accountancy datasets included in ${limitReachedInfo.planName}.`
+                        : `Current usage: ${limitReachedInfo.currentCount} of ${limitReachedInfo.limit} datasets included in ${limitReachedInfo.planName}.`}
                     </p>
                   )}
                   {creditExhaustedInfo && (

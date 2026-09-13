@@ -15,6 +15,7 @@ import { getCompanySetup } from "@/lib/business/company-setup-store";
 import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
+import { getAccountancyLimitInfo, getAccountancyLimitError } from "@/lib/usage/dataset-limits";
 import { and, asc, eq } from "drizzle-orm";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -370,6 +371,30 @@ export async function processAccountancyUpload(input: {
         ...(prebookkeepingCategorization ? ["Existing Pre-bookkeeping dataset is categorized and ready for review."] : []),
       ],
     };
+  }
+
+  if (input.datasetType === "accountancy") {
+    const accountancyLimitInfo = await getAccountancyLimitInfo(input.userId, input.role ?? null, input.email ?? null);
+    const accountancyLimitError = getAccountancyLimitError(accountancyLimitInfo);
+    if (accountancyLimitError) {
+      const [, ...messageParts] = accountancyLimitError.split("|");
+      throw new AccountancyUploadError(
+        "validation",
+        "DATASET_LIMIT_REACHED",
+        messageParts.filter(Boolean).join(" ") || "Accountancy upload limit reached.",
+        403,
+        false,
+        {
+          datasetLimit: {
+            limitReached: true,
+            currentCount: accountancyLimitInfo.currentCount,
+            limit: accountancyLimitInfo.limit,
+            planName: accountancyLimitInfo.planName,
+            tier: accountancyLimitInfo.tier,
+          },
+        },
+      );
+    }
   }
 
   const datasetId = `acct_${Date.now()}_${checksum.slice(0, 8)}`;
