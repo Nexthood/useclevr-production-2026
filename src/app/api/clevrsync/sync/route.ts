@@ -7,6 +7,10 @@ import { MAX_UPLOAD_ROWS } from "@/lib/upload/upload-security";
 import { uploadValidationErrorPayload } from "@/lib/upload/upload-security";
 import { debugError } from "@/lib/utils/debug";
 import {
+  clevrSyncAccessErrorPayload,
+  requireClevrSyncAccess,
+} from "@/services/clevrsync/access";
+import {
   createClevrSyncRun,
   GoogleSheetsProviderError,
   getOwnedClevrSyncConnector,
@@ -28,6 +32,7 @@ export async function POST(request: Request) {
     }
 
     await requireBuiltinUserRecord(session.user.id);
+    await requireClevrSyncAccess(session.user);
     if (request.headers.get("content-type")?.includes("application/json")) {
       return syncGoogleSheets(request, session.user);
     }
@@ -81,6 +86,10 @@ export async function POST(request: Request) {
     const status = uploadResult.success ? 200 : 422;
     return NextResponse.json({ sync: run, upload: uploadResult }, { status });
   } catch (error) {
+    const accessError = clevrSyncAccessErrorPayload(error);
+    if (accessError) {
+      return NextResponse.json(accessError, { status: accessError.status });
+    }
     debugError("[ClevrSync] Sync failed:", error);
     const payload = uploadValidationErrorPayload(error, "CLEVRSYNC_SYNC_FAILED");
     return NextResponse.json(
@@ -121,6 +130,7 @@ async function syncGoogleSheets(
   }
 
   try {
+    await updateClevrSyncConnector({ userId: user.id, connectorId, status: "syncing" });
     const preview = await previewGoogleSheet({
       accessToken: token.accessToken,
       spreadsheetId,

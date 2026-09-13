@@ -23,6 +23,7 @@ import {
   X,
   Activity,
   Gauge,
+  PlugZap,
 } from "lucide-react";
 import type { Session } from "next-auth";
 import Link from "next/link";
@@ -47,6 +48,7 @@ type NavigationItem = {
 const primaryNavigation: NavigationItem[] = [
   { name: "Dashboard", href: "/app", icon: BarChart3 },
   { name: "Datasets", href: "/app/datasets", icon: Database },
+  { name: "ClevrSync", href: "/app/settings/data-connections", icon: PlugZap },
   { name: "Risk Intelligence", href: "/app/risk-intelligence", icon: ShieldAlert },
   { name: "Reports & Downloads", href: "/app/downloads", icon: FileText },
   { name: "Business", href: "/app/business", icon: Building2 },

@@ -339,5 +339,6 @@
 - fixed: pin subscription Checkout session currency to the validated billing market currency and validate Stripe Price unit amounts so Business US yearly cannot present EUR from multi-currency Price localization
 - changed: remove duplicate Pre-bookkeeping Upload document buttons so the existing CSV, Excel, and PDF-Scan selector is the single upload entry point
 - added: add ClevrSync Data Connections with Excel XLSX preview, connector and sync metadata, ownership-checked API routes, and existing dataset upload flow reuse
+- changed: expose ClevrSync in the main Workspace sidebar and enforce Pro/Business connector execution with server-side entitlement while keeping Free discovery and manual uploads intact
 - added: add Google Sheets ClevrSync connector with OAuth flow, encrypted token storage, spreadsheet/worksheet selection, preview, and manual sync through the existing dataset upload pipeline
 - fixed: resolve ClevrSync Google Sheets TypeScript errors in updateClevrSyncConnector status union and db delete cast

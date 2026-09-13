@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-09-13
-- **Goal**: Add Google Sheets as a ClevrSync data connection with OAuth, secure token handling, spreadsheet/worksheet selection, preview, manual sync, and existing ClevrSync connector state while preserving Excel ClevrSync and CSV/XLSX uploads.
-- **Durable change**: ClevrSync Google Sheets connector adds OAuth 2.0 authorization code flow with HMAC-signed state, AES-256-GCM encrypted refresh-token storage, spreadsheet/worksheet selection, preview through the shared normalize pipeline, and manual sync that delegates to the existing uploadCSV action with ClevrSync dataset refresh. Excel ClevrSync, CSV/XLSX uploads, and connector ownership checks remain unchanged.
-- **Verification**: `pnpm test:clevrsync`, `pnpm test:standard-upload-success-ui`, `pnpm test:accountancy-upload-system`, `pnpm validate:types`, `pnpm lint:secrets`, and `git diff --check` pass.
-- **Residual risk**: Google OAuth requires `GOOGLE_CLEVRSYNC_CLIENT_ID`, `GOOGLE_CLEVRSYNC_CLIENT_SECRET`, and `CLEVRSYNC_TOKEN_ENCRYPTION_KEY` environment variables; scheduled sync is not yet implemented.
+- **Goal**: Integrate ClevrSync as a first-class premium UseClevr feature.
+- **Durable change**: The Workspace sidebar links ClevrSync to the existing Data Connections page, and server-side ClevrSync entitlement blocks Free connector execution while preserving Free discovery, Pro/Business access, and superadmin/internal unlimited access.
+- **Verification**: `pnpm test:clevrsync`, `pnpm test:standard-upload-success-ui`, `pnpm validate:types`, focused ESLint for changed source files, `git diff --check`, and `pnpm lint:secrets` pass or report no errors.
+- **Residual risk**: The focused ESLint command reports the ClevrSync script test file is ignored by project lint configuration.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

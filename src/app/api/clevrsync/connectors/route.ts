@@ -4,6 +4,10 @@ import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { debugError } from "@/lib/utils/debug";
 import {
+  clevrSyncAccessErrorPayload,
+  requireClevrSyncAccess,
+} from "@/services/clevrsync/access";
+import {
   createClevrSyncConnector,
   isClevrSyncConnectorType,
   isConnectorTypeAvailable,
@@ -36,6 +40,7 @@ export async function POST(request: Request) {
     }
 
     await requireBuiltinUserRecord(session.user.id);
+    await requireClevrSyncAccess(session.user);
     const body = await request.json().catch(() => null);
     const type = body?.type;
 
@@ -64,6 +69,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ connector }, { status: 201 });
   } catch (error) {
+    const accessError = clevrSyncAccessErrorPayload(error);
+    if (accessError) {
+      return NextResponse.json(accessError, { status: accessError.status });
+    }
     debugError("[ClevrSync] Connector create failed:", error);
     const message =
       error instanceof Error && error.message === "Database is not configured"

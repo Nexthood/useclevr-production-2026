@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { buildGoogleSheetsAuthorizationUrl } from "@/services/clevrsync";
+import { requireClevrSyncAccess } from "@/services/clevrsync/access";
 import { createGoogleOAuthState } from "@/services/clevrsync/google-oauth-state";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +14,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/signin", request.url));
   }
 
-  await requireBuiltinUserRecord(session.user.id);
-  const state = createGoogleOAuthState({
-    userId: session.user.id,
-    returnTo: request.nextUrl.searchParams.get("returnTo"),
-  });
-  const redirectUri = getGoogleRedirectUri(request);
-  return NextResponse.redirect(buildGoogleSheetsAuthorizationUrl({ state, redirectUri }));
+  try {
+    await requireBuiltinUserRecord(session.user.id);
+    await requireClevrSyncAccess(session.user);
+    const state = createGoogleOAuthState({
+      userId: session.user.id,
+      returnTo: request.nextUrl.searchParams.get("returnTo"),
+    });
+    const redirectUri = getGoogleRedirectUri(request);
+    return NextResponse.redirect(buildGoogleSheetsAuthorizationUrl({ state, redirectUri }));
+  } catch {
+    return NextResponse.redirect(new URL("/app/settings/checkout?plan=pro_monthly&discount=auto", request.url));
+  }
 }
 
 function getGoogleRedirectUri(request: NextRequest) {

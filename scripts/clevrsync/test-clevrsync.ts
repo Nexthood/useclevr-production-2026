@@ -8,6 +8,7 @@ import {
   parseExcelWorkbook,
   toDatasetPayload,
 } from "@/services/clevrsync/connectors/excel";
+import { getClevrSyncEntitlement } from "@/services/clevrsync/entitlement";
 import { matrixToWorksheetPreview, normalizeRowsAsCsv } from "@/services/clevrsync/normalize";
 
 function makeWorkbookBuffer() {
@@ -76,13 +77,62 @@ function testConnectorValidation() {
 function testPermissionChecks() {
   const previewRoute = readFileSync("src/app/api/clevrsync/preview/route.ts", "utf8");
   const syncRoute = readFileSync("src/app/api/clevrsync/sync/route.ts", "utf8");
+  const connectorRoute = readFileSync("src/app/api/clevrsync/connectors/route.ts", "utf8");
+  const oauthStartRoute = readFileSync("src/app/api/clevrsync/google/oauth/start/route.ts", "utf8");
   const syncEngine = readFileSync("src/services/clevrsync/sync-engine.ts", "utf8");
 
   assert.match(previewRoute, /getOwnedClevrSyncConnector\(session\.user\.id, connectorId\)/);
   assert.match(syncRoute, /getOwnedClevrSyncConnector\(session\.user\.id, connectorId\)/);
+  assert.match(connectorRoute, /requireClevrSyncAccess\(session\.user\)/);
+  assert.match(previewRoute, /requireClevrSyncAccess\(session\.user\)/);
+  assert.match(syncRoute, /requireClevrSyncAccess\(session\.user\)/);
+  assert.match(oauthStartRoute, /requireClevrSyncAccess\(session\.user\)/);
   assert.match(previewRoute, /status: 403/);
   assert.match(syncRoute, /status: 403/);
   assert.match(syncEngine, /eq\(clevrSyncConnectors\.userId, userId\)/);
+}
+
+function testClevrSyncEntitlements() {
+  const free = getClevrSyncEntitlement({ subscriptionTier: "free", unlimited: false });
+  assert.equal(free.enabled, false);
+  assert.equal(free.connectors.excel, false);
+  assert.equal(free.connectors.googleSheets, false);
+  assert.equal(free.upgradeRequired, true);
+  assert.match(free.upgradeHref, /pro_monthly/);
+
+  const pro = getClevrSyncEntitlement({ subscriptionTier: "pro", unlimited: false });
+  assert.equal(pro.enabled, true);
+  assert.equal(pro.connectors.excel, true);
+  assert.equal(pro.connectors.googleSheets, true);
+  assert.equal(pro.connectors.scheduledSync, false);
+
+  const business = getClevrSyncEntitlement({ subscriptionTier: "business", unlimited: false });
+  assert.equal(business.enabled, true);
+  assert.equal(business.connectors.oneDrive, false);
+  assert.equal(business.connectors.sharePoint, false);
+
+  const superadmin = getClevrSyncEntitlement({ subscriptionTier: "free", unlimited: true });
+  assert.equal(superadmin.enabled, true);
+  assert.equal(superadmin.connectors.googleSheets, true);
+}
+
+function testSidebarClevrSyncEntry() {
+  const sidebar = readFileSync("src/components/layout/app-sidebar.tsx", "utf8");
+  assert.match(sidebar, /name: "Datasets", href: "\/app\/datasets"/);
+  assert.match(sidebar, /name: "ClevrSync", href: "\/app\/settings\/data-connections"/);
+  assert.ok(
+    sidebar.indexOf('name: "Datasets"') < sidebar.indexOf('name: "ClevrSync"'),
+    "ClevrSync appears directly after Datasets in the sidebar source order",
+  );
+}
+
+function testFreeUiPremiumLock() {
+  const page = readFileSync("src/app/(auth)/app/settings/data-connections/page.tsx", "utf8");
+  assert.match(page, /PremiumLock/);
+  assert.match(page, /Upgrade to Pro/);
+  assert.match(page, /ClevrSync requires Pro or Business/);
+  assert.match(page, /manual CSV\/XLSX uploads available/);
+  assert.match(page, /disabled=\{!access\?\.enabled/);
 }
 
 function testExistingUploadPathRemainsExcelAware() {
@@ -134,6 +184,10 @@ function testTokenVaultEncryption() {
   assert.match(source, /aes-256-gcm/);
   assert.match(source, /CLEVRSYNC_TOKEN_ENCRYPTION_KEY/);
   assert.match(source, /function decryptClevrSyncToken/);
+  const syncEngine = readFileSync("src/services/clevrsync/sync-engine.ts", "utf8");
+  assert.match(syncEngine, /sanitizeConnector/);
+  assert.match(syncEngine, /accessTokenEncrypted: _accessTokenEncrypted/);
+  assert.match(syncEngine, /refreshTokenEncrypted: _refreshTokenEncrypted/);
 }
 
 function testOAuthState() {
@@ -177,10 +231,28 @@ function testGoogleSheetsSyncReusesUploadPipeline() {
   assert.match(syncRoute, /uploadSource.*clevrsync/);
 }
 
+function testGoogleOAuthMinimumScope() {
+  const source = readFileSync("src/services/clevrsync/connectors/google-sheets.ts", "utf8");
+  assert.match(source, /spreadsheets\.readonly/);
+  assert.doesNotMatch(source, /drive\.readonly/);
+  assert.doesNotMatch(source, /drive\.file/);
+}
+
+function testDowngradeKeepsData() {
+  const access = readFileSync("src/services/clevrsync/access.ts", "utf8");
+  const connectorRoute = readFileSync("src/app/api/clevrsync/connectors/route.ts", "utf8");
+  assert.match(access, /ClevrSync requires a Pro or Business plan/);
+  assert.doesNotMatch(connectorRoute, /delete\(clevrSyncConnectors\)/);
+  assert.doesNotMatch(connectorRoute, /delete\(datasets\)/);
+}
+
 testExcelParsing();
 testDatasetPayload();
 testConnectorValidation();
 testPermissionChecks();
+testClevrSyncEntitlements();
+testSidebarClevrSyncEntry();
+testFreeUiPremiumLock();
 testExistingUploadPathRemainsExcelAware();
 testMatrixToWorksheetPreview();
 testNormalizeRowsAsCsv();
@@ -192,5 +264,7 @@ testGoogleSheetsOwnershipProtection();
 testGoogleSheetsSyncTokenUsage();
 testClevrSyncDatasetRefreshInUpload();
 testGoogleSheetsSyncReusesUploadPipeline();
+testGoogleOAuthMinimumScope();
+testDowngradeKeepsData();
 
 console.log("ClevrSync tests passed");
