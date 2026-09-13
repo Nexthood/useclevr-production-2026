@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add Google Sheets as a ClevrSync data connection so users can connect a Google account, select a spreadsheet and worksheet, preview data, and sync it into UseClevr datasets through the existing upload and analytics flow.
 - Add Usy secretariat answers and confirmed contact handoff so users get product guidance, safe AI Assistant routing, and department contact requests without exposing internal details.
 - Add OAuth 2.1 account linking for ChatGPT connections so users grant scoped UseClevr dataset access before ChatGPT can call their datasets.
 - Add a ChatGPT connection that lets authenticated users list, upload, and analyze their own UseClevr datasets through the existing business intelligence workflow.

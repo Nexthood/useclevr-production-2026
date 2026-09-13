@@ -417,9 +417,16 @@ export async function uploadCSV(
       formData.get("profitabilityAnalysisId") ||
       "",
     ).trim();
+    const requestedClevrSyncDatasetId = String(formData.get("clevrsync_dataset_id") || "").trim();
+    const isClevrSyncDatasetRefresh =
+      !isProfitabilityUpload &&
+      formData.get("uploadSource") === "clevrsync" &&
+      /^ds_[A-Za-z0-9_-]+$/.test(requestedClevrSyncDatasetId);
     const datasetId = isProfitabilityUpload && requestedProfitabilityAnalysisId
       ? requestedProfitabilityAnalysisId
-      : `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
+      : isClevrSyncDatasetRefresh
+        ? requestedClevrSyncDatasetId
+        : `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
     const datasetName = file.name.replace(/\.(csv|xlsx|xls)$/i, "");
     let uploadCreditOperationId: string | null = null;
 
@@ -431,11 +438,16 @@ export async function uploadCSV(
         formData.get("profitabilityFileRole") ||
         "",
       ).trim();
+      const clevrSyncRefreshOperationId = `upload:${effectiveUserId}:${datasetId}:clevrsync:${Date.now()}`;
       const operationId = isProfitabilityUpload
         ? `upload:${effectiveUserId}:${datasetId}:${profitabilityRole || file.name}:${Date.now()}`
+        : isClevrSyncDatasetRefresh
+          ? clevrSyncRefreshOperationId
         : `upload:${effectiveUserId}:${datasetId}`;
       const uploadIdempotencyKey = isProfitabilityUpload
         ? `upload:${effectiveUserId}:${datasetId}:${profitabilityRole || file.name}`
+        : isClevrSyncDatasetRefresh
+          ? clevrSyncRefreshOperationId
         : `upload:${effectiveUserId}:${datasetId}`;
       const reservation = await reserveCredits({
         userId: effectiveUserId,
@@ -736,8 +748,15 @@ export async function uploadCSV(
               columns: { id: true },
             })
           : null;
+        const existingClevrSyncDataset = isClevrSyncDatasetRefresh
+          ? await db.query.datasets.findFirst({
+              where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
+              columns: { id: true },
+            })
+          : null;
+        const shouldUpdateExistingDataset = Boolean(existingProfitabilityParent || existingClevrSyncDataset);
 
-        if (existingProfitabilityParent) {
+        if (shouldUpdateExistingDataset) {
           const { id: _id, userId: _userId, createdAt: _createdAt, ...updateData } = insertData as any;
           await executeWithRetry(
             () =>
@@ -745,9 +764,17 @@ export async function uploadCSV(
                 .update(datasets)
                 .set({ ...updateData, updatedAt: now })
                 .where(and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId))),
-            "Update profitability parent analysis",
+            existingClevrSyncDataset ? "Update ClevrSync dataset" : "Update profitability parent analysis",
           );
-          debugLog("[UPLOAD] Profitability parent analysis updated with", combinedProfitabilityRowCount, "source rows");
+          if (existingClevrSyncDataset) {
+            await executeWithRetry(
+              () => (db as any).delete(datasetRows).where(eq(datasetRows.datasetId, datasetId)),
+              "Clear existing ClevrSync dataset rows",
+            );
+            debugLog("[UPLOAD] ClevrSync dataset refreshed with", totalRowCount, "source rows");
+          } else {
+            debugLog("[UPLOAD] Profitability parent analysis updated with", combinedProfitabilityRowCount, "source rows");
+          }
         } else {
           await executeWithRetry(
             () => (db as any).insert(datasets).values(insertData),
@@ -806,9 +833,11 @@ export async function uploadCSV(
         if (uploadCreditOperationId) {
           await releaseCredits(uploadCreditOperationId, "dataset_row_insert_failed");
         }
-        await cleanupCreatedUploadDataset(db, datasetId).catch((cleanupError) => {
-          debugError("[UPLOAD] DATASET CLEANUP AFTER ROW INSERT FAILED:", cleanupError);
-        });
+        if (!isClevrSyncDatasetRefresh) {
+          await cleanupCreatedUploadDataset(db, datasetId).catch((cleanupError) => {
+            debugError("[UPLOAD] DATASET CLEANUP AFTER ROW INSERT FAILED:", cleanupError);
+          });
+        }
         debugError("[UPLOAD] ROW INSERT FAILED:", rowErr);
         debugError(
           "[UPLOAD] ROW INSERT ERROR:",
@@ -972,9 +1001,11 @@ export async function uploadCSV(
         metadata: { datasetId, rowCount: totalRowCount, datasetType: datasetCategory, businessModel },
       });
       if (!finalized.success) {
-        await cleanupCreatedUploadDataset(db, datasetId).catch((cleanupError) => {
-          debugError("[UPLOAD] DATASET CLEANUP AFTER CREDIT FINALIZATION FAILED:", cleanupError);
-        });
+        if (!isClevrSyncDatasetRefresh) {
+          await cleanupCreatedUploadDataset(db, datasetId).catch((cleanupError) => {
+            debugError("[UPLOAD] DATASET CLEANUP AFTER CREDIT FINALIZATION FAILED:", cleanupError);
+          });
+        }
         await releaseCredits(uploadCreditOperationId, "dataset_upload_credit_finalization_failed");
         return fail(
           UPLOAD_STAGES.CREDITS_DEDUCTED,

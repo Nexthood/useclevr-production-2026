@@ -7,7 +7,8 @@ import {
   isSupportedExcelFile,
   parseExcelWorkbook,
   toDatasetPayload,
-} from "@/services/clevrsync";
+} from "@/services/clevrsync/connectors/excel";
+import { matrixToWorksheetPreview, normalizeRowsAsCsv } from "@/services/clevrsync/normalize";
 
 function makeWorkbookBuffer() {
   const workbook = XLSX.utils.book_new();
@@ -62,7 +63,10 @@ function testDatasetPayload() {
 
 function testConnectorValidation() {
   assert.equal(
-    isSupportedExcelFile("book.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+    isSupportedExcelFile(
+      "book.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ),
     true,
   );
   assert.equal(isSupportedExcelFile("book.csv", "text/csv"), false);
@@ -90,10 +94,103 @@ function testExistingUploadPathRemainsExcelAware() {
   assert.match(csvLoader, /parseExcelStreaming\(file, acceptedRowLimit, onProgress\)/);
 }
 
+function testMatrixToWorksheetPreview() {
+  const matrix: unknown[][] = [
+    ["Name", "Count"],
+    ["Acme", 42],
+    ["Beta", 7],
+  ];
+  const preview = matrixToWorksheetPreview({ name: "Sheet1", matrix, previewRowLimit: 20 });
+
+  assert.equal(preview.name, "Sheet1");
+  assert.equal(preview.rowCount, 2);
+  assert.deepEqual(
+    preview.columns.map((column) => column.name),
+    ["Name", "Count"],
+  );
+  assert.equal(preview.columns.find((column) => column.name === "Name")?.type, "string");
+  assert.equal(preview.columns.find((column) => column.name === "Count")?.type, "number");
+  assert.deepEqual(preview.rows[0], { Name: "Acme", Count: 42 });
+  assert.deepEqual(preview.rows[1], { Name: "Beta", Count: 7 });
+}
+
+function testNormalizeRowsAsCsv() {
+  const csv = normalizeRowsAsCsv(
+    [{ Name: "Acme, Inc.", Count: 42, Note: null }],
+    ["Name", "Count", "Note"],
+  );
+  assert.equal(csv, 'Name,Count,Note\n"Acme, Inc.",42,');
+}
+
+function testGoogleSheetsUrlParsing() {
+  const source = readFileSync("src/services/clevrsync/connectors/google-sheets.ts", "utf8");
+  assert.match(source, /function parseGoogleSpreadsheetId/);
+  assert.match(source, /trimmed\.match\(/);
+  assert.match(source, /Enter a valid Google Sheets URL or spreadsheet ID/);
+}
+
+function testTokenVaultEncryption() {
+  const source = readFileSync("src/services/clevrsync/token-vault.ts", "utf8");
+  assert.match(source, /aes-256-gcm/);
+  assert.match(source, /CLEVRSYNC_TOKEN_ENCRYPTION_KEY/);
+  assert.match(source, /function decryptClevrSyncToken/);
+}
+
+function testOAuthState() {
+  const source = readFileSync("src/services/clevrsync/google-oauth-state.ts", "utf8");
+  assert.match(source, /createHmac/);
+  assert.match(source, /timingSafeEqual/);
+  assert.match(source, /function createGoogleOAuthState/);
+  assert.match(source, /function verifyGoogleOAuthState/);
+}
+
+function testGoogleSheetsProviderError() {
+  const source = readFileSync("src/services/clevrsync/connectors/google-sheets.ts", "utf8");
+  assert.match(source, /class GoogleSheetsProviderError/);
+  assert.match(source, /connectorStatus/);
+}
+
+function testGoogleSheetsOwnershipProtection() {
+  const source = readFileSync("src/services/clevrsync/google-auth-store.ts", "utf8");
+  assert.match(source, /getOwnedClevrSyncConnector/);
+  assert.match(source, /connector\.type !== "google_sheets"/);
+}
+
+function testGoogleSheetsSyncTokenUsage() {
+  const syncRoute = readFileSync("src/app/api/clevrsync/sync/route.ts", "utf8");
+  const previewRoute = readFileSync("src/app/api/clevrsync/preview/route.ts", "utf8");
+  assert.match(syncRoute, /getGoogleSheetsAccessToken/);
+  assert.match(previewRoute, /getGoogleSheetsAccessToken/);
+  assert.match(syncRoute, /googleSheetPreviewToCsvFile/);
+}
+
+function testClevrSyncDatasetRefreshInUpload() {
+  const uploadAction = readFileSync("src/app/actions/upload.ts", "utf8");
+  assert.match(uploadAction, /isClevrSyncDatasetRefresh/);
+  assert.match(uploadAction, /clevrsync_dataset_id/);
+  assert.match(uploadAction, /Clear existing ClevrSync dataset rows/);
+}
+
+function testGoogleSheetsSyncReusesUploadPipeline() {
+  const syncRoute = readFileSync("src/app/api/clevrsync/sync/route.ts", "utf8");
+  assert.match(syncRoute, /uploadCSV\(uploadFormData/);
+  assert.match(syncRoute, /uploadSource.*clevrsync/);
+}
+
 testExcelParsing();
 testDatasetPayload();
 testConnectorValidation();
 testPermissionChecks();
 testExistingUploadPathRemainsExcelAware();
+testMatrixToWorksheetPreview();
+testNormalizeRowsAsCsv();
+testGoogleSheetsUrlParsing();
+testTokenVaultEncryption();
+testOAuthState();
+testGoogleSheetsProviderError();
+testGoogleSheetsOwnershipProtection();
+testGoogleSheetsSyncTokenUsage();
+testClevrSyncDatasetRefreshInUpload();
+testGoogleSheetsSyncReusesUploadPipeline();
 
 console.log("ClevrSync tests passed");

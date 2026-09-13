@@ -6,17 +6,20 @@ import {
   clevrSyncConnectors,
   clevrSyncConnectorTypes,
   clevrSyncRuns,
+  type ClevrSyncConnectorStatus,
   type ClevrSyncConnectorType,
   type ClevrSyncStatus,
 } from "@/lib/db/schema";
 import type { ClevrSyncPreview, CreateClevrSyncConnectorInput } from "@/services/clevrsync/types";
 
 export function isClevrSyncConnectorType(value: unknown): value is ClevrSyncConnectorType {
-  return typeof value === "string" && clevrSyncConnectorTypes.includes(value as ClevrSyncConnectorType);
+  return (
+    typeof value === "string" && clevrSyncConnectorTypes.includes(value as ClevrSyncConnectorType)
+  );
 }
 
 export function isConnectorTypeAvailable(type: ClevrSyncConnectorType) {
-  return type === "excel";
+  return type === "excel" || type === "google_sheets";
 }
 
 export function buildColumnMapping(preview: Pick<ClevrSyncPreview, "columns">) {
@@ -35,6 +38,10 @@ export async function createClevrSyncConnector(input: CreateClevrSyncConnectorIn
     status: "connected" as const,
     displayName,
     sourceMeta: input.sourceMeta ?? {},
+    accessTokenEncrypted: null,
+    refreshTokenEncrypted: null,
+    tokenExpiresAt: null,
+    providerAccountLabel: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -43,12 +50,42 @@ export async function createClevrSyncConnector(input: CreateClevrSyncConnectorIn
   return connector;
 }
 
+export async function createGoogleSheetsConnector(
+  input: CreateClevrSyncConnectorInput & {
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string | null;
+    tokenExpiresAt?: Date | null;
+  },
+) {
+  const db = getRequiredDb();
+  const now = new Date();
+  const connector = {
+    id: `cs_conn_${uuidv4()}`,
+    userId: input.userId,
+    organizationId: input.organizationId?.trim() || input.userId,
+    type: "google_sheets" as const,
+    status: "connected" as const,
+    displayName: input.displayName?.trim() || "Google Sheets",
+    sourceMeta: input.sourceMeta ?? {},
+    accessTokenEncrypted: input.accessTokenEncrypted,
+    refreshTokenEncrypted: input.refreshTokenEncrypted ?? null,
+    tokenExpiresAt: input.tokenExpiresAt ?? null,
+    providerAccountLabel: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.insert(clevrSyncConnectors).values(connector);
+  return sanitizeConnector(connector);
+}
+
 export async function listClevrSyncConnectors(userId: string) {
   const db = getRequiredDb();
-  return db.query.clevrSyncConnectors.findMany({
+  const connectors = await db.query.clevrSyncConnectors.findMany({
     where: eq(clevrSyncConnectors.userId, userId),
     orderBy: [desc(clevrSyncConnectors.updatedAt)],
   });
+  return connectors.map(sanitizeConnector);
 }
 
 export async function getOwnedClevrSyncConnector(userId: string, connectorId: string) {
@@ -56,6 +93,56 @@ export async function getOwnedClevrSyncConnector(userId: string, connectorId: st
   return db.query.clevrSyncConnectors.findFirst({
     where: and(eq(clevrSyncConnectors.id, connectorId), eq(clevrSyncConnectors.userId, userId)),
   });
+}
+
+export async function getOwnedClevrSyncConnectorForApi(userId: string, connectorId: string) {
+  const connector = await getOwnedClevrSyncConnector(userId, connectorId);
+  return connector ? sanitizeConnector(connector) : null;
+}
+
+export async function updateClevrSyncConnector(input: {
+  userId: string;
+  connectorId: string;
+  status?: ClevrSyncConnectorStatus;
+  sourceMeta?: Record<string, unknown>;
+  displayName?: string;
+  accessTokenEncrypted?: string | null;
+  refreshTokenEncrypted?: string | null;
+  tokenExpiresAt?: Date | null;
+  providerAccountLabel?: string | null;
+}) {
+  const db = getRequiredDb();
+  const now = new Date();
+  const updates = {
+    ...(input.status ? { status: input.status } : {}),
+    ...(input.sourceMeta ? { sourceMeta: input.sourceMeta } : {}),
+    ...(input.displayName ? { displayName: input.displayName } : {}),
+    ...(Object.prototype.hasOwnProperty.call(input, "accessTokenEncrypted")
+      ? { accessTokenEncrypted: input.accessTokenEncrypted }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(input, "refreshTokenEncrypted")
+      ? { refreshTokenEncrypted: input.refreshTokenEncrypted }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(input, "tokenExpiresAt")
+      ? { tokenExpiresAt: input.tokenExpiresAt }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(input, "providerAccountLabel")
+      ? { providerAccountLabel: input.providerAccountLabel }
+      : {}),
+    updatedAt: now,
+  };
+
+  const [updated] = await db
+    .update(clevrSyncConnectors)
+    .set(updates)
+    .where(
+      and(
+        eq(clevrSyncConnectors.id, input.connectorId),
+        eq(clevrSyncConnectors.userId, input.userId),
+      ),
+    )
+    .returning();
+  return updated ? sanitizeConnector(updated) : null;
 }
 
 export async function createClevrSyncRun(input: {
@@ -84,6 +171,20 @@ export async function createClevrSyncRun(input: {
 
   await db.insert(clevrSyncRuns).values(run);
   return run;
+}
+
+export function sanitizeConnector<
+  T extends {
+    accessTokenEncrypted?: string | null;
+    refreshTokenEncrypted?: string | null;
+  },
+>(connector: T) {
+  const {
+    accessTokenEncrypted: _accessTokenEncrypted,
+    refreshTokenEncrypted: _refreshTokenEncrypted,
+    ...safe
+  } = connector;
+  return safe;
 }
 
 function defaultDisplayName(type: ClevrSyncConnectorType) {

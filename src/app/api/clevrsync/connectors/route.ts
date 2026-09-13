@@ -43,6 +43,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unsupported connector type" }, { status: 400 });
     }
 
+    if (type === "google_sheets") {
+      return NextResponse.json(
+        { error: "Google Sheets must be connected through OAuth" },
+        { status: 400 },
+      );
+    }
+
     if (!isConnectorTypeAvailable(type)) {
       return NextResponse.json({ error: "Connector type is coming soon" }, { status: 400 });
     }
@@ -58,9 +65,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ connector }, { status: 201 });
   } catch (error) {
     debugError("[ClevrSync] Connector create failed:", error);
-    const message = error instanceof Error && error.message === "Database is not configured"
-      ? error.message
-      : "Unable to create data connection";
+    const message =
+      error instanceof Error && error.message === "Database is not configured"
+        ? error.message
+        : "Unable to create data connection";
     const status = message === "Database is not configured" ? 503 : 500;
     return NextResponse.json({ error: message }, { status });
   }

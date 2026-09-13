@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Cloud,
@@ -10,34 +10,71 @@ import {
   Loader2,
   Share2,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ClevrSyncPreview } from "@/services/clevrsync";
+import type { ClevrSyncPreview } from "@/services/clevrsync/types";
 
 type Connector = {
   id: string;
   type: string;
   status: string;
   displayName: string;
+  sourceMeta?: Record<string, unknown>;
+  updatedAt?: string;
 };
 
 const connectorOptions = [
   { type: "excel", label: "Excel", status: "Available", icon: FileSpreadsheet },
-  { type: "google_sheets", label: "Google Sheets", status: "Coming Soon", icon: Database },
+  { type: "google_sheets", label: "Google Sheets", status: "Available", icon: Database },
   { type: "onedrive", label: "OneDrive", status: "Coming Soon", icon: Cloud },
   { type: "sharepoint", label: "SharePoint", status: "Coming Soon", icon: Share2 },
 ];
 
 export default function DataConnectionsPage() {
+  const searchParams = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [connector, setConnector] = useState<Connector | null>(null);
+  const [connectors, setConnectors] = useState<Connector[]>([]);
   const [preview, setPreview] = useState<ClevrSyncPreview | null>(null);
+  const [googlePreview, setGooglePreview] = useState<ClevrSyncPreview | null>(null);
+  const [googleSpreadsheet, setGoogleSpreadsheet] = useState("");
+  const [googleWorksheet, setGoogleWorksheet] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [googleMessage, setGoogleMessage] = useState<string | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isGooglePreviewing, setIsGooglePreviewing] = useState(false);
+  const [isGoogleSyncing, setIsGoogleSyncing] = useState(false);
 
-  const canPreview = useMemo(() => Boolean(file && file.name.toLowerCase().endsWith(".xlsx")), [file]);
+  const canPreview = useMemo(
+    () => Boolean(file && file.name.toLowerCase().endsWith(".xlsx")),
+    [file],
+  );
+  const googleConnectors = connectors.filter((item) => item.type === "google_sheets");
+  const selectedGoogleConnector = googleConnectors[0] ?? null;
+  const canGooglePreview = Boolean(selectedGoogleConnector && googleSpreadsheet.trim());
+
+  useEffect(() => {
+    loadConnectors();
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get("google") === "connected") {
+      setGoogleMessage("Google Sheets connected");
+      loadConnectors();
+    } else if (searchParams.get("google") === "error") {
+      setGoogleMessage("Google Sheets connection failed");
+    }
+  }, [searchParams]);
+
+  async function loadConnectors() {
+    const response = await fetch("/api/clevrsync/connectors");
+    if (!response.ok) return;
+    const payload = await response.json();
+    setConnectors(Array.isArray(payload.connectors) ? payload.connectors : []);
+  }
 
   async function ensureExcelConnector() {
     if (connector) return connector;
@@ -92,13 +129,75 @@ export default function DataConnectionsPage() {
 
       const response = await fetch("/api/clevrsync/sync", { method: "POST", body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.upload?.error || payload.error || "Unable to sync workbook");
+      if (!response.ok)
+        throw new Error(payload.upload?.error || payload.error || "Unable to sync workbook");
 
       setMessage("Dataset synced");
+      await loadConnectors();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to sync workbook");
     } finally {
       setIsSyncing(false);
+    }
+  }
+
+  function handleGoogleConnect() {
+    window.location.href =
+      "/api/clevrsync/google/oauth/start?returnTo=/app/settings/data-connections";
+  }
+
+  async function handleGooglePreview() {
+    if (!selectedGoogleConnector || !canGooglePreview) return;
+    setIsGooglePreviewing(true);
+    setGoogleMessage(null);
+
+    try {
+      const response = await fetch("/api/clevrsync/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          connectorId: selectedGoogleConnector.id,
+          spreadsheetId: googleSpreadsheet,
+          worksheetName: googleWorksheet || null,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Unable to preview Google Sheet");
+      setGooglePreview(payload.preview);
+      setGoogleWorksheet(payload.preview?.googleSheets?.worksheetName || "");
+      setGoogleMessage("Google Sheet preview ready");
+      await loadConnectors();
+    } catch (error) {
+      setGoogleMessage(error instanceof Error ? error.message : "Unable to preview Google Sheet");
+    } finally {
+      setIsGooglePreviewing(false);
+    }
+  }
+
+  async function handleGoogleSync() {
+    if (!selectedGoogleConnector || !googleSpreadsheet.trim()) return;
+    setIsGoogleSyncing(true);
+    setGoogleMessage(null);
+
+    try {
+      const response = await fetch("/api/clevrsync/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          connectorId: selectedGoogleConnector.id,
+          spreadsheetId: googleSpreadsheet,
+          worksheetName: googleWorksheet || null,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok)
+        throw new Error(payload.upload?.error || payload.error || "Unable to sync Google Sheet");
+      setGoogleMessage("Google Sheet synced");
+      await loadConnectors();
+    } catch (error) {
+      setGoogleMessage(error instanceof Error ? error.message : "Unable to sync Google Sheet");
+    } finally {
+      setIsGoogleSyncing(false);
     }
   }
 
@@ -107,7 +206,9 @@ export default function DataConnectionsPage() {
       <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Data Connections</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              Data Connections
+            </h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Connect business data sources that feed UseClevr datasets.
             </p>
@@ -124,7 +225,7 @@ export default function DataConnectionsPage() {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {connectorOptions.map((option) => {
           const Icon = option.icon;
-          const available = option.type === "excel";
+          const available = option.type === "excel" || option.type === "google_sheets";
           return (
             <Card key={option.type} className="border-border bg-card">
               <CardHeader className="pb-3">
@@ -146,9 +247,14 @@ export default function DataConnectionsPage() {
                   variant={available ? "outline" : "secondary"}
                   className="w-full"
                   disabled={!available}
+                  onClick={option.type === "google_sheets" ? handleGoogleConnect : undefined}
                 >
                   <HardDrive className="mr-2 h-4 w-4" />
-                  {available ? "Use source" : "Coming soon"}
+                  {option.type === "google_sheets"
+                    ? "Connect"
+                    : available
+                      ? "Use source"
+                      : "Coming soon"}
                 </Button>
               </CardContent>
             </Card>
@@ -158,8 +264,102 @@ export default function DataConnectionsPage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Google Sheets</CardTitle>
+              <CardDescription>
+                Connect a Google account, select a spreadsheet, preview a worksheet, and sync it
+                into UseClevr datasets.
+              </CardDescription>
+            </div>
+            <ConnectionBadge connector={selectedGoogleConnector} />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!selectedGoogleConnector ? (
+            <Button type="button" onClick={handleGoogleConnect}>
+              <Database className="mr-2 h-4 w-4" />
+              Connect Google Sheets
+            </Button>
+          ) : (
+            <>
+              <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_auto_auto] lg:items-center">
+                <input
+                  type="text"
+                  value={googleSpreadsheet}
+                  onChange={(event) => {
+                    setGoogleSpreadsheet(event.target.value);
+                    setGooglePreview(null);
+                  }}
+                  placeholder="Google Sheets URL or spreadsheet ID"
+                  className="h-11 min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <select
+                  value={googleWorksheet}
+                  onChange={(event) => {
+                    setGoogleWorksheet(event.target.value);
+                    setGooglePreview(null);
+                  }}
+                  className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">First worksheet</option>
+                  {googlePreview?.googleSheets?.worksheets.map((worksheet) => (
+                    <option key={worksheet.title} value={worksheet.title}>
+                      {worksheet.title}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGooglePreview}
+                  disabled={!canGooglePreview || isGooglePreviewing}
+                >
+                  {isGooglePreviewing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  )}
+                  Preview
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleGoogleSync}
+                  disabled={!canGooglePreview || isGoogleSyncing}
+                >
+                  {isGoogleSyncing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Database className="mr-2 h-4 w-4" />
+                  )}
+                  {selectedGoogleConnector.sourceMeta?.datasetId ? "Sync now" : "Connect & Analyze"}
+                </Button>
+              </div>
+
+              {googleMessage ? (
+                <p className="text-sm text-muted-foreground">{googleMessage}</p>
+              ) : null}
+              {selectedGoogleConnector.sourceMeta?.lastSuccessfulSync ? (
+                <p className="text-sm text-muted-foreground">
+                  Last synced{" "}
+                  {new Date(
+                    String(selectedGoogleConnector.sourceMeta.lastSuccessfulSync),
+                  ).toLocaleString()}
+                </p>
+              ) : null}
+
+              {googlePreview ? <PreviewTable preview={googlePreview} /> : null}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border bg-card">
+        <CardHeader>
           <CardTitle>Excel workbook</CardTitle>
-          <CardDescription>XLSX files sync through the existing dataset processing flow.</CardDescription>
+          <CardDescription>
+            XLSX files sync through the existing dataset processing flow.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
@@ -173,12 +373,29 @@ export default function DataConnectionsPage() {
                 setMessage(null);
               }}
             />
-            <Button type="button" variant="outline" onClick={handlePreview} disabled={!canPreview || isPreviewing}>
-              {isPreviewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePreview}
+              disabled={!canPreview || isPreviewing}
+            >
+              {isPreviewing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+              )}
               Preview
             </Button>
-            <Button type="button" onClick={handleSync} disabled={!preview || !connector || isSyncing}>
-              {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+            <Button
+              type="button"
+              onClick={handleSync}
+              disabled={!preview || !connector || isSyncing}
+            >
+              {isSyncing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
               Sync
             </Button>
           </div>
@@ -187,43 +404,87 @@ export default function DataConnectionsPage() {
 
           {preview ? (
             <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <PreviewMetric label="Worksheet" value={preview.activeWorksheet || "None"} />
-                <PreviewMetric label="Rows" value={preview.rowCount.toLocaleString()} />
-                <PreviewMetric label="Columns" value={preview.columnCount.toLocaleString()} />
-              </div>
-
-              <div className="overflow-hidden rounded-md border border-border">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        {preview.columns.map((column) => (
-                          <th key={column.name} scope="col" className="whitespace-nowrap px-3 py-2 text-left font-medium text-foreground">
-                            {column.name}
-                            <span className="ml-2 text-xs font-normal text-muted-foreground">{column.type}</span>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border bg-background">
-                      {preview.rows.slice(0, 8).map((row, index) => (
-                        <tr key={index}>
-                          {preview.columns.map((column) => (
-                            <td key={column.name} className="max-w-56 truncate px-3 py-2 text-muted-foreground">
-                              {String(row[column.name] ?? "")}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <PreviewTable preview={preview} />
             </div>
           ) : null}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function ConnectionBadge({ connector }: { connector: Connector | null }) {
+  if (!connector) {
+    return (
+      <span className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground">
+        Not connected
+      </span>
+    );
+  }
+
+  const label =
+    connector.status === "connected"
+      ? "Connected"
+      : connector.status === "reconnect_required"
+        ? "Reconnect required"
+        : connector.status === "error"
+          ? "Error"
+          : connector.status === "syncing"
+            ? "Syncing"
+            : connector.status;
+
+  return (
+    <span className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground">
+      {label}
+    </span>
+  );
+}
+
+function PreviewTable({ preview }: { preview: ClevrSyncPreview }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <PreviewMetric label="Worksheet" value={preview.activeWorksheet || "None"} />
+        <PreviewMetric label="Rows" value={preview.rowCount.toLocaleString()} />
+        <PreviewMetric label="Columns" value={preview.columnCount.toLocaleString()} />
+      </div>
+
+      <div className="overflow-hidden rounded-md border border-border">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                {preview.columns.map((column) => (
+                  <th
+                    key={column.name}
+                    scope="col"
+                    className="whitespace-nowrap px-3 py-2 text-left font-medium text-foreground"
+                  >
+                    {column.name}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {column.type}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-background">
+              {preview.rows.slice(0, 8).map((row, index) => (
+                <tr key={index}>
+                  {preview.columns.map((column) => (
+                    <td
+                      key={column.name}
+                      className="max-w-56 truncate px-3 py-2 text-muted-foreground"
+                    >
+                      {String(row[column.name] ?? "")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
