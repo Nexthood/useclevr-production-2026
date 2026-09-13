@@ -16,7 +16,6 @@ import {
   BookOpenCheck,
   CheckCircle2,
   Landmark,
-  Upload,
 } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
@@ -230,12 +229,6 @@ async function AccountancyPageContent({ searchParams }: AccountancyPageProps) {
       rightSidebar={rightSidebar}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/accountancy">
-            <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
-              <Upload className="h-4 w-4" />
-              Upload financial data
-            </span>
-          </Link>
           <Link href="/app/accountancy/compliance">
             <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground">
               <CheckCircle2 className="h-4 w-4" />
@@ -387,7 +380,7 @@ function ProfileContextRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="max-w-[12rem] text-right font-medium text-foreground">{value}</span>
+      <span className="max-w-[12rem] min-w-0 break-words text-right font-medium text-foreground">{value}</span>
     </div>
   )
 }

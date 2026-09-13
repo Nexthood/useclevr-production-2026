@@ -87,3 +87,20 @@ export async function getPrebookkeepingLimitInfo(userId: string, role?: string |
 export function getPrebookkeepingLimitError(limitInfo: DatasetLimitInfo): string | null {
   return getDatasetLimitError(limitInfo, "pre-bookkeeping uploads")
 }
+
+export async function getAccountancyLimitInfo(userId: string, role?: string | null, email?: string | null): Promise<DatasetLimitInfo> {
+  const info = await getDatasetLimitInfo(userId, role, email, "accountancy")
+  if (info.limit === Infinity) return info
+  // Free plan gets a hard cap of 2 Accountancy datasets; Pro/Business use their plan maxDatasets
+  const tier = info.tier || "free"
+  const baseLimit = tier === "free" ? 2 : info.limit
+  return {
+    ...info,
+    limit: baseLimit,
+    canCreate: info.currentCount < baseLimit,
+  }
+}
+
+export function getAccountancyLimitError(limitInfo: DatasetLimitInfo): string | null {
+  return getDatasetLimitError(limitInfo, "accountancy datasets")
+}
