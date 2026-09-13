@@ -6729,3 +6729,38 @@ Stripe fixed-currency checkout tests must assert the final Session `currency` pa
 
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Pre-bookkeeping Upload Entry Cleanup
+
+1. Interaction title
+Pre-bookkeeping upload entry cleanup.
+
+2. What was the user goal
+Clean up duplicate upload actions on the Pre-bookkeeping page so CSV / Excel / PDF-Scan remains the single upload entry point while upload processing, limits, credits, categorization, tax context, Accountancy, and routing stay unchanged.
+
+3. What changed
+The Pre-bookkeeping page no longer renders the header `Upload document` action or the empty-state `Upload document` action. The empty-state informational text remains, and the page still renders the existing `AccountancyUpload` selector for Pre-bookkeeping uploads. The unused `Upload` icon import was removed.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: none.
+observation: the duplicate buttons linked back to the current Pre-bookkeeping page rather than invoking separate upload processing.
+
+5. User learning
+Pre-bookkeeping now exposes one upload entry point through the existing CSV / Excel / PDF-Scan selector.
+
+6. AI-agent learning
+For duplicate upload-entry cleanup, remove redundant navigation-only actions first and leave upload processors and route contracts untouched.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
