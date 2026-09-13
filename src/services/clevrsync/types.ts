@@ -4,11 +4,7 @@ import type {
   ClevrSyncStatus,
 } from "@/lib/db/schema";
 
-export type {
-  ClevrSyncConnectorStatus,
-  ClevrSyncConnectorType,
-  ClevrSyncStatus,
-};
+export type { ClevrSyncConnectorStatus, ClevrSyncConnectorType, ClevrSyncStatus };
 
 export type ClevrSyncColumnType = "empty" | "boolean" | "number" | "date" | "string" | "mixed";
 
@@ -31,12 +27,22 @@ export type ClevrSyncWorksheetPreview = {
 };
 
 export type ClevrSyncPreview = {
-  sourceType: "excel";
+  sourceType: "excel" | "google_sheets";
   fileName: string;
   fileSize: number;
   mimeType: string;
   activeWorksheet: string | null;
   worksheets: ClevrSyncWorksheetPreview[];
+  googleSheets?: {
+    spreadsheetId: string;
+    spreadsheetName: string;
+    worksheetName: string;
+    worksheets: Array<{
+      id: number | null;
+      title: string;
+      index: number;
+    }>;
+  };
   columns: ClevrSyncColumn[];
   rows: ClevrSyncRow[];
   rowCount: number;
@@ -63,6 +69,7 @@ export type ClevrSyncConnectorRecord = {
   status: ClevrSyncConnectorStatus;
   displayName: string;
   sourceMeta: Record<string, unknown>;
+  providerAccountLabel?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

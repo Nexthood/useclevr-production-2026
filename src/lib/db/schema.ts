@@ -95,8 +95,10 @@ export type ClevrSyncConnectorType = (typeof clevrSyncConnectorTypes)[number];
 export const clevrSyncConnectorStatuses = [
   "connected",
   "pending",
+  "syncing",
   "error",
   "disabled",
+  "reconnect_required",
 ] as const;
 export type ClevrSyncConnectorStatus = (typeof clevrSyncConnectorStatuses)[number];
 
@@ -483,6 +485,10 @@ export const clevrSyncConnectors = pgTable(
       .$type<ClevrSyncConnectorStatus>(),
     displayName: text("displayName").notNull(),
     sourceMeta: jsonb("sourceMeta").$type<Record<string, unknown>>().default({}).notNull(),
+    accessTokenEncrypted: text("accessTokenEncrypted"),
+    refreshTokenEncrypted: text("refreshTokenEncrypted"),
+    tokenExpiresAt: timestamp("tokenExpiresAt"),
+    providerAccountLabel: text("providerAccountLabel"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },

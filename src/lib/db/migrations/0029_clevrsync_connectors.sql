@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS "ClevrSyncConnector" (
   "status" varchar(50) DEFAULT 'connected' NOT NULL,
   "displayName" text NOT NULL,
   "sourceMeta" jsonb DEFAULT '{}'::jsonb NOT NULL,
+  "accessTokenEncrypted" text,
+  "refreshTokenEncrypted" text,
+  "tokenExpiresAt" timestamp,
+  "providerAccountLabel" text,
   "createdAt" timestamp DEFAULT now() NOT NULL,
   "updatedAt" timestamp DEFAULT now() NOT NULL,
   CONSTRAINT "ClevrSyncConnector_userId_fkey"
@@ -41,3 +45,12 @@ CREATE INDEX IF NOT EXISTS "ClevrSyncRun_connectorId_idx"
   ON "ClevrSyncRun" ("connectorId");
 CREATE INDEX IF NOT EXISTS "ClevrSyncRun_userId_idx"
   ON "ClevrSyncRun" ("userId");
+
+ALTER TABLE IF EXISTS "ClevrSyncConnector"
+  ADD COLUMN IF NOT EXISTS "accessTokenEncrypted" text;
+ALTER TABLE IF EXISTS "ClevrSyncConnector"
+  ADD COLUMN IF NOT EXISTS "refreshTokenEncrypted" text;
+ALTER TABLE IF EXISTS "ClevrSyncConnector"
+  ADD COLUMN IF NOT EXISTS "tokenExpiresAt" timestamp;
+ALTER TABLE IF EXISTS "ClevrSyncConnector"
+  ADD COLUMN IF NOT EXISTS "providerAccountLabel" text;
