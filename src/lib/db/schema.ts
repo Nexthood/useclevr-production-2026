@@ -84,6 +84,31 @@ export const retailSyncStatuses = [
 ] as const;
 export type RetailSyncStatus = (typeof retailSyncStatuses)[number];
 
+export const clevrSyncConnectorTypes = [
+  "excel",
+  "google_sheets",
+  "onedrive",
+  "sharepoint",
+] as const;
+export type ClevrSyncConnectorType = (typeof clevrSyncConnectorTypes)[number];
+
+export const clevrSyncConnectorStatuses = [
+  "connected",
+  "pending",
+  "error",
+  "disabled",
+] as const;
+export type ClevrSyncConnectorStatus = (typeof clevrSyncConnectorStatuses)[number];
+
+export const clevrSyncStatuses = [
+  "previewed",
+  "queued",
+  "syncing",
+  "completed",
+  "failed",
+] as const;
+export type ClevrSyncStatus = (typeof clevrSyncStatuses)[number];
+
 export const retailWebhookStatuses = [
   "received",
   "verified",
@@ -442,6 +467,75 @@ export const datasets = pgTable(
       name: "Dataset_userId_fkey",
     }).onDelete("cascade"),
     businessModelIdx: index("Dataset_userId_businessModel_idx").on(table.userId, table.businessModel),
+  }),
+);
+
+export const clevrSyncConnectors = pgTable(
+  "ClevrSyncConnector",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    organizationId: text("organizationId").notNull(),
+    type: varchar("type", { length: 50 }).notNull().$type<ClevrSyncConnectorType>(),
+    status: varchar("status", { length: 50 })
+      .default("connected")
+      .notNull()
+      .$type<ClevrSyncConnectorStatus>(),
+    displayName: text("displayName").notNull(),
+    sourceMeta: jsonb("sourceMeta").$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "ClevrSyncConnector_userId_fkey",
+    }).onDelete("cascade"),
+    userIdIdx: index("ClevrSyncConnector_userId_idx").on(table.userId),
+    organizationTypeIdx: index("ClevrSyncConnector_organizationId_type_idx").on(
+      table.organizationId,
+      table.type,
+    ),
+  }),
+);
+
+export const clevrSyncRuns = pgTable(
+  "ClevrSyncRun",
+  {
+    id: text("id").primaryKey(),
+    connectorId: text("connectorId").notNull(),
+    userId: text("userId").notNull(),
+    lastSync: timestamp("lastSync"),
+    rowCount: integer("rowCount").default(0).notNull(),
+    columnMapping: jsonb("columnMapping").$type<Record<string, string>>().default({}).notNull(),
+    status: varchar("status", { length: 50 })
+      .default("previewed")
+      .notNull()
+      .$type<ClevrSyncStatus>(),
+    datasetId: text("datasetId"),
+    error: text("error"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    connectorIdFk: foreignKey({
+      columns: [table.connectorId],
+      foreignColumns: [clevrSyncConnectors.id],
+      name: "ClevrSyncRun_connectorId_fkey",
+    }).onDelete("cascade"),
+    userIdFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "ClevrSyncRun_userId_fkey",
+    }).onDelete("cascade"),
+    datasetIdFk: foreignKey({
+      columns: [table.datasetId],
+      foreignColumns: [datasets.id],
+      name: "ClevrSyncRun_datasetId_fkey",
+    }).onDelete("set null"),
+    connectorIdIdx: index("ClevrSyncRun_connectorId_idx").on(table.connectorId),
+    userIdIdx: index("ClevrSyncRun_userId_idx").on(table.userId),
   }),
 );
 

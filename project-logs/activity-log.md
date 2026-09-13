@@ -338,3 +338,4 @@
 - fixed: stop normal checkout users from requesting admin discount rules, keep admin discount requests on admin screens, and separate 401 session guidance from 403 forbidden guidance in global notices
 - fixed: pin subscription Checkout session currency to the validated billing market currency and validate Stripe Price unit amounts so Business US yearly cannot present EUR from multi-currency Price localization
 - changed: remove duplicate Pre-bookkeeping Upload document buttons so the existing CSV, Excel, and PDF-Scan selector is the single upload entry point
+- added: add ClevrSync Data Connections with Excel XLSX preview, connector and sync metadata, ownership-checked API routes, and existing dataset upload flow reuse

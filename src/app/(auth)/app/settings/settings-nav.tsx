@@ -4,6 +4,7 @@ import {
   Activity,
   Bot,
   CreditCard,
+  Database,
   ShieldCheck,
   SlidersHorizontal,
   User,
@@ -16,6 +17,7 @@ const items = [
   { href: "/app/settings/preferences", label: "Preferences", icon: SlidersHorizontal },
   { href: "/app/settings/ai-providers", label: "AI Providers", icon: Bot },
   { href: "/app/settings/ai-activity", label: "AI Activity", icon: ShieldCheck },
+  { href: "/app/settings/data-connections", label: "Data Connections", icon: Database },
   { href: "/app/settings/subscription", label: "Subscription", icon: CreditCard },
   { href: "/app/settings/activity", label: "Activity", icon: Activity },
 ];

@@ -6764,3 +6764,40 @@ For duplicate upload-entry cleanup, remove redundant navigation-only actions fir
 
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ClevrSync Connector Foundation
+
+1. Interaction title
+ClevrSync connector foundation.
+
+2. What was the user goal
+Implement ClevrSync as a UseClevr connector module that supports Excel XLSX previews, connector metadata, sync metadata, API endpoints, Settings -> Data Connections UI, ownership checks, and reuse of the existing dataset upload and analytics flow.
+
+3. What changed
+ClevrSync now has a service module with typed connector records, XLSX worksheet parsing, column and type detection, preview generation, and a dataset payload adapter. Additive database metadata stores connectors and sync runs by authenticated user and organization id. New API routes create/list connectors, preview Excel files, and sync Excel files by delegating dataset creation to the existing upload action. Settings now includes a Data Connections section with Excel available and Google Sheets, OneDrive, and SharePoint marked Coming Soon.
+
+4. Problems marked
+blocker: none.
+risk: sync uses the existing upload credit and dataset limit flow, so large or over-limit Excel files fail with the same user-facing upload constraints as normal uploads.
+improvement: add OAuth-backed connectors for Google Sheets, OneDrive, and SharePoint after provider credentials, refresh-token storage, and scheduled sync policy exist.
+observation: ClevrSync stores connector/run metadata only; business rows remain in the existing Dataset pipeline.
+
+5. User learning
+ClevrSync is a connector layer in front of UseClevr datasets, not a separate analytics application.
+
+6. AI-agent learning
+New source connectors must validate and preview their source format before handing durable dataset creation to the existing upload action.
+
+7. Follow-up tasks
+- Add OAuth, token storage, refresh handling, and scheduled sync jobs for Google Sheets, OneDrive, and SharePoint.
+- Add connector management actions for rename, disable, reconnect, and delete.
+- Add server-side pagination for connector sync history after scheduled syncs exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

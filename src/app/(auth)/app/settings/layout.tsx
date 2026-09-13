@@ -9,6 +9,7 @@ import { count, eq } from "drizzle-orm"
 import { CreditCard, Settings, ShieldCheck } from "lucide-react"
 import type React from "react"
 import { SettingsProvider, type SettingsContextValue } from "@/components/settings/settings-context"
+import { SettingsNav } from "./settings-nav"
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -34,6 +35,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
     : businessComplete || uploadedDatasetCount > 0
       ? 50
       : 0
+  const showAdminSettings = session?.user?.role === "admin" || session?.user?.role === "superadmin"
 
   const rightSidebar = (
     <aside className="hidden w-72 flex-shrink-0 border-l border-border bg-card/80 xl:block 2xl:w-80">
@@ -62,12 +64,13 @@ export default async function SettingsLayout({ children }: { children: React.Rea
     <SettingsProvider setupStatus={setupStatus} usage={usage} session={session as SettingsContextValue["session"]}>
       <DashboardSubpageLayout
         title="Account"
-        description="Manage profile, preferences, subscription, billing, and activity."
+        description="Manage profile, preferences, data connections, subscription, billing, and activity."
         breadcrumbs={[
           { label: "Dashboard", href: "/app" },
           { label: "Settings" },
         ]}
         icon={Settings}
+        subpageNav={<SettingsNav showAdmin={showAdminSettings} />}
         rightSidebar={rightSidebar}
       >
         <div className="flex flex-1 min-h-0">
