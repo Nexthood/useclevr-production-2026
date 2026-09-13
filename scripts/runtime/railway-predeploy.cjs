@@ -313,6 +313,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0026_ai_cost_log_schema.sql"),
   readMigrationStatement("src/lib/db/migrations/0027_credit_ledger_current_columns.sql"),
   readMigrationStatement("src/lib/db/migrations/0028_chatgpt_mcp_oauth_codes.sql"),
+  readMigrationStatement("src/lib/db/migrations/0029_clevrsync_connectors.sql"),
 ];
 
 const constraints = [
