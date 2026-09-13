@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSettings } from "@/components/settings/settings-context";
 import {
   billingCountryOptions,
   getCountryFromLocale,
@@ -63,6 +64,7 @@ const defaultCheckoutPlans: CheckoutPlan[] = billingPlans.map((plan) => ({
 function CheckoutClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { session } = useSettings();
 
   // Read plan & discount ONCE on mount; sync back via state so they survive
   // URL changes between steps 1 → 2.
@@ -87,6 +89,7 @@ function CheckoutClient() {
   const plan: CheckoutPlan = availablePlans.find((candidate) => candidate.id === planId) ?? getBillingPlan(planId);
   const paidPlans = availablePlans.filter((candidate) => candidate.tier === "pro" || candidate.tier === "business");
   const isFreePlan = plan.tier === "free";
+  const canLoadAdminDiscounts = session?.user?.role === "superadmin";
   const selectedMarketOption = getSelectedMarketOption(plan, selectedMarket, selectedBillingInterval);
 
   React.useEffect(() => {
@@ -163,6 +166,11 @@ function CheckoutClient() {
 
   // Fetch available discounts and filter by plan target
   React.useEffect(() => {
+    if (!canLoadAdminDiscounts) {
+      setAvailableDiscounts([]);
+      return;
+    }
+
     const loadDiscounts = async () => {
       try {
         const res = await fetch("/api/admin/discounts", { cache: "no-store" });
@@ -179,7 +187,7 @@ function CheckoutClient() {
       }
     };
     loadDiscounts();
-  }, [plan.tier]);
+  }, [canLoadAdminDiscounts, plan.tier]);
 
   const tscUrl = "/terms";
   const canReview = !isFreePlan && !isPlanConfigLoading && Boolean(selectedMarketOption?.enabled);

@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
       customerId: profile?.stripeCustomerId ?? null,
       priceId,
       expectedCurrency: checkoutPriceMetadata.resolvedCurrency,
+      expectedAmountMinor: Number(checkoutPriceMetadata.resolvedAmountMinor),
       expectedInterval: checkoutPriceMetadata.billingInterval === "yearly" ? "year" : "month",
       plan: planSlug,
       successUrl,

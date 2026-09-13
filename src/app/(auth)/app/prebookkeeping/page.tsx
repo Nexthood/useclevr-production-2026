@@ -13,7 +13,7 @@ import { resolveDatasetType } from "@/lib/data/dataset-category"
 import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
-import { ArrowRight, Bot, Download, FileText, ListChecks, ShieldAlert, Upload } from "lucide-react"
+import { ArrowRight, Bot, Download, FileText, ListChecks, ShieldAlert } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 
@@ -93,16 +93,6 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
       description="Upload invoices, receipts, and bank exports for automated categorization and bookkeeping summaries."
       breadcrumbs={[{ label: "Dashboard", href: "/app" }, { label: "Pre-bookkeeping" }]}
       icon={FileText}
-      actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/prebookkeeping">
-            <span className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
-              <Upload className="h-4 w-4" />
-              Upload document
-            </span>
-          </Link>
-        </div>
-      }
     >
       <div className="flex-1 overflow-y-auto px-5 pb-5 pt-6">
         <div className="max-w-6xl mx-auto space-y-5">
@@ -124,13 +114,6 @@ export default async function PrebookkeepingPage({ searchParams }: Prebookkeepin
                     Upload invoices, receipts, bank exports, PDFs, Excel, or CSV files for pre-bookkeeping insights.
                   </p>
                 </div>
-                <Link
-                  href="/app/prebookkeeping"
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload document
-                </Link>
               </div>
             </Card>
           )}

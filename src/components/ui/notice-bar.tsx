@@ -61,8 +61,12 @@ const noticeEventName = "useclevr:notice";
 let noticeIdCounter = 0;
 
 const getFailedInteractionMessage = (status: number) => {
-  if (status === 401 || status === 403) {
+  if (status === 401) {
     return "Your session may have expired. Sign in again and retry.";
+  }
+
+  if (status === 403) {
+    return "You do not have access to complete this action.";
   }
 
   if (status === 429) {

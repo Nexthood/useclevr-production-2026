@@ -6624,3 +6624,143 @@ For small Usy UI polish, target the local control class first and reuse the exis
 
 9. Minimal destination
 Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Fixed Currency
+
+1. Interaction title
+Stripe checkout fixed currency.
+
+2. What was the user goal
+Fix only Stripe subscription Checkout currency behavior so US, EU, UK, and Canada billing markets use their configured regional Stripe Price currency only, with Business US yearly showing $5,800/year in USD and no adaptive conversion.
+
+3. What changed
+Subscription Checkout session creation now sends Stripe `adaptive_pricing` disabled after validating the selected recurring Price ID against the resolved market currency and interval. The focused billing pricing regression now proves Business US yearly resolves the existing USD yearly Price ID, preserves the $5,800/year amount, records USD metadata, and creates Checkout with adaptive currency conversion disabled.
+
+4. Problems marked
+blocker: none.
+risk: the pinned Stripe SDK TypeScript definitions do not expose the newer `adaptive_pricing` Checkout parameter, so the service attaches it through a typed compatibility cast while still sending the runtime parameter to Stripe.
+improvement: upgrade Stripe SDK types when the project updates Stripe so the compatibility cast can be removed.
+observation: the root cause was not regional Price-ID resolution; Checkout validated the USD Price ID but did not explicitly disable Stripe adaptive pricing on the session.
+
+5. User learning
+Business US yearly checkout now uses the centralized billing resolver and opens Stripe Checkout with the configured USD yearly Price ID only.
+
+6. AI-agent learning
+For Stripe currency bugs, inspect both regional Price-ID selection and Checkout session options because a correct fixed-currency Price can still display converted currency when adaptive pricing remains enabled.
+
+7. Follow-up tasks
+- Upgrade Stripe SDK types when the project updates Stripe so the Checkout adaptive pricing compatibility cast can be removed.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Admin Discount Access Gate
+
+1. Interaction title
+Admin discount access gate.
+
+2. What was the user goal
+Fix the normal-user admin discounts 403 notification so normal users never request `/api/admin/discounts`, never see an admin-discount 403 toast, and never receive admin discount data while admin discount functionality and backend authorization stay protected.
+
+3. What changed
+The checkout settings page now reads the settings session role and loads admin discount rules only for superadmin sessions. Normal users clear checkout discount state locally and return before the admin endpoint fetch. The global notice message helper now treats 401 as an unauthenticated/session problem and 403 as authenticated forbidden access. A focused security regression verifies the normal-user no-fetch path, no admin-discount 403 session-expired toast path, admin management requests, and protected API semantics.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: add a browser-level checkout smoke test when stable authenticated fixtures exist.
+observation: the root cause was the checkout settings client fetching an admin-only endpoint for every user, while the shared notice provider incorrectly mapped 403 to the session-expired message.
+
+5. User learning
+Normal checkout users no longer touch admin discount endpoints, and forbidden responses no longer claim the session expired.
+
+6. AI-agent learning
+For admin endpoint 403 notifications, trace the caller first and gate privileged data fetches at the source instead of weakening RBAC or globally suppressing forbidden responses.
+
+7. Follow-up tasks
+- Add a browser-level checkout smoke test when stable authenticated fixtures exist.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Session Currency Pin
+
+1. Interaction title
+Stripe checkout session currency pin.
+
+2. What was the user goal
+Fix the unaccepted Stripe currency behavior so Business US yearly presents $5,800/year in USD only with no EUR selector or localized currency option, and verify the actual session configuration instead of assuming adaptive pricing solved it.
+
+3. What changed
+Subscription Checkout session creation now pins `currency` to the validated market currency in addition to disabling Stripe adaptive pricing. Checkout API routes pass the centralized resolved amount into Stripe Price validation, and the service rejects active recurring Prices whose currency, interval, or unit amount differ from the selected market. The focused billing regression now models a Business US yearly USD Price with EUR `currency_options` and proves the final Checkout Session still sends the USD Price ID, `currency: "usd"`, $5,800 yearly amount validation, USD metadata, and disabled adaptive pricing.
+
+4. Problems marked
+blocker: live Stripe Price retrieval remains unavailable from this checkout because local env does not define `STRIPE_PRICE_BUSINESS_USD_YEARLY` or fallback `STRIPE_PRICE_BUSINESS_USD_ANNUAL`, and the linked Railway token cannot verify the project over the API.
+risk: none.
+improvement: verify the production Stripe Price object after production credentials or deploy logs are available; confirm active=true, currency=usd, unit_amount=580000, recurring.interval=year, and note any `currency_options` keys.
+observation: Stripe documentation states Checkout localizes multi-currency Prices unless the Session `currency` parameter overrides that behavior; the previous fix disabled adaptive pricing but did not pin the Session currency.
+
+5. User learning
+Business US yearly checkout must send both the existing USD Price ID and a Checkout Session currency of `usd` to prevent Stripe from presenting EUR when the Price supports multiple currencies.
+
+6. AI-agent learning
+Stripe fixed-currency checkout tests must assert the final Session `currency` parameter, not only the Price ID and adaptive-pricing flag.
+
+7. Follow-up tasks
+- Verify the production Stripe Price object after production credentials or deploy logs are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Pre-bookkeeping Upload Entry Cleanup
+
+1. Interaction title
+Pre-bookkeeping upload entry cleanup.
+
+2. What was the user goal
+Clean up duplicate upload actions on the Pre-bookkeeping page so CSV / Excel / PDF-Scan remains the single upload entry point while upload processing, limits, credits, categorization, tax context, Accountancy, and routing stay unchanged.
+
+3. What changed
+The Pre-bookkeeping page no longer renders the header `Upload document` action or the empty-state `Upload document` action. The empty-state informational text remains, and the page still renders the existing `AccountancyUpload` selector for Pre-bookkeeping uploads. The unused `Upload` icon import was removed.
+
+4. Problems marked
+blocker: none.
+risk: none.
+improvement: none.
+observation: the duplicate buttons linked back to the current Pre-bookkeeping page rather than invoking separate upload processing.
+
+5. User learning
+Pre-bookkeeping now exposes one upload entry point through the existing CSV / Excel / PDF-Scan selector.
+
+6. AI-agent learning
+For duplicate upload-entry cleanup, remove redundant navigation-only actions first and leave upload processors and route contracts untouched.
+
+7. Follow-up tasks
+- None.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
