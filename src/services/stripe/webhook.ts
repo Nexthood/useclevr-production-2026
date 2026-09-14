@@ -48,7 +48,20 @@ export async function handleSubscriptionEvent(
   }
 
   const sub = event.data.object as Stripe.Subscription;
-  return syncSubscription(sub, event.type);
+  return syncSubscriptionInternal(sub, event.type);
+}
+
+export async function syncCheckoutSessionActivation(
+  session: Stripe.Checkout.Session,
+): Promise<{ synced: boolean; reason?: string }> {
+  return syncCheckoutSession(session);
+}
+
+export async function syncSubscription(
+  sub: Stripe.Subscription,
+  eventType: string,
+): Promise<{ synced: boolean; reason?: string }> {
+  return syncSubscriptionInternal(sub, eventType);
 }
 
 async function syncCheckoutSession(
@@ -163,7 +176,7 @@ async function syncCheckoutSession(
   return { synced: true };
 }
 
-async function syncSubscription(
+async function syncSubscriptionInternal(
   sub: Stripe.Subscription,
   eventType: string,
 ): Promise<{ synced: boolean; reason?: string }> {

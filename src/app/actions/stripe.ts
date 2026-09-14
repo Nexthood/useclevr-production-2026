@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { issueCheckoutToken, redeemCheckoutToken } from "@/lib/stripe/checkout-token"
 import { createStripeCheckoutSession, retrieveStripeCheckoutSession } from "@/services/stripe/checkout"
+import { syncCheckoutSessionActivation } from "@/services/stripe/webhook"
 import { eq } from "drizzle-orm"
 
 export async function createCheckoutSession(productId: ProductId, returnUrl?: string) {
@@ -67,6 +68,22 @@ export async function getCheckoutSession(sessionId: string) {
   }
 
   return checkoutSession
+}
+
+export async function syncVerifiedCheckoutSession(sessionId: string) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return null
+  }
+
+  const checkoutSession = await retrieveStripeCheckoutSession(sessionId)
+  const checkoutUserId = checkoutSession.client_reference_id || checkoutSession.metadata?.userId
+
+  if (checkoutUserId !== session.user.id) {
+    return null
+  }
+
+  return syncCheckoutSessionActivation(checkoutSession)
 }
 
 export async function verifyCheckoutToken(token: string, stripeSessionId: string) {
