@@ -1,6 +1,6 @@
 import { debugError } from "@/lib/utils/debug"
 
-import { getCheckoutSession } from "@/app/actions/stripe"
+import { getCheckoutSession, syncVerifiedCheckoutSession } from "@/app/actions/stripe"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,6 +27,9 @@ export default async function CheckoutSuccessPage({
   if (stripeSessionId) {
     try {
       session = await getCheckoutSession(stripeSessionId)
+      if (session?.payment_status === "paid") {
+        await syncVerifiedCheckoutSession(stripeSessionId)
+      }
     } catch (error) {
       debugError("Error fetching session:", error)
     }

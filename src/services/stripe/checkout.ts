@@ -57,9 +57,14 @@ export async function createStripeCheckoutSession({
     expectedInterval,
     plan,
   });
+  const subscriptionTier = plan?.startsWith("pro_") ? "pro"
+    : plan?.startsWith("business_") ? "business"
+    : null;
+
   const mergedMetadata = {
     userId,
     userEmail,
+    subscriptionTier,
     ...(metadata ?? {}),
   }
 
@@ -152,6 +157,11 @@ export async function retrieveStripeCustomerCountry(customerId: string): Promise
   if (customer.deleted) return null;
 
   return customer.address?.country || customer.shipping?.address?.country || null;
+}
+
+export async function retrieveStripeSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  const stripe = getStripe();
+  return stripe.subscriptions.retrieve(subscriptionId);
 }
 
 export async function retrieveStripeCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {

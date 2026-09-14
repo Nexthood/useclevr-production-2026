@@ -8,6 +8,8 @@ import { getCreditTopUpHistory } from "@/lib/billing/credit-topup-service";
 import { getDb } from "@/lib/db";
 import { datasets, profiles } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { syncSubscription } from "@/services/stripe/webhook";
+import { retrieveStripeSubscription } from "@/services/stripe/checkout";
 import { count, eq, sum } from "drizzle-orm";
 import { ArrowUpRight, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles, LoaderCircle } from "lucide-react";
 import type { Metadata } from "next";
@@ -75,32 +77,60 @@ export default async function SubscriptionSettingsPage({
   const isUnlimited = usage.unlimited;
   const remaining = isUnlimited ? 0 : Math.max(0, usage.availableCredits ?? 0);
   const db = getDb();
+  let profile = null;
+  let datasetStats: { datasetCount: number; storageBytes: string } = { datasetCount: 0, storageBytes: "0" };
 
-  const [profile, datasetStats] = await Promise.all([
-    db && session?.user?.id
-      ? db.query.profiles.findFirst({
-          where: eq(profiles.userId, session.user.id),
-          columns: {
-            stripeCustomerId: true,
-            stripeCurrentPeriodEnd: true,
-            stripePriceId: true,
-            stripeStatus: true,
-            subscriptionTier: true,
-          },
+  if (db && session?.user?.id) {
+    const [profileResult, datasetResult] = await Promise.all([
+      db.query.profiles.findFirst({
+        where: eq(profiles.userId, session.user.id),
+        columns: {
+          stripeCustomerId: true,
+          stripeCurrentPeriodEnd: true,
+          stripePriceId: true,
+          stripeStatus: true,
+          subscriptionTier: true,
+          stripeSubscriptionId: true,
+        },
+      }),
+      db
+        .select({
+          datasetCount: count(),
+          storageBytes: sum(datasets.fileSize),
         })
-      : null,
-    db && session?.user?.id
-      ? db
-          .select({
-            datasetCount: count(),
-            storageBytes: sum(datasets.fileSize),
-          })
-          .from(datasets)
-          .where(eq(datasets.userId, session.user.id))
-          .then((rows) => rows[0] ?? { datasetCount: 0, storageBytes: "0" })
-          .catch(() => ({ datasetCount: 0, storageBytes: "0" }))
-      : { datasetCount: 0, storageBytes: "0" },
-  ]);
+        .from(datasets)
+        .where(eq(datasets.userId, session.user.id))
+        .then((rows) => rows[0] ?? { datasetCount: 0, storageBytes: "0" } as { datasetCount: number; storageBytes: string })
+        .catch(() => ({ datasetCount: 0, storageBytes: "0" } as { datasetCount: number; storageBytes: string })),
+    ]);
+
+    profile = profileResult;
+    datasetStats = { datasetCount: datasetResult.datasetCount, storageBytes: datasetResult.storageBytes as string };
+  }
+
+  if (profile?.stripeSubscriptionId && profile.subscriptionTier === "free") {
+    try {
+      const sub = await retrieveStripeSubscription(profile.stripeSubscriptionId);
+      if (sub.status === "active" || sub.status === "trialing") {
+        await syncSubscription(sub, "manual_subscription_sync");
+        if (session?.user?.id && db) {
+          profile = await db.query.profiles.findFirst({
+            where: eq(profiles.userId, session.user.id),
+            columns: {
+              stripeCustomerId: true,
+              stripeCurrentPeriodEnd: true,
+              stripePriceId: true,
+              stripeStatus: true,
+              subscriptionTier: true,
+              stripeSubscriptionId: true,
+            },
+          });
+        }
+      }
+    } catch {
+      // Non-fatal: subscription sync attempted but unavailable
+    }
+  }
 
   const providerConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
   const tier = profile?.subscriptionTier || usage.subscriptionTier || "free";
