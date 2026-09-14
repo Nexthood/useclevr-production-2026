@@ -5,9 +5,9 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-09-14
-- **Goal**: Resolve the Railway TEST npm install dependency conflict for React 19.
-- **Durable change**: The dashboard geographic revenue map uses local React/SVG rendering, and the project dependency graph no longer includes `react-simple-maps` or its stale transitive `d3-color` advisory path.
-- **Verification**: `pnpm install --frozen-lockfile`, `pnpm validate:types`, focused ESLint for the changed map component, `pnpm lint:secrets`, dependency-remnant search, and `git diff --check` pass or report no errors.
-- **Residual risk**: The focused ESLint command reports the CommonJS audit allowlist script is ignored by project lint configuration.
+- **Goal**: Improve only the Accountancy Pre-bookkeeping Package CSV export structure.
+- **Durable change**: The package CSV export uses `Category, Field, Value, Unit, Frequency` columns, preserves Business Profile values, parses only explicit payroll and fixed-cost amounts/rates/frequencies, and keeps ambiguous text as one structured value.
+- **Verification**: The focused Accountancy package CSV regression check, existing package PDF regression check, `pnpm validate:types`, focused ESLint for changed source files, `pnpm lint:secrets`, and `git diff --check` pass or report no errors.
+- **Residual risk**: The focused ESLint command reports the new script-based CSV regression check is ignored by project lint configuration.
 - **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
 - **Activity summary**: [Activity log](../../project-logs/activity-log.md)

@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Download, FileSpreadsheet, FileText, Mail, PackageCheck } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { buildAccountancyPackageCsv } from "@/lib/accountancy/package-csv"
+import { debugError } from "@/lib/utils/debug"
+import { Download, FileSpreadsheet, FileText, Loader2, Mail, PackageCheck } from "lucide-react"
 
 interface AccountancyPackageFormProps {
   initialCompanyName: string
@@ -22,6 +25,8 @@ export function AccountancyPackageForm({
   const [taxPeriod, setTaxPeriod] = useState(initialTaxPeriod)
   const [message, setMessage] = useState("")
   const [packageGenerated, setPackageGenerated] = useState(packageReady)
+  const [pdfExporting, setPdfExporting] = useState(false)
+  const { toast } = useToast()
 
   const mailtoHref = useMemo(() => {
     const subject = encodeURIComponent(`Pre-bookkeeping package${companyName ? ` - ${companyName}` : ""}`)
@@ -55,7 +60,7 @@ export function AccountancyPackageForm({
   }
 
   function exportCsv() {
-    const csv = ["Field,Value", ...packageRows.map((row) => `${escapeCsv(row.label)},${escapeCsv(row.value)}`)].join("\n")
+    const csv = buildAccountancyPackageCsv(packageRows)
     downloadFile("pre-bookkeeping-package.csv", "text/csv;charset=utf-8", csv)
   }
 
@@ -67,35 +72,54 @@ export function AccountancyPackageForm({
     downloadFile("pre-bookkeeping-package.xls", "application/vnd.ms-excel;charset=utf-8", html)
   }
 
-  function exportPdf() {
-    const reportWindow = window.open("", "_blank", "noopener,noreferrer")
-    if (!reportWindow) return
-    const rows = packageRows
-      .map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${escapeHtml(row.value)}</td></tr>`)
-      .join("")
-    reportWindow.document.write(`
-      <html>
-        <head>
-          <title>Pre-bookkeeping package</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 32px; color: #111827; }
-            h1 { font-size: 24px; margin-bottom: 8px; }
-            p { color: #4b5563; }
-            table { border-collapse: collapse; width: 100%; margin-top: 24px; }
-            th, td { border: 1px solid #d1d5db; padding: 10px; text-align: left; vertical-align: top; }
-            th { background: #f3f4f6; }
-          </style>
-        </head>
-        <body>
-          <h1>Pre-bookkeeping package</h1>
-          <p>Prepared for accountant review.</p>
-          <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>
-        </body>
-      </html>
-    `)
-    reportWindow.document.close()
-    reportWindow.focus()
-    reportWindow.print()
+  async function exportPdf() {
+    if (pdfExporting) return
+    setPdfExporting(true)
+    try {
+      const response = await fetch("/api/accountancy/package/pdf?disposition=inline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName,
+          taxPeriod,
+          accountantEmail,
+          message,
+          fields: packageRows,
+        }),
+      })
+      const contentType = response.headers.get("Content-Type") || ""
+      if (!response.ok) {
+        throw new Error(await readExportError(response))
+      }
+      if (!contentType.toLowerCase().includes("application/pdf")) {
+        throw new Error("PDF export returned an invalid file type.")
+      }
+
+      const blob = await response.blob()
+      if (blob.size === 0) throw new Error("PDF export generated an empty file.")
+
+      const pdfBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" })
+      const objectUrl = URL.createObjectURL(pdfBlob)
+      const opened = window.open(objectUrl, "_blank", "noopener,noreferrer")
+      if (!opened) {
+        const link = document.createElement("a")
+        link.href = objectUrl
+        link.download = filenameFromDisposition(response.headers.get("Content-Disposition")) || "pre-bookkeeping-package.pdf"
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+    } catch (error) {
+      debugError("[ACCOUNTANCY_PACKAGE] PDF export failed", error)
+      toast({
+        title: "Could not export PDF",
+        description: error instanceof Error ? error.message : "Try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setPdfExporting(false)
+    }
   }
 
   return (
@@ -157,11 +181,11 @@ export function AccountancyPackageForm({
           type="button"
           variant="outline"
           onClick={exportPdf}
-          disabled={!packageGenerated}
+          disabled={!packageGenerated || pdfExporting}
           className="gap-2"
         >
-          <FileText className="h-4 w-4" />
-          PDF report
+          {pdfExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+          {pdfExporting ? "Preparing PDF..." : "PDF report"}
         </Button>
         <Button
           type="button"
@@ -204,11 +228,6 @@ export function AccountancyPackageForm({
   )
 }
 
-function escapeCsv(value: unknown) {
-  const safeValue = typeof value === "string" ? value : String(value ?? "")
-  return `"${safeValue.replace(/"/g, '""')}"`
-}
-
 function escapeHtml(value: unknown) {
   const safeValue = typeof value === "string" ? value : String(value ?? "")
   return safeValue
@@ -217,4 +236,20 @@ function escapeHtml(value: unknown) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
+}
+
+async function readExportError(response: Response) {
+  const result = await response.json().catch(() => null)
+  if (result && typeof result === "object" && "error" in result && typeof result.error === "string") {
+    return result.error
+  }
+  return "PDF report could not be generated."
+}
+
+function filenameFromDisposition(disposition: string | null) {
+  if (!disposition) return null
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+  if (encoded) return decodeURIComponent(encoded)
+  const regular = disposition.match(/filename="?([^";]+)"?/i)?.[1]
+  return regular || null
 }
