@@ -27,12 +27,17 @@ export default async function CheckoutSuccessPage({
   if (stripeSessionId) {
     try {
       session = await getCheckoutSession(stripeSessionId)
-      if (session?.payment_status === "paid") {
-        await syncVerifiedCheckoutSession(stripeSessionId)
-      }
     } catch (error) {
       debugError("Error fetching session:", error)
     }
+  }
+
+  const isSubscriptionCheckout = session?.mode === "subscription"
+  const isPaidPayment = session?.payment_status === "paid"
+  const hasSubscription = typeof session?.subscription === "object" && Boolean(session.subscription?.id)
+
+  if (isSubscriptionCheckout && (isPaidPayment || hasSubscription) && stripeSessionId) {
+    await syncVerifiedCheckoutSession(stripeSessionId)
   }
   const planLabel = await getCheckoutPlanLabel(session?.metadata?.billingPlanId ?? session?.metadata?.productId ?? null)
 
