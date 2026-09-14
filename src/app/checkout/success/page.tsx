@@ -3,9 +3,9 @@ import { debugError } from "@/lib/utils/debug"
 import { getCheckoutSession } from "@/app/actions/stripe"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { CheckCircle } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { getConfiguredBillingPlan } from "@/lib/billing/settings-store"
+import { CheckCircle, LayoutDashboard } from "lucide-react"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -18,18 +18,20 @@ export const metadata = {
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>
+  searchParams: Promise<{ session_id?: string; s?: string }>
 }) {
-  const { session_id } = await searchParams
+  const { session_id, s } = await searchParams
+  const stripeSessionId = session_id || s
 
   let session: Awaited<ReturnType<typeof getCheckoutSession>> = null
-  if (session_id) {
+  if (stripeSessionId) {
     try {
-      session = await getCheckoutSession(session_id)
+      session = await getCheckoutSession(stripeSessionId)
     } catch (error) {
       debugError("Error fetching session:", error)
     }
   }
+  const planLabel = await getCheckoutPlanLabel(session?.metadata?.billingPlanId ?? session?.metadata?.productId ?? null)
 
   // Minimal unlock + guidance: if this checkout was for Hybrid AI Lite,
   // set cookie so the modal unlocks Lite and redirect to app with setup hint
@@ -50,48 +52,52 @@ export default async function CheckoutSuccessPage({
     <div className="flex min-h-screen flex-col">
       <PublicHeader />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <Card className="max-w-md w-full p-8 text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+      <main className="flex flex-1 items-center justify-center bg-muted/20 px-4 py-12">
+        <Card className="w-full max-w-lg border-border bg-card text-card-foreground shadow-sm">
+          <CardContent className="space-y-7 p-8 text-center sm:p-10">
+            <div className="flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
+                <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold">Payment Successful!</h1>
-            <p className="text-muted-foreground">
-              Thank you for subscribing to UseClevr Pro. Your account has been upgraded.
-            </p>
-          </div>
-
-          {session && (
-            <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-              <p>
-                A confirmation email has been sent to{" "}
-                <span className="font-medium text-foreground">
-                  {"your email"}
-                </span>
-              </p>
+            <div className="space-y-3">
+              <h1 className="text-3xl font-semibold tracking-normal text-foreground">Payment successful</h1>
+              <p className="text-base text-muted-foreground">Your UseClevr subscription is now active.</p>
             </div>
-          )}
 
-          <div className="flex flex-col gap-3">
-            <Link href="/app">
-              <Button className="w-full bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] hover:opacity-90 text-white">
+            {planLabel && (
+              <div className="rounded-lg border border-border bg-muted/40 px-5 py-4 text-left">
+                <p className="text-sm font-medium text-muted-foreground">Current plan</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">{planLabel}</p>
+              </div>
+            )}
+
+            <div className="flex justify-center">
+              <Link
+                href="/app"
+                className="inline-flex h-11 w-full items-center justify-center whitespace-nowrap rounded-lg border border-primary/30 bg-gradient-to-b from-primary/95 to-primary/80 px-6 py-2 text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_hsl(var(--primary)/0.18),inset_0_1px_0_rgba(255,255,255,0.24)] ring-offset-background transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-[0_14px_38px_hsl(var(--primary)/0.24),inset_0_1px_0_rgba(255,255,255,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 sm:w-auto"
+              >
+                <LayoutDashboard className="mr-2 h-4 w-4" aria-hidden="true" />
                 Go to Dashboard
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" className="w-full bg-transparent">
-                Back to Home
-              </Button>
-            </Link>
-          </div>
+              </Link>
+            </div>
+          </CardContent>
         </Card>
       </main>
 
       <PublicFooter />
     </div>
   )
+}
+
+async function getCheckoutPlanLabel(planId: string | null) {
+  if (!planId) return null
+
+  try {
+    const plan = await getConfiguredBillingPlan(planId)
+    return plan.tier === "free" ? null : plan.name
+  } catch {
+    return null
+  }
 }

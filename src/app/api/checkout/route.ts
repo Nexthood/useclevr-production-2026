@@ -7,6 +7,7 @@ import {
   resolveCheckoutMarketPrice,
 } from "@/lib/billing/launch-pricing";
 import { logMissingStripePriceId } from "@/lib/billing/plans";
+import { buildCheckoutCancelUrl, buildCheckoutSuccessUrl } from "@/lib/billing/checkout-redirect";
 import { getConfiguredBillingPlan } from "@/lib/billing/settings-store";
 import { getDb } from "@/lib/db";
 import { profiles } from "@/lib/db/schema";
@@ -105,10 +106,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const origin = request.nextUrl.origin;
   const checkoutToken = issueCheckoutToken(null, user.id);
-  const successUrl = `${origin}/checkout/success?t=${checkoutToken}&session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = `${origin}/app/settings/checkout?cancel=1&plan=${plan.id}&market=${checkoutPriceMetadata.market}&interval=${checkoutPriceMetadata.billingInterval}`;
+  const successUrl = buildCheckoutSuccessUrl(checkoutToken, "{CHECKOUT_SESSION_ID}", request.nextUrl.origin);
+  const cancelUrl = buildCheckoutCancelUrl(
+    `/app/settings/checkout?cancel=1&plan=${plan.id}&market=${checkoutPriceMetadata.market}&interval=${checkoutPriceMetadata.billingInterval}`,
+    request.nextUrl.origin,
+  );
 
   try {
     const checkout = await createStripeCheckoutSession({

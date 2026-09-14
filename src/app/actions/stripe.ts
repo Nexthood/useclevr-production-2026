@@ -2,6 +2,7 @@
 
 import { PRODUCTS, type ProductId } from "@/lib/business/products"
 import { auth } from "@/lib/auth/auth"
+import { buildCheckoutCancelUrl, resolveCheckoutSuccessUrl } from "@/lib/billing/checkout-redirect"
 import { getConfiguredBillingPlan } from "@/lib/billing/settings-store"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
@@ -31,10 +32,9 @@ export async function createCheckoutSession(productId: ProductId, returnUrl?: st
     throw new Error(`Stripe price ID not configured for ${plan.name}.`)
   }
 
-  const baseUrl = getBaseUrl()
   const checkoutToken = issueCheckoutToken("pending", session.user.id)
-  const successUrl = returnUrl || `${baseUrl}/checkout/success?t=${checkoutToken}&s={CHECKOUT_SESSION_ID}`
-  const cancelUrl = `${baseUrl}/app/settings/checkout?plan=${productId}`
+  const successUrl = resolveCheckoutSuccessUrl(checkoutToken, returnUrl)
+  const cancelUrl = buildCheckoutCancelUrl(`/app/settings/checkout?plan=${productId}`)
   const db = getDb()
   const profile = db
     ? await db.query.profiles.findFirst({
@@ -82,42 +82,4 @@ export async function verifyCheckoutToken(token: string, stripeSessionId: string
   if (checkoutUserId !== session.user.id) return null
 
   return checkoutSession
-}
-
-function getSafeAppBaseUrl(origin?: string) {
-  // Priority order for base URL
-  const candidates = [
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.AUTH_URL,
-    process.env.NEXTAUTH_URL,
-    origin,
-  ].filter(Boolean) as string[]
-
-  // Helper to detect unsafe hostnames/ports
-  const isUnsafe = (url: string) => {
-    try {
-      const { hostname, port } = new URL(url)
-      if (hostname === '0.0.0.0' || hostname === 'localhost' || hostname === '127.0.0.1') return true
-      if (port && (port === '8080' || port === '3000')) return true
-      return false
-    } catch {
-      return true // malformed URL is unsafe
-    }
-  }
-
-  for (const candidate of candidates) {
-    const withProtocol = candidate.startsWith('http') ? candidate : `https://${candidate}`
-    if (!isUnsafe(withProtocol)) {
-      return withProtocol.replace(/\/+$/, '')
-    }
-  }
-
-  // Fallback for production if no safe candidate found
-  return 'https://app.useclevr.com'
-}
-
-function getBaseUrl() {
-  // In server actions we have access to request origin via headers if needed.
-  // Here we simply call the safe helper without origin.
-  return getSafeAppBaseUrl()
 }
