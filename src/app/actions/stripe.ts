@@ -49,6 +49,7 @@ export async function createCheckoutSession(productId: ProductId, returnUrl?: st
     userEmail: session.user.email,
     customerId: profile?.stripeCustomerId ?? null,
     priceId,
+    plan: productId,
     successUrl,
     cancelUrl,
   })

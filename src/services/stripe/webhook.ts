@@ -48,6 +48,15 @@ export async function handleSubscriptionEvent(
   }
 
   const sub = event.data.object as Stripe.Subscription;
+  console.warn("[SUBSCRIPTION_RECOVERY] webhook_received", {
+    eventType: event.type,
+    subscriptionId: sub.id,
+    customerId: getStripeId(sub.customer),
+    stripeStatus: sub.status,
+    metadataHasUserId: Boolean(sub.metadata?.userId),
+    metadataHasUserEmail: Boolean(sub.metadata?.userEmail),
+    metadataHasSubscriptionTier: Boolean(sub.metadata?.subscriptionTier),
+  });
   return syncSubscriptionInternal(sub, event.type);
 }
 
@@ -60,13 +69,23 @@ export async function syncCheckoutSessionActivation(
 export async function syncSubscription(
   sub: Stripe.Subscription,
   eventType: string,
+  authenticatedUserId?: string | null,
 ): Promise<{ synced: boolean; reason?: string }> {
-  return syncSubscriptionInternal(sub, eventType);
+  return syncSubscriptionInternal(sub, eventType, authenticatedUserId);
 }
 
 async function syncCheckoutSession(
   session: Stripe.Checkout.Session,
 ): Promise<{ synced: boolean; reason?: string }> {
+  console.warn("[SUBSCRIPTION_RECOVERY] checkout_session_sync_started", {
+    sessionId: session.id,
+    mode: session.mode,
+    paymentStatus: session.payment_status,
+    hasSubscription: Boolean(session.subscription),
+    metadataHasUserId: Boolean(session.metadata?.userId),
+    metadataHasSubscriptionTier: Boolean(session.metadata?.subscriptionTier),
+  })
+
   if (session.mode !== "subscription") {
     return { synced: false, reason: `Checkout mode is ${session.mode || "unknown"}.` };
   }
@@ -76,6 +95,14 @@ async function syncCheckoutSession(
   const userId = session.client_reference_id || session.metadata?.userId || null;
   const userEmail =
     session.customer_details?.email || session.customer_email || session.metadata?.userEmail || null;
+
+  console.warn("[SUBSCRIPTION_RECOVERY] checkout_session_identifiers", {
+    customerId,
+    subscriptionId,
+    userId,
+    userEmail,
+    lookupStrategy: userId ? "client_reference_id" : "metadata_userId",
+  })
 
   if (!customerId) {
     return { synced: false, reason: "Checkout session has no customer ID." };
@@ -145,6 +172,11 @@ async function syncCheckoutSession(
       }),
     });
   } else {
+    console.warn("[SUBSCRIPTION_RECOVERY] checkout_session_profile_found", {
+      profileId: profile.id,
+      currentDBTier: profile.subscriptionTier,
+      stripeCustomerIdPresent: Boolean(profile.stripeCustomerId),
+    })
     await activeDb.update(profiles).set(updates).where(eq(profiles.id, profile.id));
   }
 
@@ -179,7 +211,10 @@ async function syncCheckoutSession(
 async function syncSubscriptionInternal(
   sub: Stripe.Subscription,
   eventType: string,
+  authenticatedUserId?: string | null,
 ): Promise<{ synced: boolean; reason?: string }> {
+
+  console.warn("[SUBSCRIPTION_RECOVERY] sync_started", { eventType, subscriptionId: sub.id })
 
   // Guard against null customer (defensive — Stripe never sends null here for
   // subscription events, but the typeof check alone would pass through `null`
@@ -202,15 +237,48 @@ async function syncSubscriptionInternal(
     return { synced: false, reason: "Database unavailable." };
   }
 
-  const existing = await findProfileForStripeCustomer({
+  let existing = await findProfileForStripeCustomer({
     customerId,
     userId,
     userEmail,
   });
 
+  if (!existing && authenticatedUserId) {
+    existing = await findProfileForStripeCustomer({
+      customerId,
+      userId: authenticatedUserId,
+      userEmail,
+    });
+  }
+
   if (!existing) {
+    console.warn("[SUBSCRIPTION_RECOVERY] profile_not_found", {
+      customerId,
+      userIdFromMetadata: userId,
+      userEmailFromMetadata: userEmail,
+      authenticatedUserId,
+      lookupStrategies: ["stripeCustomerId", "userId", "userEmail", "authenticatedUserId"],
+    })
     return { synced: false, reason: `No profile for customer ${customerId}` };
   }
+
+  const currentTier = existing.subscriptionTier;
+  const priceId = sub.items.data[0]?.price?.id ?? null;
+  const mappedTier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
+  const metadataTier = getSubscriptionTierFromMetadata(sub.metadata);
+
+  console.warn("[SUBSCRIPTION_RECOVERY] sync_profile_found", {
+    profileId: (existing as Record<string, unknown>).id,
+    userId: existing.userId,
+    currentDBTier: currentTier,
+    stripeCustomerIdPresent: Boolean(existing.stripeCustomerId),
+    stripeSubscriptionIdPresent: Boolean(existing.stripeSubscriptionId),
+    subscriptionStatus: status,
+    stripePriceId: priceId,
+    mappedUseClevrTier: mappedTier,
+    metadataTier,
+    lookupStrategy: authenticatedUserId ? "authenticatedUserId_fallback" : "subscription_metadata",
+  })
 
   const updates: Record<string, unknown> = {
     stripeCustomerId: customerId,
@@ -220,10 +288,28 @@ async function syncSubscriptionInternal(
   };
   applySubscriptionUpdates(updates, sub);
 
+  const dbUpdateAttempted = Boolean(updates.stripeCustomerId || updates.stripeSubscriptionId);
+  console.warn("[SUBSCRIPTION_RECOVERY] db_update_attempted", {
+    dbUpdateAttempted,
+    updates: { stripeCustomerId: updates.stripeCustomerId, stripeSubscriptionId: updates.stripeSubscriptionId, stripeStatus: updates.stripeStatus, subscriptionTier: updates.subscriptionTier },
+  })
+
   const idFromExisting = (existing as Record<string, unknown>).id as string;
 
   await activeDb.update(profiles).set(updates).where(eq(profiles.id, idFromExisting));
+
+  const tierAfterUpdate = updates.subscriptionTier ?? currentTier;
+  console.warn("[SUBSCRIPTION_RECOVERY] db_update_succeeded", {
+    tierImmediatelyAfterDBUpdate: tierAfterUpdate,
+  })
+
   await refreshBillingAccess(existing.userId, updates.subscriptionTier, existing.subscriptionTier);
+
+  console.warn("[SUBSCRIPTION_RECOVERY] processPlanChange_result", {
+    result: tierAfterUpdate !== currentTier ? "plan_change_triggered" : "no_change_needed",
+    previousTier: currentTier,
+    newTier: tierAfterUpdate,
+  })
 
   await recordActivity({
     userId: existing.userId,
@@ -238,6 +324,11 @@ async function syncSubscriptionInternal(
       stripeSubscriptionId: sub.id,
     },
   });
+
+  console.warn("[SUBSCRIPTION_RECOVERY] sync_completed", {
+    finalResolvedEntitlementTier: tierAfterUpdate,
+    synced: true,
+  })
 
   return { synced: true };
 }
@@ -256,9 +347,21 @@ async function findProfileForStripeCustomer({ customerId, userId, userEmail }: P
   if (userId) clauses.push(eq(profiles.userId, userId));
   if (userEmail) clauses.push(eq(profiles.email, userEmail));
 
-  return activeDb.query.profiles.findFirst({
+  const matched = await activeDb.query.profiles.findFirst({
     where: clauses.length === 1 ? clauses[0] : or(...clauses),
   });
+
+  if (matched) return matched;
+
+  // Fallback: if stripeCustomerId is not yet linked (e.g. recovery before
+  // webhook delivery), try an email match across all profiles.
+  if (userEmail && !customerId) {
+    return activeDb.query.profiles.findFirst({
+      where: eq(profiles.email, userEmail),
+    });
+  }
+
+  return null;
 }
 
 function applySubscriptionUpdates(

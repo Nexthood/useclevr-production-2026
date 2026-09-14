@@ -114,12 +114,13 @@ export default async function SubscriptionSettingsPage({
     console.warn(`[SUBSCRIPTION_RECOVERY] ${event}`, data);
   };
 
-  recoveryLog("started", { authenticated: Boolean(session?.user?.id) });
+  recoveryLog("started", { authenticated: Boolean(session?.user?.id), userId: session?.user?.id ?? null });
   recoveryLog("profile_state", {
     profile_loaded: Boolean(profile),
     subscriptionTier: profile?.subscriptionTier ?? null,
     storedSubscriptionId: Boolean(profile?.stripeSubscriptionId),
     storedCustomerId: Boolean(profile?.stripeCustomerId),
+    stripeCustomerIdPresent: Boolean(profile?.stripeCustomerId),
   });
 
   if (!profile || profile.subscriptionTier === "free") {
@@ -136,7 +137,7 @@ export default async function SubscriptionSettingsPage({
         try {
           const sub = await retrieveStripeSubscription(profile.stripeSubscriptionId);
           if (sub.status === "active" || sub.status === "trialing") {
-            recoveryLog("active_subscription_found", { subscriptionId: sub.id });
+            recoveryLog("active_subscription_found", { subscriptionId: sub.id, status: sub.status });
             const priceId = sub.items.data[0]?.price?.id;
             recoveryLog("price_id_found", { priceId: priceId ?? null });
             const tier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
@@ -144,7 +145,9 @@ export default async function SubscriptionSettingsPage({
 
             if (tier) {
               recoveryLog("sync_started", { source: "stored_subscription", tier });
-              const syncResult = await syncSubscription(sub, "manual_subscription_sync");
+              recoveryLog("sync_invoked", { subscriptionId: sub.id, stripeCustomerId: sub.customer });
+              const syncResult = await syncSubscription(sub, "manual_subscription_sync", session?.user?.id ?? null);
+              recoveryLog("sync_result", { synced: syncResult.synced, reason: syncResult.reason ?? null });
               if (syncResult.synced) {
                 recoveryLog("sync_success", { tier });
                 recovered = true;
@@ -179,7 +182,7 @@ export default async function SubscriptionSettingsPage({
               (s) => s.status === "active" || s.status === "trialing",
             );
             if (activeSub) {
-              recoveryLog("active_subscription_found", { subscriptionId: activeSub.id });
+              recoveryLog("active_subscription_found", { subscriptionId: activeSub.id, status: activeSub.status });
               const priceId = activeSub.items.data[0]?.price?.id;
               recoveryLog("price_id_found", { priceId: priceId ?? null });
               const tier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
@@ -188,7 +191,9 @@ export default async function SubscriptionSettingsPage({
               if (tier) {
                 recoveryLog("sync_started", { source: "stored_customer", tier });
                 const fullSub = await stripe.subscriptions.retrieve(activeSub.id);
-                const syncResult = await syncSubscription(fullSub, "manual_subscription_sync");
+                recoveryLog("sync_invoked", { subscriptionId: fullSub.id, stripeCustomerId: fullSub.customer });
+                const syncResult = await syncSubscription(fullSub, "manual_subscription_sync", session?.user?.id ?? null);
+                recoveryLog("sync_result", { synced: syncResult.synced, reason: syncResult.reason ?? null });
                 if (syncResult.synced) {
                   recoveryLog("sync_success", { tier });
                   recovered = true;
@@ -215,13 +220,38 @@ export default async function SubscriptionSettingsPage({
         if (userEmail) {
           const normalizedEmail = userEmail.trim().toLowerCase();
           try {
-            const customers = await stripe.customers.list({ limit: 10 });
-            const matches = customers.data.filter(
-              (c) => c.email?.trim().toLowerCase() === normalizedEmail,
-            );
-            if (matches.length === 1) {
-              const customer = matches[0];
-              recoveryLog("email_customer_lookup", { found: true, matchCount: 1 });
+            recoveryLog("email_customer_lookup", { strategy: "email_filter_first", email: userEmail });
+            let matchedCustomers: Stripe.Customer[] = [];
+            try {
+              const emailFilterResult = await stripe.customers.list({ email: userEmail, limit: 1 });
+              matchedCustomers = emailFilterResult.data;
+              recoveryLog("email_customer_lookup", { strategy: "email_filter", matchCount: emailFilterResult.data.length });
+            } catch {
+              recoveryLog("email_customer_lookup", { strategy: "email_filter", result: "unsupported_fallback_to_pagination" });
+            }
+            if (matchedCustomers.length === 0) {
+              recoveryLog("email_customer_lookup", { strategy: "pagination", reason: "email_filter_empty_starting_pagination" });
+              let hasMore = true;
+              let startingAfter: string | undefined;
+              while (hasMore) {
+                const page = await stripe.customers.list({ limit: 100, starting_after: startingAfter });
+                const pageMatches = page.data.filter(
+                  (c) => c.email?.trim().toLowerCase() === normalizedEmail,
+                );
+                matchedCustomers = matchedCustomers.concat(pageMatches);
+                hasMore = page.has_more;
+                if (page.data.length > 0) {
+                  startingAfter = page.data[page.data.length - 1].id;
+                } else {
+                  hasMore = false;
+                }
+                if (matchedCustomers.length > 1) break;
+              }
+              recoveryLog("email_customer_lookup", { strategy: "pagination", matchCount: matchedCustomers.length });
+            }
+            if (matchedCustomers.length === 1) {
+              const customer = matchedCustomers[0];
+              recoveryLog("email_customer_lookup", { found: true, matchCount: 1, customerId: customer.id });
               const subs = await stripe.subscriptions.list({
                 customer: customer.id,
                 expand: ["data.current_period_end"],
@@ -230,7 +260,7 @@ export default async function SubscriptionSettingsPage({
                 (s) => s.status === "active" || s.status === "trialing",
               );
               if (activeSub) {
-                recoveryLog("active_subscription_found", { subscriptionId: activeSub.id });
+                recoveryLog("active_subscription_found", { subscriptionId: activeSub.id, status: activeSub.status });
                 const priceId = activeSub.items.data[0]?.price?.id;
                 recoveryLog("price_id_found", { priceId: priceId ?? null });
                 const tier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
@@ -239,7 +269,9 @@ export default async function SubscriptionSettingsPage({
                 if (tier) {
                   recoveryLog("sync_started", { source: "email_customer", tier });
                   const fullSub = await stripe.subscriptions.retrieve(activeSub.id);
-                  const syncResult = await syncSubscription(fullSub, "manual_subscription_sync");
+                  recoveryLog("sync_invoked", { subscriptionId: fullSub.id, stripeCustomerId: fullSub.customer });
+                  const syncResult = await syncSubscription(fullSub, "manual_subscription_sync", session?.user?.id ?? null);
+                  recoveryLog("sync_result", { synced: syncResult.synced, reason: syncResult.reason ?? null });
                   if (syncResult.synced) {
                     recoveryLog("sync_success", { tier });
                     recovered = true;
@@ -252,8 +284,8 @@ export default async function SubscriptionSettingsPage({
               } else {
                 recoveryLog("active_subscription_missing", { customerId: customer.id });
               }
-            } else if (matches.length > 1) {
-              recoveryLog("email_customer_lookup", { found: false, matchCount: matches.length, reason: "ambiguous" });
+            } else if (matchedCustomers.length > 1) {
+              recoveryLog("email_customer_lookup", { found: false, matchCount: matchedCustomers.length, reason: "ambiguous" });
             } else {
               recoveryLog("email_customer_lookup", { found: false, matchCount: 0, reason: "customer_not_found" });
             }
@@ -281,6 +313,9 @@ export default async function SubscriptionSettingsPage({
         subscriptionTier: profile?.subscriptionTier ?? null,
         storedSubscriptionId: Boolean(profile?.stripeSubscriptionId),
         storedCustomerId: Boolean(profile?.stripeCustomerId),
+        tierImmediatelyAfterDBUpdate: profile?.subscriptionTier ?? null,
+        finalResolvedEntitlementTier: profile?.subscriptionTier ?? null,
+        processPlanChangeResult: recovered ? "completed" : "not_triggered",
         recovered,
       });
     }
