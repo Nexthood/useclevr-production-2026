@@ -174,10 +174,9 @@ export default async function SubscriptionSettingsPage({
           if (customer.deleted) {
             recoveryLog("active_subscription_missing", { customerId: customer.id, deleted: true });
           } else {
-            const subs = await stripe.subscriptions.list({
-              customer: profile.stripeCustomerId,
-              expand: ["data.current_period_end"],
-            });
+const subs = await stripe.subscriptions.list({
+             customer: profile.stripeCustomerId,
+           });
             const activeSub = subs.data.find(
               (s) => s.status === "active" || s.status === "trialing",
             );
@@ -252,10 +251,9 @@ export default async function SubscriptionSettingsPage({
             if (matchedCustomers.length === 1) {
               const customer = matchedCustomers[0];
               recoveryLog("email_customer_lookup", { found: true, matchCount: 1, customerId: customer.id });
-              const subs = await stripe.subscriptions.list({
-                customer: customer.id,
-                expand: ["data.current_period_end"],
-              });
+const subs = await stripe.subscriptions.list({
+               customer: customer.id,
+             });
               const activeSub = subs.data.find(
                 (s) => s.status === "active" || s.status === "trialing",
               );
