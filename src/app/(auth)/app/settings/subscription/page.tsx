@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth/auth";
 import { getActiveCreditTopUpPackages } from "@/lib/billing/credit-packages";
-import { getSubscriptionIntervalForStripePriceId } from "@/lib/billing/launch-pricing";
+import { getSubscriptionIntervalForStripePriceId, getSubscriptionTierForStripePriceId } from "@/lib/billing/launch-pricing";
 import { getBillingSettings } from "@/lib/billing/settings-store";
+import Stripe from "stripe";
 import { getCreditTopUpHistory } from "@/lib/billing/credit-topup-service";
 import { getDb } from "@/lib/db";
 import { datasets, profiles } from "@/lib/db/schema";
@@ -108,27 +109,157 @@ export default async function SubscriptionSettingsPage({
     datasetStats = { datasetCount: datasetResult.datasetCount, storageBytes: datasetResult.storageBytes as string };
   }
 
-  if (profile?.stripeSubscriptionId && profile.subscriptionTier === "free") {
-    try {
-      const sub = await retrieveStripeSubscription(profile.stripeSubscriptionId);
-      if (sub.status === "active" || sub.status === "trialing") {
-        await syncSubscription(sub, "manual_subscription_sync");
-        if (session?.user?.id && db) {
-          profile = await db.query.profiles.findFirst({
-            where: eq(profiles.userId, session.user.id),
-            columns: {
-              stripeCustomerId: true,
-              stripeCurrentPeriodEnd: true,
-              stripePriceId: true,
-              stripeStatus: true,
-              subscriptionTier: true,
-              stripeSubscriptionId: true,
-            },
-          });
+  // ----- Subscription recovery (idempotent) -----
+  if (profile?.subscriptionTier === "free") {
+    const log = (event: string, data: Record<string, unknown> = {}) => {
+      console.warn(`[stripe_recovery] ${event}`, { userId: session?.user?.id, ...data });
+    };
+    log("subscription_recovery_started", {});
+
+    let recovered = false;
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!stripeKey) {
+      log("subscription_sync_failed", { reason: "Stripe not configured" });
+    } else {
+      const stripe = new Stripe(stripeKey, {});
+
+      // Step 1: try stored stripeSubscriptionId
+      if (profile.stripeSubscriptionId) {
+        log("stored_subscription_found", { subscriptionId: profile.stripeSubscriptionId });
+        try {
+          const sub = await retrieveStripeSubscription(profile.stripeSubscriptionId);
+          if (sub.status === "active" || sub.status === "trialing") {
+            const priceId = sub.items.data[0]?.price?.id;
+            const tier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
+            if (tier) {
+              log("price_mapping_success", { priceId, tier });
+              const syncResult = await syncSubscription(sub, "manual_subscription_sync");
+              if (syncResult.synced) {
+                log("subscription_sync_success", { subscriptionId: profile.stripeSubscriptionId, tier });
+                recovered = true;
+              } else {
+                log("subscription_sync_failed", { reason: syncResult.reason });
+              }
+            } else {
+              log("price_mapping_failed", { priceId, tier });
+            }
+          } else {
+            log("active_subscription_missing", { subscriptionId: profile.stripeSubscriptionId, status: sub.status });
+          }
+        } catch (err) {
+          log("subscription_sync_failed", { error: (err as Error).message, subscriptionId: profile.stripeSubscriptionId });
+        }
+      } else {
+        log("stored_subscription_missing", {});
+      }
+
+      // Step 2: if stripeCustomerId exists, retrieve customer's subscriptions
+      if (!recovered && profile.stripeCustomerId) {
+        log("stored_customer_found", { customerId: profile.stripeCustomerId });
+        try {
+          const customer = await stripe.customers.retrieve(profile.stripeCustomerId);
+          if (customer.deleted) {
+            log("active_subscription_missing", { customerId: profile.stripeCustomerId, deleted: true });
+          } else {
+            const subs = await stripe.subscriptions.list({
+              customer: profile.stripeCustomerId,
+              expand: ["data.current_period_end"],
+            });
+            const activeSub = subs.data.find(
+              (s) => s.status === "active" || s.status === "trialing",
+            );
+            if (activeSub) {
+              log("active_subscription_found", { subscriptionId: activeSub.id });
+              const priceId = activeSub.items.data[0]?.price?.id;
+              const tier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
+              if (tier) {
+                log("price_mapping_success", { priceId, tier });
+                const fullSub = await stripe.subscriptions.retrieve(activeSub.id);
+                const syncResult = await syncSubscription(fullSub, "manual_subscription_sync");
+                if (syncResult.synced) {
+                  log("subscription_sync_success", { subscriptionId: activeSub.id, tier });
+                  recovered = true;
+                } else {
+                  log("subscription_sync_failed", { reason: syncResult.reason });
+                }
+              } else {
+                log("price_mapping_failed", { priceId, tier });
+              }
+            } else {
+              log("active_subscription_missing", { customerId: profile.stripeCustomerId });
+            }
+          }
+        } catch (err) {
+          log("subscription_sync_failed", { error: (err as Error).message, customerId: profile.stripeCustomerId });
         }
       }
-    } catch {
-      // Non-fatal: subscription sync attempted but unavailable
+
+      // Step 3: if stripeCustomerId missing, try exact email match
+      if (!recovered && !profile.stripeCustomerId) {
+        const userEmail = session?.user?.email ?? null;
+        if (userEmail) {
+          const normalizedEmail = userEmail.trim().toLowerCase();
+          try {
+            const customers = await stripe.customers.list({ limit: 10 });
+            const matches = customers.data.filter(
+              (c) => c.email?.trim().toLowerCase() === normalizedEmail,
+            );
+            if (matches.length === 1) {
+              const customer = matches[0];
+              log("customer_recovered_by_email", { email: normalizedEmail, customerId: customer.id });
+              const subs = await stripe.subscriptions.list({
+                customer: customer.id,
+                expand: ["data.current_period_end"],
+              });
+              const activeSub = subs.data.find(
+                (s) => s.status === "active" || s.status === "trialing",
+              );
+              if (activeSub) {
+                log("active_subscription_found", { subscriptionId: activeSub.id });
+                const priceId = activeSub.items.data[0]?.price?.id;
+                const tier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
+                if (tier) {
+                  log("price_mapping_success", { priceId, tier });
+                  const fullSub = await stripe.subscriptions.retrieve(activeSub.id);
+                  const syncResult = await syncSubscription(fullSub, "manual_subscription_sync");
+                  if (syncResult.synced) {
+                    log("subscription_sync_success", { subscriptionId: activeSub.id, tier });
+                    recovered = true;
+                  } else {
+                    log("subscription_sync_failed", { reason: syncResult.reason });
+                  }
+                } else {
+                  log("price_mapping_failed", { priceId, tier });
+                }
+              } else {
+                log("active_subscription_missing", { email: normalizedEmail });
+              }
+            } else if (matches.length > 1) {
+              log("ambiguous_customer_match", { email: normalizedEmail, matchCount: matches.length });
+            } else {
+              log("stored_customer_missing", { email: normalizedEmail });
+            }
+          } catch (err) {
+            log("subscription_sync_failed", { error: (err as Error).message, email: normalizedEmail });
+          }
+        }
+      }
+    }
+
+    // Re-fetch profile after recovery so UI reflects new tier
+    if (session?.user?.id && db) {
+      profile = await db.query.profiles.findFirst({
+        where: eq(profiles.userId, session.user.id),
+        columns: {
+          stripeCustomerId: true,
+          stripeCurrentPeriodEnd: true,
+          stripePriceId: true,
+          stripeStatus: true,
+          subscriptionTier: true,
+          stripeSubscriptionId: true,
+        },
+      });
     }
   }
 
