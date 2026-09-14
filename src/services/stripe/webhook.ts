@@ -1,9 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/lib/db/index";
 import { recordActivity } from "@/lib/activity/activity-store";
+import { processPlanChange } from "@/lib/billing/credit-engine";
 import { getSubscriptionTierForStripePriceId } from "@/lib/billing/launch-pricing";
 import { profiles, users } from "@/lib/db/schema";
 import { eq, or } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
 
 let _stripe: Stripe | null = null;
@@ -23,12 +25,16 @@ type _SubscriptionEventType =
   | "customer.subscription.updated"
   | "customer.subscription.deleted";
 
+type SubscriptionTier = "free" | "pro" | "business";
+
 const SUBSCRIPTION_EVENTS: ReadonlySet<string> = new Set([
   "checkout.session.completed",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
 ]);
+
+const REVOKED_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid"]);
 
 export async function handleSubscriptionEvent(
   event: Stripe.Event,
@@ -79,7 +85,12 @@ async function syncCheckoutSession(
   let stripeSubscription: Stripe.Subscription | null = null;
   if (subscriptionId) {
     stripeSubscription = await _getStripe().subscriptions.retrieve(subscriptionId);
-    applySubscriptionUpdates(updates, stripeSubscription);
+    applySubscriptionUpdates(updates, stripeSubscription, session.metadata);
+  } else {
+    const tierFromMetadata = getSubscriptionTierFromMetadata(session.metadata);
+    if (tierFromMetadata) {
+      updates.subscriptionTier = tierFromMetadata;
+    }
   }
 
   const profile = await findProfileForStripeCustomer({
@@ -125,6 +136,10 @@ async function syncCheckoutSession(
   }
 
   const activityUserId = userId || profile?.userId;
+  if (activityUserId) {
+    await refreshBillingAccess(activityUserId, updates.subscriptionTier, profile?.subscriptionTier);
+  }
+
   if (!activityUserId) {
     return { synced: true };
   }
@@ -195,6 +210,7 @@ async function syncSubscription(
   const idFromExisting = (existing as Record<string, unknown>).id as string;
 
   await activeDb.update(profiles).set(updates).where(eq(profiles.id, idFromExisting));
+  await refreshBillingAccess(existing.userId, updates.subscriptionTier, existing.subscriptionTier);
 
   await recordActivity({
     userId: existing.userId,
@@ -232,7 +248,11 @@ async function findProfileForStripeCustomer({ customerId, userId, userEmail }: P
   });
 }
 
-function applySubscriptionUpdates(updates: Record<string, unknown>, sub: Stripe.Subscription) {
+function applySubscriptionUpdates(
+  updates: Record<string, unknown>,
+  sub: Stripe.Subscription,
+  checkoutMetadata?: Stripe.Metadata | null,
+) {
   const priceId = sub.items.data[0]?.price.id ?? null;
   const currentPeriodEnd =
     "current_period_end" in sub && typeof sub.current_period_end === "number"
@@ -242,12 +262,17 @@ function applySubscriptionUpdates(updates: Record<string, unknown>, sub: Stripe.
   updates.stripeStatus = sub.status;
   if (priceId) {
     updates.stripePriceId = priceId;
-    const subscriptionTier = getSubscriptionTierForPrice(priceId);
-    if (subscriptionTier) {
-      updates.subscriptionTier = subscriptionTier;
-    }
   }
-  if (sub.status === "canceled" || sub.status === "incomplete_expired" || sub.status === "unpaid") {
+
+  const subscriptionTier =
+    (priceId ? getSubscriptionTierForPrice(priceId) : null) ||
+    getSubscriptionTierFromMetadata(sub.metadata) ||
+    getSubscriptionTierFromMetadata(checkoutMetadata);
+  if (subscriptionTier) {
+    updates.subscriptionTier = subscriptionTier;
+  }
+
+  if (REVOKED_SUBSCRIPTION_STATUSES.has(sub.status)) {
     updates.subscriptionTier = "free";
   }
   if (currentPeriodEnd) updates.stripeCurrentPeriodEnd = currentPeriodEnd;
@@ -255,6 +280,41 @@ function applySubscriptionUpdates(updates: Record<string, unknown>, sub: Stripe.
 
 function getSubscriptionTierForPrice(priceId: string) {
   return getSubscriptionTierForStripePriceId(priceId);
+}
+
+function getSubscriptionTierFromMetadata(metadata?: Stripe.Metadata | null): SubscriptionTier | null {
+  const rawTier =
+    metadata?.subscriptionTier ||
+    metadata?.tier ||
+    metadata?.plan ||
+    metadata?.billingPlanId ||
+    metadata?.productId ||
+    null;
+  if (!rawTier) return null;
+
+  const normalized = rawTier.trim().toLowerCase();
+  if (normalized === "business" || normalized === "business_monthly" || normalized === "business_annual") {
+    return "business";
+  }
+  if (normalized === "pro" || normalized === "pro_monthly" || normalized === "pro_annual") {
+    return "pro";
+  }
+  return null;
+}
+
+async function refreshBillingAccess(userId: string, tier: unknown, previousTier?: string | null) {
+  if ((tier === "free" || tier === "pro" || tier === "business") && tier !== previousTier) {
+    await processPlanChange(userId, tier);
+  }
+
+  revalidatePath("/app");
+  revalidatePath("/app/settings");
+  revalidatePath("/app/settings/subscription");
+  revalidatePath("/app/settings/checkout");
+  revalidatePath("/app/upload");
+  revalidatePath("/app/datasets");
+  revalidatePath("/app/accountancy");
+  revalidatePath("/app/prebookkeeping");
 }
 
 function getStripeId(value: string | { id?: string } | null): string | null {

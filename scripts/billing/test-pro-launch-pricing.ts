@@ -408,6 +408,11 @@ assert.ok(stripeCheckoutSource.includes("adaptive_pricing"), "checkout disables 
 
 const webhookSource = readProjectFile("src/services/stripe/webhook.ts")
 assert.ok(webhookSource.includes("getSubscriptionTierForStripePriceId"), "webhook maps all market Price IDs through the checkout registry")
+assert.ok(webhookSource.includes("getSubscriptionTierFromMetadata"), "webhook falls back to checkout/subscription metadata when Stripe Price IDs are not in local env")
+assert.ok(webhookSource.includes("billingPlanId"), "webhook recognizes checkout billing plan metadata")
+assert.ok(webhookSource.includes("processPlanChange"), "webhook refreshes plan credit allowances after subscription activation")
+assert.ok(webhookSource.includes('revalidatePath("/app/upload")'), "webhook refreshes upload state after subscription activation")
+assert.ok(webhookSource.includes('revalidatePath("/app/accountancy")'), "webhook refreshes Accountancy state after subscription activation")
 
 const existingSubscription = Object.freeze({
   id: "sub_existing",

@@ -7392,3 +7392,73 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Success Redirect
+
+1. Interaction title
+   Stripe Checkout subscription success redirect.
+
+2. What was the user goal
+   Fix only the Stripe Checkout success redirect flow so successful subscription payments do not redirect users to `0.0.0.0:8080` and instead land on a production-safe confirmation page.
+
+3. What changed
+   Added `src/lib/billing/checkout-redirect.ts` to build subscription checkout success and cancel URLs from `NEXT_PUBLIC_APP_URL`, `AUTH_URL`, `NEXTAUTH_URL`, the safe request origin, or the canonical production app URL. Updated the subscription checkout API routes and existing checkout server action to use that helper. Updated `/checkout/success` to support both `session_id` and legacy `s`, show "Payment successful", show "Your UseClevr subscription is now active.", display the plan when Stripe metadata identifies it, and provide a "Go to Dashboard" button.
+
+4. Problems marked
+   blocker: none.
+   risk: live Stripe redirect verification requires an authenticated browser checkout and Stripe test credentials/session access outside this session.
+   improvement: add a focused regression test for checkout redirect URL resolution if the project adds route-level billing tests.
+   observation: the separate credit top-up checkout flow still uses its existing subscription settings redirect and remains out of scope for the subscription success page fix.
+
+5. User learning
+   Subscription checkout redirects now use configured public application origins instead of the server bind origin exposed by `request.nextUrl.origin`.
+
+6. AI-agent learning
+   Checkout URL generation must not trust the incoming request origin when infrastructure can expose bind hosts such as `0.0.0.0`.
+
+7. Follow-up tasks
+   - Add a billing route regression test that asserts production subscription checkout URLs never use bind-host or loopback origins.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Subscription Activation
+
+1. Interaction title
+   Stripe subscription activation after checkout.
+
+2. What was the user goal
+   Fix only the activation path after successful Stripe subscription checkout so paid users move from Free to Pro or Business and gated features unlock.
+
+3. What changed
+   The Stripe subscription webhook now derives the app subscription tier from the Stripe Price ID first and falls back to checkout/subscription metadata such as `billingPlanId`, `plan`, or `productId`. Checkout session completion passes session metadata into subscription sync. Subscription events continue writing Stripe customer ID, subscription ID, status, price ID, and billing period when Stripe provides them. After a real tier change, the webhook runs the existing plan-credit refresh and revalidates account, subscription, checkout, upload, dataset, Accountancy, and Pre-bookkeeping paths. The focused Pro pricing regression script now asserts the webhook metadata fallback, plan-credit refresh, and path revalidation hooks.
+
+4. Problems marked
+   blocker: none.
+   risk: live end-to-end Stripe upgrade verification requires an authenticated browser checkout, Stripe test credentials, and webhook delivery access outside this session.
+   improvement: add a DB-backed webhook fixture test when a safe test database harness exists for billing webhooks.
+   observation: Standard upload, Accountancy limits, and ClevrSync already read entitlement from `Profile.subscriptionTier` through DB-backed usage/limit helpers, so fixing webhook profile activation unlocks those gates without bypassing checks.
+
+5. User learning
+   Successful payment must update `Profile.subscriptionTier`; Stripe IDs alone do not unlock UseClevr plan gates.
+
+6. AI-agent learning
+   Stripe webhook tier mapping must not rely only on environment-resolved Price IDs because checkout metadata already carries the canonical app plan selected by the user.
+
+7. Follow-up tasks
+   - Add a billing webhook fixture test that posts signed Stripe test events against a disposable database and verifies Free to Pro activation end to end.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
