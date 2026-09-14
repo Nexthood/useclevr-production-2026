@@ -10,6 +10,7 @@ import {
   Loader2,
   Share2,
 } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,20 @@ type Connector = {
   displayName: string;
   sourceMeta?: Record<string, unknown>;
   updatedAt?: string;
+};
+
+type ClevrSyncAccess = {
+  enabled: boolean;
+  tier: string;
+  upgradeRequired: boolean;
+  upgradeHref: string;
+  connectors: {
+    excel: boolean;
+    googleSheets: boolean;
+    oneDrive: false;
+    sharePoint: false;
+    scheduledSync: false;
+  };
 };
 
 const connectorOptions = [
@@ -43,6 +58,7 @@ export default function DataConnectionsPage() {
   const [googleWorksheet, setGoogleWorksheet] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [googleMessage, setGoogleMessage] = useState<string | null>(null);
+  const [access, setAccess] = useState<ClevrSyncAccess | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isGooglePreviewing, setIsGooglePreviewing] = useState(false);
@@ -58,6 +74,7 @@ export default function DataConnectionsPage() {
 
   useEffect(() => {
     loadConnectors();
+    loadAccess();
   }, []);
 
   useEffect(() => {
@@ -76,7 +93,15 @@ export default function DataConnectionsPage() {
     setConnectors(Array.isArray(payload.connectors) ? payload.connectors : []);
   }
 
+  async function loadAccess() {
+    const response = await fetch("/api/clevrsync/access", { cache: "no-store" });
+    if (!response.ok) return;
+    const payload = await response.json();
+    setAccess(payload.access);
+  }
+
   async function ensureExcelConnector() {
+    if (!access?.enabled) throw new Error("ClevrSync requires Pro or Business.");
     if (connector) return connector;
     const response = await fetch("/api/clevrsync/connectors", {
       method: "POST",
@@ -94,6 +119,7 @@ export default function DataConnectionsPage() {
   }
 
   async function handlePreview() {
+    if (!access?.enabled) return;
     if (!file || !canPreview) return;
     setIsPreviewing(true);
     setMessage(null);
@@ -118,6 +144,7 @@ export default function DataConnectionsPage() {
   }
 
   async function handleSync() {
+    if (!access?.enabled) return;
     if (!file || !connector) return;
     setIsSyncing(true);
     setMessage(null);
@@ -142,11 +169,13 @@ export default function DataConnectionsPage() {
   }
 
   function handleGoogleConnect() {
+    if (!access?.enabled) return;
     window.location.href =
       "/api/clevrsync/google/oauth/start?returnTo=/app/settings/data-connections";
   }
 
   async function handleGooglePreview() {
+    if (!access?.enabled) return;
     if (!selectedGoogleConnector || !canGooglePreview) return;
     setIsGooglePreviewing(true);
     setGoogleMessage(null);
@@ -175,6 +204,7 @@ export default function DataConnectionsPage() {
   }
 
   async function handleGoogleSync() {
+    if (!access?.enabled) return;
     if (!selectedGoogleConnector || !googleSpreadsheet.trim()) return;
     setIsGoogleSyncing(true);
     setGoogleMessage(null);
@@ -226,6 +256,9 @@ export default function DataConnectionsPage() {
         {connectorOptions.map((option) => {
           const Icon = option.icon;
           const available = option.type === "excel" || option.type === "google_sheets";
+          const locked =
+            access?.enabled === false &&
+            (option.type === "excel" || option.type === "google_sheets");
           return (
             <Card key={option.type} className="border-border bg-card">
               <CardHeader className="pb-3">
@@ -237,25 +270,33 @@ export default function DataConnectionsPage() {
                     <CardTitle className="text-base">{option.label}</CardTitle>
                   </div>
                   <span className="rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground">
-                    {option.status}
+                    {locked ? "Premium" : option.status}
                   </span>
                 </div>
               </CardHeader>
               <CardContent>
-                <Button
-                  type="button"
-                  variant={available ? "outline" : "secondary"}
-                  className="w-full"
-                  disabled={!available}
-                  onClick={option.type === "google_sheets" ? handleGoogleConnect : undefined}
-                >
-                  <HardDrive className="mr-2 h-4 w-4" />
-                  {option.type === "google_sheets"
-                    ? "Connect"
-                    : available
-                      ? "Use source"
-                      : "Coming soon"}
-                </Button>
+                {locked ? (
+                  <Link href={access?.upgradeHref || "/app/settings/checkout?plan=pro_monthly&discount=auto"}>
+                    <Button type="button" className="w-full">
+                      Upgrade to Pro
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    type="button"
+                    variant={available ? "outline" : "secondary"}
+                    className="w-full"
+                    disabled={!available}
+                    onClick={option.type === "google_sheets" ? handleGoogleConnect : undefined}
+                  >
+                    <HardDrive className="mr-2 h-4 w-4" />
+                    {option.type === "google_sheets"
+                      ? "Connect"
+                      : available
+                        ? "Use source"
+                        : "Coming soon"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           );
@@ -277,10 +318,14 @@ export default function DataConnectionsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {!selectedGoogleConnector ? (
-            <Button type="button" onClick={handleGoogleConnect}>
-              <Database className="mr-2 h-4 w-4" />
-              Connect Google Sheets
-            </Button>
+            access?.enabled === false ? (
+              <PremiumLock access={access} />
+            ) : (
+              <Button type="button" onClick={handleGoogleConnect}>
+                <Database className="mr-2 h-4 w-4" />
+                Connect Google Sheets
+              </Button>
+            )
           ) : (
             <>
               <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_auto_auto] lg:items-center">
@@ -313,7 +358,7 @@ export default function DataConnectionsPage() {
                   type="button"
                   variant="outline"
                   onClick={handleGooglePreview}
-                  disabled={!canGooglePreview || isGooglePreviewing}
+                  disabled={!access?.enabled || !canGooglePreview || isGooglePreviewing}
                 >
                   {isGooglePreviewing ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -325,7 +370,7 @@ export default function DataConnectionsPage() {
                 <Button
                   type="button"
                   onClick={handleGoogleSync}
-                  disabled={!canGooglePreview || isGoogleSyncing}
+                  disabled={!access?.enabled || !canGooglePreview || isGoogleSyncing}
                 >
                   {isGoogleSyncing ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -335,6 +380,7 @@ export default function DataConnectionsPage() {
                   {selectedGoogleConnector.sourceMeta?.datasetId ? "Sync now" : "Connect & Analyze"}
                 </Button>
               </div>
+              {access?.enabled === false ? <PremiumLock access={access} /> : null}
 
               {googleMessage ? (
                 <p className="text-sm text-muted-foreground">{googleMessage}</p>
@@ -362,6 +408,7 @@ export default function DataConnectionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {access?.enabled === false ? <PremiumLock access={access} /> : null}
           <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
             <input
               type="file"
@@ -377,7 +424,7 @@ export default function DataConnectionsPage() {
               type="button"
               variant="outline"
               onClick={handlePreview}
-              disabled={!canPreview || isPreviewing}
+              disabled={!access?.enabled || !canPreview || isPreviewing}
             >
               {isPreviewing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -389,7 +436,7 @@ export default function DataConnectionsPage() {
             <Button
               type="button"
               onClick={handleSync}
-              disabled={!preview || !connector || isSyncing}
+              disabled={!access?.enabled || !preview || !connector || isSyncing}
             >
               {isSyncing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -437,6 +484,24 @@ function ConnectionBadge({ connector }: { connector: Connector | null }) {
     <span className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground">
       {label}
     </span>
+  );
+}
+
+function PremiumLock({ access }: { access: ClevrSyncAccess }) {
+  return (
+    <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">ClevrSync requires Pro or Business</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your current Free plan keeps manual CSV/XLSX uploads available, while connected data sources unlock on Pro.
+          </p>
+        </div>
+        <Link href={access.upgradeHref}>
+          <Button type="button">Upgrade to Pro</Button>
+        </Link>
+      </div>
+    </div>
   );
 }
 

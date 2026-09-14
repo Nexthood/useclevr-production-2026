@@ -7,6 +7,7 @@ import {
   exchangeGoogleSheetsCode,
   getGoogleSheetsScope,
 } from "@/services/clevrsync";
+import { requireClevrSyncAccess } from "@/services/clevrsync/access";
 import { verifyGoogleOAuthState } from "@/services/clevrsync/google-oauth-state";
 import { encryptClevrSyncToken } from "@/services/clevrsync/token-vault";
 
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await requireBuiltinUserRecord(session.user.id);
+    await requireClevrSyncAccess(session.user);
     const code = request.nextUrl.searchParams.get("code");
     const stateValue = request.nextUrl.searchParams.get("state");
     const error = request.nextUrl.searchParams.get("error");

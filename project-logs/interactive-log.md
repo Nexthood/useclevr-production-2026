@@ -35,6 +35,41 @@
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Railway React 19 Dependency Conflict
+
+1. Interaction title
+   Railway TEST React 19 dependency conflict cleanup.
+
+2. What was the user goal
+   Fix the Railway TEST npm install ERESOLVE failure caused by `react-simple-maps@3.0.0` peer dependencies excluding React 19, without using `npm --force` or `legacy-peer-deps`, and without changing ClevrSync, OAuth, or unrelated code.
+
+3. What changed
+   The dashboard geographic revenue map now renders with local React/SVG projection, grid, approximate landmasses, markers, tooltip, zoom controls, and selection behavior instead of `react-simple-maps`. `react-simple-maps` and its type package are removed from dependencies and the pnpm lockfile. The reviewed security residual allowlist and residual-risk register no longer include the removed stale `d3-color` advisory path.
+
+4. Problems marked
+   blocker: none.
+   risk: the focused ESLint command reports the CommonJS audit allowlist script is ignored by project lint configuration.
+   improvement: add a visual regression screenshot for the geographic revenue map when dashboard fixture coverage is expanded.
+   observation: removing the dependency also removes the old `d3-color` transitive advisory from the active dependency graph.
+
+5. User learning
+   The dependency conflict is resolved by eliminating the only active `react-simple-maps` usage, so Railway npm install no longer needs peer-dependency overrides.
+
+6. AI-agent learning
+   When a React peer conflict comes from one isolated visualization dependency, replace the isolated integration before considering resolver flags or broad package overrides.
+
+7. Follow-up tasks
+   - Add geographic revenue map visual regression coverage when dashboard screenshot fixtures exist.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Accountancy Page Render Boundary Fix
 
 1. Interaction title
@@ -7203,7 +7238,43 @@
 - gemini-behavior.config.ts
 
 9. Minimal destination
-   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ClevrSync Product Access Integration
+
+1. Interaction title
+ClevrSync product access integration.
+
+2. What was the user goal
+Finish the production ClevrSync product integration by making ClevrSync visible in the main sidebar, reusing Settings -> Data Connections, adding authoritative Free / Pro / Business entitlement checks, preserving Excel and Google Sheets connector architecture, and keeping OneDrive, SharePoint, and scheduled sync for later.
+
+3. What changed
+The main Workspace sidebar now includes ClevrSync directly below Datasets and routes to the existing Data Connections page. ClevrSync has a shared entitlement model based on the existing usage/subscription resolver: Free users can discover the page but see Excel and Google Sheets as premium-locked, while Pro, Business, admin, and superadmin access can execute connector flows. ClevrSync API mutations, previews, sync operations, and Google OAuth start/callback now require server-side entitlement before execution. The Data Connections page loads the server entitlement, shows premium upgrade CTAs for Free users, disables connector execution when locked, and keeps OneDrive, SharePoint, and scheduled sync as future capabilities.
+
+4. Problems marked
+blocker: none.
+risk: the focused lint command reports the ClevrSync test script is ignored by project lint configuration; lint found no errors in checked source files.
+improvement: add a browser-level authenticated navigation test after stable account fixtures exist.
+observation: downgrade behavior is non-destructive because the entitlement gate blocks execution only and does not delete connectors, datasets, or sync records.
+
+5. User learning
+ClevrSync is visible to Free users as premium discovery, but execution requires Pro, Business, or existing unlimited internal access.
+
+6. AI-agent learning
+Premium feature discovery should keep navigation visible while enforcing execution through the server-side subscription resolver.
+
+7. Follow-up tasks
+- Add OneDrive and SharePoint provider implementations after OAuth and file-picker requirements are defined.
+- Add scheduled sync after manual sync history and provider refresh handling are proven in production.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
 ## ClevrSync Google Sheets Connector
 

@@ -2,7 +2,6 @@ const { execSync } = require("node:child_process");
 const fs = require("node:fs");
 
 const APPROVED_RESIDUAL_IDS = new Set([
-  "GHSA-36jr-mh4h-2g58",
   "GHSA-jg8r-5jh2-v2xj",
 ]);
 

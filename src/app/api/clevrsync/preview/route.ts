@@ -5,6 +5,10 @@ import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { uploadValidationErrorPayload } from "@/lib/upload/upload-security";
 import { debugError } from "@/lib/utils/debug";
 import {
+  clevrSyncAccessErrorPayload,
+  requireClevrSyncAccess,
+} from "@/services/clevrsync/access";
+import {
   GoogleSheetsProviderError,
   getOwnedClevrSyncConnector,
   parseExcelWorkbook,
@@ -25,6 +29,7 @@ export async function POST(request: Request) {
     }
 
     await requireBuiltinUserRecord(session.user.id);
+    await requireClevrSyncAccess(session.user);
     if (request.headers.get("content-type")?.includes("application/json")) {
       return previewGoogleSheets(request, session.user.id);
     }
@@ -65,6 +70,10 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    const accessError = clevrSyncAccessErrorPayload(error);
+    if (accessError) {
+      return NextResponse.json(accessError, { status: accessError.status });
+    }
     debugError("[ClevrSync] Preview failed:", error);
     const payload = uploadValidationErrorPayload(error, "CLEVRSYNC_PREVIEW_FAILED");
     return NextResponse.json(
