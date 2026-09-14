@@ -347,3 +347,4 @@
 - changed: structure the Accountancy Pre-bookkeeping Package CSV export with category, field, value, unit, and frequency columns for accountant-friendly imports
 - fixed: route subscription Stripe Checkout success redirects through the configured app origin or canonical production app URL, render a focused payment confirmation page, and keep unsafe bind-host origins out of checkout success URLs
 - fixed: activate paid subscriptions from Stripe checkout and subscription webhooks by falling back to checkout plan metadata, refreshing plan credit allowances on tier changes, and revalidating account, upload, Accountancy, and dataset paths
+- fixed: recover active subscriptions for missing or Free profile tiers with `SUBSCRIPTION_RECOVERY` diagnostics and sync subscription checkout sessions when paid status or a subscription object is present

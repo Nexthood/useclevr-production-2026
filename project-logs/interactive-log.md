@@ -7428,10 +7428,40 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
-## Stripe Subscription Activation
+## Subscription Recovery and Checkout Synchronization
 
 1. Interaction title
-   Stripe subscription activation after checkout.
+   Subscription recovery diagnostics and checkout synchronization.
+
+2. What was the user goal
+   Recover active subscriptions for Free or missing-tier profiles and ensure successful subscription checkout sessions sync even when Stripe returns no paid payment status.
+
+3. What changed
+   The subscription settings recovery block now runs for `null` profiles as well as Free profiles, logs `SUBSCRIPTION_RECOVERY` events for profile state, stored subscription/customer/email lookups, active subscription and price-ID discovery, price mapping, sync attempts and results, and final profile state. The checkout success page syncs subscription checkouts when the session is subscription-mode and either paid or has a subscription object, and type-checks the Stripe `subscription` field before reading its ID.
+
+4. Problems marked
+   blocker: none.
+   risk: live Stripe recovery and webhook delivery still require authenticated checkout and Stripe credentials outside this session.
+   improvement: add a disposable-database fixture test for signed Stripe subscription events.
+   observation: billing price mappings resolve `pro` and `business` tiers through the same Price ID environment-name lists used by checkout resolution.
+
+5. User learning
+   Missing or Free profile tiers trigger subscription recovery, and subscription checkouts sync based on subscription mode plus paid payment or subscription presence.
+
+6. AI-agent learning
+   Subscription recovery must handle null profiles, and Stripe checkout `subscription` values may be either an ID string or an object.
+
+7. Follow-up tasks
+   - Add a disposable-database fixture test that posts signed Stripe subscription events and verifies Free to Pro/Business activation end to end.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
 2. What was the user goal
    Fix only the activation path after successful Stripe subscription checkout so paid users move from Free to Pro or Business and gated features unlock.
