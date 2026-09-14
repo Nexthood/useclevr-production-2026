@@ -165,7 +165,7 @@ function testInvalidCurrentPeriodEndExpandRejected() {
   assert.ok(Array.isArray(result.data), "Expected list result to contain data array");
   assert.equal(result.data.length, 1, "Expected exactly one subscription in list result");
 
-  const sub = result.data[0];
+  const sub = result.data[0] as { id: string; status: string; current_period_end: number; items: { data: Array<{ price: { id: string } }> } };
   assert.equal(sub.id, "sub_test_123", "Expected subscription id from list result");
   assert.equal(sub.status, "active", "Expected active subscription status");
   assert.equal(typeof sub.current_period_end, "number",
