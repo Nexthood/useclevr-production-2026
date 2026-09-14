@@ -342,3 +342,4 @@
 - changed: expose ClevrSync in the main Workspace sidebar and enforce Pro/Business connector execution with server-side entitlement while keeping Free discovery and manual uploads intact
 - added: add Google Sheets ClevrSync connector with OAuth flow, encrypted token storage, spreadsheet/worksheet selection, preview, and manual sync through the existing dataset upload pipeline
 - fixed: resolve ClevrSync Google Sheets TypeScript errors in updateClevrSyncConnector status union and db delete cast
+- fixed: remove the React 19-incompatible react-simple-maps dependency by rendering the dashboard geographic revenue map with local React/SVG primitives

@@ -42,19 +42,7 @@ Upgrading the complete Payload family from `3.85.1` to `3.88.0` removes the prev
 
 ## Non-Payload Known Deferred HIGH
 
-### 2. d3-color GHSA-36jr-mh4h-2g58
-
-- **Advisory**: [GHSA-36jr-mh4h-2g58](https://github.com/advisories/GHSA-36jr-mh4h-2g58)
-- **Vulnerable package/version**: `d3-color@2.0.0`
-- **Vulnerable range**: `>=1.0.2 <3.1.0`
-- **Patched version required**: `>=3.1.0`
-- **Dependency path**: `react-simple-maps@3.0.0 > d3-zoom@2.0.0 > d3-interpolate@2.0.1 > d3-color@2.0.0`
-- **Production exposure**: Low. ReDoS in color string parsing requires user-controlled input reaching D3 color parsing. UseClevr uses this path indirectly through map visualization libraries with application-controlled color configuration.
-- **Existing mitigations**:
-  - User datasets provide map data values, not arbitrary D3 color parser strings.
-  - The vulnerable package is not used by upload, authentication, billing, Payload, or AI request routing.
-- **Reason deferred**: `d3-interpolate@2.0.1` and `d3-transition@2.0.0` declare `d3-color` ranges `1 - 2`, so overriding to `3.1.0` would cross the parent packages' supported major range.
-- **Temporary status**: Remove this entry through a separate approved D3/react-simple-maps upgrade or replacement task.
+No active non-Payload high-severity residual advisories are allowlisted.
 
 ## CI Allowlist
 
@@ -67,4 +55,3 @@ The CI pipeline uses `scripts/security/audit-allowlist.cjs` to enforce that:
 Approved residual advisory IDs:
 
 - `GHSA-jg8r-5jh2-v2xj`
-- `GHSA-36jr-mh4h-2g58`

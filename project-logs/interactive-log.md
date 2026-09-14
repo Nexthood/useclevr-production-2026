@@ -35,6 +35,41 @@
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Railway React 19 Dependency Conflict
+
+1. Interaction title
+   Railway TEST React 19 dependency conflict cleanup.
+
+2. What was the user goal
+   Fix the Railway TEST npm install ERESOLVE failure caused by `react-simple-maps@3.0.0` peer dependencies excluding React 19, without using `npm --force` or `legacy-peer-deps`, and without changing ClevrSync, OAuth, or unrelated code.
+
+3. What changed
+   The dashboard geographic revenue map now renders with local React/SVG projection, grid, approximate landmasses, markers, tooltip, zoom controls, and selection behavior instead of `react-simple-maps`. `react-simple-maps` and its type package are removed from dependencies and the pnpm lockfile. The reviewed security residual allowlist and residual-risk register no longer include the removed stale `d3-color` advisory path.
+
+4. Problems marked
+   blocker: none.
+   risk: the focused ESLint command reports the CommonJS audit allowlist script is ignored by project lint configuration.
+   improvement: add a visual regression screenshot for the geographic revenue map when dashboard fixture coverage is expanded.
+   observation: removing the dependency also removes the old `d3-color` transitive advisory from the active dependency graph.
+
+5. User learning
+   The dependency conflict is resolved by eliminating the only active `react-simple-maps` usage, so Railway npm install no longer needs peer-dependency overrides.
+
+6. AI-agent learning
+   When a React peer conflict comes from one isolated visualization dependency, replace the isolated integration before considering resolver flags or broad package overrides.
+
+7. Follow-up tasks
+   - Add geographic revenue map visual regression coverage when dashboard screenshot fixtures exist.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Accountancy Page Render Boundary Fix
 
 1. Interaction title
