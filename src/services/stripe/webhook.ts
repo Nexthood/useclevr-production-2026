@@ -2,11 +2,16 @@ import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/lib/db/index";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { processPlanChange } from "@/lib/billing/credit-engine";
-import { getSubscriptionTierForStripePriceId } from "@/lib/billing/launch-pricing";
+import { getSubscriptionTierForStripePriceId, getSubscriptionIntervalForStripePriceId } from "@/lib/billing/launch-pricing";
 import { profiles, users } from "@/lib/db/schema";
 import { eq, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
+import {
+  sendSubscriptionActivationEmail,
+  sendSubscriptionCancellationEmail,
+  sendSubscriptionCancellationScheduledEmail,
+} from "@/lib/email/subscription-emails";
 
 let _stripe: Stripe | null = null;
 
@@ -34,7 +39,9 @@ const SUBSCRIPTION_EVENTS: ReadonlySet<string> = new Set([
   "customer.subscription.deleted",
 ]);
 
-const REVOKED_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid"]);
+const REVOKED_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid", "past_due"]);
+
+const TERMINAL_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid", "past_due", "ended"]);
 
 export async function handleSubscriptionEvent(
   event: Stripe.Event,
@@ -43,12 +50,23 @@ export async function handleSubscriptionEvent(
     return { synced: false, reason: `Unhandled event type: ${event.type}` };
   }
 
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] event_received", {
+    eventType: event.type,
+    eventId: event.id,
+    eventCreated: event.created,
+  });
+
   if (event.type === "checkout.session.completed") {
-    return syncCheckoutSession(event.data.object as Stripe.Checkout.Session);
+    const result = await syncCheckoutSession(event.data.object as Stripe.Checkout.Session);
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] checkout_completed", {
+      synced: result.synced,
+      reason: result.reason,
+    });
+    return result;
   }
 
   const sub = event.data.object as Stripe.Subscription;
-  console.warn("[SUBSCRIPTION_RECOVERY] webhook_received", {
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] subscription_event", {
     eventType: event.type,
     subscriptionId: sub.id,
     customerId: getStripeId(sub.customer),
@@ -205,6 +223,36 @@ async function syncCheckoutSession(
     },
   });
 
+  const newTier = updates.subscriptionTier;
+  const previousTier = profile?.subscriptionTier || null;
+  const isActivation = previousTier === "free" || previousTier === null;
+
+  if (isActivation && (newTier === "pro" || newTier === "business") && stripeSubscription && userEmail) {
+    const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://useclevr.com/app";
+    const planName = newTier === "business" ? "Business" : "Pro";
+    const interval = getSubscriptionIntervalForStripePriceId(stripeSubscription.items.data[0]?.price?.id || "");
+    const amount = stripeSubscription.items.data[0]?.price?.unit_amount
+      ? stripeSubscription.items.data[0].price.unit_amount / 100
+      : newTier === "business"
+        ? 80
+        : 40;
+    const currency = stripeSubscription.items.data[0]?.price?.currency || "eur";
+    const nextBillingDate = stripeSubscription.current_period_end
+      ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+      : undefined;
+
+    await sendSubscriptionActivationEmail({
+      to: userEmail,
+      planName: planName as "Pro" | "Business",
+      billingInterval: interval === "yearly" ? "yearly" : "monthly",
+      amount,
+      currency: currency.toUpperCase(),
+      activatedAt: new Date().toISOString(),
+      nextBillingDate,
+      dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+    });
+  }
+
   return { synced: true };
 }
 
@@ -214,17 +262,19 @@ async function syncSubscriptionInternal(
   authenticatedUserId?: string | null,
 ): Promise<{ synced: boolean; reason?: string }> {
 
-  console.warn("[SUBSCRIPTION_RECOVERY] sync_started", { eventType, subscriptionId: sub.id })
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] sync_started", { eventType, subscriptionId: sub.id })
 
   // Guard against null customer (defensive — Stripe never sends null here for
   // subscription events, but the typeof check alone would pass through `null`
   // and then throw on `.id`).
   if (sub.customer == null) {
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] sync_failed", { reason: "no_customer_id" });
     return { synced: false, reason: "Subscription event has no customer ID." };
   }
 
   const customerId = getStripeId(sub.customer);
   if (!customerId) {
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] sync_failed", { reason: "invalid_customer_id" });
     return { synced: false, reason: "Subscription event has no customer ID." };
   }
 
@@ -234,6 +284,7 @@ async function syncSubscriptionInternal(
 
   const activeDb = getDb();
   if (!activeDb) {
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] sync_failed", { reason: "database_unavailable" });
     return { synced: false, reason: "Database unavailable." };
   }
 
@@ -252,12 +303,11 @@ async function syncSubscriptionInternal(
   }
 
   if (!existing) {
-    console.warn("[SUBSCRIPTION_RECOVERY] profile_not_found", {
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] profile_not_found", {
       customerId,
       userIdFromMetadata: userId,
       userEmailFromMetadata: userEmail,
       authenticatedUserId,
-      lookupStrategies: ["stripeCustomerId", "userId", "userEmail", "authenticatedUserId"],
     })
     return { synced: false, reason: `No profile for customer ${customerId}` };
   }
@@ -267,7 +317,7 @@ async function syncSubscriptionInternal(
   const mappedTier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
   const metadataTier = getSubscriptionTierFromMetadata(sub.metadata);
 
-  console.warn("[SUBSCRIPTION_RECOVERY] sync_profile_found", {
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] profile_found", {
     profileId: (existing as Record<string, unknown>).id,
     userId: existing.userId,
     currentDBTier: currentTier,
@@ -277,7 +327,7 @@ async function syncSubscriptionInternal(
     stripePriceId: priceId,
     mappedUseClevrTier: mappedTier,
     metadataTier,
-    lookupStrategy: authenticatedUserId ? "authenticatedUserId_fallback" : "subscription_metadata",
+    eventType,
   })
 
   const updates: Record<string, unknown> = {
@@ -286,35 +336,49 @@ async function syncSubscriptionInternal(
     stripeStatus: status,
     updatedAt: new Date(),
   };
-  applySubscriptionUpdates(updates, sub);
+  applySubscriptionUpdates(updates, sub, undefined, eventType);
 
   const dbUpdateAttempted = Boolean(updates.stripeCustomerId || updates.stripeSubscriptionId);
-  console.warn("[SUBSCRIPTION_RECOVERY] db_update_attempted", {
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] db_update", {
     dbUpdateAttempted,
-    updates: { stripeCustomerId: updates.stripeCustomerId, stripeSubscriptionId: updates.stripeSubscriptionId, stripeStatus: updates.stripeStatus, subscriptionTier: updates.subscriptionTier },
+    previousTier: currentTier,
+    newTier: updates.subscriptionTier,
+    stripeStatus: updates.stripeStatus,
+    eventType,
   })
 
   const idFromExisting = (existing as Record<string, unknown>).id as string;
 
   await activeDb.update(profiles).set(updates).where(eq(profiles.id, idFromExisting));
 
-  const tierAfterUpdate = updates.subscriptionTier ?? currentTier;
-  console.warn("[SUBSCRIPTION_RECOVERY] db_update_succeeded", {
-    tierImmediatelyAfterDBUpdate: tierAfterUpdate,
+  const tierAfterUpdate = (updates.subscriptionTier as string | null | undefined) ?? currentTier;
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] db_update_succeeded", {
+    tierAfterUpdate,
+    previousTier: currentTier,
+    eventType,
   })
 
   await refreshBillingAccess(existing.userId, updates.subscriptionTier, existing.subscriptionTier);
 
-  console.warn("[SUBSCRIPTION_RECOVERY] processPlanChange_result", {
-    result: tierAfterUpdate !== currentTier ? "plan_change_triggered" : "no_change_needed",
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] billing_access_refreshed", {
     previousTier: currentTier,
     newTier: tierAfterUpdate,
+    tierChanged: tierAfterUpdate !== currentTier,
+    eventType,
   })
+
+  const emailResult = await sendSubscriptionLifecycleEmail({
+    previousTier: currentTier,
+    newTier: tierAfterUpdate,
+    profile: existing,
+    sub,
+    eventType,
+  });
 
   await recordActivity({
     userId: existing.userId,
     userEmail: existing.email,
-    type: "subscribed",
+    type: tierAfterUpdate !== currentTier ? "subscription_changed" : "subscription_updated",
     feature: "subscription",
     title: getSubscriptionActivityTitle(eventType),
     description: `Subscription status is ${status}.`,
@@ -322,12 +386,19 @@ async function syncSubscriptionInternal(
       stripeStatus: status,
       stripePriceId: updates.stripePriceId ?? null,
       stripeSubscriptionId: sub.id,
+      previousTier: currentTier,
+      newTier: tierAfterUpdate,
     },
   });
 
-  console.warn("[SUBSCRIPTION_RECOVERY] sync_completed", {
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] sync_completed", {
     finalResolvedEntitlementTier: tierAfterUpdate,
+    previousTier: currentTier,
+    tierChanged: tierAfterUpdate !== currentTier,
     synced: true,
+    eventType,
+    emailSent: emailResult.sent,
+    emailError: emailResult.error,
   })
 
   return { synced: true };
@@ -368,6 +439,7 @@ function applySubscriptionUpdates(
   updates: Record<string, unknown>,
   sub: Stripe.Subscription,
   checkoutMetadata?: Stripe.Metadata | null,
+  eventType?: string,
 ) {
   const priceId = sub.items.data[0]?.price.id ?? null;
   const currentPeriodEnd =
@@ -380,16 +452,29 @@ function applySubscriptionUpdates(
     updates.stripePriceId = priceId;
   }
 
-  const subscriptionTier =
-    (priceId ? getSubscriptionTierForPrice(priceId) : null) ||
-    getSubscriptionTierFromMetadata(sub.metadata) ||
-    getSubscriptionTierFromMetadata(checkoutMetadata);
-  if (subscriptionTier) {
-    updates.subscriptionTier = subscriptionTier;
-  }
+  const isDeletedEvent = eventType === "customer.subscription.deleted";
 
-  if (REVOKED_SUBSCRIPTION_STATUSES.has(sub.status)) {
+  if (isDeletedEvent || TERMINAL_SUBSCRIPTION_STATUSES.has(sub.status)) {
     updates.subscriptionTier = "free";
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] subscription_terminated", {
+      eventType,
+      subscriptionId: sub.id,
+      status: sub.status,
+      isDeletedEvent,
+      resolvedTier: "free",
+    });
+  } else {
+    const subscriptionTier =
+      (priceId ? getSubscriptionTierForPrice(priceId) : null) ||
+      getSubscriptionTierFromMetadata(sub.metadata) ||
+      getSubscriptionTierFromMetadata(checkoutMetadata);
+    if (subscriptionTier) {
+      updates.subscriptionTier = subscriptionTier;
+    }
+
+    if (REVOKED_SUBSCRIPTION_STATUSES.has(sub.status)) {
+      updates.subscriptionTier = "free";
+    }
   }
   if (currentPeriodEnd) updates.stripeCurrentPeriodEnd = currentPeriodEnd;
 }
@@ -442,4 +527,118 @@ function getSubscriptionActivityTitle(eventType: string) {
   if (eventType === "customer.subscription.deleted") return "Subscription ended";
   if (eventType === "customer.subscription.updated") return "Subscription updated";
   return "Subscription started";
+}
+
+async function sendSubscriptionLifecycleEmail(params: {
+  previousTier: string | null;
+  newTier: string | null | undefined;
+  profile: { email: string | null; userId: string };
+  sub: Stripe.Subscription;
+  eventType: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const { previousTier, newTier, profile, sub, eventType } = params;
+  const to = profile.email;
+  if (!to) {
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] email_skipped_no_email", { userId: profile.userId });
+    return { sent: false, error: "no_email" };
+  }
+
+  const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://useclevr.com/app";
+
+  const tierChanged = previousTier !== newTier && newTier !== undefined;
+  const isActivation =
+    tierChanged &&
+    (previousTier === "free" || previousTier === null) &&
+    (newTier === "pro" || newTier === "business");
+  const isCancellation =
+    tierChanged &&
+    (previousTier === "pro" || previousTier === "business") &&
+    newTier === "free";
+  const isScheduledCancellation =
+    eventType === "customer.subscription.updated" &&
+    sub.cancel_at_period_end === true &&
+    (newTier === "pro" || newTier === "business");
+
+  if (isActivation) {
+    const planName = newTier === "business" ? "Business" : "Pro";
+    const interval = getSubscriptionIntervalForStripePriceId(sub.items.data[0]?.price?.id || "");
+    const amount = sub.items.data[0]?.price?.unit_amount
+      ? sub.items.data[0].price.unit_amount / 100
+      : newTier === "business"
+        ? 80
+        : 40;
+    const currency = sub.items.data[0]?.price?.currency || "eur";
+    const nextBillingDate = sub.current_period_end
+      ? new Date(sub.current_period_end * 1000).toISOString()
+      : undefined;
+
+    const result = await sendSubscriptionActivationEmail({
+      to,
+      planName: planName as "Pro" | "Business",
+      billingInterval: interval === "yearly" ? "yearly" : "monthly",
+      amount,
+      currency: currency.toUpperCase(),
+      activatedAt: new Date().toISOString(),
+      nextBillingDate,
+      dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+    });
+
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] activation_email_sent", {
+      success: result.success,
+      error: result.error,
+      planName,
+      to: to.substring(0, 3) + "***",
+    });
+
+    return { sent: result.success, error: result.error };
+  }
+
+  if (isCancellation) {
+    const result = await sendSubscriptionCancellationEmail({
+      to,
+      planName: previousTier === "business" ? "Business" : "Pro",
+      canceledAt: new Date().toISOString(),
+      datasetsPreserved: true,
+      purchasedCreditsPreserved: true,
+      dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+    });
+
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] cancellation_email_sent", {
+      success: result.success,
+      error: result.error,
+      planName: previousTier,
+      to: to.substring(0, 3) + "***",
+    });
+
+    return { sent: result.success, error: result.error };
+  }
+
+  if (isScheduledCancellation) {
+    const result = await sendSubscriptionCancellationScheduledEmail({
+      to,
+      planName: newTier === "business" ? "Business" : "Pro",
+      currentPeriodEnd: sub.current_period_end
+        ? new Date(sub.current_period_end * 1000).toISOString()
+        : new Date().toISOString(),
+      dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+    });
+
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] scheduled_cancellation_email_sent", {
+      success: result.success,
+      error: result.error,
+      planName: newTier,
+      to: to.substring(0, 3) + "***",
+    });
+
+    return { sent: result.success, error: result.error };
+  }
+
+  console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] email_not_required", {
+    previousTier,
+    newTier,
+    eventType,
+    tierChanged,
+  });
+
+  return { sent: false, error: "not_required" };
 }
