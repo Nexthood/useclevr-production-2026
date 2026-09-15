@@ -264,6 +264,21 @@ export function normalizeSubscriptionTier(tier: string | null | undefined): Bill
   return "free"
 }
 
+export function mapPlanIdToTier(planId: string | null | undefined): "free" | "pro" | "business" {
+  switch (planId) {
+    case "pro_monthly":
+    case "pro_annual":
+    case "pro":
+      return "pro";
+    case "business_monthly":
+    case "business_annual":
+    case "business":
+      return "business";
+    default:
+      return "free";
+  }
+}
+
 export function formatPlanPrice(plan: BillingPlan) {
   if (plan.tier === "free") return "$0/€0/month";
   const resolved = resolvePlanPrice(plan.id, "eu", "monthly");
