@@ -228,29 +228,44 @@ async function syncCheckoutSession(
   const isActivation = previousTier === "free" || previousTier === null;
 
   if (isActivation && (newTier === "pro" || newTier === "business") && stripeSubscription && userEmail) {
-    const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://useclevr.com/app";
-    const planName = newTier === "business" ? "Business" : "Pro";
-    const interval = getSubscriptionIntervalForStripePriceId(stripeSubscription.items.data[0]?.price?.id || "");
-    const amount = stripeSubscription.items.data[0]?.price?.unit_amount
-      ? stripeSubscription.items.data[0].price.unit_amount / 100
-      : newTier === "business"
-        ? 80
-        : 40;
-    const currency = stripeSubscription.items.data[0]?.price?.currency || "eur";
-    const nextBillingDate = stripeSubscription.current_period_end
-      ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
-      : undefined;
+    const profileUserId = profile?.userId || userId;
+    if (profileUserId) {
+      const idempotencyCheck = await shouldSendEmail({ email: userEmail, userId: profileUserId }, "activation");
+      if (!idempotencyCheck.shouldSend) {
+        console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] checkout_activation_email_skipped_idempotent", {
+          userId: profileUserId,
+          reason: idempotencyCheck.reason,
+        });
+      } else {
+        const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://useclevr.com/app";
+        const planName = newTier === "business" ? "Business" : "Pro";
+        const interval = getSubscriptionIntervalForStripePriceId(stripeSubscription.items.data[0]?.price?.id || "");
+        const amount = stripeSubscription.items.data[0]?.price?.unit_amount
+          ? stripeSubscription.items.data[0].price.unit_amount / 100
+          : newTier === "business"
+            ? 80
+            : 40;
+        const currency = stripeSubscription.items.data[0]?.price?.currency || "eur";
+        const nextBillingDate = stripeSubscription.current_period_end
+          ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+          : undefined;
 
-    await sendSubscriptionActivationEmail({
-      to: userEmail,
-      planName: planName as "Pro" | "Business",
-      billingInterval: interval === "yearly" ? "yearly" : "monthly",
-      amount,
-      currency: currency.toUpperCase(),
-      activatedAt: new Date().toISOString(),
-      nextBillingDate,
-      dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
-    });
+        const result = await sendSubscriptionActivationEmail({
+          to: userEmail,
+          planName: planName as "Pro" | "Business",
+          billingInterval: interval === "yearly" ? "yearly" : "monthly",
+          amount,
+          currency: currency.toUpperCase(),
+          activatedAt: new Date().toISOString(),
+          nextBillingDate,
+          dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+        });
+
+        if (result.success) {
+          await markEmailSent(profileUserId, "activation");
+        }
+      }
+    }
   }
 
   return { synced: true };
@@ -529,6 +544,68 @@ function getSubscriptionActivityTitle(eventType: string) {
   return "Subscription started";
 }
 
+const EMAIL_IDEMPOTENCY_WINDOW_MS = 5 * 60 * 1000;
+
+async function shouldSendEmail(
+  profile: { email: string | null; userId: string },
+  emailType: "activation" | "cancellation" | "cancellation_scheduled"
+): Promise<{ shouldSend: boolean; reason: string }> {
+  const db = getDb();
+  if (!db) {
+    return { shouldSend: true, reason: "no_db" };
+  }
+
+  const profileData = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, profile.userId),
+    columns: {
+      lastSubscriptionActivationEmailSent: true,
+      lastSubscriptionCancellationEmailSent: true,
+      lastSubscriptionCancellationScheduledEmailSent: true,
+    },
+  });
+
+  if (!profileData) {
+    return { shouldSend: true, reason: "no_profile" };
+  }
+
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - EMAIL_IDEMPOTENCY_WINDOW_MS);
+
+  if (emailType === "activation") {
+    if (profileData.lastSubscriptionActivationEmailSent && profileData.lastSubscriptionActivationEmailSent > windowStart) {
+      return { shouldSend: false, reason: "recently_sent" };
+    }
+  } else if (emailType === "cancellation") {
+    if (profileData.lastSubscriptionCancellationEmailSent && profileData.lastSubscriptionCancellationEmailSent > windowStart) {
+      return { shouldSend: false, reason: "recently_sent" };
+    }
+  } else if (emailType === "cancellation_scheduled") {
+    if (profileData.lastSubscriptionCancellationScheduledEmailSent && profileData.lastSubscriptionCancellationScheduledEmailSent > windowStart) {
+      return { shouldSend: false, reason: "recently_sent" };
+    }
+  }
+
+  return { shouldSend: true, reason: "ok" };
+}
+
+async function markEmailSent(
+  userId: string,
+  emailType: "activation" | "cancellation" | "cancellation_scheduled"
+): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+
+  const updateField = {
+    activation: "lastSubscriptionActivationEmailSent",
+    cancellation: "lastSubscriptionCancellationEmailSent",
+    cancellation_scheduled: "lastSubscriptionCancellationScheduledEmailSent",
+  }[emailType];
+
+  await db.update(profiles)
+    .set({ [updateField]: new Date() } as any)
+    .where(eq(profiles.userId, userId));
+}
+
 async function sendSubscriptionLifecycleEmail(params: {
   previousTier: string | null;
   newTier: string | null | undefined;
@@ -560,6 +637,15 @@ async function sendSubscriptionLifecycleEmail(params: {
     (newTier === "pro" || newTier === "business");
 
   if (isActivation) {
+    const idempotencyCheck = await shouldSendEmail(profile, "activation");
+    if (!idempotencyCheck.shouldSend) {
+      console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] activation_email_skipped_idempotent", {
+        userId: profile.userId,
+        reason: idempotencyCheck.reason,
+      });
+      return { sent: false, error: idempotencyCheck.reason };
+    }
+
     const planName = newTier === "business" ? "Business" : "Pro";
     const interval = getSubscriptionIntervalForStripePriceId(sub.items.data[0]?.price?.id || "");
     const amount = sub.items.data[0]?.price?.unit_amount
@@ -583,6 +669,10 @@ async function sendSubscriptionLifecycleEmail(params: {
       dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
     });
 
+    if (result.success) {
+      await markEmailSent(profile.userId, "activation");
+    }
+
     console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] activation_email_sent", {
       success: result.success,
       error: result.error,
@@ -594,6 +684,15 @@ async function sendSubscriptionLifecycleEmail(params: {
   }
 
   if (isCancellation) {
+    const idempotencyCheck = await shouldSendEmail(profile, "cancellation");
+    if (!idempotencyCheck.shouldSend) {
+      console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] cancellation_email_skipped_idempotent", {
+        userId: profile.userId,
+        reason: idempotencyCheck.reason,
+      });
+      return { sent: false, error: idempotencyCheck.reason };
+    }
+
     const result = await sendSubscriptionCancellationEmail({
       to,
       planName: previousTier === "business" ? "Business" : "Pro",
@@ -602,6 +701,10 @@ async function sendSubscriptionLifecycleEmail(params: {
       purchasedCreditsPreserved: true,
       dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
     });
+
+    if (result.success) {
+      await markEmailSent(profile.userId, "cancellation");
+    }
 
     console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] cancellation_email_sent", {
       success: result.success,
@@ -614,6 +717,15 @@ async function sendSubscriptionLifecycleEmail(params: {
   }
 
   if (isScheduledCancellation) {
+    const idempotencyCheck = await shouldSendEmail(profile, "cancellation_scheduled");
+    if (!idempotencyCheck.shouldSend) {
+      console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] scheduled_cancellation_email_skipped_idempotent", {
+        userId: profile.userId,
+        reason: idempotencyCheck.reason,
+      });
+      return { sent: false, error: idempotencyCheck.reason };
+    }
+
     const result = await sendSubscriptionCancellationScheduledEmail({
       to,
       planName: newTier === "business" ? "Business" : "Pro",
@@ -622,6 +734,10 @@ async function sendSubscriptionLifecycleEmail(params: {
         : new Date().toISOString(),
       dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
     });
+
+    if (result.success) {
+      await markEmailSent(profile.userId, "cancellation_scheduled");
+    }
 
     console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] scheduled_cancellation_email_sent", {
       success: result.success,

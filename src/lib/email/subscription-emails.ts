@@ -1,6 +1,6 @@
 import { debugLog } from "@/lib/utils/debug";
 
-const SUBSCRIPTION_EMAIL_FROM = process.env.EMAIL_FROM || "UseClevr <billing@useclevr.com>";
+const SUBSCRIPTION_EMAIL_FROM = process.env.EMAIL_FROM || "UseClevr <no-reply@useclevr.com>";
 
 export type SubscriptionEmailType = "subscription_activation" | "subscription_cancellation" | "subscription_cancellation_scheduled";
 

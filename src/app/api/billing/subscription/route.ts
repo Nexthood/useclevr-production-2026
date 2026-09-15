@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/auth";
 import { getDb } from "@/lib/db";
-import { profiles, users } from "@/lib/db/schema";
+import { profiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { 
   getSubscriptionState, 
@@ -11,19 +11,6 @@ import {
   type SubscriptionState 
 } from "@/services/stripe/checkout";
 import { syncSubscription } from "@/services/stripe/webhook";
-import {
-  sendSubscriptionCancellationEmail,
-  sendSubscriptionCancellationScheduledEmail,
-} from "@/lib/email/subscription-emails";
-
-async function getUserEmail(db: ReturnType<typeof getDb>, userId: string): Promise<string | null> {
-  if (!db) return null;
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-    columns: { email: true },
-  });
-  return user?.email ?? null;
-}
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -194,8 +181,6 @@ async function handleCancelAction(
     cancelAtPeriodEnd: true,
   });
 
-  await sendCancellationConfirmationEmail(db, userId, profile.subscriptionTier, subscription.current_period_end);
-
   return NextResponse.json({
     success: true,
     action: "cancel",
@@ -302,69 +287,4 @@ async function syncCanceledSubscription(
   } as unknown;
 
   await syncSubscription(mockSubscription as any, "user_cancellation_scheduled", userId);
-}
-
-function getDashboardUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL 
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/app` 
-    : "https://useclevr.com/app";
-}
-
-async function sendCancellationConfirmationEmail(
-  db: ReturnType<typeof getDb>,
-  userId: string,
-  previousTier: string | null,
-  currentPeriodEnd: number | null
-): Promise<void> {
-  if (!db) {
-    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] cannot_send_cancellation_email_no_db");
-    return;
-  }
-  
-  const userEmail = await getUserEmail(db, userId);
-  
-  if (!userEmail) {
-    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] cannot_send_cancellation_email_no_user_email", {
-      userId,
-      previousTier,
-    });
-    return;
-  }
-
-  const dashboardUrl = getDashboardUrl();
-  const planName = previousTier === "business" ? "Business" : "Pro";
-
-  const currentPeriodEndDate = currentPeriodEnd 
-    ? new Date(currentPeriodEnd * 1000).toISOString() 
-    : new Date().toISOString();
-
-  try {
-    const result = await sendSubscriptionCancellationScheduledEmail({
-      to: userEmail,
-      planName,
-      currentPeriodEnd: currentPeriodEndDate,
-      dashboardUrl,
-    });
-
-    if (result.success) {
-      console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] cancellation_email_sent", {
-        userId,
-        userEmail,
-        planName,
-        messageId: result.messageId,
-      });
-    } else {
-      console.error("[STRIPE_SUBSCRIPTION_LIFECYCLE] cancellation_email_failed", {
-        userId,
-        userEmail,
-        error: result.error,
-      });
-    }
-  } catch (error) {
-    console.error("[STRIPE_SUBSCRIPTION_LIFECYCLE] cancellation_email_exception", {
-      userId,
-      userEmail,
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
 }
