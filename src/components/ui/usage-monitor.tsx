@@ -15,13 +15,16 @@ interface UsageMonitorProps {
   reserved?: number
   isPro?: boolean
   unlimitedLabel?: string | null
+  subscriptionTier?: string
 }
 
-export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable, used, reserved = 0, isPro = false, unlimitedLabel }: UsageMonitorProps) {
+export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable, used, reserved = 0, isPro = false, unlimitedLabel, subscriptionTier = "free" }: UsageMonitorProps) {
   const availableCredits = Math.max(0, totalAvailable - used - reserved)
   const percent = totalAvailable > 0 ? Math.min((used / totalAvailable) * 100, 100) : 0
+  const isUnlimited = isPro && Boolean(unlimitedLabel)
+  const isPaidPro = isPro && !unlimitedLabel
 
-  if (isPro) {
+  if (isUnlimited) {
     return (
       <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
@@ -29,6 +32,25 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
         </h4>
         <p className="text-sm font-medium text-foreground">
           {unlimitedLabel || "Included AI credits"}
+        </p>
+        <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
+          <div
+            className="h-full rounded-full"
+            style={{ width: "100%", background: "linear-gradient(135deg, hsl(187 79% 53%), hsl(270 50% 65%))" }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (isPaidPro) {
+    return (
+      <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
+        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
+          {subscriptionTier === "business" ? "Business Plan" : "Pro Plan"}
+        </h4>
+        <p className="text-sm font-medium text-foreground">
+          {includedBalance.toLocaleString()} included credits
         </p>
         <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
           <div
@@ -90,6 +112,7 @@ export function useUsage() {
   const [purchasedBalance, setPurchasedBalance] = React.useState(0)
   const [totalAvailable, setTotalAvailable] = React.useState(2)
   const [reserved, setReserved] = React.useState(0)
+  const [subscriptionTier, setSubscriptionTier] = React.useState("free")
   const [isPro, setIsPro] = React.useState(false)
   const [unlimitedLabel, setUnlimitedLabel] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -126,7 +149,8 @@ export function useUsage() {
         setPurchasedBalance(hasUnlimitedAccess ? 0 : (data.purchasedBalance ?? 0))
         setTotalAvailable(hasUnlimitedAccess ? 0 : (data.total ?? availableCredits))
         setReserved(hasUnlimitedAccess ? 0 : (data.reservedCredits ?? 0))
-        setIsPro(hasUnlimitedAccess)
+        setIsPro(hasUnlimitedAccess || data.subscriptionTier === "pro" || data.subscriptionTier === "business")
+        setSubscriptionTier(data.subscriptionTier || "free")
         setUnlimitedLabel(data.unlimitedLabel || null)
         setLimitReached(Boolean(data.limitReached))
         setCanAnalyze(Boolean(data.canAnalyze ?? hasUnlimitedAccess))
@@ -152,5 +176,5 @@ export function useUsage() {
     return () => window.removeEventListener(USAGE_REFRESH_EVENT, handleRefresh)
   }, [refreshUsage])
 
-  return { usage, includedBalance, purchasedBalance, totalAvailable, available: totalAvailable, total: totalAvailable, reserved, isPro, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
+  return { usage, includedBalance, purchasedBalance, totalAvailable, available: totalAvailable, total: totalAvailable, reserved, isPro, subscriptionTier, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
 }

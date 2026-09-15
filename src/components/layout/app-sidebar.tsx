@@ -85,7 +85,7 @@ type AppSidebarProps = {
 
 export function AppSidebar({ user, businessStatus, accountancyStatus, retailStatus }: AppSidebarProps) {
   const pathname = usePathname();
-  const { usage, totalAvailable, includedBalance, purchasedBalance, reserved, isPro, isLoading, unlimitedLabel } = useUsage();
+  const { usage, totalAvailable, includedBalance, purchasedBalance, reserved, isPro, isLoading, unlimitedLabel, subscriptionTier } = useUsage();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const hasUnlimitedAdminAccess = user.role === "superadmin" || user.role === "admin";
@@ -190,15 +190,16 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
 
       <div className="space-y-3 border-t border-sidebar-border p-4">
         {!isLoading && !isCollapsed && (
-          <UsageMonitor
-            used={usage}
-            totalAvailable={totalAvailable}
-            includedBalance={includedBalance}
-            purchasedBalance={purchasedBalance}
-            reserved={reserved}
-            isPro={isPro}
-            unlimitedLabel={unlimitedLabel}
-          />
+<UsageMonitor
+    used={usage}
+    totalAvailable={totalAvailable}
+    includedBalance={includedBalance}
+    purchasedBalance={purchasedBalance}
+    reserved={reserved}
+    isPro={isPro}
+    unlimitedLabel={unlimitedLabel}
+    subscriptionTier={subscriptionTier}
+/>
         )}
         {!isCollapsed && (
           <div className="space-y-2">
