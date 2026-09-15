@@ -63,7 +63,7 @@ export const AMOUNT_TYPES: { value: AmountType; label: string }[] = [
 
 export const CURRENCIES = ["EUR", "USD", "GBP", "CAD", "AUD", "CHF", "RON", "HUF", "Other"]
 export const COMPANY_SIZES = ["Solo", "2-10", "11-50", "51-200", "201-500", "500+"]
-export const BUSINESS_TYPES = ["SaaS", "Services", "Manufacturing", "Retail", "Marketplace", "Subscription", "Consulting", "Other"]
+export const BUSINESS_TYPES = ["SaaS", "Services", "Retail", "E-commerce", "Wholesale", "Manufacturing", "Marketplace", "Subscription", "Consulting", "Agency", "Distribution", "D2C"]
 
 export const TAX_ENTRY_TYPES = [
   "Corporate Tax", "Income Tax", "Trade Tax", "VAT", "Sales Tax", "State Tax",

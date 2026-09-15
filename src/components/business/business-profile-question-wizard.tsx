@@ -99,7 +99,7 @@ const BASE_QUESTIONS: Question[] = [
   { id: "workersCompContribution", title: "What accident or workers compensation contribution applies?", helper: "Add accident insurance or workers compensation rates where required.", optional: true },
   { id: "insuranceTypes", title: "Which insurance policies protect the business?", helper: "Select policies that affect operating cost, exposure, and analysis confidence. Skip policies that do not apply.", optional: true },
   { id: "insuranceMonthlyCost", title: "What is your monthly insurance cost?", helper: "Use total business insurance premiums per month.", optional: true },
-  { id: "rentOfficeCost", title: "What is your monthly rent or office cost?", helper: "Recurring property costs are included even when uploaded data omits them.", optional: true },
+  { id: "rentOfficeCost", title: "What are your monthly premises or property costs?", helper: "Include recurring costs for locations such as offices, stores, warehouses, production facilities, workshops, storage facilities, or other business premises.", optional: true },
   { id: "utilitiesCost", title: "What is your monthly utilities cost?", helper: "Include electricity, water, heating, internet, or similar operating utilities.", optional: true },
   { id: "softwareSaasCost", title: "What is your monthly software or SaaS cost?", helper: "Include tools, subscriptions, hosting, and cloud services.", optional: true },
   { id: "marketingCost", title: "What is your monthly marketing cost?", helper: "Marketing spend helps compare acquisition cost against revenue and margin.", optional: true },
@@ -679,7 +679,7 @@ export function BusinessProfileQuestionWizard() {
       case "industry":
         return <TextAnswer value={payload.companyInfo.industry} onChange={(value) => update("companyInfo", { industry: value })} placeholder={costPlaceholder("industry", payload)} />
       case "businessModel":
-        return <MultiChoiceAnswer values={payload.revenueModel.businessModels} options={BUSINESS_TYPES} onChange={setBusinessModels} />
+        return <MultiChoiceWithCustom values={payload.revenueModel.businessModels} options={BUSINESS_TYPES} onChange={setBusinessModels} customPlaceholder="Enter a business model..." />
       case "currency":
         return <ChoiceAnswer value={payload.currencySettings.primaryCurrency} options={selectOptions(CURRENCIES)} onChange={(value) => update("currencySettings", { primaryCurrency: value, reportingCurrency: value })} />
       case "fiscalYear":
@@ -1015,6 +1015,98 @@ function ChoiceAnswer({ value, options, onChange }: { value: string; options: { 
           {option.label}
         </button>
       ))}
+    </div>
+  )
+}
+
+function MultiChoiceWithCustom({
+  values,
+  options,
+  onChange,
+  customPlaceholder,
+}: {
+  values: string[];
+  options: string[];
+  onChange: (values: string[]) => void;
+  customPlaceholder?: string;
+}) {
+  const [customValue, setCustomValue] = useState("")
+
+  function toggle(option: string) {
+    onChange(values.includes(option) ? values.filter((value) => value !== option) : [...values, option])
+  }
+
+  function addCustom() {
+    const trimmed = customValue.trim()
+    if (trimmed && !values.includes(trimmed)) {
+      onChange([...values, trimmed])
+      setCustomValue("")
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      addCustom()
+    }
+  }
+
+  const displayedOptions = options.filter((opt) => !values.includes(opt) || values.includes(opt))
+  const customValues = values.filter((v) => !options.includes(v))
+
+  return (
+    <div className="space-y-4">
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {values.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => toggle(value)}
+              aria-pressed={true}
+              className="flex items-center gap-1.5 rounded-lg border border-primary bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition hover:border-primary/60 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {value}
+              <span aria-hidden="true">×</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Input
+          value={customValue}
+          onChange={(e) => setCustomValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={customPlaceholder || "Enter a value..."}
+          className="flex-1"
+        />
+        <Button type="button" variant="outline" onClick={addCustom} disabled={!customValue.trim()}>
+          Add
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => toggle(option)}
+            aria-pressed={values.includes(option)}
+            className={[
+              "rounded-lg border px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              values.includes(option)
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted",
+            ].join(" ")}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+      {customValues.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Custom: {customValues.join(", ")}
+        </p>
+      )}
     </div>
   )
 }
