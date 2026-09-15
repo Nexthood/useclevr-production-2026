@@ -28,12 +28,12 @@ const placeholderMap = {
 } as const satisfies Record<SupportedUsyLanguage, string>;
 
 const quickActionMap = {
-  english: "Open AI Assistant",
-  german: "KI-Assistent öffnen",
-  dutch: "AI-assistent openen",
-  spanish: "Abrir asistente de IA",
-  hungarian: "AI-asszisztens megnyitása",
-  romanian: "Deschide asistentul AI"
+  english: "Explain AI credits",
+  german: "Erkläre AI-Credits",
+  dutch: "Leg AI credits uit",
+  spanish: "Explicar créditos AI",
+  hungarian: "AI kreditek magyarázata",
+  romanian: "Explică creditele AI"
 } as const satisfies Record<SupportedUsyLanguage, string>;
 
 type ChatMessage = {
