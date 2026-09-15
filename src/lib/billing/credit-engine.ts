@@ -184,49 +184,61 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
   const idempotencyKey = `grant:initial:${userId}:${plan.id}`
   const id = creditId()
 
-  await db.transaction(async (tx) => {
-    await tx.insert(userCredits).values({
-      id,
-      userId,
-      planId: plan.id,
-      totalCredits: monthlyCredits,
-      includedBalance: monthlyCredits,
-      purchasedBalance: 0,
-      totalPaidCents: 0,
-      usedCredits: 0,
-      reservedCredits: 0,
-      remainingCredits: monthlyCredits,
-      creditsResetAt: resetDate,
-      lifetimeCreditsEarned: monthlyCredits,
-    }).onConflictDoNothing()
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(userCredits).values({
+        id,
+        userId,
+        planId: plan.id,
+        totalCredits: monthlyCredits,
+        includedBalance: monthlyCredits,
+        purchasedBalance: 0,
+        totalPaidCents: 0,
+        usedCredits: 0,
+        reservedCredits: 0,
+        remainingCredits: monthlyCredits,
+        creditsResetAt: resetDate,
+        lifetimeCreditsEarned: monthlyCredits,
+      }).onConflictDoNothing()
 
-    await tx.insert(creditLedger).values({
-      id: ledgerId(),
-      workspaceId: userId,
+      await tx.insert(creditLedger).values({
+        id: ledgerId(),
+        workspaceId: userId,
+        userId,
+        type: "grant",
+        transactionType: "PLAN_ALLOCATION",
+        status: "finalized",
+        operationId: idempotencyKey,
+        idempotencyKey,
+        amount: monthlyCredits,
+        credits: monthlyCredits,
+        balanceBefore: 0,
+        balanceAfter: monthlyCredits,
+        includedBalanceBefore: 0,
+        includedBalanceAfter: monthlyCredits,
+        purchasedBalanceBefore: 0,
+        purchasedBalanceAfter: 0,
+        source: "subscription",
+        feature: "initial_allowance",
+        action: "initial_credits",
+        description: `Initial credits for ${plan.name} plan`,
+        relatedPlanId: plan.id,
+        currency: "EUR",
+        metadata: { tier: plan.tier, includedBalance: monthlyCredits, purchasedBalance: 0 },
+        finalizedAt: now,
+      }).onConflictDoNothing()
+    })
+  } catch (error) {
+    console.error("[CREDIT_ENGINE] initializeUserCredits transaction failed", {
       userId,
-      type: "grant",
-      transactionType: "PLAN_ALLOCATION",
-      status: "finalized",
-      operationId: idempotencyKey,
-      idempotencyKey,
-      amount: monthlyCredits,
-      credits: monthlyCredits,
-      balanceBefore: 0,
-      balanceAfter: monthlyCredits,
-      includedBalanceBefore: 0,
-      includedBalanceAfter: monthlyCredits,
-      purchasedBalanceBefore: 0,
-      purchasedBalanceAfter: 0,
-      source: "subscription",
-      feature: "initial_allowance",
-      action: "initial_credits",
-      description: `Initial credits for ${plan.name} plan`,
-      relatedPlanId: plan.id,
-      currency: "EUR",
-      metadata: { tier: plan.tier, includedBalance: monthlyCredits, purchasedBalance: 0 },
-      finalizedAt: now,
-    }).onConflictDoNothing()
-  })
+      tier,
+      planId: plan.id,
+      monthlyCredits,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return null;
+  }
 
   const created = await db.query.userCredits.findFirst({ where: eq(userCredits.userId, userId) })
   return created ? toCreditInfo(created) : null
@@ -906,12 +918,33 @@ export async function checkAndPerformMonthlyReset(userId: string): Promise<boole
 
 export async function processPlanChange(userId: string, newTier: string): Promise<boolean> {
   const db = getDb()
-  if (!db) return false
+  if (!db) {
+    console.error("[CREDIT_ENGINE] processPlanChange failed: database unavailable", { userId, newTier });
+    return false;
+  }
 
-  const plan = getBillingPlanByTier(newTier)
-  const monthlyCredits = getCreditsLimitForTier(newTier)
-  const creditInfo = await getUserCreditInfo(userId) || await initializeUserCredits(userId, newTier)
-  if (!creditInfo) return false
+  const plan = getBillingPlanByTier(newTier);
+  const monthlyCredits = getCreditsLimitForTier(newTier);
+  
+  let creditInfo: UserCreditInfo | null = null;
+  try {
+    creditInfo = await getUserCreditInfo(userId);
+    if (!creditInfo) {
+      creditInfo = await initializeUserCredits(userId, newTier);
+    }
+  } catch (error) {
+    console.error("[CREDIT_ENGINE] processPlanChange failed: error getting/initializing user credits", {
+      userId,
+      newTier,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+  
+  if (!creditInfo) {
+    console.error("[CREDIT_ENGINE] processPlanChange failed: could not get or initialize credit info", { userId, newTier });
+    return false;
+  }
 
   const creditDiff = monthlyCredits - creditInfo.totalCredits
   const newIncludedBalance = Math.max(0, monthlyCredits - creditInfo.purchasedBalance)
@@ -920,37 +953,38 @@ export async function processPlanChange(userId: string, newTier: string): Promis
   const nextReset = nextResetDate(newTier)
   const operationId = `plan-change:${userId}:${plan.id}:${now.toISOString().slice(0, 10)}`
 
-  await db.transaction(async (tx) => {
-    await tx.update(userCredits)
-      .set({
-        planId: plan.id,
-        totalCredits: monthlyCredits,
-        includedBalance: Math.max(0, newIncludedBalance),
-        remainingCredits: Math.max(0, creditInfo.includedBalance + creditDiff),
-        creditsResetAt: nextReset,
-        lifetimeCreditsEarned: creditInfo.lifetimeCreditsEarned + (creditDiff > 0 ? creditDiff : 0),
-        updatedAt: now,
-      })
-      .where(eq(userCredits.userId, userId))
+  try {
+    await db.transaction(async (tx) => {
+      await tx.update(userCredits)
+        .set({
+          planId: plan.id,
+          totalCredits: monthlyCredits,
+          includedBalance: Math.max(0, newIncludedBalance),
+          remainingCredits: Math.max(0, creditInfo.includedBalance + creditDiff),
+          creditsResetAt: nextReset,
+          lifetimeCreditsEarned: creditInfo.lifetimeCreditsEarned + (creditDiff > 0 ? creditDiff : 0),
+          updatedAt: now,
+        })
+        .where(eq(userCredits.userId, userId))
 
-    await tx.insert(creditLedger).values({
-      id: ledgerId(),
-      workspaceId: userId,
-      userId,
-      type: "subscription_reset",
-      transactionType: "PLAN_RESET",
-      status: "finalized",
-      operationId,
-      idempotencyKey: operationId,
-      amount: creditDiff,
-      credits: Math.abs(creditDiff),
-      balanceBefore: creditInfo.remainingCredits,
-      balanceAfter: Math.max(0, creditInfo.remainingCredits + creditDiff),
-      includedBalanceBefore: creditInfo.includedBalance,
-      includedBalanceAfter: Math.max(0, newIncludedBalance),
-      purchasedBalanceBefore: creditInfo.purchasedBalance,
-      purchasedBalanceAfter: creditInfo.purchasedBalance,
-      source: "subscription",
+      await tx.insert(creditLedger).values({
+        id: ledgerId(),
+        workspaceId: userId,
+        userId,
+        type: "subscription_reset",
+        transactionType: "PLAN_RESET",
+        status: "finalized",
+        operationId,
+        idempotencyKey: operationId,
+        amount: creditDiff,
+        credits: Math.abs(creditDiff),
+        balanceBefore: creditInfo.remainingCredits,
+        balanceAfter: Math.max(0, creditInfo.remainingCredits + creditDiff),
+        includedBalanceBefore: creditInfo.includedBalance,
+        includedBalanceAfter: Math.max(0, newIncludedBalance),
+        purchasedBalanceBefore: creditInfo.purchasedBalance,
+        purchasedBalanceAfter: creditInfo.purchasedBalance,
+        source: "subscription",
       feature: "plan_change",
       action: "plan_change",
       description: `Plan changed from ${creditInfo.planId} to ${plan.id}`,
@@ -959,7 +993,19 @@ export async function processPlanChange(userId: string, newTier: string): Promis
       metadata: { previousPlan: creditInfo.planId, newPlan: plan.id },
       finalizedAt: now,
     }).onConflictDoNothing()
-  })
+    })
+  } catch (error) {
+    console.error("[CREDIT_ENGINE] processPlanChange transaction failed", {
+      userId,
+      newTier,
+      planId: plan.id,
+      monthlyCredits,
+      creditDiff,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return false;
+  }
 
   return true
 }

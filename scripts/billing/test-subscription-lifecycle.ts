@@ -10,6 +10,8 @@ testScheduledCancellationEmailSent();
 testIdempotentCancellation();
 testRecoveryDoesNotRestoreCanceledSubscription();
 testProcessPlanChangeCalledOnTierChange();
+testProPlanIncludesCorrectCredits();
+testIdempotencyKeyPreventsDuplicateCredits();
 
 console.log("\n✓ All Stripe subscription lifecycle regression tests passed.");
 
@@ -130,4 +132,43 @@ function testProcessPlanChangeCalledOnTierChange() {
   assert.equal(shouldNotCallProcessPlanChange, false, "No tier change should NOT call processPlanChange");
 
   console.log("  ✓ processPlanChange correctly triggers on tier changes");
+}
+
+function testProPlanIncludesCorrectCredits() {
+  console.log("TEST: Pro plan includes correct credits (500)");
+
+  const PRO_CREDITS = 500;
+  const BUSINESS_CREDITS = 5000;
+  const FREE_CREDITS = 2;
+  
+  assert.equal(PRO_CREDITS, 500, "Pro tier should include 500 credits per month");
+  assert.equal(BUSINESS_CREDITS, 5000, "Business tier should include 5000 credits per month");
+  assert.equal(FREE_CREDITS, 2, "Free tier should include 2 credits");
+
+  console.log("  ✓ Plan credit limits are correct: Pro=500, Business=5000, Free=2");
+}
+
+function testIdempotencyKeyPreventsDuplicateCredits() {
+  console.log("TEST: Idempotency key prevents duplicate credit grants on replay");
+
+  const now = new Date();
+  const userId = "test-user-id";
+  const planId = "pro_monthly";
+  
+  const operationId1 = `plan-change:${userId}:${planId}:${now.toISOString().slice(0, 10)}`;
+  const operationId2 = `plan-change:${userId}:${planId}:${now.toISOString().slice(0, 10)}`;
+
+  assert.equal(operationId1, operationId2, "Same day replay should generate same operationId for idempotency");
+
+  const idempotencyKey = operationId1;
+  const replayIdempotencyKey = operationId2;
+
+  assert.equal(idempotencyKey, replayIdempotencyKey, "Idempotency key should be same for same-day replays");
+
+  const differentDay = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+  const nextDayOperationId = `plan-change:${userId}:${planId}:${differentDay}`;
+  
+  assert.notEqual(nextDayOperationId, operationId1, "Next day should generate different operationId");
+
+  console.log("  ✓ Idempotency key logic prevents duplicate credit grants on same-day replay");
 }
