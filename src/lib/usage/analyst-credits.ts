@@ -1,6 +1,6 @@
 import { isSuperAdminUserId, isSuperadmin } from "@/lib/auth/builtin-users"
 import { getUserCreditInfo, initializeUserCredits, isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
-import { FREE_PLAN_LIMITS, getCreditsLimitForTier, mapPlanIdToTier } from "@/lib/billing/plans"
+import { FREE_PLAN_LIMITS, getBillingPlanByTier, getCreditsLimitForTier, mapPlanIdToTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
 import { datasets, profiles, userCredits } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
@@ -152,14 +152,20 @@ export async function getAnalystCreditUsage(
         },
       })
 
-      const authTier = mapPlanIdToTier(userCreditsRecord?.planId)
-      const baseTier = userCreditsRecord ? authTier : (profile?.subscriptionTier || "free")
+      const profileTier = profile?.subscriptionTier || "free"
+      const creditPlanTier = mapPlanIdToTier(userCreditsRecord?.planId)
+
+      if (profileTier !== creditPlanTier && creditPlanTier !== "free") {
+        await syncCreditPlanToProfile(userId, profileTier)
+      }
+
+      const baseTier = profileTier
       const profileRole = profile?.role || null
       const profileEmail = profile?.email || null
       const hasUnlimitedAccess =
         isSuperadmin({ id: userId, role: profileRole, email: email || profileEmail }) ||
         isUnlimitedCreditRole(profileRole) ||
-        isUnlimitedCreditRole(authTier)
+        isUnlimitedCreditRole(profileTier)
       const subscriptionTier = hasUnlimitedAccess
         ? profileRole === "admin" ? "admin" : "superadmin"
         : baseTier
@@ -293,4 +299,34 @@ export function formatRowLimitError(rowCount: number, limit: number, planName: s
     return `ROW_LIMIT_EXCEEDED|Your dataset has ${rowCount.toLocaleString()} rows which exceeds the maximum supported rows.`
   }
   return `ROW_LIMIT_EXCEEDED|Your ${planName} plan allows up to ${limit.toLocaleString()} rows per file. Your file has ${rowCount.toLocaleString()} rows. Upgrade to a higher plan to handle larger datasets.`
+}
+
+async function syncCreditPlanToProfile(userId: string, profileTier: string): Promise<boolean> {
+  const db = getDb()
+  if (!db) return false
+
+  const plan = getBillingPlanByTier(profileTier)
+  const monthlyCredits = getCreditsLimitForTier(profileTier)
+  const resetDay = 1
+  const now = new Date()
+  const resetDate = new Date(now.getFullYear(), now.getMonth(), resetDay, 0, 0, 0, 0)
+  if (resetDate <= now) resetDate.setMonth(resetDate.getMonth() + 1)
+
+  try {
+    await db
+      .update(userCredits)
+      .set({
+        planId: plan.id,
+        totalCredits: monthlyCredits,
+        includedBalance: monthlyCredits,
+        remainingCredits: monthlyCredits,
+        creditsResetAt: resetDate,
+        updatedAt: now,
+      })
+      .where(eq(userCredits.userId, userId))
+    return true
+  } catch (error) {
+    debugError("[USAGE] Failed to sync credit plan to profile:", error)
+    return false
+  }
 }
