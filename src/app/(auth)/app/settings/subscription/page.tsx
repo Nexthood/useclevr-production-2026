@@ -17,6 +17,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CreditTopUpButton } from "@/components/shared/credit-topup-button"
 import { SubscriptionPlanSelector } from "@/components/billing/subscription-plan-selector";
+import { SubscriptionCancelButton } from "@/components/billing/subscription-cancel-button";
 
 export const metadata: Metadata = { title: "Subscription" };
 
@@ -319,6 +320,17 @@ const subs = await stripe.subscriptions.list({
     }
   }
 
+  let cancelAtPeriodEnd = false;
+  if (profile?.stripeSubscriptionId && profile?.subscriptionTier !== "free") {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {});
+      const sub = await stripe.subscriptions.retrieve(profile.stripeSubscriptionId);
+      cancelAtPeriodEnd = sub.cancel_at_period_end;
+    } catch (error) {
+      console.warn("Failed to fetch subscription status for cancellation check:", error);
+    }
+  }
+
   const providerConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
   const tier = profile?.subscriptionTier || usage.subscriptionTier || "free";
   const currentPlanLabel = planLabel(tier);
@@ -437,9 +449,15 @@ const subs = await stripe.subscriptions.list({
             <div className="grid gap-3 md:grid-cols-3">
               <MetricCard label="Current Subscription" value={currentPlanLabel} />
               <MetricCard label="Payment Method" value={profile?.stripeCustomerId ? "Connected" : "Not connected"} />
-              <MetricCard label="Next Billing Date" value={nextBillingDate} />
+              <MetricCard 
+                label={cancelAtPeriodEnd ? "Access Until" : "Next Billing Date"} 
+                value={nextBillingDate} 
+              />
               <MetricCard label="Billing Cycle" value={billingCycle} />
-              <MetricCard label="Payment Status" value={paymentStatus} />
+              <MetricCard 
+                label="Payment Status" 
+                value={cancelAtPeriodEnd ? "Cancellation scheduled" : paymentStatus} 
+              />
               <MetricCard label="Billing History" value="No invoices yet" />
             </div>
 
@@ -451,11 +469,13 @@ const subs = await stripe.subscriptions.list({
                     {providerConfigured ? "Subscription billing" : "Payment provider not configured"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {profile?.stripeCurrentPeriodEnd
-                      ? `The current subscription period ends ${nextBillingDate}.`
-                      : providerConfigured
-                        ? "Choose a paid plan to open secure Stripe checkout."
-                        : "Contact sales to enable card collection and subscription billing."}
+                    {cancelAtPeriodEnd
+                      ? `Your ${currentPlanLabel} subscription remains active until ${nextBillingDate} and will not renew.`
+                      : profile?.stripeCurrentPeriodEnd
+                        ? `The current subscription period ends ${nextBillingDate}.`
+                        : providerConfigured
+                          ? "Choose a paid plan to open secure Stripe checkout."
+                          : "Contact sales to enable card collection and subscription billing."}
                   </p>
                 </div>
               </div>
@@ -465,11 +485,12 @@ const subs = await stripe.subscriptions.list({
               <Link href="/app/settings/checkout?plan=pro_monthly&discount=auto">
                 <Button>Upgrade Plan</Button>
               </Link>
-              <a href="mailto:sales@useclevr.com">
-                <Button variant="outline" className="bg-transparent">
-                  Cancel Subscription
-                </Button>
-              </a>
+              <SubscriptionCancelButton
+                planName={currentPlanLabel}
+                currentPeriodEnd={profile?.stripeCurrentPeriodEnd ?? null}
+                isCanceled={cancelAtPeriodEnd}
+                stripeSubscriptionId={profile?.stripeSubscriptionId ?? null}
+              />
             </div>
 
             <Card className="border-border bg-card">
