@@ -98,6 +98,7 @@
     "test:dataset-deletion": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-dataset-deletion.ts",
     "test:credit-engine": "node -r tsx/esm scripts/billing/test-credit-engine.ts",
     "test:credit-topup-webhooks": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/billing/test-credit-topup-webhooks.ts",
+    "test:tier-resolution": "node -r tsx/esm scripts/billing/test-tier-resolution.ts",
     "test:retail-pos": "node -r tsx/esm scripts/retail/test-pos-integration.ts",
     "test:pro-pricing": "node -r tsx/esm scripts/billing/test-pro-launch-pricing.ts",
     "test:mcp-dashboard": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-payload-mcp-dashboard.ts",

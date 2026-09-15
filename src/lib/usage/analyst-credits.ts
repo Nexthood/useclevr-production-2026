@@ -1,8 +1,8 @@
 import { isSuperAdminUserId, isSuperadmin } from "@/lib/auth/builtin-users"
 import { getUserCreditInfo, initializeUserCredits, isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
-import { FREE_PLAN_LIMITS, getCreditsLimitForTier } from "@/lib/billing/plans"
+import { FREE_PLAN_LIMITS, getCreditsLimitForTier, mapPlanIdToTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
-import { datasets, profiles } from "@/lib/db/schema"
+import { datasets, profiles, userCredits } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
 import { count, eq } from "drizzle-orm"
 
@@ -134,64 +134,72 @@ export async function getAnalystCreditUsage(
   }
 
   try {
-    const profile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, userId),
-      columns: {
-        analysisCount: true,
-        createdAt: true,
-        email: true,
-        role: true,
-        subscriptionTier: true,
-      },
-    })
+      const profile = await db.query.profiles.findFirst({
+        where: eq(profiles.userId, userId),
+        columns: {
+          analysisCount: true,
+          createdAt: true,
+          email: true,
+          role: true,
+          subscriptionTier: true,
+        },
+      })
 
-    const profileRole = profile?.role || null
-    const profileEmail = profile?.email || null
-    const storedTier = profile?.subscriptionTier || "free"
-    const hasUnlimitedAccess =
-      isSuperadmin({ id: userId, role: profileRole, email: email || profileEmail }) ||
-      isUnlimitedCreditRole(profileRole) ||
-      isUnlimitedCreditRole(storedTier)
-    const subscriptionTier = hasUnlimitedAccess
-      ? profileRole === "admin" || storedTier === "admin" ? "admin" : "superadmin"
-      : storedTier
-    const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
-    const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId, email || profileEmail) : null
-    const [{ count: datasetTotal }] = await db
-      .select({ count: count() })
-      .from(datasets)
-      .where(eq(datasets.userId, userId))
-    const datasetCount = Number(datasetTotal ?? 0)
-    if (hasUnlimitedAccess) {
-      return unlimitedUsage(userId, profileRole || subscriptionTier, subscriptionTier, datasetCount, email || profileEmail)
-    }
-    const creditInfo = await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
-    const usageTotal = creditInfo?.totalCredits ?? getCreditsLimitForTier(subscriptionTier)
-    const usedCredits = creditInfo?.usedCredits ?? 0
-    const reservedCredits = creditInfo?.reservedCredits ?? 0
-    const remainingCredits = creditInfo?.remainingCredits ?? Math.max(0, usageTotal - usedCredits)
-    const availableCredits = Math.max(0, creditInfo?.availableCredits ?? remainingCredits - reservedCredits)
+      const userCreditsRecord = await db.query.userCredits.findFirst({
+        where: eq(userCredits.userId, userId),
+        columns: {
+          planId: true,
+        },
+      })
 
-    return {
-      analysisCount: usedCredits,
-      total: usageTotal,
-      availableCredits,
-      reservedCredits,
-      usedCredits,
-      remainingCredits,
-      nextResetAt: creditInfo?.creditsResetAt?.toISOString() ?? null,
-      subscriptionTier,
-      canAnalyze: availableCredits > 0,
-      limitReached: availableCredits <= 0,
-      unlimited: false,
-      unlimitedLabel,
-      datasetCount,
-      ...trial,
+      const authTier = mapPlanIdToTier(userCreditsRecord?.planId)
+      const baseTier = userCreditsRecord ? authTier : (profile?.subscriptionTier || "free")
+      const profileRole = profile?.role || null
+      const profileEmail = profile?.email || null
+      const hasUnlimitedAccess =
+        isSuperadmin({ id: userId, role: profileRole, email: email || profileEmail }) ||
+        isUnlimitedCreditRole(profileRole) ||
+        isUnlimitedCreditRole(authTier)
+      const subscriptionTier = hasUnlimitedAccess
+        ? profileRole === "admin" ? "admin" : "superadmin"
+        : baseTier
+      const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
+      const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId, email || profileEmail) : null
+      const [{ count: datasetTotal }] = await db
+        .select({ count: count() })
+        .from(datasets)
+        .where(eq(datasets.userId, userId))
+      const datasetCount = Number(datasetTotal ?? 0)
+      if (hasUnlimitedAccess) {
+        return unlimitedUsage(userId, profileRole || subscriptionTier, subscriptionTier, datasetCount, email || profileEmail)
+      }
+      const creditInfo = await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
+      const usageTotal = creditInfo?.totalCredits ?? getCreditsLimitForTier(subscriptionTier)
+      const usedCredits = creditInfo?.usedCredits ?? 0
+      const reservedCredits = creditInfo?.reservedCredits ?? 0
+      const remainingCredits = creditInfo?.remainingCredits ?? Math.max(0, usageTotal - usedCredits)
+      const availableCredits = Math.max(0, creditInfo?.availableCredits ?? remainingCredits - reservedCredits)
+
+      return {
+        analysisCount: usedCredits,
+        total: usageTotal,
+        availableCredits,
+        reservedCredits,
+        usedCredits,
+        remainingCredits,
+        nextResetAt: creditInfo?.creditsResetAt?.toISOString() ?? null,
+        subscriptionTier,
+        canAnalyze: availableCredits > 0,
+        limitReached: availableCredits <= 0,
+        unlimited: false,
+        unlimitedLabel,
+        datasetCount,
+        ...trial,
+      }
+    } catch (error) {
+      debugError("[USAGE] Failed to load analyst credits:", error)
+      return defaultUsage
     }
-  } catch (error) {
-    debugError("[USAGE] Failed to load analyst credits:", error)
-    return defaultUsage
-  }
 }
 
 export async function consumeAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {

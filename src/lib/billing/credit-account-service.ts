@@ -13,6 +13,7 @@ import {
   getBillingPlanByTier,
   getCreditsLimitForTier,
   getCreditResetDayForTier,
+  mapPlanIdToTier,
 } from "./plans"
 
 export interface CreditAccountInfo {
@@ -141,20 +142,20 @@ export async function getCreditAccount(userId: string): Promise<CreditAccountInf
     where: eq(userCredits.userId, userId),
   })
 
-  if (!account) {
-    const profile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, userId),
-      columns: { subscriptionTier: true },
-    })
-    return initializeCreditAccount(userId, profile?.subscriptionTier || "free")
-  }
-
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
     columns: { subscriptionTier: true },
   })
 
-  return toAccountInfo({ ...account, tier: profile?.subscriptionTier ?? "free" })
+  if (!account) {
+    return initializeCreditAccount(userId, profile?.subscriptionTier || "free")
+  }
+
+  const planId = account.planId
+  const authTier = mapPlanIdToTier(planId)
+  const effectiveTier = authTier
+
+  return toAccountInfo({ ...account, tier: effectiveTier })
 }
 
 export async function initializeCreditAccount(userId: string, tier: string): Promise<CreditAccountInfo | null> {
