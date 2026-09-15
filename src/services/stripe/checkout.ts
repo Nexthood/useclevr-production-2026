@@ -185,6 +185,20 @@ export async function createStripeBillingPortalSession({
   });
 }
 
+export async function cancelStripeSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  const stripe = getStripe();
+  return stripe.subscriptions.update(subscriptionId, {
+    cancel_at_period_end: true,
+  });
+}
+
+export async function resumeStripeSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  const stripe = getStripe();
+  return stripe.subscriptions.update(subscriptionId, {
+    cancel_at_period_end: false,
+  });
+}
+
 export const __stripeCheckoutTestHooks = {
   setStripeClientForTest(stripe: Stripe | null) {
     _stripe = stripe;
