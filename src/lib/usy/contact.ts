@@ -87,9 +87,14 @@ export function mergeContactDraft(
     explicitMessage ||
     (trimmed.length >= 20 && !isOnlyCollectionMessage(trimmed) ? trimmed : undefined);
 
+  // Preserve the existing category if already set - don't overwrite with new detection
+  const existingCategory = previous?.category;
+  const detectedCategory = category;
+
   return {
     ...previous,
-    category: previous?.category ?? category ?? undefined,
+    // Only set category if not already set, OR if user explicitly selected a different department
+    category: existingCategory ?? detectedCategory ?? undefined,
     message: previous?.message ?? usableMessage,
     senderName: previous?.senderName ?? name,
     company: previous?.company ?? company,

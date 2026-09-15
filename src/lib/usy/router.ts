@@ -600,7 +600,7 @@ export function buildUsyReply(input: {
   }
 
   if (asksForRestrictedInformation(normalized)) {
-    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings", "Use AI Assistant"], "security_request", language, ["OPEN_SUPPORT"]);
+    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings"], "security_request", language, ["OPEN_SUPPORT"]);
   }
 
   if (!platformRoles.includes(context.role) && asksForAdminOnlyArea(normalized)) {
@@ -611,7 +611,33 @@ export function buildUsyReply(input: {
     return knowledgeAnswer(buildProMonthlyPriceAnswer(language), pricingFollowUps, "billing", language, ["OPEN_SUBSCRIPTION", "OPEN_BILLING"]);
   }
 
-  if (input.contactDraft || isContactRequest(question)) {
+  const existingContactDraft = input.contactDraft;
+  const hasCompleteContactDraft = existingContactDraft && missingContactFields(existingContactDraft).length === 0;
+  const isExplicitContactRequest = isContactRequest(question);
+  
+  if (existingContactDraft && hasCompleteContactDraft && !isExplicitContactRequest && !existingContactDraft.awaitingConfirmation) {
+    // User has a complete contact draft but is asking a normal product question
+    // Try to answer the product question instead of forcing contact flow
+    const intent = detectProductIntent(normalized, context.role);
+    if (intent) {
+      return knowledgeAnswer(
+        `${localizedIntentAnswer(intent.id, context, language) ?? intent.answer(context)}\n\n${localizedCommon("nextStep", language)} ${nextStepForIntent(intent.id, context, language)}`,
+        intent.followUps,
+        usyIntentByProductIntent[intent.id],
+        language,
+        intent.actions,
+      );
+    }
+    
+    const term = businessTerms.find((entry) => entry.keywords.some((keyword) => normalized.includes(normalizeUsyText(keyword))));
+    if (term) {
+      return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"], "product_information", language, ["OPEN_AI_ASSISTANT", "OPEN_UPLOAD"]);
+    }
+
+    // If no product intent found, continue with contact flow but preserve draft
+  }
+
+  if (existingContactDraft || isExplicitContactRequest) {
     const draft = mergeContactDraft(input.contactDraft, question, input.contactDraft?.language ?? language);
     const missing = missingContactFields(draft);
     if (missing.length > 0) {

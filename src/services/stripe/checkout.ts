@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { getSubscriptionTierForStripePriceId } from "@/lib/billing/launch-pricing";
 
 let _stripe: Stripe | null = null;
 
@@ -183,6 +184,63 @@ export async function createStripeBillingPortalSession({
     customer: customerId,
     return_url: returnUrl,
   });
+}
+
+export type SubscriptionState = {
+  status: "active" | "trialing" | "canceled" | "past_due" | "incomplete" | "incomplete_expired" | "unpaid" | "paused" | "ended" | "missing";
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: number | null;
+  priceId: string | null;
+  tier: "free" | "pro" | "business" | null;
+  entitled: boolean;
+};
+
+const TERMINAL_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid", "ended"]);
+const ACTIVE_STATUSES = new Set(["active", "trialing", "past_due", "paused"]);
+
+export async function getSubscriptionState(subscriptionId: string): Promise<SubscriptionState> {
+  const stripe = getStripe();
+  
+  try {
+    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    
+    const status = sub.status as SubscriptionState["status"];
+    const cancelAtPeriodEnd = sub.cancel_at_period_end;
+    const currentPeriodEnd = sub.current_period_end;
+    const priceId = sub.items.data[0]?.price?.id ?? null;
+    
+    let tier: SubscriptionState["tier"] = null;
+    if (priceId) {
+      const mapped = getSubscriptionTierForStripePriceId(priceId);
+      if (mapped) tier = mapped;
+    }
+    
+    const isTerminal = TERMINAL_STATUSES.has(status);
+    const isActive = ACTIVE_STATUSES.has(status);
+    const entitled = !isTerminal && (isActive || status === "trialing");
+    
+    return {
+      status,
+      cancelAtPeriodEnd: Boolean(cancelAtPeriodEnd),
+      currentPeriodEnd,
+      priceId,
+      tier,
+      entitled,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("resource_missing") || message.includes("No such subscription") || message.includes("not found")) {
+      return {
+        status: "missing",
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: null,
+        priceId: null,
+        tier: null,
+        entitled: false,
+      };
+    }
+    throw error;
+  }
 }
 
 export async function cancelStripeSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
