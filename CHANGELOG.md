@@ -2,6 +2,12 @@
 
 ### Added
 
+- Add subscription state machine that pre-checks Stripe subscription status before cancel/resume actions to prevent HTTP 500 errors when subscription is already canceled, and reconciles database to Free tier when subscription is missing or not entitled.
+
+### Changed
+
+- Update ClevrSync PremiumLock messaging to clarify that Google Sheets connector requires Pro or Business, and that Free users can upload CSV and XLSX files directly through the Datasets page.
+
 - Add Google Sheets as a ClevrSync data connection so users can connect a Google account, select a spreadsheet and worksheet, preview data, and sync it into UseClevr datasets through the existing upload and analytics flow.
 - Add Usy secretariat answers and confirmed contact handoff so users get product guidance, safe AI Assistant routing, and department contact requests without exposing internal details.
 - Add OAuth 2.1 account linking for ChatGPT connections so users grant scoped UseClevr dataset access before ChatGPT can call their datasets.

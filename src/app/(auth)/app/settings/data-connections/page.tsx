@@ -498,9 +498,9 @@ function PremiumLock({ access }: { access: ClevrSyncAccess }) {
     <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">ClevrSync connectors require Pro or Business</p>
+          <p className="text-sm font-semibold text-foreground">Google Sheets connector requires Pro or Business</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Connect external data sources like Excel workbooks and Google Sheets through ClevrSync to unlock advanced features.
+            Connect your Google account to sync spreadsheets into UseClevr datasets. Free users can upload CSV and XLSX files directly through the Datasets page.
           </p>
         </div>
         <Link href={access.upgradeHref}>
