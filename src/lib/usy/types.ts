@@ -57,7 +57,15 @@ export type UsyIntent =
 
 export type UsyChatSource = "knowledge";
 
+import type { UsyActionId } from "./actions";
+
 export type UsyChatAction = "submit_contact" | "clear_contact";
+
+export type UsyActionButton = {
+  actionId: UsyActionId;
+  label: string;
+  type: "navigation" | "contact" | "conversation";
+};
 
 export type UsyChatResponse = {
   answer: string;
@@ -67,4 +75,5 @@ export type UsyChatResponse = {
   contactDraft?: UsyContactDraft | null;
   action?: UsyChatAction;
   intent?: UsyIntent;
+  actionButtons?: UsyActionButton[];
 };

@@ -14,7 +14,8 @@ import {
   missingContactFields,
 } from "@/lib/usy/contact";
 import { detectUsyLanguage, normalizeUsyText } from "@/lib/usy/language";
-import type { SupportedUsyLanguage, UsyChatResponse, UsyContactDraft, UsyContext, UsyIntent, UsyRole } from "@/lib/usy/types";
+import { getLocalizedActionButton, usyActionRegistry, type UsyActionId } from "@/lib/usy/actions";
+import type { SupportedUsyLanguage, UsyChatResponse, UsyContactDraft, UsyContext, UsyIntent, UsyRole, UsyActionButton } from "@/lib/usy/types";
 
 type ProductIntentId =
   | "languages"
@@ -33,7 +34,8 @@ type ProductIntentId =
   | "governance"
   | "integrations"
   | "account"
-  | "support";
+  | "support"
+  | "clevrsync";
 
 type ProductIntentRule = {
   id: ProductIntentId;
@@ -42,6 +44,7 @@ type ProductIntentRule = {
   minScore?: number;
   answer: (context: UsyContext) => string;
   followUps: string[];
+  actions?: UsyActionId[];
 };
 
 const fallbackFollowUps = ["Upload my first dataset", "Explain my dashboard", "How do AI credits work?", "Contact support"];
@@ -106,6 +109,7 @@ const usyIntentByProductIntent: Record<ProductIntentId, UsyIntent> = {
   integrations: "product_information",
   account: "account_help",
   support: "technical_support",
+  clevrsync: "getting_started",
 };
 
 const businessTerms = [
@@ -137,6 +141,7 @@ const productIntents: ProductIntentRule[] = [
     keywords: ["languages", "which languages", "speak german", "spreek je nederlands", "hablas español", "beszélsz magyarul", "vorbești română"],
     answer: () => `Yes. I can help in ${supportedUsyLanguageLabel}.`,
     followUps: ["What can you do?", "Explain AI credits", "Open AI Assistant", "Which plan do I need?"],
+    actions: ["OPEN_AI_ASSISTANT"],
   },
   {
     id: "capabilities",
@@ -228,6 +233,7 @@ const productIntents: ProductIntentRule[] = [
     answer: () =>
       "Datasets are the uploaded files UseClevr uses for dashboards, reports, and AI Assistant context. Open Datasets to review uploaded files, open the dashboard for a dataset, or delete files you no longer need.",
     followUps: ["Open Dashboard", "Generate a report", "Upload another file", "Ask AI Assistant"],
+    actions: ["OPEN_DATASETS", "OPEN_DASHBOARD"],
   },
   {
     id: "dashboard",
@@ -235,12 +241,14 @@ const productIntents: ProductIntentRule[] = [
     answer: () =>
       "The dashboard summarizes uploaded-data KPIs, business health, risks, opportunities, recommendations, recent activity, and report actions. Use the AI Assistant when you want analysis of a specific uploaded dataset.",
     followUps: ["Explain KPIs", "Ask AI Assistant", "Generate a report", "Upload data"],
+    actions: ["OPEN_DASHBOARD", "OPEN_AI_ASSISTANT"],
   },
   {
     id: "credits",
     keywords: ["credit", "credits", "ai credits", "upload credits", "kredit", "credite"],
     answer: (context) => buildCreditsAnswer(context),
     followUps: ["Upload limit", "Upgrade to Pro", "View billing", "Compare plans"],
+    actions: ["OPEN_AI_CREDITS", "OPEN_SUBSCRIPTION"],
   },
   {
     id: "plans",
@@ -272,10 +280,11 @@ const productIntents: ProductIntentRule[] = [
   },
   {
     id: "billing",
-    keywords: ["billing", "invoice", "invoices", "payment", "stripe", "receipt", "receipts", "factuur", "factura", "rechnung", "számla", "abonament"],
+    keywords: ["billing", "invoice", "invoices", "payment", "stripe", "receipt", "receipts", "factuur", "factura", "rechnung", "számla", "abonament", "subscription", "change plan", "upgrade"],
     answer: () =>
       "Billing, subscriptions, payment details, checkout, invoices, and account plan actions are managed through the secure billing and account settings areas. Usy can explain where to go, but payment changes stay inside the existing secure flow.",
     followUps: pricingFollowUps,
+    actions: ["OPEN_BILLING", "OPEN_SUBSCRIPTION"],
   },
   {
     id: "reports",
@@ -283,13 +292,15 @@ const productIntents: ProductIntentRule[] = [
     answer: () =>
       "Reports turn completed analysis into shareable management summaries. Use reports for executive review, accountant handoff, investor conversations, internal planning, and PDF or Excel downloads when those exports are available.",
     followUps: ["Generate a report", "Download reports", "Open dashboard", "Ask AI Assistant"],
+    actions: ["OPEN_REPORTS", "OPEN_DASHBOARD"],
   },
   {
     id: "retail",
-    keywords: ["retail", "retailer", "small retailer", "shop owner", "inventory", "stock", "sku", "pos", "square", "handler", "händler", "einzelhandel", "voorraad", "winkelier", "inventario", "minorista", "készlet", "kereskedo", "kereskedő", "stoc", "retailer mic"],
+    keywords: ["retail", "retailer", "small retailer", "shop owner", "inventory", "stock", "sku", "pos", "square", "handler", "händler", "einzelhandel", "voorraad", "winkelier", "inventario", "minorista", "készlet", "kereskedo", "kereskedő", "stoc", "retail mic"],
     answer: () =>
       `Retail teams use UseClevr to turn sales and inventory exports into margin, revenue, stock-risk, dead-stock, and product-performance guidance. Upload supported exports (${usyProductFacts.uploadFormats.join(", ")}) first, then review the Retail dashboard or ask the AI Assistant about the selected dataset.`,
     followUps: ["Retail uploads", "Retail integrations", "Low stock", "Ask AI Assistant"],
+    actions: ["OPEN_RETAIL", "OPEN_UPLOAD"],
   },
   {
     id: "accountancy",
@@ -297,6 +308,7 @@ const productIntents: ProductIntentRule[] = [
     answer: () =>
       "Accountancy supports bookkeeping-oriented uploads, invoice and receipt processing, VAT or sales-tax review, transaction categorization, review queues, and export-ready bookkeeping packages in the Accountancy area.",
     followUps: ["Accountancy uploads", "Review transactions", "Export bookkeeping", "Business Profile"],
+    actions: ["OPEN_ACCOUNTANCY", "OPEN_UPLOAD"],
   },
   {
     id: "governance",
@@ -306,6 +318,7 @@ const productIntents: ProductIntentRule[] = [
         ? "AI Governance, AI Traces, AI Benchmarking, and AI Cost Optimizer help admins review provider health, model metadata, trace history, feedback, cost signals, retention, and human oversight. Use the matching admin or governance page to inspect current state."
         : "AI Governance tools explain AI transparency, provider health, human oversight, and audit readiness where your role has access. Admin-only trace, benchmarking, and cost views stay restricted.",
     followUps: ["Open AI Governance", "AI traces", "AI benchmarking", "Provider status"],
+    actions: ["OPEN_AI_GOVERNANCE"],
   },
   {
     id: "integrations",
@@ -313,6 +326,7 @@ const productIntents: ProductIntentRule[] = [
     answer: () =>
       "UseClevr currently supports file uploads, Retail point-of-sale integration flows where enabled, local AI status and install helpers, and BYOK AI provider settings. Usy does not invent connector availability; check the relevant integration page for active options.",
     followUps: ["Retail integrations", "AI providers", "Local AI", "Contact support"],
+    actions: ["OPEN_DATA_CONNECTIONS", "OPEN_AI_PROVIDERS"],
   },
   {
     id: "account",
@@ -320,6 +334,7 @@ const productIntents: ProductIntentRule[] = [
     answer: () =>
       "Account settings manage your profile, sign-in details, organization context, plan visibility, billing entry points, and workspace preferences where your role has access. Security-sensitive account changes stay inside the secure settings flow.",
     followUps: ["Open settings", "Billing help", "Contact support", "AI credits"],
+    actions: ["OPEN_PROFILE", "OPEN_PREFERENCES"],
   },
   {
     id: "support",
@@ -327,6 +342,50 @@ const productIntents: ProductIntentRule[] = [
     answer: () =>
       "I can guide you here, point you to the right UseClevr area, or prepare a confirmed contact request for Sales, Technical Support / IT, Billing, Management, or Executive Management.",
     followUps: ["Contact support", "Troubleshoot upload", "Billing help", "Talk to Sales"],
+    actions: ["OPEN_SUPPORT", "CONTACT_SUPPORT"],
+  },
+  {
+    id: "clevrsync",
+    keywords: [
+      "clevrsync",
+      "connect data",
+      "connect my data",
+      "connect my spreadsheet",
+      "connect google sheets",
+      "connect excel",
+      "connect onedrive",
+      "connect dropbox",
+      "data connection",
+      "data connections",
+      "sync data",
+      "sync my data",
+      "is my data connected",
+      "where are my connections",
+      "verbinden",
+      "datenverbindung",
+      "google sheets",
+      "excel verbinden",
+      "onedrive",
+      "verbind",
+      "conectar datos",
+      "conectar hoja de cálculo",
+      "conectar google sheets",
+      "conexiones de datos",
+      "sincronizar",
+      "adatkapcsolat",
+      "google sheet",
+      "excel összekötése",
+      "onedrive",
+      "összekötés",
+      "conectează date",
+      "conectează google sheets",
+      "conexiuni de date",
+      "sincronizare",
+    ],
+    answer: () =>
+      "ClevrSync lets you connect external data sources like Google Sheets, OneDrive, or other cloud storage. Open Data Connections to see available connectors, connect a new source, or sync existing data.",
+    followUps: ["Open ClevrSync", "Connect Google Sheets", "View connections", "Sync data"],
+    actions: ["OPEN_CLEVRSYNC", "OPEN_DATA_CONNECTIONS"],
   },
 ];
 
@@ -368,15 +427,15 @@ export function buildUsyReply(input: {
   }
 
   if (asksForRestrictedInformation(normalized)) {
-    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings", "Use AI Assistant"], "security_request", language);
+    return knowledgeAnswer(localizedCommon("restricted", language), ["What can Usy help with?", "Contact support", "Open settings", "Use AI Assistant"], "security_request", language, ["OPEN_SUPPORT"]);
   }
 
   if (!platformRoles.includes(context.role) && asksForAdminOnlyArea(normalized)) {
-    return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps, "security_request", language);
+    return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps, "security_request", language, ["OPEN_SUPPORT"]);
   }
 
   if (asksForProMonthlyPrice(normalized)) {
-    return knowledgeAnswer(buildProMonthlyPriceAnswer(language), pricingFollowUps, "billing", language);
+    return knowledgeAnswer(buildProMonthlyPriceAnswer(language), pricingFollowUps, "billing", language, ["OPEN_SUBSCRIPTION", "OPEN_BILLING"]);
   }
 
   if (input.contactDraft || isContactRequest(question)) {
@@ -411,7 +470,7 @@ export function buildUsyReply(input: {
   }
 
   if (requiresAiAssistant(normalized)) {
-    return knowledgeAnswer(localizedCommon("aiAssistant", language), ["Open AI Assistant", "Choose a dataset", "Generate a report", "Upload data"], "ai_analysis_request", language);
+    return knowledgeAnswer(localizedCommon("aiAssistant", language), ["Open AI Assistant", "Choose a dataset", "Generate a report", "Upload data"], "ai_analysis_request", language, ["OPEN_AI_ASSISTANT", "OPEN_DATASETS"]);
   }
 
   const intent = detectProductIntent(normalized, context.role);
@@ -421,15 +480,16 @@ export function buildUsyReply(input: {
       intent.followUps,
       usyIntentByProductIntent[intent.id],
       language,
+      intent.actions,
     );
   }
 
   const term = businessTerms.find((entry) => entry.keywords.some((keyword) => normalized.includes(normalizeUsyText(keyword))));
   if (term) {
-    return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"], "product_information", language);
+    return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"], "product_information", language, ["OPEN_AI_ASSISTANT", "OPEN_UPLOAD"]);
   }
 
-  return knowledgeAnswer(localizedCommon("unknown", language), fallbackFollowUps, "unknown", language);
+  return knowledgeAnswer(localizedCommon("unknown", language), fallbackFollowUps, "unknown", language, ["OPEN_DASHBOARD", "OPEN_AI_ASSISTANT"]);
 }
 
 export function roleFromAudience(audience: UsyContext["audience"], sessionRole?: string | null): UsyRole {
@@ -708,13 +768,16 @@ function nextStepForIntent(intentId: string, context: UsyContext, language: Supp
   return "open the matching UseClevr area, and I can help you decide what to check first.";
 }
 
-function knowledgeAnswer(answer: string, followUps: string[], intent: UsyIntent, language: SupportedUsyLanguage = "english"): UsyChatResponse {
+function knowledgeAnswer(answer: string, followUps: string[], intent: UsyIntent, language: SupportedUsyLanguage = "english", actionIds?: UsyActionId[]): UsyChatResponse {
+  const actionButtons: UsyActionButton[] | undefined = actionIds?.map((actionId) => getLocalizedActionButton(actionId, language));
+
   return {
     answer,
     source: "knowledge",
     followUps: localizeFollowUps(followUps, language).slice(0, 5),
     language,
     intent,
+    actionButtons,
   };
 }
 

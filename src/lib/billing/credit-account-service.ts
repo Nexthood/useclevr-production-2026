@@ -144,18 +144,56 @@ export async function getCreditAccount(userId: string): Promise<CreditAccountInf
 
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.userId, userId),
-    columns: { subscriptionTier: true },
+    columns: { subscriptionTier: true, role: true },
   })
 
   if (!account) {
     return initializeCreditAccount(userId, profile?.subscriptionTier || "free")
   }
 
-  const planId = account.planId
-  const authTier = mapPlanIdToTier(planId)
-  const effectiveTier = authTier
+  const profileTier = profile?.subscriptionTier || "free"
+  const creditPlanTier = mapPlanIdToTier(account.planId)
 
-  return toAccountInfo({ ...account, tier: effectiveTier })
+  if (profileTier !== creditPlanTier) {
+    const synced = await syncCreditPlanToProfile(userId, profileTier)
+    if (synced) {
+      const refreshed = await db.query.userCredits.findFirst({
+        where: eq(userCredits.userId, userId),
+      })
+      if (refreshed) {
+        return toAccountInfo({ ...refreshed, tier: profileTier })
+      }
+    }
+  }
+
+  return toAccountInfo({ ...account, tier: profileTier })
+}
+
+async function syncCreditPlanToProfile(userId: string, profileTier: string): Promise<boolean> {
+  const db = getDb()
+  if (!db) return false
+
+  const plan = getBillingPlanByTier(profileTier)
+  const monthlyCredits = getCreditsLimitForTier(profileTier)
+  const nextReset = nextResetDate(profileTier)
+  const now = new Date()
+
+  try {
+    await db
+      .update(userCredits)
+      .set({
+        planId: plan.id,
+        totalCredits: monthlyCredits,
+        includedBalance: monthlyCredits,
+        remainingCredits: monthlyCredits,
+        creditsResetAt: nextReset,
+        updatedAt: now,
+      })
+      .where(eq(userCredits.userId, userId))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function initializeCreditAccount(userId: string, tier: string): Promise<CreditAccountInfo | null> {
