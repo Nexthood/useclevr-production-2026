@@ -283,6 +283,10 @@ export const profiles = pgTable(
     stripePriceId: text("stripePriceId"),
     stripeStatus: text("stripeStatus"),
     stripeCurrentPeriodEnd: timestamp("stripeCurrentPeriodEnd"),
+    // Email tracking for idempotency
+    lastSubscriptionActivationEmailSent: timestamp("lastSubscriptionActivationEmailSent"),
+    lastSubscriptionCancellationEmailSent: timestamp("lastSubscriptionCancellationEmailSent"),
+    lastSubscriptionCancellationScheduledEmailSent: timestamp("lastSubscriptionCancellationScheduledEmailSent"),
     // Business details
     businessName: text("businessName"),
     businessEmail: text("businessEmail"),
