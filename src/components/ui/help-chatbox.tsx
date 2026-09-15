@@ -9,10 +9,12 @@ import type {
   UsyChatResponse,
   UsyContactDraft,
   UsyUsageContext,
+  UsyActionButton,
 } from "@/lib/usy/types";
-import { ArrowUp, Bot, Loader2, Sparkles, X } from "lucide-react";
+import { getActionById } from "@/lib/usy/actions";
+import { ArrowUp, Bot, Loader2, Sparkles, X, ExternalLink, Mail } from "lucide-react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -39,6 +41,7 @@ type ChatMessage = {
   text: string;
   source?: "knowledge";
   followUps?: string[];
+  actionButtons?: UsyActionButton[];
 };
 
 const capabilities = [
@@ -95,6 +98,41 @@ function SuggestionChip({
       ].join(" ")}
     >
       {label}
+    </button>
+  );
+}
+
+function ActionButton({
+  actionButton,
+  index,
+  onClick,
+}: {
+  actionButton: UsyActionButton;
+  index: number;
+  onClick: (actionButton: UsyActionButton) => void;
+}) {
+  const isNavigation = actionButton.type === "navigation";
+  const isContact = actionButton.type === "contact";
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(actionButton)}
+      className={[
+        "group inline-flex items-center gap-1.5 rounded-2xl border text-left font-semibold text-white transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
+        "bg-[linear-gradient(135deg,rgba(34,211,238,0.2),rgba(34,210,238,0.1))] shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]",
+        "hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(34,211,238,0.2),0_0_20px_rgba(34,211,238,0.15)]",
+        "px-3 py-2 text-sm",
+        isNavigation
+          ? "border-emerald-200/40 hover:border-emerald-100/80 hover:bg-emerald-200/[0.2]"
+          : isContact
+            ? "border-amber-200/40 hover:border-amber-100/80 hover:bg-amber-200/[0.2]"
+            : "border-cyan-200/35 hover:border-cyan-100/75 hover:bg-cyan-200/[0.16]",
+      ].join(" ")}
+    >
+      {isNavigation && <ExternalLink className="h-3.5 w-3.5" />}
+      {isContact && <Mail className="h-3.5 w-3.5" />}
+      {actionButton.label}
     </button>
   );
 }
@@ -197,6 +235,7 @@ export function HelpChatbox({
   userRole?: string | null;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -207,6 +246,18 @@ export function HelpChatbox({
   const [showLanguageHint, setShowLanguageHint] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  function handleActionButton(actionButton: UsyActionButton) {
+    if (actionButton.type === "navigation") {
+      const action = getActionById(actionButton.actionId);
+      if (action) {
+        router.push(action.route);
+        setOpen(false);
+      }
+    } else if (actionButton.type === "contact") {
+      submitQuestion(actionButton.label);
+    }
+  }
 
   const starterSuggestions = [
     "What can you do?",
@@ -329,6 +380,7 @@ export function HelpChatbox({
           text: result.answer,
           source: result.source,
           followUps: result.followUps,
+          actionButtons: result.actionButtons,
         },
       ]);
     } catch {
@@ -488,6 +540,13 @@ export function HelpChatbox({
                     message.followUps.length > 0 &&
                     !isAsking;
 
+                  const showActionButtons =
+                    message.role === "assistant" &&
+                    index === messages.length - 1 &&
+                    Array.isArray(message.actionButtons) &&
+                    message.actionButtons.length > 0 &&
+                    !isAsking;
+
                   return (
                     <div
                       key={`${message.role}-${index}`}
@@ -509,6 +568,18 @@ export function HelpChatbox({
                           )}
                           {message.text}
                         </div>
+                        {showActionButtons && (
+                          <div className="flex flex-wrap gap-2 pl-1">
+                            {message.actionButtons?.map((actionButton, actionIndex) => (
+                              <ActionButton
+                                key={actionButton.actionId}
+                                actionButton={actionButton}
+                                index={actionIndex}
+                                onClick={handleActionButton}
+                              />
+                            ))}
+                          </div>
+                        )}
                         {showFollowUps && (
                           <div className="flex flex-wrap gap-2 pl-1">
                             {message.followUps?.map((followUp, followUpIndex) => (
