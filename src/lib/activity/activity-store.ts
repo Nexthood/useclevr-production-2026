@@ -10,6 +10,9 @@ export type ProductActivityType =
   | "profile_updated"
   | "business_updated"
   | "subscribed"
+  | "subscription_changed"
+  | "subscription_updated"
+  | "subscription_cancelled"
   | "dataset_uploaded"
   | "dataset_analyzed"
   | "dataset_deleted";
@@ -32,6 +35,9 @@ const FEED_ACTIVITY_TYPES: ProductActivityType[] = [
   "profile_updated",
   "business_updated",
   "subscribed",
+  "subscription_changed",
+  "subscription_updated",
+  "subscription_cancelled",
   "dataset_uploaded",
   "dataset_analyzed",
   "dataset_deleted",

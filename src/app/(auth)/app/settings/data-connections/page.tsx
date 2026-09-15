@@ -41,10 +41,10 @@ type ClevrSyncAccess = {
 };
 
 const connectorOptions = [
-  { type: "excel", label: "Excel", status: "Available", icon: FileSpreadsheet },
-  { type: "google_sheets", label: "Google Sheets", status: "Available", icon: Database },
-  { type: "onedrive", label: "OneDrive", status: "Coming Soon", icon: Cloud },
-  { type: "sharepoint", label: "SharePoint", status: "Coming Soon", icon: Share2 },
+  { type: "excel", label: "Excel Connector", status: "Available", description: "Connect Excel workbooks", icon: FileSpreadsheet },
+  { type: "google_sheets", label: "Google Sheets", status: "Available", description: "Connect Google Sheets", icon: Database },
+  { type: "onedrive", label: "OneDrive", status: "Coming Soon", description: "Connect OneDrive files", icon: Cloud },
+  { type: "sharepoint", label: "SharePoint", status: "Coming Soon", description: "Connect SharePoint files", icon: Share2 },
 ];
 
 export default function DataConnectionsPage() {
@@ -404,11 +404,17 @@ export default function DataConnectionsPage() {
         <CardHeader>
           <CardTitle>Excel workbook</CardTitle>
           <CardDescription>
-            XLSX files sync through the existing dataset processing flow.
+            Upload and sync XLSX files through ClevrSync. Requires Pro or Business.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {access?.enabled === false ? <PremiumLock access={access} /> : null}
+          {access?.enabled === false ? (
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-4">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Excel workbook sync requires Pro or Business. You can still upload CSV and XLSX files directly through the Datasets page with your Free plan.
+              </p>
+            </div>
+          ) : null}
           <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
             <input
               type="file"
@@ -492,9 +498,9 @@ function PremiumLock({ access }: { access: ClevrSyncAccess }) {
     <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">ClevrSync requires Pro or Business</p>
+          <p className="text-sm font-semibold text-foreground">ClevrSync connectors require Pro or Business</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Your current Free plan keeps manual CSV/XLSX uploads available, while connected data sources unlock on Pro.
+            Connect external data sources like Excel workbooks and Google Sheets through ClevrSync to unlock advanced features.
           </p>
         </div>
         <Link href={access.upgradeHref}>
