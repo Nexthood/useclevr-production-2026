@@ -77,11 +77,16 @@ export async function POST(request: Request) {
 
     const currentUsage = await getAnalystCreditUsage(session.user.id, session.user.role, session.user.email)
     if (!currentUsage.unlimited && (currentUsage.availableCredits ?? 0) <= 0) {
+      const availableMsg = currentUsage.availableCredits ?? 0;
+      const limitMsg = currentUsage.total ?? 2;
+      const errorMsg = availableMsg > 0
+        ? `Upload credit limit reached: you have ${availableMsg} credits available`
+        : `No upload credits available: you have 0 credits out of ${limitMsg} total`;
       return NextResponse.json({
-        error: "Upload credit limit reached",
+        error: "Upload credits exhausted",
         code: "UPLOAD_CREDITS_EXHAUSTED",
-        title: "Free upload limit reached",
-        message: buildUploadCreditLimitInlineMessage(currentUsage.total),
+        title: "Upload credits exhausted",
+        message: errorMsg,
         used: currentUsage.usedCredits,
         limit: currentUsage.total,
         remaining: currentUsage.availableCredits,
@@ -140,11 +145,16 @@ export async function POST(request: Request) {
 
       if (!reservation.success) {
         const usage = await getAnalystCreditUsage(session.user.id, session.user.role, session.user.email)
+        const availableMsg = usage.availableCredits ?? 0;
+        const limitMsg = usage.total ?? 2;
+        const errorMsg = availableMsg > 0
+          ? `Upload credit limit reached: you have ${availableMsg} credits available`
+          : `No upload credits available: you have 0 credits out of ${limitMsg} total`;
         return NextResponse.json({
-          error: "Upload credit limit reached",
+          error: "Upload credits exhausted",
           code: "UPLOAD_CREDITS_EXHAUSTED",
-          title: "Free upload limit reached",
-          message: buildUploadCreditLimitInlineMessage(usage.total),
+          title: "Upload credits exhausted",
+          message: errorMsg,
           used: usage.usedCredits,
           limit: usage.total,
           remaining: usage.availableCredits,

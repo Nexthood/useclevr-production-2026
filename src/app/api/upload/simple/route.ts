@@ -521,9 +521,13 @@ export async function POST(request: Request) {
           unlimited: false,
           unlimitedLabel: null,
         };
-        return jsonError(402, "credits_deducted", buildUploadCreditLimitInlineMessage(creditUsage.total), false, {
+        const availableMsg = creditUsage.availableCredits ?? 0;
+        const errorMsg = availableMsg > 0
+          ? `Upload credit limit reached: you have ${availableMsg} credits available`
+          : `No upload credits available: you have 0 credits out of ${creditUsage.total ?? 2} total`;
+        return jsonError(402, "credits_deducted", errorMsg, false, {
           code: "UPLOAD_CREDITS_EXHAUSTED",
-          title: "Free upload limit reached",
+          title: "Upload credits exhausted",
           requestId,
           upgradeRequired: true,
           used: creditUsage.usedCredits ?? creditUsage.analysisCount,
@@ -535,14 +539,19 @@ export async function POST(request: Request) {
 
       if (!reservation.success) {
         const latestUsage = await getUsagePayload(userId, session?.user?.role, session?.user?.email);
+        const availableMsg = latestUsage.availableCredits ?? 0;
+        const limitMsg = latestUsage.total ?? 2;
+        const errorMsg = availableMsg > 0
+          ? `Upload credit limit reached: you have ${availableMsg} credits available`
+          : `No upload credits available: you have 0 credits out of ${limitMsg} total`;
         return jsonError(
           402,
           "credits_deducted",
-          buildUploadCreditLimitInlineMessage(latestUsage.total),
+          errorMsg,
           false,
           {
             code: "UPLOAD_CREDITS_EXHAUSTED",
-            title: "Free upload limit reached",
+            title: "Upload credits exhausted",
             requestId,
             upgradeRequired: true,
             used: latestUsage.usedCredits,

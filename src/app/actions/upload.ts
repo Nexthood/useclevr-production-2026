@@ -479,9 +479,14 @@ export async function uploadCSV(
           session?.user?.role,
           session?.user?.email ?? null,
         );
+        const availableForMessage = uploadUsage.availableCredits ?? 0;
+        const limitForMessage = uploadUsage.total ?? 2;
+        const errorMessage = availableForMessage > 0
+          ? `UPLOAD_CREDITS_EXHAUSTED|Upload credit limit reached|You have ${availableForMessage} credits available. Each upload consumes 1 credit.`
+          : `UPLOAD_CREDITS_EXHAUSTED|No upload credits available|You have 0 credits available out of ${limitForMessage}. Each upload consumes 1 credit.`;
         return fail(
           UPLOAD_STAGES.CREDITS_DEDUCTED,
-          `UPLOAD_CREDITS_EXHAUSTED|Free upload limit reached|${buildUploadCreditLimitInlineMessage(uploadUsage.total)}`,
+          errorMessage,
           {
             usage: {
               limitReached: true,

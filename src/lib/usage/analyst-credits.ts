@@ -155,7 +155,7 @@ export async function getAnalystCreditUsage(
       const profileTier = profile?.subscriptionTier || "free"
       const creditPlanTier = mapPlanIdToTier(userCreditsRecord?.planId)
 
-      if (profileTier !== creditPlanTier && creditPlanTier !== "free") {
+      if (profileTier !== creditPlanTier) {
         await syncCreditPlanToProfile(userId, profileTier)
       }
 
