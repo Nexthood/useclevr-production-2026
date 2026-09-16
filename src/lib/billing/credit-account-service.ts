@@ -191,7 +191,14 @@ async function syncCreditPlanToProfile(userId: string, profileTier: string): Pro
       })
       .where(eq(userCredits.userId, userId))
     return true
-  } catch {
+  } catch (error) {
+    console.error("[CREDIT_ACCOUNT] sync credit plan to profile failed", {
+      userId,
+      profileTier,
+      targetPlanId: plan.id,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return false
   }
 }

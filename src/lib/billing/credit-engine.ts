@@ -14,6 +14,8 @@ import {
   getBillingPlanByTier,
   getCreditsLimitForTier,
   getCreditResetDayForTier,
+  mapPlanIdToTier,
+  normalizeSubscriptionTier,
 } from "./plans"
 import { calculateTokenCost } from "./provider-pricing"
 import type { ProviderUsage } from "./provider-usage"
@@ -198,6 +200,17 @@ async function ensureSubscriptionPlanSeeded(planId: string): Promise<boolean> {
         isActive: true,
       })),
     ).onConflictDoNothing()
+
+    const seeded = await db.query.subscriptionPlans.findFirst({
+      where: eq(subscriptionPlans.id, planId),
+      columns: { id: true },
+    })
+
+    if (!seeded) {
+      console.error("[CREDIT_ENGINE] subscription plan catalog still missing after seed", { planId })
+      return false
+    }
+
     console.warn("[CREDIT_ENGINE] subscription plan catalog restored", { planId })
     return true
   } catch (error) {
@@ -216,7 +229,9 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
   if (await hasUnlimitedCreditAccess(userId)) return null
 
   const existing = await db.query.userCredits.findFirst({ where: eq(userCredits.userId, userId) })
-  if (existing) return toCreditInfo(existing)
+  if (existing) {
+    return reconcileExistingUserCredit(existing, userId, tier)
+  }
 
   const plan = getBillingPlanByTier(tier)
   const monthlyCredits = getCreditsLimitForTier(tier)
@@ -277,11 +292,12 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
     } catch (firstError) {
       // A missing SubscriptionPlan row makes the UserCredit insert violate the
       // planId foreign key on every attempt. Restore the plan catalog and retry once.
-      await ensureSubscriptionPlanSeeded(plan.id)
+      const seeded = await ensureSubscriptionPlanSeeded(plan.id)
       await insertInitialCredits()
       console.warn("[CREDIT_ENGINE] initializeUserCredits retried after plan catalog repair", {
         userId,
         planId: plan.id,
+        planSeeded: seeded,
         firstError: firstError instanceof Error ? firstError.message : String(firstError),
       })
     }
@@ -299,6 +315,121 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
 
   const created = await db.query.userCredits.findFirst({ where: eq(userCredits.userId, userId) })
   return created ? toCreditInfo(created) : null
+}
+
+async function reconcileExistingUserCredit(
+  existing: typeof userCredits.$inferSelect,
+  userId: string,
+  tier: string,
+): Promise<UserCreditInfo | null> {
+  const db = getDb()
+  if (!db) return null
+
+  const plan = getBillingPlanByTier(tier)
+  const monthlyCredits = getCreditsLimitForTier(tier)
+  const rowTier = mapPlanIdToTier(existing.planId)
+  const targetTier = normalizeSubscriptionTier(tier)
+
+  if (rowTier !== targetTier) {
+    const changed = await processPlanChange(userId, tier)
+    if (!changed) {
+      console.error("[CREDIT_ENGINE] credit account plan reconciliation failed", {
+        userId,
+        tier,
+        userCreditPlanId: existing.planId,
+        targetPlanId: plan.id,
+      })
+      return toCreditInfo(existing)
+    }
+    const synced = await db.query.userCredits.findFirst({ where: eq(userCredits.userId, userId) })
+    return synced ? toCreditInfo(synced) : toCreditInfo(existing)
+  }
+
+  const neverUsed =
+    existing.usedCredits === 0 &&
+    (existing.reservedCredits ?? 0) === 0 &&
+    (existing.purchasedBalance ?? 0) === 0
+
+  if (
+    neverUsed &&
+    (existing.totalCredits !== monthlyCredits ||
+      (existing.includedBalance ?? 0) !== monthlyCredits ||
+      existing.remainingCredits !== monthlyCredits)
+  ) {
+    return repairNeverUsedCreditAccount(existing, userId, plan, monthlyCredits, nextResetDate(tier))
+  }
+
+  return toCreditInfo(existing)
+}
+
+async function repairNeverUsedCreditAccount(
+  existing: typeof userCredits.$inferSelect,
+  userId: string,
+  plan: ReturnType<typeof getBillingPlanByTier>,
+  monthlyCredits: number,
+  resetDate: Date,
+): Promise<UserCreditInfo | null> {
+  const db = getDb()
+  if (!db) return null
+
+  const now = new Date()
+  const idempotencyKey = `grant:initial:${userId}:${plan.id}`
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.update(userCredits).set({
+        planId: plan.id,
+        totalCredits: monthlyCredits,
+        includedBalance: monthlyCredits,
+        purchasedBalance: 0,
+        usedCredits: 0,
+        reservedCredits: 0,
+        remainingCredits: monthlyCredits,
+        creditsResetAt: resetDate,
+        lifetimeCreditsEarned: Math.max(existing.lifetimeCreditsEarned, monthlyCredits),
+        updatedAt: now,
+      }).where(eq(userCredits.userId, userId))
+
+      await tx.insert(creditLedger).values({
+        id: ledgerId(),
+        workspaceId: userId,
+        userId,
+        type: "grant",
+        transactionType: "PLAN_ALLOCATION",
+        status: "finalized",
+        operationId: idempotencyKey,
+        idempotencyKey,
+        amount: monthlyCredits,
+        credits: monthlyCredits,
+        balanceBefore: existing.remainingCredits,
+        balanceAfter: monthlyCredits,
+        includedBalanceBefore: existing.includedBalance ?? 0,
+        includedBalanceAfter: monthlyCredits,
+        purchasedBalanceBefore: 0,
+        purchasedBalanceAfter: 0,
+        source: "subscription",
+        feature: "initial_allowance",
+        action: "initial_credits",
+        description: `Reconciled initial credits for ${plan.name} plan account`,
+        relatedPlanId: plan.id,
+        currency: "EUR",
+        metadata: { tier: plan.tier, repair: true, includedBalance: monthlyCredits, purchasedBalance: 0 },
+        finalizedAt: now,
+      }).onConflictDoNothing()
+    })
+  } catch (error) {
+    console.error("[CREDIT_ENGINE] never-used credit account repair failed", {
+      userId,
+      planId: plan.id,
+      monthlyCredits,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    return null
+  }
+
+  const repaired = await db.query.userCredits.findFirst({ where: eq(userCredits.userId, userId) })
+  return repaired ? toCreditInfo(repaired) : null
 }
 
 export async function getUserCreditInfo(userId: string): Promise<UserCreditInfo | null> {
