@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- Fix Profitability report generation so the Generate Report buttons on the Profitability Analysis page and the Profitability Dashboard deliver the Profitability & P&L report to Reports & Downloads, repeated clicks reuse the stored report without duplicate charges, and failed generations show the cause instead of a generic error.
 - Fix Pro and Business paid-plan credit accounts so uploads work again: monthly included credits are granted reliably, customers stuck with an empty credit account are credited automatically on their next action, and uploads no longer stop with a wrong "credits available" message.
 - Fix monthly credit accounting so paid-plan plan changes, monthly resets, and per-usage debits record correctly in the billing ledger.
 

@@ -117,7 +117,14 @@ export function ProfitabilityUpload({
       } else {
         const errorText = await response.text()
         debugError('[REPORT] Report generation failed:', errorText)
-        toast({ title: "Error", description: "Failed to generate report", variant: "destructive" })
+        let apiError: string | null = null
+        try {
+          const parsed = errorText ? JSON.parse(errorText) as Record<string, unknown> : null
+          apiError = parsed && typeof parsed.error === "string" && parsed.error.trim() ? parsed.error : null
+        } catch {
+          apiError = null
+        }
+        toast({ title: "Error", description: apiError || "Failed to generate report", variant: "destructive" })
       }
     } catch (error) {
       debugError('[REPORT] Error:', error)

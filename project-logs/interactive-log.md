@@ -7578,3 +7578,46 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; ClevrSync OAuth follow-up: `.TODO/todo-next.md` T-1058; release notes: `CHANGELOG.md`.
+
+## Interaction: Repair both Profitability report-generation entry points
+
+1. Interaction title
+   Fix the two broken Profitability report-generation entry points without touching working upload, Profitability calculations, dataset persistence, credits, dashboard analytics, ClevrSync, Stripe, or subscription logic.
+
+2. What was the user goal
+   Trace both Generate Report buttons end to end, determine whether they share one report-generation backend, find the exact code path producing the HTTP 500, fix both buttons against the canonical Profitability analysis so reports succeed and register under Reports & Downloads, keep regenerate idempotent, return structured errors instead of a generic 500, add a regression test covering both entry points, run focused tests and TypeScript validation, and do not commit or push.
+
+3. What changed
+   - `src/lib/billing/usage-enforcement.ts`: `getConcurrentAnalysisCount`, `incrementConcurrentAnalyses`, and `decrementConcurrentAnalyses` catch concurrent-analysis-count lookup and update failures and fail open (count 0, increment true, decrement no-op) with debug logs, matching the existing `getDailyRequestCount` pattern, so a missing or unreadable `ConcurrentAnalysisCount` relation can no longer crash report generation, chat, or analysis enforcement.
+   - `src/lib/db/migrations/0033_concurrent_analysis_count.sql`: creates the missing `ConcurrentAnalysisCount` table and its per-user unique index idempotently.
+   - `scripts/runtime/railway-predeploy.cjs`: the production predeploy runs `0033_concurrent_analysis_count.sql` after 0032 so the deployment schema converges with the drizzle schema.
+   - `src/lib/reports/dataset-report-builder.ts`: `buildProfitabilityReportInput` embeds a `ReportDiagnostics` object (authoritative paired row count for KPI/summary/provenance, semantic field mappings taken from the same semantic context, row-validity counts, template name) so persisted profitability reports satisfy `isCurrentReportRuntime` and same-key retries replay the stored report instead of deleting and regenerating it.
+   - `src/app/api/reports/route.ts`: failed credit release inside the error handler no longer masks the structured response; `ReportIntegrityError` failures return HTTP 422 with code `DATASET_ROW_COUNT_MISMATCH` and an actionable message, and unexpected failures return HTTP 500 with code `REPORT_GENERATION_FAILED`.
+   - `src/components/forms/profitability-upload.tsx`: the Profitability Analysis page toast shows the structured API error message when present instead of a fixed generic text.
+   - `scripts/analysis/profitability-report-test-db.ts` plus `scripts/analysis/test-profitability-report-entry-points.ts` and the `test:profitability-report-entry-points` script: regression covering both entry-point payloads (Profitability Analysis page `profitability:<analysisId>:report` key and Dashboard `dashboard-report:<datasetId>:<client>` key) against a canonical paired 8,500-row Profitability analysis, enforcing persisted Profitability & P&L reports with PDFs, Reports & Downloads registration, idempotent same-key replay, fail-open concurrent-count enforcement under the exact production `relation "ConcurrentAnalysisCount" does not exist` failure, and predeploy/structured-error production contracts.
+   - `CHANGELOG.md` records the user-facing fix; `.TODO/todo-done.md` T-1059 retires the work; `.TODO/config.json` advances the next task number.
+
+4. Problems marked
+   - blocker root cause: Both buttons post to the same `POST /api/reports` backend. For the Pro user the route runs `checkActionEnforcement(userId, "report_generation", ...)`, which always reads `getConcurrentAnalysisCount(userId)` for the usage payload; the production schema never creates the `ConcurrentAnalysisCount` relation (the table exists only in the drizzle schema, no predeploy migration registers it), so the lookup throws and the route catch returns the generic HTTP 500, which the Dashboard renders as "Failed to generate report". Reproduced live against the running route with the canonical dataset owner session: identical 500 for both payloads, with the failing frame logged in `getConcurrentAnalysisCount`.
+   - risk: The predeploy migration list is manually curated; the concurrent-analysis table drifted silently exactly like 0030/0031 did before the credit-account repair.
+   - behavior: Profitability reports previously serialized without `diagnostics`, so `isCurrentReportRuntime` was always false and every same-key regenerate deleted and rebuilt the report; the new diagnostics preserve the intended dataset-scoped idempotency and retry safety.
+   - observation: The credit checks in the route (`checkSpendingLimits`, `reserveCredits`, `finalizeCredits`) all work, the profitability report builder and PDF generator both succeed against the canonical analysis, and the live end-to-end verification charged exactly one report_generation reservation per newly generated report with the idempotent replay charging nothing.
+
+5. User learning
+   The Generic HTTP 500 was not in report building, PDF generation, dataset lookup, or credits; it was a plan-enforcement bookkeeping read (`ConcurrentAnalysisCount`) that was never migrated, so both Profitability report buttons failed inside the same shared backend with identical symptoms.
+
+6. AI-agent learning
+   Enforcement lookups that decorate a response must fail open like `getDailyRequestCount` instead of throwing through an authenticated user flow, and every drizzle schema addition needs a registered predeploy migration or production reads crash on first use; verify reported production failures by replaying the real route payload with a minted session against the live backend before choosing a fix.
+
+7. Follow-up tasks
+   - Verify both Profitability report buttons and Reports & Downloads on the test deploy after the next Railway predeploy applies 0033.
+   - T-1058 remains open for the Google ClevrSync OAuth consent redirect.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; retired task: `.TODO/todo-done.md` T-1059; release notes: `CHANGELOG.md`.

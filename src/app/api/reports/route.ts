@@ -13,7 +13,7 @@ import { findAccessibleDataset } from '@/lib/data/dataset-access';
 import { getDb } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { buildDatasetReportInput } from '@/lib/reports/dataset-report-builder';
-import { deleteReport, findReportByIdempotencyKey, generateReport, getReport, isCurrentReportRuntime, listAllReports, listReports, traceReportRuntime, type ReportDiagnostics, type ReportSemanticContext } from '@/lib/reports/report-generator';
+import { deleteReport, findReportByIdempotencyKey, generateReport, getReport, isCurrentReportRuntime, listAllReports, listReports, traceReportRuntime, ReportIntegrityError, type ReportDiagnostics, type ReportSemanticContext } from '@/lib/reports/report-generator';
 import { eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import { NextResponse } from 'next/server';
@@ -587,7 +587,11 @@ export async function POST(request: Request) {
     
   } catch (error) {
     if (reservationCreated && operationId) {
-      await releaseCredits(operationId, 'report_generation_failed');
+      try {
+        await releaseCredits(operationId, 'report_generation_failed');
+      } catch (releaseError) {
+        debugError('[REPORTS POST] Credit release after a failed generation threw:', releaseError);
+      }
     }
     logDashboardReportException(error, dashboardDiagnostics);
     debugError(
@@ -595,8 +599,19 @@ export async function POST(request: Request) {
       error instanceof Error ? error.message : String(error),
       error instanceof Error ? error.stack : undefined,
     );
+    if (error instanceof ReportIntegrityError) {
+      return createReportResponse(
+        {
+          success: false,
+          code: 'DATASET_ROW_COUNT_MISMATCH',
+          error: 'The stored dataset rows no longer match the recorded dataset size. Re-upload the dataset and generate the report again.',
+        },
+        { status: 422 },
+        dashboardDiagnostics,
+      );
+    }
     return createReportResponse(
-      { success: false, error: 'Failed to generate report' },
+      { success: false, code: 'REPORT_GENERATION_FAILED', error: 'Failed to generate report' },
       { status: 500 },
       dashboardDiagnostics,
     );
