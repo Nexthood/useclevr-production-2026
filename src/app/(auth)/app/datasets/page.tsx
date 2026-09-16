@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { getDatasetCategoryDestinationLabel, resolveDatasetType } from "@/lib/data/dataset-category"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
-import { and, desc, eq, ne } from "drizzle-orm"
+import { and, desc, eq, isNull, ne, or } from "drizzle-orm"
 import { redirect } from "next/navigation"
 
 export const metadata = {
@@ -36,9 +36,21 @@ export default async function DatasetsPage() {
       columns: datasets.columns,
     })
     .from(datasets)
-    .where(and(eq(datasets.userId, session.user.id), ne(datasets.datasetType, "prebookkeeping")))
+    .where(and(
+      eq(datasets.userId, session.user.id),
+      // SQL `!=` excludes NULL datasetType rows; keep rows persisted without a
+      // datasetType visible in the library (they resolve to "standard").
+      or(isNull(datasets.datasetType), ne(datasets.datasetType, "prebookkeeping")),
+    ))
     .orderBy(desc(datasets.createdAt))
     .limit(100)
+
+    if (data.length === 0) {
+      console.warn("[DATASET_LIBRARY] empty_result", {
+        userId: session.user.id,
+        reason: "query_returned_zero_rows",
+      })
+    }
 
     datasetsList = data.map((dataset) => {
       const datasetType = resolveDatasetType(dataset.datasetType, dataset.analysis)
@@ -58,6 +70,10 @@ export default async function DatasetsPage() {
       }
     })
   } catch (e) {
+    console.warn("[DATASET_LIBRARY] query_failed", {
+      userId: session.user.id,
+      error: e instanceof Error ? e.message : String(e),
+    })
     debugError("[DATASETS] Query error:", e)
     datasetsList = []
   }

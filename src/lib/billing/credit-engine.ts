@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db"
-import { creditLedger, profiles, userCredits } from "@/lib/db/schema"
+import { creditLedger, profiles, subscriptionPlans, userCredits } from "@/lib/db/schema"
 import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { and, desc, eq, lt, sql } from "drizzle-orm"
 import {
@@ -10,6 +10,7 @@ import {
   type FeatureCostInput,
 } from "./feature-costs"
 import {
+  billingPlans,
   getBillingPlanByTier,
   getCreditsLimitForTier,
   getCreditResetDayForTier,
@@ -168,6 +169,46 @@ function toCreditInfo(row: typeof userCredits.$inferSelect): UserCreditInfo {
   }
 }
 
+async function ensureSubscriptionPlanSeeded(planId: string): Promise<boolean> {
+  const db = getDb()
+  if (!db) return false
+
+  try {
+    const existing = await db.query.subscriptionPlans.findFirst({
+      where: eq(subscriptionPlans.id, planId),
+      columns: { id: true },
+    })
+    if (existing) return false
+
+    await db.insert(subscriptionPlans).values(
+      billingPlans.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        tier: plan.tier,
+        monthlyCredits: plan.limits.monthlyCredits,
+        maxDatasets: plan.limits.maxDatasets,
+        maxFileSizeMb: plan.limits.maxFileSizeMb,
+        maxRowsPerDataset: plan.limits.maxRowsPerDataset,
+        maxTeamMembers: plan.limits.maxTeamMembers,
+        maxAiRequestsPerDay: plan.limits.maxAiRequestsPerDay,
+        maxConcurrentAnalyses: plan.limits.maxConcurrentAnalyses,
+        creditResetDay: plan.limits.creditResetDay,
+        priceEur: plan.price,
+        stripePriceId: plan.stripePriceId,
+        isActive: true,
+      })),
+    ).onConflictDoNothing()
+    console.warn("[CREDIT_ENGINE] subscription plan catalog restored", { planId })
+    return true
+  } catch (error) {
+    console.error("[CREDIT_ENGINE] subscription plan seed failed", {
+      planId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return false
+  }
+}
+
 export async function initializeUserCredits(userId: string, tier: string): Promise<UserCreditInfo | null> {
   const db = getDb()
   if (!db) return null
@@ -184,7 +225,7 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
   const idempotencyKey = `grant:initial:${userId}:${plan.id}`
   const id = creditId()
 
-  try {
+  const insertInitialCredits = async () => {
     await db.transaction(async (tx) => {
       await tx.insert(userCredits).values({
         id,
@@ -228,6 +269,22 @@ export async function initializeUserCredits(userId: string, tier: string): Promi
         finalizedAt: now,
       }).onConflictDoNothing()
     })
+  }
+
+  try {
+    try {
+      await insertInitialCredits()
+    } catch (firstError) {
+      // A missing SubscriptionPlan row makes the UserCredit insert violate the
+      // planId foreign key on every attempt. Restore the plan catalog and retry once.
+      await ensureSubscriptionPlanSeeded(plan.id)
+      await insertInitialCredits()
+      console.warn("[CREDIT_ENGINE] initializeUserCredits retried after plan catalog repair", {
+        userId,
+        planId: plan.id,
+        firstError: firstError instanceof Error ? firstError.message : String(firstError),
+      })
+    }
   } catch (error) {
     console.error("[CREDIT_ENGINE] initializeUserCredits transaction failed", {
       userId,
@@ -324,24 +381,74 @@ export async function reserveCredits(input: {
   const feature = normalizeCreditFeature(input.feature)
   const estimatedCredits = Math.max(0, Math.ceil(input.estimatedCredits ?? estimateFeatureCredits(feature)))
   const operationId = input.operationId || `op_${crypto.randomUUID()}`
-  const idempotencyKey = input.idempotencyKey || `reserve:${workspaceId}:${operationId}:${feature}`
+  let idempotencyKey = input.idempotencyKey || `reserve:${workspaceId}:${operationId}:${feature}`
   const unlimited = await hasUnlimitedCreditAccess(input.userId, input.role)
 
   const existing = await db.query.creditLedger.findFirst({
     where: eq(creditLedger.idempotencyKey, idempotencyKey),
   })
   if (existing) {
-    const info = await getUserCreditInfo(input.userId)
-    return {
-      success: existing.status !== "failed",
-      operationId: existing.operationId || operationId,
-      idempotencyKey,
-      reservedCredits: unlimited ? 0 : existing.credits || Math.abs(existing.amount),
-      remainingCredits: unlimited ? 0 : info?.remainingCredits ?? existing.balanceAfter,
-      availableCredits: unlimited ? 0 : info?.availableCredits ?? existing.balanceAfter,
-      unlimited,
-      ledgerEntryId: existing.id,
-      error: existing.status === "failed" ? existing.description || "Reservation failed" : undefined,
+    // Reuse only the still-pending reservation of the exact same operation. A
+    // reused finalized/released entry leaves callers holding an operationId the
+    // finalize step can never match, deletes their result, and strands the
+    // pending reservation. Fresh attempts mint a keyed ledger row instead.
+    const isReusablePending =
+      existing.status === "pending" &&
+      existing.transactionType === "reservation" &&
+      existing.operationId === operationId
+
+    if (isReusablePending) {
+      const info = await getUserCreditInfo(input.userId)
+      return {
+        success: true,
+        operationId: existing.operationId || operationId,
+        idempotencyKey,
+        reservedCredits: unlimited ? 0 : existing.credits || Math.abs(existing.amount),
+        remainingCredits: unlimited ? 0 : info?.remainingCredits ?? existing.balanceAfter,
+        availableCredits: unlimited ? 0 : info?.availableCredits ?? existing.balanceAfter,
+        unlimited,
+        ledgerEntryId: existing.id,
+      }
+    }
+
+    if (existing.status === "failed") {
+      const info = await getUserCreditInfo(input.userId)
+      return {
+        success: false,
+        operationId: existing.operationId || operationId,
+        idempotencyKey,
+        reservedCredits: existing.credits || Math.abs(existing.amount),
+        remainingCredits: info?.remainingCredits ?? existing.balanceAfter,
+        availableCredits: info?.availableCredits ?? existing.balanceAfter,
+        unlimited,
+        ledgerEntryId: existing.id,
+        error: existing.description || "Reservation failed",
+      }
+    }
+
+    idempotencyKey = `${idempotencyKey}::${operationId}`
+    const previousAttempt = await db.query.creditLedger.findFirst({
+      where: eq(creditLedger.idempotencyKey, idempotencyKey),
+    })
+    if (previousAttempt) {
+      if (
+        previousAttempt.status === "pending" &&
+        previousAttempt.transactionType === "reservation" &&
+        previousAttempt.operationId === operationId
+      ) {
+        const info = await getUserCreditInfo(input.userId)
+        return {
+          success: true,
+          operationId,
+          idempotencyKey,
+          reservedCredits: unlimited ? 0 : previousAttempt.credits || Math.abs(previousAttempt.amount),
+          remainingCredits: unlimited ? 0 : info?.remainingCredits ?? previousAttempt.balanceAfter,
+          availableCredits: unlimited ? 0 : info?.availableCredits ?? previousAttempt.balanceAfter,
+          unlimited,
+          ledgerEntryId: previousAttempt.id,
+        }
+      }
+      idempotencyKey = `${idempotencyKey}#${Date.now()}`
     }
   }
 
@@ -401,7 +508,7 @@ export async function reserveCredits(input: {
 
   await initializeUserCredits(input.userId, tier)
 
-  const result = await db.transaction(async (tx) => {
+  const attemptReservation = () => db.transaction(async (tx) => {
     const updated = await tx.execute(sql`
       UPDATE "UserCredit"
       SET
@@ -440,8 +547,34 @@ export async function reserveCredits(input: {
     return row
   })
 
+  let result = await attemptReservation()
+
+  if (!result) {
+    // The reservation UPDATE matched no rows. Pending reservations leaked from
+    // crashed or abandoned operations can consume the whole balance until the
+    // monthly reset; reclaim stale ones for this user and retry once.
+    const reclaimed = await releaseStalePendingReservations(input.userId, 60)
+    if (reclaimed > 0) {
+      result = await attemptReservation()
+    }
+  }
+
   if (!result) {
     const info = await getUserCreditInfo(input.userId)
+    console.warn("[CREDIT_RESERVATION] reservation_rejected", {
+      userId: input.userId,
+      subscriptionTier: tier,
+      userCreditPlanId: info?.planId ?? null,
+      includedBalance: info?.includedBalance ?? null,
+      purchasedBalance: info?.purchasedBalance ?? null,
+      remainingCredits: info?.remainingCredits ?? null,
+      reservedCredits: info?.reservedCredits ?? null,
+      availableCredits: info?.availableCredits ?? null,
+      estimatedCredits,
+      idempotencyKey,
+      reservationUpdateMatched: false,
+      reason: info ? "insufficient_available_credits" : "user_credit_row_missing",
+    })
     return {
       success: false,
       operationId,
@@ -463,6 +596,43 @@ export async function reserveCredits(input: {
     availableCredits: Math.max(0, result.remainingCredits - result.reservedCredits),
     unlimited: false,
     ledgerEntryId,
+  }
+}
+
+async function releaseStalePendingReservations(userId: string, olderThanMinutes = 60): Promise<number> {
+  const db = getDb()
+  if (!db) return 0
+
+  const cutoff = new Date(Date.now() - olderThanMinutes * 60_000)
+  try {
+    const pending = await db.query.creditLedger.findMany({
+      where: and(
+        eq(creditLedger.userId, userId),
+        eq(creditLedger.transactionType, "reservation"),
+        eq(creditLedger.status, "pending"),
+        lt(creditLedger.createdAt, cutoff),
+      ),
+      columns: { operationId: true },
+      limit: 200,
+    })
+
+    let reclaimed = 0
+    for (const entry of pending) {
+      if (!entry.operationId) continue
+      const released = await releaseCreditsForOperation(entry.operationId, "stale_reservation_reclaimed")
+      if (released) reclaimed++
+    }
+
+    if (reclaimed > 0) {
+      console.warn("[CREDIT_RESERVATION] stale_reservations_reclaimed", { userId, reclaimed })
+    }
+    return reclaimed
+  } catch (error) {
+    console.error("[CREDIT_RESERVATION] stale reservation reclaim failed", {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return 0
   }
 }
 

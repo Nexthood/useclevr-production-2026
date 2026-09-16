@@ -535,6 +535,7 @@ export async function uploadCSV(
       ? "profitability"
       : getDatasetCategoryFromUpload(fileType);
     const datasetType = datasetCategory;
+    const explicitUploadSource = String(formData.get("uploadSource") || "").trim();
     const businessModel = resolveBusinessModel({
       explicit: formData.get("business_model") as string | null,
       uploadSource: fileType || datasetCategory,
@@ -558,7 +559,7 @@ export async function uploadCSV(
       datasetType: datasetCategory,
       business_model: businessModel,
       businessModel,
-      uploadSource: fileType || datasetCategory,
+      uploadSource: explicitUploadSource || fileType || datasetCategory,
       ...(isProfitabilityAnalysis
         ? {
             profitability_analysis_id: profitabilityAnalysisId || datasetId,

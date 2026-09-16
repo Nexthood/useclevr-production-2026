@@ -7492,3 +7492,46 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction: Fix upload credit reservation, dataset persistence, ClevrSync metadata
+
+1. Interaction title
+   Trace and fix Pro upload 402s, Dataset Library zero results, profitability persistence, ClevrSync metadata, and Square status.
+
+2. What was the user goal
+   Diagnose and fix the production blockers: Pro uploads returning 402, specialized uploads not visible in the Dataset Library after navigation, Profitability analysis persistence/navigation, AI Assistant dataset context, and ClevrSync dataset metadata. Confirm Square payment status against Stripe.
+
+3. What changed
+   - `scripts/runtime/railway-predeploy.cjs` runs `0008_dataset_type.sql`, `0012_credit_engine.sql`, and `0013_dataset_business_model.sql`. The predeploy previously excluded `0012`, so production never seeded the `SubscriptionPlan` rows that the `UserCredit.planId` foreign key requires.
+   - `src/lib/billing/credit-engine.ts`: `initializeUserCredits` restores the `SubscriptionPlan` catalog and retries once when the user-credit insert fails; `reserveCredits` emits structured `[CREDIT_RESERVATION] rejection` diagnostics, reclaims stale pending reservations older than 60 minutes and retries, and mints a per-attempt ledger key instead of reusing finalized reservations with unmatched operationIds.
+   - `src/app/(auth)/app/datasets/page.tsx` keeps NULL `datasetType` rows visible and logs `[DATASET_LIBRARY]` outcomes.
+   - `src/app/actions/upload.ts` persists the explicit `uploadSource` form field into the dataset analysis.
+   - `src/app/api/clevrsync/sync/route.ts` sends `dataset_type`/`uploadMode` `standard`, and the Excel path reuses and records `datasetId` so re-syncs refresh one dataset.
+   - `src/app/api/usage/route.ts` matches the display calculation to the reservation gate (remaining minus reserved, clamped at zero).
+   - `scripts/billing/test-upload-credit-reservation.ts` adds eight regression checks; `package.json` registers `test:upload-credit-reservation`.
+
+4. Problems marked
+   - blocker: Production needs one observation after deploy: navigate to `/app/datasets` and read the `[DATASET_LIBRARY]` line in Railway logs to confirm whether the library query fails or returns zero rows.
+   - risk: The unique `CreditLedger.idempotencyKey` index collides when retries reuse one dedupe key; the engine now mints per-attempt keys.
+   - improvement: `expireStaleReservations` still has no scheduler; reservation reclaim now runs inline on rejection.
+   - observation: Square payment top-ups are dead code; Stripe is the only subscription path. Square Retail POS stays active.
+
+5. User learning
+   The 402s come from the credit engine, not from the usage display; the usage display fix alone cannot unlock uploads.
+
+6. AI-agent learning
+   The Railway predeploy migration list is selective; new engine migrations must be added there explicitly or the production schema drifts silently.
+
+7. Follow-up tasks
+   - Confirm the production `SubscriptionPlan` seed and one Pro upload reservation after the next Railway deploy of `beta`.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.

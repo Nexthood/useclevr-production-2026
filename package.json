@@ -54,6 +54,7 @@
     "test:local-retail-inventory-snapshots": "node -r tsx/esm scripts/analysis/test-local-retail-inventory-snapshots.ts",
     "test:investor-portfolio-aggregation": "node -r tsx/esm scripts/analysis/test-investor-portfolio-aggregation.ts",
     "test:profitability-two-file": "node -r tsx/esm scripts/analysis/test-profitability-two-file.ts",
+    "test:upload-credit-reservation": "node -r tsx/esm scripts/billing/test-upload-credit-reservation.ts",
     "test:report-accuracy": "node -r tsx/esm scripts/analysis/test-report-accuracy-missing-data.ts",
     "test:business-intelligence": "node -r tsx/esm scripts/analysis/test-business-intelligence-engine.ts",
     "test:business-semantics": "node -r tsx/esm scripts/analysis/test-business-semantics-engine.ts",

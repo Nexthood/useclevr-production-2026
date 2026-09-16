@@ -61,10 +61,18 @@ export async function POST(request: Request) {
       mimeType: file.type,
     });
 
+    const connectorSourceMeta = connector.sourceMeta as Record<string, unknown>;
+    const existingDatasetId =
+      typeof connectorSourceMeta.datasetId === "string" ? connectorSourceMeta.datasetId : null;
     const uploadFormData = new FormData();
     uploadFormData.set("file", file);
+    uploadFormData.set("uploadMode", "standard");
+    uploadFormData.set("dataset_type", "standard");
     uploadFormData.set("uploadSource", "clevrsync");
     uploadFormData.set("business_model", "generic");
+    if (existingDatasetId) {
+      uploadFormData.set("clevrsync_dataset_id", existingDatasetId);
+    }
 
     const uploadResult = await uploadCSV(uploadFormData, {
       user: {
@@ -74,12 +82,27 @@ export async function POST(request: Request) {
       },
     });
 
+    const datasetId = uploadResult.datasetId ?? existingDatasetId;
+    await updateClevrSyncConnector({
+      userId: session.user.id,
+      connectorId: connector.id,
+      status: uploadResult.success ? "connected" : "error",
+      sourceMeta: {
+        ...connectorSourceMeta,
+        datasetId,
+        lastSuccessfulSync: uploadResult.success
+          ? new Date().toISOString()
+          : connectorSourceMeta.lastSuccessfulSync,
+        lastError: uploadResult.success ? null : uploadResult.error,
+      },
+    });
+
     const run = await createClevrSyncRun({
       userId: session.user.id,
       connectorId: connector.id,
       preview,
       status: uploadResult.success ? "completed" : "failed",
-      datasetId: uploadResult.datasetId ?? null,
+      datasetId,
       error: uploadResult.error ?? null,
     });
 
@@ -141,6 +164,8 @@ async function syncGoogleSheets(
       typeof sourceMeta.datasetId === "string" ? sourceMeta.datasetId : null;
     const uploadFormData = new FormData();
     uploadFormData.set("file", googleSheetPreviewToCsvFile(preview));
+    uploadFormData.set("uploadMode", "standard");
+    uploadFormData.set("dataset_type", "standard");
     uploadFormData.set("uploadSource", "clevrsync");
     uploadFormData.set("business_model", "generic");
     if (existingDatasetId) {
