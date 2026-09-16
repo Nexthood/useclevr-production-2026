@@ -1,13 +1,10 @@
 import { debugError } from "@/lib/utils/debug";
-
-/**
- * Usage API Route
- * 
- * Returns current user's usage counts and subscription status
- */
-
 import { auth } from "@/lib/auth/auth";
 import { getCreditAccount } from "@/lib/billing/credit-account-service";
+import { initializeUserCredits, getUserCreditInfo } from "@/lib/billing/credit-engine";
+import { getDb } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { profiles } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +15,17 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } })
     }
 
-    const account = await getCreditAccount(session.user.id)
+    const userId = session.user.id
+
+    const db = getDb()
+    const profile = db ? await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+      columns: { subscriptionTier: true },
+    }) : null
+    const subscriptionTier = profile?.subscriptionTier || "free"
+
+    await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
+    const account = await getCreditAccount(userId)
 
     if (!account) {
       return Response.json({
