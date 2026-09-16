@@ -194,7 +194,8 @@ BEGIN
   ) THEN
     ALTER TABLE "CreditLedger"
       ADD CONSTRAINT "CreditLedger_status_check"
-      CHECK ("status" IN ('pending', 'finalized', 'released', 'refunded', 'failed'));
+      CHECK ("status" IN ('pending', 'finalized', 'released', 'refunded', 'failed'))
+      NOT VALID;
   END IF;
 
   IF NOT EXISTS (
@@ -223,9 +224,20 @@ BEGIN
           'credit_adjustment',
           'monthly_reset',
           'subscription_upgrade',
-          'subscription_downgrade'
+          'subscription_downgrade',
+          'PLAN_ALLOCATION',
+          'PLAN_RESET',
+          'TOP_UP_PURCHASE',
+          'USAGE_DEBIT',
+          'RELEASE',
+          'REFUND',
+          'REVERSAL',
+          'ADMIN_ADJUSTMENT',
+          'PROMOTIONAL_CREDIT',
+          'EXPIRATION'
         )
-      );
+      )
+      NOT VALID;
   END IF;
 END $$;
 

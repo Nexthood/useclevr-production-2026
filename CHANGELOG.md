@@ -4,6 +4,11 @@
 
 - Add subscription state machine that pre-checks Stripe subscription status before cancel/resume actions to prevent HTTP 500 errors when subscription is already canceled, and reconciles database to Free tier when subscription is missing or not entitled.
 
+### Fixed
+
+- Fix Pro and Business paid-plan credit accounts so uploads work again: monthly included credits are granted reliably, customers stuck with an empty credit account are credited automatically on their next action, and uploads no longer stop with a wrong "credits available" message.
+- Fix monthly credit accounting so paid-plan plan changes, monthly resets, and per-usage debits record correctly in the billing ledger.
+
 ### Changed
 
 - Update ClevrSync PremiumLock messaging to clarify that Google Sheets connector requires Pro or Business, and that Free users can upload CSV and XLSX files directly through the Datasets page.

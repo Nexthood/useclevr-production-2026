@@ -7535,3 +7535,46 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Interaction: Repair production Pro credit account initialization
+
+1. Interaction title
+   Find why the persisted Pro credit account stays empty in production and fix it self-healing.
+
+2. What was the user goal
+   Trace Profile.subscriptionTier=pro through SubscriptionPlan, UserCredit, initializeUserCredits() and reserveCredits() without trusting UI fallback numbers, find why the persisted Pro account remains 0 credits, verify the SubscriptionPlan seed and UserCredit grant reach production after predeploy, fix the root cause minimally and idempotently with automatic self-heal, record the Google ClevrSync OAuth 0.0.0.0:8080 redirect as a separate task, and run focused tests plus TypeScript without committing.
+
+3. What changed
+   - `src/lib/db/migrations/0012_credit_engine.sql`: the `CreditLedger_transactionType_check` constraint accepts the transaction types the credit engine writes (`PLAN_ALLOCATION`, `PLAN_RESET`, `USAGE_DEBIT`, `TOP_UP_PURCHASE`, `RELEASE`, `REFUND`, `REVERSAL`, `ADMIN_ADJUSTMENT`, `PROMOTIONAL_CREDIT`, `EXPIRATION`) and both constraint adds run `NOT VALID` so legacy rows cannot fail the predeploy transaction.
+   - `src/lib/db/migrations/0032_widen_credit_ledger_transaction_type.sql`: drops the narrowed `CreditLedger_transactionType_check` present on databases that applied the old 0012 and adds the widened check `NOT VALID`.
+   - `scripts/runtime/railway-predeploy.cjs`: the production predeploy runs migrations 0030, 0031, and 0032 after 0029, so the migration list no longer stops at 0029.
+   - `src/lib/billing/credit-engine.ts`: `initializeUserCredits` reconciles an existing credit account instead of returning it unchanged; a plan mismatch routes through `processPlanChange`, and a never-used account with a missing grant (zeroed balances) repairs to the full plan grant idempotently through the `grant:initial` ledger key. `ensureSubscriptionPlanSeeded` verifies the plan row exists after seeding and logs when the catalog stays missing; the retry log names whether the plan catalog was actually seeded.
+   - `src/lib/usage/analyst-credits.ts`: the plan-limit fallback logs when the persisted credit account state is unavailable so the UI number is traceable to an initialization failure.
+   - `src/lib/billing/credit-account-service.ts`: `syncCreditPlanToProfile` logs the caught update failure instead of silently returning false.
+   - `scripts/billing/test-pro-credit-selfheal.ts` plus the `test:pro-credit-selfheal` script: behavioral regression against the configured database (Profile=pro with missing, zeroed, or plan-mismatched UserCredit reconciles to 500 included credits, reserves 1, settles balances, and replays without a second grant) and production-contract assertions for the predeploy registration order and the widened constraint coverage.
+   - `.TODO/todo-next.md` T-1058 records the Google ClevrSync OAuth consent redirect to 0.0.0.0:8080 as a separate production fix.
+
+4. Problems marked
+   - blocker root cause: The predeploy-built production schema carries `CreditLedger_transactionType_check` with only the 16 legacy lowercase transaction types because `drizzle-kit push` schemas never create it and only the predeploy runs 0012; every `initializeUserCredits` transaction inserts a `PLAN_ALLOCATION` grant row, violates the check, and rolls back the `UserCredit` insert with it, so no Pro credit account can persist. The behavioral test reproduced the identical violation on the development database and passes after 0032 widens the constraint.
+   - risk: The predeploy migration list is manually curated; new engine migrations must be registered there or the production schema drifts silently (0030 and 0031 were present but unregistered).
+   - improvement: Production verification after the next deploy reads the `[CREDIT_ENGINE]`, `[CREDIT_RESERVATION]`, and `[USAGE]` log lines during one Pro upload.
+   - observation: The UI "500 credits available" message came from plan-limit fallbacks in `getAnalystCreditUsage` while the persisted account state was unavailable, matching the reported production symptom.
+
+5. User learning
+   The persisted Pro credit account was blocked by a database constraint on ledger transaction types, not by missing plan limits; UI fallback numbers can confirm a symptom but never prove the account state.
+
+6. AI-agent learning
+   The production schema comes from the predeploy SQL chain, not from drizzle push; every schema-affecting change must widen or align the predeploy constraints and register new migrations explicitly, and behavioral tests against the configured database reproduce constraint failures that local type-level checks cannot.
+
+7. Follow-up tasks
+   - Verify one Pro upload and the Plan allocation grant on production after the next Railway deploy.
+   - T-1058: fix the Google ClevrSync OAuth consent redirect from 0.0.0.0:8080 to the production domain.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; ClevrSync OAuth follow-up: `.TODO/todo-next.md` T-1058; release notes: `CHANGELOG.md`.

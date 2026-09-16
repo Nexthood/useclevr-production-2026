@@ -33,6 +33,10 @@ moving work between states.
 - T-861. Review Payload admin login and operator UI against the dashboard login and admin shell before release candidate. (labels: ui, auth, dashboard, testing)
 - T-862. Prepare the release-candidate checklist for beta and dist-test: health, smoke journey, docs, TODO, changelog, and secret scan. (labels: deployment, testing, workflow)
 
+## Label: auth
+
+- T-1058. Fix the Google ClevrSync OAuth consent redirect in production: after Google consent the browser lands on 0.0.0.0:8080; resolve the production base URL and OAuth redirect URI so consent returns to the live production domain. Address when the production credit-account repair is verified. (labels: auth, api, deployment)
+
 ## Deferred
 
 ## Missing task numbers

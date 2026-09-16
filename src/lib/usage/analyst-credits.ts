@@ -180,6 +180,13 @@ export async function getAnalystCreditUsage(
         return unlimitedUsage(userId, profileRole || subscriptionTier, subscriptionTier, datasetCount, email || profileEmail)
       }
       const creditInfo = await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
+      if (!creditInfo) {
+        debugError(
+          "[USAGE] Analyst credit account state unavailable - reporting plan-limit fallback until initialization succeeds",
+          userId,
+          subscriptionTier,
+        )
+      }
       const usageTotal = creditInfo?.totalCredits ?? getCreditsLimitForTier(subscriptionTier)
       const usedCredits = creditInfo?.usedCredits ?? 0
       const reservedCredits = creditInfo?.reservedCredits ?? 0

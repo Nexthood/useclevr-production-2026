@@ -352,3 +352,7 @@
 - fixed: keep Dataset Library entries visible when datasetType is missing and log library query failures and empty results for production diagnosis
 - fixed: make upload credit reservation retry after reclaiming stale pending reservations, mint per-attempt ledger keys for repeat profitability uploads, and log structured rejection reasons
 - fixed: persist the ClevrSync upload source on dataset analysis metadata and reuse one dataset per Excel clevrsync connector refresh
+- fixed: widen the CreditLedger transactionType constraint and register migrations 0030-0032 in the Railway predeploy so Pro credit grants stop violating the legacy check and rolling back UserCredit creation
+- fixed: reconcile existing Pro credit accounts self-healing through initializeUserCredits, repair never-used zeroed accounts to the 500-credit plan grant idempotently, and log plan-catalog seed verification, reconciliation failures, and plan-limit fallback usage
+- added: behavioral and production-contract regression test for Profile=pro with missing, zeroed, or plan-mismatched UserCredit covering the 500-credit grant, a 1-credit reservation, correct remaining/reserved balances, and replay without a second grant
+- recorded: Google ClevrSync OAuth consent redirect landing on 0.0.0.0:8080 in production as TODO task T-1058 for a follow-up fix
