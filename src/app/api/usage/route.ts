@@ -43,6 +43,8 @@ export async function GET() {
       }, { headers: { "Cache-Control": "no-store" } })
     }
 
+    const availableCredits = Math.max(0, account.remainingCredits - account.reservedCredits)
+
     return Response.json({
       unlimited: false,
       subscriptionTier: account.tier,
@@ -50,15 +52,15 @@ export async function GET() {
       total: account.totalAvailableBalance,
       analysisCount: account.usedCredits,
       usedCredits: account.usedCredits,
-      availableCredits: account.totalAvailableBalance - account.usedCredits - account.reservedCredits,
+      availableCredits,
       reservedCredits: account.reservedCredits,
       remainingCredits: account.remainingCredits,
       includedBalance: account.includedBalance,
       purchasedBalance: account.purchasedBalance,
       totalPaidCents: account.totalPaidCents,
       nextResetAt: account.creditsResetAt.toISOString(),
-      limitReached: account.totalAvailableBalance - account.reservedCredits <= 0,
-      canAnalyze: account.totalAvailableBalance - account.reservedCredits > 0,
+      limitReached: availableCredits <= 0,
+      canAnalyze: availableCredits > 0,
     }, { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
     debugError("[USAGE] Error fetching usage:", error)
