@@ -179,17 +179,24 @@ async function syncCreditPlanToProfile(userId: string, profileTier: string): Pro
   const now = new Date()
 
   try {
-    await db
-      .update(userCredits)
-      .set({
-        planId: plan.id,
-        totalCredits: monthlyCredits,
-        includedBalance: monthlyCredits,
-        remainingCredits: monthlyCredits,
-        creditsResetAt: nextReset,
-        updatedAt: now,
+    await db.transaction(async (tx) => {
+      const account = await tx.query.userCredits.findFirst({
+        where: eq(userCredits.userId, userId),
+        columns: { purchasedBalance: true },
       })
-      .where(eq(userCredits.userId, userId))
+      const purchasedBalance = account?.purchasedBalance ?? 0
+
+      await tx.update(userCredits)
+        .set({
+          planId: plan.id,
+          totalCredits: monthlyCredits,
+          includedBalance: monthlyCredits,
+          remainingCredits: monthlyCredits + purchasedBalance,
+          creditsResetAt: nextReset,
+          updatedAt: now,
+        })
+        .where(eq(userCredits.userId, userId))
+    })
     return true
   } catch (error) {
     console.error("[CREDIT_ACCOUNT] sync credit plan to profile failed", {

@@ -28,10 +28,10 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
     return (
       <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-          Included Credits
+          Unlimited Plan
         </h4>
         <p className="text-sm font-medium text-foreground">
-          {unlimitedLabel || "Included AI credits"}
+          {unlimitedLabel || "Unlimited credits"}
         </p>
         <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
           <div
@@ -44,14 +44,22 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
   }
 
   if (isPaidPro) {
+    const hasPurchased = purchasedBalance > 0
     return (
       <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
           {subscriptionTier === "business" ? "Business Plan" : "Pro Plan"}
         </h4>
         <p className="text-sm font-medium text-foreground">
-          {includedBalance.toLocaleString()} included credits
+          {totalAvailable.toLocaleString()} credits available
         </p>
+        {(includedBalance > 0 || purchasedBalance > 0) && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {includedBalance > 0 && `${includedBalance.toLocaleString()} included`}
+            {includedBalance > 0 && purchasedBalance > 0 && " · "}
+            {purchasedBalance > 0 && `${purchasedBalance.toLocaleString()} purchased`}
+          </p>
+        )}
         <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
           <div
             className="h-full rounded-full"
@@ -66,10 +74,12 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
     return (
       <div className="usage-box rounded-lg border border-amber-500/50 bg-amber-50 p-3 shadow-sm dark:bg-amber-950/10">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-          Included Credits
+          No credits available
         </h4>
         <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-          {includedBalance.toLocaleString()} included · {purchasedBalance.toLocaleString()} purchased
+          {includedBalance > 0 && `${includedBalance.toLocaleString()} included`}
+          {includedBalance > 0 && purchasedBalance > 0 && " · "}
+          {purchasedBalance > 0 && `${purchasedBalance.toLocaleString()} purchased`}
         </p>
         <div className="h-1.5 mt-2 overflow-hidden rounded-full bg-amber-100 dark:bg-amber-900/40">
           <div
@@ -77,7 +87,7 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
             style={{ width: "100%", background: "linear-gradient(135deg, hsl(187 79% 53%), hsl(270 50% 65%))" }}
           />
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Upgrade or purchase more credits</p>
+        <p className="mt-2 text-xs text-muted-foreground">Add credits to continue</p>
       </div>
     );
   }
@@ -85,11 +95,18 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
   return (
     <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
       <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-        Included Credits
+        Credits available
       </h4>
       <p className="text-sm font-medium text-foreground">
-        {includedBalance.toLocaleString()} included · {purchasedBalance.toLocaleString()} purchased
+        {totalAvailable.toLocaleString()} credits available
       </p>
+      {(includedBalance > 0 || purchasedBalance > 0) && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {includedBalance > 0 && `${includedBalance.toLocaleString()} included`}
+          {includedBalance > 0 && purchasedBalance > 0 && " · "}
+          {purchasedBalance > 0 && `${purchasedBalance.toLocaleString()} purchased`}
+        </p>
+      )}
       {reserved > 0 && (
         <p className="mt-1 text-xs text-muted-foreground">{reserved} reserved</p>
       )}

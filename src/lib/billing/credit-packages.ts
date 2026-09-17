@@ -24,28 +24,16 @@ const CREDIT_PACKAGES_BASE = [
     monetaryAmountCents: 1000,
   },
   {
-    id: "topup_550",
-    name: "550 credits",
-    creditsGranted: 550,
-    monetaryAmountCents: 5000,
+    id: "topup_500",
+    name: "500 credits",
+    creditsGranted: 500,
+    monetaryAmountCents: 4500,
   },
   {
-    id: "topup_1200",
-    name: "1,200 credits",
-    creditsGranted: 1200,
-    monetaryAmountCents: 10000,
-  },
-  {
-    id: "topup_3000",
-    name: "3,000 credits",
-    creditsGranted: 3000,
-    monetaryAmountCents: 25000,
-  },
-  {
-    id: "topup_7500",
-    name: "7,500 credits",
-    creditsGranted: 7500,
-    monetaryAmountCents: 60000,
+    id: "topup_1000",
+    name: "1,000 credits",
+    creditsGranted: 1000,
+    monetaryAmountCents: 8500,
   },
 ] as const
 
