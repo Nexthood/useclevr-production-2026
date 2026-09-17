@@ -127,11 +127,16 @@ export async function getConcurrentAnalysisCount(userId: string): Promise<number
     return 0
   }
 
-  const existing = await db.query.concurrentAnalysisCounts.findFirst({
-    where: eq(concurrentAnalysisCounts.userId, userId),
-  })
+  try {
+    const existing = await db.query.concurrentAnalysisCounts.findFirst({
+      where: eq(concurrentAnalysisCounts.userId, userId),
+    })
 
-  return existing?.activeCount || 0
+    return existing?.activeCount || 0
+  } catch (error) {
+    debugError("[USAGE] Concurrent analysis count lookup failed:", error)
+    return 0
+  }
 }
 
 export async function incrementConcurrentAnalyses(userId: string): Promise<boolean> {
@@ -142,37 +147,42 @@ export async function incrementConcurrentAnalyses(userId: string): Promise<boole
     return true
   }
 
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.userId, userId),
-  })
-  const tier = profile?.subscriptionTier || "free"
-  const limit = getConcurrentAnalysesLimitForTier(tier)
+  try {
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+    })
+    const tier = profile?.subscriptionTier || "free"
+    const limit = getConcurrentAnalysesLimitForTier(tier)
 
-  const existing = await db.query.concurrentAnalysisCounts.findFirst({
-    where: eq(concurrentAnalysisCounts.userId, userId),
-  })
+    const existing = await db.query.concurrentAnalysisCounts.findFirst({
+      where: eq(concurrentAnalysisCounts.userId, userId),
+    })
 
-  if (existing) {
-    if (existing.activeCount >= limit) {
-      return false
+    if (existing) {
+      if (existing.activeCount >= limit) {
+        return false
+      }
+      await db
+        .update(concurrentAnalysisCounts)
+        .set({
+          activeCount: existing.activeCount + 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(concurrentAnalysisCounts.id, existing.id))
+      return true
     }
-    await db
-      .update(concurrentAnalysisCounts)
-      .set({
-        activeCount: existing.activeCount + 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(concurrentAnalysisCounts.id, existing.id))
+
+    const id = `cac_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
+    await db.insert(concurrentAnalysisCounts).values({
+      id,
+      userId,
+      activeCount: 1,
+    })
+    return true
+  } catch (error) {
+    debugError("[USAGE] Concurrent analysis count increment failed:", error)
     return true
   }
-
-  const id = `cac_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
-  await db.insert(concurrentAnalysisCounts).values({
-    id,
-    userId,
-    activeCount: 1,
-  })
-  return true
 }
 
 export async function decrementConcurrentAnalyses(userId: string): Promise<void> {
@@ -183,18 +193,22 @@ export async function decrementConcurrentAnalyses(userId: string): Promise<void>
     return
   }
 
-  const existing = await db.query.concurrentAnalysisCounts.findFirst({
-    where: eq(concurrentAnalysisCounts.userId, userId),
-  })
+  try {
+    const existing = await db.query.concurrentAnalysisCounts.findFirst({
+      where: eq(concurrentAnalysisCounts.userId, userId),
+    })
 
-  if (existing && existing.activeCount > 0) {
-    await db
-      .update(concurrentAnalysisCounts)
-      .set({
-        activeCount: existing.activeCount - 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(concurrentAnalysisCounts.id, existing.id))
+    if (existing && existing.activeCount > 0) {
+      await db
+        .update(concurrentAnalysisCounts)
+        .set({
+          activeCount: existing.activeCount - 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(concurrentAnalysisCounts.id, existing.id))
+    }
+  } catch (error) {
+    debugError("[USAGE] Concurrent analysis count decrement failed:", error)
   }
 }
 

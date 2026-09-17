@@ -1,0 +1,3501 @@
+date,category,vendor,department,amount
+2025-04-01,Cloud Infrastructure,AWS,Sales,1410
+2025-05-13,Cloud Infrastructure,Datadog,Operations,767
+2025-12-24,Marketing,LinkedIn Ads,Product,2585
+2025-11-22,Rent,Workspace GmbH,Product,1308
+2025-05-11,Legal,Legal Partners,Product,459
+2025-06-07,Marketing,Meta Ads,Operations,756
+2025-06-29,Marketing,Meta Ads,Sales,2267
+2025-10-02,Salaries,HRServices,Operations,5106
+2025-03-22,Salaries,HRServices,Sales,4897
+2025-08-31,Cloud Infrastructure,AWS,Finance,1629
+2025-09-11,Salaries,HRServices,Operations,3565
+2025-02-08,Rent,OfficeRent BV,Product,1770
+2025-08-01,Travel,RailEurope,Operations,484
+2025-03-28,Software,HubSpot,Finance,1197
+2025-09-25,Contractors,DevContract Ltd,Product,1205
+2025-03-30,Legal,Legal Partners,Finance,403
+2025-04-03,Software,Figma,Sales,337
+2025-05-12,Marketing,LinkedIn Ads,Finance,2035
+2025-08-14,Salaries,HRServices,Operations,5014
+2025-08-15,Salaries,HRServices,Finance,6475
+2025-07-03,Marketing,Google Ads,Marketing,2168
+2025-10-02,Marketing,Google Ads,Sales,1592
+2025-03-19,Rent,OfficeRent BV,Operations,2507
+2025-11-14,Salaries,PayrollCo,Sales,5416
+2025-05-03,Software,Notion,Sales,665
+2025-09-02,Cloud Infrastructure,AWS,Operations,858
+2025-06-11,Insurance,Allianz,Sales,167
+2025-10-13,Salaries,HRServices,Operations,5442
+2025-02-17,Cloud Infrastructure,AWS,Product,203
+2025-08-11,Marketing,LinkedIn Ads,Product,2781
+2025-04-12,Cloud Infrastructure,AWS,Sales,349
+2025-07-20,Legal,Tax Advisory Co,Marketing,619
+2025-10-11,Salaries,HRServices,Marketing,3121
+2025-06-28,Software,AWS,Sales,818
+2025-05-06,Software,OpenAI,Operations,147
+2025-02-21,Salaries,HRServices,Product,5495
+2025-06-17,Cloud Infrastructure,Datadog,Operations,748
+2025-10-24,Rent,Workspace GmbH,Finance,2462
+2025-08-18,Marketing,Google Ads,Operations,2266
+2025-01-01,Marketing,LinkedIn Ads,Sales,1814
+2025-10-10,Salaries,PayrollCo,Operations,3977
+2025-04-21,Software,Notion,Product,475
+2025-07-22,Travel,RailEurope,Finance,577
+2025-12-18,Cloud Infrastructure,AWS,Product,1175
+2025-08-10,Software,Notion,Marketing,713
+2025-10-24,Insurance,Allianz,Operations,513
+2025-04-10,Contractors,DevContract Ltd,Product,1959
+2025-04-09,Rent,OfficeRent BV,Product,2580
+2025-12-30,Cloud Infrastructure,Cloudflare,Sales,1338
+2025-05-31,Salaries,PayrollCo,Operations,2533
+2025-11-11,Cloud Infrastructure,Cloudflare,Product,687
+2025-04-19,Rent,Workspace GmbH,Operations,1782
+2025-11-05,Contractors,FreelancerHub,Operations,1579
+2025-10-24,Contractors,DevContract Ltd,Sales,2191
+2025-03-02,Salaries,PayrollCo,Sales,5991
+2025-03-19,Contractors,FreelancerHub,Finance,1949
+2025-11-02,Travel,Booking,Operations,427
+2025-01-02,Cloud Infrastructure,Datadog,Marketing,1423
+2025-06-28,Support Ops,SupportFlow,Product,180
+2025-08-11,Insurance,Allianz,Product,625
+2025-01-18,Support Ops,Zendesk,Marketing,844
+2025-01-16,Salaries,HRServices,Marketing,5240
+2025-09-24,Salaries,PayrollCo,Operations,4046
+2025-04-19,Legal,Tax Advisory Co,Operations,852
+2025-09-10,Software,OpenAI,Operations,300
+2025-03-03,Legal,Tax Advisory Co,Marketing,1296
+2025-06-20,Rent,OfficeRent BV,Finance,1067
+2025-12-16,Marketing,LinkedIn Ads,Operations,2742
+2025-07-14,Cloud Infrastructure,Datadog,Operations,1383
+2025-02-04,Software,Notion,Operations,1083
+2025-11-26,Marketing,LinkedIn Ads,Finance,827
+2025-01-10,Legal,Tax Advisory Co,Finance,739
+2025-10-05,Rent,Workspace GmbH,Operations,2067
+2025-01-14,Travel,Booking,Product,894
+2025-09-24,Salaries,PayrollCo,Marketing,3575
+2025-08-02,Salaries,HRServices,Marketing,3522
+2025-11-08,Software,OpenAI,Marketing,1089
+2025-04-17,Salaries,PayrollCo,Finance,5191
+2025-01-18,Support Ops,SupportFlow,Sales,442
+2025-04-14,Cloud Infrastructure,AWS,Marketing,601
+2025-04-02,Cloud Infrastructure,Cloudflare,Product,1675
+2025-03-30,Legal,Legal Partners,Marketing,1340
+2025-09-11,Salaries,HRServices,Marketing,6316
+2025-12-25,Software,Notion,Operations,908
+2025-10-19,Contractors,FreelancerHub,Marketing,464
+2025-06-20,Travel,RailEurope,Product,824
+2025-12-11,Support Ops,SupportFlow,Operations,182
+2025-11-24,Rent,Workspace GmbH,Sales,2060
+2025-02-20,Rent,OfficeRent BV,Finance,2218
+2025-10-24,Salaries,HRServices,Product,5876
+2025-08-14,Contractors,DevContract Ltd,Sales,548
+2025-09-17,Legal,Tax Advisory Co,Finance,895
+2025-09-29,Travel,Booking,Marketing,761
+2025-04-07,Rent,OfficeRent BV,Finance,928
+2025-01-17,Support Ops,Zendesk,Marketing,892
+2025-10-04,Cloud Infrastructure,Cloudflare,Product,1202
+2025-04-13,Rent,OfficeRent BV,Sales,1879
+2025-01-13,Salaries,HRServices,Sales,2476
+2025-03-20,Salaries,HRServices,Finance,4305
+2025-09-23,Marketing,LinkedIn Ads,Operations,2171
+2025-05-10,Insurance,Allianz,Sales,362
+2025-01-12,Contractors,DevContract Ltd,Operations,960
+2025-01-08,Software,AWS,Finance,286
+2025-05-05,Contractors,DevContract Ltd,Operations,1412
+2025-01-18,Salaries,HRServices,Finance,4731
+2025-06-05,Contractors,FreelancerHub,Sales,1796
+2025-04-09,Contractors,FreelancerHub,Operations,2191
+2025-10-26,Software,Notion,Sales,731
+2025-06-17,Travel,RailEurope,Finance,444
+2025-03-16,Software,Notion,Product,240
+2025-05-20,Software,OpenAI,Finance,1190
+2025-08-17,Salaries,PayrollCo,Finance,3362
+2025-12-05,Salaries,HRServices,Sales,3895
+2025-02-25,Marketing,Meta Ads,Operations,753
+2025-02-19,Travel,AirlineTravel,Finance,289
+2025-03-22,Software,AWS,Finance,911
+2025-06-25,Legal,Legal Partners,Product,276
+2025-03-09,Salaries,HRServices,Finance,4245
+2025-09-22,Salaries,PayrollCo,Operations,2430
+2025-02-02,Salaries,PayrollCo,Sales,1987
+2025-03-04,Marketing,LinkedIn Ads,Product,1681
+2025-07-08,Rent,Workspace GmbH,Product,1403
+2025-04-06,Software,OpenAI,Product,1114
+2025-06-07,Salaries,PayrollCo,Marketing,4106
+2025-07-21,Travel,Booking,Finance,73
+2025-09-07,Software,Figma,Operations,722
+2025-04-13,Insurance,Allianz,Marketing,476
+2025-01-04,Rent,Workspace GmbH,Sales,1974
+2025-11-25,Salaries,PayrollCo,Product,3048
+2025-06-19,Support Ops,SupportFlow,Sales,187
+2025-01-14,Contractors,DevContract Ltd,Sales,1356
+2025-05-27,Support Ops,Zendesk,Operations,952
+2025-07-10,Rent,Workspace GmbH,Product,2072
+2025-09-18,Contractors,FreelancerHub,Marketing,1095
+2025-06-22,Salaries,HRServices,Finance,4726
+2025-07-08,Salaries,HRServices,Marketing,3821
+2025-11-17,Software,OpenAI,Operations,1071
+2025-04-12,Salaries,HRServices,Sales,3966
+2025-09-26,Marketing,LinkedIn Ads,Sales,2620
+2025-10-01,Salaries,PayrollCo,Operations,3069
+2025-11-13,Salaries,HRServices,Sales,4945
+2025-06-10,Cloud Infrastructure,Datadog,Sales,1622
+2025-05-15,Salaries,HRServices,Marketing,5819
+2025-09-22,Contractors,FreelancerHub,Operations,995
+2025-07-05,Support Ops,SupportFlow,Sales,838
+2025-07-10,Software,OpenAI,Operations,363
+2025-05-24,Cloud Infrastructure,AWS,Operations,181
+2025-03-01,Salaries,PayrollCo,Marketing,5275
+2025-06-04,Cloud Infrastructure,AWS,Operations,727
+2025-05-08,Marketing,Meta Ads,Finance,413
+2025-07-10,Software,Figma,Sales,352
+2025-09-02,Support Ops,Zendesk,Sales,537
+2025-01-28,Contractors,DevContract Ltd,Product,1675
+2025-11-30,Marketing,LinkedIn Ads,Finance,2142
+2025-12-23,Salaries,HRServices,Finance,5372
+2025-11-28,Cloud Infrastructure,AWS,Operations,583
+2025-06-28,Salaries,HRServices,Product,4175
+2025-11-13,Rent,Workspace GmbH,Sales,2334
+2025-08-17,Contractors,FreelancerHub,Sales,1556
+2025-07-30,Insurance,Allianz,Product,215
+2025-02-24,Rent,Workspace GmbH,Product,1543
+2025-01-25,Rent,Workspace GmbH,Sales,1162
+2025-01-24,Salaries,PayrollCo,Product,1867
+2025-05-25,Salaries,HRServices,Finance,3630
+2025-05-01,Rent,OfficeRent BV,Sales,2464
+2025-10-10,Salaries,HRServices,Sales,3538
+2025-02-27,Marketing,Google Ads,Product,1963
+2025-11-15,Travel,AirlineTravel,Marketing,744
+2025-06-07,Legal,Tax Advisory Co,Finance,1116
+2025-01-21,Marketing,Google Ads,Finance,2458
+2025-10-24,Software,AWS,Operations,321
+2025-07-09,Marketing,Meta Ads,Sales,1282
+2025-10-26,Salaries,PayrollCo,Product,2762
+2025-06-14,Rent,Workspace GmbH,Operations,1272
+2025-07-25,Software,OpenAI,Product,444
+2025-06-04,Software,Figma,Finance,664
+2025-12-31,Marketing,LinkedIn Ads,Sales,2126
+2025-02-05,Cloud Infrastructure,Cloudflare,Finance,1167
+2025-06-27,Travel,RailEurope,Operations,415
+2025-11-27,Contractors,FreelancerHub,Operations,2077
+2025-09-12,Insurance,AXA,Marketing,150
+2025-01-31,Salaries,HRServices,Marketing,5969
+2025-11-05,Software,Notion,Marketing,553
+2025-08-15,Rent,OfficeRent BV,Product,1698
+2025-08-08,Support Ops,SupportFlow,Marketing,651
+2025-07-23,Cloud Infrastructure,Datadog,Product,389
+2025-03-03,Insurance,Allianz,Product,169
+2025-09-27,Salaries,HRServices,Product,3604
+2025-06-01,Cloud Infrastructure,Cloudflare,Marketing,1354
+2025-08-02,Marketing,LinkedIn Ads,Marketing,1835
+2025-12-25,Salaries,PayrollCo,Sales,2638
+2025-11-24,Insurance,Allianz,Marketing,525
+2025-09-11,Software,Notion,Operations,517
+2025-06-21,Software,Notion,Marketing,977
+2025-11-02,Marketing,Google Ads,Product,2762
+2025-02-01,Marketing,Meta Ads,Operations,1564
+2025-11-20,Rent,Workspace GmbH,Sales,954
+2025-01-11,Salaries,PayrollCo,Operations,3947
+2025-02-23,Salaries,PayrollCo,Marketing,3236
+2025-02-25,Rent,Workspace GmbH,Product,1817
+2025-12-20,Salaries,PayrollCo,Marketing,4798
+2025-06-25,Cloud Infrastructure,Datadog,Sales,818
+2025-02-23,Marketing,Meta Ads,Finance,1754
+2025-08-09,Software,HubSpot,Marketing,398
+2025-05-19,Salaries,HRServices,Sales,5939
+2025-03-11,Cloud Infrastructure,AWS,Sales,410
+2025-01-27,Software,AWS,Product,679
+2025-10-20,Marketing,Meta Ads,Sales,1840
+2025-06-24,Salaries,PayrollCo,Operations,4082
+2025-09-20,Marketing,Google Ads,Finance,1984
+2025-08-20,Support Ops,SupportFlow,Sales,482
+2025-01-18,Salaries,PayrollCo,Sales,2760
+2025-10-21,Marketing,LinkedIn Ads,Finance,1099
+2025-04-02,Salaries,PayrollCo,Product,4645
+2025-01-22,Marketing,LinkedIn Ads,Product,764
+2025-12-11,Contractors,DevContract Ltd,Finance,1464
+2025-05-10,Software,Notion,Sales,525
+2025-07-23,Software,Notion,Operations,291
+2025-01-14,Cloud Infrastructure,Datadog,Sales,217
+2025-10-03,Rent,Workspace GmbH,Product,2429
+2025-01-18,Software,HubSpot,Sales,581
+2025-04-06,Salaries,HRServices,Operations,5619
+2025-06-11,Salaries,HRServices,Product,3264
+2025-10-23,Marketing,Meta Ads,Finance,2062
+2025-07-01,Software,Notion,Sales,633
+2025-04-02,Salaries,HRServices,Operations,4149
+2025-04-22,Salaries,PayrollCo,Product,5547
+2025-03-28,Salaries,HRServices,Marketing,4523
+2025-09-17,Rent,Workspace GmbH,Product,1500
+2025-03-26,Insurance,AXA,Operations,184
+2025-09-06,Cloud Infrastructure,Datadog,Product,1517
+2025-09-29,Marketing,Google Ads,Finance,2413
+2025-01-30,Salaries,PayrollCo,Sales,2071
+2025-12-01,Marketing,LinkedIn Ads,Finance,916
+2025-04-17,Insurance,AXA,Sales,251
+2025-04-18,Marketing,Meta Ads,Operations,1404
+2025-05-27,Cloud Infrastructure,AWS,Product,1487
+2025-05-04,Rent,Workspace GmbH,Marketing,2026
+2025-12-15,Rent,Workspace GmbH,Product,970
+2025-05-23,Cloud Infrastructure,Datadog,Sales,1006
+2025-02-23,Marketing,LinkedIn Ads,Marketing,1630
+2025-11-20,Software,HubSpot,Finance,587
+2025-04-11,Rent,Workspace GmbH,Operations,1170
+2025-03-03,Travel,AirlineTravel,Product,129
+2025-07-17,Rent,OfficeRent BV,Marketing,1869
+2025-12-09,Marketing,Google Ads,Sales,2050
+2025-12-05,Contractors,DevContract Ltd,Marketing,1001
+2025-02-12,Rent,OfficeRent BV,Marketing,1306
+2025-09-08,Marketing,Google Ads,Sales,1997
+2025-08-23,Legal,Legal Partners,Marketing,141
+2025-04-16,Software,OpenAI,Sales,1003
+2025-04-06,Support Ops,SupportFlow,Product,783
+2025-05-18,Cloud Infrastructure,Cloudflare,Operations,752
+2025-10-03,Cloud Infrastructure,Cloudflare,Operations,324
+2025-10-27,Rent,Workspace GmbH,Marketing,2441
+2025-07-21,Contractors,FreelancerHub,Sales,1778
+2025-07-26,Marketing,Google Ads,Operations,615
+2025-09-09,Insurance,Allianz,Sales,455
+2025-11-05,Contractors,DevContract Ltd,Sales,2031
+2025-10-25,Salaries,HRServices,Sales,2994
+2025-03-08,Travel,RailEurope,Sales,406
+2025-05-07,Insurance,Allianz,Finance,553
+2025-06-19,Cloud Infrastructure,Cloudflare,Product,327
+2025-09-08,Marketing,LinkedIn Ads,Product,962
+2025-03-23,Contractors,DevContract Ltd,Finance,2075
+2025-09-24,Support Ops,Zendesk,Product,543
+2025-01-08,Marketing,LinkedIn Ads,Sales,1262
+2025-12-06,Software,Figma,Sales,478
+2025-08-30,Insurance,AXA,Operations,460
+2025-11-21,Rent,Workspace GmbH,Product,1969
+2025-07-27,Marketing,LinkedIn Ads,Operations,2520
+2025-01-12,Marketing,Meta Ads,Product,1675
+2025-05-03,Salaries,PayrollCo,Sales,2972
+2025-09-06,Support Ops,Zendesk,Finance,306
+2025-12-21,Marketing,Google Ads,Marketing,2226
+2025-01-03,Rent,OfficeRent BV,Sales,1354
+2025-08-20,Cloud Infrastructure,Cloudflare,Sales,1547
+2025-02-27,Salaries,HRServices,Marketing,5482
+2025-04-01,Marketing,LinkedIn Ads,Sales,2670
+2025-03-31,Rent,Workspace GmbH,Finance,2174
+2025-05-23,Travel,AirlineTravel,Marketing,211
+2025-09-13,Cloud Infrastructure,Datadog,Sales,1400
+2025-05-07,Contractors,FreelancerHub,Product,1897
+2025-10-21,Travel,RailEurope,Sales,194
+2025-06-08,Salaries,HRServices,Sales,6019
+2025-02-13,Cloud Infrastructure,Datadog,Marketing,1402
+2025-09-15,Salaries,HRServices,Operations,5905
+2025-01-14,Rent,OfficeRent BV,Finance,1994
+2025-10-15,Contractors,DevContract Ltd,Operations,1679
+2025-04-17,Software,OpenAI,Product,380
+2025-05-18,Cloud Infrastructure,Cloudflare,Sales,530
+2025-09-05,Marketing,Meta Ads,Sales,1896
+2025-09-08,Software,OpenAI,Product,447
+2025-04-05,Travel,Booking,Marketing,406
+2025-05-02,Salaries,PayrollCo,Operations,5014
+2025-11-13,Travel,Booking,Sales,630
+2025-08-15,Software,AWS,Operations,888
+2025-06-23,Cloud Infrastructure,AWS,Product,158
+2025-10-07,Marketing,Meta Ads,Finance,1631
+2025-02-24,Software,Figma,Product,952
+2025-01-03,Support Ops,SupportFlow,Product,431
+2025-03-18,Rent,Workspace GmbH,Product,2423
+2025-06-06,Legal,Tax Advisory Co,Operations,311
+2025-09-20,Salaries,PayrollCo,Operations,5514
+2025-03-21,Salaries,PayrollCo,Finance,2514
+2025-10-03,Software,HubSpot,Marketing,827
+2025-01-28,Cloud Infrastructure,AWS,Product,1338
+2025-12-22,Contractors,DevContract Ltd,Operations,1174
+2025-08-23,Travel,AirlineTravel,Marketing,413
+2025-11-14,Rent,OfficeRent BV,Finance,1676
+2025-07-31,Rent,Workspace GmbH,Operations,2416
+2025-04-05,Salaries,HRServices,Marketing,4309
+2025-10-20,Contractors,DevContract Ltd,Operations,2135
+2025-05-29,Software,AWS,Marketing,483
+2025-12-15,Software,OpenAI,Marketing,292
+2025-08-03,Salaries,PayrollCo,Operations,5875
+2025-08-28,Marketing,Meta Ads,Marketing,905
+2025-04-03,Salaries,PayrollCo,Marketing,2874
+2025-11-27,Salaries,HRServices,Sales,6004
+2025-02-17,Contractors,FreelancerHub,Sales,927
+2025-08-16,Salaries,HRServices,Marketing,2626
+2025-01-17,Contractors,DevContract Ltd,Finance,884
+2025-10-14,Software,Figma,Sales,561
+2025-03-28,Marketing,Google Ads,Marketing,1586
+2025-04-17,Contractors,DevContract Ltd,Operations,845
+2025-06-12,Rent,OfficeRent BV,Marketing,1361
+2025-02-03,Contractors,FreelancerHub,Finance,1779
+2025-11-20,Support Ops,SupportFlow,Sales,925
+2025-04-11,Contractors,DevContract Ltd,Product,1686
+2025-02-13,Contractors,DevContract Ltd,Sales,897
+2025-11-24,Rent,OfficeRent BV,Marketing,1519
+2025-02-25,Marketing,Meta Ads,Finance,2640
+2025-03-14,Contractors,FreelancerHub,Operations,1215
+2025-10-04,Salaries,HRServices,Marketing,6314
+2025-12-19,Salaries,HRServices,Marketing,5575
+2025-03-02,Contractors,DevContract Ltd,Finance,1806
+2025-02-21,Contractors,FreelancerHub,Product,1922
+2025-04-01,Marketing,Meta Ads,Finance,2778
+2025-04-11,Salaries,HRServices,Marketing,3838
+2025-08-03,Software,OpenAI,Sales,1139
+2025-08-11,Salaries,PayrollCo,Product,5617
+2025-12-21,Software,HubSpot,Operations,962
+2025-02-21,Marketing,Google Ads,Marketing,1416
+2025-05-04,Software,AWS,Product,565
+2025-07-15,Marketing,Google Ads,Product,1363
+2025-09-05,Salaries,HRServices,Sales,2439
+2025-03-31,Salaries,HRServices,Operations,4977
+2025-11-15,Cloud Infrastructure,AWS,Finance,1022
+2025-08-17,Support Ops,Zendesk,Marketing,191
+2025-10-11,Marketing,LinkedIn Ads,Sales,566
+2025-11-12,Contractors,FreelancerHub,Product,1308
+2025-10-10,Legal,Tax Advisory Co,Marketing,1263
+2025-07-17,Contractors,DevContract Ltd,Marketing,429
+2025-03-01,Rent,OfficeRent BV,Marketing,1605
+2025-05-07,Travel,AirlineTravel,Marketing,384
+2025-01-01,Software,AWS,Product,309
+2025-06-01,Contractors,DevContract Ltd,Operations,864
+2025-11-05,Travel,Booking,Product,538
+2025-06-22,Software,HubSpot,Product,197
+2025-10-25,Software,Notion,Sales,808
+2025-12-04,Contractors,DevContract Ltd,Product,802
+2025-07-29,Contractors,FreelancerHub,Sales,1443
+2025-06-19,Rent,OfficeRent BV,Finance,2447
+2025-09-25,Salaries,PayrollCo,Sales,3017
+2025-11-13,Rent,Workspace GmbH,Product,1948
+2025-04-21,Travel,AirlineTravel,Sales,417
+2025-10-02,Contractors,DevContract Ltd,Finance,1585
+2025-02-25,Travel,AirlineTravel,Product,469
+2025-05-07,Insurance,AXA,Finance,251
+2025-03-14,Software,Notion,Sales,1078
+2025-12-21,Marketing,Meta Ads,Product,1023
+2025-09-15,Marketing,Google Ads,Product,774
+2025-08-12,Marketing,Google Ads,Marketing,2745
+2025-06-20,Marketing,Google Ads,Finance,1403
+2025-07-09,Cloud Infrastructure,Cloudflare,Finance,1217
+2025-11-12,Software,OpenAI,Finance,619
+2025-10-03,Marketing,Google Ads,Finance,2650
+2025-08-25,Contractors,DevContract Ltd,Marketing,1822
+2025-11-18,Software,HubSpot,Finance,498
+2025-12-25,Cloud Infrastructure,Datadog,Marketing,599
+2025-02-13,Software,Figma,Operations,619
+2025-03-23,Legal,Tax Advisory Co,Marketing,754
+2025-01-17,Rent,Workspace GmbH,Product,1201
+2025-06-09,Legal,Tax Advisory Co,Product,655
+2025-01-17,Software,Notion,Sales,1073
+2025-11-22,Contractors,FreelancerHub,Sales,1154
+2025-05-09,Legal,Tax Advisory Co,Product,594
+2025-01-26,Support Ops,SupportFlow,Finance,931
+2025-11-08,Marketing,Google Ads,Operations,2687
+2025-01-15,Marketing,LinkedIn Ads,Marketing,703
+2025-11-15,Cloud Infrastructure,AWS,Product,497
+2025-04-27,Software,HubSpot,Operations,822
+2025-01-22,Software,AWS,Product,182
+2025-09-20,Salaries,PayrollCo,Sales,2231
+2025-10-28,Salaries,HRServices,Operations,3525
+2025-11-13,Salaries,PayrollCo,Finance,4715
+2025-01-23,Salaries,PayrollCo,Marketing,5414
+2025-05-12,Legal,Tax Advisory Co,Sales,1383
+2025-10-20,Salaries,HRServices,Marketing,4437
+2025-03-06,Software,Figma,Sales,137
+2025-05-10,Rent,Workspace GmbH,Marketing,1883
+2025-12-26,Cloud Infrastructure,Cloudflare,Product,1264
+2025-05-25,Software,HubSpot,Sales,480
+2025-04-18,Cloud Infrastructure,AWS,Finance,1264
+2025-06-07,Travel,AirlineTravel,Marketing,117
+2025-10-20,Legal,Legal Partners,Marketing,1269
+2025-04-13,Cloud Infrastructure,Datadog,Sales,753
+2025-02-15,Salaries,PayrollCo,Product,2201
+2025-07-27,Contractors,DevContract Ltd,Marketing,2047
+2025-10-25,Salaries,HRServices,Finance,3791
+2025-05-29,Legal,Legal Partners,Product,1111
+2025-11-17,Support Ops,Zendesk,Marketing,835
+2025-12-18,Rent,OfficeRent BV,Product,1127
+2025-10-08,Contractors,FreelancerHub,Operations,1681
+2025-09-30,Salaries,HRServices,Operations,5353
+2025-12-07,Salaries,PayrollCo,Sales,2349
+2025-09-28,Legal,Tax Advisory Co,Finance,352
+2025-12-12,Salaries,PayrollCo,Finance,2297
+2025-03-20,Legal,Legal Partners,Finance,1260
+2025-05-04,Travel,RailEurope,Product,56
+2025-12-12,Salaries,HRServices,Product,4392
+2025-05-03,Cloud Infrastructure,Cloudflare,Marketing,703
+2025-12-04,Salaries,PayrollCo,Finance,3350
+2025-06-28,Software,HubSpot,Sales,1151
+2025-07-20,Software,Figma,Product,412
+2025-06-06,Cloud Infrastructure,Datadog,Sales,624
+2025-09-15,Contractors,FreelancerHub,Operations,861
+2025-02-06,Marketing,Meta Ads,Finance,608
+2025-05-14,Software,Figma,Operations,128
+2025-12-02,Salaries,HRServices,Product,2934
+2025-09-24,Travel,RailEurope,Sales,679
+2025-06-24,Software,AWS,Operations,864
+2025-09-04,Software,OpenAI,Finance,457
+2025-08-16,Marketing,Meta Ads,Sales,1510
+2025-10-04,Contractors,FreelancerHub,Marketing,1580
+2025-07-19,Marketing,LinkedIn Ads,Finance,1001
+2025-05-01,Support Ops,SupportFlow,Finance,453
+2025-06-19,Contractors,FreelancerHub,Operations,403
+2025-12-15,Legal,Tax Advisory Co,Marketing,740
+2025-06-07,Insurance,AXA,Product,244
+2025-01-03,Marketing,Google Ads,Marketing,729
+2025-12-20,Insurance,AXA,Operations,293
+2025-12-14,Salaries,PayrollCo,Product,5537
+2025-06-18,Rent,OfficeRent BV,Sales,1605
+2025-05-09,Contractors,FreelancerHub,Finance,552
+2025-01-14,Support Ops,Zendesk,Sales,106
+2025-12-20,Software,AWS,Sales,1076
+2025-03-09,Insurance,Allianz,Operations,253
+2025-11-02,Marketing,LinkedIn Ads,Marketing,2135
+2025-06-17,Support Ops,Zendesk,Sales,541
+2025-04-20,Marketing,LinkedIn Ads,Operations,2322
+2025-11-07,Marketing,LinkedIn Ads,Sales,1151
+2025-12-26,Salaries,PayrollCo,Sales,4658
+2025-02-22,Marketing,Meta Ads,Product,2481
+2025-11-15,Rent,OfficeRent BV,Sales,1901
+2025-05-27,Marketing,Google Ads,Sales,1176
+2025-06-05,Marketing,LinkedIn Ads,Marketing,2600
+2025-04-01,Rent,Workspace GmbH,Product,1617
+2025-07-23,Salaries,PayrollCo,Finance,4471
+2025-11-03,Salaries,HRServices,Marketing,2415
+2025-06-02,Marketing,Google Ads,Product,2051
+2025-04-11,Contractors,FreelancerHub,Marketing,1254
+2025-05-30,Cloud Infrastructure,Cloudflare,Finance,1027
+2025-06-09,Support Ops,SupportFlow,Product,697
+2025-07-03,Travel,AirlineTravel,Product,547
+2025-01-03,Software,Figma,Product,828
+2025-01-27,Marketing,LinkedIn Ads,Finance,1993
+2025-05-24,Travel,Booking,Operations,433
+2025-10-27,Rent,Workspace GmbH,Finance,1181
+2025-06-19,Marketing,Meta Ads,Operations,1571
+2025-03-26,Marketing,Meta Ads,Finance,2346
+2025-11-13,Marketing,LinkedIn Ads,Finance,492
+2025-06-03,Contractors,DevContract Ltd,Operations,1818
+2025-11-18,Marketing,LinkedIn Ads,Sales,2366
+2025-07-10,Salaries,HRServices,Operations,5220
+2025-03-14,Cloud Infrastructure,Cloudflare,Operations,1785
+2025-11-19,Rent,OfficeRent BV,Finance,1223
+2025-04-03,Software,AWS,Sales,539
+2025-10-15,Salaries,HRServices,Marketing,4931
+2025-03-10,Travel,AirlineTravel,Sales,381
+2025-02-19,Travel,AirlineTravel,Finance,525
+2025-05-15,Rent,Workspace GmbH,Operations,1545
+2025-12-10,Salaries,HRServices,Marketing,4828
+2025-10-14,Rent,Workspace GmbH,Sales,2194
+2025-04-27,Software,Notion,Finance,216
+2025-08-10,Rent,OfficeRent BV,Marketing,2460
+2025-11-27,Rent,Workspace GmbH,Sales,1173
+2025-10-09,Contractors,DevContract Ltd,Operations,665
+2025-01-04,Rent,OfficeRent BV,Operations,2022
+2025-02-15,Marketing,Meta Ads,Finance,2173
+2025-05-08,Cloud Infrastructure,AWS,Operations,738
+2025-11-07,Marketing,Google Ads,Product,404
+2025-10-17,Insurance,Allianz,Operations,422
+2025-12-09,Salaries,HRServices,Finance,4990
+2025-11-22,Cloud Infrastructure,Datadog,Product,1478
+2025-05-18,Salaries,HRServices,Finance,5820
+2025-07-07,Cloud Infrastructure,AWS,Marketing,1527
+2025-05-29,Marketing,LinkedIn Ads,Marketing,988
+2025-02-15,Salaries,HRServices,Sales,1936
+2025-12-13,Insurance,AXA,Operations,626
+2025-04-06,Insurance,AXA,Marketing,377
+2025-10-19,Salaries,HRServices,Finance,5428
+2025-03-31,Software,AWS,Marketing,716
+2025-03-03,Software,AWS,Finance,178
+2025-10-21,Salaries,HRServices,Product,5616
+2025-01-02,Support Ops,SupportFlow,Finance,488
+2025-12-03,Legal,Tax Advisory Co,Operations,1493
+2025-08-05,Rent,OfficeRent BV,Sales,2457
+2025-07-06,Cloud Infrastructure,AWS,Finance,687
+2025-10-12,Salaries,HRServices,Marketing,4785
+2025-10-03,Support Ops,SupportFlow,Product,854
+2025-02-01,Contractors,FreelancerHub,Sales,1251
+2025-11-03,Cloud Infrastructure,AWS,Marketing,945
+2025-10-16,Contractors,DevContract Ltd,Finance,458
+2025-08-11,Travel,RailEurope,Sales,559
+2025-08-06,Salaries,PayrollCo,Sales,3645
+2025-07-01,Cloud Infrastructure,Datadog,Sales,205
+2025-11-16,Cloud Infrastructure,Cloudflare,Marketing,1350
+2025-12-29,Cloud Infrastructure,Datadog,Operations,834
+2025-08-29,Salaries,HRServices,Finance,3941
+2025-04-10,Rent,Workspace GmbH,Sales,1318
+2025-09-02,Marketing,LinkedIn Ads,Marketing,2725
+2025-12-21,Salaries,HRServices,Finance,5879
+2025-01-02,Salaries,PayrollCo,Operations,2782
+2025-04-29,Software,HubSpot,Finance,747
+2025-12-09,Legal,Legal Partners,Sales,312
+2025-05-17,Software,Notion,Operations,985
+2025-01-07,Contractors,FreelancerHub,Sales,1402
+2025-09-15,Marketing,LinkedIn Ads,Product,1282
+2025-05-06,Contractors,DevContract Ltd,Finance,1722
+2025-01-21,Cloud Infrastructure,Datadog,Operations,543
+2025-12-12,Support Ops,Zendesk,Operations,950
+2025-09-17,Legal,Legal Partners,Operations,745
+2025-05-25,Insurance,Allianz,Marketing,214
+2025-11-06,Marketing,LinkedIn Ads,Operations,2001
+2025-05-11,Rent,Workspace GmbH,Operations,2544
+2025-01-18,Cloud Infrastructure,AWS,Marketing,1424
+2025-10-30,Salaries,PayrollCo,Finance,4213
+2025-03-26,Salaries,PayrollCo,Product,2158
+2025-12-28,Salaries,PayrollCo,Operations,3754
+2025-09-11,Marketing,Meta Ads,Sales,1354
+2025-01-18,Software,AWS,Marketing,1048
+2025-10-21,Salaries,PayrollCo,Product,3628
+2025-04-25,Software,Notion,Finance,315
+2025-04-30,Marketing,Google Ads,Sales,492
+2025-02-11,Rent,Workspace GmbH,Sales,2155
+2025-12-19,Marketing,Meta Ads,Finance,1807
+2025-05-28,Marketing,Google Ads,Operations,1878
+2025-08-20,Salaries,PayrollCo,Product,3144
+2025-01-23,Insurance,Allianz,Sales,374
+2025-01-06,Marketing,LinkedIn Ads,Product,2072
+2025-05-26,Contractors,DevContract Ltd,Sales,1196
+2025-03-20,Cloud Infrastructure,AWS,Operations,1699
+2025-12-23,Software,Notion,Operations,285
+2025-02-23,Software,Notion,Finance,852
+2025-10-05,Legal,Tax Advisory Co,Operations,1328
+2025-03-09,Cloud Infrastructure,AWS,Finance,734
+2025-09-18,Support Ops,SupportFlow,Marketing,378
+2025-12-09,Legal,Tax Advisory Co,Finance,1019
+2025-03-14,Marketing,Meta Ads,Sales,525
+2025-05-28,Marketing,Meta Ads,Sales,741
+2025-08-18,Cloud Infrastructure,Cloudflare,Sales,1315
+2025-05-12,Rent,Workspace GmbH,Product,1566
+2025-02-21,Travel,AirlineTravel,Marketing,362
+2025-08-04,Contractors,DevContract Ltd,Product,1033
+2025-09-22,Salaries,HRServices,Marketing,3111
+2025-06-12,Salaries,HRServices,Marketing,4904
+2025-06-12,Travel,RailEurope,Finance,284
+2025-01-13,Software,AWS,Product,681
+2025-03-21,Salaries,PayrollCo,Sales,5378
+2025-12-26,Rent,Workspace GmbH,Marketing,1433
+2025-09-27,Salaries,PayrollCo,Product,5772
+2025-09-05,Travel,Booking,Product,805
+2025-03-04,Support Ops,SupportFlow,Sales,267
+2025-05-12,Salaries,HRServices,Operations,3467
+2025-09-27,Contractors,DevContract Ltd,Operations,781
+2025-05-28,Marketing,Google Ads,Sales,2164
+2025-03-16,Salaries,HRServices,Operations,5756
+2025-06-26,Salaries,HRServices,Operations,2225
+2025-08-08,Software,OpenAI,Finance,1082
+2025-08-22,Salaries,HRServices,Sales,2594
+2025-01-01,Insurance,Allianz,Product,474
+2025-07-02,Contractors,FreelancerHub,Product,863
+2025-03-23,Support Ops,SupportFlow,Marketing,1000
+2025-02-21,Contractors,DevContract Ltd,Finance,1554
+2025-12-28,Contractors,FreelancerHub,Finance,650
+2025-02-21,Cloud Infrastructure,Datadog,Finance,703
+2025-04-03,Rent,Workspace GmbH,Finance,1381
+2025-05-27,Salaries,PayrollCo,Product,3890
+2025-04-08,Salaries,HRServices,Marketing,3340
+2025-06-08,Salaries,HRServices,Finance,5517
+2025-12-31,Salaries,HRServices,Sales,1903
+2025-05-19,Salaries,PayrollCo,Sales,4184
+2025-03-17,Software,OpenAI,Operations,130
+2025-11-10,Rent,Workspace GmbH,Sales,1128
+2025-07-12,Salaries,PayrollCo,Marketing,3662
+2025-01-02,Rent,Workspace GmbH,Sales,1526
+2025-05-11,Marketing,Google Ads,Finance,416
+2025-09-06,Salaries,PayrollCo,Operations,3168
+2025-07-07,Marketing,LinkedIn Ads,Finance,2068
+2025-11-04,Support Ops,Zendesk,Sales,410
+2025-02-27,Rent,OfficeRent BV,Product,2467
+2025-03-25,Support Ops,SupportFlow,Finance,468
+2025-04-01,Support Ops,SupportFlow,Product,684
+2025-10-26,Rent,OfficeRent BV,Marketing,1193
+2025-10-04,Salaries,PayrollCo,Finance,5597
+2025-09-10,Insurance,AXA,Operations,536
+2025-07-27,Marketing,Google Ads,Operations,2490
+2025-01-25,Salaries,HRServices,Marketing,1970
+2025-03-15,Marketing,Meta Ads,Operations,779
+2025-12-07,Travel,Booking,Operations,448
+2025-03-12,Software,HubSpot,Marketing,268
+2025-01-13,Support Ops,Zendesk,Sales,495
+2025-07-30,Contractors,DevContract Ltd,Product,2163
+2025-06-09,Software,HubSpot,Sales,633
+2025-08-19,Support Ops,Zendesk,Finance,375
+2025-07-07,Insurance,AXA,Sales,148
+2025-04-01,Salaries,PayrollCo,Finance,3102
+2025-04-09,Marketing,Meta Ads,Sales,1652
+2025-02-27,Salaries,PayrollCo,Sales,2508
+2025-01-27,Salaries,PayrollCo,Sales,5409
+2025-01-13,Marketing,Meta Ads,Product,1507
+2025-10-13,Contractors,FreelancerHub,Marketing,727
+2025-03-20,Rent,Workspace GmbH,Marketing,2541
+2025-07-21,Software,Notion,Product,850
+2025-04-24,Cloud Infrastructure,Cloudflare,Finance,338
+2025-06-02,Marketing,LinkedIn Ads,Operations,1145
+2025-07-17,Software,Notion,Marketing,404
+2025-04-15,Marketing,Meta Ads,Product,2037
+2025-08-20,Travel,RailEurope,Sales,221
+2025-07-29,Legal,Tax Advisory Co,Product,271
+2025-09-10,Software,HubSpot,Finance,104
+2025-05-23,Cloud Infrastructure,Cloudflare,Sales,1698
+2025-03-15,Software,OpenAI,Operations,817
+2025-11-02,Cloud Infrastructure,Cloudflare,Sales,900
+2025-05-28,Rent,OfficeRent BV,Product,1456
+2025-04-28,Marketing,LinkedIn Ads,Product,463
+2025-12-22,Rent,Workspace GmbH,Finance,2174
+2025-09-06,Legal,Legal Partners,Operations,342
+2025-08-08,Salaries,HRServices,Product,4611
+2025-05-01,Travel,RailEurope,Finance,429
+2025-04-05,Legal,Legal Partners,Marketing,693
+2025-04-04,Software,AWS,Marketing,126
+2025-12-13,Contractors,FreelancerHub,Product,1651
+2025-02-01,Contractors,DevContract Ltd,Finance,454
+2025-09-29,Cloud Infrastructure,AWS,Marketing,1229
+2025-07-09,Travel,RailEurope,Sales,487
+2025-05-14,Software,Figma,Product,844
+2025-11-10,Marketing,LinkedIn Ads,Product,1364
+2025-03-10,Marketing,Meta Ads,Sales,2679
+2025-11-28,Support Ops,SupportFlow,Sales,493
+2025-09-29,Salaries,HRServices,Marketing,5106
+2025-09-21,Software,HubSpot,Finance,751
+2025-02-01,Cloud Infrastructure,Cloudflare,Finance,1462
+2025-08-09,Legal,Tax Advisory Co,Sales,770
+2025-04-30,Salaries,PayrollCo,Marketing,6141
+2025-01-03,Insurance,AXA,Product,634
+2025-12-12,Cloud Infrastructure,Datadog,Marketing,914
+2025-02-25,Salaries,PayrollCo,Sales,4121
+2025-07-31,Marketing,LinkedIn Ads,Finance,2730
+2025-03-21,Marketing,Google Ads,Sales,2098
+2025-02-24,Salaries,PayrollCo,Sales,4815
+2025-11-10,Rent,OfficeRent BV,Marketing,1051
+2025-10-14,Cloud Infrastructure,Cloudflare,Product,263
+2025-07-07,Salaries,PayrollCo,Operations,6409
+2025-05-06,Marketing,Google Ads,Operations,566
+2025-05-28,Software,HubSpot,Marketing,301
+2025-11-15,Support Ops,Zendesk,Finance,951
+2025-12-03,Software,AWS,Sales,955
+2025-09-10,Software,AWS,Product,534
+2025-03-20,Contractors,DevContract Ltd,Operations,545
+2025-02-16,Marketing,Google Ads,Operations,1317
+2025-12-28,Marketing,LinkedIn Ads,Product,715
+2025-09-28,Software,HubSpot,Finance,196
+2025-10-10,Marketing,LinkedIn Ads,Sales,2248
+2025-04-21,Support Ops,Zendesk,Product,921
+2025-10-20,Cloud Infrastructure,Cloudflare,Marketing,1398
+2025-03-28,Marketing,Meta Ads,Operations,645
+2025-01-23,Salaries,HRServices,Finance,5425
+2025-08-29,Software,AWS,Finance,1026
+2025-01-29,Salaries,PayrollCo,Sales,4834
+2025-11-19,Contractors,DevContract Ltd,Product,1923
+2025-02-06,Insurance,AXA,Operations,103
+2025-09-27,Legal,Legal Partners,Product,203
+2025-01-04,Marketing,Google Ads,Operations,325
+2025-03-18,Contractors,FreelancerHub,Operations,746
+2025-12-26,Marketing,Google Ads,Finance,471
+2025-06-13,Salaries,PayrollCo,Operations,2427
+2025-10-07,Legal,Tax Advisory Co,Finance,521
+2025-05-18,Contractors,FreelancerHub,Operations,2003
+2025-07-15,Legal,Tax Advisory Co,Finance,1181
+2025-09-02,Cloud Infrastructure,AWS,Operations,726
+2025-11-11,Software,AWS,Product,549
+2025-04-02,Insurance,Allianz,Marketing,214
+2025-10-18,Marketing,Google Ads,Finance,1649
+2025-09-17,Rent,OfficeRent BV,Product,1813
+2025-03-16,Salaries,HRServices,Operations,3077
+2025-06-17,Software,Notion,Finance,879
+2025-06-11,Software,OpenAI,Marketing,400
+2025-02-12,Cloud Infrastructure,Datadog,Sales,816
+2025-05-15,Rent,OfficeRent BV,Marketing,2324
+2025-08-27,Support Ops,SupportFlow,Operations,274
+2025-05-31,Salaries,HRServices,Sales,5231
+2025-04-21,Software,Notion,Sales,545
+2025-03-01,Rent,Workspace GmbH,Marketing,1930
+2025-08-15,Marketing,Google Ads,Sales,929
+2025-01-02,Salaries,HRServices,Operations,3490
+2025-11-12,Cloud Infrastructure,AWS,Operations,631
+2025-02-24,Cloud Infrastructure,Cloudflare,Product,1021
+2025-08-25,Software,Figma,Sales,444
+2025-09-19,Contractors,FreelancerHub,Product,799
+2025-11-11,Salaries,HRServices,Finance,5342
+2025-04-28,Salaries,HRServices,Product,5006
+2025-08-18,Contractors,DevContract Ltd,Sales,1562
+2025-07-13,Salaries,PayrollCo,Finance,5356
+2025-11-30,Software,Figma,Finance,223
+2025-11-23,Salaries,HRServices,Operations,5199
+2025-06-02,Cloud Infrastructure,Datadog,Marketing,676
+2025-06-14,Rent,Workspace GmbH,Marketing,1733
+2025-06-26,Marketing,LinkedIn Ads,Operations,1304
+2025-12-19,Cloud Infrastructure,Datadog,Product,377
+2025-06-26,Salaries,PayrollCo,Product,5912
+2025-10-25,Salaries,PayrollCo,Finance,5603
+2025-04-21,Salaries,PayrollCo,Product,4893
+2025-08-07,Support Ops,SupportFlow,Finance,746
+2025-05-29,Salaries,HRServices,Finance,4172
+2025-08-08,Contractors,DevContract Ltd,Marketing,1726
+2025-01-31,Salaries,PayrollCo,Operations,3072
+2025-11-26,Salaries,HRServices,Sales,4951
+2025-08-01,Software,Figma,Marketing,815
+2025-04-14,Insurance,Allianz,Sales,239
+2025-05-08,Software,Notion,Sales,527
+2025-06-28,Marketing,LinkedIn Ads,Sales,842
+2025-09-26,Rent,Workspace GmbH,Marketing,2477
+2025-09-05,Contractors,DevContract Ltd,Finance,1699
+2025-03-18,Contractors,FreelancerHub,Finance,1520
+2025-01-01,Salaries,PayrollCo,Product,5049
+2025-02-07,Cloud Infrastructure,AWS,Marketing,1526
+2025-08-22,Marketing,Google Ads,Operations,1572
+2025-02-15,Salaries,PayrollCo,Marketing,6128
+2025-02-25,Rent,OfficeRent BV,Sales,1041
+2025-07-01,Software,Notion,Sales,230
+2025-02-27,Marketing,Meta Ads,Product,1683
+2025-01-20,Rent,OfficeRent BV,Product,1313
+2025-11-04,Marketing,LinkedIn Ads,Marketing,392
+2025-07-08,Travel,RailEurope,Finance,821
+2025-03-12,Salaries,HRServices,Operations,2115
+2025-12-02,Legal,Legal Partners,Operations,182
+2025-11-26,Rent,Workspace GmbH,Marketing,1352
+2025-01-08,Salaries,HRServices,Product,3645
+2025-03-12,Contractors,DevContract Ltd,Marketing,1213
+2025-10-17,Software,HubSpot,Product,466
+2025-10-11,Salaries,PayrollCo,Product,3419
+2025-03-26,Travel,AirlineTravel,Product,804
+2025-04-26,Contractors,FreelancerHub,Operations,1033
+2025-05-07,Salaries,PayrollCo,Product,4582
+2025-04-28,Cloud Infrastructure,Datadog,Product,310
+2025-05-22,Salaries,PayrollCo,Product,4190
+2025-03-10,Rent,OfficeRent BV,Product,2272
+2025-05-12,Contractors,FreelancerHub,Marketing,807
+2025-09-17,Contractors,FreelancerHub,Product,1418
+2025-06-03,Contractors,FreelancerHub,Finance,1887
+2025-11-01,Cloud Infrastructure,Cloudflare,Operations,878
+2025-09-30,Software,HubSpot,Marketing,584
+2025-10-13,Cloud Infrastructure,Cloudflare,Product,838
+2025-03-10,Cloud Infrastructure,Datadog,Product,1790
+2025-03-24,Rent,Workspace GmbH,Finance,1838
+2025-10-16,Insurance,Allianz,Sales,394
+2025-06-24,Marketing,Meta Ads,Operations,1445
+2025-03-19,Salaries,PayrollCo,Operations,4259
+2025-11-22,Rent,Workspace GmbH,Operations,1124
+2025-08-31,Marketing,Meta Ads,Marketing,1822
+2025-04-17,Rent,OfficeRent BV,Marketing,1801
+2025-12-27,Rent,Workspace GmbH,Product,1162
+2025-08-09,Rent,OfficeRent BV,Sales,2060
+2025-06-23,Cloud Infrastructure,Datadog,Operations,216
+2025-12-10,Rent,OfficeRent BV,Marketing,2411
+2025-06-29,Support Ops,SupportFlow,Sales,987
+2025-11-24,Marketing,LinkedIn Ads,Sales,2161
+2025-09-07,Contractors,FreelancerHub,Operations,759
+2025-07-03,Salaries,HRServices,Finance,5809
+2025-01-17,Salaries,PayrollCo,Operations,2312
+2025-08-16,Marketing,Meta Ads,Sales,1144
+2025-07-06,Insurance,AXA,Sales,401
+2025-10-16,Rent,OfficeRent BV,Marketing,1077
+2025-06-23,Marketing,Meta Ads,Marketing,1202
+2025-10-11,Marketing,LinkedIn Ads,Product,586
+2025-08-23,Legal,Legal Partners,Marketing,1366
+2025-04-21,Marketing,LinkedIn Ads,Finance,2694
+2025-02-12,Legal,Tax Advisory Co,Marketing,1222
+2025-03-31,Software,OpenAI,Product,516
+2025-11-09,Marketing,Meta Ads,Sales,1127
+2025-03-05,Marketing,Google Ads,Operations,2755
+2025-11-12,Salaries,HRServices,Finance,5696
+2025-10-13,Software,HubSpot,Product,756
+2025-02-22,Software,HubSpot,Product,360
+2025-01-25,Contractors,DevContract Ltd,Marketing,473
+2025-07-16,Marketing,LinkedIn Ads,Operations,826
+2025-10-07,Software,HubSpot,Finance,755
+2025-10-17,Travel,AirlineTravel,Operations,480
+2025-05-27,Cloud Infrastructure,AWS,Sales,353
+2025-02-12,Salaries,HRServices,Finance,4402
+2025-06-09,Support Ops,Zendesk,Product,866
+2025-03-06,Salaries,PayrollCo,Product,1880
+2025-05-06,Contractors,DevContract Ltd,Sales,747
+2025-04-29,Contractors,FreelancerHub,Finance,1066
+2025-03-29,Salaries,PayrollCo,Product,4700
+2025-07-24,Salaries,PayrollCo,Product,3769
+2025-11-14,Insurance,AXA,Operations,397
+2025-09-19,Software,Notion,Marketing,710
+2025-04-12,Salaries,HRServices,Marketing,4560
+2025-12-12,Cloud Infrastructure,Cloudflare,Product,1110
+2025-05-29,Salaries,HRServices,Product,4637
+2025-02-21,Insurance,Allianz,Product,350
+2025-04-13,Contractors,DevContract Ltd,Sales,2159
+2025-05-05,Contractors,FreelancerHub,Operations,1080
+2025-08-22,Contractors,DevContract Ltd,Finance,2066
+2025-07-14,Marketing,Google Ads,Product,539
+2025-04-06,Cloud Infrastructure,Cloudflare,Operations,1084
+2025-07-15,Marketing,Google Ads,Product,2657
+2025-11-25,Contractors,FreelancerHub,Finance,1139
+2025-12-31,Salaries,PayrollCo,Operations,5247
+2025-09-20,Rent,Workspace GmbH,Marketing,2405
+2025-04-18,Salaries,HRServices,Product,4021
+2025-02-24,Rent,Workspace GmbH,Operations,1269
+2025-12-11,Software,Notion,Sales,972
+2025-09-24,Software,OpenAI,Marketing,874
+2025-01-26,Salaries,PayrollCo,Finance,3072
+2025-01-04,Legal,Tax Advisory Co,Operations,913
+2025-11-20,Salaries,PayrollCo,Finance,3565
+2025-12-30,Contractors,FreelancerHub,Product,566
+2025-10-17,Salaries,PayrollCo,Finance,2666
+2025-11-09,Insurance,Allianz,Operations,523
+2025-06-20,Salaries,PayrollCo,Product,4765
+2025-08-22,Marketing,Google Ads,Operations,2394
+2025-01-17,Support Ops,SupportFlow,Product,800
+2025-06-13,Contractors,FreelancerHub,Product,668
+2025-06-06,Rent,OfficeRent BV,Marketing,1163
+2025-12-18,Insurance,Allianz,Sales,622
+2025-02-24,Legal,Tax Advisory Co,Product,810
+2025-02-11,Marketing,Meta Ads,Sales,618
+2025-04-16,Salaries,HRServices,Marketing,6464
+2025-05-06,Salaries,HRServices,Sales,5805
+2025-12-13,Support Ops,Zendesk,Marketing,450
+2025-11-12,Software,HubSpot,Product,837
+2025-02-02,Salaries,PayrollCo,Marketing,5382
+2025-08-06,Rent,Workspace GmbH,Operations,1685
+2025-04-20,Rent,Workspace GmbH,Sales,1860
+2025-02-18,Cloud Infrastructure,Cloudflare,Finance,1569
+2025-04-10,Marketing,LinkedIn Ads,Operations,1099
+2025-05-28,Salaries,HRServices,Operations,3338
+2025-04-14,Software,AWS,Product,717
+2025-10-31,Marketing,LinkedIn Ads,Finance,2106
+2025-06-16,Marketing,LinkedIn Ads,Marketing,2052
+2025-12-25,Software,Notion,Finance,371
+2025-02-28,Insurance,AXA,Sales,671
+2025-12-04,Salaries,PayrollCo,Marketing,4470
+2025-09-19,Insurance,AXA,Product,386
+2025-01-21,Travel,AirlineTravel,Operations,273
+2025-02-03,Marketing,Google Ads,Marketing,1853
+2025-07-11,Salaries,HRServices,Marketing,5225
+2025-11-14,Rent,Workspace GmbH,Sales,2017
+2025-09-09,Cloud Infrastructure,Cloudflare,Product,1157
+2025-02-10,Software,AWS,Sales,775
+2025-05-03,Rent,OfficeRent BV,Marketing,1078
+2025-01-14,Marketing,Meta Ads,Sales,2124
+2025-08-04,Cloud Infrastructure,Cloudflare,Product,1715
+2025-03-22,Support Ops,Zendesk,Product,937
+2025-09-13,Rent,OfficeRent BV,Finance,1377
+2025-04-20,Support Ops,SupportFlow,Product,565
+2025-05-12,Software,AWS,Operations,595
+2025-04-14,Rent,OfficeRent BV,Operations,1964
+2025-04-06,Support Ops,Zendesk,Operations,323
+2025-12-10,Legal,Tax Advisory Co,Operations,1394
+2025-05-06,Software,Figma,Sales,1057
+2025-12-17,Salaries,HRServices,Sales,2907
+2025-01-28,Salaries,PayrollCo,Product,5055
+2025-07-22,Software,HubSpot,Marketing,277
+2025-09-14,Legal,Tax Advisory Co,Finance,1160
+2025-09-13,Contractors,DevContract Ltd,Finance,1524
+2025-09-20,Support Ops,SupportFlow,Finance,740
+2025-12-27,Contractors,DevContract Ltd,Product,1834
+2025-10-25,Marketing,Google Ads,Marketing,2752
+2025-02-14,Marketing,LinkedIn Ads,Marketing,2006
+2025-02-04,Rent,OfficeRent BV,Product,2106
+2025-12-29,Legal,Legal Partners,Sales,1427
+2025-10-20,Cloud Infrastructure,AWS,Operations,1253
+2025-11-29,Support Ops,Zendesk,Sales,880
+2025-09-10,Contractors,DevContract Ltd,Product,1465
+2025-08-06,Insurance,AXA,Sales,118
+2025-01-11,Software,HubSpot,Marketing,203
+2025-11-25,Software,AWS,Marketing,366
+2025-05-14,Salaries,HRServices,Sales,2122
+2025-08-15,Support Ops,SupportFlow,Operations,925
+2025-04-25,Salaries,PayrollCo,Finance,4112
+2025-11-04,Marketing,Meta Ads,Operations,1318
+2025-12-31,Support Ops,SupportFlow,Operations,131
+2025-10-04,Software,Figma,Sales,1058
+2025-01-28,Software,Notion,Sales,1148
+2025-08-06,Insurance,AXA,Operations,246
+2025-12-22,Contractors,DevContract Ltd,Product,1405
+2025-07-12,Salaries,PayrollCo,Marketing,4257
+2025-11-20,Software,AWS,Marketing,544
+2025-03-03,Marketing,Google Ads,Finance,1083
+2025-12-17,Travel,RailEurope,Finance,650
+2025-07-05,Software,AWS,Sales,183
+2025-01-17,Insurance,AXA,Finance,143
+2025-06-09,Salaries,PayrollCo,Sales,4091
+2025-02-23,Support Ops,SupportFlow,Operations,320
+2025-07-27,Contractors,FreelancerHub,Sales,2034
+2025-09-09,Contractors,FreelancerHub,Operations,818
+2025-06-03,Cloud Infrastructure,AWS,Marketing,278
+2025-05-30,Travel,AirlineTravel,Operations,871
+2025-09-20,Rent,Workspace GmbH,Product,1232
+2025-02-08,Contractors,DevContract Ltd,Finance,2148
+2025-12-04,Cloud Infrastructure,Datadog,Marketing,1640
+2025-03-14,Support Ops,Zendesk,Operations,135
+2025-02-23,Marketing,Meta Ads,Marketing,2519
+2025-03-10,Salaries,HRServices,Operations,5733
+2025-06-22,Support Ops,SupportFlow,Finance,531
+2025-05-01,Salaries,PayrollCo,Marketing,2294
+2025-12-06,Travel,AirlineTravel,Finance,448
+2025-02-11,Rent,Workspace GmbH,Marketing,1088
+2025-11-09,Marketing,Google Ads,Product,676
+2025-05-22,Marketing,Google Ads,Product,1596
+2025-12-20,Insurance,AXA,Finance,546
+2025-03-25,Cloud Infrastructure,AWS,Product,1197
+2025-07-10,Contractors,DevContract Ltd,Product,597
+2025-12-13,Travel,AirlineTravel,Operations,232
+2025-02-03,Rent,OfficeRent BV,Finance,2513
+2025-02-14,Marketing,LinkedIn Ads,Product,304
+2025-12-07,Travel,AirlineTravel,Operations,51
+2025-03-07,Salaries,HRServices,Finance,5272
+2025-03-24,Contractors,DevContract Ltd,Marketing,774
+2025-08-15,Insurance,AXA,Sales,100
+2025-12-25,Support Ops,Zendesk,Finance,658
+2025-09-12,Insurance,Allianz,Product,393
+2025-08-05,Travel,AirlineTravel,Finance,364
+2025-11-02,Salaries,HRServices,Finance,4290
+2025-11-04,Rent,Workspace GmbH,Marketing,2133
+2025-12-30,Salaries,PayrollCo,Operations,3516
+2025-10-25,Salaries,HRServices,Finance,5098
+2025-09-14,Marketing,LinkedIn Ads,Sales,2226
+2025-07-07,Marketing,LinkedIn Ads,Product,2476
+2025-07-08,Cloud Infrastructure,Cloudflare,Marketing,1141
+2025-12-28,Contractors,DevContract Ltd,Marketing,839
+2025-01-03,Rent,Workspace GmbH,Product,1489
+2025-04-16,Salaries,PayrollCo,Sales,2856
+2025-03-18,Salaries,HRServices,Marketing,1956
+2025-05-13,Salaries,PayrollCo,Product,5021
+2025-06-06,Contractors,DevContract Ltd,Operations,1571
+2025-05-24,Cloud Infrastructure,Cloudflare,Marketing,1663
+2025-11-28,Rent,OfficeRent BV,Operations,1486
+2025-10-19,Salaries,HRServices,Product,3252
+2025-03-16,Cloud Infrastructure,Cloudflare,Product,1047
+2025-08-08,Salaries,PayrollCo,Finance,2286
+2025-09-04,Support Ops,Zendesk,Operations,247
+2025-05-11,Software,Figma,Product,638
+2025-02-27,Rent,OfficeRent BV,Finance,2134
+2025-07-19,Rent,OfficeRent BV,Sales,2447
+2025-11-10,Cloud Infrastructure,AWS,Finance,550
+2025-04-11,Insurance,AXA,Finance,624
+2025-04-18,Insurance,AXA,Finance,694
+2025-09-29,Salaries,PayrollCo,Product,3523
+2025-10-13,Travel,AirlineTravel,Finance,154
+2025-07-13,Marketing,LinkedIn Ads,Sales,1321
+2025-06-20,Salaries,PayrollCo,Product,6251
+2025-09-09,Software,Notion,Sales,313
+2025-10-24,Rent,OfficeRent BV,Product,1957
+2025-05-11,Legal,Tax Advisory Co,Operations,1485
+2025-04-11,Legal,Tax Advisory Co,Sales,1337
+2025-11-12,Contractors,FreelancerHub,Finance,1208
+2025-08-26,Salaries,PayrollCo,Product,5354
+2025-04-05,Insurance,Allianz,Product,513
+2025-08-14,Marketing,Meta Ads,Finance,1992
+2025-08-15,Contractors,FreelancerHub,Finance,1387
+2025-02-08,Insurance,Allianz,Finance,146
+2025-07-03,Rent,Workspace GmbH,Marketing,1781
+2025-09-14,Support Ops,Zendesk,Sales,133
+2025-07-05,Salaries,HRServices,Marketing,2151
+2025-12-09,Marketing,Meta Ads,Sales,1888
+2025-03-02,Salaries,PayrollCo,Sales,3040
+2025-05-24,Support Ops,SupportFlow,Product,292
+2025-07-19,Marketing,LinkedIn Ads,Finance,1421
+2025-11-07,Salaries,HRServices,Product,2464
+2025-04-19,Salaries,HRServices,Operations,5078
+2025-05-02,Support Ops,SupportFlow,Sales,370
+2025-08-28,Marketing,Google Ads,Finance,2555
+2025-06-28,Marketing,Google Ads,Product,2443
+2025-06-15,Salaries,HRServices,Sales,6328
+2025-12-13,Contractors,FreelancerHub,Finance,1727
+2025-12-31,Contractors,FreelancerHub,Operations,1585
+2025-11-15,Cloud Infrastructure,Datadog,Product,1038
+2025-12-18,Legal,Legal Partners,Marketing,1440
+2025-06-10,Contractors,DevContract Ltd,Operations,2184
+2025-05-17,Rent,Workspace GmbH,Finance,2447
+2025-08-28,Contractors,DevContract Ltd,Finance,1398
+2025-07-11,Software,Notion,Marketing,560
+2025-07-15,Cloud Infrastructure,Datadog,Finance,952
+2025-02-21,Contractors,DevContract Ltd,Product,1877
+2025-10-21,Rent,Workspace GmbH,Product,1191
+2025-03-18,Salaries,HRServices,Marketing,4903
+2025-12-12,Salaries,HRServices,Sales,3741
+2025-01-18,Salaries,HRServices,Operations,2912
+2025-08-24,Cloud Infrastructure,Datadog,Operations,1125
+2025-08-03,Cloud Infrastructure,Datadog,Product,1714
+2025-12-21,Marketing,LinkedIn Ads,Sales,2501
+2025-12-21,Salaries,HRServices,Operations,3865
+2025-07-03,Software,Figma,Product,100
+2025-03-01,Legal,Legal Partners,Sales,196
+2025-09-12,Marketing,Google Ads,Operations,403
+2025-07-26,Rent,OfficeRent BV,Marketing,1649
+2025-09-29,Travel,AirlineTravel,Finance,274
+2025-10-27,Travel,Booking,Sales,314
+2025-05-12,Software,HubSpot,Marketing,454
+2025-04-19,Salaries,PayrollCo,Marketing,6191
+2025-11-11,Software,AWS,Sales,845
+2025-12-02,Salaries,HRServices,Product,6420
+2025-11-04,Salaries,PayrollCo,Sales,6318
+2025-02-10,Software,Figma,Marketing,165
+2025-09-04,Salaries,HRServices,Finance,4825
+2025-12-29,Salaries,HRServices,Sales,5168
+2025-02-27,Rent,OfficeRent BV,Sales,1962
+2025-09-06,Software,Figma,Operations,210
+2025-08-21,Cloud Infrastructure,AWS,Product,1333
+2025-11-04,Software,Figma,Sales,221
+2025-05-22,Software,Figma,Product,1143
+2025-10-26,Rent,Workspace GmbH,Sales,1934
+2025-10-23,Support Ops,Zendesk,Operations,899
+2025-11-25,Salaries,HRServices,Operations,4754
+2025-03-15,Salaries,HRServices,Operations,4424
+2025-07-16,Travel,RailEurope,Sales,811
+2025-02-24,Rent,OfficeRent BV,Product,1009
+2025-05-15,Contractors,DevContract Ltd,Finance,1561
+2025-08-04,Software,Figma,Finance,219
+2025-10-08,Support Ops,SupportFlow,Operations,708
+2025-05-04,Insurance,AXA,Marketing,415
+2025-08-24,Salaries,PayrollCo,Product,2221
+2025-12-18,Support Ops,SupportFlow,Finance,568
+2025-06-06,Insurance,Allianz,Marketing,508
+2025-07-14,Salaries,PayrollCo,Operations,4843
+2025-07-20,Support Ops,SupportFlow,Marketing,741
+2025-07-20,Travel,AirlineTravel,Operations,149
+2025-03-12,Cloud Infrastructure,Datadog,Sales,835
+2025-01-27,Marketing,LinkedIn Ads,Marketing,1840
+2025-08-10,Cloud Infrastructure,Cloudflare,Operations,864
+2025-11-13,Salaries,HRServices,Marketing,5550
+2025-08-08,Software,Figma,Finance,515
+2025-09-01,Rent,OfficeRent BV,Finance,1097
+2025-11-05,Software,Notion,Sales,1025
+2025-03-19,Travel,RailEurope,Operations,771
+2025-04-08,Software,OpenAI,Operations,873
+2025-01-10,Rent,OfficeRent BV,Sales,1833
+2025-08-05,Legal,Tax Advisory Co,Product,265
+2025-06-07,Salaries,PayrollCo,Sales,2460
+2025-02-21,Salaries,PayrollCo,Sales,5378
+2025-11-28,Marketing,LinkedIn Ads,Sales,1260
+2025-09-06,Marketing,LinkedIn Ads,Finance,746
+2025-04-23,Support Ops,Zendesk,Operations,726
+2025-10-03,Software,Notion,Marketing,412
+2025-05-08,Marketing,Google Ads,Sales,1564
+2025-07-17,Salaries,PayrollCo,Sales,6018
+2025-08-15,Software,OpenAI,Marketing,933
+2025-06-13,Marketing,LinkedIn Ads,Product,1995
+2025-09-30,Salaries,HRServices,Finance,2133
+2025-01-17,Salaries,HRServices,Finance,4664
+2025-12-25,Contractors,FreelancerHub,Marketing,1360
+2025-07-10,Travel,Booking,Operations,371
+2025-05-19,Software,Figma,Marketing,1009
+2025-10-04,Salaries,PayrollCo,Product,5519
+2025-11-14,Support Ops,SupportFlow,Finance,841
+2025-02-24,Cloud Infrastructure,Datadog,Finance,384
+2025-06-27,Contractors,FreelancerHub,Marketing,955
+2025-08-07,Marketing,LinkedIn Ads,Finance,1697
+2025-05-10,Salaries,PayrollCo,Operations,1830
+2025-07-28,Legal,Tax Advisory Co,Sales,930
+2025-07-20,Marketing,LinkedIn Ads,Marketing,1489
+2025-06-10,Contractors,FreelancerHub,Product,850
+2025-09-12,Legal,Tax Advisory Co,Product,1007
+2025-07-04,Rent,Workspace GmbH,Finance,2127
+2025-01-24,Salaries,PayrollCo,Marketing,4106
+2025-03-09,Software,Figma,Operations,956
+2025-04-03,Salaries,HRServices,Marketing,5980
+2025-06-08,Rent,OfficeRent BV,Finance,2227
+2025-07-20,Salaries,HRServices,Sales,6294
+2025-09-22,Software,OpenAI,Marketing,1180
+2025-01-31,Rent,OfficeRent BV,Sales,1077
+2025-12-04,Marketing,LinkedIn Ads,Sales,616
+2025-12-13,Support Ops,SupportFlow,Product,216
+2025-02-25,Support Ops,Zendesk,Sales,596
+2025-09-17,Software,OpenAI,Marketing,708
+2025-08-22,Support Ops,Zendesk,Product,274
+2025-03-31,Software,Figma,Operations,1068
+2025-07-14,Salaries,HRServices,Finance,3114
+2025-03-29,Marketing,LinkedIn Ads,Marketing,2440
+2025-05-20,Contractors,FreelancerHub,Sales,1699
+2025-12-28,Contractors,DevContract Ltd,Marketing,430
+2025-09-28,Marketing,Meta Ads,Marketing,413
+2025-08-20,Salaries,HRServices,Sales,5239
+2025-02-23,Contractors,DevContract Ltd,Product,1099
+2025-08-13,Marketing,LinkedIn Ads,Operations,1876
+2025-03-05,Insurance,Allianz,Marketing,368
+2025-03-18,Software,AWS,Finance,156
+2025-11-02,Software,Notion,Marketing,239
+2025-10-27,Travel,RailEurope,Sales,346
+2025-02-23,Marketing,Google Ads,Finance,2069
+2025-05-02,Software,Notion,Operations,216
+2025-08-07,Cloud Infrastructure,AWS,Product,248
+2025-11-29,Contractors,DevContract Ltd,Finance,640
+2025-06-05,Software,OpenAI,Sales,1088
+2025-12-19,Support Ops,Zendesk,Operations,198
+2025-07-04,Marketing,Google Ads,Marketing,2083
+2025-12-11,Salaries,HRServices,Operations,4672
+2025-08-31,Software,HubSpot,Product,1140
+2025-05-19,Salaries,PayrollCo,Sales,3988
+2025-02-06,Rent,OfficeRent BV,Operations,2166
+2025-01-03,Marketing,LinkedIn Ads,Marketing,2273
+2025-11-25,Salaries,HRServices,Marketing,2632
+2025-06-09,Rent,OfficeRent BV,Marketing,2092
+2025-12-20,Rent,Workspace GmbH,Finance,2486
+2025-04-07,Insurance,Allianz,Product,662
+2025-01-19,Support Ops,SupportFlow,Sales,709
+2025-07-21,Marketing,Google Ads,Finance,503
+2025-10-01,Software,Figma,Finance,220
+2025-07-15,Cloud Infrastructure,Cloudflare,Finance,436
+2025-08-28,Contractors,FreelancerHub,Operations,2085
+2025-11-01,Rent,Workspace GmbH,Operations,2513
+2025-06-09,Contractors,DevContract Ltd,Marketing,913
+2025-06-24,Salaries,PayrollCo,Operations,4893
+2025-12-10,Salaries,HRServices,Operations,2189
+2025-09-19,Salaries,HRServices,Sales,3528
+2025-01-28,Salaries,HRServices,Product,3759
+2025-03-13,Cloud Infrastructure,Cloudflare,Sales,490
+2025-04-16,Cloud Infrastructure,AWS,Product,1405
+2025-06-15,Salaries,PayrollCo,Sales,4960
+2025-01-23,Software,AWS,Marketing,1030
+2025-04-30,Marketing,Meta Ads,Sales,972
+2025-08-03,Contractors,DevContract Ltd,Marketing,1607
+2025-04-16,Salaries,HRServices,Sales,6414
+2025-08-28,Travel,AirlineTravel,Marketing,148
+2025-04-10,Contractors,DevContract Ltd,Finance,1603
+2025-08-11,Software,HubSpot,Operations,857
+2025-02-01,Contractors,DevContract Ltd,Sales,1356
+2025-05-11,Travel,RailEurope,Marketing,141
+2025-05-13,Rent,OfficeRent BV,Operations,1692
+2025-05-29,Salaries,PayrollCo,Finance,2529
+2025-12-26,Salaries,HRServices,Product,4343
+2025-01-26,Support Ops,Zendesk,Marketing,395
+2025-03-30,Marketing,Google Ads,Product,820
+2025-10-04,Contractors,FreelancerHub,Sales,787
+2025-09-24,Software,Notion,Product,464
+2025-10-03,Rent,Workspace GmbH,Finance,1515
+2025-07-08,Travel,RailEurope,Finance,221
+2025-03-21,Software,HubSpot,Marketing,1075
+2025-06-14,Salaries,HRServices,Finance,5447
+2025-08-23,Marketing,Meta Ads,Marketing,718
+2025-03-25,Insurance,AXA,Product,306
+2025-10-02,Salaries,HRServices,Product,5268
+2025-06-27,Cloud Infrastructure,AWS,Sales,314
+2025-01-02,Salaries,PayrollCo,Operations,3810
+2025-04-25,Rent,Workspace GmbH,Marketing,2509
+2025-04-18,Rent,Workspace GmbH,Sales,1050
+2025-06-04,Software,Figma,Sales,767
+2025-05-28,Contractors,DevContract Ltd,Product,990
+2025-10-16,Insurance,Allianz,Finance,535
+2025-09-24,Support Ops,Zendesk,Marketing,254
+2025-07-10,Travel,Booking,Operations,688
+2025-04-09,Legal,Legal Partners,Marketing,474
+2025-02-02,Marketing,Meta Ads,Sales,1473
+2025-07-14,Marketing,Google Ads,Product,2481
+2025-10-21,Rent,OfficeRent BV,Marketing,1863
+2025-02-22,Support Ops,SupportFlow,Marketing,525
+2025-02-23,Salaries,PayrollCo,Operations,2118
+2025-04-20,Cloud Infrastructure,AWS,Sales,360
+2025-03-13,Salaries,HRServices,Marketing,2673
+2025-04-02,Salaries,HRServices,Finance,5994
+2025-04-25,Salaries,PayrollCo,Finance,4708
+2025-05-13,Salaries,PayrollCo,Sales,5152
+2025-04-29,Rent,Workspace GmbH,Sales,1133
+2025-06-01,Software,OpenAI,Product,297
+2025-06-22,Rent,Workspace GmbH,Marketing,1155
+2025-11-13,Marketing,LinkedIn Ads,Product,2322
+2025-10-09,Insurance,Allianz,Operations,227
+2025-11-24,Marketing,LinkedIn Ads,Operations,1152
+2025-04-02,Marketing,Meta Ads,Sales,1101
+2025-03-31,Contractors,DevContract Ltd,Sales,1091
+2025-07-01,Cloud Infrastructure,Cloudflare,Finance,1543
+2025-01-21,Salaries,HRServices,Finance,3342
+2025-02-14,Salaries,HRServices,Product,2478
+2025-10-18,Marketing,Google Ads,Sales,2545
+2025-02-21,Marketing,Meta Ads,Marketing,863
+2025-08-21,Support Ops,SupportFlow,Product,754
+2025-03-24,Rent,OfficeRent BV,Sales,1340
+2025-06-18,Marketing,Google Ads,Finance,1253
+2025-01-08,Rent,Workspace GmbH,Finance,2143
+2025-02-10,Rent,Workspace GmbH,Operations,1886
+2025-12-23,Rent,Workspace GmbH,Finance,1702
+2025-10-19,Rent,OfficeRent BV,Finance,1121
+2025-10-19,Support Ops,Zendesk,Finance,397
+2025-10-15,Support Ops,SupportFlow,Marketing,498
+2025-03-02,Salaries,PayrollCo,Finance,1871
+2025-01-19,Salaries,PayrollCo,Marketing,4559
+2025-02-27,Marketing,Meta Ads,Finance,1923
+2025-04-22,Travel,AirlineTravel,Sales,391
+2025-04-15,Salaries,HRServices,Operations,2869
+2025-09-16,Cloud Infrastructure,Datadog,Finance,972
+2025-07-29,Support Ops,SupportFlow,Finance,477
+2025-10-04,Cloud Infrastructure,Cloudflare,Sales,292
+2025-02-15,Marketing,Google Ads,Operations,1959
+2025-07-01,Travel,Booking,Marketing,767
+2025-11-12,Software,HubSpot,Sales,904
+2025-07-06,Contractors,DevContract Ltd,Sales,560
+2025-01-10,Software,HubSpot,Product,215
+2025-12-06,Salaries,PayrollCo,Operations,2978
+2025-08-25,Software,HubSpot,Operations,1197
+2025-10-24,Cloud Infrastructure,Datadog,Product,1398
+2025-08-20,Rent,Workspace GmbH,Finance,1513
+2025-04-15,Software,OpenAI,Sales,284
+2025-05-15,Rent,Workspace GmbH,Sales,2419
+2025-02-21,Salaries,HRServices,Operations,5275
+2025-03-13,Rent,OfficeRent BV,Finance,1948
+2025-02-25,Insurance,AXA,Operations,688
+2025-11-13,Rent,Workspace GmbH,Operations,2534
+2025-06-04,Contractors,DevContract Ltd,Operations,1133
+2025-01-31,Insurance,Allianz,Operations,347
+2025-12-12,Software,Notion,Sales,902
+2025-04-23,Cloud Infrastructure,Cloudflare,Operations,524
+2025-03-29,Cloud Infrastructure,Cloudflare,Product,427
+2025-06-13,Contractors,FreelancerHub,Finance,1915
+2025-04-02,Software,OpenAI,Finance,894
+2025-01-07,Cloud Infrastructure,AWS,Marketing,203
+2025-10-02,Support Ops,SupportFlow,Marketing,824
+2025-11-19,Software,Notion,Sales,899
+2025-09-28,Rent,OfficeRent BV,Product,2525
+2025-08-10,Insurance,Allianz,Operations,682
+2025-02-20,Insurance,Allianz,Sales,256
+2025-06-07,Cloud Infrastructure,Cloudflare,Product,401
+2025-05-13,Travel,RailEurope,Operations,669
+2025-09-07,Salaries,PayrollCo,Finance,5634
+2025-10-28,Contractors,DevContract Ltd,Sales,1133
+2025-02-21,Cloud Infrastructure,Datadog,Marketing,1425
+2025-02-09,Salaries,HRServices,Sales,3731
+2025-03-02,Marketing,Google Ads,Marketing,1134
+2025-05-03,Marketing,Meta Ads,Operations,2476
+2025-07-19,Salaries,PayrollCo,Product,5720
+2025-06-26,Insurance,Allianz,Marketing,303
+2025-08-28,Salaries,PayrollCo,Operations,2740
+2025-06-15,Software,OpenAI,Operations,95
+2025-04-13,Legal,Legal Partners,Marketing,903
+2025-10-22,Legal,Tax Advisory Co,Marketing,1031
+2025-05-09,Legal,Legal Partners,Sales,603
+2025-02-05,Legal,Tax Advisory Co,Operations,1338
+2025-08-01,Insurance,AXA,Finance,408
+2025-03-22,Salaries,HRServices,Sales,2511
+2025-07-08,Software,OpenAI,Operations,140
+2025-04-16,Rent,Workspace GmbH,Finance,1140
+2025-05-07,Salaries,HRServices,Marketing,3405
+2025-12-30,Marketing,Meta Ads,Operations,1148
+2025-07-25,Software,OpenAI,Marketing,250
+2025-06-04,Software,OpenAI,Finance,357
+2025-04-19,Salaries,HRServices,Sales,4329
+2025-09-19,Rent,OfficeRent BV,Finance,1815
+2025-11-10,Rent,Workspace GmbH,Finance,1732
+2025-07-01,Support Ops,SupportFlow,Marketing,662
+2025-05-03,Support Ops,Zendesk,Marketing,280
+2025-03-03,Contractors,DevContract Ltd,Operations,1799
+2025-07-18,Software,HubSpot,Marketing,260
+2025-03-15,Salaries,PayrollCo,Marketing,4101
+2025-01-21,Salaries,HRServices,Product,5920
+2025-04-15,Salaries,HRServices,Marketing,1919
+2025-02-24,Marketing,Google Ads,Product,385
+2025-04-08,Rent,OfficeRent BV,Marketing,1109
+2025-01-09,Contractors,FreelancerHub,Product,1639
+2025-11-18,Marketing,Meta Ads,Marketing,984
+2025-08-26,Legal,Legal Partners,Sales,951
+2025-05-14,Contractors,DevContract Ltd,Sales,1193
+2025-09-07,Marketing,LinkedIn Ads,Product,2075
+2025-09-03,Rent,Workspace GmbH,Product,2189
+2025-04-06,Marketing,LinkedIn Ads,Product,1096
+2025-01-03,Travel,Booking,Sales,261
+2025-04-23,Salaries,PayrollCo,Operations,5504
+2025-01-01,Salaries,HRServices,Product,2788
+2025-11-05,Rent,OfficeRent BV,Marketing,2134
+2025-05-25,Rent,Workspace GmbH,Operations,1531
+2025-08-24,Marketing,Google Ads,Product,470
+2025-04-17,Insurance,AXA,Sales,507
+2025-01-15,Cloud Infrastructure,Datadog,Sales,472
+2025-09-14,Marketing,Meta Ads,Product,593
+2025-06-07,Cloud Infrastructure,AWS,Finance,928
+2025-07-15,Salaries,HRServices,Finance,3190
+2025-11-14,Travel,Booking,Marketing,512
+2025-09-28,Rent,Workspace GmbH,Operations,1767
+2025-10-19,Salaries,PayrollCo,Sales,4139
+2025-09-05,Contractors,FreelancerHub,Operations,776
+2025-01-26,Salaries,PayrollCo,Operations,2938
+2025-04-30,Travel,RailEurope,Marketing,703
+2025-10-21,Cloud Infrastructure,Datadog,Operations,1571
+2025-12-18,Salaries,PayrollCo,Operations,5606
+2025-03-20,Salaries,PayrollCo,Sales,3786
+2025-07-10,Contractors,FreelancerHub,Sales,859
+2025-10-23,Insurance,AXA,Operations,208
+2025-12-24,Salaries,PayrollCo,Finance,5872
+2025-08-29,Legal,Legal Partners,Finance,1474
+2025-08-23,Rent,Workspace GmbH,Finance,1858
+2025-07-19,Support Ops,Zendesk,Sales,500
+2025-01-04,Rent,Workspace GmbH,Sales,1166
+2025-10-31,Cloud Infrastructure,Cloudflare,Marketing,363
+2025-06-05,Software,Notion,Finance,851
+2025-06-23,Marketing,Google Ads,Operations,1950
+2025-03-21,Cloud Infrastructure,Cloudflare,Finance,282
+2025-06-08,Contractors,DevContract Ltd,Finance,1658
+2025-11-17,Salaries,HRServices,Sales,2212
+2025-03-30,Cloud Infrastructure,Datadog,Operations,278
+2025-04-17,Salaries,PayrollCo,Finance,4025
+2025-05-02,Legal,Legal Partners,Finance,365
+2025-05-29,Travel,RailEurope,Finance,168
+2025-02-08,Contractors,DevContract Ltd,Finance,1240
+2025-05-08,Travel,Booking,Marketing,51
+2025-08-21,Contractors,DevContract Ltd,Finance,1095
+2025-01-28,Travel,AirlineTravel,Sales,224
+2025-08-14,Salaries,PayrollCo,Finance,6374
+2025-11-29,Support Ops,Zendesk,Finance,387
+2025-11-29,Software,AWS,Product,257
+2025-12-12,Marketing,Google Ads,Product,1032
+2025-05-20,Cloud Infrastructure,Datadog,Finance,1720
+2025-06-19,Support Ops,Zendesk,Product,338
+2025-03-09,Software,AWS,Sales,1083
+2025-01-08,Support Ops,SupportFlow,Product,829
+2025-12-07,Software,AWS,Sales,1054
+2025-07-30,Legal,Legal Partners,Product,805
+2025-11-04,Software,Notion,Sales,817
+2025-10-01,Salaries,HRServices,Operations,5335
+2025-04-30,Software,Figma,Operations,322
+2025-07-30,Software,Notion,Product,920
+2025-09-14,Software,HubSpot,Operations,469
+2025-03-29,Contractors,FreelancerHub,Operations,1989
+2025-01-31,Travel,RailEurope,Operations,396
+2025-09-24,Cloud Infrastructure,Datadog,Marketing,1553
+2025-03-03,Cloud Infrastructure,Datadog,Marketing,1226
+2025-02-11,Legal,Legal Partners,Operations,704
+2025-07-16,Salaries,PayrollCo,Marketing,3847
+2025-06-22,Rent,Workspace GmbH,Finance,1233
+2025-09-19,Rent,OfficeRent BV,Marketing,998
+2025-10-03,Salaries,PayrollCo,Sales,4557
+2025-08-08,Software,AWS,Product,1094
+2025-07-15,Marketing,Google Ads,Product,689
+2025-07-23,Rent,OfficeRent BV,Product,1982
+2025-11-21,Insurance,AXA,Product,624
+2025-12-18,Cloud Infrastructure,AWS,Finance,307
+2025-11-12,Salaries,PayrollCo,Marketing,5884
+2025-12-09,Travel,RailEurope,Operations,406
+2025-02-15,Salaries,HRServices,Product,3705
+2025-01-01,Support Ops,Zendesk,Sales,629
+2025-03-26,Support Ops,Zendesk,Operations,821
+2025-02-10,Contractors,FreelancerHub,Marketing,1688
+2025-02-17,Cloud Infrastructure,Cloudflare,Sales,192
+2025-05-21,Cloud Infrastructure,Cloudflare,Product,1311
+2025-08-26,Insurance,AXA,Sales,435
+2025-10-16,Marketing,Meta Ads,Finance,364
+2025-01-11,Legal,Tax Advisory Co,Product,1197
+2025-11-08,Software,Notion,Marketing,94
+2025-02-01,Software,Figma,Marketing,262
+2025-12-08,Salaries,PayrollCo,Sales,2015
+2025-08-15,Cloud Infrastructure,Cloudflare,Operations,1126
+2025-01-03,Marketing,Google Ads,Product,1946
+2025-10-12,Contractors,DevContract Ltd,Marketing,2030
+2025-12-20,Insurance,Allianz,Operations,634
+2025-09-08,Salaries,HRServices,Finance,2380
+2025-09-20,Salaries,HRServices,Finance,5021
+2025-11-06,Salaries,HRServices,Marketing,3897
+2025-01-29,Software,HubSpot,Sales,713
+2025-09-13,Contractors,FreelancerHub,Operations,2019
+2025-04-24,Cloud Infrastructure,Cloudflare,Sales,1481
+2025-07-26,Salaries,PayrollCo,Product,1862
+2025-12-05,Support Ops,SupportFlow,Operations,588
+2025-12-25,Salaries,PayrollCo,Operations,2034
+2025-02-02,Marketing,LinkedIn Ads,Product,2034
+2025-09-27,Legal,Legal Partners,Product,394
+2025-02-21,Contractors,DevContract Ltd,Finance,1579
+2025-04-21,Cloud Infrastructure,Datadog,Marketing,1638
+2025-12-02,Salaries,HRServices,Product,2122
+2025-07-07,Contractors,FreelancerHub,Sales,2103
+2025-08-02,Software,Notion,Product,649
+2025-02-21,Contractors,DevContract Ltd,Product,1198
+2025-08-03,Marketing,Meta Ads,Product,759
+2025-02-12,Cloud Infrastructure,AWS,Operations,1162
+2025-01-10,Salaries,PayrollCo,Marketing,6112
+2025-10-18,Salaries,HRServices,Finance,5263
+2025-09-09,Rent,OfficeRent BV,Product,1273
+2025-07-05,Contractors,DevContract Ltd,Sales,1106
+2025-08-24,Marketing,Meta Ads,Operations,1273
+2025-04-07,Marketing,LinkedIn Ads,Finance,1357
+2025-10-02,Salaries,HRServices,Operations,5928
+2025-08-09,Contractors,FreelancerHub,Operations,2077
+2025-05-10,Salaries,PayrollCo,Sales,5863
+2025-10-04,Marketing,Google Ads,Operations,313
+2025-02-03,Contractors,FreelancerHub,Finance,1514
+2025-10-17,Cloud Infrastructure,AWS,Finance,178
+2025-05-24,Salaries,PayrollCo,Product,5243
+2025-06-26,Insurance,Allianz,Operations,411
+2025-01-22,Travel,AirlineTravel,Marketing,803
+2025-01-01,Salaries,HRServices,Product,6291
+2025-09-08,Salaries,PayrollCo,Finance,4461
+2025-11-09,Salaries,HRServices,Finance,6417
+2025-01-04,Software,OpenAI,Product,219
+2025-11-01,Cloud Infrastructure,AWS,Finance,1716
+2025-04-09,Cloud Infrastructure,Cloudflare,Marketing,1236
+2025-10-04,Salaries,PayrollCo,Product,5196
+2025-02-10,Marketing,Google Ads,Product,2123
+2025-12-10,Support Ops,Zendesk,Product,826
+2025-08-23,Software,Figma,Product,692
+2025-12-11,Cloud Infrastructure,Datadog,Product,1425
+2025-02-20,Marketing,Meta Ads,Finance,2192
+2025-10-04,Insurance,Allianz,Marketing,198
+2025-12-20,Salaries,HRServices,Sales,5442
+2025-08-30,Salaries,PayrollCo,Finance,5670
+2025-06-22,Legal,Legal Partners,Marketing,1000
+2025-03-25,Software,Figma,Operations,1193
+2025-10-02,Insurance,AXA,Product,628
+2025-10-30,Contractors,FreelancerHub,Operations,862
+2025-10-21,Salaries,PayrollCo,Finance,5578
+2025-02-01,Marketing,Meta Ads,Operations,1523
+2025-03-28,Salaries,PayrollCo,Marketing,6206
+2025-06-08,Salaries,PayrollCo,Finance,2415
+2025-06-09,Salaries,HRServices,Sales,4355
+2025-09-01,Insurance,Allianz,Marketing,550
+2025-04-05,Salaries,PayrollCo,Product,3661
+2025-04-30,Salaries,PayrollCo,Sales,4305
+2025-06-13,Cloud Infrastructure,Cloudflare,Product,1492
+2025-09-14,Software,OpenAI,Sales,208
+2025-01-22,Travel,RailEurope,Marketing,353
+2025-11-04,Marketing,Meta Ads,Operations,2295
+2025-08-24,Cloud Infrastructure,Datadog,Sales,267
+2025-08-30,Rent,OfficeRent BV,Finance,2170
+2025-02-08,Contractors,DevContract Ltd,Product,1313
+2025-08-03,Salaries,PayrollCo,Finance,4849
+2025-03-02,Salaries,PayrollCo,Sales,4676
+2025-07-26,Contractors,FreelancerHub,Marketing,1388
+2025-12-21,Marketing,Google Ads,Operations,2737
+2025-01-18,Salaries,PayrollCo,Marketing,5516
+2025-10-30,Support Ops,SupportFlow,Marketing,123
+2025-01-13,Cloud Infrastructure,Cloudflare,Marketing,711
+2025-02-07,Marketing,Meta Ads,Sales,469
+2025-07-11,Contractors,FreelancerHub,Product,1163
+2025-08-11,Salaries,PayrollCo,Operations,3141
+2025-02-28,Marketing,LinkedIn Ads,Finance,1032
+2025-10-15,Salaries,PayrollCo,Marketing,3388
+2025-08-24,Salaries,PayrollCo,Product,5014
+2025-12-26,Contractors,DevContract Ltd,Sales,409
+2025-12-10,Cloud Infrastructure,AWS,Marketing,1213
+2025-11-08,Salaries,PayrollCo,Sales,5613
+2025-09-04,Legal,Tax Advisory Co,Product,1094
+2025-11-10,Legal,Tax Advisory Co,Product,1236
+2025-06-16,Salaries,PayrollCo,Marketing,2756
+2025-05-31,Insurance,Allianz,Product,675
+2025-11-06,Insurance,Allianz,Product,551
+2025-07-03,Marketing,LinkedIn Ads,Marketing,2090
+2025-06-26,Insurance,AXA,Finance,480
+2025-07-21,Cloud Infrastructure,Cloudflare,Operations,1738
+2025-12-23,Rent,Workspace GmbH,Sales,1818
+2025-10-18,Software,HubSpot,Finance,340
+2025-12-01,Rent,Workspace GmbH,Operations,1716
+2025-06-27,Salaries,HRServices,Sales,4472
+2025-02-25,Salaries,HRServices,Product,6144
+2025-07-21,Software,AWS,Marketing,662
+2025-10-14,Legal,Tax Advisory Co,Product,735
+2025-08-16,Support Ops,Zendesk,Finance,556
+2025-12-04,Contractors,FreelancerHub,Sales,537
+2025-09-26,Insurance,Allianz,Product,598
+2025-10-19,Support Ops,Zendesk,Product,783
+2025-10-04,Insurance,AXA,Product,389
+2025-03-31,Support Ops,SupportFlow,Operations,780
+2025-06-16,Marketing,Meta Ads,Product,1018
+2025-03-15,Cloud Infrastructure,Cloudflare,Sales,686
+2025-07-28,Software,Figma,Product,731
+2025-02-28,Marketing,Google Ads,Sales,560
+2025-05-31,Travel,RailEurope,Sales,779
+2025-09-24,Salaries,HRServices,Finance,2184
+2025-09-30,Contractors,DevContract Ltd,Finance,1274
+2025-06-11,Cloud Infrastructure,Datadog,Marketing,1044
+2025-07-29,Cloud Infrastructure,AWS,Product,178
+2025-06-29,Rent,Workspace GmbH,Product,975
+2025-02-24,Support Ops,SupportFlow,Marketing,808
+2025-03-26,Salaries,HRServices,Operations,2895
+2025-05-15,Support Ops,SupportFlow,Marketing,257
+2025-12-19,Rent,Workspace GmbH,Product,2049
+2025-08-20,Support Ops,Zendesk,Marketing,217
+2025-07-14,Insurance,Allianz,Operations,284
+2025-03-23,Cloud Infrastructure,Cloudflare,Operations,319
+2025-04-20,Rent,OfficeRent BV,Operations,1193
+2025-02-12,Contractors,FreelancerHub,Operations,1874
+2025-10-01,Software,Notion,Marketing,817
+2025-08-17,Contractors,FreelancerHub,Marketing,1806
+2025-11-27,Salaries,PayrollCo,Sales,2359
+2025-04-07,Salaries,PayrollCo,Finance,3774
+2025-08-01,Marketing,LinkedIn Ads,Marketing,2419
+2025-05-08,Marketing,LinkedIn Ads,Operations,2447
+2025-05-20,Marketing,LinkedIn Ads,Product,1145
+2025-03-12,Rent,Workspace GmbH,Marketing,1945
+2025-05-20,Contractors,DevContract Ltd,Sales,1371
+2025-02-24,Legal,Legal Partners,Product,229
+2025-11-17,Salaries,HRServices,Product,6102
+2025-05-22,Marketing,LinkedIn Ads,Finance,419
+2025-11-05,Salaries,HRServices,Operations,6499
+2025-06-02,Marketing,Google Ads,Operations,2006
+2025-03-17,Legal,Tax Advisory Co,Marketing,950
+2025-06-19,Insurance,AXA,Sales,374
+2025-05-18,Contractors,DevContract Ltd,Sales,568
+2025-03-14,Contractors,DevContract Ltd,Sales,1807
+2025-01-22,Rent,OfficeRent BV,Product,1526
+2025-10-27,Software,Figma,Operations,1136
+2025-02-17,Contractors,FreelancerHub,Sales,477
+2025-04-04,Support Ops,Zendesk,Marketing,771
+2025-02-19,Support Ops,SupportFlow,Operations,315
+2025-07-16,Insurance,Allianz,Marketing,397
+2025-02-25,Contractors,DevContract Ltd,Sales,870
+2025-09-08,Salaries,HRServices,Product,5700
+2025-07-10,Salaries,PayrollCo,Operations,3484
+2025-04-01,Salaries,HRServices,Operations,5697
+2025-05-04,Software,HubSpot,Finance,667
+2025-05-03,Salaries,HRServices,Marketing,6157
+2025-06-08,Marketing,LinkedIn Ads,Sales,617
+2025-02-01,Cloud Infrastructure,AWS,Sales,597
+2025-04-29,Insurance,AXA,Marketing,348
+2025-08-17,Contractors,DevContract Ltd,Sales,512
+2025-07-02,Insurance,Allianz,Operations,532
+2025-05-23,Cloud Infrastructure,Datadog,Finance,1009
+2025-10-07,Salaries,HRServices,Sales,2563
+2025-03-11,Contractors,FreelancerHub,Sales,1128
+2025-07-07,Support Ops,Zendesk,Finance,272
+2025-12-19,Salaries,HRServices,Finance,2778
+2025-05-17,Salaries,HRServices,Product,1969
+2025-12-06,Marketing,Google Ads,Product,2340
+2025-11-14,Contractors,FreelancerHub,Marketing,919
+2025-12-31,Cloud Infrastructure,Cloudflare,Product,817
+2025-12-01,Rent,Workspace GmbH,Operations,1111
+2025-04-29,Cloud Infrastructure,Cloudflare,Product,1789
+2025-09-27,Cloud Infrastructure,AWS,Operations,1529
+2025-01-22,Salaries,PayrollCo,Product,4222
+2025-06-12,Rent,Workspace GmbH,Sales,2071
+2025-05-24,Support Ops,SupportFlow,Marketing,625
+2025-04-20,Contractors,FreelancerHub,Finance,429
+2025-04-09,Cloud Infrastructure,Datadog,Marketing,1181
+2025-12-31,Marketing,Meta Ads,Sales,1067
+2025-12-22,Cloud Infrastructure,Cloudflare,Operations,533
+2025-09-09,Rent,OfficeRent BV,Product,1526
+2025-04-05,Salaries,PayrollCo,Sales,3727
+2025-10-09,Cloud Infrastructure,AWS,Finance,1270
+2025-01-16,Marketing,Meta Ads,Product,1559
+2025-10-19,Support Ops,Zendesk,Product,764
+2025-11-16,Cloud Infrastructure,Datadog,Finance,155
+2025-12-16,Rent,Workspace GmbH,Marketing,1351
+2025-12-05,Support Ops,Zendesk,Marketing,523
+2025-03-15,Salaries,HRServices,Operations,3210
+2025-02-07,Travel,Booking,Finance,532
+2025-01-03,Contractors,FreelancerHub,Operations,1500
+2025-03-13,Salaries,PayrollCo,Marketing,3731
+2025-03-09,Contractors,FreelancerHub,Finance,1601
+2025-05-01,Rent,Workspace GmbH,Product,2469
+2025-01-26,Insurance,Allianz,Marketing,534
+2025-07-16,Salaries,HRServices,Operations,1927
+2025-02-17,Software,Figma,Sales,619
+2025-08-27,Cloud Infrastructure,Datadog,Finance,1626
+2025-02-21,Cloud Infrastructure,Cloudflare,Sales,1312
+2025-01-23,Cloud Infrastructure,Cloudflare,Marketing,269
+2025-07-26,Insurance,AXA,Product,539
+2025-01-20,Salaries,PayrollCo,Operations,5279
+2025-01-11,Software,Notion,Operations,394
+2025-12-19,Software,Notion,Operations,886
+2025-04-13,Salaries,HRServices,Operations,4662
+2025-03-21,Cloud Infrastructure,Cloudflare,Operations,1503
+2025-08-07,Rent,Workspace GmbH,Marketing,1783
+2025-06-03,Marketing,Meta Ads,Product,2212
+2025-07-23,Cloud Infrastructure,Datadog,Marketing,993
+2025-11-11,Cloud Infrastructure,AWS,Marketing,489
+2025-09-16,Software,AWS,Operations,107
+2025-12-24,Salaries,HRServices,Marketing,3367
+2025-08-18,Insurance,AXA,Operations,117
+2025-09-01,Software,OpenAI,Sales,449
+2025-03-17,Software,Figma,Sales,537
+2025-09-04,Marketing,Google Ads,Sales,1156
+2025-05-01,Software,AWS,Operations,781
+2025-05-22,Salaries,HRServices,Product,4823
+2025-08-25,Insurance,AXA,Product,180
+2025-01-22,Contractors,FreelancerHub,Operations,438
+2025-06-29,Rent,OfficeRent BV,Finance,1680
+2025-03-25,Rent,Workspace GmbH,Product,2145
+2025-05-03,Rent,OfficeRent BV,Marketing,1940
+2025-12-07,Rent,Workspace GmbH,Operations,1162
+2025-07-22,Support Ops,SupportFlow,Sales,188
+2025-06-13,Support Ops,SupportFlow,Marketing,792
+2025-09-27,Salaries,PayrollCo,Finance,5739
+2025-07-09,Marketing,Meta Ads,Product,1645
+2025-02-20,Support Ops,Zendesk,Operations,621
+2025-04-25,Contractors,FreelancerHub,Sales,1405
+2025-01-28,Contractors,DevContract Ltd,Marketing,924
+2025-07-18,Insurance,AXA,Operations,207
+2025-12-08,Salaries,PayrollCo,Sales,5949
+2025-07-07,Contractors,DevContract Ltd,Operations,1524
+2025-06-08,Salaries,PayrollCo,Sales,5100
+2025-05-24,Support Ops,SupportFlow,Operations,167
+2025-08-29,Travel,AirlineTravel,Sales,284
+2025-09-07,Contractors,FreelancerHub,Operations,1264
+2025-07-05,Salaries,PayrollCo,Marketing,4212
+2025-10-17,Marketing,Google Ads,Product,2665
+2025-04-30,Salaries,PayrollCo,Finance,3076
+2025-07-18,Salaries,HRServices,Product,4368
+2025-08-03,Cloud Infrastructure,Datadog,Finance,1390
+2025-12-27,Rent,OfficeRent BV,Product,2323
+2025-01-12,Software,Figma,Product,875
+2025-01-06,Rent,Workspace GmbH,Product,1725
+2025-02-21,Salaries,PayrollCo,Finance,2862
+2025-02-14,Contractors,DevContract Ltd,Marketing,1429
+2025-08-09,Software,Notion,Finance,566
+2025-01-12,Rent,Workspace GmbH,Sales,1305
+2025-12-20,Marketing,Google Ads,Marketing,2668
+2025-03-10,Insurance,AXA,Finance,196
+2025-09-22,Contractors,FreelancerHub,Product,1054
+2025-11-28,Marketing,Meta Ads,Sales,1325
+2025-06-12,Rent,Workspace GmbH,Marketing,2267
+2025-12-17,Salaries,PayrollCo,Product,6451
+2025-10-21,Contractors,DevContract Ltd,Marketing,1482
+2025-05-04,Salaries,PayrollCo,Marketing,6180
+2025-01-31,Contractors,DevContract Ltd,Marketing,1230
+2025-11-17,Support Ops,Zendesk,Marketing,862
+2025-05-29,Rent,OfficeRent BV,Finance,1960
+2025-06-28,Cloud Infrastructure,Cloudflare,Finance,1268
+2025-05-03,Legal,Legal Partners,Product,455
+2025-08-20,Cloud Infrastructure,Cloudflare,Finance,1754
+2025-04-18,Software,HubSpot,Finance,464
+2025-03-12,Legal,Legal Partners,Finance,302
+2025-07-17,Contractors,FreelancerHub,Product,1325
+2025-12-07,Salaries,PayrollCo,Sales,4130
+2025-01-23,Salaries,HRServices,Sales,5377
+2025-02-03,Marketing,Meta Ads,Product,1371
+2025-02-24,Marketing,LinkedIn Ads,Operations,2356
+2025-05-20,Rent,OfficeRent BV,Operations,2522
+2025-02-01,Salaries,PayrollCo,Operations,3665
+2025-05-03,Salaries,PayrollCo,Operations,4063
+2025-10-08,Rent,Workspace GmbH,Operations,1063
+2025-02-17,Contractors,FreelancerHub,Finance,731
+2025-02-25,Marketing,LinkedIn Ads,Finance,619
+2025-10-25,Salaries,HRServices,Sales,3983
+2025-05-28,Software,HubSpot,Product,671
+2025-06-15,Marketing,LinkedIn Ads,Marketing,2046
+2025-10-15,Rent,OfficeRent BV,Marketing,2309
+2025-11-22,Insurance,Allianz,Sales,506
+2025-06-18,Rent,Workspace GmbH,Marketing,1898
+2025-01-23,Legal,Legal Partners,Marketing,1175
+2025-08-25,Contractors,FreelancerHub,Finance,779
+2025-12-24,Contractors,FreelancerHub,Finance,2014
+2025-04-25,Software,Figma,Sales,849
+2025-06-27,Marketing,LinkedIn Ads,Product,2490
+2025-11-22,Cloud Infrastructure,Datadog,Product,1262
+2025-02-06,Salaries,HRServices,Product,2768
+2025-07-17,Contractors,FreelancerHub,Product,2180
+2025-08-20,Contractors,DevContract Ltd,Product,1127
+2025-08-22,Legal,Tax Advisory Co,Finance,988
+2025-07-10,Cloud Infrastructure,Cloudflare,Product,1509
+2025-06-13,Rent,Workspace GmbH,Product,1788
+2025-09-04,Salaries,PayrollCo,Operations,5587
+2025-06-12,Salaries,HRServices,Finance,2890
+2025-04-09,Rent,OfficeRent BV,Product,1381
+2025-04-25,Rent,Workspace GmbH,Product,2481
+2025-05-25,Contractors,FreelancerHub,Product,1421
+2025-10-15,Insurance,AXA,Product,153
+2025-08-17,Software,Figma,Marketing,615
+2025-07-26,Salaries,HRServices,Sales,2466
+2025-08-24,Support Ops,Zendesk,Sales,168
+2025-05-08,Salaries,HRServices,Finance,5394
+2025-12-15,Rent,OfficeRent BV,Finance,1975
+2025-01-08,Support Ops,Zendesk,Finance,772
+2025-06-27,Software,HubSpot,Product,526
+2025-01-29,Insurance,Allianz,Product,132
+2025-08-13,Rent,OfficeRent BV,Finance,2505
+2025-01-06,Marketing,Google Ads,Operations,1716
+2025-05-25,Software,Notion,Marketing,241
+2025-10-16,Cloud Infrastructure,Cloudflare,Product,156
+2025-11-23,Insurance,AXA,Finance,506
+2025-09-07,Salaries,HRServices,Sales,4201
+2025-11-09,Insurance,AXA,Finance,486
+2025-05-03,Software,HubSpot,Marketing,176
+2025-11-12,Software,HubSpot,Sales,882
+2025-08-22,Salaries,PayrollCo,Finance,4908
+2025-03-25,Insurance,AXA,Operations,185
+2025-05-07,Salaries,PayrollCo,Marketing,5061
+2025-08-06,Marketing,Google Ads,Finance,613
+2025-09-19,Marketing,Meta Ads,Operations,329
+2025-05-18,Cloud Infrastructure,Datadog,Finance,1322
+2025-11-03,Salaries,PayrollCo,Product,2443
+2025-09-22,Travel,RailEurope,Operations,203
+2025-03-30,Salaries,PayrollCo,Finance,5057
+2025-01-17,Software,OpenAI,Marketing,868
+2025-02-25,Travel,RailEurope,Operations,535
+2025-05-02,Software,HubSpot,Marketing,260
+2025-05-23,Marketing,Meta Ads,Marketing,1528
+2025-06-17,Salaries,PayrollCo,Sales,3491
+2025-06-24,Marketing,Google Ads,Product,1535
+2025-11-14,Salaries,HRServices,Product,3384
+2025-01-13,Contractors,DevContract Ltd,Sales,876
+2025-09-20,Marketing,Meta Ads,Finance,1936
+2025-06-20,Salaries,HRServices,Marketing,3945
+2025-04-17,Software,Notion,Operations,211
+2025-10-18,Salaries,HRServices,Sales,5057
+2025-05-13,Marketing,Meta Ads,Product,2049
+2025-11-17,Cloud Infrastructure,Cloudflare,Product,1188
+2025-11-17,Salaries,PayrollCo,Marketing,2328
+2025-06-08,Cloud Infrastructure,AWS,Marketing,714
+2025-10-08,Legal,Tax Advisory Co,Finance,252
+2025-12-17,Cloud Infrastructure,AWS,Marketing,200
+2025-10-20,Salaries,HRServices,Sales,4676
+2025-02-08,Cloud Infrastructure,Cloudflare,Operations,925
+2025-04-17,Rent,Workspace GmbH,Product,1645
+2025-02-20,Cloud Infrastructure,AWS,Sales,1083
+2025-02-13,Salaries,HRServices,Finance,2649
+2025-03-30,Marketing,Meta Ads,Sales,2415
+2025-05-16,Contractors,FreelancerHub,Finance,1548
+2025-02-20,Rent,OfficeRent BV,Operations,1642
+2025-01-25,Legal,Legal Partners,Product,552
+2025-05-03,Rent,OfficeRent BV,Sales,2575
+2025-07-20,Salaries,PayrollCo,Sales,6325
+2025-08-08,Marketing,LinkedIn Ads,Operations,755
+2025-12-22,Travel,RailEurope,Sales,775
+2025-05-31,Support Ops,Zendesk,Sales,623
+2025-04-19,Salaries,PayrollCo,Product,3218
+2025-05-03,Contractors,FreelancerHub,Finance,833
+2025-12-02,Rent,Workspace GmbH,Marketing,1137
+2025-08-01,Marketing,Google Ads,Product,2143
+2025-07-24,Salaries,HRServices,Operations,5825
+2025-11-14,Cloud Infrastructure,AWS,Product,438
+2025-11-10,Support Ops,Zendesk,Sales,333
+2025-12-27,Software,AWS,Sales,509
+2025-07-05,Salaries,HRServices,Sales,4685
+2025-08-10,Salaries,HRServices,Sales,4348
+2025-07-01,Contractors,FreelancerHub,Marketing,1871
+2025-12-21,Salaries,HRServices,Operations,3982
+2025-08-17,Contractors,FreelancerHub,Product,1527
+2025-03-26,Insurance,Allianz,Operations,649
+2025-11-30,Salaries,HRServices,Product,6284
+2025-03-24,Cloud Infrastructure,AWS,Product,548
+2025-07-12,Salaries,HRServices,Operations,3536
+2025-09-25,Marketing,LinkedIn Ads,Marketing,2098
+2025-04-29,Salaries,PayrollCo,Sales,2939
+2025-03-12,Software,HubSpot,Sales,1007
+2025-10-12,Contractors,DevContract Ltd,Finance,1928
+2025-02-10,Salaries,HRServices,Operations,4205
+2025-06-25,Support Ops,SupportFlow,Finance,386
+2025-09-02,Marketing,Google Ads,Marketing,1357
+2025-08-27,Software,AWS,Product,948
+2025-06-09,Salaries,HRServices,Operations,1828
+2025-06-26,Marketing,Meta Ads,Operations,1883
+2025-12-20,Software,Notion,Sales,441
+2025-10-24,Software,OpenAI,Marketing,692
+2025-05-18,Contractors,FreelancerHub,Marketing,1888
+2025-07-11,Salaries,HRServices,Marketing,1842
+2025-10-09,Rent,Workspace GmbH,Product,1551
+2025-05-16,Marketing,LinkedIn Ads,Finance,795
+2025-06-14,Contractors,FreelancerHub,Product,1267
+2025-04-02,Marketing,LinkedIn Ads,Operations,724
+2025-12-28,Marketing,Google Ads,Sales,407
+2025-06-03,Salaries,HRServices,Product,2823
+2025-05-13,Rent,Workspace GmbH,Finance,1874
+2025-03-26,Software,Notion,Finance,344
+2025-08-08,Salaries,PayrollCo,Finance,3747
+2025-01-03,Software,HubSpot,Finance,353
+2025-01-27,Travel,RailEurope,Operations,570
+2025-03-31,Salaries,HRServices,Finance,1835
+2025-11-01,Insurance,Allianz,Sales,136
+2025-10-25,Cloud Infrastructure,Cloudflare,Sales,1432
+2025-02-28,Salaries,HRServices,Sales,3401
+2025-11-22,Marketing,Meta Ads,Product,2613
+2025-02-11,Salaries,PayrollCo,Product,2870
+2025-10-28,Cloud Infrastructure,Datadog,Operations,493
+2025-06-11,Salaries,PayrollCo,Sales,3187
+2025-09-03,Rent,OfficeRent BV,Marketing,1849
+2025-10-20,Support Ops,Zendesk,Marketing,907
+2025-11-10,Contractors,DevContract Ltd,Sales,745
+2025-08-09,Cloud Infrastructure,AWS,Sales,499
+2025-06-03,Salaries,PayrollCo,Product,5679
+2025-11-25,Salaries,PayrollCo,Product,6175
+2025-02-23,Marketing,Meta Ads,Operations,1855
+2025-10-05,Software,Notion,Product,107
+2025-09-17,Insurance,AXA,Finance,265
+2025-12-12,Salaries,HRServices,Operations,4733
+2025-02-13,Cloud Infrastructure,AWS,Finance,1003
+2025-07-16,Support Ops,Zendesk,Finance,697
+2025-11-16,Contractors,DevContract Ltd,Finance,974
+2025-02-26,Salaries,HRServices,Operations,4857
+2025-10-26,Travel,Booking,Product,352
+2025-09-14,Contractors,FreelancerHub,Product,657
+2025-12-23,Marketing,LinkedIn Ads,Operations,732
+2025-03-16,Software,Figma,Product,1116
+2025-05-23,Insurance,Allianz,Marketing,334
+2025-12-24,Salaries,HRServices,Finance,5292
+2025-11-18,Marketing,Meta Ads,Marketing,1054
+2025-10-18,Contractors,DevContract Ltd,Finance,1618
+2025-06-15,Cloud Infrastructure,AWS,Finance,768
+2025-08-13,Contractors,DevContract Ltd,Operations,491
+2025-08-28,Support Ops,Zendesk,Operations,337
+2025-07-07,Salaries,HRServices,Sales,4661
+2025-11-16,Salaries,HRServices,Sales,3454
+2025-05-17,Salaries,HRServices,Operations,4854
+2025-06-14,Insurance,AXA,Product,353
+2025-02-26,Support Ops,SupportFlow,Sales,654
+2025-08-27,Salaries,PayrollCo,Operations,4608
+2025-06-05,Salaries,PayrollCo,Operations,6075
+2025-09-14,Rent,Workspace GmbH,Finance,1425
+2025-11-02,Contractors,FreelancerHub,Finance,702
+2025-12-30,Marketing,LinkedIn Ads,Finance,1675
+2025-03-02,Marketing,Google Ads,Product,1897
+2025-08-05,Software,AWS,Marketing,536
+2025-02-15,Salaries,HRServices,Marketing,1990
+2025-01-01,Contractors,FreelancerHub,Operations,2091
+2025-02-25,Salaries,HRServices,Sales,6348
+2025-03-26,Salaries,HRServices,Sales,3101
+2025-07-16,Marketing,Meta Ads,Finance,1587
+2025-02-11,Contractors,FreelancerHub,Finance,1397
+2025-09-14,Rent,Workspace GmbH,Marketing,1033
+2025-08-19,Rent,Workspace GmbH,Marketing,1388
+2025-07-25,Rent,OfficeRent BV,Sales,1452
+2025-07-07,Rent,Workspace GmbH,Finance,2117
+2025-04-15,Salaries,HRServices,Finance,4034
+2025-01-26,Insurance,Allianz,Operations,105
+2025-08-02,Rent,Workspace GmbH,Finance,2007
+2025-02-17,Rent,OfficeRent BV,Sales,1290
+2025-02-13,Marketing,LinkedIn Ads,Sales,1894
+2025-07-17,Software,OpenAI,Operations,995
+2025-06-27,Salaries,PayrollCo,Product,4078
+2025-01-11,Insurance,Allianz,Product,558
+2025-02-26,Salaries,PayrollCo,Product,4878
+2025-07-09,Salaries,HRServices,Finance,3128
+2025-01-14,Insurance,AXA,Sales,610
+2025-05-29,Rent,Workspace GmbH,Marketing,2359
+2025-09-30,Salaries,PayrollCo,Operations,6102
+2025-07-06,Travel,RailEurope,Product,444
+2025-06-20,Software,Figma,Sales,603
+2025-08-25,Support Ops,Zendesk,Sales,887
+2025-07-30,Insurance,Allianz,Operations,580
+2025-11-18,Legal,Tax Advisory Co,Sales,480
+2025-01-31,Salaries,HRServices,Operations,3585
+2025-01-12,Marketing,LinkedIn Ads,Operations,2201
+2025-08-05,Salaries,PayrollCo,Marketing,4547
+2025-09-29,Insurance,Allianz,Finance,219
+2025-03-26,Contractors,DevContract Ltd,Product,601
+2025-07-05,Cloud Infrastructure,Datadog,Operations,1071
+2025-09-15,Cloud Infrastructure,Cloudflare,Sales,689
+2025-07-19,Marketing,LinkedIn Ads,Operations,550
+2025-05-11,Travel,Booking,Marketing,672
+2025-08-16,Travel,AirlineTravel,Product,144
+2025-04-05,Software,Notion,Marketing,1196
+2025-06-04,Cloud Infrastructure,Cloudflare,Finance,1511
+2025-06-30,Salaries,HRServices,Operations,3882
+2025-10-21,Cloud Infrastructure,Datadog,Operations,286
+2025-12-04,Contractors,FreelancerHub,Finance,443
+2025-06-21,Software,Notion,Marketing,945
+2025-03-29,Rent,Workspace GmbH,Sales,2596
+2025-02-26,Marketing,Google Ads,Finance,2170
+2025-04-22,Cloud Infrastructure,Datadog,Operations,1086
+2025-07-26,Marketing,Meta Ads,Product,1760
+2025-12-26,Salaries,HRServices,Marketing,3288
+2025-01-08,Support Ops,Zendesk,Operations,957
+2025-06-14,Marketing,LinkedIn Ads,Product,337
+2025-07-27,Legal,Tax Advisory Co,Finance,254
+2025-02-22,Support Ops,SupportFlow,Marketing,875
+2025-01-30,Cloud Infrastructure,Cloudflare,Finance,628
+2025-08-12,Software,AWS,Finance,943
+2025-09-19,Salaries,PayrollCo,Finance,2939
+2025-03-16,Marketing,Meta Ads,Product,1001
+2025-04-16,Cloud Infrastructure,Datadog,Sales,883
+2025-04-03,Legal,Legal Partners,Operations,1064
+2025-11-19,Support Ops,Zendesk,Product,451
+2025-06-21,Insurance,Allianz,Sales,545
+2025-02-20,Salaries,HRServices,Sales,5506
+2025-01-03,Salaries,PayrollCo,Sales,3456
+2025-11-27,Cloud Infrastructure,AWS,Operations,255
+2025-03-27,Software,OpenAI,Operations,644
+2025-07-24,Marketing,Meta Ads,Operations,2156
+2025-02-18,Insurance,AXA,Sales,338
+2025-02-27,Cloud Infrastructure,Cloudflare,Product,754
+2025-12-23,Insurance,AXA,Product,281
+2025-10-12,Travel,AirlineTravel,Sales,752
+2025-02-24,Cloud Infrastructure,Cloudflare,Finance,634
+2025-05-02,Marketing,LinkedIn Ads,Sales,753
+2025-06-26,Salaries,HRServices,Marketing,4780
+2025-09-24,Marketing,Google Ads,Product,1872
+2025-04-10,Rent,OfficeRent BV,Operations,1324
+2025-03-09,Salaries,HRServices,Finance,6006
+2025-01-24,Marketing,Google Ads,Finance,938
+2025-02-12,Cloud Infrastructure,Cloudflare,Marketing,1152
+2025-05-15,Support Ops,Zendesk,Sales,924
+2025-07-08,Salaries,PayrollCo,Finance,6274
+2025-04-08,Support Ops,Zendesk,Marketing,115
+2025-11-30,Salaries,PayrollCo,Finance,4291
+2025-05-17,Support Ops,SupportFlow,Marketing,584
+2025-08-12,Contractors,DevContract Ltd,Sales,1104
+2025-04-14,Marketing,Google Ads,Operations,2288
+2025-03-04,Contractors,FreelancerHub,Sales,1024
+2025-07-07,Contractors,DevContract Ltd,Marketing,650
+2025-11-20,Support Ops,SupportFlow,Marketing,489
+2025-06-26,Support Ops,Zendesk,Sales,105
+2025-01-25,Legal,Legal Partners,Marketing,485
+2025-03-08,Software,HubSpot,Operations,904
+2025-07-17,Software,OpenAI,Sales,808
+2025-02-13,Cloud Infrastructure,Datadog,Finance,1074
+2025-11-17,Contractors,FreelancerHub,Operations,540
+2025-06-12,Salaries,PayrollCo,Product,1871
+2025-11-12,Legal,Legal Partners,Operations,983
+2025-08-30,Marketing,Meta Ads,Sales,494
+2025-11-21,Support Ops,Zendesk,Operations,610
+2025-12-22,Travel,Booking,Operations,91
+2025-02-09,Salaries,PayrollCo,Operations,3949
+2025-07-20,Salaries,HRServices,Sales,2183
+2025-06-09,Rent,Workspace GmbH,Product,1995
+2025-07-25,Contractors,FreelancerHub,Operations,810
+2025-10-08,Cloud Infrastructure,Cloudflare,Sales,1117
+2025-12-18,Rent,OfficeRent BV,Product,2482
+2025-12-28,Cloud Infrastructure,AWS,Finance,524
+2025-11-04,Salaries,HRServices,Sales,3285
+2025-06-07,Software,Figma,Finance,125
+2025-09-09,Cloud Infrastructure,Cloudflare,Finance,1635
+2025-12-30,Marketing,Meta Ads,Product,1933
+2025-06-11,Software,Figma,Marketing,416
+2025-10-11,Rent,Workspace GmbH,Product,1383
+2025-02-07,Salaries,HRServices,Marketing,3737
+2025-05-13,Marketing,LinkedIn Ads,Operations,612
+2025-07-27,Salaries,HRServices,Product,6257
+2025-12-15,Support Ops,Zendesk,Sales,267
+2025-04-20,Rent,Workspace GmbH,Marketing,2199
+2025-10-21,Cloud Infrastructure,Cloudflare,Product,1765
+2025-12-08,Cloud Infrastructure,Datadog,Marketing,1225
+2025-07-01,Cloud Infrastructure,Cloudflare,Finance,1770
+2025-06-08,Software,Notion,Operations,617
+2025-04-01,Salaries,HRServices,Product,2950
+2025-11-14,Contractors,FreelancerHub,Marketing,671
+2025-07-14,Contractors,DevContract Ltd,Operations,849
+2025-04-14,Cloud Infrastructure,AWS,Marketing,629
+2025-10-01,Salaries,HRServices,Marketing,5048
+2025-03-01,Support Ops,Zendesk,Sales,850
+2025-11-04,Marketing,Meta Ads,Marketing,903
+2025-06-21,Contractors,FreelancerHub,Sales,1304
+2025-03-30,Cloud Infrastructure,AWS,Product,1776
+2025-08-28,Marketing,LinkedIn Ads,Sales,546
+2025-11-14,Support Ops,SupportFlow,Finance,127
+2025-05-04,Cloud Infrastructure,Datadog,Sales,672
+2025-07-24,Insurance,Allianz,Operations,590
+2025-06-25,Support Ops,Zendesk,Finance,218
+2025-11-03,Salaries,PayrollCo,Finance,3095
+2025-09-22,Legal,Legal Partners,Finance,551
+2025-06-14,Salaries,PayrollCo,Finance,5898
+2025-06-05,Insurance,AXA,Marketing,111
+2025-07-05,Salaries,PayrollCo,Marketing,2569
+2025-12-17,Salaries,HRServices,Sales,5573
+2025-09-15,Software,HubSpot,Sales,226
+2025-08-29,Legal,Tax Advisory Co,Sales,1066
+2025-04-01,Software,Figma,Operations,704
+2025-05-18,Travel,AirlineTravel,Marketing,135
+2025-12-30,Cloud Infrastructure,Cloudflare,Finance,1383
+2025-08-20,Marketing,LinkedIn Ads,Operations,585
+2025-06-01,Software,OpenAI,Sales,1194
+2025-05-14,Software,Notion,Marketing,86
+2025-02-15,Salaries,PayrollCo,Sales,2401
+2025-11-12,Support Ops,SupportFlow,Finance,202
+2025-04-15,Salaries,PayrollCo,Marketing,3807
+2025-01-29,Insurance,Allianz,Operations,679
+2025-12-26,Salaries,PayrollCo,Sales,2124
+2025-03-26,Contractors,DevContract Ltd,Operations,2057
+2025-09-13,Marketing,LinkedIn Ads,Product,486
+2025-12-15,Marketing,LinkedIn Ads,Sales,2542
+2025-03-23,Insurance,AXA,Product,559
+2025-05-29,Salaries,PayrollCo,Operations,5739
+2025-09-07,Software,Notion,Finance,918
+2025-04-05,Marketing,LinkedIn Ads,Marketing,2721
+2025-01-10,Contractors,FreelancerHub,Operations,845
+2025-07-06,Software,OpenAI,Operations,322
+2025-03-24,Software,Notion,Sales,964
+2025-05-13,Marketing,LinkedIn Ads,Sales,2204
+2025-02-01,Marketing,LinkedIn Ads,Marketing,2080
+2025-06-02,Software,OpenAI,Operations,628
+2025-09-21,Salaries,PayrollCo,Operations,3932
+2025-06-19,Support Ops,SupportFlow,Sales,119
+2025-06-27,Marketing,Google Ads,Sales,712
+2025-07-23,Cloud Infrastructure,Datadog,Finance,814
+2025-06-30,Software,OpenAI,Product,663
+2025-07-08,Salaries,PayrollCo,Product,2240
+2025-08-25,Salaries,HRServices,Finance,3432
+2025-10-24,Salaries,HRServices,Product,5940
+2025-10-24,Insurance,Allianz,Operations,509
+2025-11-20,Contractors,FreelancerHub,Finance,1105
+2025-05-26,Support Ops,Zendesk,Operations,421
+2025-03-31,Contractors,DevContract Ltd,Operations,921
+2025-02-18,Marketing,Google Ads,Product,373
+2025-08-24,Rent,Workspace GmbH,Marketing,2344
+2025-03-13,Travel,Booking,Marketing,104
+2025-04-04,Rent,Workspace GmbH,Operations,1806
+2025-10-19,Rent,OfficeRent BV,Finance,1806
+2025-08-31,Contractors,FreelancerHub,Operations,937
+2025-09-18,Marketing,Google Ads,Marketing,2747
+2025-01-13,Contractors,DevContract Ltd,Sales,2088
+2025-06-01,Insurance,AXA,Finance,389
+2025-11-21,Salaries,PayrollCo,Marketing,5891
+2025-02-23,Software,Figma,Finance,1028
+2025-09-07,Cloud Infrastructure,Cloudflare,Operations,812
+2025-12-24,Support Ops,Zendesk,Sales,705
+2025-02-28,Legal,Legal Partners,Product,1414
+2025-10-26,Salaries,PayrollCo,Product,6343
+2025-09-26,Software,AWS,Marketing,1058
+2025-07-26,Contractors,FreelancerHub,Operations,1998
+2025-11-16,Contractors,DevContract Ltd,Product,1986
+2025-11-25,Rent,Workspace GmbH,Operations,1543
+2025-12-02,Support Ops,Zendesk,Finance,409
+2025-03-12,Marketing,Meta Ads,Product,2170
+2025-05-23,Salaries,HRServices,Sales,5442
+2025-05-24,Legal,Tax Advisory Co,Product,1258
+2025-06-25,Cloud Infrastructure,AWS,Product,357
+2025-07-13,Software,HubSpot,Operations,312
+2025-02-18,Support Ops,SupportFlow,Finance,930
+2025-07-10,Support Ops,Zendesk,Marketing,172
+2025-09-11,Salaries,HRServices,Marketing,5819
+2025-10-08,Salaries,HRServices,Sales,4035
+2025-04-15,Salaries,PayrollCo,Operations,2804
+2025-02-11,Salaries,PayrollCo,Operations,3994
+2025-10-20,Contractors,FreelancerHub,Marketing,556
+2025-01-28,Salaries,PayrollCo,Operations,2469
+2025-11-28,Marketing,Meta Ads,Product,1357
+2025-12-25,Rent,Workspace GmbH,Product,2064
+2025-08-12,Salaries,HRServices,Sales,3346
+2025-09-14,Salaries,PayrollCo,Sales,3909
+2025-06-14,Cloud Infrastructure,Datadog,Sales,687
+2025-09-02,Contractors,FreelancerHub,Product,488
+2025-10-27,Salaries,HRServices,Product,4005
+2025-04-09,Marketing,Meta Ads,Sales,1651
+2025-05-21,Salaries,HRServices,Product,2297
+2025-03-30,Marketing,Google Ads,Marketing,1496
+2025-07-24,Marketing,LinkedIn Ads,Sales,306
+2025-09-05,Cloud Infrastructure,AWS,Finance,1090
+2025-03-18,Salaries,PayrollCo,Operations,6086
+2025-11-28,Marketing,Google Ads,Finance,1980
+2025-12-21,Software,Notion,Marketing,797
+2025-04-29,Rent,Workspace GmbH,Operations,2024
+2025-03-30,Rent,OfficeRent BV,Sales,1951
+2025-06-14,Marketing,LinkedIn Ads,Finance,488
+2025-03-12,Insurance,AXA,Operations,257
+2025-08-19,Insurance,AXA,Sales,487
+2025-10-10,Support Ops,SupportFlow,Finance,403
+2025-02-25,Contractors,DevContract Ltd,Product,1627
+2025-01-29,Software,HubSpot,Marketing,247
+2025-06-27,Software,HubSpot,Finance,421
+2025-07-25,Travel,Booking,Product,71
+2025-10-04,Cloud Infrastructure,AWS,Sales,1549
+2025-09-22,Salaries,PayrollCo,Operations,3211
+2025-11-01,Marketing,Google Ads,Product,2273
+2025-10-10,Salaries,HRServices,Product,4372
+2025-11-20,Software,AWS,Finance,381
+2025-03-18,Salaries,PayrollCo,Operations,2846
+2025-09-21,Insurance,AXA,Finance,121
+2025-04-15,Cloud Infrastructure,Cloudflare,Finance,594
+2025-03-31,Contractors,FreelancerHub,Sales,740
+2025-09-11,Salaries,HRServices,Marketing,2932
+2025-05-18,Salaries,HRServices,Operations,6025
+2025-04-20,Insurance,Allianz,Marketing,656
+2025-10-27,Rent,Workspace GmbH,Finance,2270
+2025-03-27,Support Ops,Zendesk,Sales,802
+2025-04-09,Salaries,HRServices,Product,5037
+2025-03-03,Rent,Workspace GmbH,Operations,992
+2025-09-18,Contractors,DevContract Ltd,Sales,700
+2025-02-26,Software,OpenAI,Product,731
+2025-12-15,Cloud Infrastructure,AWS,Marketing,856
+2025-12-05,Marketing,Meta Ads,Marketing,2129
+2025-03-09,Salaries,PayrollCo,Operations,3963
+2025-09-22,Legal,Tax Advisory Co,Marketing,640
+2025-03-26,Legal,Tax Advisory Co,Finance,1046
+2025-04-13,Salaries,HRServices,Marketing,6019
+2025-07-06,Rent,OfficeRent BV,Product,1450
+2025-04-24,Salaries,PayrollCo,Operations,5078
+2025-12-04,Salaries,PayrollCo,Operations,5524
+2025-09-07,Software,HubSpot,Product,1069
+2025-07-06,Support Ops,SupportFlow,Finance,631
+2025-08-15,Legal,Legal Partners,Marketing,1078
+2025-04-30,Software,Notion,Sales,1107
+2025-04-19,Marketing,LinkedIn Ads,Operations,1055
+2025-05-07,Insurance,AXA,Operations,434
+2025-08-12,Rent,Workspace GmbH,Product,1677
+2025-02-23,Support Ops,Zendesk,Product,856
+2025-09-26,Salaries,PayrollCo,Product,5083
+2025-03-21,Software,AWS,Finance,803
+2025-03-23,Salaries,PayrollCo,Product,4484
+2025-08-07,Salaries,HRServices,Sales,5458
+2025-03-19,Salaries,HRServices,Operations,2321
+2025-02-27,Marketing,LinkedIn Ads,Marketing,1663
+2025-12-22,Marketing,Meta Ads,Marketing,2265
+2025-05-07,Marketing,Google Ads,Product,2156
+2025-06-05,Travel,AirlineTravel,Finance,858
+2025-11-07,Cloud Infrastructure,Datadog,Operations,1758
+2025-12-30,Marketing,Google Ads,Product,2299
+2025-11-18,Marketing,LinkedIn Ads,Finance,514
+2025-05-01,Salaries,PayrollCo,Marketing,2910
+2025-04-23,Contractors,FreelancerHub,Operations,1547
+2025-04-20,Software,AWS,Finance,1062
+2025-03-03,Cloud Infrastructure,Datadog,Marketing,1767
+2025-12-17,Salaries,PayrollCo,Finance,3390
+2025-01-29,Cloud Infrastructure,AWS,Finance,170
+2025-04-08,Contractors,DevContract Ltd,Sales,615
+2025-05-08,Marketing,Google Ads,Operations,918
+2025-12-31,Rent,OfficeRent BV,Marketing,2028
+2025-09-21,Rent,OfficeRent BV,Finance,2008
+2025-09-13,Contractors,DevContract Ltd,Sales,682
+2025-12-22,Salaries,PayrollCo,Product,6102
+2025-01-20,Rent,OfficeRent BV,Finance,1381
+2025-12-25,Contractors,DevContract Ltd,Sales,2190
+2025-10-23,Salaries,PayrollCo,Product,3262
+2025-01-16,Software,HubSpot,Product,929
+2025-04-11,Legal,Legal Partners,Finance,250
+2025-07-18,Rent,Workspace GmbH,Finance,1704
+2025-09-03,Salaries,HRServices,Finance,6205
+2025-07-28,Cloud Infrastructure,Cloudflare,Marketing,711
+2025-10-28,Salaries,HRServices,Operations,2146
+2025-02-24,Marketing,LinkedIn Ads,Sales,2103
+2025-03-31,Software,HubSpot,Sales,110
+2025-02-22,Support Ops,Zendesk,Finance,606
+2025-03-11,Software,Notion,Sales,539
+2025-01-09,Salaries,HRServices,Sales,5771
+2025-12-20,Legal,Tax Advisory Co,Sales,354
+2025-12-18,Marketing,Google Ads,Product,902
+2025-05-04,Salaries,PayrollCo,Marketing,3615
+2025-05-28,Salaries,HRServices,Product,3715
+2025-10-05,Salaries,HRServices,Product,4793
+2025-10-26,Marketing,Meta Ads,Product,2209
+2025-02-26,Rent,Workspace GmbH,Product,954
+2025-06-30,Salaries,HRServices,Product,4514
+2025-11-23,Legal,Tax Advisory Co,Operations,1376
+2025-07-15,Cloud Infrastructure,AWS,Marketing,1564
+2025-11-28,Insurance,AXA,Finance,616
+2025-09-08,Salaries,HRServices,Product,3096
+2025-11-11,Salaries,PayrollCo,Product,5734
+2025-04-09,Marketing,Google Ads,Marketing,1288
+2025-11-02,Salaries,PayrollCo,Operations,1905
+2025-01-12,Salaries,HRServices,Finance,3737
+2025-03-01,Support Ops,Zendesk,Product,308
+2025-09-02,Rent,OfficeRent BV,Finance,2005
+2025-09-06,Contractors,FreelancerHub,Sales,775
+2025-04-06,Software,Figma,Operations,487
+2025-04-29,Rent,OfficeRent BV,Sales,1872
+2025-05-13,Rent,Workspace GmbH,Marketing,2251
+2025-12-22,Marketing,Meta Ads,Marketing,2275
+2025-03-24,Marketing,Meta Ads,Finance,1015
+2025-05-29,Software,HubSpot,Product,235
+2025-08-22,Software,HubSpot,Product,873
+2025-08-19,Rent,Workspace GmbH,Sales,911
+2025-12-15,Cloud Infrastructure,AWS,Sales,1117
+2025-08-08,Rent,OfficeRent BV,Sales,1827
+2025-07-12,Salaries,PayrollCo,Marketing,3473
+2025-01-16,Insurance,AXA,Finance,129
+2025-11-04,Salaries,PayrollCo,Sales,2475
+2025-03-24,Travel,Booking,Marketing,867
+2025-10-12,Salaries,HRServices,Product,2414
+2025-01-18,Salaries,HRServices,Sales,3196
+2025-12-30,Software,AWS,Finance,489
+2025-04-09,Software,OpenAI,Finance,670
+2025-05-29,Software,OpenAI,Finance,456
+2025-09-14,Software,AWS,Sales,806
+2025-12-23,Salaries,PayrollCo,Marketing,3811
+2025-04-06,Salaries,PayrollCo,Finance,3083
+2025-09-14,Cloud Infrastructure,AWS,Sales,747
+2025-09-04,Legal,Tax Advisory Co,Product,1002
+2025-12-05,Marketing,Google Ads,Operations,1089
+2025-02-19,Marketing,LinkedIn Ads,Marketing,505
+2025-11-11,Rent,Workspace GmbH,Marketing,1064
+2025-04-20,Marketing,LinkedIn Ads,Finance,1356
+2025-09-29,Salaries,PayrollCo,Finance,4919
+2025-09-11,Rent,OfficeRent BV,Finance,1495
+2025-06-17,Salaries,PayrollCo,Operations,5967
+2025-05-20,Support Ops,SupportFlow,Marketing,355
+2025-09-20,Software,Figma,Marketing,160
+2025-07-11,Legal,Tax Advisory Co,Marketing,1418
+2025-10-25,Cloud Infrastructure,Datadog,Marketing,261
+2025-02-20,Salaries,HRServices,Marketing,3230
+2025-10-08,Marketing,LinkedIn Ads,Finance,2240
+2025-03-26,Salaries,HRServices,Product,4428
+2025-01-25,Salaries,PayrollCo,Marketing,3835
+2025-03-02,Contractors,FreelancerHub,Product,745
+2025-07-10,Software,Notion,Finance,829
+2025-06-11,Rent,OfficeRent BV,Operations,1827
+2025-10-23,Software,OpenAI,Marketing,594
+2025-08-08,Marketing,Meta Ads,Sales,1273
+2025-11-13,Marketing,LinkedIn Ads,Product,2430
+2025-04-08,Rent,Workspace GmbH,Marketing,1064
+2025-07-28,Salaries,PayrollCo,Product,5291
+2025-04-03,Marketing,Meta Ads,Finance,1524
+2025-01-07,Rent,OfficeRent BV,Product,1327
+2025-08-27,Contractors,FreelancerHub,Finance,1882
+2025-02-27,Marketing,Meta Ads,Finance,361
+2025-04-22,Marketing,Meta Ads,Marketing,1543
+2025-05-09,Salaries,PayrollCo,Finance,2454
+2025-11-10,Marketing,Meta Ads,Operations,1630
+2025-09-25,Software,Notion,Operations,635
+2025-10-20,Salaries,PayrollCo,Finance,3634
+2025-06-17,Contractors,FreelancerHub,Sales,676
+2025-10-31,Software,Notion,Operations,247
+2025-12-06,Marketing,Meta Ads,Finance,1963
+2025-04-07,Marketing,Google Ads,Finance,489
+2025-06-29,Insurance,AXA,Operations,585
+2025-01-04,Contractors,DevContract Ltd,Sales,1090
+2025-12-10,Contractors,DevContract Ltd,Marketing,1641
+2025-04-09,Salaries,PayrollCo,Product,2336
+2025-01-18,Insurance,AXA,Marketing,506
+2025-04-13,Legal,Legal Partners,Marketing,1035
+2025-12-16,Rent,Workspace GmbH,Operations,2469
+2025-04-02,Marketing,Google Ads,Finance,2493
+2025-12-31,Rent,Workspace GmbH,Marketing,1586
+2025-09-16,Cloud Infrastructure,AWS,Product,1359
+2025-11-04,Contractors,FreelancerHub,Product,1856
+2025-08-03,Insurance,Allianz,Finance,514
+2025-06-18,Salaries,HRServices,Marketing,4280
+2025-12-28,Marketing,Google Ads,Operations,2244
+2025-11-24,Marketing,LinkedIn Ads,Marketing,1501
+2025-06-12,Marketing,Meta Ads,Product,395
+2025-07-23,Salaries,HRServices,Marketing,6322
+2025-09-17,Contractors,DevContract Ltd,Finance,2020
+2025-07-11,Travel,AirlineTravel,Sales,220
+2025-08-27,Contractors,DevContract Ltd,Operations,545
+2025-06-14,Marketing,Google Ads,Product,2159
+2025-01-27,Legal,Tax Advisory Co,Product,451
+2025-07-19,Marketing,LinkedIn Ads,Finance,2502
+2025-02-11,Insurance,AXA,Sales,561
+2025-10-28,Salaries,PayrollCo,Finance,4468
+2025-05-11,Marketing,Google Ads,Product,1436
+2025-07-29,Salaries,HRServices,Marketing,6421
+2025-04-13,Travel,Booking,Product,392
+2025-06-18,Contractors,FreelancerHub,Finance,1466
+2025-04-14,Contractors,FreelancerHub,Sales,1739
+2025-02-15,Software,OpenAI,Sales,812
+2025-05-27,Insurance,Allianz,Finance,278
+2025-01-05,Support Ops,SupportFlow,Product,545
+2025-06-14,Salaries,HRServices,Finance,5473
+2025-12-24,Cloud Infrastructure,AWS,Finance,193
+2025-01-11,Salaries,PayrollCo,Operations,2121
+2025-01-11,Salaries,PayrollCo,Product,5070
+2025-07-29,Cloud Infrastructure,Cloudflare,Finance,176
+2025-09-18,Contractors,DevContract Ltd,Marketing,1031
+2025-12-22,Rent,OfficeRent BV,Product,1194
+2025-09-11,Contractors,DevContract Ltd,Marketing,407
+2025-03-17,Travel,RailEurope,Marketing,832
+2025-03-24,Marketing,Google Ads,Sales,845
+2025-10-21,Salaries,PayrollCo,Marketing,3461
+2025-08-22,Software,Figma,Sales,1065
+2025-02-07,Support Ops,SupportFlow,Product,863
+2025-07-21,Legal,Tax Advisory Co,Sales,711
+2025-03-11,Rent,OfficeRent BV,Sales,1986
+2025-01-13,Salaries,PayrollCo,Product,2164
+2025-03-01,Marketing,Meta Ads,Marketing,1923
+2025-01-11,Insurance,AXA,Finance,484
+2025-05-16,Rent,Workspace GmbH,Marketing,919
+2025-08-22,Insurance,Allianz,Operations,235
+2025-04-15,Software,Notion,Sales,638
+2025-11-03,Marketing,Google Ads,Operations,2307
+2025-05-27,Salaries,PayrollCo,Sales,5507
+2025-06-28,Salaries,PayrollCo,Product,4095
+2025-10-15,Contractors,DevContract Ltd,Product,1481
+2025-12-17,Rent,OfficeRent BV,Sales,2148
+2025-08-21,Contractors,FreelancerHub,Sales,1311
+2025-09-28,Marketing,Google Ads,Finance,1487
+2025-12-23,Rent,Workspace GmbH,Sales,1636
+2025-07-07,Legal,Legal Partners,Operations,409
+2025-02-03,Rent,OfficeRent BV,Marketing,2285
+2025-10-31,Contractors,DevContract Ltd,Sales,1058
+2025-04-08,Travel,AirlineTravel,Finance,424
+2025-05-02,Support Ops,Zendesk,Finance,496
+2025-07-06,Software,HubSpot,Operations,769
+2025-11-16,Cloud Infrastructure,Cloudflare,Marketing,1538
+2025-12-06,Rent,OfficeRent BV,Marketing,1541
+2025-03-17,Cloud Infrastructure,AWS,Operations,430
+2025-01-20,Rent,OfficeRent BV,Finance,2016
+2025-12-08,Marketing,LinkedIn Ads,Product,598
+2025-05-07,Cloud Infrastructure,Datadog,Product,195
+2025-05-28,Support Ops,Zendesk,Sales,201
+2025-01-04,Salaries,HRServices,Finance,5774
+2025-11-08,Marketing,Google Ads,Operations,465
+2025-01-31,Insurance,AXA,Marketing,406
+2025-03-31,Marketing,Meta Ads,Product,2418
+2025-07-16,Cloud Infrastructure,AWS,Sales,1414
+2025-01-29,Support Ops,SupportFlow,Marketing,390
+2025-02-18,Marketing,Google Ads,Marketing,1867
+2025-09-12,Salaries,PayrollCo,Finance,3573
+2025-12-24,Travel,RailEurope,Product,822
+2025-10-21,Cloud Infrastructure,Cloudflare,Operations,928
+2025-05-09,Contractors,DevContract Ltd,Sales,1864
+2025-05-04,Software,Figma,Sales,763
+2025-02-12,Marketing,Meta Ads,Sales,522
+2025-06-05,Marketing,Google Ads,Operations,1554
+2025-09-24,Salaries,PayrollCo,Product,5000
+2025-03-08,Marketing,Google Ads,Sales,1782
+2025-06-25,Salaries,PayrollCo,Product,4314
+2025-04-21,Insurance,Allianz,Product,265
+2025-03-07,Software,HubSpot,Sales,702
+2025-09-29,Salaries,PayrollCo,Sales,3699
+2025-01-02,Salaries,HRServices,Marketing,5273
+2025-09-05,Marketing,Google Ads,Sales,2471
+2025-01-29,Cloud Infrastructure,Cloudflare,Marketing,324
+2025-10-05,Software,OpenAI,Operations,514
+2025-10-27,Marketing,Google Ads,Operations,380
+2025-05-22,Contractors,FreelancerHub,Sales,473
+2025-07-06,Cloud Infrastructure,Datadog,Finance,259
+2025-10-25,Rent,OfficeRent BV,Marketing,984
+2025-12-06,Rent,Workspace GmbH,Operations,1012
+2025-09-28,Legal,Tax Advisory Co,Finance,717
+2025-12-08,Insurance,AXA,Marketing,633
+2025-12-10,Software,OpenAI,Marketing,459
+2025-08-26,Marketing,LinkedIn Ads,Marketing,2215
+2025-06-21,Marketing,Meta Ads,Marketing,1576
+2025-03-14,Rent,Workspace GmbH,Product,1598
+2025-01-12,Salaries,PayrollCo,Sales,4745
+2025-03-08,Contractors,DevContract Ltd,Marketing,1648
+2025-05-24,Salaries,PayrollCo,Sales,2538
+2025-08-06,Marketing,LinkedIn Ads,Marketing,1015
+2025-04-08,Insurance,Allianz,Marketing,660
+2025-08-19,Salaries,HRServices,Sales,1978
+2025-12-25,Software,Notion,Product,1101
+2025-08-19,Rent,OfficeRent BV,Sales,1419
+2025-01-26,Software,OpenAI,Finance,864
+2025-12-31,Support Ops,SupportFlow,Sales,872
+2025-04-28,Support Ops,SupportFlow,Marketing,754
+2025-06-29,Salaries,HRServices,Sales,4237
+2025-09-05,Support Ops,SupportFlow,Sales,163
+2025-08-11,Software,Figma,Marketing,1123
+2025-03-15,Marketing,Meta Ads,Marketing,1528
+2025-11-19,Cloud Infrastructure,Datadog,Finance,288
+2025-06-26,Contractors,DevContract Ltd,Sales,1701
+2025-01-15,Rent,Workspace GmbH,Finance,1556
+2025-09-28,Legal,Tax Advisory Co,Marketing,1425
+2025-03-06,Support Ops,Zendesk,Product,644
+2025-08-28,Marketing,LinkedIn Ads,Operations,2184
+2025-06-10,Salaries,HRServices,Operations,2612
+2025-06-27,Support Ops,SupportFlow,Marketing,922
+2025-02-19,Salaries,HRServices,Finance,6264
+2025-03-04,Rent,Workspace GmbH,Finance,1680
+2025-02-23,Salaries,PayrollCo,Operations,5797
+2025-02-06,Contractors,DevContract Ltd,Sales,1613
+2025-08-22,Legal,Legal Partners,Sales,969
+2025-09-17,Salaries,PayrollCo,Marketing,5125
+2025-03-28,Rent,Workspace GmbH,Sales,1023
+2025-07-19,Salaries,PayrollCo,Operations,5107
+2025-11-16,Cloud Infrastructure,Cloudflare,Product,1399
+2025-01-06,Marketing,Google Ads,Marketing,923
+2025-07-27,Travel,Booking,Operations,669
+2025-06-02,Contractors,FreelancerHub,Finance,1903
+2025-01-01,Contractors,FreelancerHub,Sales,1417
+2025-12-28,Salaries,HRServices,Sales,2832
+2025-06-24,Support Ops,SupportFlow,Finance,951
+2025-03-13,Salaries,PayrollCo,Sales,2092
+2025-04-14,Travel,RailEurope,Finance,627
+2025-11-22,Salaries,HRServices,Marketing,3474
+2025-02-11,Marketing,Google Ads,Operations,1446
+2025-07-22,Salaries,PayrollCo,Operations,6100
+2025-12-21,Marketing,LinkedIn Ads,Product,366
+2025-11-30,Salaries,HRServices,Finance,3514
+2025-06-29,Salaries,HRServices,Marketing,4218
+2025-07-05,Rent,OfficeRent BV,Finance,1118
+2025-04-24,Support Ops,Zendesk,Marketing,399
+2025-08-15,Salaries,HRServices,Sales,3896
+2025-02-22,Software,AWS,Marketing,649
+2025-12-21,Salaries,HRServices,Marketing,5755
+2025-02-26,Rent,Workspace GmbH,Sales,2190
+2025-10-28,Software,HubSpot,Finance,306
+2025-04-08,Salaries,HRServices,Sales,4105
+2025-10-11,Rent,Workspace GmbH,Sales,2499
+2025-01-12,Cloud Infrastructure,Cloudflare,Finance,662
+2025-06-27,Contractors,DevContract Ltd,Marketing,1497
+2025-06-04,Salaries,PayrollCo,Sales,5433
+2025-09-05,Support Ops,Zendesk,Sales,198
+2025-10-11,Support Ops,SupportFlow,Product,995
+2025-09-06,Salaries,PayrollCo,Product,3372
+2025-05-26,Software,Notion,Marketing,331
+2025-12-31,Cloud Infrastructure,AWS,Product,1051
+2025-09-08,Software,OpenAI,Operations,95
+2025-10-13,Salaries,HRServices,Sales,4066
+2025-06-01,Salaries,HRServices,Operations,1958
+2025-12-16,Contractors,DevContract Ltd,Sales,1079
+2025-08-16,Travel,AirlineTravel,Marketing,239
+2025-04-28,Marketing,Google Ads,Marketing,1163
+2025-12-19,Software,HubSpot,Sales,717
+2025-09-25,Marketing,LinkedIn Ads,Finance,1093
+2025-03-26,Salaries,HRServices,Sales,4557
+2025-01-14,Salaries,PayrollCo,Product,5453
+2025-05-14,Rent,OfficeRent BV,Sales,1371
+2025-09-23,Software,AWS,Sales,1056
+2025-01-05,Software,HubSpot,Product,766
+2025-03-13,Salaries,PayrollCo,Sales,2169
+2025-01-18,Contractors,FreelancerHub,Sales,839
+2025-12-05,Support Ops,Zendesk,Operations,292
+2025-04-26,Contractors,DevContract Ltd,Sales,1532
+2025-06-04,Marketing,Google Ads,Marketing,434
+2025-01-28,Salaries,HRServices,Product,3765
+2025-10-06,Salaries,HRServices,Product,6435
+2025-05-24,Rent,OfficeRent BV,Product,1593
+2025-09-17,Marketing,LinkedIn Ads,Marketing,590
+2025-11-07,Rent,Workspace GmbH,Operations,1350
+2025-12-30,Rent,Workspace GmbH,Marketing,2541
+2025-06-11,Contractors,FreelancerHub,Sales,1621
+2025-07-19,Marketing,Google Ads,Product,1591
+2025-10-25,Software,OpenAI,Finance,508
+2025-02-15,Insurance,AXA,Operations,507
+2025-08-03,Marketing,Google Ads,Marketing,1056
+2025-09-20,Cloud Infrastructure,Datadog,Operations,349
+2025-06-23,Software,AWS,Product,1125
+2025-03-30,Software,HubSpot,Product,91
+2025-07-02,Contractors,DevContract Ltd,Finance,633
+2025-02-06,Legal,Tax Advisory Co,Operations,997
+2025-07-10,Rent,Workspace GmbH,Product,1623
+2025-02-18,Support Ops,SupportFlow,Product,800
+2025-11-24,Cloud Infrastructure,Datadog,Marketing,1372
+2025-01-09,Marketing,Google Ads,Marketing,715
+2025-04-13,Insurance,AXA,Marketing,523
+2025-03-26,Cloud Infrastructure,AWS,Sales,768
+2025-12-08,Rent,Workspace GmbH,Marketing,1122
+2025-06-21,Contractors,FreelancerHub,Sales,1843
+2025-04-20,Cloud Infrastructure,Datadog,Marketing,1147
+2025-07-25,Salaries,HRServices,Product,5144
+2025-07-06,Contractors,DevContract Ltd,Operations,743
+2025-05-20,Rent,OfficeRent BV,Sales,2484
+2025-06-02,Software,Notion,Product,1074
+2025-10-24,Cloud Infrastructure,Datadog,Sales,1192
+2025-10-28,Salaries,PayrollCo,Finance,2626
+2025-05-27,Rent,OfficeRent BV,Product,1336
+2025-06-23,Rent,OfficeRent BV,Finance,997
+2025-09-23,Legal,Legal Partners,Operations,920
+2025-12-19,Rent,Workspace GmbH,Product,2312
+2025-05-16,Travel,AirlineTravel,Product,586
+2025-08-12,Cloud Infrastructure,Cloudflare,Sales,418
+2025-01-02,Marketing,LinkedIn Ads,Operations,697
+2025-07-26,Rent,Workspace GmbH,Operations,2258
+2025-10-08,Support Ops,SupportFlow,Finance,610
+2025-12-09,Salaries,HRServices,Operations,2733
+2025-06-25,Software,Figma,Finance,1026
+2025-05-18,Support Ops,Zendesk,Marketing,869
+2025-05-20,Salaries,PayrollCo,Finance,4251
+2025-12-24,Rent,Workspace GmbH,Operations,1150
+2025-09-04,Software,HubSpot,Operations,717
+2025-03-09,Salaries,HRServices,Marketing,2033
+2025-06-01,Marketing,Google Ads,Sales,2445
+2025-12-15,Software,Figma,Finance,527
+2025-11-29,Marketing,LinkedIn Ads,Operations,502
+2025-05-01,Marketing,LinkedIn Ads,Marketing,1216
+2025-02-14,Insurance,Allianz,Operations,130
+2025-06-09,Rent,OfficeRent BV,Marketing,1723
+2025-01-19,Cloud Infrastructure,AWS,Sales,1260
+2025-11-17,Marketing,LinkedIn Ads,Finance,2654
+2025-11-24,Marketing,Google Ads,Product,1233
+2025-02-21,Rent,OfficeRent BV,Finance,1046
+2025-01-05,Insurance,AXA,Product,154
+2025-05-18,Legal,Legal Partners,Finance,855
+2025-12-18,Marketing,Google Ads,Sales,1619
+2025-05-23,Contractors,DevContract Ltd,Marketing,706
+2025-12-01,Insurance,Allianz,Marketing,682
+2025-09-14,Software,Figma,Finance,1073
+2025-07-23,Support Ops,Zendesk,Finance,835
+2025-08-03,Software,Figma,Marketing,235
+2025-03-31,Salaries,PayrollCo,Marketing,6465
+2025-07-14,Salaries,PayrollCo,Product,2146
+2025-12-28,Marketing,Meta Ads,Sales,1224
+2025-06-21,Salaries,HRServices,Sales,4925
+2025-02-15,Salaries,HRServices,Operations,4424
+2025-08-29,Salaries,HRServices,Sales,5952
+2025-05-24,Marketing,Meta Ads,Marketing,2363
+2025-09-10,Support Ops,Zendesk,Finance,540
+2025-05-11,Marketing,Meta Ads,Product,2648
+2025-11-09,Software,OpenAI,Finance,801
+2025-07-27,Contractors,FreelancerHub,Product,2050
+2025-08-05,Insurance,AXA,Product,550
+2025-09-27,Rent,OfficeRent BV,Sales,1528
+2025-11-13,Marketing,Meta Ads,Sales,1156
+2025-01-22,Software,HubSpot,Operations,507
+2025-03-06,Marketing,Google Ads,Sales,2519
+2025-12-19,Contractors,FreelancerHub,Marketing,1877
+2025-08-13,Travel,AirlineTravel,Sales,807
+2025-04-07,Travel,RailEurope,Sales,510
+2025-09-26,Salaries,PayrollCo,Product,2451
+2025-08-28,Salaries,HRServices,Marketing,6208
+2025-10-06,Salaries,HRServices,Product,2752
+2025-12-20,Salaries,HRServices,Product,4567
+2025-06-04,Software,Notion,Product,878
+2025-04-24,Contractors,FreelancerHub,Product,799
+2025-12-28,Insurance,Allianz,Sales,246
+2025-12-04,Cloud Infrastructure,AWS,Sales,269
+2025-05-26,Support Ops,Zendesk,Operations,158
+2025-04-29,Marketing,LinkedIn Ads,Finance,2548
+2025-04-06,Legal,Tax Advisory Co,Finance,1033
+2025-10-16,Legal,Legal Partners,Product,214
+2025-02-17,Salaries,PayrollCo,Marketing,5464
+2025-12-26,Rent,OfficeRent BV,Product,2189
+2025-08-30,Contractors,DevContract Ltd,Finance,414
+2025-02-11,Salaries,PayrollCo,Finance,2863
+2025-11-13,Salaries,PayrollCo,Operations,3719
+2025-04-18,Marketing,LinkedIn Ads,Marketing,1615
+2025-08-31,Travel,RailEurope,Operations,727
+2025-10-10,Travel,Booking,Product,772
+2025-06-01,Rent,OfficeRent BV,Operations,1362
+2025-11-06,Salaries,PayrollCo,Sales,5170
+2025-10-24,Marketing,Meta Ads,Finance,1281
+2025-10-07,Cloud Infrastructure,Cloudflare,Finance,609
+2025-02-14,Software,AWS,Operations,526
+2025-05-08,Rent,OfficeRent BV,Product,2435
+2025-08-22,Contractors,FreelancerHub,Product,543
+2025-06-03,Contractors,FreelancerHub,Marketing,1421
+2025-12-11,Marketing,LinkedIn Ads,Marketing,1794
+2025-08-04,Salaries,HRServices,Finance,2682
+2025-09-16,Salaries,PayrollCo,Operations,5060
+2025-12-25,Support Ops,SupportFlow,Sales,917
+2025-10-24,Salaries,PayrollCo,Operations,5817
+2025-09-16,Rent,Workspace GmbH,Finance,2089
+2025-04-18,Rent,OfficeRent BV,Operations,1031
+2025-01-20,Support Ops,Zendesk,Operations,592
+2025-03-23,Software,OpenAI,Product,694
+2025-08-14,Insurance,Allianz,Operations,416
+2025-05-17,Salaries,PayrollCo,Marketing,4007
+2025-05-09,Salaries,PayrollCo,Product,4188
+2025-03-12,Software,Notion,Operations,1095
+2025-09-14,Software,Notion,Product,1102
+2025-01-23,Salaries,PayrollCo,Finance,3354
+2025-02-11,Salaries,PayrollCo,Marketing,5397
+2025-02-05,Rent,OfficeRent BV,Operations,1498
+2025-11-25,Software,Figma,Product,438
+2025-05-03,Support Ops,Zendesk,Operations,785
+2025-03-20,Support Ops,SupportFlow,Sales,456
+2025-01-24,Software,HubSpot,Sales,297
+2025-01-29,Legal,Legal Partners,Product,1267
+2025-05-31,Software,AWS,Finance,1039
+2025-08-28,Cloud Infrastructure,Datadog,Finance,1401
+2025-08-01,Salaries,HRServices,Product,6168
+2025-08-13,Contractors,DevContract Ltd,Sales,1882
+2025-01-11,Software,Figma,Product,831
+2025-12-30,Insurance,Allianz,Operations,195
+2025-12-19,Support Ops,SupportFlow,Operations,148
+2025-01-15,Insurance,Allianz,Marketing,283
+2025-04-19,Salaries,HRServices,Operations,2748
+2025-09-03,Marketing,Google Ads,Marketing,786
+2025-06-13,Travel,RailEurope,Finance,76
+2025-01-22,Software,HubSpot,Operations,826
+2025-05-21,Marketing,Google Ads,Marketing,476
+2025-09-17,Software,Figma,Marketing,258
+2025-09-01,Contractors,FreelancerHub,Marketing,657
+2025-01-26,Contractors,DevContract Ltd,Sales,2119
+2025-01-12,Travel,AirlineTravel,Finance,606
+2025-08-14,Software,OpenAI,Product,539
+2025-03-24,Salaries,HRServices,Marketing,2747
+2025-04-30,Software,OpenAI,Marketing,191
+2025-03-31,Contractors,FreelancerHub,Operations,841
+2025-09-03,Contractors,FreelancerHub,Operations,690
+2025-05-03,Cloud Infrastructure,Cloudflare,Finance,435
+2025-04-12,Software,AWS,Product,436
+2025-08-28,Software,AWS,Marketing,1049
+2025-01-28,Travel,RailEurope,Sales,221
+2025-09-17,Support Ops,Zendesk,Marketing,198
+2025-07-14,Salaries,PayrollCo,Marketing,4090
+2025-04-23,Cloud Infrastructure,Cloudflare,Finance,379
+2025-11-28,Contractors,FreelancerHub,Marketing,2088
+2025-06-27,Contractors,DevContract Ltd,Marketing,1733
+2025-08-04,Rent,OfficeRent BV,Sales,1372
+2025-01-29,Software,AWS,Sales,170
+2025-12-08,Contractors,DevContract Ltd,Finance,1992
+2025-02-11,Insurance,AXA,Finance,458
+2025-05-01,Marketing,Meta Ads,Sales,2767
+2025-03-19,Marketing,LinkedIn Ads,Operations,2743
+2025-11-02,Software,AWS,Finance,595
+2025-05-03,Marketing,Google Ads,Sales,1175
+2025-02-04,Salaries,PayrollCo,Finance,4921
+2025-06-30,Software,Figma,Marketing,201
+2025-03-22,Travel,Booking,Finance,68
+2025-07-11,Salaries,HRServices,Product,3053
+2025-08-19,Rent,OfficeRent BV,Sales,1277
+2025-05-24,Marketing,Google Ads,Finance,1073
+2025-12-16,Marketing,LinkedIn Ads,Operations,1344
+2025-08-11,Salaries,PayrollCo,Operations,2736
+2025-05-16,Salaries,HRServices,Finance,5948
+2025-04-26,Software,AWS,Product,990
+2025-02-08,Cloud Infrastructure,Datadog,Product,1442
+2025-01-31,Salaries,PayrollCo,Finance,3605
+2025-02-26,Cloud Infrastructure,Cloudflare,Sales,782
+2025-11-07,Contractors,DevContract Ltd,Sales,758
+2025-02-18,Marketing,Google Ads,Sales,2201
+2025-06-14,Salaries,HRServices,Marketing,2875
+2025-10-07,Marketing,Google Ads,Sales,1346
+2025-01-12,Travel,RailEurope,Operations,83
+2025-03-10,Software,OpenAI,Product,764
+2025-10-04,Salaries,PayrollCo,Marketing,2113
+2025-11-24,Salaries,PayrollCo,Finance,5674
+2025-05-17,Salaries,HRServices,Marketing,5799
+2025-12-27,Insurance,AXA,Sales,334
+2025-06-27,Salaries,PayrollCo,Sales,5353
+2025-06-09,Salaries,HRServices,Finance,2942
+2025-09-30,Contractors,DevContract Ltd,Operations,1193
+2025-04-30,Support Ops,SupportFlow,Marketing,602
+2025-08-28,Rent,OfficeRent BV,Product,2216
+2025-11-15,Marketing,LinkedIn Ads,Sales,917
+2025-01-03,Marketing,Google Ads,Marketing,2205
+2025-01-03,Cloud Infrastructure,Cloudflare,Sales,1658
+2025-04-29,Salaries,PayrollCo,Marketing,4031
+2025-10-12,Salaries,PayrollCo,Product,6031
+2025-08-29,Software,OpenAI,Sales,1088
+2025-04-16,Salaries,HRServices,Operations,2969
+2025-11-08,Salaries,PayrollCo,Operations,6264
+2025-02-24,Cloud Infrastructure,AWS,Sales,1393
+2025-02-16,Salaries,HRServices,Operations,5826
+2025-06-26,Marketing,LinkedIn Ads,Product,2501
+2025-08-12,Salaries,HRServices,Sales,3867
+2025-09-17,Software,Notion,Sales,201
+2025-06-20,Salaries,HRServices,Product,4557
+2025-07-01,Salaries,PayrollCo,Sales,6343
+2025-03-16,Insurance,Allianz,Product,182
+2025-04-30,Support Ops,Zendesk,Finance,434
+2025-12-17,Insurance,Allianz,Product,331
+2025-03-15,Legal,Legal Partners,Marketing,899
+2025-04-25,Marketing,Meta Ads,Sales,2487
+2025-06-06,Marketing,LinkedIn Ads,Product,1179
+2025-11-20,Contractors,DevContract Ltd,Sales,507
+2025-04-18,Support Ops,Zendesk,Sales,637
+2025-04-25,Cloud Infrastructure,AWS,Product,274
+2025-06-09,Rent,OfficeRent BV,Sales,1876
+2025-12-22,Software,OpenAI,Product,802
+2025-06-25,Insurance,Allianz,Marketing,475
+2025-10-14,Legal,Legal Partners,Sales,627
+2025-03-03,Salaries,PayrollCo,Finance,4702
+2025-11-28,Software,Figma,Operations,747
+2025-12-16,Cloud Infrastructure,Cloudflare,Sales,1500
+2025-09-22,Insurance,Allianz,Product,330
+2025-09-07,Rent,Workspace GmbH,Finance,994
+2025-10-28,Rent,Workspace GmbH,Product,1086
+2025-10-01,Travel,RailEurope,Operations,789
+2025-04-14,Cloud Infrastructure,AWS,Marketing,1705
+2025-01-20,Marketing,Google Ads,Marketing,1975
+2025-02-18,Software,Notion,Marketing,976
+2025-04-07,Cloud Infrastructure,AWS,Product,270
+2025-03-28,Travel,AirlineTravel,Marketing,405
+2025-12-20,Marketing,Meta Ads,Finance,790
+2025-05-16,Salaries,HRServices,Product,5522
+2025-12-07,Salaries,PayrollCo,Product,3862
+2025-10-17,Salaries,PayrollCo,Finance,5312
+2025-08-01,Marketing,LinkedIn Ads,Marketing,730
+2025-11-24,Software,Figma,Operations,1129
+2025-04-03,Cloud Infrastructure,Cloudflare,Marketing,799
+2025-12-03,Marketing,Meta Ads,Product,1729
+2025-10-25,Rent,OfficeRent BV,Marketing,936
+2025-09-07,Marketing,Google Ads,Sales,2245
+2025-12-20,Cloud Infrastructure,Cloudflare,Marketing,1735
+2025-04-14,Marketing,Google Ads,Product,759
+2025-04-03,Salaries,HRServices,Sales,2234
+2025-09-13,Salaries,PayrollCo,Finance,4492
+2025-09-29,Salaries,PayrollCo,Marketing,3206
+2025-10-04,Legal,Tax Advisory Co,Sales,425
+2025-05-03,Salaries,PayrollCo,Product,4740
+2025-12-19,Software,HubSpot,Marketing,1057
+2025-05-16,Contractors,FreelancerHub,Product,1205
+2025-09-09,Software,OpenAI,Operations,899
+2025-01-09,Insurance,AXA,Operations,270
+2025-09-17,Rent,Workspace GmbH,Operations,2164
+2025-04-19,Cloud Infrastructure,Datadog,Finance,566
+2025-05-17,Legal,Tax Advisory Co,Marketing,1093
+2025-11-03,Legal,Tax Advisory Co,Sales,1391
+2025-12-30,Cloud Infrastructure,Cloudflare,Product,485
+2025-02-23,Contractors,DevContract Ltd,Sales,1843
+2025-08-02,Salaries,HRServices,Product,2464
+2025-09-27,Insurance,Allianz,Product,589
+2025-02-01,Salaries,HRServices,Operations,2555
+2025-07-31,Marketing,Google Ads,Sales,883
+2025-03-03,Contractors,DevContract Ltd,Product,1114
+2025-10-29,Software,AWS,Marketing,623
+2025-09-07,Marketing,Google Ads,Operations,1447
+2025-06-24,Software,OpenAI,Product,873
+2025-10-29,Cloud Infrastructure,Cloudflare,Finance,357
+2025-12-23,Marketing,Meta Ads,Product,915
+2025-05-20,Software,HubSpot,Operations,901
+2025-04-24,Salaries,HRServices,Finance,6147
+2025-03-30,Salaries,PayrollCo,Finance,2424
+2025-08-31,Insurance,Allianz,Marketing,528
+2025-04-24,Rent,OfficeRent BV,Operations,1931
+2025-08-21,Insurance,Allianz,Product,245
+2025-07-16,Rent,Workspace GmbH,Product,1350
+2025-06-18,Contractors,FreelancerHub,Operations,1123
+2025-12-18,Cloud Infrastructure,Datadog,Finance,1096
+2025-04-19,Software,HubSpot,Finance,782
+2025-01-02,Salaries,HRServices,Product,3938
+2025-08-22,Contractors,FreelancerHub,Finance,879
+2025-11-28,Marketing,LinkedIn Ads,Operations,1889
+2025-07-30,Travel,RailEurope,Finance,91
+2025-10-06,Marketing,Google Ads,Finance,1912
+2025-10-04,Support Ops,SupportFlow,Sales,762
+2025-08-07,Contractors,DevContract Ltd,Product,2095
+2025-08-07,Software,HubSpot,Product,551
+2025-07-10,Salaries,PayrollCo,Product,1893
+2025-01-10,Cloud Infrastructure,Cloudflare,Marketing,903
+2025-01-06,Software,Figma,Marketing,313
+2025-12-30,Salaries,PayrollCo,Finance,6499
+2025-01-27,Salaries,HRServices,Marketing,3022
+2025-10-06,Rent,OfficeRent BV,Product,2123
+2025-01-07,Support Ops,SupportFlow,Finance,772
+2025-09-15,Contractors,DevContract Ltd,Operations,1457
+2025-03-31,Marketing,LinkedIn Ads,Operations,1996
+2025-08-07,Software,OpenAI,Finance,87
+2025-03-09,Travel,RailEurope,Operations,198
+2025-03-29,Legal,Legal Partners,Marketing,722
+2025-07-18,Marketing,LinkedIn Ads,Product,1634
+2025-02-17,Marketing,Meta Ads,Finance,2073
+2025-07-23,Marketing,Google Ads,Product,1753
+2025-09-12,Cloud Infrastructure,Cloudflare,Sales,1265
+2025-09-29,Salaries,PayrollCo,Sales,6076
+2025-05-16,Salaries,PayrollCo,Sales,5038
+2025-11-03,Salaries,HRServices,Marketing,6369
+2025-07-07,Marketing,Meta Ads,Sales,2119
+2025-04-18,Cloud Infrastructure,Datadog,Finance,686
+2025-01-29,Contractors,DevContract Ltd,Operations,1879
+2025-06-14,Software,OpenAI,Operations,353
+2025-08-10,Software,HubSpot,Marketing,370
+2025-10-28,Support Ops,SupportFlow,Finance,942
+2025-05-09,Legal,Legal Partners,Finance,1357
+2025-02-09,Contractors,DevContract Ltd,Finance,489
+2025-09-08,Software,AWS,Operations,138
+2025-02-10,Legal,Tax Advisory Co,Product,942
+2025-07-16,Support Ops,Zendesk,Operations,283
+2025-03-23,Salaries,PayrollCo,Product,4322
+2025-03-08,Salaries,PayrollCo,Sales,3833
+2025-06-25,Software,OpenAI,Operations,716
+2025-02-21,Salaries,HRServices,Marketing,5088
+2025-04-06,Rent,OfficeRent BV,Sales,2417
+2025-01-12,Salaries,HRServices,Operations,3869
+2025-02-24,Salaries,PayrollCo,Finance,5099
+2025-06-20,Software,OpenAI,Marketing,721
+2025-02-19,Marketing,Meta Ads,Marketing,2002
+2025-11-11,Rent,Workspace GmbH,Marketing,2132
+2025-06-15,Salaries,PayrollCo,Product,3008
+2025-09-19,Legal,Tax Advisory Co,Marketing,1125
+2025-03-20,Salaries,PayrollCo,Operations,4149
+2025-12-21,Salaries,PayrollCo,Product,2628
+2025-06-03,Software,OpenAI,Finance,1104
+2025-07-07,Support Ops,SupportFlow,Product,140
+2025-11-04,Rent,OfficeRent BV,Product,2124
+2025-10-22,Contractors,FreelancerHub,Finance,1559
+2025-03-07,Software,HubSpot,Operations,202
+2025-05-13,Software,AWS,Product,276
+2025-12-03,Salaries,HRServices,Marketing,5272
+2025-10-04,Support Ops,Zendesk,Product,827
+2025-09-30,Travel,AirlineTravel,Finance,371
+2025-10-03,Legal,Legal Partners,Finance,325
+2025-03-14,Rent,Workspace GmbH,Product,2165
+2025-01-20,Software,Figma,Product,761
+2025-02-08,Contractors,DevContract Ltd,Sales,1895
+2025-05-09,Support Ops,SupportFlow,Operations,335
+2025-10-19,Contractors,DevContract Ltd,Product,815
+2025-04-29,Support Ops,Zendesk,Operations,358
+2025-02-16,Software,OpenAI,Sales,935
+2025-12-18,Rent,Workspace GmbH,Marketing,1152
+2025-01-05,Cloud Infrastructure,AWS,Sales,438
+2025-01-08,Salaries,HRServices,Marketing,6276
+2025-07-12,Salaries,PayrollCo,Sales,3926
+2025-10-15,Marketing,Google Ads,Finance,1238
+2025-06-02,Cloud Infrastructure,AWS,Operations,733
+2025-08-13,Rent,Workspace GmbH,Product,1544
+2025-09-07,Salaries,HRServices,Operations,3850
+2025-02-25,Software,HubSpot,Operations,1014
+2025-04-08,Travel,Booking,Marketing,281
+2025-03-18,Salaries,HRServices,Finance,3060
+2025-05-10,Support Ops,SupportFlow,Operations,573
+2025-05-21,Salaries,HRServices,Sales,2106
+2025-01-21,Cloud Infrastructure,Cloudflare,Finance,704
+2025-03-05,Cloud Infrastructure,AWS,Product,580
+2025-05-19,Salaries,HRServices,Marketing,3952
+2025-03-01,Software,OpenAI,Product,477
+2025-12-30,Salaries,PayrollCo,Marketing,2249
+2025-10-10,Support Ops,Zendesk,Sales,728
+2025-09-16,Salaries,PayrollCo,Sales,2418
+2025-04-25,Salaries,HRServices,Operations,3872
+2025-12-08,Software,AWS,Sales,1133
+2025-07-29,Support Ops,SupportFlow,Sales,734
+2025-06-02,Salaries,HRServices,Sales,5927
+2025-08-23,Salaries,HRServices,Marketing,2811
+2025-03-12,Rent,OfficeRent BV,Finance,1804
+2025-12-12,Contractors,FreelancerHub,Finance,1898
+2025-06-21,Software,HubSpot,Product,575
+2025-03-03,Marketing,Google Ads,Sales,2236
+2025-09-20,Marketing,LinkedIn Ads,Marketing,2490
+2025-08-14,Cloud Infrastructure,Cloudflare,Product,1677
+2025-02-18,Salaries,PayrollCo,Product,4655
+2025-06-12,Cloud Infrastructure,AWS,Operations,365
+2025-01-19,Contractors,DevContract Ltd,Sales,561
+2025-07-23,Cloud Infrastructure,Cloudflare,Product,950
+2025-08-30,Contractors,DevContract Ltd,Finance,1308
+2025-02-23,Salaries,PayrollCo,Operations,2868
+2025-11-08,Salaries,PayrollCo,Operations,4012
+2025-03-28,Cloud Infrastructure,Datadog,Marketing,1433
+2025-04-03,Software,Figma,Product,734
+2025-12-19,Cloud Infrastructure,Cloudflare,Marketing,238
+2025-09-14,Software,Notion,Finance,1140
+2025-06-21,Rent,OfficeRent BV,Product,2075
+2025-01-26,Software,Figma,Finance,1052
+2025-09-21,Insurance,AXA,Finance,657
+2025-06-05,Cloud Infrastructure,AWS,Product,229
+2025-03-16,Cloud Infrastructure,Datadog,Operations,1319
+2025-11-22,Marketing,Meta Ads,Operations,1714
+2025-12-14,Rent,OfficeRent BV,Finance,1978
+2025-10-21,Rent,OfficeRent BV,Operations,2528
+2025-09-12,Marketing,Google Ads,Operations,2483
+2025-09-15,Travel,AirlineTravel,Sales,70
+2025-03-25,Support Ops,Zendesk,Sales,307
+2025-07-18,Cloud Infrastructure,Cloudflare,Product,274
+2025-06-26,Salaries,HRServices,Finance,2919
+2025-06-30,Software,Notion,Operations,375
+2025-12-23,Marketing,LinkedIn Ads,Operations,1218
+2025-03-15,Marketing,Google Ads,Sales,1764
+2025-09-24,Contractors,DevContract Ltd,Operations,1022
+2025-02-10,Marketing,Meta Ads,Marketing,1026
+2025-03-12,Salaries,PayrollCo,Operations,4471
+2025-06-04,Rent,Workspace GmbH,Finance,2441
+2025-06-29,Salaries,HRServices,Product,2399
+2025-01-10,Contractors,FreelancerHub,Product,2103
+2025-10-01,Salaries,PayrollCo,Product,2637
+2025-05-07,Travel,AirlineTravel,Finance,811
+2025-09-08,Software,Figma,Marketing,275
+2025-12-28,Software,HubSpot,Operations,995
+2025-04-08,Travel,Booking,Operations,365
+2025-01-21,Software,OpenAI,Marketing,98
+2025-05-26,Software,AWS,Operations,404
+2025-02-08,Marketing,Meta Ads,Product,1140
+2025-12-02,Contractors,FreelancerHub,Product,542
+2025-05-21,Software,AWS,Operations,400
+2025-11-04,Salaries,PayrollCo,Operations,3106
+2025-09-28,Support Ops,SupportFlow,Product,568
+2025-08-13,Marketing,Meta Ads,Product,2799
+2025-09-14,Cloud Infrastructure,AWS,Product,645
+2025-04-16,Cloud Infrastructure,AWS,Operations,1314
+2025-05-25,Insurance,Allianz,Product,619
+2025-07-01,Salaries,PayrollCo,Finance,5667
+2025-01-18,Salaries,HRServices,Product,2725
+2025-09-21,Marketing,Google Ads,Sales,2251
+2025-12-24,Cloud Infrastructure,Datadog,Sales,695
+2025-07-19,Marketing,Google Ads,Operations,1548
+2025-12-20,Cloud Infrastructure,Cloudflare,Sales,833
+2025-01-15,Insurance,Allianz,Sales,244
+2025-05-16,Rent,Workspace GmbH,Finance,1784
+2025-11-17,Contractors,DevContract Ltd,Product,836
+2025-03-18,Software,OpenAI,Marketing,417
+2025-11-06,Salaries,PayrollCo,Sales,3688
+2025-03-12,Software,AWS,Product,227
+2025-09-22,Marketing,LinkedIn Ads,Marketing,1955
+2025-01-11,Marketing,LinkedIn Ads,Sales,2134
+2025-05-10,Legal,Legal Partners,Marketing,952
+2025-11-13,Marketing,LinkedIn Ads,Sales,1866
+2025-02-12,Legal,Tax Advisory Co,Finance,314
+2025-04-13,Software,OpenAI,Finance,224
+2025-03-21,Cloud Infrastructure,Datadog,Operations,529
+2025-06-13,Travel,Booking,Operations,663
+2025-08-15,Software,HubSpot,Operations,693
+2025-06-02,Salaries,PayrollCo,Marketing,2689
+2025-05-28,Salaries,HRServices,Marketing,4873
+2025-03-21,Marketing,Meta Ads,Operations,1350
+2025-07-26,Software,AWS,Operations,978
+2025-03-24,Software,HubSpot,Product,100
+2025-07-02,Cloud Infrastructure,AWS,Operations,596
+2025-11-12,Contractors,FreelancerHub,Product,981
+2025-09-02,Marketing,LinkedIn Ads,Finance,1218
+2025-09-10,Marketing,Meta Ads,Sales,1549
+2025-04-01,Travel,Booking,Product,572
+2025-06-09,Cloud Infrastructure,AWS,Sales,1253
+2025-12-08,Marketing,Meta Ads,Operations,847
+2025-09-16,Salaries,PayrollCo,Sales,4090
+2025-10-26,Rent,Workspace GmbH,Product,2147
+2025-10-18,Rent,Workspace GmbH,Finance,1050
+2025-10-26,Software,AWS,Product,329
+2025-04-01,Cloud Infrastructure,Cloudflare,Product,334
+2025-01-06,Software,AWS,Finance,951
+2025-08-30,Cloud Infrastructure,AWS,Sales,812
+2025-09-24,Legal,Tax Advisory Co,Finance,266
+2025-01-16,Marketing,Google Ads,Marketing,2184
+2025-02-08,Support Ops,SupportFlow,Marketing,501
+2025-11-12,Salaries,HRServices,Marketing,2369
+2025-04-04,Salaries,HRServices,Operations,4706
+2025-03-07,Insurance,AXA,Finance,531
+2025-06-03,Marketing,Meta Ads,Operations,765
+2025-08-04,Support Ops,SupportFlow,Sales,116
+2025-03-19,Contractors,FreelancerHub,Product,657
+2025-09-09,Support Ops,SupportFlow,Marketing,886
+2025-05-05,Contractors,FreelancerHub,Sales,2063
+2025-08-30,Insurance,AXA,Product,240
+2025-04-14,Software,OpenAI,Marketing,218
+2025-03-25,Rent,OfficeRent BV,Marketing,1636
+2025-10-07,Cloud Infrastructure,Cloudflare,Sales,1599
+2025-10-10,Marketing,LinkedIn Ads,Marketing,865
+2025-05-29,Cloud Infrastructure,AWS,Marketing,230
+2025-01-30,Software,Notion,Operations,124
+2025-07-24,Rent,Workspace GmbH,Operations,1664
+2025-10-12,Insurance,AXA,Finance,260
+2025-11-25,Software,Figma,Finance,254
+2025-06-22,Support Ops,Zendesk,Sales,258
+2025-07-11,Cloud Infrastructure,AWS,Sales,376
+2025-02-24,Marketing,LinkedIn Ads,Product,1948
+2025-12-07,Cloud Infrastructure,AWS,Finance,1397
+2025-12-08,Support Ops,Zendesk,Finance,999
+2025-02-17,Software,Figma,Finance,886
+2025-06-29,Travel,RailEurope,Finance,727
+2025-02-18,Cloud Infrastructure,Cloudflare,Finance,376
+2025-07-07,Support Ops,Zendesk,Product,922
+2025-02-14,Contractors,FreelancerHub,Marketing,894
+2025-10-13,Software,HubSpot,Product,705
+2025-05-26,Rent,Workspace GmbH,Product,2335
+2025-05-25,Software,OpenAI,Marketing,370
+2025-08-09,Support Ops,SupportFlow,Finance,865
+2025-05-18,Cloud Infrastructure,Cloudflare,Product,1648
+2025-02-03,Salaries,HRServices,Marketing,5068
+2025-10-15,Rent,Workspace GmbH,Operations,2121
+2025-07-16,Software,AWS,Marketing,978
+2025-09-19,Marketing,Meta Ads,Product,412
+2025-02-08,Marketing,LinkedIn Ads,Sales,1860
+2025-02-19,Travel,AirlineTravel,Product,282
+2025-01-09,Marketing,LinkedIn Ads,Operations,912
+2025-08-22,Rent,OfficeRent BV,Product,1314
+2025-01-07,Salaries,HRServices,Finance,4296
+2025-07-22,Cloud Infrastructure,AWS,Operations,1123
+2025-05-30,Travel,RailEurope,Product,371
+2025-10-12,Rent,Workspace GmbH,Sales,2544
+2025-10-11,Marketing,Meta Ads,Marketing,1227
+2025-12-19,Insurance,AXA,Finance,380
+2025-02-24,Cloud Infrastructure,Cloudflare,Product,1328
+2025-07-01,Support Ops,SupportFlow,Sales,666
+2025-02-03,Marketing,Meta Ads,Product,2667
+2025-11-01,Support Ops,Zendesk,Finance,182
+2025-06-26,Legal,Legal Partners,Sales,1448
+2025-01-11,Salaries,PayrollCo,Sales,5740
+2025-07-26,Salaries,PayrollCo,Product,4127
+2025-11-05,Marketing,LinkedIn Ads,Product,1910
+2025-09-25,Marketing,LinkedIn Ads,Product,1801
+2025-10-26,Legal,Tax Advisory Co,Product,343
+2025-10-01,Cloud Infrastructure,AWS,Product,879
+2025-04-27,Software,Figma,Product,300
+2025-11-21,Rent,Workspace GmbH,Marketing,1132
+2025-02-14,Cloud Infrastructure,Cloudflare,Product,596
+2025-05-25,Cloud Infrastructure,AWS,Product,252
+2025-03-20,Salaries,PayrollCo,Product,3295
+2025-08-10,Rent,Workspace GmbH,Product,1232
+2025-08-21,Cloud Infrastructure,Datadog,Sales,589
+2025-03-31,Cloud Infrastructure,AWS,Product,575
+2025-09-09,Salaries,HRServices,Finance,3228
+2025-06-05,Salaries,PayrollCo,Sales,2178
+2025-01-23,Marketing,LinkedIn Ads,Finance,2138
+2025-03-22,Marketing,Google Ads,Marketing,2028
+2025-10-27,Salaries,HRServices,Product,1921
+2025-02-07,Salaries,PayrollCo,Finance,3893
+2025-12-18,Marketing,Google Ads,Product,1429
+2025-07-17,Salaries,PayrollCo,Marketing,2145
+2025-01-01,Marketing,LinkedIn Ads,Product,1722
+2025-03-26,Insurance,Allianz,Operations,132
+2025-05-14,Software,HubSpot,Finance,899
+2025-10-01,Travel,AirlineTravel,Finance,236
+2025-03-18,Salaries,PayrollCo,Operations,1951
+2025-07-17,Legal,Tax Advisory Co,Finance,1099
+2025-11-28,Marketing,LinkedIn Ads,Operations,1516
+2025-05-20,Salaries,PayrollCo,Operations,5958
+2025-12-04,Support Ops,Zendesk,Marketing,247
+2025-01-01,Contractors,DevContract Ltd,Sales,538
+2025-09-13,Salaries,HRServices,Product,6100
+2025-08-30,Rent,OfficeRent BV,Finance,1147
+2025-09-08,Rent,OfficeRent BV,Operations,1065
+2025-08-11,Marketing,Google Ads,Sales,466
+2025-05-16,Marketing,Meta Ads,Finance,1225
+2025-07-23,Cloud Infrastructure,Datadog,Finance,1254
+2025-01-02,Contractors,FreelancerHub,Product,1772
+2025-08-01,Marketing,LinkedIn Ads,Operations,1220
+2025-08-05,Cloud Infrastructure,Datadog,Sales,492
+2025-03-20,Support Ops,Zendesk,Finance,485
+2025-02-02,Contractors,FreelancerHub,Operations,886
+2025-01-11,Contractors,DevContract Ltd,Operations,2188
+2025-10-20,Legal,Legal Partners,Finance,1294
+2025-05-14,Marketing,Google Ads,Marketing,2469
+2025-10-08,Salaries,HRServices,Product,1851
+2025-12-11,Support Ops,Zendesk,Marketing,812
+2025-08-16,Software,HubSpot,Finance,699
+2025-04-17,Software,Notion,Operations,1036
+2025-07-08,Marketing,Meta Ads,Operations,2759
+2025-07-23,Salaries,PayrollCo,Sales,3731
+2025-10-26,Legal,Tax Advisory Co,Operations,354
+2025-12-12,Support Ops,SupportFlow,Product,184
+2025-01-21,Cloud Infrastructure,AWS,Operations,952
+2025-06-23,Cloud Infrastructure,Datadog,Operations,1289
+2025-08-24,Salaries,HRServices,Operations,4519
+2025-12-04,Salaries,PayrollCo,Finance,3638
+2025-09-26,Insurance,Allianz,Finance,118
+2025-05-19,Marketing,LinkedIn Ads,Operations,1916
+2025-12-07,Travel,Booking,Finance,134
+2025-11-04,Support Ops,Zendesk,Marketing,232
+2025-01-17,Salaries,HRServices,Finance,2303
+2025-06-29,Salaries,PayrollCo,Operations,2440
+2025-10-09,Marketing,Meta Ads,Marketing,1983
+2025-09-09,Legal,Legal Partners,Marketing,340
+2025-03-22,Insurance,AXA,Operations,354
+2025-09-22,Software,AWS,Operations,804
+2025-10-25,Support Ops,Zendesk,Sales,285
+2025-05-16,Rent,Workspace GmbH,Marketing,2521
+2025-05-15,Salaries,HRServices,Product,2502
+2025-06-26,Rent,OfficeRent BV,Sales,1174
+2025-01-27,Travel,AirlineTravel,Product,767
+2025-12-12,Software,Figma,Product,214
+2025-10-10,Salaries,PayrollCo,Marketing,4564
+2025-12-19,Rent,Workspace GmbH,Sales,1261
+2025-02-08,Cloud Infrastructure,Datadog,Product,499
+2025-05-24,Marketing,LinkedIn Ads,Operations,1709
+2025-02-09,Insurance,Allianz,Finance,139
+2025-10-10,Marketing,Meta Ads,Finance,308
+2025-09-27,Marketing,Google Ads,Sales,1693
+2025-04-25,Support Ops,SupportFlow,Product,982
+2025-04-11,Salaries,HRServices,Sales,2287
+2025-12-20,Support Ops,SupportFlow,Operations,864
+2025-04-25,Marketing,LinkedIn Ads,Marketing,2677
+2025-04-06,Software,AWS,Product,462
+2025-09-03,Cloud Infrastructure,Datadog,Finance,471
+2025-11-04,Salaries,HRServices,Product,6207
+2025-02-06,Travel,Booking,Product,196
+2025-02-13,Rent,OfficeRent BV,Product,1004
+2025-04-03,Contractors,FreelancerHub,Product,1401
+2025-02-17,Marketing,LinkedIn Ads,Product,1040
+2025-09-12,Salaries,PayrollCo,Marketing,2449
+2025-01-20,Cloud Infrastructure,Cloudflare,Sales,349
+2025-01-09,Insurance,Allianz,Finance,311
+2025-04-06,Salaries,PayrollCo,Marketing,3654
+2025-11-23,Salaries,PayrollCo,Finance,3890
+2025-02-04,Cloud Infrastructure,AWS,Operations,1537
+2025-02-05,Contractors,FreelancerHub,Sales,509
+2025-09-04,Cloud Infrastructure,AWS,Sales,1354
+2025-08-25,Salaries,HRServices,Sales,6134
+2025-08-19,Legal,Legal Partners,Sales,203
+2025-06-04,Salaries,PayrollCo,Finance,5642
+2025-12-10,Marketing,Google Ads,Finance,328
+2025-01-08,Contractors,DevContract Ltd,Product,1662
+2025-08-07,Software,HubSpot,Product,150
+2025-11-07,Travel,RailEurope,Marketing,202
+2025-07-11,Software,Figma,Finance,214
+2025-04-07,Legal,Tax Advisory Co,Marketing,259
+2025-04-26,Salaries,HRServices,Marketing,3850
+2025-10-03,Contractors,DevContract Ltd,Operations,2028
+2025-10-26,Marketing,Meta Ads,Sales,1213
+2025-04-16,Software,AWS,Sales,843
+2025-10-12,Rent,Workspace GmbH,Marketing,1030
+2025-01-05,Insurance,Allianz,Operations,554
+2025-02-19,Support Ops,SupportFlow,Marketing,648
+2025-06-16,Software,Notion,Finance,967
+2025-05-28,Contractors,DevContract Ltd,Operations,1545
+2025-08-18,Contractors,DevContract Ltd,Marketing,1422
+2025-09-11,Support Ops,SupportFlow,Sales,623
+2025-10-08,Salaries,HRServices,Product,6198
+2025-04-26,Marketing,Google Ads,Marketing,2231
+2025-09-26,Salaries,PayrollCo,Operations,2769
+2025-08-07,Salaries,HRServices,Marketing,4134
+2025-08-04,Rent,OfficeRent BV,Operations,1758
+2025-10-14,Contractors,DevContract Ltd,Operations,1195
+2025-05-28,Rent,OfficeRent BV,Product,996
+2025-11-20,Software,Notion,Marketing,317
+2025-11-03,Contractors,DevContract Ltd,Finance,2186
+2025-04-03,Software,AWS,Product,951
+2025-02-03,Cloud Infrastructure,Datadog,Operations,384
+2025-09-03,Rent,Workspace GmbH,Sales,1555
+2025-03-24,Software,HubSpot,Product,324
+2025-11-03,Salaries,HRServices,Marketing,5794
+2025-04-12,Contractors,FreelancerHub,Finance,1381
+2025-06-30,Salaries,PayrollCo,Sales,4038
+2025-04-17,Software,Figma,Marketing,312
+2025-05-01,Salaries,PayrollCo,Product,4853
+2025-05-18,Salaries,PayrollCo,Sales,4059
+2025-08-01,Rent,Workspace GmbH,Marketing,1152
+2025-08-03,Rent,OfficeRent BV,Product,2563
+2025-08-31,Marketing,Google Ads,Operations,1561
+2025-04-28,Legal,Tax Advisory Co,Operations,1148
+2025-09-20,Insurance,AXA,Sales,576
+2025-02-26,Contractors,DevContract Ltd,Marketing,1252
+2025-05-25,Legal,Tax Advisory Co,Sales,1346
+2025-03-25,Insurance,Allianz,Sales,372
+2025-09-07,Marketing,LinkedIn Ads,Product,1527
+2025-07-09,Contractors,DevContract Ltd,Operations,1255
+2025-07-21,Insurance,AXA,Sales,448
+2025-04-21,Salaries,PayrollCo,Product,3702
+2025-01-03,Travel,RailEurope,Operations,125
+2025-02-20,Rent,Workspace GmbH,Sales,1132
+2025-11-30,Salaries,PayrollCo,Operations,3146
+2025-01-19,Contractors,DevContract Ltd,Product,1684
+2025-11-28,Marketing,Google Ads,Sales,2499
+2025-08-08,Contractors,DevContract Ltd,Operations,556
+2025-10-07,Cloud Infrastructure,AWS,Finance,371
+2025-05-05,Support Ops,SupportFlow,Marketing,160
+2025-12-20,Marketing,Meta Ads,Finance,431
+2025-07-04,Contractors,FreelancerHub,Finance,2077
+2025-06-08,Salaries,HRServices,Product,3776
+2025-07-01,Salaries,PayrollCo,Finance,6132
+2025-06-04,Rent,Workspace GmbH,Operations,1694
+2025-04-25,Salaries,HRServices,Marketing,5129
+2025-04-25,Cloud Infrastructure,AWS,Product,984
+2025-12-06,Salaries,PayrollCo,Sales,4549
+2025-03-17,Travel,RailEurope,Operations,559
+2025-11-19,Rent,OfficeRent BV,Operations,1141
+2025-10-13,Salaries,PayrollCo,Sales,2024
+2025-12-25,Software,AWS,Sales,1008
+2025-02-13,Rent,Workspace GmbH,Finance,1079
+2025-05-16,Marketing,LinkedIn Ads,Finance,2018
+2025-12-08,Salaries,HRServices,Product,2951
+2025-05-05,Support Ops,Zendesk,Operations,704
+2025-05-11,Marketing,LinkedIn Ads,Product,1954
+2025-09-21,Insurance,AXA,Sales,367
+2025-11-26,Marketing,Meta Ads,Marketing,2372
+2025-03-21,Rent,Workspace GmbH,Product,1321
+2025-09-02,Salaries,PayrollCo,Operations,2142
+2025-04-25,Contractors,DevContract Ltd,Product,602
+2025-07-15,Contractors,FreelancerHub,Sales,982
+2025-11-30,Salaries,PayrollCo,Operations,2790
+2025-03-06,Rent,OfficeRent BV,Finance,1490
+2025-01-07,Contractors,FreelancerHub,Operations,678
+2025-10-28,Marketing,Google Ads,Product,2358
+2025-02-22,Insurance,AXA,Operations,410
+2025-07-17,Marketing,Meta Ads,Sales,2145
+2025-01-23,Marketing,LinkedIn Ads,Marketing,1265
+2025-11-24,Rent,OfficeRent BV,Product,2341
+2025-07-08,Salaries,PayrollCo,Marketing,3761
+2025-06-14,Marketing,Meta Ads,Product,977
+2025-03-06,Salaries,HRServices,Product,5114
+2025-07-18,Salaries,HRServices,Marketing,1811
+2025-10-22,Support Ops,Zendesk,Sales,489
+2025-02-25,Rent,Workspace GmbH,Finance,1101
+2025-07-08,Salaries,PayrollCo,Finance,4837
+2025-11-15,Cloud Infrastructure,Cloudflare,Operations,268
+2025-06-09,Support Ops,SupportFlow,Marketing,545
+2025-01-04,Insurance,AXA,Finance,477
+2025-05-19,Contractors,DevContract Ltd,Product,1924
+2025-12-25,Legal,Tax Advisory Co,Product,858
+2025-07-08,Marketing,Google Ads,Sales,1307
+2025-05-30,Salaries,PayrollCo,Marketing,2893
+2025-04-02,Rent,Workspace GmbH,Operations,2188
+2025-02-15,Marketing,Meta Ads,Product,975
+2025-10-31,Contractors,DevContract Ltd,Sales,447
+2025-02-20,Salaries,PayrollCo,Product,2919
+2025-04-05,Salaries,HRServices,Sales,3895
+2025-03-31,Salaries,PayrollCo,Marketing,2493
+2025-12-11,Rent,Workspace GmbH,Product,1832
+2025-09-20,Marketing,Meta Ads,Operations,1280
+2025-08-17,Salaries,PayrollCo,Product,3650
+2025-06-11,Marketing,LinkedIn Ads,Sales,1898
+2025-02-05,Insurance,AXA,Marketing,691
+2025-09-12,Insurance,AXA,Sales,472
+2025-03-25,Software,Notion,Sales,732
+2025-06-15,Rent,Workspace GmbH,Operations,1544
+2025-05-19,Salaries,HRServices,Sales,5248
+2025-01-28,Software,Figma,Product,340
+2025-05-27,Software,Figma,Finance,682
+2025-10-13,Contractors,FreelancerHub,Product,2143
+2025-05-15,Rent,Workspace GmbH,Marketing,2411
+2025-03-20,Marketing,LinkedIn Ads,Operations,2625
+2025-12-13,Marketing,Google Ads,Sales,2335
+2025-06-19,Contractors,FreelancerHub,Operations,1068
+2025-07-02,Support Ops,Zendesk,Product,306
+2025-10-21,Software,Notion,Marketing,636
+2025-06-27,Salaries,HRServices,Sales,4986
+2025-06-26,Software,AWS,Marketing,1050
+2025-07-30,Contractors,FreelancerHub,Finance,1532
+2025-07-01,Support Ops,SupportFlow,Finance,341
+2025-06-10,Salaries,PayrollCo,Finance,3742
+2025-05-22,Software,AWS,Sales,1017
+2025-07-05,Marketing,LinkedIn Ads,Product,516
+2025-03-05,Legal,Legal Partners,Finance,815
+2025-01-11,Software,OpenAI,Product,581
+2025-07-14,Insurance,AXA,Operations,258
+2025-02-22,Salaries,HRServices,Marketing,4241
+2025-10-20,Insurance,AXA,Product,126
+2025-07-22,Marketing,Meta Ads,Finance,1172
+2025-01-11,Rent,Workspace GmbH,Product,1304
+2025-06-08,Rent,Workspace GmbH,Product,1010
+2025-07-11,Contractors,DevContract Ltd,Product,789
+2025-10-22,Salaries,HRServices,Marketing,4222
+2025-04-09,Marketing,Google Ads,Sales,1090
+2025-02-11,Rent,OfficeRent BV,Operations,2329
+2025-03-21,Contractors,FreelancerHub,Finance,654
+2025-03-02,Contractors,FreelancerHub,Sales,1511
+2025-09-08,Marketing,LinkedIn Ads,Finance,406
+2025-01-18,Support Ops,SupportFlow,Finance,715
+2025-09-22,Salaries,HRServices,Finance,5510
+2025-01-06,Contractors,DevContract Ltd,Product,1280
+2025-09-18,Contractors,DevContract Ltd,Sales,2085
+2025-04-11,Legal,Tax Advisory Co,Marketing,186
+2025-11-02,Insurance,Allianz,Finance,167
+2025-12-06,Salaries,PayrollCo,Marketing,2165
+2025-02-25,Cloud Infrastructure,Cloudflare,Operations,887
+2025-06-06,Salaries,PayrollCo,Marketing,4885
+2025-11-15,Insurance,AXA,Product,351
+2025-09-21,Travel,Booking,Finance,374
+2025-04-20,Cloud Infrastructure,AWS,Marketing,1627
+2025-09-22,Salaries,HRServices,Sales,4820
+2025-09-24,Software,HubSpot,Sales,116
+2025-01-19,Salaries,PayrollCo,Operations,3130
+2025-01-06,Salaries,PayrollCo,Product,6190
+2025-07-24,Salaries,PayrollCo,Product,3676
+2025-09-17,Marketing,LinkedIn Ads,Marketing,1788
+2025-07-01,Salaries,PayrollCo,Finance,2553
+2025-12-27,Legal,Tax Advisory Co,Product,307
+2025-06-04,Salaries,HRServices,Sales,4223
+2025-06-06,Software,HubSpot,Product,86
+2025-05-12,Rent,OfficeRent BV,Operations,932
+2025-09-14,Salaries,PayrollCo,Product,4057
+2025-11-13,Salaries,HRServices,Finance,5704
+2025-05-13,Cloud Infrastructure,Datadog,Finance,885
+2025-07-27,Software,Notion,Sales,1086
+2025-06-23,Contractors,FreelancerHub,Product,1400
+2025-10-27,Legal,Legal Partners,Marketing,592
+2025-08-15,Salaries,HRServices,Product,4618
+2025-07-17,Software,OpenAI,Product,485
+2025-05-12,Salaries,HRServices,Finance,6332
+2025-11-08,Salaries,PayrollCo,Operations,2053
+2025-01-13,Salaries,PayrollCo,Operations,2391
+2025-03-09,Marketing,Meta Ads,Operations,1893
+2025-07-23,Support Ops,Zendesk,Marketing,785
+2025-10-26,Marketing,Meta Ads,Finance,2234
+2025-06-01,Software,AWS,Sales,1110
+2025-06-09,Insurance,Allianz,Operations,595
+2025-03-31,Support Ops,SupportFlow,Marketing,887
+2025-11-20,Salaries,HRServices,Operations,4153
+2025-08-31,Insurance,Allianz,Sales,542
+2025-09-03,Salaries,PayrollCo,Product,6100
+2025-05-31,Contractors,FreelancerHub,Sales,1186
+2025-05-01,Contractors,FreelancerHub,Product,1617
+2025-06-07,Salaries,HRServices,Marketing,1826
+2025-10-30,Marketing,Google Ads,Sales,488
+2025-11-05,Legal,Tax Advisory Co,Operations,574
+2025-09-21,Salaries,HRServices,Sales,6278
+2025-07-04,Contractors,DevContract Ltd,Operations,998
+2025-11-11,Marketing,LinkedIn Ads,Sales,1437
+2025-06-06,Legal,Tax Advisory Co,Sales,1469
+2025-05-31,Marketing,Meta Ads,Marketing,2631
+2025-08-10,Cloud Infrastructure,Datadog,Operations,660
+2025-02-20,Salaries,PayrollCo,Marketing,2841
+2025-03-26,Contractors,FreelancerHub,Marketing,1947
+2025-10-27,Marketing,LinkedIn Ads,Finance,595
+2025-03-25,Salaries,HRServices,Product,2071
+2025-09-18,Rent,OfficeRent BV,Sales,1203
+2025-05-02,Legal,Legal Partners,Operations,624
+2025-12-03,Rent,OfficeRent BV,Sales,1560
+2025-05-16,Rent,Workspace GmbH,Marketing,1820
+2025-01-10,Salaries,HRServices,Product,6271
+2025-12-04,Salaries,PayrollCo,Sales,3097
+2025-05-23,Marketing,Meta Ads,Sales,532
+2025-09-19,Salaries,PayrollCo,Marketing,3278
+2025-04-25,Marketing,Meta Ads,Marketing,1706
+2025-12-15,Software,Notion,Operations,984
+2025-04-29,Contractors,FreelancerHub,Operations,537
+2025-07-28,Software,Notion,Finance,1012
+2025-07-20,Marketing,LinkedIn Ads,Operations,1821
+2025-10-16,Salaries,HRServices,Marketing,4550
+2025-11-22,Contractors,FreelancerHub,Product,697
+2025-10-13,Marketing,Google Ads,Operations,1187
+2025-08-11,Salaries,PayrollCo,Product,2562
+2025-06-05,Legal,Legal Partners,Sales,377
+2025-11-07,Support Ops,SupportFlow,Marketing,305
+2025-02-20,Rent,Workspace GmbH,Operations,1687
+2025-05-25,Cloud Infrastructure,AWS,Finance,1505
+2025-01-08,Cloud Infrastructure,Cloudflare,Operations,207
+2025-09-23,Software,OpenAI,Finance,107
+2025-12-07,Contractors,DevContract Ltd,Sales,438
+2025-08-27,Cloud Infrastructure,Cloudflare,Operations,1575
+2025-11-11,Rent,Workspace GmbH,Finance,2009
+2025-10-30,Marketing,LinkedIn Ads,Finance,626
+2025-04-26,Salaries,HRServices,Operations,6087
+2025-08-24,Insurance,Allianz,Marketing,558
+2025-05-14,Contractors,FreelancerHub,Product,2135
+2025-09-06,Salaries,HRServices,Product,5667
+2025-01-26,Contractors,DevContract Ltd,Product,1408
+2025-10-07,Insurance,Allianz,Product,663
+2025-04-02,Salaries,HRServices,Sales,6026
+2025-07-07,Marketing,Meta Ads,Operations,570
+2025-06-22,Support Ops,SupportFlow,Operations,782
+2025-07-08,Support Ops,SupportFlow,Finance,903
+2025-10-27,Insurance,Allianz,Operations,656
+2025-10-11,Rent,OfficeRent BV,Product,2289
+2025-09-08,Support Ops,SupportFlow,Sales,378
+2025-09-19,Support Ops,SupportFlow,Operations,814
+2025-05-10,Rent,Workspace GmbH,Product,1827
+2025-07-11,Marketing,Google Ads,Product,2640
+2025-06-12,Software,OpenAI,Sales,272
+2025-04-13,Cloud Infrastructure,Cloudflare,Sales,1555
+2025-07-17,Rent,Workspace GmbH,Finance,2166
+2025-06-26,Marketing,Google Ads,Finance,1746
+2025-08-26,Salaries,PayrollCo,Product,6281
+2025-05-30,Marketing,LinkedIn Ads,Sales,989
+2025-05-19,Travel,Booking,Sales,276
+2025-09-23,Cloud Infrastructure,Datadog,Finance,1536
+2025-04-07,Salaries,PayrollCo,Marketing,5612
+2025-07-20,Support Ops,Zendesk,Marketing,102
+2025-10-21,Marketing,LinkedIn Ads,Sales,2030
+2025-03-15,Legal,Legal Partners,Sales,835
+2025-10-18,Cloud Infrastructure,Datadog,Marketing,565
+2025-08-15,Marketing,Google Ads,Operations,2615
+2025-10-09,Cloud Infrastructure,AWS,Sales,1615
+2025-08-16,Salaries,PayrollCo,Operations,5342
+2025-07-23,Marketing,Meta Ads,Finance,361
+2025-07-06,Legal,Tax Advisory Co,Sales,153
+2025-05-04,Marketing,LinkedIn Ads,Sales,2235
+2025-05-11,Marketing,LinkedIn Ads,Operations,2375
+2025-12-27,Insurance,Allianz,Product,674
+2025-03-13,Rent,OfficeRent BV,Product,1005
+2025-05-23,Support Ops,SupportFlow,Product,252
+2025-10-26,Software,HubSpot,Finance,252
+2025-10-27,Legal,Tax Advisory Co,Sales,1045
+2025-12-22,Rent,OfficeRent BV,Operations,1451
+2025-08-18,Salaries,PayrollCo,Finance,6204
+2025-10-13,Contractors,FreelancerHub,Finance,1306
+2025-10-16,Legal,Tax Advisory Co,Operations,1269
+2025-08-14,Marketing,Google Ads,Marketing,988
+2025-06-03,Contractors,DevContract Ltd,Marketing,909
+2025-02-14,Salaries,PayrollCo,Finance,6498
+2025-04-22,Cloud Infrastructure,AWS,Operations,589
+2025-07-26,Marketing,Meta Ads,Operations,445
+2025-10-29,Salaries,HRServices,Marketing,3004
+2025-09-12,Salaries,PayrollCo,Operations,6011
+2025-03-04,Support Ops,Zendesk,Sales,895
+2025-05-23,Salaries,HRServices,Operations,4272
+2025-10-05,Cloud Infrastructure,Datadog,Sales,235
+2025-06-19,Contractors,DevContract Ltd,Marketing,451
+2025-10-09,Salaries,HRServices,Marketing,6261
+2025-12-30,Marketing,Meta Ads,Finance,696
+2025-11-01,Support Ops,SupportFlow,Finance,664
+2025-12-15,Contractors,DevContract Ltd,Product,1742
+2025-08-13,Software,OpenAI,Sales,469
+2025-03-29,Cloud Infrastructure,Cloudflare,Marketing,488
+2025-06-21,Salaries,HRServices,Marketing,5582
+2025-02-17,Legal,Tax Advisory Co,Marketing,404
+2025-07-18,Marketing,LinkedIn Ads,Finance,1522
+2025-01-28,Support Ops,SupportFlow,Product,912
+2025-02-13,Legal,Tax Advisory Co,Marketing,172
+2025-02-12,Salaries,PayrollCo,Operations,3085
+2025-11-23,Software,AWS,Finance,295
+2025-02-21,Contractors,FreelancerHub,Product,1213
+2025-04-02,Contractors,FreelancerHub,Finance,2070
+2025-07-24,Rent,OfficeRent BV,Product,2402
+2025-04-03,Salaries,HRServices,Product,3279
+2025-01-10,Salaries,HRServices,Sales,2368
+2025-06-09,Salaries,PayrollCo,Finance,2871
+2025-05-24,Software,OpenAI,Finance,811
+2025-06-02,Salaries,HRServices,Product,6150
+2025-12-26,Marketing,Google Ads,Finance,1913
+2025-03-05,Contractors,DevContract Ltd,Sales,1970
+2025-05-22,Cloud Infrastructure,Cloudflare,Sales,1796
+2025-09-09,Contractors,FreelancerHub,Finance,2164
+2025-10-12,Rent,OfficeRent BV,Product,997
+2025-06-08,Software,OpenAI,Operations,511
+2025-08-15,Software,Notion,Marketing,1053
+2025-02-07,Rent,OfficeRent BV,Product,2292
+2025-09-02,Salaries,PayrollCo,Operations,3882
+2025-03-16,Support Ops,Zendesk,Marketing,125
+2025-08-26,Rent,OfficeRent BV,Sales,1794
+2025-12-06,Marketing,Meta Ads,Finance,840
+2025-10-31,Salaries,PayrollCo,Sales,6040
+2025-04-24,Cloud Infrastructure,Cloudflare,Sales,1096
+2025-02-28,Cloud Infrastructure,AWS,Marketing,442
+2025-06-02,Marketing,Meta Ads,Marketing,2630
+2025-03-10,Salaries,PayrollCo,Marketing,5446
+2025-02-19,Marketing,Meta Ads,Operations,415
+2025-05-24,Cloud Infrastructure,Datadog,Finance,887
+2025-03-25,Software,Notion,Sales,655
+2025-12-27,Contractors,DevContract Ltd,Product,1030
+2025-07-29,Legal,Legal Partners,Finance,1105
+2025-02-10,Cloud Infrastructure,AWS,Operations,435
+2025-01-23,Marketing,Google Ads,Marketing,2323
+2025-07-02,Rent,Workspace GmbH,Finance,1459
+2025-11-02,Marketing,Meta Ads,Product,1758
+2025-08-03,Software,HubSpot,Product,852
+2025-07-23,Legal,Tax Advisory Co,Finance,310
+2025-04-23,Software,Figma,Operations,884
+2025-10-27,Cloud Infrastructure,Datadog,Marketing,174
+2025-04-19,Salaries,PayrollCo,Sales,2706
+2025-08-05,Support Ops,SupportFlow,Marketing,304
+2025-12-26,Salaries,HRServices,Marketing,2891
+2025-03-03,Software,AWS,Operations,113
+2025-05-26,Rent,OfficeRent BV,Marketing,2171
+2025-01-22,Cloud Infrastructure,Cloudflare,Finance,355
+2025-11-13,Support Ops,Zendesk,Product,474
+2025-02-08,Cloud Infrastructure,Cloudflare,Finance,267
+2025-06-15,Rent,OfficeRent BV,Finance,1364
+2025-09-04,Marketing,Google Ads,Finance,2173
+2025-10-23,Contractors,FreelancerHub,Marketing,1339
+2025-10-03,Salaries,HRServices,Operations,1939
+2025-10-05,Salaries,HRServices,Operations,4518
+2025-01-31,Rent,OfficeRent BV,Marketing,1457
+2025-07-10,Salaries,HRServices,Marketing,2106
+2025-03-06,Contractors,DevContract Ltd,Sales,1891
+2025-03-18,Contractors,FreelancerHub,Finance,1081
+2025-10-27,Software,OpenAI,Operations,376
+2025-12-24,Cloud Infrastructure,Cloudflare,Marketing,1324
+2025-07-02,Rent,Workspace GmbH,Finance,2487
+2025-03-30,Legal,Legal Partners,Finance,1019
+2025-02-26,Marketing,Meta Ads,Marketing,1187
+2025-07-14,Cloud Infrastructure,AWS,Finance,326
+2025-02-25,Rent,OfficeRent BV,Sales,1165
+2025-10-08,Salaries,PayrollCo,Sales,4709
+2025-04-13,Insurance,AXA,Operations,393
+2025-05-17,Support Ops,Zendesk,Product,693
+2025-03-21,Cloud Infrastructure,Datadog,Product,842
+2025-02-07,Software,Figma,Operations,209
+2025-02-20,Travel,AirlineTravel,Product,616
+2025-09-13,Support Ops,SupportFlow,Operations,221
+2025-09-10,Software,AWS,Sales,330
+2025-07-11,Salaries,HRServices,Marketing,2140
+2025-04-15,Marketing,LinkedIn Ads,Finance,2752
+2025-07-23,Legal,Legal Partners,Operations,527
+2025-12-07,Salaries,PayrollCo,Sales,2410
+2025-04-05,Software,Notion,Product,857
+2025-12-23,Marketing,LinkedIn Ads,Operations,1124
+2025-12-22,Cloud Infrastructure,AWS,Operations,835
+2025-04-27,Rent,Workspace GmbH,Operations,2462
+2025-07-16,Salaries,HRServices,Product,2724
+2025-12-23,Salaries,HRServices,Finance,4054
+2025-11-02,Insurance,AXA,Product,481
+2025-04-23,Rent,Workspace GmbH,Operations,957
+2025-09-03,Software,AWS,Sales,466
+2025-07-09,Software,OpenAI,Product,643
+2025-02-02,Travel,AirlineTravel,Operations,563
+2025-01-16,Contractors,DevContract Ltd,Marketing,1191
+2025-07-08,Insurance,AXA,Marketing,367
+2025-09-19,Contractors,DevContract Ltd,Finance,1927
+2025-07-12,Salaries,PayrollCo,Marketing,6069
+2025-09-07,Rent,Workspace GmbH,Operations,1881
+2025-04-16,Salaries,PayrollCo,Product,2842
+2025-10-17,Software,Figma,Marketing,871
+2025-05-08,Marketing,Meta Ads,Product,1093
+2025-02-20,Legal,Legal Partners,Finance,948
+2025-04-02,Contractors,DevContract Ltd,Sales,818
+2025-10-06,Rent,Workspace GmbH,Marketing,1902
+2025-01-12,Salaries,PayrollCo,Sales,2484
+2025-05-28,Salaries,HRServices,Finance,3363
+2025-11-13,Software,Notion,Sales,991
+2025-03-29,Insurance,Allianz,Finance,623
+2025-03-03,Cloud Infrastructure,Cloudflare,Marketing,1671
+2025-11-16,Contractors,DevContract Ltd,Operations,1001
+2025-01-28,Salaries,HRServices,Marketing,4298
+2025-08-24,Marketing,Google Ads,Product,1449
+2025-10-05,Salaries,PayrollCo,Marketing,5892
+2025-09-25,Support Ops,Zendesk,Finance,966
+2025-10-29,Cloud Infrastructure,Cloudflare,Marketing,417
+2025-04-29,Travel,Booking,Product,609
+2025-09-22,Software,Figma,Sales,536
+2025-12-08,Cloud Infrastructure,Datadog,Product,204
+2025-07-20,Contractors,DevContract Ltd,Sales,1511
+2025-12-27,Salaries,PayrollCo,Finance,2924
+2025-10-27,Software,Figma,Product,650
+2025-07-01,Cloud Infrastructure,Cloudflare,Product,1617
+2025-12-15,Contractors,FreelancerHub,Sales,1759
+2025-03-04,Rent,Workspace GmbH,Finance,2590
+2025-07-17,Marketing,Google Ads,Product,2747
+2025-11-02,Travel,RailEurope,Operations,889
+2025-11-20,Salaries,HRServices,Marketing,4439
+2025-05-26,Insurance,Allianz,Product,607
+2025-03-05,Rent,Workspace GmbH,Finance,1065
+2025-11-21,Salaries,HRServices,Operations,3662
+2025-07-24,Software,HubSpot,Product,409
+2025-10-24,Salaries,HRServices,Marketing,2155
+2025-03-01,Cloud Infrastructure,Cloudflare,Operations,1289
+2025-04-01,Support Ops,Zendesk,Finance,904
+2025-07-13,Salaries,PayrollCo,Marketing,5994
+2025-10-07,Salaries,HRServices,Marketing,3197
+2025-08-15,Support Ops,Zendesk,Marketing,469
+2025-06-16,Rent,OfficeRent BV,Sales,2011
+2025-11-08,Rent,OfficeRent BV,Sales,1123
+2025-11-22,Cloud Infrastructure,Cloudflare,Marketing,1689
+2025-11-23,Legal,Tax Advisory Co,Marketing,987
+2025-04-28,Marketing,Google Ads,Finance,1191
+2025-08-29,Salaries,HRServices,Operations,3143
+2025-04-09,Travel,Booking,Sales,421
+2025-01-12,Marketing,LinkedIn Ads,Sales,754
+2025-03-12,Salaries,PayrollCo,Marketing,6013
+2025-03-03,Cloud Infrastructure,Datadog,Product,1418
+2025-12-05,Software,Figma,Product,452
+2025-12-26,Software,OpenAI,Marketing,144
+2025-07-07,Marketing,LinkedIn Ads,Product,1011
+2025-04-30,Cloud Infrastructure,Cloudflare,Finance,279
+2025-10-18,Support Ops,SupportFlow,Marketing,260
+2025-03-28,Rent,Workspace GmbH,Product,2511
+2025-01-18,Salaries,HRServices,Marketing,6390
+2025-06-13,Legal,Tax Advisory Co,Sales,443
+2025-01-20,Software,Figma,Product,444
+2025-10-23,Salaries,HRServices,Product,3752
+2025-05-08,Rent,OfficeRent BV,Product,958
+2025-11-20,Marketing,Google Ads,Sales,1144
+2025-01-27,Salaries,PayrollCo,Product,2500
+2025-11-08,Support Ops,SupportFlow,Marketing,996
+2025-09-02,Cloud Infrastructure,AWS,Sales,1369
+2025-07-11,Rent,OfficeRent BV,Product,1747
+2025-03-06,Salaries,HRServices,Product,5672
+2025-05-19,Cloud Infrastructure,Datadog,Product,570
+2025-09-12,Software,HubSpot,Operations,564
+2025-11-26,Salaries,HRServices,Product,3793
+2025-09-22,Marketing,LinkedIn Ads,Operations,822
+2025-07-17,Rent,Workspace GmbH,Operations,2294
+2025-08-22,Software,Figma,Marketing,120
+2025-06-20,Software,AWS,Finance,912
+2025-06-19,Insurance,Allianz,Sales,619
+2025-09-21,Rent,Workspace GmbH,Operations,1813
+2025-03-22,Marketing,Meta Ads,Operations,342
+2025-05-06,Travel,Booking,Operations,830
+2025-07-11,Travel,RailEurope,Sales,873
+2025-09-28,Marketing,Google Ads,Marketing,663
+2025-09-02,Salaries,HRServices,Finance,5444
+2025-05-13,Software,AWS,Finance,1056
+2025-01-26,Marketing,LinkedIn Ads,Marketing,506
+2025-12-21,Marketing,Google Ads,Sales,1612

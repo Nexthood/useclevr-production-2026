@@ -320,6 +320,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0030_subscription_email_idempotency.sql"),
   readMigrationStatement("src/lib/db/migrations/0031_fix_credit_ledger_missing_columns.sql"),
   readMigrationStatement("src/lib/db/migrations/0032_widen_credit_ledger_transaction_type.sql"),
+  readMigrationStatement("src/lib/db/migrations/0033_concurrent_analysis_count.sql"),
 ];
 
 const constraints = [
