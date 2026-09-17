@@ -2,7 +2,17 @@ import { debugLog } from "@/lib/utils/debug";
 
 const SUBSCRIPTION_EMAIL_FROM = process.env.EMAIL_FROM || "UseClevr <no-reply@useclevr.com>";
 
-export type SubscriptionEmailType = "subscription_activation" | "subscription_cancellation" | "subscription_cancellation_scheduled";
+export type SubscriptionEmailType = "subscription_activation" | "subscription_cancellation" | "subscription_cancellation_scheduled" | "credit_purchase";
+
+export interface SendCreditPurchaseEmailParams {
+  to: string;
+  creditsGranted: number;
+  amount: number;
+  currency: string;
+  purchasedAt: string;
+  providerPaymentId: string;
+  dashboardUrl: string;
+}
 
 export interface SendSubscriptionActivationEmailParams {
   to: string;
@@ -301,6 +311,99 @@ Go to your dashboard: ${dashboardUrl}
     html,
     text,
     emailType: "subscription_cancellation_scheduled",
+  });
+}
+
+export async function sendCreditPurchaseEmail(
+  params: SendCreditPurchaseEmailParams
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const { to, creditsGranted, amount, currency, purchasedAt, providerPaymentId, dashboardUrl } = params;
+
+  const formattedAmount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency,
+  }).format(amount);
+
+  const subject = `Your UseClevr credit purchase is confirmed`;
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="margin: 0; color: #0ea5e9;">UseClevr</h1>
+  </div>
+
+  <h2 style="color: #1a1a1a;">Credits Added Successfully</h2>
+
+  <p>Thank you for your purchase! ${creditsGranted.toLocaleString()} credits have been added to your UseClevr account.</p>
+
+  <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Credits Added</td>
+        <td style="padding: 8px 0; font-weight: 600; font-size: 18px;">${creditsGranted.toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Amount Paid</td>
+        <td style="padding: 8px 0; font-weight: 600;">${formattedAmount}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Date</td>
+        <td style="padding: 8px 0;">${new Date(purchasedAt).toLocaleDateString()}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Reference</td>
+        <td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${providerPaymentId}</td>
+      </tr>
+    </table>
+  </div>
+
+  <p><strong>Important:</strong> Purchased credits do not expire. They are available immediately and will be used after your monthly included credits are exhausted.</p>
+
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${dashboardUrl}" style="display: inline-block; background: #0ea5e9; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
+  </div>
+
+  <p style="color: #64748b; font-size: 14px;">
+    You can view your purchase history and manage your account from your <a href="${dashboardUrl}" style="color: #0ea5e9;">subscription settings</a>.
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+  <p style="color: #94a3b8; font-size: 12px;">
+    This email was sent to ${to}. If you have questions, contact us at support@useclevr.com.
+  </p>
+</body>
+</html>
+`;
+
+  const text = `
+Credits Added Successfully
+
+Thank you for your purchase! ${creditsGranted.toLocaleString()} credits have been added to your UseClevr account.
+
+Credits Added: ${creditsGranted.toLocaleString()}
+Amount Paid: ${formattedAmount}
+Date: ${new Date(purchasedAt).toLocaleDateString()}
+Reference: ${providerPaymentId}
+
+Important: Purchased credits do not expire. They are available immediately and will be used after your monthly included credits are exhausted.
+
+Go to your dashboard: ${dashboardUrl}
+
+You can view your purchase history and manage your account from your subscription settings.
+`;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text,
+    emailType: "credit_purchase",
   });
 }
 

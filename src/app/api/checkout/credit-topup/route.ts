@@ -1,10 +1,12 @@
 import { auth } from "@/lib/auth/auth"
 import { getActiveCreditTopUpPackages, getCreditTopUpPackageById } from "@/lib/billing/credit-packages"
+import { buildCheckoutCancelUrl, resolveCheckoutBaseUrl } from "@/lib/billing/checkout-redirect"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { createCreditTopUpCheckoutSession } from "@/services/stripe/credit-checkout"
 import { hasWorkspacePermission } from "@/lib/utils/workspace-permissions"
 import { eq } from "drizzle-orm"
+import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
@@ -27,7 +29,7 @@ export async function GET() {
   })
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const session = await auth()
   const user = session?.user
 
@@ -82,7 +84,11 @@ export async function POST(request: Request) {
     )
   }
 
-  const origin = new URL(request.url).origin
+  const baseUrl = resolveCheckoutBaseUrl(request.nextUrl.origin)
+  const successPath = "/app/settings/subscription?tab=billing&topup=success"
+  const cancelPath = "/app/settings/subscription?tab=billing&topup=cancel"
+  const successUrl = new URL(successPath, baseUrl).toString()
+  const cancelUrl = buildCheckoutCancelUrl(cancelPath, request.nextUrl.origin)
 
   if (provider === "stripe") {
     const stripePriceId = creditPackage.providers.stripe
@@ -92,9 +98,6 @@ export async function POST(request: Request) {
         { status: 503 },
       )
     }
-
-    const successUrl = `${origin}/app/settings/subscription?tab=billing&topup=success`
-    const cancelUrl = `${origin}/app/settings/subscription?tab=billing&topup=cancel`
 
     try {
       const checkout = await createCreditTopUpCheckoutSession({
