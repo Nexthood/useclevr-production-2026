@@ -390,6 +390,88 @@ const tests: TestCase[] = [
       )
     },
   },
+  {
+    name: "credit top-up checkout uses resolveCheckoutBaseUrl for safe redirect URLs",
+    run() {
+      const route = readProjectFile("src/app/api/checkout/credit-topup/route.ts")
+      assert.ok(
+        route.includes("resolveCheckoutBaseUrl"),
+        "route imports and uses resolveCheckoutBaseUrl",
+      )
+      assert.ok(
+        !route.includes('`${origin}/app/settings/subscription') && !route.includes('`${request.url.origin}'),
+        "route does not concatenate request URL origin directly into redirect",
+      )
+    },
+  },
+  {
+    name: "redirect resolution blocks 0.0.0.0 and localhost in production",
+    run() {
+      const redirect = readProjectFile("src/lib/billing/checkout-redirect.ts")
+      assert.ok(
+        redirect.includes('"0.0.0.0"'),
+        "redirect resolver rejects 0.0.0.0 hostname",
+      )
+      assert.ok(
+        redirect.includes("LOCAL_CHECKOUT_HOSTS") || redirect.includes("localhost"),
+        "redirect resolver blocks localhost variants",
+      )
+      assert.ok(
+        redirect.includes("PRODUCTION_APP_URL") || redirect.includes('https://app.useclevr.com'),
+        "redirect resolver falls back to production URL",
+      )
+    },
+  },
+  {
+    name: "subscription page shows credit purchase success confirmation banner",
+    run() {
+      const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
+      assert.ok(
+        page.includes("Credits added successfully"),
+        "page renders success confirmation message",
+      )
+      assert.ok(
+        page.includes("do not expire"),
+        "success banner mentions credits do not expire",
+      )
+      assert.ok(
+        page.includes("latestCompletedTopUp"),
+        "success banner fetches data from server-side history, not URL params",
+      )
+    },
+  },
+  {
+    name: "credit purchase email function exists with required fields",
+    run() {
+      const emails = readProjectFile("src/lib/email/subscription-emails.ts")
+      assert.ok(
+        emails.includes("sendCreditPurchaseEmail"),
+        "email module exports sendCreditPurchaseEmail",
+      )
+      assert.ok(
+        emails.includes("creditsGranted") && emails.includes("providerPaymentId"),
+        "email includes credit quantity and payment reference",
+      )
+      assert.ok(
+        emails.includes("do not expire"),
+        "email confirms purchased credits do not expire",
+      )
+    },
+  },
+  {
+    name: "webhook handler sends credit purchase email on first successful processing",
+    run() {
+      const webhook = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        webhook.includes("sendCreditPurchaseEmail"),
+        "webhook handler calls credit purchase email function",
+      )
+      assert.ok(
+        webhook.includes("!result.duplicate"),
+        "email is only sent on non-duplicate (first-time) success",
+      )
+    },
+  },
 ]
 
 const repoRoot = resolve(import.meta.dirname, "../..")

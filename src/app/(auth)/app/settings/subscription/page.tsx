@@ -12,7 +12,7 @@ import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { syncSubscription } from "@/services/stripe/webhook";
 import { retrieveStripeSubscription } from "@/services/stripe/checkout";
 import { count, eq, sum } from "drizzle-orm";
-import { ArrowUpRight, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles, LoaderCircle } from "lucide-react";
+import { ArrowUpRight, CheckCircle, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles, LoaderCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CreditTopUpButton } from "@/components/shared/credit-topup-button"
@@ -362,6 +362,8 @@ const subs = await stripe.subscriptions.list({
   );
   const showPendingTopUp = showTopUpSuccess || pendingTopUp;
   const completedTopUps = topUpHistory.filter((t) => t.status === "completed");
+  const latestCompletedTopUp = completedTopUps.length > 0 ? completedTopUps[completedTopUps.length - 1] : null;
+  const showTopUpConfirmation = showTopUpSuccess && latestCompletedTopUp;
 
   return (
     <Card className="min-w-0 border-border bg-card">
@@ -513,6 +515,26 @@ const subs = await stripe.subscriptions.list({
                 </div>
               </CardContent>
             </Card>
+
+            {showTopUpConfirmation && latestCompletedTopUp && (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-50 p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                      Credits added successfully
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                      {latestCompletedTopUp.creditsGranted.toLocaleString()} purchased credits have been added to your UseClevr account.
+                      Purchased credits do not expire.
+                    </p>
+                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      Reference: {latestCompletedTopUp.providerPaymentId}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {showPendingTopUp && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">

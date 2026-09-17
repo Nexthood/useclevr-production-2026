@@ -8,6 +8,7 @@ import {
   processStripeTopUpPayment,
   isProviderPaymentProcessed,
 } from "@/lib/billing/credit-topup-service"
+import { sendCreditPurchaseEmail } from "@/lib/email/subscription-emails"
 import { debugError, debugLog } from "@/lib/utils/debug"
 
 export interface StripeCreditTopUpResult {
@@ -166,6 +167,29 @@ export async function handleStripeCreditCheckoutEvent(
       processed: true,
       synced: false,
       reason: result.error || "Failed to process credit top-up payment.",
+    }
+  }
+
+  // Send confirmation email (idempotent — only on first successful processing)
+  if (!result.duplicate && result.creditsIssued > 0) {
+    try {
+      const userEmail = metadata.userId || clientReferenceId || null
+      if (userEmail) {
+        const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.useclevr.com/app"
+        await sendCreditPurchaseEmail({
+          to: userEmail,
+          creditsGranted: creditPackage.creditsGranted,
+          amount: creditPackage.monetaryAmountCents / 100,
+          currency: creditPackage.currency,
+          purchasedAt: new Date().toISOString(),
+          providerPaymentId,
+          dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+        }).catch((err) => {
+          debugError("[stripe-credit-topup] Credit purchase email failed:", err)
+        })
+      }
+    } catch (err) {
+      debugError("[stripe-credit-topup] Credit purchase email exception:", err)
     }
   }
 
