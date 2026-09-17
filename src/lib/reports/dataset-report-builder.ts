@@ -498,6 +498,7 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     findings.push(`Missing source fields: ${metrics.missingColumns.map(String).join(", ")}.`)
   }
 
+  const nestedProfitability = nestedProfitabilityPayload(dataset)
   const bbscRows = profitabilityRowsFromMetrics(metrics)
   const bbsc = calculateBusinessBalancedScorecard({
     rows: bbscRows,
@@ -505,7 +506,7 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     businessModel: "profitability",
   })
   const financials: ReportFinancials = {
-    reportingPeriod: reportingPeriodFromMetrics(metrics),
+    reportingPeriod: reportingPeriodFromMetrics(metrics, nestedProfitability),
     dataConfidence: typeof metrics.dataConfidence === "number" ? metrics.dataConfidence : null,
     metricSources: {
       revenue: totalRevenue !== null ? sourceMeta("Revenue source total from selected analysis inputs.") : unavailableMeta("No recognized revenue source field."),
@@ -531,7 +532,7 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     grossMargin,
     operatingMargin,
     netMargin,
-    revenueGrowth: revenueGrowthFromMetrics(metrics),
+    revenueGrowth: revenueGrowthFromMetrics(metrics, nestedProfitability),
     expenseRatio: totalRevenue && numeric("totalExpenses") !== null ? round((numeric("totalExpenses")! / totalRevenue) * 100) : null,
     missingFields,
     topCostCategories: topCostCategories?.data || [],
@@ -710,7 +711,17 @@ function periodTrendsFromMetrics(metrics: Record<string, unknown>): ReportFinanc
     })
 }
 
-function revenueGrowthFromMetrics(metrics: Record<string, unknown>) {
+function nestedProfitabilityPayload(dataset: DatasetRecord): Record<string, unknown> | null {
+  const analysis = isRecord(dataset.analysis) ? dataset.analysis : null
+  const profitability = analysis ? analysis.profitability : null
+  return isRecord(profitability) ? profitability : null
+}
+
+function revenueGrowthFromMetrics(metrics: Record<string, unknown>, nested: Record<string, unknown> | null = null) {
+  const stored = numberOrNull(metrics.revenueGrowth) ?? (nested ? numberOrNull(nested.revenueGrowth) : null)
+  if (stored !== null) return stored
+  const monthlyGrowth = revenueGrowthFromRevenueByMonth(metrics.revenueByMonth) ?? (nested ? revenueGrowthFromRevenueByMonth(nested.revenueByMonth) : null)
+  if (monthlyGrowth !== null) return monthlyGrowth
   const trends = periodTrendsFromMetrics(metrics) || []
   const revenuePeriods = trends.filter((trend) => trend.revenue !== null)
   if (revenuePeriods.length < 2) return null
@@ -720,8 +731,25 @@ function revenueGrowthFromMetrics(metrics: Record<string, unknown>) {
   return round(((last - first) / first) * 100)
 }
 
-function reportingPeriodFromMetrics(metrics: Record<string, unknown>) {
+function revenueGrowthFromRevenueByMonth(source: unknown) {
+  if (!isRecord(source)) return null
+  const months: [string, number][] = []
+  for (const [month, revenue] of Object.entries(source)) {
+    const amount = numberOrNull(revenue)
+    if (amount === null) continue
+    months.push([month, amount])
+  }
+  months.sort(([a], [b]) => a.localeCompare(b))
+  if (months.length < 2) return null
+  const first = months[0][1]
+  const last = months[months.length - 1][1]
+  if (first === 0) return null
+  return round(((last - first) / first) * 100)
+}
+
+function reportingPeriodFromMetrics(metrics: Record<string, unknown>, nested: Record<string, unknown> | null = null) {
   if (typeof metrics.reportingPeriod === "string" && metrics.reportingPeriod.trim()) return metrics.reportingPeriod
+  if (nested && typeof nested.reportingPeriod === "string" && nested.reportingPeriod.trim()) return nested.reportingPeriod
   const trends = periodTrendsFromMetrics(metrics) || []
   if (trends.length === 0) return null
   if (trends.length === 1) return trends[0].period

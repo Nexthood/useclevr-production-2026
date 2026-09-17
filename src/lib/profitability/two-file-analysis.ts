@@ -26,6 +26,7 @@ export type ProfitabilityMetrics = {
   hasBothFiles: boolean
   operatingExpenseCoverage: "complete" | "partial" | "unavailable"
   reportingPeriod: string | null
+  revenueGrowth: number | null
   totalRevenue: number | null
   salesVolume: number | null
   customerCount: number | null
@@ -230,6 +231,8 @@ export function calculateProfitabilityAnalysis(input: {
   if (netProfit === null) unavailableMetrics.push("netProfit")
   if (revenueValue === null || revenueValue <= 0) unavailableMetrics.push("grossMargin", "operatingMargin", "netMargin")
 
+  const revenueGrowth = revenueGrowthFromMonthlyAggregation(revenueByMonth)
+
   const status: ProfitabilityStatus = !hasRevenue
     ? "waiting_for_revenue"
     : !hasExpenses
@@ -248,6 +251,7 @@ export function calculateProfitabilityAnalysis(input: {
     hasBothFiles,
     operatingExpenseCoverage,
     reportingPeriod: reportingPeriodFromPeriodKeys(periodBuckets),
+    revenueGrowth,
     totalRevenue: revenueValue,
     salesVolume: foundSalesVolume ? round(salesVolume) : null,
     customerCount: customers.size > 0 ? customers.size : null,
@@ -416,6 +420,15 @@ function addMapValue(map: Map<string, number>, key: string, value: number) {
 
 function sortedEntries(map: Map<string, number>): [string, number][] {
   return Array.from(map.entries()).map(([key, value]) => [key, round(value)] as [string, number]).sort((a, b) => b[1] - a[1]).slice(0, 8)
+}
+
+function revenueGrowthFromMonthlyAggregation(monthly: Record<string, number>) {
+  const months = Object.keys(monthly).filter((month) => month).sort()
+  if (months.length < 2) return null
+  const first = monthly[months[0]]
+  const last = monthly[months[months.length - 1]]
+  if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return null
+  return round(((last - first) / first) * 100)
 }
 
 function reportingPeriodFromPeriodKeys(map: Map<string, Bucket>) {
