@@ -2,9 +2,10 @@ import { isSuperAdminUserId, isSuperadmin } from "@/lib/auth/builtin-users"
 import { getUserCreditInfo, initializeUserCredits, isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
 import { FREE_PLAN_LIMITS, getBillingPlanByTier, getCreditsLimitForTier, mapPlanIdToTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
-import { datasets, profiles, userCredits } from "@/lib/db/schema"
+import { profiles, userCredits } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
-import { count, eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"
+import { getActiveDatasetCount } from "./dataset-limits"
 
 export const FREE_ANALYST_CREDITS = FREE_PLAN_LIMITS.monthlyCredits
 export const TRIAL_DAYS = 14
@@ -171,11 +172,7 @@ export async function getAnalystCreditUsage(
         : baseTier
       const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
       const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId, email || profileEmail) : null
-      const [{ count: datasetTotal }] = await db
-        .select({ count: count() })
-        .from(datasets)
-        .where(eq(datasets.userId, userId))
-      const datasetCount = Number(datasetTotal ?? 0)
+      const datasetCount = await getActiveDatasetCount(userId)
       if (hasUnlimitedAccess) {
         return unlimitedUsage(userId, profileRole || subscriptionTier, subscriptionTier, datasetCount, email || profileEmail)
       }

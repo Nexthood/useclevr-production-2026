@@ -51,6 +51,7 @@ export async function createCreditTopUpCheckoutSession({
   const mergedMetadata: Record<string, string> = {
     userId,
     userEmail,
+    stripePriceId,
     ...(metadata ?? {}),
   }
 

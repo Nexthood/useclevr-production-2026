@@ -4,9 +4,8 @@ import Topbar from "@/components/ui/topbar"
 import { auth } from "@/lib/auth/auth"
 import { getSetupStatus } from "@/lib/business/company-setup-store"
 import { getDb } from "@/lib/db"
-import { datasets } from "@/lib/db/schema"
+import { getActiveDatasetCount } from "@/lib/usage/dataset-limits"
 import { FormattingProvider } from "@/lib/utils/formatting-context"
-import { count, eq } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import type React from "react"
 
@@ -26,17 +25,8 @@ export default async function AppLayout({
   const businessCompletion = Math.min(100, Math.max(0, setupStatus.setupAccuracy ?? 0))
   const businessComplete = businessCompletion >= 100
   let uploadedDatasetCount = 0
-  const db = getDb()
-  if (db) {
-    try {
-      const [datasetCount] = await db
-        .select({ count: count() })
-        .from(datasets)
-        .where(eq(datasets.userId, session.user.id))
-      uploadedDatasetCount = Number(datasetCount?.count ?? 0)
-    } catch {
-      uploadedDatasetCount = 0
-    }
+  if (session?.user?.id) {
+    uploadedDatasetCount = await getActiveDatasetCount(session.user.id)
   }
   const accountancyCompletion = businessComplete && uploadedDatasetCount > 0
     ? 100

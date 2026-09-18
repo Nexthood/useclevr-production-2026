@@ -1,9 +1,36 @@
 import { getDb } from "@/lib/db"
 import { datasets, profiles } from "@/lib/db/schema"
-import { and, eq, count } from "drizzle-orm"
+import { and, eq, count, isNull, ne, or } from "drizzle-orm"
 import { getBillingPlanByTier } from "@/lib/billing/plans"
 import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
+
+/**
+ * Canonical dataset count — authoritative definition for plan enforcement,
+ * billing display, and usage counters.
+ *
+ * Matches the Dataset Library query exactly:
+ *   userId = ? AND (datasetType IS NULL OR datasetType != 'prebookkeeping')
+ *
+ * Only durable user/workspace datasets that appear in the Dataset Library
+ * count against the plan. Prebookkeeping uploads are processing artifacts
+ * that feed into combined analyses; they must not independently consume
+ * dataset slots.
+ */
+export async function getActiveDatasetCount(userId: string): Promise<number> {
+  const db = getDb()
+  if (!db) return 0
+
+  try {
+    const [{ count: total }] = await db
+      .select({ count: count() })
+      .from(datasets)
+      .where(or(isNull(datasets.datasetType), ne(datasets.datasetType, "prebookkeeping")))
+    return Number(total ?? 0)
+  } catch {
+    return 0
+  }
+}
 
 export interface DatasetLimitInfo {
   limit: number
@@ -49,21 +76,8 @@ export async function getDatasetLimitInfo(userId: string, role?: string | null, 
   const plan = getBillingPlanByTier(tier)
   const limit = plan.limits.maxDatasets
 
-  let currentCount = 0
-  if (db) {
-    try {
-      const whereClause = datasetType
-        ? and(eq(datasets.userId, userId), eq(datasets.datasetType, datasetType))
-        : eq(datasets.userId, userId)
-      const [{ count: total }] = await db
-        .select({ count: count() })
-        .from(datasets)
-        .where(whereClause)
-      currentCount = total ?? 0
-    } catch {
-      currentCount = 0
-    }
-  }
+  // Use canonical active dataset count for plan enforcement
+  const currentCount = await getActiveDatasetCount(userId)
 
   return {
     limit,
