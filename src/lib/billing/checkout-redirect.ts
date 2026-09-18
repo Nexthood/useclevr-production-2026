@@ -1,5 +1,5 @@
 const PRODUCTION_APP_URL = "https://app.useclevr.com"
-const LOCAL_CHECKOUT_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"])
+const LOCAL_CHECKOUT_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]", "0.0.0.0"])
 
 export function resolveCheckoutBaseUrl(_requestOrigin?: string | null) {
   const candidates = [
@@ -53,12 +53,16 @@ function parseAppUrl(value?: string | null) {
   }
 }
 
-function isAllowedCheckoutBaseUrl(url: URL) {
-  if (url.hostname === "0.0.0.0") return false
-  if (process.env.NODE_ENV === "production" && isLocalHost(url.hostname)) return false
-  return url.protocol === "https:" || url.protocol === "http:"
-}
-
 function isLocalHost(hostname: string) {
   return LOCAL_CHECKOUT_HOSTS.has(hostname)
+}
+
+function isAllowedCheckoutBaseUrl(url: URL) {
+  // Block any redirect to localhost, loopback, or private addresses in production
+  if (url.hostname === "0.0.0.0") return false
+  if (isLocalHost(url.hostname)) return false
+  // Reject internal/private IPs that could be used for SSRF
+  if (/^10\./.test(url.hostname) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(url.hostname) || /^192\.168\./.test(url.hostname)) return false
+  if (process.env.NODE_ENV === "production" && !url.protocol.startsWith("https:")) return false
+  return true
 }

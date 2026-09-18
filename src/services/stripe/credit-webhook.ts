@@ -30,16 +30,74 @@ function normalizePriceId(price: string | undefined | null): string | null {
 }
 
 /**
- * Deterministic package resolution — NEVER guesses by amount or currency.
+ * Legacy fallback: resolve a credit package from Stripe line items when
+ * the Checkout Session predates the creditPackageId metadata field.
+ *
+ * Resolution order (strict, no guessing):
+ *   1. stripePriceId from line items matching an active package provider mapping
+ *   2. Amount + currency matching an active package
+ *   3. Fail safely — requires admin recovery
+ */
+async function resolveCreditPackageFromLineItems(
+  lineItems: unknown,
+  amountTotal: number,
+  currency: string,
+): Promise<{ package: CreditPackageConfig | null; resolutionMethod: string }> {
+  // Await if line items are wrapped in a promise or structured differently
+  const items = await Promise.resolve(lineItems)
+  
+  // Handle Stripe APIList structure: { data: [...], has_more: false }
+  const dataArray = Array.isArray(items) 
+    ? items 
+    : items && typeof items === "object" && "data" in items && Array.isArray((items as { data?: unknown[] }).data)
+      ? (items as { data: unknown[] }).data
+      : []
+
+  // Tier 1: Resolve by Stripe Price ID from line items
+  for (const item of dataArray) {
+    if (item && typeof item === "object" && "price" in item) {
+      const priceObj = (item as { price?: { id?: string } }).price
+      const priceId = priceObj && typeof priceObj === "object" && "id" in priceObj
+        ? String((priceObj as { id: string }).id)
+        : null
+      if (priceId) {
+        const pkg = getCreditTopUpPackageByStripePriceId(priceId)
+        if (pkg && pkg.active) {
+          return { package: pkg, resolutionMethod: "lineItem_priceId_legacy" }
+        }
+      }
+    }
+  }
+
+  // Tier 2: Resolve by exact amount + currency match
+  const normalizedCurrency = normalizeCurrency(currency)
+  for (const pkg of creditTopUpPackages) {
+    if (
+      pkg.active &&
+      normalizeCurrency(pkg.currency) === normalizedCurrency &&
+      pkg.monetaryAmountCents === amountTotal
+    ) {
+      return { package: pkg, resolutionMethod: "lineItem_amount_currency_legacy" }
+    }
+  }
+
+  // Tier 3: No match found
+  return { package: null, resolutionMethod: "none" }
+}
+
+/**
+ * Deterministic package resolution — NEVER guesses by amount or currency alone.
  * Resolution order (strict, no fallback guessing):
  *   1. creditPackageId from server-generated Stripe Checkout metadata
  *   2. stripePriceId from metadata / line items
- *   3. Fail safely — no credits granted, requires admin recovery
+ *   3. Legacy fallback: line items lookup (for sessions that predate creditPackageId metadata)
+ *   4. Fail safely — no credits granted, requires admin recovery
  */
-function resolveCreditPackageDeterministically(
+async function resolveCreditPackageDeterministically(
   metadata: Record<string, string>,
   stripePriceId: string | null,
-): { package: CreditPackageConfig | null; resolvedCurrency: string; resolutionMethod: string } {
+  session: Stripe.Checkout.Session,
+): Promise<{ package: CreditPackageConfig | null; resolvedCurrency: string; resolutionMethod: string }> {
   // Tier 1: Resolve by server-generated creditPackageId from checkout metadata
   const creditPackageId = normalizePriceId(metadata.creditPackageId ?? null)
   if (creditPackageId) {
@@ -60,10 +118,33 @@ function resolveCreditPackageDeterministically(
     debugLog("[stripe-credit-topup] stripePriceId found but package inactive or not configured.", { priceId })
   }
 
-  // Tier 3: No trusted identifiers — fail safely
+  // Tier 3: Legacy fallback — resolve from Stripe line items
+  try {
+    const legacyResolution = await resolveCreditPackageFromLineItems(
+      session.line_items ?? [],
+      session.amount_total ?? 0,
+      session.currency ?? "",
+    )
+    if (legacyResolution.package) {
+      debugLog("[stripe-credit-topup] Resolved via legacy line-item lookup.", {
+        packageId: legacyResolution.package.id,
+        method: legacyResolution.resolutionMethod,
+      })
+      return {
+        package: legacyResolution.package,
+        resolvedCurrency: legacyResolution.package.currency,
+        resolutionMethod: legacyResolution.resolutionMethod,
+      }
+    }
+  } catch (err) {
+    debugLog("[stripe-credit-topup] Legacy line-item resolution failed.", { error: err instanceof Error ? err.message : String(err) })
+  }
+
+  // Tier 4: No trusted identifiers — fail safely
   debugLog("[stripe-credit-topup] No trusted package identifier found in metadata.", {
     hasPackageId: Boolean(creditPackageId),
     hasPriceId: Boolean(stripePriceId),
+    lineItemCount: Array.isArray(session.line_items) ? session.line_items.length : 0,
   })
   return { package: null, resolvedCurrency: "", resolutionMethod: "none" }
 }
@@ -148,8 +229,8 @@ export async function handleStripeCreditCheckoutEvent(
     }
   }
 
-  // Deterministic resolution — NO amount/currency guessing
-  const resolution = resolveCreditPackageDeterministically(metadata, stripePriceId)
+  // Deterministic resolution — NO amount/currency guessing without trusted identifiers
+  const resolution = await resolveCreditPackageDeterministically(metadata, stripePriceId, session)
   const creditPackage = resolution.package
 
   if (!creditPackage) {

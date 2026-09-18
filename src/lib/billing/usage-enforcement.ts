@@ -4,7 +4,6 @@ import {
   aiCostLogs,
   dailyAiRequestCounts,
   concurrentAnalysisCounts,
-  datasets,
   profiles,
 } from "@/lib/db/schema"
 import { eq, and, gte, lte, sql, count, sum, desc } from "drizzle-orm"
@@ -19,6 +18,7 @@ import {
   getRowLimitForTier,
   getFileSizeLimitForTier,
 } from "./plans"
+import { getActiveDatasetCount } from "@/lib/usage/dataset-limits"
 
 export type EnforcementAction =
   | "dataset_analysis"
@@ -239,10 +239,7 @@ export async function checkActionEnforcement(
   const tier = profile?.subscriptionTier || "free"
 
   if (action === "file_upload") {
-    const [{ count: datasetCount }] = await db
-      .select({ count: count() })
-      .from(datasets)
-      .where(eq(datasets.userId, userId))
+    const datasetCount = await getActiveDatasetCount(userId)
     const datasetLimit = getDatasetLimitForTier(tier)
 
     if (datasetCount >= datasetLimit) {
@@ -315,10 +312,7 @@ export async function checkActionEnforcement(
   }
 
   if (action === "dataset_analysis") {
-    const [{ count: datasetCount }] = await db
-      .select({ count: count() })
-      .from(datasets)
-      .where(eq(datasets.userId, userId))
+    const datasetCount = await getActiveDatasetCount(userId)
     const datasetLimit = getDatasetLimitForTier(tier)
 
     if (datasetCount >= datasetLimit) {

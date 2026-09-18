@@ -7,11 +7,12 @@ import { getBillingSettings } from "@/lib/billing/settings-store";
 import Stripe from "stripe";
 import { getCreditTopUpHistory } from "@/lib/billing/credit-topup-service";
 import { getDb } from "@/lib/db";
-import { datasets, profiles } from "@/lib/db/schema";
+import { profiles } from "@/lib/db/schema";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
+import { getActiveDatasetCount } from "@/lib/usage/dataset-limits";
 import { syncSubscription } from "@/services/stripe/webhook";
 import { retrieveStripeSubscription } from "@/services/stripe/checkout";
-import { count, eq, sum } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ArrowUpRight, CheckCircle, CreditCard, FileText, ReceiptText, ShieldCheck, Sparkles, LoaderCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -83,7 +84,7 @@ export default async function SubscriptionSettingsPage({
   let datasetStats: { datasetCount: number; storageBytes: string } = { datasetCount: 0, storageBytes: "0" };
 
   if (db && session?.user?.id) {
-    const [profileResult, datasetResult] = await Promise.all([
+    const [profileResult] = await Promise.all([
       db.query.profiles.findFirst({
         where: eq(profiles.userId, session.user.id),
         columns: {
@@ -95,19 +96,11 @@ export default async function SubscriptionSettingsPage({
           stripeSubscriptionId: true,
         },
       }),
-      db
-        .select({
-          datasetCount: count(),
-          storageBytes: sum(datasets.fileSize),
-        })
-        .from(datasets)
-        .where(eq(datasets.userId, session.user.id))
-        .then((rows) => rows[0] ?? { datasetCount: 0, storageBytes: "0" } as { datasetCount: number; storageBytes: string })
-        .catch(() => ({ datasetCount: 0, storageBytes: "0" } as { datasetCount: number; storageBytes: string })),
     ]);
 
     profile = profileResult;
-    datasetStats = { datasetCount: datasetResult.datasetCount, storageBytes: datasetResult.storageBytes as string };
+    // Use canonical active dataset count matching Dataset Library definition
+    datasetStats = { datasetCount: await getActiveDatasetCount(session.user.id), storageBytes: "0" };
   }
 
   // ----- Subscription recovery (idempotent) -----
@@ -460,7 +453,7 @@ const subs = await stripe.subscriptions.list({
                 label="Payment Status" 
                 value={cancelAtPeriodEnd ? "Cancellation scheduled" : paymentStatus} 
               />
-              <MetricCard label="Billing History" value={completedTopUps.length > 0 ? `${completedTopUps.length} purchase${completedTopUps.length === 1 ? "" : "s"}` : "No invoices yet"} />
+              <MetricCard label="Billing History" value={completedTopUps.length > 0 ? `${completedTopUps.length} credit purchase${completedTopUps.length === 1 ? "" : "s"}` : "No credit purchases yet"} />
             </div>
 
             <div className="rounded-lg border border-dashed border-border bg-muted/40 p-4">
@@ -499,7 +492,7 @@ const subs = await stripe.subscriptions.list({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ReceiptText className="h-4 w-4" />
-                  Invoices
+                  Subscription Invoices
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -510,7 +503,7 @@ const subs = await stripe.subscriptions.list({
                     <span className="text-right">Amount</span>
                   </div>
                   <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-                    No invoices yet.
+                    No subscription invoices yet.
                   </div>
                 </div>
               </CardContent>
