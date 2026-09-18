@@ -391,12 +391,12 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "credit top-up checkout uses resolveCheckoutBaseUrl for safe redirect URLs",
+    name: "credit top-up checkout uses buildCheckoutSuccessUrl for safe redirect URLs",
     run() {
       const route = readProjectFile("src/app/api/checkout/credit-topup/route.ts")
       assert.ok(
-        route.includes("resolveCheckoutBaseUrl"),
-        "route imports and uses resolveCheckoutBaseUrl",
+        route.includes("buildCheckoutSuccessUrl"),
+        "route imports and uses buildCheckoutSuccessUrl",
       )
       assert.ok(
         !route.includes('`${origin}/app/settings/subscription') && !route.includes('`${request.url.origin}'),
@@ -469,6 +469,169 @@ const tests: TestCase[] = [
       assert.ok(
         webhook.includes("!result.duplicate"),
         "email is only sent on non-duplicate (first-time) success",
+      )
+    },
+  },
+  {
+    name: "production top-up success URL never contains 0.0.0.0",
+    run() {
+      const redirect = readProjectFile("src/lib/billing/checkout-redirect.ts")
+      assert.ok(
+        !redirect.includes('new URL(successPath, baseUrl)') || redirect.includes('isAllowedCheckoutBaseUrl'),
+        "success URL construction uses safe base URL resolver",
+      )
+      assert.ok(
+        redirect.includes('"0.0.0.0"') && redirect.includes('return false'),
+        "0.0.0.0 hostname is explicitly rejected in URL resolver",
+      )
+    },
+  },
+  {
+    name: "production top-up cancel URL never contains 0.0.0.0",
+    run() {
+      const redirect = readProjectFile("src/lib/billing/checkout-redirect.ts")
+      assert.ok(
+        redirect.includes("buildCheckoutCancelUrl") || redirect.includes("resolveCheckoutBaseUrl"),
+        "cancel URL uses the same safe resolver as success URL",
+      )
+      assert.ok(
+        redirect.includes('url.hostname === "0.0.0.0"') || redirect.includes('=== "0.0.0.0"'),
+        "cancel URL builder also rejects 0.0.0.0 hostname",
+      )
+    },
+  },
+  {
+    name: "production success URL resolves to app.useclevr.com when env vars are empty",
+    run() {
+      const redirect = readProjectFile("src/lib/billing/checkout-redirect.ts")
+      assert.ok(
+        redirect.includes('PRODUCTION_APP_URL') && redirect.includes('https://app.useclevr.com'),
+        "fallback production URL is https://app.useclevr.com",
+      )
+      assert.ok(
+        !redirect.includes('requestOrigin') || redirect.includes('_requestOrigin'),
+        "requestOrigin parameter is not used as a trusted source for base URL",
+      )
+    },
+  },
+  {
+    name: "USD is the primary/default credit top-up package currency",
+    run() {
+      const config = readProjectFile("src/lib/billing/credit-packages.ts")
+      assert.ok(
+        /SUPPORTED_TOP_UP_CURRENCIES.*?\[\s*["']USD["']/.test(config),
+        "USD is the first (primary) currency in SUPPORTED_TOP_UP_CURRENCIES",
+      )
+      assert.ok(config.includes('"EUR"') && config.includes('"GBP"') && config.includes('"CAD"'), "EUR, GBP, CAD remain supported")
+    },
+  },
+  {
+    name: "100 USD package resolves to $10 Stripe configuration",
+    run() {
+      const config = readProjectFile("src/lib/billing/credit-packages.ts")
+      assert.ok(
+        config.includes("stripePriceEnvName") && config.includes("creditsGranted"),
+        "Stripe Price ID env var generated for 100 credit USD package",
+      )
+      assert.ok(config.includes('monetaryAmountCents: 1000'), "100 credit package priced at 1000 cents ($10)")
+    },
+  },
+  {
+    name: "500 USD package resolves to $45 Stripe configuration",
+    run() {
+      const config = readProjectFile("src/lib/billing/credit-packages.ts")
+      assert.ok(config.includes('monetaryAmountCents: 4500'), "500 credit package priced at 4500 cents ($45)")
+    },
+  },
+  {
+    name: "1000 USD package resolves to $85 Stripe configuration",
+    run() {
+      const config = readProjectFile("src/lib/billing/credit-packages.ts")
+      assert.ok(config.includes('monetaryAmountCents: 8500'), "1000 credit package priced at 8500 cents ($85)")
+    },
+  },
+  {
+    name: "successful webhook creates purchase history via CreditTopUp table",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("tx.insert(creditTopUps)"),
+        "webhook processing inserts CreditTopUp record",
+      )
+      assert.ok(
+        service.includes('status: "completed"'),
+        "CreditTopUp status set to completed after ledger entry creation",
+      )
+      assert.ok(
+        service.includes("getCreditTopUpHistory"),
+        "history retrieval function exists for billing UI",
+      )
+    },
+  },
+  {
+    name: "purchase history is owner-filtered by userId",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("eq(creditTopUps.userId, userId)"),
+        "getCreditTopUpHistory filters by authenticated user ID",
+      )
+    },
+  },
+  {
+    name: "successful top-up updates purchasedBalance",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes('"purchasedBalance" = "purchasedBalance" +'),
+        "purchasedBalance incremented on successful top-up",
+      )
+      assert.ok(
+        service.includes("TOP_UP_PURCHASE"),
+        "ledger entry type is TOP_UP_PURCHASE",
+      )
+    },
+  },
+  {
+    name: "duplicate webhook does not double-credit",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("isProviderPaymentProcessed") && service.includes('status === "duplicate"'),
+        "duplicate detection returns existing credits without re-granting",
+      )
+      assert.ok(
+        service.includes("idempotency_already_processed"),
+        "ID-based idempotency key prevents duplicate ledger entries",
+      )
+    },
+  },
+  {
+    name: "success URL itself grants no credits",
+    run() {
+      const route = readProjectFile("src/app/api/checkout/credit-topup/route.ts")
+      assert.ok(
+        !route.includes("processStripeTopUpPayment") && !route.includes("processTopUpPayment"),
+        "credit-topup route does not grant credits on GET (success redirect)",
+      )
+      const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
+      assert.ok(
+        !page.includes("processStripeTopUpPayment") && !page.includes("processTopUpPayment"),
+        "subscription page does not grant credits on render",
+      )
+    },
+  },
+  {
+    name: "existing subscription checkout remains unchanged",
+    run() {
+      const route = readProjectFile("src/app/api/checkout/route.ts")
+      assert.ok(
+        route.includes("buildCheckoutSuccessUrl") && route.includes("buildCheckoutCancelUrl"),
+        "subscription checkout still uses canonical redirect helpers",
+      )
+      assert.ok(
+        route.includes("createStripeCheckoutSession"),
+        "subscription checkout still calls Stripe session creation",
       )
     },
   },

@@ -460,7 +460,7 @@ const subs = await stripe.subscriptions.list({
                 label="Payment Status" 
                 value={cancelAtPeriodEnd ? "Cancellation scheduled" : paymentStatus} 
               />
-              <MetricCard label="Billing History" value="No invoices yet" />
+              <MetricCard label="Billing History" value={completedTopUps.length > 0 ? `${completedTopUps.length} purchase${completedTopUps.length === 1 ? "" : "s"}` : "No invoices yet"} />
             </div>
 
             <div className="rounded-lg border border-dashed border-border bg-muted/40 p-4">
