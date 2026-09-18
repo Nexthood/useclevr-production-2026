@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth/auth"
 import { getActiveCreditTopUpPackages, getCreditTopUpPackageById } from "@/lib/billing/credit-packages"
-import { buildCheckoutCancelUrl, resolveCheckoutBaseUrl } from "@/lib/billing/checkout-redirect"
+import { buildCheckoutCancelUrl, buildCheckoutSuccessUrl } from "@/lib/billing/checkout-redirect"
 import { getDb } from "@/lib/db"
 import { profiles } from "@/lib/db/schema"
 import { createCreditTopUpCheckoutSession } from "@/services/stripe/credit-checkout"
@@ -84,10 +84,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const baseUrl = resolveCheckoutBaseUrl(request.nextUrl.origin)
   const successPath = "/app/settings/subscription?tab=billing&topup=success"
   const cancelPath = "/app/settings/subscription?tab=billing&topup=cancel"
-  const successUrl = new URL(successPath, baseUrl).toString()
+  const successUrl = buildCheckoutSuccessUrl("_", undefined, request.nextUrl.origin, successPath)
   const cancelUrl = buildCheckoutCancelUrl(cancelPath, request.nextUrl.origin)
 
   if (provider === "stripe") {

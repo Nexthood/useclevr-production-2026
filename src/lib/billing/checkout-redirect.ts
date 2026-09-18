@@ -1,12 +1,11 @@
 const PRODUCTION_APP_URL = "https://app.useclevr.com"
 const LOCAL_CHECKOUT_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"])
 
-export function resolveCheckoutBaseUrl(requestOrigin?: string | null) {
+export function resolveCheckoutBaseUrl(_requestOrigin?: string | null) {
   const candidates = [
     process.env.NEXT_PUBLIC_APP_URL,
     process.env.AUTH_URL,
     process.env.NEXTAUTH_URL,
-    requestOrigin,
   ]
 
   for (const candidate of candidates) {
@@ -19,10 +18,14 @@ export function resolveCheckoutBaseUrl(requestOrigin?: string | null) {
   return PRODUCTION_APP_URL
 }
 
-export function buildCheckoutSuccessUrl(token: string, sessionIdPlaceholder = "{CHECKOUT_SESSION_ID}", requestOrigin?: string | null) {
-  const url = new URL("/checkout/success", resolveCheckoutBaseUrl(requestOrigin))
+export function buildCheckoutSuccessUrl(token: string, sessionIdPlaceholder = "{CHECKOUT_SESSION_ID}", requestOrigin?: string | null, path?: string) {
+  const baseUrl = resolveCheckoutBaseUrl(requestOrigin)
+  const urlPath = path || "/checkout/success"
+  const url = new URL(urlPath, baseUrl)
   url.searchParams.set("t", token)
-  url.searchParams.set("session_id", sessionIdPlaceholder)
+  if (!path) {
+    url.searchParams.set("session_id", sessionIdPlaceholder)
+  }
   return url.toString()
 }
 
@@ -35,8 +38,8 @@ export function resolveCheckoutSuccessUrl(token: string, returnUrl?: string | nu
   return buildCheckoutSuccessUrl(token)
 }
 
-export function buildCheckoutCancelUrl(path: string, requestOrigin?: string | null) {
-  return new URL(path, resolveCheckoutBaseUrl(requestOrigin)).toString()
+export function buildCheckoutCancelUrl(path: string, _requestOrigin?: string | null) {
+  return new URL(path, resolveCheckoutBaseUrl(_requestOrigin)).toString()
 }
 
 function parseAppUrl(value?: string | null) {

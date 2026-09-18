@@ -37,7 +37,7 @@ const CREDIT_PACKAGES_BASE = [
   },
 ] as const
 
-const SUPPORTED_TOP_UP_CURRENCIES: SupportedCurrency[] = ["EUR", "GBP", "USD", "CAD"]
+const SUPPORTED_TOP_UP_CURRENCIES: SupportedCurrency[] = ["USD", "EUR", "GBP", "CAD"]
 
 function stripePriceEnvName(credits: number, currency: SupportedCurrency): string {
   return `USECLEVR_CREDITS_TOP_UP_${credits}_${currency}_STRIPE_PRICE_ID`
