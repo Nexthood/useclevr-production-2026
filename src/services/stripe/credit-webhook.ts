@@ -1,8 +1,10 @@
 import type Stripe from "stripe"
 
 import {
+  getCreditTopUpPackageById,
   getCreditTopUpPackageByStripePriceId,
-  resolveCreditTopUpPackageByAmount,
+  creditTopUpPackages,
+  type CreditPackageConfig,
 } from "@/lib/billing/credit-packages"
 import {
   processStripeTopUpPayment,
@@ -25,6 +27,45 @@ function normalizeCurrency(currency: string | undefined | null): string {
 
 function normalizePriceId(price: string | undefined | null): string | null {
   return price && price.length > 0 ? price : null
+}
+
+/**
+ * Deterministic package resolution — NEVER guesses by amount or currency.
+ * Resolution order (strict, no fallback guessing):
+ *   1. creditPackageId from server-generated Stripe Checkout metadata
+ *   2. stripePriceId from metadata / line items
+ *   3. Fail safely — no credits granted, requires admin recovery
+ */
+function resolveCreditPackageDeterministically(
+  metadata: Record<string, string>,
+  stripePriceId: string | null,
+): { package: CreditPackageConfig | null; resolvedCurrency: string; resolutionMethod: string } {
+  // Tier 1: Resolve by server-generated creditPackageId from checkout metadata
+  const creditPackageId = normalizePriceId(metadata.creditPackageId ?? null)
+  if (creditPackageId) {
+    const pkg = getCreditTopUpPackageById(creditPackageId)
+    if (pkg && pkg.active) {
+      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "creditPackageId" }
+    }
+    debugLog("[stripe-credit-topup] creditPackageId found but package inactive or missing.", { creditPackageId })
+  }
+
+  // Tier 2: Resolve by Stripe Price ID from metadata or line items
+  const priceId = stripePriceId || normalizePriceId(metadata.price_id ?? null)
+  if (priceId) {
+    const pkg = getCreditTopUpPackageByStripePriceId(priceId)
+    if (pkg && pkg.active) {
+      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "stripePriceId" }
+    }
+    debugLog("[stripe-credit-topup] stripePriceId found but package inactive or not configured.", { priceId })
+  }
+
+  // Tier 3: No trusted identifiers — fail safely
+  debugLog("[stripe-credit-topup] No trusted package identifier found in metadata.", {
+    hasPackageId: Boolean(creditPackageId),
+    hasPriceId: Boolean(stripePriceId),
+  })
+  return { package: null, resolvedCurrency: "", resolutionMethod: "none" }
 }
 
 export async function handleStripeCreditCheckoutEvent(
@@ -107,40 +148,22 @@ export async function handleStripeCreditCheckoutEvent(
     }
   }
 
-  let creditPackage = stripePriceId
-    ? getCreditTopUpPackageByStripePriceId(stripePriceId)
-    : null
+  // Deterministic resolution — NO amount/currency guessing
+  const resolution = resolveCreditPackageDeterministically(metadata, stripePriceId)
+  const creditPackage = resolution.package
 
   if (!creditPackage) {
-    creditPackage = resolveCreditTopUpPackageByAmount(currency as "EUR" | "GBP" | "USD" | "CAD", amountTotal, "stripe")
-  }
-
-  if (!creditPackage) {
-    debugLog("[stripe-credit-topup] No matching credit package for this checkout.", {
+    debugLog("[stripe-credit-topup] No matching credit package — safe failure.", {
+      resolutionMethod: resolution.resolutionMethod,
       stripePriceId,
+      creditPackageId: metadata.creditPackageId,
       amountTotal,
       currency,
     })
     return {
       processed: true,
       synced: false,
-      reason: "Unsupported Stripe price ID or amount — no matching credit package.",
-    }
-  }
-
-  if (creditPackage.monetaryAmountCents !== amountTotal) {
-    return {
-      processed: false,
-      synced: false,
-      reason: `Amount mismatch: expected ${creditPackage.monetaryAmountCents}, got ${amountTotal}.`,
-    }
-  }
-
-  if (creditPackage.currency !== currency) {
-    return {
-      processed: false,
-      synced: false,
-      reason: `Currency mismatch: expected ${creditPackage.currency}, got ${currency}.`,
+      reason: "No trusted package identifier found — requires admin recovery.",
     }
   }
 
@@ -150,7 +173,7 @@ export async function handleStripeCreditCheckoutEvent(
     providerCheckoutId,
     providerEventId,
     amountMinor: amountTotal,
-    currency: creditPackage.currency,
+    currency: resolution.resolvedCurrency || currency,
     stripePriceId,
     clientReferenceId: clientReferenceId || null,
     metadata: metadata as Record<string, string>,

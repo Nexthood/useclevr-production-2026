@@ -41,20 +41,24 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "stripe webhook handler validates amount and currency against package config",
+    name: "stripe webhook handler uses deterministic package resolution from metadata",
     run() {
       const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
       assert.ok(
-        handler.includes("creditPackage.monetaryAmountCents !== amountTotal"),
-        "handler validates amount against package config",
+        handler.includes("resolveCreditPackageDeterministically"),
+        "handler uses dedicated deterministic resolution function",
       )
       assert.ok(
-        handler.includes("creditPackage.currency !== currency"),
-        "handler validates currency against package config",
+        !handler.includes("Math.abs") && !handler.includes("tolerance") && !handler.includes("0.15"),
+        "handler does NOT use approximate amount matching or tolerance",
       )
       assert.ok(
-        handler.includes("resolveCreditTopUpPackageByAmount"),
-        "handler falls back to amount-based package resolution",
+        handler.includes("creditPackageId") || handler.includes("getCreditTopUpPackageById"),
+        "handler resolves by server-generated creditPackageId first",
+      )
+      assert.ok(
+        handler.includes("stripePriceId") || handler.includes("getCreditTopUpPackageByStripePriceId"),
+        "handler resolves by Stripe Price ID second",
       )
     },
   },
@@ -632,6 +636,190 @@ const tests: TestCase[] = [
       assert.ok(
         route.includes("createStripeCheckoutSession"),
         "subscription checkout still calls Stripe session creation",
+      )
+    },
+  },
+  {
+    name: "webhook resolves packages by Stripe Price ID before amount fallback",
+    run() {
+       const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+       assert.ok(
+         handler.includes("resolveCreditPackageDeterministically"),
+         "handler uses dedicated deterministic resolution function",
+       )
+       assert.ok(
+         handler.includes("getCreditTopUpPackageById"),
+         "resolution tries creditPackageId lookup first",
+       )
+       assert.ok(
+         handler.includes("getCreditTopUpPackageByStripePriceId"),
+         "resolution tries Price ID lookup second",
+       )
+       assert.ok(
+         !handler.includes("resolveCreditTopUpPackageByAmount"),
+         "resolution does NOT fall back to amount/currency guessing",
+       )
+     },
+   },
+   {
+     name: "webhook rejects approximate amount matching — safe failure on unknown package",
+     run() {
+       const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+       assert.ok(
+         !handler.includes("Math.abs"),
+         "no approximate amount matching in webhook",
+       )
+       assert.ok(
+         !handler.includes("tolerance") && !handler.includes("0.15"),
+         "no tolerance-based package guessing",
+       )
+       assert.ok(
+         handler.includes("No trusted package identifier found") || handler.includes("safe failure"),
+         "webbook fails safely when no trusted identifiers exist",
+       )
+     },
+   },
+  {
+    name: "checkout metadata includes stripePriceId for webhook lookup",
+    run() {
+      const checkout = readProjectFile("src/services/stripe/credit-checkout.ts")
+      assert.ok(
+        checkout.includes("stripePriceId") && checkout.includes("mergedMetadata"),
+        "checkout service includes stripePriceId in merged metadata",
+      )
+    },
+  },
+  {
+    name: "replay-topup admin endpoint exists for recovering missed payments",
+    run() {
+      const route = readProjectFile("src/app/api/admin/replay-topup/route.ts")
+      assert.ok(
+        route.includes("handleStripeCreditCheckoutEvent"),
+        "replay endpoint uses existing webhook handler",
+      )
+      assert.ok(
+        route.includes('startsWith("cs_")'),
+        "replay accepts ONLY Stripe Checkout Session IDs (cs_...)",
+      )
+      assert.ok(
+        !route.includes("paymentIntentId"),
+        "replay does NOT accept payment intent IDs",
+      )
+      assert.ok(
+        route.includes("checkoutSession.payment_status") && route.includes('"paid"'),
+        "replay only processes paid sessions",
+      )
+      assert.ok(
+        !route.includes("creditsGranted") || route.includes("result.creditsIssued"),
+        "replay never accepts credit amount from caller input",
+      )
+    },
+  },
+  {
+    name: "100-credit purchase grants exactly 100 credits",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("creditsGranted: creditPackage.creditsGranted"),
+        "ledger entry uses exact package creditsGranted value",
+      )
+      assert.ok(
+        service.includes('"purchasedBalance" = "purchasedBalance" + ${creditPackage.creditsGranted}'),
+        "purchasedBalance incremented by exact creditsGranted",
+      )
+    },
+  },
+  {
+    name: "cross-currency Stripe payment does not cause package guessing",
+    run() {
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        !handler.includes("resolveCreditTopUpPackageByAmount"),
+        "webhook does NOT use amount/currency-based package resolution",
+      )
+      assert.ok(
+        handler.includes("resolveCreditPackageDeterministically"),
+        "webhook uses deterministic metadata-only resolution",
+      )
+    },
+  },
+  {
+    name: "approximate amount matching is impossible in webhook",
+    run() {
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        !handler.includes("Math.abs"),
+        "no absolute-difference amount comparison",
+      )
+      assert.ok(
+        !handler.includes("tolerance") && !handler.includes("0.15"),
+        "no tolerance-based fallback",
+      )
+    },
+  },
+  {
+    name: "unknown package metadata grants zero credits",
+    run() {
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        handler.includes("No trusted package identifier found") || handler.includes("safe failure"),
+        "webhook fails safely when no trusted identifiers exist",
+      )
+      assert.ok(
+        handler.includes('reason: "No trusted package identifier found') || handler.includes("requires admin recovery"),
+        "safe-failure reason indicates admin recovery needed",
+      )
+    },
+  },
+  {
+    name: "unpaid session grants zero credits",
+    run() {
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        handler.includes("paymentStatus") && handler.includes('"paid"') && handler.includes('"no_payment_required"'),
+        "handler checks payment_status before processing",
+      )
+      assert.ok(
+        handler.includes("credits will not be issued"),
+        "handler refuses to issue credits for unpaid payments",
+      )
+    },
+  },
+  {
+    name: "replay of same cs_... twice grants credits only once",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("isProviderPaymentProcessed") && service.includes('providerPaymentId'),
+        "duplicate detection by provider payment ID prevents double-crediting",
+      )
+      assert.ok(
+        service.includes("idempotency_already_processed"),
+        "idempotency key prevents duplicate ledger entries",
+      )
+      const route = readProjectFile("src/app/api/admin/replay-topup/route.ts")
+      assert.ok(
+        route.includes("handleStripeCreditCheckoutEvent"),
+        "replay reuses webhook handler which includes duplicate detection",
+      )
+    },
+  },
+  {
+    name: "existing subscription billing remains untouched",
+    run() {
+      const route = readProjectFile("src/app/api/checkout/route.ts")
+      assert.ok(
+        route.includes("buildCheckoutSuccessUrl") && route.includes("buildCheckoutCancelUrl"),
+        "subscription checkout still uses canonical redirect helpers",
+      )
+      assert.ok(
+        route.includes("createStripeCheckoutSession"),
+        "subscription checkout still calls Stripe session creation",
+      )
+      const webhookRoute = readProjectFile("src/app/api/webhooks/stripe/route.ts")
+      assert.ok(
+        webhookRoute.includes("handleSubscriptionEvent"),
+        "subscription events handled separately from credit top-ups",
       )
     },
   },
