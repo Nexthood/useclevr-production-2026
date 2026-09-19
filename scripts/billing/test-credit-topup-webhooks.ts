@@ -295,7 +295,7 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "billing page displays credit top-up history with payment details",
+    name: "billing page displays credit top-up history without internal payment references",
     run() {
       const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
       assert.ok(
@@ -303,8 +303,8 @@ const tests: TestCase[] = [
         "subscription page fetches top-up history",
       )
       assert.ok(
-        page.includes("providerPaymentId"),
-        "subscription page displays payment reference",
+        !page.includes("Payment reference:") && !/providerPaymentId\}/.test(page),
+        "subscription page must not render the Stripe PaymentIntent reference to customers",
       )
       assert.ok(
         page.includes("credits are being confirmed"),

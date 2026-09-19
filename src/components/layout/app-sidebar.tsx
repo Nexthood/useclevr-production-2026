@@ -199,6 +199,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
     isPro={isPro}
     unlimitedLabel={unlimitedLabel}
     subscriptionTier={subscriptionTier}
+    onAddCreditsClick={() => setIsMobileOpen(false)}
 />
         )}
         {!isCollapsed && (

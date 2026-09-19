@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth/auth";
 import { getActiveCreditTopUpPackages } from "@/lib/billing/credit-packages";
+import { CREDIT_TOP_UPS_SECTION_ID } from "@/lib/billing/credit-topup-navigation";
 import { getSubscriptionIntervalForStripePriceId, getSubscriptionTierForStripePriceId } from "@/lib/billing/launch-pricing";
 import { getBillingSettings } from "@/lib/billing/settings-store";
 import Stripe from "stripe";
@@ -521,9 +522,6 @@ const subs = await stripe.subscriptions.list({
                       {latestCompletedTopUp.creditsGranted.toLocaleString()} purchased credits have been added to your UseClevr account.
                       Purchased credits do not expire.
                     </p>
-                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
-                      Reference: {latestCompletedTopUp.providerPaymentId}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -548,7 +546,7 @@ const subs = await stripe.subscriptions.list({
             )}
 
             {!isUnlimited && (
-              <div className="space-y-4">
+              <div id={CREDIT_TOP_UPS_SECTION_ID} className="scroll-mt-24 space-y-4">
                 <h3 className="text-base font-semibold text-foreground">Purchase Credit Top-Ups</h3>
                 {creditPackages.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -618,16 +616,13 @@ const subs = await stripe.subscriptions.list({
                           </span>
                         </span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Payment reference: {completedTopUps[0].providerPaymentId}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+                     ))}
+                   </div>
+                 </div>
+               </div>
+             )}
+           </div>
+         )}
 
         {activeTab === "usage" && (
           <div className="space-y-5">

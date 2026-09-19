@@ -1,8 +1,11 @@
 "use client"
 
 import { useNotice } from "@/components/ui/notice-bar"
+import { CREDIT_TOP_UPS_BILLING_HREF } from "@/lib/billing/credit-topup-navigation"
 import { buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
 import { debugError } from "@/lib/utils/debug"
+import { PlusCircle } from "lucide-react"
+import Link from "next/link"
 import * as React from "react"
 
 export const USAGE_REFRESH_EVENT = "useclevr:usage-refresh"
@@ -16,9 +19,10 @@ interface UsageMonitorProps {
   isPro?: boolean
   unlimitedLabel?: string | null
   subscriptionTier?: string
+  onAddCreditsClick?: () => void
 }
 
-export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable, used, reserved = 0, isPro = false, unlimitedLabel, subscriptionTier = "free" }: UsageMonitorProps) {
+export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable, used, reserved = 0, isPro = false, unlimitedLabel, subscriptionTier = "free", onAddCreditsClick }: UsageMonitorProps) {
   const availableCredits = Math.max(0, totalAvailable - used - reserved)
   const percent = totalAvailable > 0 ? Math.min((used / totalAvailable) * 100, 100) : 0
   const isUnlimited = isPro && Boolean(unlimitedLabel)
@@ -39,12 +43,12 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
             style={{ width: "100%", background: "linear-gradient(135deg, hsl(187 79% 53%), hsl(270 50% 65%))" }}
           />
         </div>
+        <AddCreditsLink onClick={onAddCreditsClick} />
       </div>
     );
   }
 
   if (isPaidPro) {
-    const hasPurchased = purchasedBalance > 0
     return (
       <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
@@ -66,6 +70,7 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
             style={{ width: "100%", background: "linear-gradient(135deg, hsl(187 79% 53%), hsl(270 50% 65%))" }}
           />
         </div>
+        <AddCreditsLink onClick={onAddCreditsClick} />
       </div>
     );
   }
@@ -88,6 +93,7 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Add credits to continue</p>
+        <AddCreditsLink onClick={onAddCreditsClick} />
       </div>
     );
   }
@@ -119,8 +125,22 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
       {percent >= 80 && (
         <p className="mt-1.5 text-xs text-muted-foreground">Upgrade for more included credits</p>
       )}
+      <AddCreditsLink onClick={onAddCreditsClick} />
     </div>
   );
+}
+
+function AddCreditsLink({ onClick }: { onClick?: () => void }) {
+  return (
+    <Link
+      href={CREDIT_TOP_UPS_BILLING_HREF}
+      onClick={onClick}
+      className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-purple-200 bg-purple-50 px-2 text-xs font-semibold text-purple-800 transition hover:border-purple-300 hover:bg-purple-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 dark:border-purple-700/70 dark:bg-purple-950/40 dark:text-purple-100 dark:hover:bg-purple-900/50"
+    >
+      <PlusCircle className="h-3.5 w-3.5" aria-hidden="true" />
+      <span>+ Add Credits</span>
+    </Link>
+  )
 }
 
 export function useUsage() {
