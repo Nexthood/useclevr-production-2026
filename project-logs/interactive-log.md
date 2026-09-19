@@ -1,3 +1,73 @@
+## Stripe Top-Up Refund-Before-Grant Race Fix
+
+1. Interaction title
+   Stripe top-up refund-before-grant race fix.
+
+2. What was the user goal
+   Fix only the missing Stripe credit top-up refund race where `charge.refunded` can arrive before `CreditTopUp` exists, then a delayed `checkout.session.completed` grants credits for an already fully refunded payment.
+
+3. What changed
+   The Stripe checkout grant handler now retrieves the authoritative PaymentIntent and latest Charge before issuing credits. Fully refunded charges record a zero-credit `refunded` top-up history row and skip all ledger and balance mutations, so later checkout replays see the provider payment as already processed and grant zero. Partial refunds continue through the normal grant path and remain handled by the existing `charge.refunded` reversal. The credit top-up service now has an audit-safe `recordStripeRefundedTopUpWithoutGrant` path for Stripe payments refunded before any credit grant. The Stripe mock now supports PaymentIntent and Charge refund states. Behavioral tests cover normal grants, duplicate checkout events, full refund after grant, duplicate refund events, refund before grant followed by checkout replay, partial refund, and included-credit invariants.
+
+4. Problems marked
+   blocker: none.
+   risk: deployment must complete before replaying the existing production `charge.refunded` event; replaying before deployment can still leave the old grant-side race open.
+   improvement: none.
+   observation: the fix performs no real payments, no Stripe refunds, no production balance changes, and no webhook event resend.
+
+5. User learning
+   The safe replay point is after this grant-side guard is deployed, because checkout replays for fully refunded payments then create zero-credit refunded history instead of granting purchased credits.
+
+6. AI-agent learning
+   Refund race fixes must guard the credit grant side with authoritative provider state, not only the refund webhook side, because webhook ordering is not guaranteed.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Sidebar Add Credits Action
+
+1. Interaction title
+   Sidebar Add Credits action.
+
+2. What was the user goal
+   Add a compact “+ Add Credits” action directly inside the existing left-sidebar credit/plan card, route it to the existing subscription billing top-up section, preserve credit display behavior, avoid duplicate checkout UI, and verify the change without committing or pushing.
+
+3. What changed
+   The usage monitor card now renders a compact `+ Add Credits` link for limited-credit users, including Free users because the existing billing tab already shows top-ups for non-unlimited accounts. The link uses a shared top-up billing href and points to `/app/settings/subscription?tab=billing#credit-topups`. The subscription billing page exposes the matching stable anchor on the existing Purchase Credit Top-Ups section. The mobile sidebar closes when the link is tapped. A focused static regression script verifies the shared href, sidebar link, billing anchor, and that the sidebar does not call checkout directly.
+
+4. Problems marked
+   blocker: none.
+   risk: `pnpm test:sidebar-credit-topup-link` cannot run in the sandbox because Corepack pnpm cannot open its global store database and escalation is rejected by policy.
+   improvement: none.
+   observation: the existing billing page already preserves entitlement behavior by hiding top-up packages only for unlimited accounts while checkout APIs continue to enforce server-side rules.
+
+5. User learning
+   The sidebar action is a navigation shortcut to the existing billing top-up flow, not a new purchase system.
+
+6. AI-agent learning
+   When adding a sidebar billing shortcut, the AI agent must anchor the existing billing section and keep checkout initiation inside the established top-up components and API routes.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Prebookkeeping Category Review Persistence Fix
 
 1. Interaction title
@@ -5742,6 +5812,42 @@
 9. Minimal destination
    Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
 
+## Dashboard Selected Dataset Health Isolation
+
+1. Interaction title
+Dashboard selected dataset health isolation.
+
+2. What was the user goal
+Apply a P0 quick fix so Open dashboard and dataset switching bind the Executive Dashboard to the clicked dataset ID, keep selected-dataset context after refresh, and keep Executive Daily Health scoped to the selected dataset plus existing semantically compatible files.
+
+3. What changed
+The dashboard page now loads explicit `datasetId` context directly before calculating dashboard metrics. Executive Daily Health now receives the active dataset ID, uses dataset-scoped cache keys, preserves that scope in the full brief page links, and loads only the selected dataset plus files accepted by the existing business-semantic merge compatibility checks. Regression coverage now exercises SaaS, Marketplace, Investor, Marketplace to Investor to Marketplace switching, refresh-equivalent reloads, and compatible SaaS multi-file scope.
+
+4. Problems marked
+blocker: none.
+risk: the current branch is `main`, and pushing it can trigger source-branch production automation.
+improvement: add a browser-level smoke test for Dataset Library Open dashboard navigation when stable seeded dashboard fixtures exist.
+observation: workspace-level Daily Health cache keys must include selected-dataset scope when the source data is selected-dataset scoped.
+
+5. User learning
+Dashboard reports already use selected-dataset semantics; this fix isolates the interactive dashboard and Daily Health context around the active dataset.
+
+6. AI-agent learning
+Selected dashboard state must enter the server data loader before stats, metrics, Daily Health, and cache lookup run.
+
+7. Follow-up tasks
+- Add seeded browser smoke coverage for Dataset Library Open dashboard navigation when stable safe fixtures are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+
 ## E-commerce Return Rate Semantics
 
 1. Interaction title
@@ -7622,6 +7728,79 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; retired task: `.TODO/todo-done.md` T-1059; release notes: `CHANGELOG.md`.
 
+## Interaction: Verify 500 and 1,000 credit top-up packages against Stripe webhook paths
+
+1. Interaction title
+   Verify the remaining 500-credit ($45 USD) and 1,000-credit ($85 USD) credit top-up packages end to end without any real Stripe payments, production balance changes, commits, or pushes.
+
+2. What was the user goal
+   Confirm correct Stripe Price/package mapping, webhook package resolution, exact purchased-credit grants, unchanged included credits, remainingCredits = includedBalance + purchasedBalance, correct CreditTopUp history, replay idempotency, and Adaptive Pricing safety for both packages using mocks and tests only, then report PASS/FAIL, bugs, and files changed.
+
+3. What changed
+   - `scripts/billing/test-credit-topup-packages.ts`: new behavioral regression test (14 cases) driving `handleStripeCreditCheckoutEvent` and `processStripeTopUpPayment` for both packages with fully mocked Stripe, database, credit-account, and email modules; asserts exact grants (+500/+1,000), unchanged included balances, remainingCredits = included + purchased, CreditTopUp/Ledger row fields, confirmation emails, duplicate and redelivery replay safety, post-crash ledger idempotency, amount/currency fail-closed behavior, Adaptive Pricing acceptance and rejection, legacy amount+currency fallback resolution, unpaid/non-payment refusal, and safe failure for unmatched packages.
+   - `scripts/billing/mocks/` (`register-hooks.mjs`, `hooks.mjs`, `mock-db.mjs`, `mock-credit-account.mjs`, `mock-stripe.mjs`, `mock-emails.mjs`): module-loader mock harness that redirects the four payment-side modules to in-memory implementations; the DB mock interprets the exact drizzle call shapes of credit-topup-service (findFirst, transaction with snapshot rollback, inserts, updates by column pairs, and the raw UserCredit grant/refund SQL) with no real database.
+   - `package.json`: adds the `test:credit-topup-packages` script alongside the existing credit-topup suites.
+   - No production source files changed; no real Checkout payments, no production data access.
+
+4. Problems marked
+   - observation: The 500 and 1,000 packages pass all checks. Existing coverage (`test:credit-topup-webhooks` 68 source-contract checks, `test:credit-topup-architecture` 17 checks) had no behavioral grant/idempotency coverage for these two packages; the new suite adds it.
+   - risk (not a current failure): the webhook's legacy fallback resolves unknown sessions by exact session amount + currency (`lineItem_amount_currency_legacy`) without checking the resolved package's Stripe provider mapping, so any other paid $45/$85 USD payment-mode checkout without trusted metadata would resolve to a credit package; documented by the new legacy-fallback tests, currently guarded by deterministic metadata tiers.
+   - observation: `creditsFromMonetaryAmount` in `src/lib/billing/credit-packages.ts` uses an inconsistent credits conversion (4500 cents → 450) but has no callers in src or scripts.
+
+5. User learning
+   Both remaining top-up packages behave correctly on the production code paths: exact grants, one-time-only grants under replay, and localized-currency charges accepted only with the package's own verified Stripe Price.
+
+6. AI-agent learning
+   Behavioral payment tests can run without a database by mocking drizzle call shapes (SQL chunk walking for eq/and/update sets plus the known raw UPDATE shapes) and redirecting modules with synchronous `module.registerHooks` resolve hooks; env-configured package maps must be imported after the env vars are set.
+
+7. Follow-up tasks
+   - Optional hardening: make the legacy amount+currency fallback require the package's own provider mapping and prefer failing closed when metadata is absent.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Interaction: Harden Stripe credit-topup package resolution against amount guessing
+
+1. Interaction title
+   Remove amount/currency package guessing from the Stripe credit-topup webhook, remove the dead creditsFromMonetaryAmount conversion, and verify the 100/500/1,000 USD packages end to end with mocks.
+
+2. What was the user goal
+   Make a credit package resolvable only through the package's trusted Stripe Price ID or configured provider mapping so untrusted Price IDs, missing mappings, metadata tampering, and price drift fail closed with zero credits, keep Stripe Adaptive Pricing working through the package's own Price, remove creditsFromMonetaryAmount after confirming zero callers, then run the full relevant regression suite and TypeScript and lint/secrets checks without real payments, production balance changes, commits, or pushes.
+
+3. What changed
+   - `src/services/stripe/credit-webhook.ts`: `resolveCreditPackageFromLineItems` no longer resolves packages from Checkout amount + currency; it identifies a package only through a line-item Stripe Price ID mapped to an active package provider configuration and fails closed otherwise. `resolveCreditPackageDeterministically` now returns `resolvedPriceId` — the trusted Price that identified the package (the package's configured Price for metadata resolution, the metadata Price ID, or the matched line-item Price ID). The Adaptive Pricing localized-charge gate verifies `stripePriceId || resolvedPriceId` against the package's own Price and records that trusted Price on the payment, so legacy sessions without server-stamped metadata still support localized charges through their line-item Price while untrusted or drifted prices fail closed.
+   - `src/lib/billing/credit-packages.ts`: removed the unused `creditsFromMonetaryAmount` helper; configured credit packages remain the single source of truth for credit quantities. `resolveCreditTopUpPackageByAmount` stays because the Square webhook uses it (Square has no Stripe Price mapping) and its own handler validates completion, amount, and currency against the resolved package.
+   - `scripts/billing/test-credit-topup-packages.ts`: extended to 16 tests — exact +100/+500/+1,000 grants with unchanged included balances and remainingCredits invariants, replay and redelivery idempotency for every package, post-crash ledger idempotency, untrusted metadata Price IDs, untrusted line-item Price IDs, exact $45/$85 amounts with no trusted identifier failing safely, Adaptive Pricing acceptance through metadata and legacy line-item Prices, price-drift fail-closed behavior, and unpaid/non-payment refusal.
+   - `CHANGELOG.md`: Dev entry records the resolution hardening.
+
+4. Problems marked
+   - blocker root cause: `resolveCreditPackageFromLineItems` tier 2 resolved any active package from exact session amount + currency, so a paid $45/$85 USD payment-mode checkout without trusted metadata could grant credit-package credits; removed in favor of Price-ID-only resolution.
+   - behavior: Adaptive Pricing acceptance now trusts the Price that actually identified the package (metadata or Stripe-authoritative line item), so legacy sessions charged in a local currency still grant through the package's own verified Price.
+   - observation: the mock loader harness required no production changes; all new behavior is covered by the existing `test:credit-topup-packages` runner.
+
+5. User learning
+   Credit packages can now be granted only through configured Stripe Price mappings; a payment's amount and currency can never choose a package, so unknown or tampered checkouts grant zero credits instead of guessing.
+
+6. AI-agent learning
+   When removing a resolution fallback, extend the remaining trusted identifier (line-item Price ID) into the dependent safety gate (Adaptive Pricing verification) so legitimate legacy sessions keep working while every untrusted identifier fails closed; check Square-side callers before deleting shared mapping helpers.
+
+7. Follow-up tasks
+   - None for this change; `.TODO` queues unchanged.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md` Dev section.
 ## Interaction: Restore sidebar Add Credits and remove customer-visible PaymentIntent references
 
 1. Interaction title

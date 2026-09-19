@@ -4,7 +4,7 @@ import { debugError } from "@/lib/utils/debug"
 
 let _stripe: Stripe | null = null
 
-function getStripe(): Stripe {
+export function getStripe(): Stripe {
   if (_stripe) return _stripe
   const key = process.env.STRIPE_SECRET_KEY
   if (!key) {
@@ -66,6 +66,9 @@ export async function createCreditTopUpCheckoutSession({
     success_url: successUrl,
     cancel_url: cancelUrl,
     payment_method_types: ["card"],
+    // Stripe-generated invoice (hosted URL + PDF) for this one-time payment.
+    // This does NOT create a subscription — the invoice documents the payment.
+    invoice_creation: { enabled: true },
   })
 
   if (!session.url) {

@@ -2,6 +2,9 @@ import { debugLog } from "@/lib/utils/debug";
 
 const SUBSCRIPTION_EMAIL_FROM = process.env.EMAIL_FROM || "UseClevr <no-reply@useclevr.com>";
 
+/** Credit purchase confirmations always send from the dedicated no-reply address. */
+const CREDIT_PURCHASE_EMAIL_FROM = "UseClevr <no-reply@useclevr.com>";
+
 export type SubscriptionEmailType = "subscription_activation" | "subscription_cancellation" | "subscription_cancellation_scheduled" | "credit_purchase";
 
 export interface SendCreditPurchaseEmailParams {
@@ -12,6 +15,14 @@ export interface SendCreditPurchaseEmailParams {
   purchasedAt: string;
   providerPaymentId: string;
   dashboardUrl: string;
+  /** Authoritative Stripe hosted receipt URL for the charge (not a PDF). */
+  receiptUrl?: string;
+  /** Authoritative Stripe invoice PDF URL, when the invoice exposes one. */
+  invoicePdfUrl?: string;
+  /** Authoritative Stripe hosted invoice page URL. */
+  invoiceUrl?: string;
+  /** Purchased-credit balance after the grant, when available. */
+  newPurchasedBalance?: number;
 }
 
 export interface SendSubscriptionActivationEmailParams {
@@ -317,7 +328,7 @@ Go to your dashboard: ${dashboardUrl}
 export async function sendCreditPurchaseEmail(
   params: SendCreditPurchaseEmailParams
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { to, creditsGranted, amount, currency, purchasedAt, providerPaymentId, dashboardUrl } = params;
+  const { to, creditsGranted, amount, currency, purchasedAt, providerPaymentId, dashboardUrl, receiptUrl, invoicePdfUrl, invoiceUrl, newPurchasedBalance } = params;
 
   const formattedAmount = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -351,6 +362,12 @@ export async function sendCreditPurchaseEmail(
         <td style="padding: 8px 0; color: #64748b;">Amount Paid</td>
         <td style="padding: 8px 0; font-weight: 600;">${formattedAmount}</td>
       </tr>
+      ${typeof newPurchasedBalance === "number" ? `
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Purchased Credit Balance</td>
+        <td style="padding: 8px 0; font-weight: 600;">${newPurchasedBalance.toLocaleString()} credits</td>
+      </tr>
+      ` : ""}
       <tr>
         <td style="padding: 8px 0; color: #64748b;">Date</td>
         <td style="padding: 8px 0;">${new Date(purchasedAt).toLocaleDateString()}</td>
@@ -362,7 +379,18 @@ export async function sendCreditPurchaseEmail(
     </table>
   </div>
 
-  <p><strong>Important:</strong> Purchased credits do not expire. They are available immediately and will be used after your monthly included credits are exhausted.</p>
+  <p><strong>Important:</strong> Purchased credits are non-refundable and do not expire. They are available immediately and will be used after your monthly included credits are exhausted.</p>
+
+  ${(receiptUrl || invoicePdfUrl || invoiceUrl) ? `
+  <p style="color: #64748b; font-size: 14px;">Your payment documentation from Stripe:</p>
+  <ul style="color: #64748b; font-size: 14px; padding-left: 20px;">
+    ${receiptUrl ? `<li><a href="${receiptUrl}" style="color: #0ea5e9;">View Stripe receipt</a></li>` : ""}
+    ${invoicePdfUrl ? `<li><a href="${invoicePdfUrl}" style="color: #0ea5e9;">Download invoice PDF (Invoice / Rechnung)</a></li>` : ""}
+    ${invoiceUrl ? `<li><a href="${invoiceUrl}" style="color: #0ea5e9;">View invoice</a></li>` : ""}
+  </ul>
+  ` : `
+  <p style="color: #64748b; font-size: 14px;">Your Stripe payment receipt and invoice are available from your subscription settings on the dashboard.</p>
+  `}
 
   <div style="text-align: center; margin: 30px 0;">
     <a href="${dashboardUrl}" style="display: inline-block; background: #0ea5e9; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
@@ -388,11 +416,13 @@ Thank you for your purchase! ${creditsGranted.toLocaleString()} credits have bee
 
 Credits Added: ${creditsGranted.toLocaleString()}
 Amount Paid: ${formattedAmount}
-Date: ${new Date(purchasedAt).toLocaleDateString()}
+${typeof newPurchasedBalance === "number" ? `Purchased Credit Balance: ${newPurchasedBalance.toLocaleString()} credits\n` : ""}Date: ${new Date(purchasedAt).toLocaleDateString()}
 Reference: ${providerPaymentId}
 
-Important: Purchased credits do not expire. They are available immediately and will be used after your monthly included credits are exhausted.
+Important: Purchased credits are non-refundable and do not expire. They are available immediately and will be used after your monthly included credits are exhausted.
 
+Payment documentation from Stripe:
+${receiptUrl ? `View Stripe receipt: ${receiptUrl}\n` : ""}${invoicePdfUrl ? `Download invoice PDF (Invoice / Rechnung): ${invoicePdfUrl}\n` : ""}${invoiceUrl ? `View invoice: ${invoiceUrl}\n` : ""}
 Go to your dashboard: ${dashboardUrl}
 
 You can view your purchase history and manage your account from your subscription settings.
@@ -404,6 +434,7 @@ You can view your purchase history and manage your account from your subscriptio
     html,
     text,
     emailType: "credit_purchase",
+    from: CREDIT_PURCHASE_EMAIL_FROM,
   });
 }
 
@@ -413,6 +444,8 @@ async function sendEmail(params: {
   html: string;
   text: string;
   emailType: SubscriptionEmailType;
+  /** Optional verified-sender override; defaults to SUBSCRIPTION_EMAIL_FROM. */
+  from?: string;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
 
@@ -436,7 +469,7 @@ async function sendEmail(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: SUBSCRIPTION_EMAIL_FROM,
+        from: params.from || SUBSCRIPTION_EMAIL_FROM,
         to: params.to,
         subject: params.subject,
         text: params.text,

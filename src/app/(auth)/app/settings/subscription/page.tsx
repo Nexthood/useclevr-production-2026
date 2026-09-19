@@ -18,6 +18,7 @@ import { ArrowUpRight, CheckCircle, CreditCard, FileText, ReceiptText, ShieldChe
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CreditTopUpButton } from "@/components/shared/credit-topup-button"
+import { TopUpConfirmationPoller } from "@/components/billing/topup-confirmation-poller";
 import { SubscriptionPlanSelector } from "@/components/billing/subscription-plan-selector";
 import { SubscriptionCancelButton } from "@/components/billing/subscription-cancel-button";
 
@@ -354,10 +355,10 @@ const subs = await stripe.subscriptions.list({
   const pendingTopUp = topUpHistory.find(
     (t) => t.status === "pending" || t.status === "duplicate" || t.status === "failed",
   );
-  const showPendingTopUp = showTopUpSuccess || pendingTopUp;
   const completedTopUps = topUpHistory.filter((t) => t.status === "completed");
   const latestCompletedTopUp = completedTopUps.length > 0 ? completedTopUps[completedTopUps.length - 1] : null;
   const showTopUpConfirmation = showTopUpSuccess && latestCompletedTopUp;
+  const showPendingTopUp = !latestCompletedTopUp && (showTopUpSuccess || Boolean(pendingTopUp));
 
   return (
     <Card className="min-w-0 border-border bg-card">
@@ -520,14 +521,16 @@ const subs = await stripe.subscriptions.list({
                     </p>
                     <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
                       {latestCompletedTopUp.creditsGranted.toLocaleString()} purchased credits have been added to your UseClevr account.
-                      Purchased credits do not expire.
+                      Purchased credits are non-refundable and do not expire.
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {showPendingTopUp && (
+            {showTopUpSuccess && <TopUpConfirmationPoller />}
+
+            {showPendingTopUp && !showTopUpSuccess && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
                 <div className="flex items-start gap-3">
                   <LoaderCircle className="mt-0.5 h-5 w-5 animate-spin text-amber-600" />
@@ -548,6 +551,12 @@ const subs = await stripe.subscriptions.list({
             {!isUnlimited && (
               <div id={CREDIT_TOP_UPS_SECTION_ID} className="scroll-mt-24 space-y-4">
                 <h3 className="text-base font-semibold text-foreground">Purchase Credit Top-Ups</h3>
+                <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <p>
+                    Purchased credits are non-refundable and do not expire. For billing questions, contact support.
+                  </p>
+                </div>
                 {creditPackages.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {creditPackages.map((pkg) => (
@@ -584,9 +593,12 @@ const subs = await stripe.subscriptions.list({
               </div>
             )}
 
-            {completedTopUps.length > 0 && (
+            {(completedTopUps.length > 0 || topUpHistory.some((t) => t.status === "refunded")) && (
               <div className="space-y-3">
                 <h3 className="text-base font-semibold text-foreground">Credit Top-Up History</h3>
+                <p className="text-sm text-muted-foreground">
+                  Purchased credits are non-refundable and do not expire. For billing questions, contact support.
+                </p>
                 <div className="overflow-hidden rounded-lg border border-border">
                   <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground">
                     <span>Date</span>
@@ -596,7 +608,10 @@ const subs = await stripe.subscriptions.list({
                     <span className="text-right">Status</span>
                   </div>
                   <div className="divide-y divide-border">
-                    {completedTopUps.map((t) => (
+                    {[...topUpHistory]
+                      .filter((t) => t.status === "completed" || t.status === "refunded")
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((t) => (
                       <div key={t.id} className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_0.8fr] items-center px-4 py-3 text-sm">
                         <span className="text-foreground">
                           {new Date(t.createdAt).toLocaleDateString("en-US", {
@@ -611,9 +626,19 @@ const subs = await stripe.subscriptions.list({
                         </span>
                         <span className="text-foreground">{t.creditsGranted.toLocaleString()}</span>
                         <span className="text-right">
-                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-700 dark:text-green-300">
-                            Paid
-                          </span>
+                          {t.status === "refunded" ? (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-500/10 text-red-700 dark:text-red-300">
+                              Refunded
+                            </span>
+                          ) : (t.metadata as Record<string, unknown> | null)?.partiallyRefunded ? (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                              Partially Refunded
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-700 dark:text-green-300">
+                              Completed
+                            </span>
+                          )}
                         </span>
                       </div>
                      ))}
@@ -680,6 +705,7 @@ const subs = await stripe.subscriptions.list({
                 <li>Free plan usage is limited by included datasets and AI credits.</li>
                 <li>Paid subscriptions renew monthly unless cancelled before renewal.</li>
                 <li>Plan access changes after checkout and payment confirmation.</li>
+                <li>Purchased credit top-ups are non-refundable and do not expire.</li>
                 <li>Invoices and payment receipts are handled through the payment provider.</li>
               </ul>
             </div>

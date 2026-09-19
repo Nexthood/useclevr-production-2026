@@ -19,6 +19,12 @@ export interface StripeTopUpPayment {
   stripePriceId: string | null
   clientReferenceId: string | null
   metadata: Record<string, string>
+  /**
+   * Set when Stripe charged in a localized currency (Adaptive Pricing) that
+   * differs from the package's declared price currency. The value is the
+   * currency the customer was actually charged in.
+   */
+  chargeCurrency?: string | null
 }
 
 export interface SquareTopUpPayment {
@@ -41,6 +47,20 @@ export interface TopUpResult {
   ledgerEntryId: string | null
   duplicate: boolean
   error?: string
+}
+
+export interface RefundedTopUpWithoutGrantInput {
+  provider: "stripe"
+  providerPaymentId: string
+  providerCheckoutId: string | null
+  providerEventId: string | null
+  amountMinor: number
+  currency: string
+  clientReferenceId: string | null
+  metadata: Record<string, string>
+  refundAmountMinor: number
+  refundReason: string
+  stripeChargeId?: string | null
 }
 
 function topUpId(): string {
@@ -106,6 +126,98 @@ export async function processStripeTopUpPayment(
   return processTopUpPayment(payment, creditPackage, "stripe")
 }
 
+export async function recordStripeRefundedTopUpWithoutGrant(
+  payment: RefundedTopUpWithoutGrantInput,
+  creditPackage: CreditPackageConfig,
+): Promise<TopUpResult> {
+  const db = getDb()
+  if (!db) {
+    return {
+      success: false,
+      creditsIssued: 0,
+      topUpId: null,
+      ledgerEntryId: null,
+      duplicate: false,
+      error: "Database unavailable",
+    }
+  }
+
+  const existingTopUp = await getCreditTopUpByProviderPaymentId(payment.provider, payment.providerPaymentId)
+  if (existingTopUp) {
+    if (existingTopUp.status !== "completed" && existingTopUp.status !== "refunded") {
+      await markTopUpRefundedWithoutGrant(
+        payment.provider,
+        payment.providerPaymentId,
+        payment.refundReason,
+      )
+    }
+
+    return {
+      success: true,
+      creditsIssued: 0,
+      topUpId: existingTopUp.id,
+      ledgerEntryId: existingTopUp.ledgerEntryId,
+      duplicate: true,
+    }
+  }
+
+  const userId = resolveUserIdFromMetadata(payment.metadata, payment.clientReferenceId)
+  if (!userId) {
+    return {
+      success: false,
+      creditsIssued: 0,
+      topUpId: null,
+      ledgerEntryId: null,
+      duplicate: false,
+      error: "Unable to resolve userId from trusted metadata",
+    }
+  }
+
+  const workspaceId = resolveWorkspaceId(payment.metadata, userId)
+  const topUpRecordId = topUpId()
+  const now = new Date()
+
+  await db.insert(creditTopUps).values({
+    id: topUpRecordId,
+    userId,
+    workspaceId,
+    provider: "stripe",
+    providerPaymentId: payment.providerPaymentId,
+    providerCheckoutId: payment.providerCheckoutId,
+    providerEventId: payment.providerEventId,
+    currency: payment.currency,
+    amountMinor: payment.amountMinor,
+    creditsGranted: 0,
+    creditPackageId: creditPackage.id,
+    pricingVersion: creditPackage.pricingVersion,
+    status: "refunded",
+    ledgerEntryId: null,
+    metadata: {
+      stripeChargeId: payment.stripeChargeId ?? null,
+      stripePriceId: creditPackage.providers.stripe ?? null,
+      refundReason: payment.refundReason,
+      refundedBeforeGrant: true,
+      refundedAt: now.toISOString(),
+      refundAmountMinor: payment.refundAmountMinor,
+      packageCreditsGranted: creditPackage.creditsGranted,
+      priceCurrency: creditPackage.currency,
+      priceAmountMinor: creditPackage.monetaryAmountCents,
+    },
+    createdAt: now,
+    updatedAt: now,
+  }).onConflictDoNothing()
+
+  const savedTopUp = await getCreditTopUpByProviderPaymentId(payment.provider, payment.providerPaymentId)
+
+  return {
+    success: true,
+    creditsIssued: 0,
+    topUpId: savedTopUp?.id ?? topUpRecordId,
+    ledgerEntryId: null,
+    duplicate: Boolean(savedTopUp && savedTopUp.id !== topUpRecordId),
+  }
+}
+
 export async function processSquareTopUpPayment(
   payment: SquareTopUpPayment,
   creditPackage: CreditPackageConfig,
@@ -143,18 +255,40 @@ async function processTopUpPayment<T extends TopUpPayment>(
     }
   }
 
-  if (creditPackage.currency !== currency) {
-    return {
-      success: false,
-      creditsIssued: 0,
-      topUpId: null,
-      ledgerEntryId: null,
-      duplicate: false,
-      error: `Currency mismatch: expected ${creditPackage.currency}, got ${currency}`,
+  const chargeCurrency = (payment.provider === "stripe" ? payment.chargeCurrency : null) || currency
+
+  // Currency verification.
+  //
+  // Stripe Adaptive Pricing can charge the package's own Stripe Price in the
+  // customer's local currency, so the session currency may legitimately differ
+  // from the package's declared price currency. That path is only accepted
+  // when the checkout session was created for exactly this package's Stripe
+  // Price (server-stripePriceId, stamped server-side at session creation).
+  // Anything else fails closed.
+  const isLocalizedCharge = chargeCurrency !== creditPackage.currency
+  if (isLocalizedCharge) {
+    const sessionPriceId = payment.provider === "stripe" ? payment.stripePriceId : null
+    const packagePriceId = creditPackage.providers.stripe ?? null
+    if (!packagePriceId || sessionPriceId !== packagePriceId) {
+      return {
+        success: false,
+        creditsIssued: 0,
+        topUpId: null,
+        ledgerEntryId: null,
+        duplicate: false,
+        error: `Currency mismatch: expected ${creditPackage.currency}, got ${chargeCurrency} without a trusted matching Stripe Price`,
+      }
     }
   }
 
-  if (creditPackage.monetaryAmountCents !== amountMinor) {
+  // Amount verification.
+  //
+  // When the charge currency matches the package price currency, the paid
+  // amount must equal the package price exactly. For Stripe Adaptive Pricing
+  // charges (verified above against the package's own Stripe Price), the
+  // localized amount is Stripe's authoritative conversion of that price, so
+  // the actual charged amount is recorded instead of the nominal price.
+  if (!isLocalizedCharge && creditPackage.monetaryAmountCents !== amountMinor) {
     return {
       success: false,
       creditsIssued: 0,
@@ -162,6 +296,18 @@ async function processTopUpPayment<T extends TopUpPayment>(
       ledgerEntryId: null,
       duplicate: false,
       error: `Amount mismatch: expected ${creditPackage.monetaryAmountCents}, got ${amountMinor}`,
+    }
+  }
+
+  const metadataCreditsGranted = Number.parseInt(metadata.creditsGranted ?? "", 10)
+  if (Number.isFinite(metadataCreditsGranted) && metadataCreditsGranted !== creditPackage.creditsGranted) {
+    return {
+      success: false,
+      creditsIssued: 0,
+      topUpId: null,
+      ledgerEntryId: null,
+      duplicate: false,
+      error: `Credits mismatch: expected ${creditPackage.creditsGranted}, checkout metadata declared ${metadataCreditsGranted}`,
     }
   }
 
@@ -198,6 +344,7 @@ async function processTopUpPayment<T extends TopUpPayment>(
   }
 
   const topUpRecordId = topUpId()
+  const chargeAmountMinor = amountMinor
 
   try {
     await db.transaction(async (tx) => {
@@ -209,8 +356,8 @@ async function processTopUpPayment<T extends TopUpPayment>(
         providerPaymentId,
         providerCheckoutId: payment.providerCheckoutId ?? null,
         providerEventId: payment.providerEventId ?? null,
-        currency: creditPackage.currency,
-        amountMinor: creditPackage.monetaryAmountCents,
+        currency: chargeCurrency,
+        amountMinor: chargeAmountMinor,
         creditsGranted: creditPackage.creditsGranted,
         creditPackageId: creditPackage.id,
         pricingVersion: creditPackage.pricingVersion,
@@ -219,6 +366,11 @@ async function processTopUpPayment<T extends TopUpPayment>(
           stripePriceId: payment.provider === "stripe" ? payment.stripePriceId ?? null : null,
           squareReferenceId: payment.provider === "square" ? payment.referenceId ?? null : null,
           webhookReceivedAt: new Date().toISOString(),
+          priceCurrency: creditPackage.currency,
+          priceAmountMinor: creditPackage.monetaryAmountCents,
+          chargeCurrency,
+          chargeAmountMinor,
+          adaptivePricing: isLocalizedCharge,
         },
       })
 
@@ -254,7 +406,8 @@ async function processTopUpPayment<T extends TopUpPayment>(
         UPDATE "UserCredit"
         SET
           "purchasedBalance" = "purchasedBalance" + ${creditPackage.creditsGranted},
-          "totalPaidCents" = "totalPaidCents" + ${creditPackage.monetaryAmountCents},
+          "remainingCredits" = "remainingCredits" + ${creditPackage.creditsGranted},
+          "totalPaidCents" = "totalPaidCents" + ${chargeAmountMinor},
           "lifetimeCreditsEarned" = "lifetimeCreditsEarned" + ${creditPackage.creditsGranted},
           "updatedAt" = ${now}
         WHERE "userId" = ${userId}
@@ -277,11 +430,11 @@ async function processTopUpPayment<T extends TopUpPayment>(
         includedBalanceAfter: account.includedBalance,
         purchasedBalanceBefore: account.purchasedBalance,
         purchasedBalanceAfter: newPurchasedBalance,
-        monetaryAmount: creditPackage.monetaryAmountCents,
-        currency: creditPackage.currency,
+        monetaryAmount: chargeAmountMinor,
+        currency: chargeCurrency,
         source: "payment_provider",
         action: "credit_top_up",
-        description: `Purchased ${creditPackage.creditsGranted} credits for ${creditPackage.monetaryAmountCents / 100} ${creditPackage.currency} via ${provider}`,
+        description: `Purchased ${creditPackage.creditsGranted} credits for ${chargeAmountMinor / 100} ${chargeCurrency} via ${provider}`,
         paymentProvider: provider,
         providerTransactionId: providerPaymentId,
         paymentStatus: "finalized",
@@ -291,6 +444,11 @@ async function processTopUpPayment<T extends TopUpPayment>(
           providerPaymentId,
           providerCheckoutId: payment.providerCheckoutId ?? null,
           pricingVersion: creditPackage.pricingVersion,
+          priceCurrency: creditPackage.currency,
+          priceAmountMinor: creditPackage.monetaryAmountCents,
+          chargeCurrency,
+          chargeAmountMinor,
+          adaptivePricing: isLocalizedCharge,
         },
         createdAt: now,
         finalizedAt: now,
@@ -350,6 +508,7 @@ export async function refundTopUpCredits(
   providerPaymentId: string,
   refundAmountCents: number,
   reason: string,
+  refundId?: string | null,
 ): Promise<{ success: boolean; creditsRefunded: number; flaggedForReview: boolean; error?: string }> {
   const db = getDb()
   if (!db) {
@@ -359,6 +518,22 @@ export async function refundTopUpCredits(
   const topUp = await getCreditTopUpByProviderPaymentId(provider, providerPaymentId)
   if (!topUp) {
     return { success: false, creditsRefunded: 0, flaggedForReview: false, error: "No credit top-up found for this provider payment" }
+  }
+
+  // Idempotency: one refund (by immutable provider refund ID) may only be
+  // applied once, no matter how many times Stripe redelivers the event.
+  if (refundId) {
+    const refundKey = `refund:${provider}:${providerPaymentId}:${refundId}`
+    const existingRefund = await db.query.creditLedger.findFirst({
+      where: eq(creditLedger.idempotencyKey, refundKey),
+    })
+    if (existingRefund) {
+      debugLog(
+        `[credit-topup] Refund ${refundId} for ${providerPaymentId} already applied. Skipping.`,
+        { refundLedgerId: existingRefund.id },
+      )
+      return { success: true, creditsRefunded: 0, flaggedForReview: false }
+    }
   }
 
   if (topUp.status !== "completed") {
@@ -403,7 +578,7 @@ export async function refundTopUpCredits(
       .where(eq(creditTopUps.id, topUp.id))
 
     debugLog(
-      `[credit-topup] Partial refund not possible — insufficient purchased credits for full refund`,
+      `[credit-topup] Refund cannot reverse consumed purchased credits — flagged for billing review instead of creating a negative balance`,
       {
         userId: topUp.userId,
         provider,
@@ -425,14 +600,17 @@ export async function refundTopUpCredits(
   const newPurchasedBalance = account.purchasedBalance - refundCredits
   const newTotalAvailable = account.includedBalance + newPurchasedBalance
   const now = new Date()
-  const idempotencyKey = `refund:${provider}:${providerPaymentId}:${Date.now()}`
+  const idempotencyKey = refundId
+    ? `refund:${provider}:${providerPaymentId}:${refundId}`
+    : `refund:${provider}:${providerPaymentId}:${Date.now()}`
 
   await db.transaction(async (tx) => {
     await tx.execute(sql`
       UPDATE "UserCredit"
       SET
         "purchasedBalance" = "purchasedBalance" - ${refundCredits},
-        "totalPaidCents" = "totalPaidCents" - ${refundAmountCents},
+        "remainingCredits" = GREATEST("remainingCredits" - ${refundCredits}, 0),
+        "totalPaidCents" = GREATEST("totalPaidCents" - ${refundAmountCents}, 0),
         "updatedAt" = ${now}
       WHERE "userId" = ${topUp.userId}
     `)
@@ -479,13 +657,68 @@ export async function refundTopUpCredits(
       finalizedAt: now,
     }).onConflictDoNothing()
 
+    // Status reflects the cumulative refund state so Billing History can
+    // distinguish Completed / Partially Refunded / Refunded. The original
+    // purchase record and ledger evidence are never deleted.
+    const priorRefundedCredits = Number((topUp.metadata as Record<string, unknown> | null)?.refundedCredits ?? 0)
+    const totalRefundedCredits = priorRefundedCredits + refundCredits
+    const fullyRefunded = totalRefundedCredits >= topUp.creditsGranted
+
     await tx
       .update(creditTopUps)
-      .set({ status: "refunded" as const })
+      .set({
+        status: fullyRefunded ? ("refunded" as const) : ("completed" as const),
+        metadata: {
+          ...(topUp.metadata ?? {}),
+          partiallyRefunded: !fullyRefunded,
+          refundedCredits: totalRefundedCredits,
+          lastRefundId: refundId ?? null,
+          lastRefundAmountCents: refundAmountCents,
+        },
+      })
       .where(eq(creditTopUps.id, topUp.id))
   })
 
   return { success: true, creditsRefunded: refundCredits, flaggedForReview: false }
+}
+
+/**
+ * Marks a credit top-up as refunded when the payment was refunded before any
+ * credits were granted (top-up never reached "completed"). No balance or
+ * ledger mutation — the historical record stays intact and auditable.
+ */
+export async function markTopUpRefundedWithoutGrant(
+  provider: PaymentProvider,
+  providerPaymentId: string,
+  reason: string,
+): Promise<{ success: boolean; updated: boolean; error?: string }> {
+  const db = getDb()
+  if (!db) {
+    return { success: false, updated: false, error: "Database unavailable" }
+  }
+
+  const topUp = await getCreditTopUpByProviderPaymentId(provider, providerPaymentId)
+  if (!topUp) {
+    return { success: false, updated: false, error: "No credit top-up found for this provider payment" }
+  }
+
+  if (topUp.status === "completed") {
+    return { success: false, updated: false, error: "Top-up already granted credits — use refundTopUpCredits" }
+  }
+
+  if (topUp.status === "refunded") {
+    return { success: true, updated: false }
+  }
+
+  await db
+    .update(creditTopUps)
+    .set({
+      status: "refunded",
+      metadata: sql`jsonb_set(jsonb_set("metadata", '{refundReason}', ${JSON.stringify(reason)}::jsonb, true), '{refundedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb, true)`,
+    })
+    .where(eq(creditTopUps.id, topUp.id))
+
+  return { success: true, updated: true }
 }
 
 export interface ReconciliationIssue {

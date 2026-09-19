@@ -1,6 +1,9 @@
 import { debugError } from "@/lib/utils/debug"
 import { handleSubscriptionEvent } from "@/services/stripe/webhook"
-import { handleStripeCreditCheckoutEvent } from "@/services/stripe/credit-webhook"
+import {
+  handleStripeCreditCheckoutEvent,
+  handleStripeRefundEvent,
+} from "@/services/stripe/credit-webhook"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
@@ -56,6 +59,20 @@ export async function POST(request: NextRequest) {
           synced: result.synced,
           creditsIssued: result.creditsIssued,
           duplicate: result.duplicate,
+          ...(result.reason ? { reason: result.reason } : {}),
+        },
+      })
+    }
+
+    if (event.type === "charge.refunded") {
+      const result = await handleStripeRefundEvent(event)
+      return NextResponse.json({
+        received: true,
+        type: event.type,
+        creditTopUp: {
+          processed: result.processed,
+          synced: result.synced,
+          creditsIssued: result.creditsIssued,
           ...(result.reason ? { reason: result.reason } : {}),
         },
       })

@@ -55,6 +55,7 @@
 - Fix sign-up and sign-in verification code delivery on production so new users and the superadmin receive their 6-digit email codes without a blocking Resend domain pre-check or message-id requirement.
 - Fix ChatGPT account-linking deployment compatibility so OAuth discovery can publish through the normal release workflow while dataset analysis stays source-backed.
 - Fix ChatGPT account linking prompts so authentication and scope failures return the MCP challenge metadata ChatGPT requires to start OAuth.
+- Fix dashboard dataset switching so the Executive Dashboard and Executive Daily Health use the selected dataset context while compatible files stay grouped.
 - Fix Dataset Library dashboard openings so the clicked dataset stays selected across routing, dashboard metrics, semantic profiles, generated reports, and AI activity.
 - Fix dependency security remediation so CI audit enforcement clears patched transitive findings while tracking only current unavoidable residual advisories.
 - Fix public pricing and shared page chrome so translated price text, mobile navigation, CTA buttons, footer links, and the Usy assistant stay inside phone, tablet, and desktop viewports.
@@ -135,6 +136,7 @@
 
 ### Dev
 
+- Harden credit top-up webhooks so Stripe payments resolve credit packages only through the package's trusted Stripe Price mapping, never from payment amount or currency alone, while localized Adaptive Pricing charges through the package's own verified Price keep granting the exact package credits.
 - Patch source dependency audit inputs so validation passes with only the approved residual advisories.
 - Patch dependency audit validation so beta source checks use a fixed URI parser without allowing unapproved high-severity findings.
 - Add a dedicated ESLint TypeScript project for JavaScript and MJS scripts so the pre-push lint gate parses root repro scripts without weakening lint rules.

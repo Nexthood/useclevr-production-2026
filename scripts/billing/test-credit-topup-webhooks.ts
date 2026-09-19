@@ -38,6 +38,18 @@ const tests: TestCase[] = [
         handler.includes("credits will not be issued"),
         "handler refuses to issue credits for unpaid payments",
       )
+      assert.ok(
+        handler.includes("retrievePaymentRefundState") &&
+        handler.includes("paymentIntents.retrieve") &&
+        handler.includes("latest_charge") &&
+        handler.includes("amount_refunded"),
+        "handler verifies authoritative PaymentIntent and Charge refund state before granting credits",
+      )
+      assert.ok(
+        handler.includes("fullyRefunded") &&
+        handler.includes("recordStripeRefundedTopUpWithoutGrant"),
+        "handler records fully refunded payments as zero-credit refunded top-ups before grant",
+      )
     },
   },
   {
@@ -285,7 +297,7 @@ const tests: TestCase[] = [
     run() {
       const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
       assert.ok(
-        service.includes("insufficient purchased credits"),
+        service.includes("Insufficient purchased credits for full refund"),
         "refund logic checks for sufficient purchased balance",
       )
       assert.ok(
@@ -435,12 +447,84 @@ const tests: TestCase[] = [
         "page renders success confirmation message",
       )
       assert.ok(
-        page.includes("do not expire"),
-        "success banner mentions credits do not expire",
+        page.includes("non-refundable and do not expire"),
+        "success banner states the non-refundable, no-expiry policy",
       )
       assert.ok(
         page.includes("latestCompletedTopUp"),
         "success banner fetches data from server-side history, not URL params",
+      )
+    },
+  },
+  {
+    name: "customer-facing policy states purchased credits are non-refundable",
+    run() {
+      const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
+      const policyCount = page.split("Purchased credits are non-refundable and do not expire.").length - 1
+      assert.ok(
+        policyCount >= 2,
+        "non-refundable notice appears near both the purchase area and the credit history",
+      )
+      assert.ok(
+        page.includes("For billing questions, contact support."),
+        "notice directs billing questions to support",
+      )
+      assert.ok(
+        page.includes("Purchased credit top-ups are non-refundable and do not expire."),
+        "subscription terms state the non-refundable policy",
+      )
+      const emails = readProjectFile("src/lib/email/subscription-emails.ts")
+      assert.ok(
+        emails.includes("non-refundable and do not expire"),
+        "confirmation email states the non-refundable policy",
+      )
+      const poller = readProjectFile("src/components/billing/topup-confirmation-poller.tsx")
+      assert.ok(
+        poller.includes("non-refundable and do not expire"),
+        "post-purchase confirmation states the non-refundable policy",
+      )
+    },
+  },
+  {
+    name: "no self-service refund path exists for purchased credits",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("export async function refundTopUpCredits"),
+        "administrative Stripe refund logic remains available",
+      )
+      const webhook = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        webhook.includes("refundTopUpCredits"),
+        "refund reversal runs only through the verified Stripe webhook path",
+      )
+      assert.ok(
+        !readProjectFile("src/app/api/checkout/credit-topup/route.ts").includes("refundTopUpCredits"),
+        "customer checkout route exposes no refund action",
+      )
+      const statusRoute = readProjectFile("src/app/api/billing/credit-topup/status/route.ts")
+      assert.ok(
+        !statusRoute.includes("refundTopUpCredits"),
+        "status endpoint exposes no refund action",
+      )
+    },
+  },
+  {
+    name: "billing history distinguishes Completed, Partially Refunded, and Refunded",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes('fullyRefunded ? ("refunded" as const) : ("completed" as const)'),
+        "full reversal marks the top-up refunded; partial reversal keeps it completed with refund metadata",
+      )
+      assert.ok(
+        service.includes("partiallyRefunded: !fullyRefunded") && service.includes("refundedCredits: totalRefundedCredits"),
+        "cumulative refunded credits are recorded on the top-up record",
+      )
+      const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
+      assert.ok(
+        page.includes("Partially Refunded") && page.includes("Refunded") && page.includes("Completed"),
+        "history renders distinct Completed / Partially Refunded / Refunded labels",
       )
     },
   },
@@ -457,8 +541,8 @@ const tests: TestCase[] = [
         "email includes credit quantity and payment reference",
       )
       assert.ok(
-        emails.includes("do not expire"),
-        "email confirms purchased credits do not expire",
+        emails.includes("non-refundable and do not expire"),
+        "email confirms purchased credits are non-refundable and do not expire",
       )
     },
   },
@@ -825,6 +909,271 @@ const tests: TestCase[] = [
       assert.ok(
         webhookRoute.includes("handleSubscriptionEvent"),
         "subscription events handled separately from credit top-ups",
+      )
+    },
+  },
+  {
+    name: "Stripe Adaptive Pricing localized charges are accepted only with the package's own verified price",
+    run() {
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        handler.includes("chargeCurrency"),
+        "handler tracks the actual charge currency separately from the package price currency",
+      )
+      assert.ok(
+        handler.includes("prices.retrieve"),
+        "handler verifies the authoritative Stripe Price for a localized charge",
+      )
+      assert.ok(
+        handler.includes("one_time"),
+        "price verification keeps one-time semantics",
+      )
+      assert.ok(
+        handler.includes("requires admin recovery"),
+        "currency mismatch without a trusted package price fails closed",
+      )
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("isLocalizedCharge") && service.includes("packagePriceId || sessionPriceId !== packagePriceId"),
+        "service accepts localized currency only when the session used the package's own Stripe Price",
+      )
+    },
+  },
+  {
+    name: "purchased credit grant updates remainingCredits",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes('"remainingCredits" = "remainingCredits" + ${creditPackage.creditsGranted}'),
+        "grant adds purchased credits to remainingCredits so totals include them",
+      )
+    },
+  },
+  {
+    name: "refund events are routed to authoritative credit top-up refund handling",
+    run() {
+      const route = readProjectFile("src/app/api/webhooks/stripe/route.ts")
+      assert.ok(
+        route.includes("charge.refunded") && route.includes("handleStripeRefundEvent"),
+        "webhook route routes charge.refunded to the credit refund handler",
+      )
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        handler.includes("handleStripeRefundEvent"),
+        "credit webhook exports a refund event handler",
+      )
+      assert.ok(
+        handler.includes("markTopUpRefundedWithoutGrant"),
+        "refunds before any credit grant are recorded without balance changes",
+      )
+      assert.ok(
+        handler.includes("refundTopUpCredits"),
+        "completed top-ups are reversed through the established refund path",
+      )
+      assert.ok(
+        handler.includes('refund.status !== "succeeded"'),
+        "non-succeeded refunds are skipped",
+      )
+      assert.ok(
+        handler.includes("Refund does not belong to a credit top-up payment"),
+        "subscription invoice refunds do not affect credit top-ups",
+      )
+    },
+  },
+  {
+    name: "refund reversal is idempotent per immutable Stripe refund ID",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("refund:${provider}:${providerPaymentId}:${refundId}"),
+        "refund idempotency key is derived from the Stripe refund ID",
+      )
+      assert.ok(
+        service.includes("already applied. Skipping."),
+        "duplicate refund deliveries are detected and skipped",
+      )
+      assert.ok(
+        service.includes('GREATEST("remainingCredits" - ${refundCredits}, 0)'),
+        "refund reversal never drives remainingCredits negative",
+      )
+      assert.ok(
+        !service.includes("refund:${provider}:${providerPaymentId}:${Date.now()}") ||
+        service.includes("refundId"),
+        "refund keys never depend on processing time",
+      )
+    },
+  },
+  {
+    name: "refund flagging never corrupts balances",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("flaggedForReview"),
+        "insufficient purchased credits flag the account for review",
+      )
+      assert.ok(
+        service.includes("Insufficient purchased credits for full refund"),
+        "refund failure reports the shortfall instead of inventing negative balances",
+      )
+      assert.ok(
+        service.includes("Top-up already granted credits"),
+        "markTopUpRefundedWithoutGrant refuses completed top-ups",
+      )
+    },
+  },
+  {
+    name: "admin replay is superadmin-only and refuses refunded payments",
+    run() {
+      const route = readProjectFile("src/app/api/admin/replay-topup/route.ts")
+      assert.ok(
+        route.includes("isSuperAdminUserId") && route.includes("Forbidden"),
+        "replay endpoint requires a superadmin role",
+      )
+      assert.ok(
+        route.includes("amount_refunded > 0"),
+        "replay checks the authoritative charge refund state",
+      )
+      assert.ok(
+        route.includes("never replayed into credits"),
+        "refunded payments are never replayed into a credit grant",
+      )
+    },
+  },
+  {
+    name: "post-payment status endpoint is report-only and user-scoped",
+    run() {
+      const statusRoute = readProjectFile("src/app/api/billing/credit-topup/status/route.ts")
+      assert.ok(
+        statusRoute.includes("eq(creditTopUps.userId, user.id)"),
+        "status queries are scoped to the authenticated user",
+      )
+      assert.ok(
+        statusRoute.includes('"pending"') && statusRoute.includes('"completed"'),
+        "status reports webhook-confirmed DB state only",
+      )
+      assert.ok(
+        !statusRoute.includes("processStripeTopUpPayment") && !statusRoute.includes("handleStripeCreditCheckoutEvent"),
+        "status endpoint never grants credits (success URL grants zero credits)",
+      )
+      assert.ok(
+        statusRoute.includes("cs_"),
+        "status endpoint validates the checkout session ID format",
+      )
+    },
+  },
+  {
+    name: "confirmation poller is bounded and authoritative",
+    run() {
+      const poller = readProjectFile("src/components/billing/topup-confirmation-poller.tsx")
+      assert.ok(
+        poller.includes("MAX_POLLS") && poller.includes("POLL_INTERVAL_MS"),
+        "poller has a bounded attempt count and interval",
+      )
+      assert.ok(
+        poller.includes("clearTimeout"),
+        "poller stops its timer on completion and unmount",
+      )
+      assert.ok(
+        poller.includes("router.refresh()"),
+        "completion refreshes server-rendered authoritative data",
+      )
+      assert.ok(
+        poller.includes("taking longer than expected") && poller.includes("You will not be charged again"),
+        "timeout message reassures without promising credits",
+      )
+      assert.ok(
+        !poller.includes("/api/checkout/credit-topup"),
+        "poller never triggers checkout or credit granting",
+      )
+      const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
+      assert.ok(
+        page.includes("TopUpConfirmationPoller"),
+        "subscription page renders the confirmation poller after top-up success",
+      )
+      assert.ok(
+        page.includes("!latestCompletedTopUp && (showTopUpSuccess || Boolean(pendingTopUp))"),
+        "pending banner does not duplicate the completed confirmation",
+      )
+    },
+  },
+  {
+    name: "one-time checkout creates a Stripe invoice without becoming a subscription",
+    run() {
+      const checkout = readProjectFile("src/services/stripe/credit-checkout.ts")
+      assert.ok(
+        checkout.includes("invoice_creation"),
+        "checkout enables Stripe invoice creation for documentation",
+      )
+      assert.ok(
+        checkout.includes('mode: "payment"'),
+        "checkout remains one-time payment mode",
+      )
+      assert.ok(
+        !checkout.includes('mode: "subscription"'),
+        "credit top-up checkout never creates a subscription",
+      )
+    },
+  },
+  {
+    name: "confirmation email includes receipt and invoice documentation and never blocks credits",
+    run() {
+      const emails = readProjectFile("src/lib/email/subscription-emails.ts")
+      assert.ok(
+        emails.includes("receiptUrl") && emails.includes("invoicePdfUrl") && emails.includes("invoiceUrl"),
+        "email params include authoritative Stripe receipt, invoice PDF, and invoice page URLs",
+      )
+      assert.ok(
+        emails.includes("View Stripe receipt"),
+        "receipt is presented as a hosted Stripe receipt link, not a PDF",
+      )
+      assert.ok(
+        emails.includes("Download invoice PDF (Invoice / Rechnung)") && emails.includes("View invoice"),
+        "invoice offers the authoritative PDF download and hosted invoice view",
+      )
+      assert.ok(
+        emails.includes("no-reply@useclevr.com"),
+        "email from address is UseClevr no-reply",
+      )
+      assert.ok(
+        emails.includes("CREDIT_PURCHASE_EMAIL_FROM") && emails.includes('from: CREDIT_PURCHASE_EMAIL_FROM'),
+        "credit purchase email pins the dedicated no-reply sender",
+      )
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      assert.ok(
+        handler.includes("sendCreditPurchaseEmail"),
+        "webhook sends the confirmation email after the financial grant",
+      )
+      assert.ok(
+        handler.includes(".catch((err) => {\n          debugError(\"[stripe-credit-topup] Credit purchase email failed:\", err)\n        })"),
+        "email failures are logged, never thrown into the webhook response",
+      )
+    },
+  },
+  {
+    name: "financial transaction boundary keeps email and documents outside the grant rollback",
+    run() {
+      const handler = readProjectFile("src/services/stripe/credit-webhook.ts")
+      const emailStart = handler.indexOf("if (!result.duplicate && result.creditsIssued > 0)")
+      const grantReturn = handler.indexOf("return {\n    processed: true,\n    synced: true,\n    creditsIssued: result.creditsIssued,")
+      assert.ok(emailStart > -1 && grantReturn > emailStart, "email block runs after the successful grant result")
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("await db.transaction(async (tx) =>"),
+        "CreditTopUp, CreditLedger, and UserCredit updates share one DB transaction",
+      )
+      assert.ok(
+        !service.includes("sendCreditPurchaseEmail"),
+        "email sending is not inside the financial transaction module",
+      )
+    },
+  },
+  {
+    name: "credit grant metadata records the authoritative charge currency",
+    run() {
+      const service = readProjectFile("src/lib/billing/credit-topup-service.ts")
+      assert.ok(
+        service.includes("priceCurrency: creditPackage.currency") && service.includes("chargeCurrency"),
+        "top-up and ledger metadata record price currency vs charge currency",
       )
     },
   },

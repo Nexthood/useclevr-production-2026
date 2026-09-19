@@ -3,14 +3,18 @@ import type Stripe from "stripe"
 import {
   getCreditTopUpPackageById,
   getCreditTopUpPackageByStripePriceId,
-  creditTopUpPackages,
   type CreditPackageConfig,
 } from "@/lib/billing/credit-packages"
 import {
   processStripeTopUpPayment,
-  isProviderPaymentProcessed,
+  getCreditTopUpByProviderPaymentId,
+  refundTopUpCredits,
+  markTopUpRefundedWithoutGrant,
+  recordStripeRefundedTopUpWithoutGrant,
 } from "@/lib/billing/credit-topup-service"
+import { getCreditAccount } from "@/lib/billing/credit-account-service"
 import { sendCreditPurchaseEmail } from "@/lib/email/subscription-emails"
+import { getStripe } from "@/services/stripe/credit-checkout"
 import { debugError, debugLog } from "@/lib/utils/debug"
 
 export interface StripeCreditTopUpResult {
@@ -29,31 +33,37 @@ function normalizePriceId(price: string | undefined | null): string | null {
   return price && price.length > 0 ? price : null
 }
 
+type StripePaymentRefundState = {
+  chargeId: string | null
+  amount: number
+  amountRefunded: number
+  fullyRefunded: boolean
+  partiallyRefunded: boolean
+}
+
 /**
  * Legacy fallback: resolve a credit package from Stripe line items when
  * the Checkout Session predates the creditPackageId metadata field.
  *
- * Resolution order (strict, no guessing):
- *   1. stripePriceId from line items matching an active package provider mapping
- *   2. Amount + currency matching an active package
- *   3. Fail safely — requires admin recovery
+ * A credit package is identified ONLY by a Stripe Price ID that maps to an
+ * active package provider configuration. Amount and currency never resolve
+ * a package, and an unknown or untrusted Price ID fails closed so no credits
+ * are granted without a trusted identifier.
  */
 async function resolveCreditPackageFromLineItems(
   lineItems: unknown,
-  amountTotal: number,
-  currency: string,
-): Promise<{ package: CreditPackageConfig | null; resolutionMethod: string }> {
+): Promise<{ package: CreditPackageConfig | null; priceId: string | null; resolutionMethod: string }> {
   // Await if line items are wrapped in a promise or structured differently
   const items = await Promise.resolve(lineItems)
-  
+
   // Handle Stripe APIList structure: { data: [...], has_more: false }
-  const dataArray = Array.isArray(items) 
-    ? items 
+  const dataArray = Array.isArray(items)
+    ? items
     : items && typeof items === "object" && "data" in items && Array.isArray((items as { data?: unknown[] }).data)
       ? (items as { data: unknown[] }).data
       : []
 
-  // Tier 1: Resolve by Stripe Price ID from line items
+  // Resolve by Stripe Price ID from line items
   for (const item of dataArray) {
     if (item && typeof item === "object" && "price" in item) {
       const priceObj = (item as { price?: { id?: string } }).price
@@ -63,26 +73,14 @@ async function resolveCreditPackageFromLineItems(
       if (priceId) {
         const pkg = getCreditTopUpPackageByStripePriceId(priceId)
         if (pkg && pkg.active) {
-          return { package: pkg, resolutionMethod: "lineItem_priceId_legacy" }
+          return { package: pkg, priceId, resolutionMethod: "lineItem_priceId_legacy" }
         }
       }
     }
   }
 
-  // Tier 2: Resolve by exact amount + currency match
-  const normalizedCurrency = normalizeCurrency(currency)
-  for (const pkg of creditTopUpPackages) {
-    if (
-      pkg.active &&
-      normalizeCurrency(pkg.currency) === normalizedCurrency &&
-      pkg.monetaryAmountCents === amountTotal
-    ) {
-      return { package: pkg, resolutionMethod: "lineItem_amount_currency_legacy" }
-    }
-  }
-
-  // Tier 3: No match found
-  return { package: null, resolutionMethod: "none" }
+  // No trusted Price ID match — fail closed
+  return { package: null, priceId: null, resolutionMethod: "none" }
 }
 
 /**
@@ -92,18 +90,23 @@ async function resolveCreditPackageFromLineItems(
  *   2. stripePriceId from metadata / line items
  *   3. Legacy fallback: line items lookup (for sessions that predate creditPackageId metadata)
  *   4. Fail safely — no credits granted, requires admin recovery
+ *
+ * `resolvedPriceId` carries the trusted Stripe Price that identified the
+ * package (the package's own configured Price, the metadata Price ID, or the
+ * matched line-item Price ID) so localized Adaptive Pricing charges can be
+ * verified against the package's own Stripe Price even for legacy sessions.
  */
 async function resolveCreditPackageDeterministically(
   metadata: Record<string, string>,
   stripePriceId: string | null,
   session: Stripe.Checkout.Session,
-): Promise<{ package: CreditPackageConfig | null; resolvedCurrency: string; resolutionMethod: string }> {
+): Promise<{ package: CreditPackageConfig | null; resolvedCurrency: string; resolutionMethod: string; resolvedPriceId: string | null }> {
   // Tier 1: Resolve by server-generated creditPackageId from checkout metadata
   const creditPackageId = normalizePriceId(metadata.creditPackageId ?? null)
   if (creditPackageId) {
     const pkg = getCreditTopUpPackageById(creditPackageId)
     if (pkg && pkg.active) {
-      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "creditPackageId" }
+      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "creditPackageId", resolvedPriceId: pkg.providers.stripe ?? null }
     }
     debugLog("[stripe-credit-topup] creditPackageId found but package inactive or missing.", { creditPackageId })
   }
@@ -113,18 +116,14 @@ async function resolveCreditPackageDeterministically(
   if (priceId) {
     const pkg = getCreditTopUpPackageByStripePriceId(priceId)
     if (pkg && pkg.active) {
-      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "stripePriceId" }
+      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "stripePriceId", resolvedPriceId: priceId }
     }
     debugLog("[stripe-credit-topup] stripePriceId found but package inactive or not configured.", { priceId })
   }
 
-  // Tier 3: Legacy fallback — resolve from Stripe line items
+  // Tier 3: Legacy fallback — resolve from Stripe line items by trusted Price ID
   try {
-    const legacyResolution = await resolveCreditPackageFromLineItems(
-      session.line_items ?? [],
-      session.amount_total ?? 0,
-      session.currency ?? "",
-    )
+    const legacyResolution = await resolveCreditPackageFromLineItems(session.line_items ?? [])
     if (legacyResolution.package) {
       debugLog("[stripe-credit-topup] Resolved via legacy line-item lookup.", {
         packageId: legacyResolution.package.id,
@@ -134,6 +133,7 @@ async function resolveCreditPackageDeterministically(
         package: legacyResolution.package,
         resolvedCurrency: legacyResolution.package.currency,
         resolutionMethod: legacyResolution.resolutionMethod,
+        resolvedPriceId: legacyResolution.priceId,
       }
     }
   } catch (err) {
@@ -146,7 +146,41 @@ async function resolveCreditPackageDeterministically(
     hasPriceId: Boolean(stripePriceId),
     lineItemCount: Array.isArray(session.line_items) ? session.line_items.length : 0,
   })
-  return { package: null, resolvedCurrency: "", resolutionMethod: "none" }
+  return { package: null, resolvedCurrency: "", resolutionMethod: "none", resolvedPriceId: null }
+}
+
+async function retrievePaymentRefundState(paymentIntentId: string): Promise<StripePaymentRefundState> {
+  const stripe = getStripe()
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+    expand: ["latest_charge"],
+  })
+  const latestCharge = paymentIntent.latest_charge
+  const charge =
+    latestCharge && typeof latestCharge === "object"
+      ? latestCharge
+      : latestCharge
+        ? await stripe.charges.retrieve(latestCharge)
+        : null
+
+  if (!charge) {
+    return {
+      chargeId: null,
+      amount: paymentIntent.amount ?? 0,
+      amountRefunded: 0,
+      fullyRefunded: false,
+      partiallyRefunded: false,
+    }
+  }
+
+  const amount = Number(charge.amount ?? paymentIntent.amount ?? 0)
+  const amountRefunded = Number(charge.amount_refunded ?? 0)
+  return {
+    chargeId: charge.id,
+    amount,
+    amountRefunded,
+    fullyRefunded: amount > 0 && amountRefunded >= amount,
+    partiallyRefunded: amountRefunded > 0 && amountRefunded < amount,
+  }
 }
 
 export async function handleStripeCreditCheckoutEvent(
@@ -199,13 +233,17 @@ export async function handleStripeCreditCheckoutEvent(
   const providerCheckoutId = session.id
   const providerEventId = event.id
 
-  const isDuplicate = await isProviderPaymentProcessed("stripe", providerPaymentId)
-  if (isDuplicate) {
-    debugLog("[stripe-credit-topup] Duplicate payment detected, skipping.", { providerPaymentId })
+  const existingTopUp = await getCreditTopUpByProviderPaymentId("stripe", providerPaymentId)
+  if (existingTopUp) {
+    debugLog("[stripe-credit-topup] Duplicate payment detected, skipping.", {
+      providerPaymentId,
+      status: existingTopUp.status,
+    })
     return {
       processed: true,
       synced: true,
       duplicate: true,
+      creditsIssued: existingTopUp.status === "refunded" ? 0 : undefined,
       reason: "Payment already processed.",
     }
   }
@@ -248,6 +286,65 @@ export async function handleStripeCreditCheckoutEvent(
     }
   }
 
+  // Currency verification with Stripe Adaptive Pricing support.
+  //
+  // Stripe may charge the package's own Stripe Price in the customer's local
+  // currency (e.g. a USD price presented as EUR). That localized charge is
+  // only accepted when the checkout session was created for exactly this
+  // package's Stripe Price — identified by the server-stamped metadata Price
+  // ID or the matching line-item Price ID — AND the authoritative Stripe
+  // Price still matches the package configuration. Any other currency
+  // mismatch fails closed.
+  const trustedPriceId = stripePriceId || resolution.resolvedPriceId
+  let chargeCurrency = currency
+  if (currency !== creditPackage.currency) {
+    const packagePriceId = creditPackage.providers.stripe ?? null
+    if (!packagePriceId || !trustedPriceId || trustedPriceId !== packagePriceId) {
+      debugLog("[stripe-credit-topup] Currency mismatch without trusted package price — safe failure.", {
+        sessionId: session.id,
+        chargeCurrency: currency,
+        packageCurrency: creditPackage.currency,
+        stripePriceId: trustedPriceId,
+      })
+      return {
+        processed: true,
+        synced: false,
+        reason: `Payment currency ${currency} does not match package currency ${creditPackage.currency} without a trusted Stripe Price — requires admin recovery.`,
+      }
+    }
+
+    try {
+      const price = await getStripe().prices.retrieve(trustedPriceId)
+      if (
+        !price.active ||
+        price.type !== "one_time" ||
+        price.currency.toUpperCase() !== creditPackage.currency ||
+        price.unit_amount !== creditPackage.monetaryAmountCents
+      ) {
+        return {
+          processed: true,
+          synced: false,
+          reason: "Stripe Price no longer matches the credit package configuration — requires admin recovery.",
+        }
+      }
+    } catch (err) {
+      debugError("[stripe-credit-topup] Failed to verify Stripe price for localized charge.", { stripePriceId: trustedPriceId, error: err instanceof Error ? err.message : String(err) })
+      return {
+        processed: true,
+        synced: false,
+        reason: "Could not verify the Stripe Price for a localized payment — requires admin recovery.",
+      }
+    }
+
+    debugLog("[stripe-credit-topup] Stripe Adaptive Pricing charge accepted for package price.", {
+      sessionId: session.id,
+      packageCurrency: creditPackage.currency,
+      chargeCurrency: currency,
+      stripePriceId: trustedPriceId,
+    })
+    chargeCurrency = currency
+  }
+
   const payment = {
     provider: "stripe" as const,
     providerPaymentId,
@@ -255,9 +352,71 @@ export async function handleStripeCreditCheckoutEvent(
     providerEventId,
     amountMinor: amountTotal,
     currency: resolution.resolvedCurrency || currency,
-    stripePriceId,
+    chargeCurrency,
+    stripePriceId: trustedPriceId,
     clientReferenceId: clientReferenceId || null,
     metadata: metadata as Record<string, string>,
+  }
+
+  let refundState: StripePaymentRefundState
+  try {
+    refundState = await retrievePaymentRefundState(providerPaymentId)
+  } catch (err) {
+    debugError("[stripe-credit-topup] Failed to verify Stripe PaymentIntent refund state before grant.", {
+      providerPaymentId,
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return {
+      processed: true,
+      synced: false,
+      creditsIssued: 0,
+      reason: "Could not verify payment refund state before credit grant — requires admin recovery.",
+    }
+  }
+
+  if (refundState.fullyRefunded) {
+    debugLog("[stripe-credit-topup] Fully refunded payment detected before grant. Recording zero-credit refunded top-up.", {
+      providerPaymentId,
+      chargeId: refundState.chargeId,
+      amount: refundState.amount,
+      amountRefunded: refundState.amountRefunded,
+    })
+
+    const refundedResult = await recordStripeRefundedTopUpWithoutGrant(
+      {
+        provider: "stripe",
+        providerPaymentId,
+        providerCheckoutId,
+        providerEventId,
+        amountMinor: amountTotal,
+        currency: chargeCurrency,
+        clientReferenceId: clientReferenceId || null,
+        metadata: metadata as Record<string, string>,
+        refundAmountMinor: refundState.amountRefunded,
+        refundReason: "Stripe payment was fully refunded before credits were granted",
+        stripeChargeId: refundState.chargeId,
+      },
+      creditPackage,
+    )
+
+    return {
+      processed: true,
+      synced: refundedResult.success,
+      creditsIssued: 0,
+      duplicate: refundedResult.duplicate,
+      reason: refundedResult.success
+        ? "Payment was fully refunded before credits were granted — zero credits issued."
+        : refundedResult.error || "Failed to record refunded top-up without grant.",
+    }
+  }
+
+  if (refundState.partiallyRefunded) {
+    debugLog("[stripe-credit-topup] Partially refunded payment detected before grant. Preserving normal grant flow.", {
+      providerPaymentId,
+      chargeId: refundState.chargeId,
+      amount: refundState.amount,
+      amountRefunded: refundState.amountRefunded,
+    })
   }
 
   const result = await processStripeTopUpPayment(payment, creditPackage)
@@ -278,19 +437,42 @@ export async function handleStripeCreditCheckoutEvent(
   // The recipient is the trusted server-side userEmail stored in checkout
   // metadata at session creation. Never derive it from metadata.userId or
   // clientReferenceId: those are UseClevr user IDs, not email addresses.
+  // Email runs AFTER the financial grant is committed and must never roll it
+  // back — every failure here is logged, never thrown.
   if (!result.duplicate && result.creditsIssued > 0) {
     try {
       const userEmail = normalizePriceId(metadata.userEmail)
+      const topUpUserId = metadata.userId || clientReferenceId || null
       if (userEmail && userEmail.includes("@")) {
         const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.useclevr.com/app"
+        const [receiptUrl, invoiceUrl, account] = await Promise.all([
+          retrieveStripeReceiptUrl(providerPaymentId).catch((err) => {
+            debugError("[stripe-credit-topup] Receipt URL lookup failed:", err)
+            return null
+          }),
+          retrieveStripeInvoiceUrl(session).catch((err) => {
+            debugError("[stripe-credit-topup] Invoice URL lookup failed:", err)
+            return null
+          }),
+          topUpUserId
+            ? getCreditAccount(topUpUserId).catch((err) => {
+                debugError("[stripe-credit-topup] Post-grant balance lookup failed:", err)
+                return null
+              })
+            : Promise.resolve(null),
+        ])
         await sendCreditPurchaseEmail({
           to: userEmail,
           creditsGranted: creditPackage.creditsGranted,
-          amount: creditPackage.monetaryAmountCents / 100,
-          currency: creditPackage.currency,
+          amount: amountTotal / 100,
+          currency: chargeCurrency || creditPackage.currency,
           purchasedAt: new Date().toISOString(),
           providerPaymentId,
           dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+          receiptUrl: receiptUrl ?? undefined,
+          invoicePdfUrl: invoiceUrl?.pdfUrl ?? undefined,
+          invoiceUrl: invoiceUrl?.hostedUrl,
+          newPurchasedBalance: account?.purchasedBalance,
         }).catch((err) => {
           debugError("[stripe-credit-topup] Credit purchase email failed:", err)
         })
@@ -305,5 +487,124 @@ export async function handleStripeCreditCheckoutEvent(
     synced: true,
     creditsIssued: result.creditsIssued,
     duplicate: result.duplicate,
+  }
+}
+
+/**
+ * Best-effort Stripe receipt URL (authoritative hosted receipt for the charge).
+ */
+async function retrieveStripeReceiptUrl(paymentIntentId: string): Promise<string | null> {
+  const stripe = getStripe()
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+  const chargeId = typeof paymentIntent.latest_charge === "string" ? paymentIntent.latest_charge : paymentIntent.latest_charge?.id
+  if (!chargeId) return null
+  const charge = await stripe.charges.retrieve(chargeId)
+  return charge.receipt_url ?? null
+}
+
+/**
+ * Best-effort Stripe invoice URLs (hosted invoice page + invoice PDF) for
+ * one-time Checkout payments created with invoice_creation enabled.
+ */
+async function retrieveStripeInvoiceUrl(
+  session: Stripe.Checkout.Session,
+): Promise<{ hostedUrl: string; pdfUrl: string | null } | null> {
+  const invoiceId = typeof session.invoice === "string" ? session.invoice : session.invoice?.id
+  if (!invoiceId) return null
+  const invoice = await getStripe().invoices.retrieve(invoiceId)
+  if (!invoice.hosted_invoice_url) return null
+  return { hostedUrl: invoice.hosted_invoice_url, pdfUrl: invoice.invoice_pdf ?? null }
+}
+
+/**
+ * Authoritative refund handling for credit top-up payments.
+ *
+ * A refunded payment must never become a permanent credit grant:
+ *   - Top-up never completed (credits never granted): mark the top-up
+ *     refunded for audit. Zero balance changes.
+ *   - Top-up completed: reverse the refunded credits from the ORIGINAL
+ *     purchaser only, idempotently per Stripe refund ID, inside the
+ *     established refund rules (no negative balances, no ledger deletion).
+ *
+ * Refunds for payments that are not credit top-ups (e.g. subscription
+ * invoices) are ignored here.
+ */
+export async function handleStripeRefundEvent(
+  event: Stripe.Event,
+): Promise<StripeCreditTopUpResult> {
+  if (event.type !== "charge.refunded") {
+    return { processed: false, synced: false, reason: `Not a charge.refunded event: ${event.type}` }
+  }
+
+  const charge = event.data.object as Stripe.Charge
+  const paymentIntent =
+    typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.payment_intent && typeof charge.payment_intent === "object"
+        ? charge.payment_intent.id
+        : null
+
+  if (!paymentIntent) {
+    return { processed: false, synced: false, reason: "Refunded charge has no payment_intent." }
+  }
+
+  const topUp = await getCreditTopUpByProviderPaymentId("stripe", paymentIntent)
+  if (!topUp) {
+    return { processed: false, synced: false, reason: "Refund does not belong to a credit top-up payment." }
+  }
+
+  if (topUp.status !== "completed") {
+    const marked = await markTopUpRefundedWithoutGrant(
+      "stripe",
+      paymentIntent,
+      `Stripe refund ${charge.id} before credits were granted`,
+    )
+    debugLog("[stripe-credit-topup] Refund processed for never-granted top-up.", {
+      topUpId: topUp.id,
+      paymentIntent,
+      marked: marked.updated,
+    })
+    return {
+      processed: true,
+      synced: true,
+      creditsIssued: 0,
+      reason: "Payment was refunded before credits were granted — no credits were issued.",
+    }
+  }
+
+  // Credits were granted — reverse them per applied refund, idempotently.
+  const refunds = charge.refunds?.data?.length
+    ? charge.refunds.data
+    : (await getStripe().charges.retrieve(charge.id, { expand: ["refunds"] })).refunds?.data ?? []
+
+  let creditsReversed = 0
+  let flaggedForReview = false
+  for (const refund of refunds) {
+    if (refund.status !== "succeeded") {
+      debugLog("[stripe-credit-topup] Skipping non-succeeded refund.", { refundId: refund.id, status: refund.status })
+      continue
+    }
+    const refundResult = await refundTopUpCredits(
+      "stripe",
+      paymentIntent,
+      refund.amount,
+      `Stripe refund ${refund.id}`,
+      refund.id,
+    )
+    if (refundResult.success) {
+      creditsReversed += refundResult.creditsRefunded
+    }
+    if (refundResult.flaggedForReview) {
+      flaggedForReview = true
+    }
+  }
+
+  return {
+    processed: true,
+    synced: true,
+    creditsIssued: creditsReversed,
+    reason: flaggedForReview
+      ? "Refund recorded but consumed purchased credits require billing review."
+      : undefined,
   }
 }
