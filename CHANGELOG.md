@@ -134,6 +134,7 @@
 
 ### Dev
 
+- Harden credit top-up webhooks so Stripe payments resolve credit packages only through the package's trusted Stripe Price mapping, never from payment amount or currency alone, while localized Adaptive Pricing charges through the package's own verified Price keep granting the exact package credits.
 - Patch source dependency audit inputs so validation passes with only the approved residual advisories.
 - Patch dependency audit validation so beta source checks use a fixed URI parser without allowing unapproved high-severity findings.
 - Add a dedicated ESLint TypeScript project for JavaScript and MJS scripts so the pre-push lint gate parses root repro scripts without weakening lint rules.

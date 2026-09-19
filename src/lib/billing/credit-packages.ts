@@ -111,7 +111,3 @@ export function resolveCreditTopUpPackageByAmount(
     (pkg) => pkg.currency === currency && pkg.monetaryAmountCents === amountMinor && pkg.active && pkg.providers[provider],
   ) ?? null
 }
-
-export function creditsFromMonetaryAmount(_amountMinor: number, _currency: SupportedCurrency = "EUR"): number {
-  return Math.round(_amountMinor / 100) * 10
-}
