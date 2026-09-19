@@ -62,11 +62,13 @@ export async function createStripeCheckoutSession({
     : plan?.startsWith("business_") ? "business"
     : null;
 
+  // Trusted ownership fields win: caller-supplied metadata must never be able
+  // to redirect a subscription to a different UseClevr user via metadata override.
   const mergedMetadata = {
+    ...(metadata ?? {}),
     userId,
     userEmail,
     subscriptionTier,
-    ...(metadata ?? {}),
   }
 
   const sessionCreateParams: Stripe.Checkout.SessionCreateParams = {

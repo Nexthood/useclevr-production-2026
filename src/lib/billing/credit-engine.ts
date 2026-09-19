@@ -516,7 +516,10 @@ export async function reserveCredits(input: {
   const unlimited = await hasUnlimitedCreditAccess(input.userId, input.role)
 
   const existing = await db.query.creditLedger.findFirst({
-    where: eq(creditLedger.idempotencyKey, idempotencyKey),
+    where: and(
+      eq(creditLedger.idempotencyKey, idempotencyKey),
+      eq(creditLedger.userId, input.userId),
+    ),
   })
   if (existing) {
     // Reuse only the still-pending reservation of the exact same operation. A
@@ -559,7 +562,10 @@ export async function reserveCredits(input: {
 
     idempotencyKey = `${idempotencyKey}::${operationId}`
     const previousAttempt = await db.query.creditLedger.findFirst({
-      where: eq(creditLedger.idempotencyKey, idempotencyKey),
+      where: and(
+        eq(creditLedger.idempotencyKey, idempotencyKey),
+        eq(creditLedger.userId, input.userId),
+      ),
     })
     if (previousAttempt) {
       if (

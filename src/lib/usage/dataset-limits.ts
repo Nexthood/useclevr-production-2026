@@ -21,11 +21,18 @@ export async function getActiveDatasetCount(userId: string): Promise<number> {
   const db = getDb()
   if (!db) return 0
 
+  if (!userId) return 0
+
   try {
     const [{ count: total }] = await db
       .select({ count: count() })
       .from(datasets)
-      .where(or(isNull(datasets.datasetType), ne(datasets.datasetType, "prebookkeeping")))
+      .where(
+        and(
+          eq(datasets.userId, userId),
+          or(isNull(datasets.datasetType), ne(datasets.datasetType, "prebookkeeping")),
+        ),
+      )
     return Number(total ?? 0)
   } catch {
     return 0
