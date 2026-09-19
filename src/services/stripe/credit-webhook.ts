@@ -274,11 +274,14 @@ export async function handleStripeCreditCheckoutEvent(
     }
   }
 
-  // Send confirmation email (idempotent — only on first successful processing)
+  // Send confirmation email (idempotent — only on first successful processing).
+  // The recipient is the trusted server-side userEmail stored in checkout
+  // metadata at session creation. Never derive it from metadata.userId or
+  // clientReferenceId: those are UseClevr user IDs, not email addresses.
   if (!result.duplicate && result.creditsIssued > 0) {
     try {
-      const userEmail = metadata.userId || clientReferenceId || null
-      if (userEmail) {
+      const userEmail = normalizePriceId(metadata.userEmail)
+      if (userEmail && userEmail.includes("@")) {
         const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.useclevr.com/app"
         await sendCreditPurchaseEmail({
           to: userEmail,

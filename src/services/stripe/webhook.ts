@@ -4,7 +4,7 @@ import { recordActivity } from "@/lib/activity/activity-store";
 import { processPlanChange } from "@/lib/billing/credit-engine";
 import { getSubscriptionTierForStripePriceId, getSubscriptionIntervalForStripePriceId } from "@/lib/billing/launch-pricing";
 import { profiles, users } from "@/lib/db/schema";
-import { eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
 import {
@@ -425,23 +425,55 @@ type ProfileMatchInput = {
   userEmail?: string | null;
 };
 
+/**
+ * Resolve the single profile that owns a Stripe payment.
+ *
+ * Ownership is resolved by strict priority — never by OR-ing identifiers,
+ * never by taking whichever profile happens to match first:
+ *   1. userId from trusted server-side checkout metadata / client_reference_id
+ *   2. stripeCustomerId previously linked to exactly one profile
+ *   3. email only when no stronger identifier exists
+ *
+ * Email is never allowed to override a stronger mapping, so a payment can
+ * never land on the wrong account (e.g. Superadmin) when a customer pays
+ * with an email address that belongs to another profile.
+ */
 async function findProfileForStripeCustomer({ customerId, userId, userEmail }: ProfileMatchInput) {
   const activeDb = getDb();
   if (!activeDb) return null;
 
-  const clauses = [eq(profiles.stripeCustomerId, customerId)];
-  if (userId) clauses.push(eq(profiles.userId, userId));
-  if (userEmail) clauses.push(eq(profiles.email, userEmail));
+  if (userId) {
+    const byUserId = await activeDb.query.profiles.findFirst({
+      where: eq(profiles.userId, userId),
+    });
+    if (byUserId) return byUserId;
 
-  const matched = await activeDb.query.profiles.findFirst({
-    where: clauses.length === 1 ? clauses[0] : or(...clauses),
-  });
+    // The trusted userId exists but has no profile yet — only another
+    // identifier owned by the SAME user may resolve here.
+    if (customerId) {
+      const byCustomer = await activeDb.query.profiles.findFirst({
+        where: and(eq(profiles.stripeCustomerId, customerId), eq(profiles.userId, userId)),
+      });
+      if (byCustomer) return byCustomer;
+    }
 
-  if (matched) return matched;
+    if (userEmail) {
+      const byUserEmail = await activeDb.query.profiles.findFirst({
+        where: and(eq(profiles.email, userEmail), eq(profiles.userId, userId)),
+      });
+      if (byUserEmail) return byUserEmail;
+    }
 
-  // Fallback: if stripeCustomerId is not yet linked (e.g. recovery before
-  // webhook delivery), try an email match across all profiles.
-  if (userEmail && !customerId) {
+    return null;
+  }
+
+  if (customerId) {
+    return activeDb.query.profiles.findFirst({
+      where: eq(profiles.stripeCustomerId, customerId),
+    });
+  }
+
+  if (userEmail) {
     return activeDb.query.profiles.findFirst({
       where: eq(profiles.email, userEmail),
     });

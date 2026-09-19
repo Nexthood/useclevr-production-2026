@@ -48,11 +48,13 @@ export async function createCreditTopUpCheckoutSession({
   const stripe = getStripe()
   await validateCreditTopUpPrice(stripe, stripePriceId, expectedCurrency)
 
+  // Trusted ownership fields win: caller-supplied metadata must never be able
+  // to redirect a payment to a different UseClevr user via metadata override.
   const mergedMetadata: Record<string, string> = {
+    ...(metadata ?? {}),
     userId,
     userEmail,
     stripePriceId,
-    ...(metadata ?? {}),
   }
 
   const session = await stripe.checkout.sessions.create({
