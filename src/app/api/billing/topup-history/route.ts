@@ -15,12 +15,13 @@ export async function GET() {
   try {
     const topUps = await getCreditTopUpHistory(userId, 50)
 
+    // Customer-facing response never includes internal payment provider
+    // references. Those stay in the database for refunds, reconciliation,
+    // webhook processing, idempotency, and support.
     return NextResponse.json({
       topUps: topUps.map((t) => ({
         id: t.id,
         provider: t.provider,
-        providerPaymentId: t.providerPaymentId,
-        providerCheckoutId: t.providerCheckoutId,
         amount: t.amountMinor / 100,
         currency: t.currency,
         creditsGranted: t.creditsGranted,
@@ -28,8 +29,6 @@ export async function GET() {
         pricingVersion: t.pricingVersion,
         status: t.status,
         createdAt: t.createdAt.toISOString(),
-        ledgerEntryId: t.ledgerEntryId,
-        metadata: t.metadata,
       })),
     })
   } catch (error) {

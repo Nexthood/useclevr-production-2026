@@ -3,10 +3,12 @@
 ### Added
 
 - Add subscription state machine that pre-checks Stripe subscription status before cancel/resume actions to prevent HTTP 500 errors when subscription is already canceled, and reconciles database to Free tier when subscription is missing or not entitled.
+- Add an Add Credits button to the Pro and Business plan sidebar card so customers can open the credit top-up purchase section directly from the sidebar.
 
 ### Fixed
 
 - Fix dataset limits so every customer counts only their own uploaded datasets; other accounts' datasets, including the Superadmin account's, no longer block plan limits or inflate dataset usage.
+- Fix the Billing page so purchase records show only customer-relevant details and internal payment processor references stay out of the customer view.
 - Fix credit purchases so purchased credits always land on the paying customer's account: Stripe checkout metadata and webhook processing can no longer redirect a payment to another account, duplicate payments stay credit-neutral, and credit purchase emails reach the buyer instead of failing.
 - Fix subscription activation so a Stripe payment is matched to the customer who paid through their trusted user reference first, never by whichever account shares a matching email, so subscriptions can no longer land on the wrong account.
 - Fix Profitability report generation so the Generate Report buttons on the Profitability Analysis page and the Profitability Dashboard deliver the Profitability & P&L report to Reports & Downloads, repeated clicks reuse the stored report without duplicate charges, and failed generations show the cause instead of a generic error.

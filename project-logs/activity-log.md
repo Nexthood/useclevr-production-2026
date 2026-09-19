@@ -367,3 +367,5 @@
 - fixed: resolve Stripe credit-topup packages only through trusted Stripe Price mappings by removing the legacy amount+currency package fallback from the webhook while keeping Adaptive Pricing localized charges grantable through the package's own verified Price from metadata or line items
 - removed: the unused creditsFromMonetaryAmount conversion helper so configured credit packages stay the single source of truth for credit quantities
 - added: behavioral coverage for exact +100/+500/+1,000 grants, untrusted and amount-only sessions granting zero credits, and legacy line-item Price resolution with localized currency
+- fixed: show the Add Credits button on the Pro and Business plan sidebar card by rendering the compact credit top-up link in the paid-plan UsageMonitor variant that was missed by the earlier sidebar credit access work
+- fixed: keep Stripe PaymentIntent references out of the customer view by removing the Payment reference lines from the Billing page and dropping payment provider references from the top-up status and history API responses while the database keeps them for refunds, reconciliation, webhooks, idempotency, and support

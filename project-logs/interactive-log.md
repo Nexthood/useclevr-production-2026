@@ -7801,3 +7801,43 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md` Dev section.
+
+## Interaction: Restore sidebar Add Credits and remove customer-visible PaymentIntent references
+
+1. Interaction title
+   Restore the missing + Add Credits button on the Production Pro Plan sidebar card and remove the customer-visible Stripe PaymentIntent reference from the Billing and Credit Top-Up History UI and APIs.
+
+2. What was the user goal
+   Confirm the exact root cause of the missing sidebar button, render a clearly visible compact Add Credits button below the credit/progress information linking to the billing credit top-up anchor without duplicating payment logic, remove the Payment reference from customer-facing billing UI and top-up APIs while keeping the internal reference in the database for refunds, reconciliation, webhooks, idempotency, and support, then verify with focused regression tests, TypeScript, ESLint, and secret/package checks without committing or pushing.
+
+3. What changed
+   - `src/components/ui/usage-monitor.tsx`: the paid Pro/Business card variant now renders the shared `AddCreditsLink` below the credit counts and progress bar, so every UsageMonitor card variant (unlimited, paid Pro/Business, no credits, standard) offers the compact + Add Credits action with the existing styling, counts, and responsive behavior preserved.
+   - `src/app/(auth)/app/settings/subscription/page.tsx`: removed the "Reference: pi_..." line from the success banner and the "Payment reference: pi_..." line under Credit Top-Up History; the page keeps server-side history for credits, amounts, providers, and statuses only.
+   - `src/app/api/billing/credit-topup/status/route.ts`: the report-only status response no longer selects or returns the PaymentIntent reference for completed or refunded top-ups.
+   - `src/app/api/billing/topup-history/route.ts`: the customer-facing history response no longer includes internal payment provider references; the database records stay untouched.
+   - `scripts/billing/test-sidebar-credit-topup-link.ts`: extended to pin the root-cause regression (the link must render in all four UsageMonitor card variants, including the paid Pro/Business branch), the exact billing href, the anchor with scroll offset, and the pi_ non-exposure contract for the page plus both APIs.
+   - `scripts/billing/test-credit-topup-webhooks.ts`: the billing-page contract now asserts the PaymentIntent reference is NOT rendered instead of requiring it.
+   - `CHANGELOG.md`: Added/Fixed entries for the sidebar button and the cleaned-up billing view.
+
+4. Problems marked
+   - root cause: the Pro/Business sidebar card renders the isPaidPro branch of UsageMonitor; the earlier sidebar credit access commit added AddCreditsLink to the unlimited, no-credits, and standard branches but missed the paid Pro/Business branch, and production builds predate all sidebar credit access work, so paying Pro customers saw no Add Credits button.
+   - observation: /api/billing/topup-history had no frontend consumers but still exposed internal payment references to the authenticated owner; stripped for defense in depth.
+   - intentional scope: the confirmation email keeps the payment reference alongside the Stripe receipt and invoice links, matching its existing contract.
+
+5. User learning
+   The sidebar credit card now always offers Add Credits, and billing records no longer surface internal payment processor references.
+
+6. AI-agent learning
+   When a shared component renders several variant branches, per-variant rendering checks (count-based source contracts) catch missed branches that a single "includes" assertion cannot; anchor scrolling depends on server-rendered content, so gate the anchor behind the URL-driven tab and keep a scroll margin for the sticky header.
+
+7. Follow-up tasks
+   - None for this change; production convergence happens on the next deploy of the branch.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.

@@ -523,9 +523,6 @@ const subs = await stripe.subscriptions.list({
                       {latestCompletedTopUp.creditsGranted.toLocaleString()} purchased credits have been added to your UseClevr account.
                       Purchased credits are non-refundable and do not expire.
                     </p>
-                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
-                      Reference: {latestCompletedTopUp.providerPaymentId}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -647,9 +644,6 @@ const subs = await stripe.subscriptions.list({
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Payment reference: {[...completedTopUps].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]?.providerPaymentId}
-                </p>
               </div>
             )}
           </div>

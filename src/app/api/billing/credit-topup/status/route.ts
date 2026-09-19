@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
       creditsGranted: true,
       currency: true,
       amountMinor: true,
-      providerPaymentId: true,
     },
   })
 
@@ -64,7 +63,6 @@ export async function GET(request: NextRequest) {
         creditsGranted: topUp.creditsGranted,
         amount: topUp.amountMinor / 100,
         currency: topUp.currency,
-        reference: topUp.providerPaymentId,
       },
       { headers: { "Cache-Control": "no-store" } },
     )
@@ -72,7 +70,7 @@ export async function GET(request: NextRequest) {
 
   if (topUp.status === "refunded") {
     return NextResponse.json(
-      { status: "refunded", reference: topUp.providerPaymentId },
+      { status: "refunded" },
       { headers: { "Cache-Control": "no-store" } },
     )
   }
