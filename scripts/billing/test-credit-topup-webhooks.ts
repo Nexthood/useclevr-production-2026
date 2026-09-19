@@ -38,6 +38,18 @@ const tests: TestCase[] = [
         handler.includes("credits will not be issued"),
         "handler refuses to issue credits for unpaid payments",
       )
+      assert.ok(
+        handler.includes("retrievePaymentRefundState") &&
+        handler.includes("paymentIntents.retrieve") &&
+        handler.includes("latest_charge") &&
+        handler.includes("amount_refunded"),
+        "handler verifies authoritative PaymentIntent and Charge refund state before granting credits",
+      )
+      assert.ok(
+        handler.includes("fullyRefunded") &&
+        handler.includes("recordStripeRefundedTopUpWithoutGrant"),
+        "handler records fully refunded payments as zero-credit refunded top-ups before grant",
+      )
     },
   },
   {

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth/auth";
 import { getActiveCreditTopUpPackages } from "@/lib/billing/credit-packages";
+import { CREDIT_TOP_UPS_SECTION_ID } from "@/lib/billing/credit-topup-navigation";
 import { getSubscriptionIntervalForStripePriceId, getSubscriptionTierForStripePriceId } from "@/lib/billing/launch-pricing";
 import { getBillingSettings } from "@/lib/billing/settings-store";
 import Stripe from "stripe";
@@ -551,7 +552,7 @@ const subs = await stripe.subscriptions.list({
             )}
 
             {!isUnlimited && (
-              <div className="space-y-4">
+              <div id={CREDIT_TOP_UPS_SECTION_ID} className="scroll-mt-24 space-y-4">
                 <h3 className="text-base font-semibold text-foreground">Purchase Credit Top-Ups</h3>
                 <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />

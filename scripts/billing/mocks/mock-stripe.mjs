@@ -5,18 +5,55 @@
  */
 
 export const priceCatalog = new Map()
+export const paymentIntentCatalog = new Map()
+export const chargeCatalog = new Map()
 
 export const stripeCalls = {
   priceRetrievals: [],
+  paymentIntentRetrievals: [],
+  chargeRetrievals: [],
 }
 
 export function setMockPrice(price) {
   priceCatalog.set(price.id, price)
 }
 
+export function setMockPaymentIntent(paymentIntent) {
+  paymentIntentCatalog.set(paymentIntent.id, paymentIntent)
+}
+
+export function setMockCharge(charge) {
+  chargeCatalog.set(charge.id, charge)
+}
+
+export function setMockPaymentRefundState({
+  paymentIntentId,
+  chargeId = `ch_mock_${paymentIntentId}`,
+  amount,
+  amountRefunded = 0,
+  refunds = [],
+}) {
+  setMockCharge({
+    id: chargeId,
+    amount,
+    amount_refunded: amountRefunded,
+    receipt_url: "https://pay.stripe.com/receipts/mock",
+    refunds: { data: refunds },
+  })
+  setMockPaymentIntent({
+    id: paymentIntentId,
+    amount,
+    latest_charge: chargeId,
+  })
+}
+
 export function resetStripeMock() {
   priceCatalog.clear()
+  paymentIntentCatalog.clear()
+  chargeCatalog.clear()
   stripeCalls.priceRetrievals.length = 0
+  stripeCalls.paymentIntentRetrievals.length = 0
+  stripeCalls.chargeRetrievals.length = 0
 }
 
 class NotFoundError extends Error {
@@ -40,17 +77,26 @@ export function getStripe() {
       },
     },
     paymentIntents: {
-      retrieve: async (paymentIntentId) => ({
-        id: paymentIntentId,
-        latest_charge: `ch_mock_${paymentIntentId}`,
-      }),
+      retrieve: async (paymentIntentId) => {
+        stripeCalls.paymentIntentRetrievals.push(paymentIntentId)
+        return paymentIntentCatalog.get(paymentIntentId) ?? {
+          id: paymentIntentId,
+          amount: 0,
+          latest_charge: `ch_mock_${paymentIntentId}`,
+        }
+      },
     },
     charges: {
-      retrieve: async (chargeId) => ({
-        id: chargeId,
-        receipt_url: "https://pay.stripe.com/receipts/mock",
-        refunds: { data: [] },
-      }),
+      retrieve: async (chargeId) => {
+        stripeCalls.chargeRetrievals.push(chargeId)
+        return chargeCatalog.get(chargeId) ?? {
+          id: chargeId,
+          amount: 0,
+          amount_refunded: 0,
+          receipt_url: "https://pay.stripe.com/receipts/mock",
+          refunds: { data: [] },
+        }
+      },
     },
     invoices: {
       retrieve: async (invoiceId) => ({

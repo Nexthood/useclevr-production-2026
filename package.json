@@ -106,6 +106,7 @@
     "test:credit-topup-webhooks": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/billing/test-credit-topup-webhooks.ts",
     "test:credit-topup-architecture": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/billing/test-credit-topup-architecture.ts",
     "test:credit-topup-packages": "node -r tsx/esm --import ./scripts/billing/mocks/register-hooks.mjs scripts/billing/test-credit-topup-packages.ts",
+    "test:sidebar-credit-topup-link": "node -r tsx/esm scripts/billing/test-sidebar-credit-topup-link.ts",
     "test:tier-resolution": "node -r tsx/esm scripts/billing/test-tier-resolution.ts",
     "test:retail-pos": "node -r tsx/esm scripts/retail/test-pos-integration.ts",
     "test:pro-pricing": "node -r tsx/esm scripts/billing/test-pro-launch-pricing.ts",
