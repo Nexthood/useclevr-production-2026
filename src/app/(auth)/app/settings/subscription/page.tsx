@@ -326,6 +326,85 @@ const subs = await stripe.subscriptions.list({
     }
   }
 
+  // ----- Subscription invoice history (authoritative Stripe state) -----
+  // Lists the customer's Stripe subscription invoices and pairs each with its
+  // succeeded charge so refunded subscription payments surface as
+  // Refunded / Partially refunded. Credit top-up invoices and internal
+  // provider references (PaymentIntent/charge IDs) are never shown here.
+  type SubscriptionInvoiceView = {
+    id: string
+    number: string | null
+    createdAt: Date
+    description: string
+    amount: number
+    currency: string
+    status: "Paid" | "Refunded" | "Partially refunded" | "Payment due"
+    hostedInvoiceUrl: string | null
+  };
+
+  const subscriptionInvoices: SubscriptionInvoiceView[] = [];
+  if (profile?.stripeCustomerId && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {});
+      const [invoices, charges] = await Promise.all([
+        stripe.invoices.list({ customer: profile.stripeCustomerId, limit: 24 }),
+        stripe.charges.list({
+          customer: profile.stripeCustomerId,
+          limit: 24,
+          expand: ["data.refunds"],
+        }),
+      ]);
+
+      const stripeIdOf = (value: string | { id?: string } | null | undefined): string | null => {
+        if (!value) return null;
+        return typeof value === "string" ? value : value.id || null;
+      };
+
+      const subscriptionInvoiceIds = new Set(
+        invoices.data
+          .filter((invoice) => Boolean(stripeIdOf(invoice.subscription)) && invoice.id)
+          .map((invoice) => invoice.id as string),
+      );
+      const chargeByInvoiceId = new Map<string, Stripe.Charge>();
+      for (const charge of charges.data) {
+        if (charge.status !== "succeeded") continue;
+        const chargeInvoiceId = stripeIdOf(charge.invoice);
+        if (!chargeInvoiceId || !subscriptionInvoiceIds.has(chargeInvoiceId)) continue;
+        if (!chargeByInvoiceId.has(chargeInvoiceId)) chargeByInvoiceId.set(chargeInvoiceId, charge);
+      }
+
+      for (const invoice of invoices.data) {
+        const invoiceId = invoice.id;
+        if (!invoiceId || !subscriptionInvoiceIds.has(invoiceId)) continue;
+        const charge = chargeByInvoiceId.get(invoiceId);
+        const refundedAmount = charge?.amount_refunded ?? 0;
+        const fullyRefunded = charge?.refunded === true;
+        const status: SubscriptionInvoiceView["status"] = fullyRefunded
+          ? "Refunded"
+          : refundedAmount > 0
+            ? "Partially refunded"
+            : invoice.status === "paid"
+              ? "Paid"
+              : "Payment due";
+        const lineDescription = invoice.lines?.data?.[0]?.description;
+        subscriptionInvoices.push({
+          id: invoiceId,
+          number: invoice.number ?? null,
+          createdAt: new Date(invoice.created * 1000),
+          description: lineDescription || "Subscription payment",
+          amount: invoice.total / 100,
+          currency: (invoice.currency || "eur").toUpperCase(),
+          status,
+          hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+        });
+        if (subscriptionInvoices.length >= 12) break;
+      }
+    } catch (error) {
+      console.warn("Failed to fetch subscription invoice history:", error);
+    }
+  }
+  subscriptionInvoices.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
   const providerConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
   const tier = profile?.subscriptionTier || usage.subscriptionTier || "free";
   const currentPlanLabel = planLabel(tier);
@@ -499,17 +578,78 @@ const subs = await stripe.subscriptions.list({
                   <ReceiptText className="h-4 w-4" />
                   Subscription Invoices
                 </CardTitle>
+                <CardDescription>
+                  Stripe subscription payments and their refund state. Credit top-ups are listed separately below.
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-hidden rounded-b-lg border-t border-border">
-                  <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr] bg-muted/30 px-5 py-3 text-xs font-medium text-muted-foreground">
-                    <span>Invoice</span>
-                    <span>Status</span>
-                    <span className="text-right">Amount</span>
-                  </div>
-                  <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-                    No subscription invoices yet.
-                  </div>
+                  {subscriptionInvoices.length > 0 ? (
+                    <div className="divide-y divide-border">
+                      <div className="grid grid-cols-[1.4fr_1.6fr_0.9fr_0.8fr] bg-muted/30 px-5 py-2 text-xs font-medium text-muted-foreground">
+                        <span>Date</span>
+                        <span>Description</span>
+                        <span>Status</span>
+                        <span className="text-right">Amount</span>
+                      </div>
+                      {subscriptionInvoices.map((invoice) => (
+                        <div
+                          key={invoice.id}
+                          className="grid grid-cols-[1.4fr_1.6fr_0.9fr_0.8fr] items-center px-5 py-3 text-sm"
+                        >
+                          <span className="min-w-0 truncate text-foreground">
+                            {invoice.hostedInvoiceUrl ? (
+                              <a
+                                href={invoice.hostedInvoiceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline-offset-2 hover:underline"
+                              >
+                                {invoice.createdAt.toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </a>
+                            ) : (
+                              invoice.createdAt.toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })
+                            )}
+                          </span>
+                          <span className="min-w-0 truncate text-muted-foreground">{invoice.description}</span>
+                          <span>
+                            {invoice.status === "Paid" ? (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-700 dark:text-green-300">
+                                Paid
+                              </span>
+                            ) : invoice.status === "Refunded" ? (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-500/10 text-red-700 dark:text-red-300">
+                                Refunded
+                              </span>
+                            ) : invoice.status === "Partially refunded" ? (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                                Partially refunded
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                                Payment due
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-right font-medium text-foreground">
+                            {invoice.amount.toFixed(2)} {invoice.currency}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-5 py-8 text-center text-sm text-muted-foreground">
+                      No subscription invoices yet.
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

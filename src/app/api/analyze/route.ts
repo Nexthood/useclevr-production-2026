@@ -55,6 +55,7 @@ import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { ghostModeTraceMessage, normalizeGhostMode } from "@/lib/ai/ghost-mode";
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { buildCreditExhaustionState } from "@/lib/billing/credit-exhaustion";
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { estimateUsageFromText } from "@/lib/billing/provider-usage";
 import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
@@ -368,6 +369,11 @@ export async function POST(request: Request) {
           chartType: "table",
           upgradeRequired: true,
           remainingCredits: reservation.availableCredits,
+          creditState: await buildCreditExhaustionState({
+            userId: effectiveUserId,
+            tier: subscriptionTier,
+            requiredCredits: reservation.reservedCredits,
+          }),
         }, { status: 402 })
       }
       creditOperationId = operationId

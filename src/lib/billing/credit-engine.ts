@@ -610,11 +610,6 @@ export async function reserveCredits(input: {
   const now = new Date()
   const ledgerEntryId = ledgerId()
 
-  // Purchased (top-up) credits are only consumable on paid plans. On the Free
-  // tier a reservation must fit inside the plan's included allowance so any
-  // preserved purchased credits stay intact until the account upgrades again.
-  const paidPlanTier = tier === "pro" || tier === "business"
-
   if (unlimited) {
     await db.insert(creditLedger).values({
       id: ledgerEntryId,
@@ -658,7 +653,6 @@ export async function reserveCredits(input: {
         "updatedAt" = ${now}
       WHERE "userId" = ${input.userId}
         AND ("remainingCredits" - "reservedCredits") >= ${estimatedCredits}
-        AND (${paidPlanTier} OR "includedBalance" >= ${estimatedCredits})
       RETURNING "remainingCredits", "reservedCredits"
     `)
     const rows = rowsFromResult<{ remainingCredits: number; reservedCredits: number }>(updated)
@@ -683,7 +677,7 @@ export async function reserveCredits(input: {
       action: feature,
       description: `Reserved ${estimatedCredits} credits for ${feature}.`,
       currency: "EUR",
-      metadata: { ...(input.metadata ?? {}), planTier: tier },
+      metadata: input.metadata ?? {},
       createdAt: now,
     })
 
@@ -856,37 +850,25 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
     return { success: true, remainingCredits: reservation.balanceAfter, creditsDeducted: 0, newLedgerEntry: chargeId }
   }
 
-  // Purchased (top-up) credits are only consumable on paid plans. Free-tier
-  // usage is capped to the included allowance so preserved purchased credits
-  // stay intact until the account upgrades again.
-  const planTier = String((reservation.metadata as Record<string, unknown> | null)?.planTier ?? "pro")
-  const purchasedConsumable = planTier === "pro" || planTier === "business"
-  let debitedCredits = actualCredits
-
+  // Included credits are always consumed before purchased credits via the
+  // CASE expression below. Purchased (top-up) credits remain consumable on the
+  // Free tier after a downgrade — they are never blocked or deleted there.
   const finalized = await db.transaction(async (tx) => {
-    if (!purchasedConsumable) {
-      const account = await tx.query.userCredits.findFirst({
-        where: eq(userCredits.userId, reservation.userId),
-        columns: { includedBalance: true },
-      })
-      debitedCredits = Math.min(actualCredits, Math.max(0, account?.includedBalance ?? 0))
-    }
-
     const updated = await tx.execute(sql`
       UPDATE "UserCredit"
       SET
         "reservedCredits" = GREATEST(0, "reservedCredits" - ${reservedCredits}),
-        "remainingCredits" = "remainingCredits" - ${debitedCredits},
-        "usedCredits" = "usedCredits" + ${debitedCredits},
-        "lifetimeCreditsUsed" = "lifetimeCreditsUsed" + ${debitedCredits},
-        "includedBalance" = GREATEST(0, "includedBalance" - ${debitedCredits}),
+        "remainingCredits" = "remainingCredits" - ${actualCredits},
+        "usedCredits" = "usedCredits" + ${actualCredits},
+        "lifetimeCreditsUsed" = "lifetimeCreditsUsed" + ${actualCredits},
+        "includedBalance" = GREATEST(0, "includedBalance" - ${actualCredits}),
         "purchasedBalance" = CASE
-          WHEN "includedBalance" >= ${debitedCredits} THEN "purchasedBalance"
-          ELSE "purchasedBalance" - GREATEST(0, ${debitedCredits} - "includedBalance")
+          WHEN "includedBalance" >= ${actualCredits} THEN "purchasedBalance"
+          ELSE "purchasedBalance" - GREATEST(0, ${actualCredits} - "includedBalance")
         END,
         "updatedAt" = ${now}
       WHERE "userId" = ${reservation.userId}
-        AND ("remainingCredits" - "reservedCredits" + ${reservedCredits}) >= ${debitedCredits}
+        AND ("remainingCredits" - "reservedCredits" + ${reservedCredits}) >= ${actualCredits}
       RETURNING "remainingCredits", "usedCredits", "includedBalance", "purchasedBalance"
     `)
     const row = rowsFromResult<{ remainingCredits: number; usedCredits: number; includedBalance: number; purchasedBalance: number }>(updated)[0]
@@ -909,8 +891,8 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
       status: "finalized",
       operationId: reservation.operationId,
       idempotencyKey: `charge:${reservation.operationId}`,
-      amount: -debitedCredits,
-      credits: debitedCredits,
+      amount: -actualCredits,
+      credits: actualCredits,
       balanceBefore: reservation.balanceAfter,
       balanceAfter: row.remainingCredits,
       source: reservation.source || "application",
@@ -927,7 +909,7 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
       pricingVersion: usage?.pricingVersion,
       metadata: { ...(input.metadata ?? {}), rawUsageReference: usage?.rawUsageReference },
       action: reservation.action,
-      description: `Finalized ${debitedCredits} credits for ${reservation.feature || reservation.action}.`,
+      description: `Finalized ${actualCredits} credits for ${reservation.feature || reservation.action}.`,
       relatedDatasetId: reservation.relatedDatasetId,
       relatedPlanId: reservation.relatedPlanId,
       finalizedAt: now,
@@ -972,7 +954,7 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
   return {
     success: true,
     remainingCredits: finalized.remainingCredits,
-    creditsDeducted: debitedCredits,
+    creditsDeducted: actualCredits,
     newLedgerEntry: chargeId,
   }
 }

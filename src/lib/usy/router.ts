@@ -1,5 +1,15 @@
 import { buildUploadCreditLimitCopy, buildUploadCreditLimitMessage } from "@/lib/billing/upload-credit-messaging";
 import {
+  buildUsyBillingOverviewAnswer,
+  buildUsyCancellationAnswer,
+  buildUsyDowngradeAnswer,
+  buildUsyPurchasedRulesAnswer,
+  buildUsyRefundAnswer,
+  buildUsyTopUpAnswer,
+  buildUsyZeroCreditsAnswer,
+  resolveUsyBillingState,
+} from "@/lib/usy/billing-knowledge";
+import {
   getPlanSummary,
   supportedUsyLanguageLabel,
   usyProductFacts,
@@ -26,6 +36,10 @@ type ProductIntentId =
   | "datasets"
   | "dashboard"
   | "credits"
+  | "top-ups"
+  | "refunds"
+  | "downgrade"
+  | "cancellation"
   | "plans"
   | "billing"
   | "reports"
@@ -101,6 +115,10 @@ const usyIntentByProductIntent: Record<ProductIntentId, UsyIntent> = {
   datasets: "getting_started",
   dashboard: "getting_started",
   credits: "account_help",
+  "top-ups": "account_help",
+  refunds: "billing",
+  downgrade: "billing",
+  cancellation: "billing",
   plans: "billing",
   billing: "billing",
   reports: "product_information",
@@ -271,6 +289,99 @@ const productIntents: ProductIntentRule[] = [
       "The dashboard summarizes uploaded-data KPIs, business health, risks, opportunities, recommendations, recent activity, and report actions. Use the AI Assistant when you want analysis of a specific uploaded dataset.",
     followUps: ["Explain KPIs", "Ask AI Assistant", "Generate a report", "Upload data"],
     actions: ["OPEN_DASHBOARD", "OPEN_AI_ASSISTANT"],
+  },
+  {
+    id: "top-ups",
+    keywords: [
+      "top-up",
+      "top-ups",
+      "topup",
+      "top up",
+      "add credits",
+      "buy credits",
+      "purchase credits",
+      "credit top-up",
+      "kredite aufladen",
+      "kredite kaufen",
+      "credits kaufen",
+      "recarga de créditos",
+      "comprar créditos",
+      "reîncărcare credite",
+      "cumpăra credite",
+      "kreditfeltöltés",
+      "kredite vásárlása",
+      "credits kopen",
+    ],
+    answer: (context) => buildUsyTopUpAnswer(context.usage, "english"),
+    followUps: ["How do AI credits work?", "Do purchased credits expire?", "Upgrade to Pro", "View billing"],
+    actions: ["OPEN_BILLING", "OPEN_SUBSCRIPTION"],
+  },
+  {
+    id: "refunds",
+    keywords: [
+      "refund",
+      "refunds",
+      "refund request",
+      "money back",
+      "get my money back",
+      "rückerstattung",
+      "geld zurück",
+      "reembolso",
+      "devolución",
+      "rambursare",
+      "returnarea banilor",
+      "visszatérítés",
+      "pénz vissza",
+    ],
+    answer: (context) => buildUsyRefundAnswer(context.usage, "english"),
+    followUps: ["Contact billing support", "Do purchased credits expire?", "Cancel my subscription", "View billing"],
+    actions: ["OPEN_SUPPORT", "OPEN_BILLING"],
+  },
+  {
+    id: "downgrade",
+    keywords: [
+      "downgrade",
+      "downgraded",
+      "become free",
+      "switch to free",
+      "after cancellation",
+      "nach kündigung",
+      "free geworden",
+      "zurück zu free",
+      "pasar a free",
+      "vuelvo a free",
+      "trec pe free",
+      "devin free",
+      "free lesz",
+      "vissza free-re",
+    ],
+    answer: (context) => buildUsyDowngradeAnswer(context.usage, "english"),
+    followUps: ["Do purchased credits expire?", "Can I buy credits on Free?", "Upgrade to Pro", "View billing"],
+    actions: ["OPEN_SUBSCRIPTION", "OPEN_BILLING"],
+  },
+  {
+    id: "cancellation",
+    keywords: [
+      "cancel subscription",
+      "cancel my subscription",
+      "cancel my plan",
+      "cancel pro",
+      "cancel business",
+      "subscription kündigen",
+      "abo kündigen",
+      "kündigung",
+      "cancelar suscripción",
+      "cancelar mi plan",
+      "anulare abonament",
+      "anulez abonamentul",
+      "opzeggen abonnement",
+      "abonnement opzeggen",
+      "lemondás",
+      "előfizetés lemondása",
+    ],
+    answer: (context) => buildUsyCancellationAnswer(context.usage, "english"),
+    followUps: ["What happens to purchased credits?", "Refund request", "View billing", "Contact billing support"],
+    actions: ["OPEN_SUBSCRIPTION", "OPEN_BILLING"],
   },
   {
     id: "credits",
@@ -876,65 +987,64 @@ function buildCreditsAnswer(context: UsyContext, language: SupportedUsyLanguage 
       : typeof context.usage?.analysisCount === "number" && typeof context.usage?.total === "number"
         ? `${context.usage.analysisCount}/${context.usage.total}`
         : null;
-  if (language === "german") {
-    return [
-      "AI-Credits steuern enthaltene AI-Aktionen wie Uploads, Analysen, Assistant-Fragen und Reports im aktiven Plan.",
-      usageText ? `Aktuell sichtbare Nutzung: ${usageText}.` : null,
-      "Erfolgreiche Uploads verbrauchen Upload-Credits. Fehlgeschlagene Uploads verbrauchen keine Upload-Credits. Gelöschte Datasets stellen verbrauchte Credits nicht wieder her.",
-    ].filter(Boolean).join(" ");
-  }
-  if (language === "dutch") {
-    return [
-      "AI credits sturen inbegrepen AI-acties zoals uploads, analyses, Assistant-vragen en rapporten binnen het actieve plan.",
-      usageText ? `Zichtbaar gebruik nu: ${usageText}.` : null,
-      "Succesvolle uploads gebruiken uploadcredits. Mislukte uploads gebruiken geen uploadcredits. Verwijderde datasets herstellen verbruikte credits niet.",
-    ].filter(Boolean).join(" ");
-  }
-  if (language === "spanish") {
-    return [
-      "Los créditos AI controlan acciones incluidas como cargas, análisis, preguntas al Assistant e informes según el plan activo.",
-      usageText ? `Uso visible actual: ${usageText}.` : null,
-      "Las cargas correctas consumen créditos de upload. Las cargas fallidas no consumen créditos. Eliminar datasets no restaura créditos consumidos.",
-    ].filter(Boolean).join(" ");
-  }
-  if (language === "hungarian") {
-    return [
-      "Az AI kreditek az aktív csomagban elérhető AI műveleteket kezelik, például uploadot, elemzést, Assistant-kérdést és riportot.",
-      usageText ? `Jelenleg látható használat: ${usageText}.` : null,
-      "A sikeres uploadok upload kreditet fogyasztanak. A sikertelen uploadok nem fogyasztanak kreditet. Dataset törlése nem állítja vissza az elhasznált kreditet.",
-    ].filter(Boolean).join(" ");
-  }
-  if (language === "romanian") {
-    return [
-      "Creditele AI controlează acțiuni incluse precum uploaduri, analize, întrebări către Assistant și rapoarte în planul activ.",
-      usageText ? `Utilizare vizibilă curentă: ${usageText}.` : null,
-      "Uploadurile reușite consumă credite de upload. Uploadurile eșuate nu consumă credite. Ștergerea seturilor de date nu restaurează creditele consumate.",
-    ].filter(Boolean).join(" ");
-  }
+  const facts: Record<SupportedUsyLanguage, { facts: string; uploads: string }> = {
+    german: {
+      facts: "AI-Credits steuern enthaltene AI-Aktionen wie Uploads, Analysen, Assistant-Fragen und Reports im aktiven Plan.",
+      uploads: "Erfolgreiche Uploads verbrauchen Upload-Credits. Fehlgeschlagene Uploads verbrauchen keine Upload-Credits. Gelöschte Datasets stellen verbrauchte Credits nicht wieder her.",
+    },
+    dutch: {
+      facts: "AI credits sturen inbegrepen AI-acties zoals uploads, analyses, Assistant-vragen en rapporten binnen het actieve plan.",
+      uploads: "Succesvolle uploads gebruiken uploadcredits. Mislukte uploads gebruiken geen uploadcredits. Verwijderde datasets herstellen verbruikte credits niet.",
+    },
+    spanish: {
+      facts: "Los créditos AI controlan acciones incluidas como cargas, análisis, preguntas al Assistant e informes según el plan activo.",
+      uploads: "Las cargas correctas consumen créditos de upload. Las cargas fallidas no consumen créditos. Eliminar datasets no restaura créditos consumidos.",
+    },
+    hungarian: {
+      facts: "Az AI kreditek az aktív csomagban elérhető AI műveleteket kezelik, például uploadot, elemzést, Assistant-kérdést és riportot.",
+      uploads: "A sikeres uploadok upload kreditet fogyasztanak. A sikertelen uploadok nem fogyasztanak kreditet. Dataset törlése nem állítja vissza az elhasznált kreditet.",
+    },
+    romanian: {
+      facts: "Creditele AI controlează acțiuni incluse precum uploaduri, analize, întrebări către Assistant și rapoarte în planul activ.",
+      uploads: "Uploadurile reușite consumă credite de upload. Uploadurile eșuate nu consumă credite. Ștergerea seturilor de date nu restaurează creditele consumate.",
+    },
+    english: {
+      facts: "AI credits control included AI-powered actions such as uploads, analysis, assistant requests, and reports according to the active plan.",
+      uploads: "Successful uploads consume upload credits. Failed uploads do not consume upload credits. Deleting datasets does not restore consumed upload credits.",
+    },
+  };
+  const state = resolveUsyBillingState(context.usage);
+  const zeroCreditGuidance = state.zeroUsableCredits ? buildUsyZeroCreditsAnswer(context.usage, language) : null;
   return [
-    "AI credits control included AI-powered actions such as uploads, analysis, assistant requests, and reports according to the active plan.",
-    usageText ? `Current visible usage: ${usageText}.` : null,
-    "Successful uploads consume upload credits. Failed uploads do not consume upload credits. Deleting datasets does not restore consumed upload credits.",
+    facts[language].facts,
+    usageText ? (language === "german" ? `Aktuell sichtbare Nutzung: ${usageText}.` : `Current visible usage: ${usageText}.`) : null,
+    buildUsyBillingOverviewAnswer(context.usage, language),
+    buildUsyPurchasedRulesAnswer(language),
+    zeroCreditGuidance,
+    facts[language].uploads,
   ].filter(Boolean).join(" ");
 }
 
 function buildUploadLimitAnswer(context: UsyContext, language: SupportedUsyLanguage = "english") {
   const limit = context.usage?.total ?? 2;
   const used = context.usage?.analysisCount ?? limit;
+  // Zero-credit guidance follows the same tier rules as the backend: Free
+  // accounts upgrade to Pro/Business, paid accounts use Add Credits.
+  const guidance = buildUsyZeroCreditsAnswer(context.usage, language);
   if (language === "german") {
-    return `Deine Upload-Credits sind aufgebraucht (${used}/${limit}). Öffne Billing Settings, um Pro- und Business-Kapazität zu vergleichen.`;
+    return `Deine Upload-Credits sind aufgebraucht (${used}/${limit}). ${guidance}`;
   }
   if (language === "dutch") {
-    return `Je uploadcredits zijn op (${used}/${limit}). Open Billing Settings om Pro- en Business-capaciteit te vergelijken.`;
+    return `Je uploadcredits zijn op (${used}/${limit}). ${guidance}`;
   }
   if (language === "spanish") {
-    return `Tus créditos de upload están agotados (${used}/${limit}). Abre Billing Settings para comparar la capacidad de Pro y Business.`;
+    return `Tus créditos de upload están agotados (${used}/${limit}). ${guidance}`;
   }
   if (language === "hungarian") {
-    return `Elfogytak az upload kreditjeid (${used}/${limit}). Nyisd meg a Billing Settings részt a Pro és Business kapacitás összehasonlításához.`;
+    return `Elfogytak az upload kreditjeid (${used}/${limit}). ${guidance}`;
   }
   if (language === "romanian") {
-    return `Creditele tale de upload sunt epuizate (${used}/${limit}). Deschide Billing Settings ca să compari capacitatea Pro și Business.`;
+    return `Creditele tale de upload sunt epuizate (${used}/${limit}). ${guidance}`;
   }
   const creditCopy = buildUploadCreditLimitCopy({ used, limit, remaining: 0 });
 
@@ -943,13 +1053,14 @@ function buildUploadLimitAnswer(context: UsyContext, language: SupportedUsyLangu
     "",
     buildUploadCreditLimitMessage(creditCopy.limit),
     "",
-    "Open Billing Settings to compare Pro and Business upload capacity.",
+    guidance,
   ].join("\n");
 }
 
 function nextStepForIntent(intentId: string, context: UsyContext, language: SupportedUsyLanguage) {
   if (language !== "english") {
-    if (intentId === "plans" || intentId === "billing") return localizedCommon("nextBilling", language);
+    if (intentId === "plans" || intentId === "billing" || intentId === "top-ups" || intentId === "refunds" || intentId === "cancellation" || intentId === "downgrade") return localizedCommon("nextBilling", language);
+    if (intentId === "credits") return localizedCommon("nextGeneric", language);
     if (intentId === "uploads" || intentId === "file-formats" || intentId === "upload-trouble") return localizedCommon("nextUpload", language);
     if (intentId === "datasets") return localizedCommon("nextDatasets", language);
     if (intentId === "dashboard") return localizedCommon("nextDashboard", language);
@@ -958,7 +1069,8 @@ function nextStepForIntent(intentId: string, context: UsyContext, language: Supp
     return localizedCommon("nextGeneric", language);
   }
 
-  if (intentId === "plans" || intentId === "billing") return "open Billing Settings to review your plan, invoices, and upgrade options.";
+  if (intentId === "plans" || intentId === "billing" || intentId === "top-ups" || intentId === "refunds" || intentId === "cancellation" || intentId === "downgrade") return "open Billing Settings to review your plan, invoices, and upgrade options.";
+  if (intentId === "credits") return "open Billing Settings to review your plan, credits, and upgrade options.";
   if (intentId === "uploads" || intentId === "file-formats" || intentId === "upload-trouble") return "open Upload and use the file guidance shown there.";
   if (intentId === "datasets") return "open Datasets and select the file you want to inspect.";
   if (intentId === "dashboard") return "open the Dashboard, then use AI Assistant for uploaded-data analysis.";
@@ -1306,6 +1418,10 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       datasets: "Datasets sind die hochgeladenen Dateien, die UseClevr für Dashboards, Berichte und AI-Assistant-Kontext verwendet.",
       dashboard: "Das Dashboard fasst KPIs, Business Health, Risiken, Chancen, Empfehlungen, Aktivität und Berichtsaktionen zusammen.",
       credits: buildCreditsAnswer(context, language),
+      "top-ups": buildUsyTopUpAnswer(context.usage, language),
+      refunds: buildUsyRefundAnswer(context.usage, language),
+      cancellation: buildUsyCancellationAnswer(context.usage, language),
+      downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free enthält ${plans.free.monthlyCredits} AI-Credits und bis zu ${plans.free.maxDatasets} Datasets. Pro kostet €40/Monat. Business kostet €420/Monat.`,
       billing: "Billing, Abos, Zahlungsdaten, Checkout, Rechnungen und Planaktionen werden in den sicheren Billing- und Account-Einstellungen verwaltet.",
       reports: "Berichte verwandeln abgeschlossene Analysen in teilbare Management-Zusammenfassungen mit PDF- oder Excel-Downloads, wenn diese Exporte verfügbar sind.",
@@ -1324,6 +1440,10 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       datasets: "Datasets zijn de geüploade bestanden die UseClevr gebruikt voor dashboards, rapporten en AI Assistant-context.",
       dashboard: "Het dashboard vat KPI's, business health, risico's, kansen, aanbevelingen, activiteit en rapportacties samen.",
       credits: buildCreditsAnswer(context, language),
+      "top-ups": buildUsyTopUpAnswer(context.usage, language),
+      refunds: buildUsyRefundAnswer(context.usage, language),
+      cancellation: buildUsyCancellationAnswer(context.usage, language),
+      downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free bevat ${plans.free.monthlyCredits} AI credits en maximaal ${plans.free.maxDatasets} datasets. Pro kost €40/maand. Business kost €420/maand.`,
       billing: "Billing, abonnementen, betalingsgegevens, checkout, facturen en planacties staan in de veilige billing- en accountinstellingen.",
       reports: "Rapporten zetten afgeronde analyses om in deelbare managementsamenvattingen met PDF- of Excel-downloads wanneer die exports beschikbaar zijn.",
@@ -1342,6 +1462,10 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       datasets: "Los datasets son los archivos subidos que UseClevr usa para dashboards, informes y contexto del AI Assistant.",
       dashboard: "El dashboard resume KPI, salud del negocio, riesgos, oportunidades, recomendaciones, actividad y acciones de informes.",
       credits: buildCreditsAnswer(context, language),
+      "top-ups": buildUsyTopUpAnswer(context.usage, language),
+      refunds: buildUsyRefundAnswer(context.usage, language),
+      cancellation: buildUsyCancellationAnswer(context.usage, language),
+      downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free incluye ${plans.free.monthlyCredits} créditos AI y hasta ${plans.free.maxDatasets} datasets. Pro cuesta €40/mes. Business cuesta €420/mes.`,
       billing: "Facturación, suscripciones, pagos, checkout, facturas y acciones de plan se gestionan en la configuración segura de billing y cuenta.",
       reports: "Los informes convierten análisis completados en resúmenes de gestión compartibles con descargas PDF o Excel cuando estén disponibles.",
@@ -1360,6 +1484,10 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       datasets: "A datasetek azok a feltöltött fájlok, amelyeket a UseClevr dashboardokhoz, riportokhoz és AI Assistant kontextushoz használ.",
       dashboard: "A dashboard összefoglalja a KPI-ket, üzleti egészséget, kockázatokat, lehetőségeket, ajánlásokat, aktivitást és riport műveleteket.",
       credits: buildCreditsAnswer(context, language),
+      "top-ups": buildUsyTopUpAnswer(context.usage, language),
+      refunds: buildUsyRefundAnswer(context.usage, language),
+      cancellation: buildUsyCancellationAnswer(context.usage, language),
+      downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `A Free ${plans.free.monthlyCredits} AI kreditet és legfeljebb ${plans.free.maxDatasets} datasetet tartalmaz. A Pro ára €40/hó. A Business ára €420/hó.`,
       billing: "A billing, előfizetés, fizetési adatok, checkout, számlák és csomagműveletek a biztonságos billing és account beállításokban kezelhetők.",
       reports: "A riportok a befejezett elemzéseket megosztható vezetői összefoglalókká alakítják PDF vagy Excel letöltéssel, amikor elérhető.",
@@ -1378,6 +1506,10 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       datasets: "Seturile de date sunt fișierele încărcate pe care UseClevr le folosește pentru dashboarduri, rapoarte și contextul AI Assistant.",
       dashboard: "Dashboardul sumarizează KPI-uri, sănătatea afacerii, riscuri, oportunități, recomandări, activitate și acțiuni de raportare.",
       credits: buildCreditsAnswer(context, language),
+      "top-ups": buildUsyTopUpAnswer(context.usage, language),
+      refunds: buildUsyRefundAnswer(context.usage, language),
+      cancellation: buildUsyCancellationAnswer(context.usage, language),
+      downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free include ${plans.free.monthlyCredits} credite AI și până la ${plans.free.maxDatasets} seturi de date. Pro costă €40/lună. Business costă €420/lună.`,
       billing: "Billingul, abonamentele, plățile, checkoutul, facturile și acțiunile de plan se gestionează în setările securizate de billing și cont.",
       reports: "Rapoartele transformă analizele finalizate în rezumate de management partajabile cu descărcări PDF sau Excel când sunt disponibile.",

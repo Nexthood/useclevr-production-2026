@@ -38,6 +38,23 @@ export type UploadDatasetResponse = {
     unlimited?: boolean
     unlimitedLabel?: string | null
   }
+  creditState?: {
+    reason: "zero_credits" | "insufficient_credits"
+    tier: "free" | "pro" | "business"
+    usableCredits: number
+    includedBalance: number
+    purchasedBalance: number
+    reservedCredits: number
+    requiredCredits: number
+    resetAt: string | null
+    cta: {
+      action: "add_credits" | "upgrade"
+      label: string
+      href: string
+    }
+    title: string
+    message: string
+  } | null
   datasetLimit?: {
     limitReached: boolean
     currentCount: number

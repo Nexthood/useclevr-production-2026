@@ -47,15 +47,15 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "finalizeCredits consumes included credits before purchased credits and never consumes purchased credits on Free",
+    name: "finalizeCredits consumes included credits before purchased credits with no Free-tier consumption block",
     run() {
       const engine = readProjectFile("src/lib/billing/credit-engine.ts")
       assert.ok(
-        engine.includes('"includedBalance" >= ${debitedCredits}'),
+        engine.includes('"includedBalance" >= ${actualCredits}'),
         "finalizeCredits checks if includedBalance covers the charge first",
       )
       assert.ok(
-        engine.includes('"purchasedBalance" - GREATEST(0, ${debitedCredits} - "includedBalance")'),
+        engine.includes('"purchasedBalance" - GREATEST(0, ${actualCredits} - "includedBalance")'),
         "finalizeCredits deducts from purchased only after included is exhausted",
       )
       assert.ok(
@@ -63,12 +63,8 @@ const tests: TestCase[] = [
         "finalizeCredits leaves purchased unchanged when included covers the full charge",
       )
       assert.ok(
-        engine.includes('purchasedConsumable = planTier === "pro" || planTier === "business"'),
-        "finalizeCredits gates purchased-credit consumption to paid plans",
-      )
-      assert.ok(
-        engine.includes('debitedCredits = Math.min(actualCredits, Math.max(0, account?.includedBalance ?? 0))'),
-        "Free-tier debits are capped to the included allowance so preserved purchased credits stay intact",
+        !engine.includes("paidPlanTier") && !engine.includes("purchasedConsumable") && !engine.includes("planTier"),
+        "finalizeCredits must not gate purchased-credit consumption on the plan tier — preserved purchased credits stay consumable after a downgrade to Free",
       )
     },
   },
@@ -233,6 +229,28 @@ const tests: TestCase[] = [
       assert.ok(
         page.includes("creditsGranted"),
         "page displays credits granted from server config",
+      )
+    },
+  },
+  {
+    name: "subscription invoice history is sourced from Stripe with authoritative refund state",
+    run() {
+      const page = readProjectFile("src/app/(auth)/app/settings/subscription/page.tsx")
+      assert.ok(
+        page.includes("stripe.invoices.list") && page.includes("stripe.charges.list"),
+        "page lists Stripe invoices and charges for the signed-in customer",
+      )
+      assert.ok(
+        page.includes("invoice.subscription"),
+        "only subscription invoices are listed — credit top-up invoices stay in Credit Top-Up History",
+      )
+      assert.ok(
+        page.includes("amount_refunded") && page.includes('"Refunded"') && page.includes('"Partially refunded"'),
+        "subscription invoice status reflects Stripe refund state",
+      )
+      assert.ok(
+        !/providerPaymentId|payment_intent}/.test(page),
+        "subscription invoice rows never expose internal payment provider references",
       )
     },
   },

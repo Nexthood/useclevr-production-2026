@@ -2,12 +2,17 @@
 
 ### Added
 
+- Add an out-of-credits dialog to AI actions that shows the exact usable credit balance and the right next step: paid plans open Add Credits and Free plans get Upgrade to Pro or Business because Free cannot purchase top-ups.
 - Add subscription state machine that pre-checks Stripe subscription status before cancel/resume actions to prevent HTTP 500 errors when subscription is already canceled, and reconciles database to Free tier when subscription is missing or not entitled.
 - Add an Add Credits button to the Pro and Business plan sidebar card so customers can open the credit top-up purchase section directly from the sidebar.
 - Add plan-based credit top-up availability so credit top-ups can be purchased and used only on Pro and Business plans, while Free accounts keep their previously purchased credits stored until they upgrade again.
+- Add billing and credit knowledge to the in-app assistant so it explains plan gating, credit consumption order, cancellation windows, and refund handling exactly as the billing system applies them, consistently in every supported language.
+- Add a Subscription Invoices section to the Billing page that lists Stripe subscription payments with their refund state, so a refunded plan payment shows as Refunded while credit top-ups stay listed separately.
+- Add an Upgrade to Pro action on the Free sidebar card so customers with exhausted credits see the purchase path for additional credits.
 
 ### Fixed
 
+- Fix credit consumption for downgraded accounts so purchased credits work on the Free plan until customers spend them, while only Pro and Business plans buy new top-ups.
 - Fix dataset limits so every customer counts only their own uploaded datasets; other accounts' datasets, including the Superadmin account's, no longer block plan limits or inflate dataset usage.
 - Fix the Billing page so purchase records show only customer-relevant details and internal payment processor references stay out of the customer view.
 - Fix credit purchases so purchased credits always land on the paying customer's account: Stripe checkout metadata and webhook processing can no longer redirect a payment to another account, duplicate payments stay credit-neutral, and credit purchase emails reach the buyer instead of failing.

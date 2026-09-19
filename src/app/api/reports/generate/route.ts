@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { buildCreditExhaustionState } from '@/lib/billing/credit-exhaustion';
 import { checkSpendingLimits } from '@/lib/billing/credit-account-service';
 import { emptyProviderUsage } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, logAiCost } from '@/lib/billing/usage-enforcement';
@@ -331,7 +332,16 @@ export async function POST(request: Request) {
         errorMessage: reservation.error,
       }, 'credit_reservation_blocked');
       return NextResponse.json(
-        { success: false, error: reservation.error || 'No credits remaining. Please upgrade to generate reports.' },
+        {
+          success: false,
+          error: reservation.error || 'No credits remaining. Please upgrade to generate reports.',
+          upgradeRequired: true,
+          creditState: await buildCreditExhaustionState({
+            userId,
+            tier: subscriptionTier,
+            requiredCredits: reservation.reservedCredits,
+          }),
+        },
         { status: 402 }
       );
     }
@@ -386,7 +396,19 @@ export async function POST(request: Request) {
       });
       if (!deduction.success) {
         await releaseCredits(operationId, 'report_charge_failed');
-        return NextResponse.json({ success: false, error: deduction.error || 'Unable to finalize report credits.' }, { status: 402 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: deduction.error || 'Unable to finalize report credits.',
+            upgradeRequired: true,
+            creditState: await buildCreditExhaustionState({
+              userId,
+              tier: subscriptionTier,
+              requiredCredits: reservation.reservedCredits,
+            }),
+          },
+          { status: 402 }
+        );
       }
       creditsRemaining = deduction.remainingCredits;
     }

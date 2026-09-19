@@ -1,3 +1,88 @@
+## Zero-Credit UX and Exhaustion Handling
+
+1. Interaction title
+   Zero-credit UX and exhaustion handling for AI and credit-consuming actions.
+
+2. What was the user goal
+   When a user attempts an AI/credit-consuming action with insufficient usable credits, show a clear modal instead of a generic error: Pro/Business get an Add Credits CTA linking to the billing credit-topups section, Free gets Upgrade to Pro or Business because Free cannot purchase top-ups; the modal must use the authoritative usable balance, never bypass server-side enforcement, and handle concurrent requests without negative balances, with regression tests for Free, Pro, and Business zero-credit states.
+
+3. What changed
+   - `src/lib/billing/credit-exhaustion.ts`: new server helper that derives an authoritative `creditState` payload from `getCreditAccount` (or a usage snapshot): usable balance clamped at zero (included plus preserved purchased credits on every tier), `zero_credits` vs `insufficient_credits` reason, and a plan-aware CTA — `add_credits` to `/app/settings/subscription?tab=billing#credit-topups` for Pro/Business, `upgrade` to Pro checkout for Free — with tier-specific copy explaining that Free cannot purchase top-ups.
+   - `src/components/shared/zero-credit-modal.tsx`: new display-only `ZeroCreditModal` and `useZeroCreditModal` hook; renders only from the server-issued `creditState` payload, shows the authoritative usable balance, dispatches `USAGE_REFRESH_EVENT` so balances re-sync, and offers no fetch or unlock path so the UI cannot bypass server enforcement; concurrent exhausted responses do not stack modals.
+   - `src/app/api/analyze/route.ts`, `src/app/api/chat/route.ts`, `src/app/api/reports/generate/route.ts`, `src/app/api/upload/simple/route.ts`, `src/app/api/upload/route.ts`: every 402 credit-exhaustion response now embeds `creditState` built from the authoritative balance at rejection time.
+   - `src/components/chat/chat-panel.tsx`, `src/components/chat/ai-chat-interface.tsx`, `src/components/retail/retail-inventory-client.tsx`, `src/components/forms/csv-upload.tsx`: 402 responses and upload failure payloads route into the zero-credit modal; paid-plan upload exhaustion shows Add Credits instead of the Free upgrade modal, while the Free upload limit flow keeps its existing plan-comparison UI.
+   - `src/lib/upload/upload-client.ts`: `UploadDatasetResponse` carries the optional `creditState` payload.
+   - `scripts/billing/test-zero-credit-ux.ts` + `test:zero-credit-ux` script in `package.json` (wired into `test:all`): 12 checks covering Free/Pro/Business exhaustion, preserved purchased credits counting toward the usable balance, negative-balance clamping, payload shipping from every credit-consuming route, the display-only modal contracts, the Free sidebar contract (the `+ Add Credits` purchase CTA renders only on paid plans while preserved purchased credits show as usable), and the atomic conditional-UPDATE reservation guard plus `GREATEST(0, …)` finalize clamps.
+   - `scripts/billing/test-credit-lifecycle-downgrade.ts`: production regression cases added to the master billing/credit fix suite — Free + included 0 + purchased 100 → a standard upload reservation (1 credit, source "upload") succeeds through the shared reservation layer and finalize deducts from the purchased balance (100 → 99); Free + purchased reaching 0 → the next upload is rejected with the normal insufficient-credit result and the Free Upgrade to Pro/Business exhaustion payload; Business reservation/consumption unchanged.
+   - `src/lib/billing/credit-engine.ts` (working tree, from the running master fix): the reservation UPDATE is tier-agnostic (`remainingCredits - reservedCredits >= estimate`) and finalizeCredits consumes included credits before purchased credits on every tier — this shared layer is what makes the Free preserved-purchased upload work for all credit-consuming features, not just uploads.
+   - `CHANGELOG.md`: Added entry for the out-of-credits dialog.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the production 402 reports stem from the deployed build still running the superseded paid-plan gating (commit 82c81914a); the corrected shared engine lives in this working tree and the regression cases now pin it, so the fix ships only when this branch deploys.
+   - risk: a concurrent agent owns the `src/lib/billing/credit-engine.ts` working-tree revert (purchased credits usable on Free) inside the running master billing/credit fix; the exhaustion helper and the regression tests implement and pin that exact shared-layer policy without reversing the parallel change.
+   - improvement: `/api/mcp` and `/api/upload/simple` spending-limit responses still return plain 402 messages without `creditState`; spending limits are a separate exhaustion reason and can adopt the same payload later.
+   - observation: the reservation engine's conditional UPDATE (`remainingCredits - reservedCredits >= estimate`) already makes concurrent reservations safe and keeps balances non-negative; this work only surfaces that state to the UI.
+
+5. User learning
+   The out-of-credits dialog always reflects the balance the server enforced at rejection time; Free plans recover by upgrading, Pro and Business plans recover by topping up, and closing the dialog re-syncs the credit display.
+
+6. AI-agent learning
+   Build exhaustion UX from a server-issued payload, not a client estimate: the same 402 handler decides CTA, balance, and copy server-side, so any surface can render the correct recovery path without re-implementing billing policy in the frontend.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Subscription and Credit Lifecycle Hardening
+
+1. Interaction title
+   Finalize and harden the complete UseClevr subscription + credit lifecycle.
+
+2. What was the user goal
+   Audit and align the full Free ↔ Pro ↔ Business billing/credit system so cancellation, expiration, subscription refunds, top-ups, top-up refunds, downgrades, and re-upgrades follow one consistent production-safe business model, with purchased credits staying consumable on Free and top-up purchases staying exclusive to Pro/Business.
+
+3. What changed
+   - `src/lib/billing/credit-engine.ts`: removed the hidden Free-tier block introduced by the previous fix — `reserveCredits` no longer requires Free reservations to fit inside the included allowance, and `finalizeCredits` no longer caps the Free-tier debit to the included allowance or gates consumption on a `planTier` reservation stamp. Included credits are consumed before purchased credits on every tier through the existing CASE expression.
+   - `src/app/api/checkout/credit-topup/route.ts`: the server-side gate that rejects Free accounts from creating top-up checkout sessions is preserved unchanged.
+   - `src/components/ui/usage-monitor.tsx`: the unlimited admin variant drops the purchase link, the paid Pro/Business variant keeps `+ Add Credits`, and both Free variants render an Upgrade to Pro action plus a note that preserved purchased credits remain usable on Free.
+   - `src/app/(auth)/app/settings/subscription/page.tsx`: the static Subscription Invoices placeholder is replaced with the customer's Stripe subscription invoices and their authoritative refund state (Paid / Partially refunded / Refunded / Payment due), sourced from `stripe.invoices.list` paired with succeeded charges; credit top-up invoices and internal provider references stay out of the view, and Credit Top-Up History remains a separate table.
+   - `scripts/billing/mocks/mock-db.mjs`: the reservation and finalization SQL matchers follow the reverted engine shapes with no tier clause.
+   - `scripts/billing/test-credit-lifecycle-downgrade.ts`: behavioral regression rewritten to the authoritative rules — downgrade preserves purchased credits, Free consumes preserved purchased credits, included-first consumption on every tier, re-upgrade restores consumption, Free monthly reset preserves purchased credits, and source contracts pin the checkout gate plus the absence of tier-based consumption gating.
+   - `scripts/billing/test-credit-topup-architecture.ts` and `scripts/billing/test-sidebar-credit-topup-link.ts`: source contracts updated to the corrected behavior and the new invoice history.
+   - `CHANGELOG.md`: Added entries for the Subscription Invoices section and the Free upgrade action; Fixed entry for purchased credits remaining usable on Free; removed the superseded plan-gating claim.
+
+4. Problems marked
+   root cause: the previous implementation treated "cannot buy new top-ups on Free" as "cannot consume purchased credits on Free", which violated the authoritative business model that purchased credits never expire and remain usable until exhausted on any tier.
+   risk: none identified beyond the existing requirement to deploy the branch.
+   observation: no schema migration is required; the work reuses the existing UserCredit/CreditLedger/Stripe architecture and performs no production mutations.
+
+5. User learning
+   Purchased credits behave like stored value: they survive cancellation, expiration, plan changes, and downgrades, remain spendable on Free, and only new top-up purchases require Pro or Business.
+
+6. AI-agent learning
+   Plan-gating purchase checkout and plan-gating credit consumption are different concerns; gating consumption by reservation metadata invites hidden tier blocks — keep consumption tier-agnostic and enforce entitlement at checkout and feature gates.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Stripe Top-Up Refund-Before-Grant Race Fix
 
 1. Interaction title
@@ -7871,6 +7956,41 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 7. Follow-up tasks
    - Production recovery: cancel the refunded subscription `sub_1UG13AJunPTBXsIvORkSv4v8` in Stripe so `customer.subscription.deleted` runs the existing downgrade sync, then verify 0 included + 100 purchased for the account.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.
+
+## Interaction: Add Usy billing and credit knowledge to the master prompt
+
+1. Interaction title
+   Teach Usy the authoritative billing and credit rules (section 13 of the master prompt) so the assistant explains exactly what the billing system applies.
+
+2. What was the user goal
+   Update Usy's deterministic product/billing knowledge with the authoritative subscription and credit rules: Free cannot purchase top-ups, Pro/Business can, purchased credits never expire and survive cancellation/downgrade/plan changes, included credits are consumed before purchased credits, normal cancellation keeps the paid plan until the paid period ends, cancellation differs from refund, refunds are centrally reviewed with no self-service and no approval promises, zero-credit guidance is tier-aware, answers stay deterministic across supported languages, and one source of truth holds across backend, UI, and Usy. Regression tests cover Free, Pro, Business, cancellation, downgrade, preserved purchased credits, zero credits, top-ups, and refund questions.
+
+3. What changed
+   - `src/lib/usy/billing-knowledge.ts` (new): section "13. Usy billing & credit knowledge" — canonical rules, `resolveUsyBillingState` deriving tier/purchase eligibility/zero-credit state from the caller-provided usage context only, and localized builders (EN, DE, NL, ES, HU, RO) for the billing overview, top-up gating, refund policy, cancellation window, downgrade path, purchased rules, and zero-credit guidance.
+   - `src/lib/usy/router.ts`: new deterministic intents `top-ups`, `refunds`, `downgrade`, and `cancellation` with localized answers in all six languages, tier-aware `buildCreditsAnswer` (plan gating, purchase availability, included-before-purchased, zero-credit guidance via `limitReached`), and billing-focused next steps.
+   - `scripts/ai/test-usy-billing-knowledge.ts` plus the `test:usy-billing-knowledge` script: 10 behavioral tests covering Free/Pro/Business gating, purchased-credit preservation and non-expiry, included-before-purchased order, cancellation window and cancellation-vs-refund distinction, central refund review with no approval promises, tier-aware zero-credit guidance, unknown-state honesty (no invented balances), and cross-language consistency.
+
+4. Problems marked
+   - root cause: Usy's knowledge covered upload-credit mechanics only; it could not explain top-up purchase gating, purchased-credit preservation, cancellation windows, or refund handling, so the assistant could contradict the billing system.
+   - observation: the working tree already carried the 18:42-rule engine semantics (purchased credits consumable on Free, purchase gated to Pro/Business), so Usy's knowledge documents the same rules without further engine changes.
+
+5. User learning
+   Usy now explains billing exactly as the backend applies it: who can buy top-ups, how credits are consumed, what survives downgrades and cancellations, and why refunds are centrally reviewed.
+
+6. AI-agent learning
+   When a product gains plan-gated behavior, the assistant's knowledge module must derive answers from the caller-provided usage context only and mirror the backend gates; localization must be rule-complete in every supported language, and regression tests should assert cross-language equivalence rather than only English.
+
+7. Follow-up tasks
+   - None for this change; the tests pin the knowledge contract.
 
 8. Instruction sources
    - AGENTS.md

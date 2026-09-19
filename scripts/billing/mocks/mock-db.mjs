@@ -147,7 +147,7 @@ function matchesAll(row, pairs) {
 
 const GRANT_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"purchasedBalance"\s*=\s*"purchasedBalance"\s*\+\s*(\d+)\s*,\s*"remainingCredits"\s*=\s*"remainingCredits"\s*\+\s*(\d+)\s*,\s*"totalPaidCents"\s*=\s*"totalPaidCents"\s*\+\s*(\d+)\s*,\s*"lifetimeCreditsEarned"\s*=\s*"lifetimeCreditsEarned"\s*\+\s*(\d+)[\s\S]*?WHERE\s+"userId"\s*=\s*'([^']*)'/
 const REFUND_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"purchasedBalance"\s*=\s*"purchasedBalance"\s*-\s*(\d+)\s*,\s*"remainingCredits"\s*=\s*GREATEST\("remainingCredits"\s*-\s*(\d+),\s*0\)[\s\S]*?WHERE\s+"userId"\s*=\s*'([^']*)'/
-const RESERVE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*"reservedCredits"\s*\+\s*(\d+)\s*,\s*"updatedAt"\s*=\s*'[^']*'\s*WHERE\s+"userId"\s*=\s*'([^']*)'\s*AND\s+\("remainingCredits"\s*-\s*"reservedCredits"\)\s*>=\s*(\d+)\s*AND\s+\((TRUE|FALSE)\s+OR\s+"includedBalance"\s*>=\s*(\d+)\)\s*RETURNING\s+"remainingCredits",\s*"reservedCredits"/
+const RESERVE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*"reservedCredits"\s*\+\s*(\d+)\s*,\s*"updatedAt"\s*=\s*'[^']*'\s*WHERE\s+"userId"\s*=\s*'([^']*)'\s*AND\s+\("remainingCredits"\s*-\s*"reservedCredits"\)\s*>=\s*(\d+)\s*RETURNING\s+"remainingCredits",\s*"reservedCredits"/
 const FINALIZE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*GREATEST\(0,\s*"reservedCredits"\s*-\s*(\d+)\)\s*,\s*"remainingCredits"\s*=\s*"remainingCredits"\s*-\s*(\d+)\s*,\s*"usedCredits"\s*=\s*"usedCredits"\s*\+\s*(\d+)\s*,\s*"lifetimeCreditsUsed"\s*=\s*"lifetimeCreditsUsed"\s*\+\s*(\d+)\s*,\s*"includedBalance"\s*=\s*GREATEST\(0,\s*"includedBalance"\s*-\s*(\d+)\)\s*,\s*"purchasedBalance"\s*=\s*CASE\s+WHEN\s+"includedBalance"\s*>=\s*(\d+)\s+THEN\s+"purchasedBalance"\s+ELSE\s+"purchasedBalance"\s*-\s*GREATEST\(0,\s*(\d+)\s*-\s*"includedBalance"\)\s+END\s*,\s*"updatedAt"\s*=\s*'[^']*'\s+WHERE\s+"userId"\s*=\s*'([^']*)'\s+AND\s+\("remainingCredits"\s*-\s*"reservedCredits"\s*\+\s*(\d+)\)\s*>=\s*(\d+)\s+RETURNING/
 
 function applyUserCreditFinalization(userId, reservedCredits, debitedCredits) {
@@ -161,8 +161,8 @@ function applyUserCreditFinalization(userId, reservedCredits, debitedCredits) {
   const includedBefore = account.includedBalance ?? 0
   const includedAfter = Math.max(0, includedBefore - debitedCredits)
   account.includedBalance = includedAfter
-  // The engine's debit is already capped to the included allowance on the
-  // Free tier, so the purchased balance only decreases for paid plans.
+  // Included credits are consumed first; only the overflow beyond the
+  // included balance draws on the purchased balance, on every plan tier.
   account.purchasedBalance = Math.max(
     0,
     (account.purchasedBalance ?? 0) - Math.max(0, debitedCredits - includedBefore),
@@ -193,15 +193,14 @@ function executeRawSql(sqlObject) {
   if (reserve) {
     const userId = reserve[2]
     const estimatedCredits = Number(reserve[1])
-    // Match the engine guard: paid plans draw from remaining credits, the
-    // Free tier must fit inside the included allowance. Groups: 1=estimate,
-    // 2=userId, 3=remainingAvailable, 4=paidTier, 5=includedThreshold.
-    const paidTier = reserve[4] === "TRUE"
+    // Match the engine guard: reservations draw from remaining credits on
+    // every plan tier. Purchased credits stay consumable on Free, so there is
+    // no tier-specific allowance clause. Groups: 1=estimate, 2=userId,
+    // 3=remainingAvailable.
     const account = userCreditRows.find((row) => row.userId === userId)
     if (!account) return []
     const remainingAvailable = (account.remainingCredits ?? 0) - (account.reservedCredits ?? 0)
-    const includedAvailable = account.includedBalance ?? 0
-    if (remainingAvailable < estimatedCredits || (!paidTier && includedAvailable < estimatedCredits)) return []
+    if (remainingAvailable < estimatedCredits) return []
     account.reservedCredits = (account.reservedCredits ?? 0) + estimatedCredits
     return [{ remainingCredits: account.remainingCredits, reservedCredits: account.reservedCredits }]
   }

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { StatCard } from "@/components/ui/stat-card"
 import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
+import { parseCreditExhaustionPayload, ZeroCreditModal, useZeroCreditModal } from "@/components/shared/zero-credit-modal"
 import { useToast } from "@/hooks/use-toast"
 import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
 import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
@@ -396,6 +397,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   const [uploadResult, setUploadResult] = useState<UploadDatasetResponse | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+  const zeroCredit = useZeroCreditModal()
 
   const startAnalysis = useCallback(async (datasetId: string | null, data: ParsedData) => {
     setState("analyzing")
@@ -422,6 +424,9 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
             datasetId,
           }),
         })
+        if (!analyzeRes.ok) {
+          await zeroCredit.openFromResponse(analyzeRes)
+        }
         const analyzeResult = await analyzeRes.json()
         if (analyzeResult.success) {
           aiSummary = analyzeResult.insight || null
@@ -463,6 +468,14 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
       if (!result.ok || !result.success) {
         const uploadMessage = result.message || result.error || "Retail upload did not create a dataset."
         debugError("Upload failed:", uploadMessage)
+
+        // Paid plans purchase top-ups; the server-issued payload decides the
+        // plan-aware CTA from the authoritative usable balance.
+        const creditState = parseCreditExhaustionPayload(result)
+        if (creditState && creditState.tier !== "free") {
+          zeroCredit.openFromPayload(creditState)
+        }
+
         toast({
           title: "Upload warning",
           description: uploadMessage,
@@ -612,6 +625,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
 
   return (
     <div className={embedded ? "space-y-6" : "min-w-0 flex-1 px-4 pb-6 pt-6 sm:px-6"}>
+      <ZeroCreditModal state={zeroCredit.state} onOpenChange={(open) => { if (!open) zeroCredit.close() }} />
       <div className={embedded ? "space-y-6" : "mx-auto max-w-6xl space-y-6"}>
         {/* Upload Card */}
         <Card

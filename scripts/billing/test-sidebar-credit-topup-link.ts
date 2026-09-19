@@ -39,26 +39,43 @@ assert(
 
 assert(
   usageMonitor.includes("+ Add Credits"),
-  "UsageMonitor must render the compact + Add Credits action.",
+  "UsageMonitor must render the compact + Add Credits action for paid plans.",
 )
 
-// The Pro/Business sidebar card renders the isPaidPro branch of UsageMonitor.
+// The Pro/Business sidebar card renders the isPaidPlan branch of UsageMonitor.
 // A regression once shipped the link in every other branch but missed this
 // one, so the paying customer's sidebar card showed no Add Credits button.
-// Every card variant must render the link.
+// The paid Pro/Business card variant must render the link exactly once.
 const addCreditsLinkCount = usageMonitor.split("<AddCreditsLink onClick={onAddCreditsClick} />").length - 1
 assert(
-  addCreditsLinkCount === 4,
-  `UsageMonitor must render the + Add Credits link in all four card variants (unlimited, paid Pro/Business, no credits, standard) — found ${addCreditsLinkCount}.`,
+  addCreditsLinkCount === 1,
+  `UsageMonitor must render the + Add Credits link only on the paid Pro/Business card — found ${addCreditsLinkCount}.`,
 )
 
 const paidProBlock = usageMonitor.slice(
-  usageMonitor.indexOf("isPaidPro) {"),
+  usageMonitor.indexOf("isPaidPlan) {"),
   usageMonitor.indexOf("if (availableCredits <= 0)"),
 )
 assert(
   paidProBlock.includes("<AddCreditsLink"),
   "The paid Pro/Business sidebar card must render the + Add Credits link directly below the credit/progress information.",
+)
+
+// Free accounts must never see the + Add Credits purchase action: the two
+// Free card variants render an Upgrade link instead, and preserved purchased
+// credits are displayed as usable existing credits.
+const freeBlocks = usageMonitor.slice(usageMonitor.indexOf("if (availableCredits <= 0)"))
+assert(
+  !freeBlocks.includes("<AddCreditsLink"),
+  "Free sidebar card variants must not render the + Add Credits purchase action.",
+)
+assert(
+  freeBlocks.includes("<UpgradeLink"),
+  "Free sidebar card variants must offer an Upgrade to Pro path.",
+)
+assert(
+  freeBlocks.includes("remain usable on the Free plan") || freeBlocks.includes("usable on the Free plan"),
+  "The Free sidebar card must describe preserved purchased credits as usable existing credits.",
 )
 
 assert(

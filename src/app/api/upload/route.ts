@@ -1,4 +1,5 @@
 import { uploadCSV } from "@/app/actions/upload"
+import { buildCreditExhaustionStateFromUsage } from "@/lib/billing/credit-exhaustion"
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging"
 import { allowedUploadDatasetCategories, getDatasetCategoryFromUpload, getUploadCategoryCandidate, normalizeDatasetCategory } from "@/lib/data/dataset-category"
 import { NextResponse } from "next/server"
@@ -197,6 +198,14 @@ export async function POST(request: Request) {
         missingFields: [],
         receivedFields,
         usage: result.usage,
+        creditState: insufficientCredits || analystLimitReached
+          ? buildCreditExhaustionStateFromUsage({
+              tier: result.usage?.subscriptionTier,
+              availableCredits: result.usage?.availableCredits ?? result.usage?.remainingCredits,
+              reservedCredits: result.usage?.reservedCredits,
+              requiredCredits: 1,
+            })
+          : undefined,
       }, { status })
     }
 
