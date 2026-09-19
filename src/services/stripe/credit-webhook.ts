@@ -3,7 +3,6 @@ import type Stripe from "stripe"
 import {
   getCreditTopUpPackageById,
   getCreditTopUpPackageByStripePriceId,
-  creditTopUpPackages,
   type CreditPackageConfig,
 } from "@/lib/billing/credit-packages"
 import {
@@ -38,27 +37,25 @@ function normalizePriceId(price: string | undefined | null): string | null {
  * Legacy fallback: resolve a credit package from Stripe line items when
  * the Checkout Session predates the creditPackageId metadata field.
  *
- * Resolution order (strict, no guessing):
- *   1. stripePriceId from line items matching an active package provider mapping
- *   2. Amount + currency matching an active package
- *   3. Fail safely — requires admin recovery
+ * A credit package is identified ONLY by a Stripe Price ID that maps to an
+ * active package provider configuration. Amount and currency never resolve
+ * a package, and an unknown or untrusted Price ID fails closed so no credits
+ * are granted without a trusted identifier.
  */
 async function resolveCreditPackageFromLineItems(
   lineItems: unknown,
-  amountTotal: number,
-  currency: string,
-): Promise<{ package: CreditPackageConfig | null; resolutionMethod: string }> {
+): Promise<{ package: CreditPackageConfig | null; priceId: string | null; resolutionMethod: string }> {
   // Await if line items are wrapped in a promise or structured differently
   const items = await Promise.resolve(lineItems)
-  
+
   // Handle Stripe APIList structure: { data: [...], has_more: false }
-  const dataArray = Array.isArray(items) 
-    ? items 
+  const dataArray = Array.isArray(items)
+    ? items
     : items && typeof items === "object" && "data" in items && Array.isArray((items as { data?: unknown[] }).data)
       ? (items as { data: unknown[] }).data
       : []
 
-  // Tier 1: Resolve by Stripe Price ID from line items
+  // Resolve by Stripe Price ID from line items
   for (const item of dataArray) {
     if (item && typeof item === "object" && "price" in item) {
       const priceObj = (item as { price?: { id?: string } }).price
@@ -68,26 +65,14 @@ async function resolveCreditPackageFromLineItems(
       if (priceId) {
         const pkg = getCreditTopUpPackageByStripePriceId(priceId)
         if (pkg && pkg.active) {
-          return { package: pkg, resolutionMethod: "lineItem_priceId_legacy" }
+          return { package: pkg, priceId, resolutionMethod: "lineItem_priceId_legacy" }
         }
       }
     }
   }
 
-  // Tier 2: Resolve by exact amount + currency match
-  const normalizedCurrency = normalizeCurrency(currency)
-  for (const pkg of creditTopUpPackages) {
-    if (
-      pkg.active &&
-      normalizeCurrency(pkg.currency) === normalizedCurrency &&
-      pkg.monetaryAmountCents === amountTotal
-    ) {
-      return { package: pkg, resolutionMethod: "lineItem_amount_currency_legacy" }
-    }
-  }
-
-  // Tier 3: No match found
-  return { package: null, resolutionMethod: "none" }
+  // No trusted Price ID match — fail closed
+  return { package: null, priceId: null, resolutionMethod: "none" }
 }
 
 /**
@@ -97,18 +82,23 @@ async function resolveCreditPackageFromLineItems(
  *   2. stripePriceId from metadata / line items
  *   3. Legacy fallback: line items lookup (for sessions that predate creditPackageId metadata)
  *   4. Fail safely — no credits granted, requires admin recovery
+ *
+ * `resolvedPriceId` carries the trusted Stripe Price that identified the
+ * package (the package's own configured Price, the metadata Price ID, or the
+ * matched line-item Price ID) so localized Adaptive Pricing charges can be
+ * verified against the package's own Stripe Price even for legacy sessions.
  */
 async function resolveCreditPackageDeterministically(
   metadata: Record<string, string>,
   stripePriceId: string | null,
   session: Stripe.Checkout.Session,
-): Promise<{ package: CreditPackageConfig | null; resolvedCurrency: string; resolutionMethod: string }> {
+): Promise<{ package: CreditPackageConfig | null; resolvedCurrency: string; resolutionMethod: string; resolvedPriceId: string | null }> {
   // Tier 1: Resolve by server-generated creditPackageId from checkout metadata
   const creditPackageId = normalizePriceId(metadata.creditPackageId ?? null)
   if (creditPackageId) {
     const pkg = getCreditTopUpPackageById(creditPackageId)
     if (pkg && pkg.active) {
-      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "creditPackageId" }
+      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "creditPackageId", resolvedPriceId: pkg.providers.stripe ?? null }
     }
     debugLog("[stripe-credit-topup] creditPackageId found but package inactive or missing.", { creditPackageId })
   }
@@ -118,18 +108,14 @@ async function resolveCreditPackageDeterministically(
   if (priceId) {
     const pkg = getCreditTopUpPackageByStripePriceId(priceId)
     if (pkg && pkg.active) {
-      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "stripePriceId" }
+      return { package: pkg, resolvedCurrency: pkg.currency, resolutionMethod: "stripePriceId", resolvedPriceId: priceId }
     }
     debugLog("[stripe-credit-topup] stripePriceId found but package inactive or not configured.", { priceId })
   }
 
-  // Tier 3: Legacy fallback — resolve from Stripe line items
+  // Tier 3: Legacy fallback — resolve from Stripe line items by trusted Price ID
   try {
-    const legacyResolution = await resolveCreditPackageFromLineItems(
-      session.line_items ?? [],
-      session.amount_total ?? 0,
-      session.currency ?? "",
-    )
+    const legacyResolution = await resolveCreditPackageFromLineItems(session.line_items ?? [])
     if (legacyResolution.package) {
       debugLog("[stripe-credit-topup] Resolved via legacy line-item lookup.", {
         packageId: legacyResolution.package.id,
@@ -139,6 +125,7 @@ async function resolveCreditPackageDeterministically(
         package: legacyResolution.package,
         resolvedCurrency: legacyResolution.package.currency,
         resolutionMethod: legacyResolution.resolutionMethod,
+        resolvedPriceId: legacyResolution.priceId,
       }
     }
   } catch (err) {
@@ -151,7 +138,7 @@ async function resolveCreditPackageDeterministically(
     hasPriceId: Boolean(stripePriceId),
     lineItemCount: Array.isArray(session.line_items) ? session.line_items.length : 0,
   })
-  return { package: null, resolvedCurrency: "", resolutionMethod: "none" }
+  return { package: null, resolvedCurrency: "", resolutionMethod: "none", resolvedPriceId: null }
 }
 
 export async function handleStripeCreditCheckoutEvent(
@@ -258,17 +245,20 @@ export async function handleStripeCreditCheckoutEvent(
   // Stripe may charge the package's own Stripe Price in the customer's local
   // currency (e.g. a USD price presented as EUR). That localized charge is
   // only accepted when the checkout session was created for exactly this
-  // package's Stripe Price AND the authoritative Stripe Price still matches
-  // the package configuration. Any other currency mismatch fails closed.
+  // package's Stripe Price — identified by the server-stamped metadata Price
+  // ID or the matching line-item Price ID — AND the authoritative Stripe
+  // Price still matches the package configuration. Any other currency
+  // mismatch fails closed.
+  const trustedPriceId = stripePriceId || resolution.resolvedPriceId
   let chargeCurrency = currency
   if (currency !== creditPackage.currency) {
     const packagePriceId = creditPackage.providers.stripe ?? null
-    if (!packagePriceId || !stripePriceId || stripePriceId !== packagePriceId) {
+    if (!packagePriceId || !trustedPriceId || trustedPriceId !== packagePriceId) {
       debugLog("[stripe-credit-topup] Currency mismatch without trusted package price — safe failure.", {
         sessionId: session.id,
         chargeCurrency: currency,
         packageCurrency: creditPackage.currency,
-        stripePriceId,
+        stripePriceId: trustedPriceId,
       })
       return {
         processed: true,
@@ -278,7 +268,7 @@ export async function handleStripeCreditCheckoutEvent(
     }
 
     try {
-      const price = await getStripe().prices.retrieve(stripePriceId)
+      const price = await getStripe().prices.retrieve(trustedPriceId)
       if (
         !price.active ||
         price.type !== "one_time" ||
@@ -292,7 +282,7 @@ export async function handleStripeCreditCheckoutEvent(
         }
       }
     } catch (err) {
-      debugError("[stripe-credit-topup] Failed to verify Stripe price for localized charge.", { stripePriceId, error: err instanceof Error ? err.message : String(err) })
+      debugError("[stripe-credit-topup] Failed to verify Stripe price for localized charge.", { stripePriceId: trustedPriceId, error: err instanceof Error ? err.message : String(err) })
       return {
         processed: true,
         synced: false,
@@ -304,7 +294,7 @@ export async function handleStripeCreditCheckoutEvent(
       sessionId: session.id,
       packageCurrency: creditPackage.currency,
       chargeCurrency: currency,
-      stripePriceId,
+      stripePriceId: trustedPriceId,
     })
     chargeCurrency = currency
   }
@@ -317,7 +307,7 @@ export async function handleStripeCreditCheckoutEvent(
     amountMinor: amountTotal,
     currency: resolution.resolvedCurrency || currency,
     chargeCurrency,
-    stripePriceId,
+    stripePriceId: trustedPriceId,
     clientReferenceId: clientReferenceId || null,
     metadata: metadata as Record<string, string>,
   }

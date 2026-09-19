@@ -7657,3 +7657,77 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; retired task: `.TODO/todo-done.md` T-1059; release notes: `CHANGELOG.md`.
+
+## Interaction: Verify 500 and 1,000 credit top-up packages against Stripe webhook paths
+
+1. Interaction title
+   Verify the remaining 500-credit ($45 USD) and 1,000-credit ($85 USD) credit top-up packages end to end without any real Stripe payments, production balance changes, commits, or pushes.
+
+2. What was the user goal
+   Confirm correct Stripe Price/package mapping, webhook package resolution, exact purchased-credit grants, unchanged included credits, remainingCredits = includedBalance + purchasedBalance, correct CreditTopUp history, replay idempotency, and Adaptive Pricing safety for both packages using mocks and tests only, then report PASS/FAIL, bugs, and files changed.
+
+3. What changed
+   - `scripts/billing/test-credit-topup-packages.ts`: new behavioral regression test (14 cases) driving `handleStripeCreditCheckoutEvent` and `processStripeTopUpPayment` for both packages with fully mocked Stripe, database, credit-account, and email modules; asserts exact grants (+500/+1,000), unchanged included balances, remainingCredits = included + purchased, CreditTopUp/Ledger row fields, confirmation emails, duplicate and redelivery replay safety, post-crash ledger idempotency, amount/currency fail-closed behavior, Adaptive Pricing acceptance and rejection, legacy amount+currency fallback resolution, unpaid/non-payment refusal, and safe failure for unmatched packages.
+   - `scripts/billing/mocks/` (`register-hooks.mjs`, `hooks.mjs`, `mock-db.mjs`, `mock-credit-account.mjs`, `mock-stripe.mjs`, `mock-emails.mjs`): module-loader mock harness that redirects the four payment-side modules to in-memory implementations; the DB mock interprets the exact drizzle call shapes of credit-topup-service (findFirst, transaction with snapshot rollback, inserts, updates by column pairs, and the raw UserCredit grant/refund SQL) with no real database.
+   - `package.json`: adds the `test:credit-topup-packages` script alongside the existing credit-topup suites.
+   - No production source files changed; no real Checkout payments, no production data access.
+
+4. Problems marked
+   - observation: The 500 and 1,000 packages pass all checks. Existing coverage (`test:credit-topup-webhooks` 68 source-contract checks, `test:credit-topup-architecture` 17 checks) had no behavioral grant/idempotency coverage for these two packages; the new suite adds it.
+   - risk (not a current failure): the webhook's legacy fallback resolves unknown sessions by exact session amount + currency (`lineItem_amount_currency_legacy`) without checking the resolved package's Stripe provider mapping, so any other paid $45/$85 USD payment-mode checkout without trusted metadata would resolve to a credit package; documented by the new legacy-fallback tests, currently guarded by deterministic metadata tiers.
+   - observation: `creditsFromMonetaryAmount` in `src/lib/billing/credit-packages.ts` uses an inconsistent credits conversion (4500 cents → 450) but has no callers in src or scripts.
+
+5. User learning
+   Both remaining top-up packages behave correctly on the production code paths: exact grants, one-time-only grants under replay, and localized-currency charges accepted only with the package's own verified Stripe Price.
+
+6. AI-agent learning
+   Behavioral payment tests can run without a database by mocking drizzle call shapes (SQL chunk walking for eq/and/update sets plus the known raw UPDATE shapes) and redirecting modules with synchronous `module.registerHooks` resolve hooks; env-configured package maps must be imported after the env vars are set.
+
+7. Follow-up tasks
+   - Optional hardening: make the legacy amount+currency fallback require the package's own provider mapping and prefer failing closed when metadata is absent.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Interaction: Harden Stripe credit-topup package resolution against amount guessing
+
+1. Interaction title
+   Remove amount/currency package guessing from the Stripe credit-topup webhook, remove the dead creditsFromMonetaryAmount conversion, and verify the 100/500/1,000 USD packages end to end with mocks.
+
+2. What was the user goal
+   Make a credit package resolvable only through the package's trusted Stripe Price ID or configured provider mapping so untrusted Price IDs, missing mappings, metadata tampering, and price drift fail closed with zero credits, keep Stripe Adaptive Pricing working through the package's own Price, remove creditsFromMonetaryAmount after confirming zero callers, then run the full relevant regression suite and TypeScript and lint/secrets checks without real payments, production balance changes, commits, or pushes.
+
+3. What changed
+   - `src/services/stripe/credit-webhook.ts`: `resolveCreditPackageFromLineItems` no longer resolves packages from Checkout amount + currency; it identifies a package only through a line-item Stripe Price ID mapped to an active package provider configuration and fails closed otherwise. `resolveCreditPackageDeterministically` now returns `resolvedPriceId` — the trusted Price that identified the package (the package's configured Price for metadata resolution, the metadata Price ID, or the matched line-item Price ID). The Adaptive Pricing localized-charge gate verifies `stripePriceId || resolvedPriceId` against the package's own Price and records that trusted Price on the payment, so legacy sessions without server-stamped metadata still support localized charges through their line-item Price while untrusted or drifted prices fail closed.
+   - `src/lib/billing/credit-packages.ts`: removed the unused `creditsFromMonetaryAmount` helper; configured credit packages remain the single source of truth for credit quantities. `resolveCreditTopUpPackageByAmount` stays because the Square webhook uses it (Square has no Stripe Price mapping) and its own handler validates completion, amount, and currency against the resolved package.
+   - `scripts/billing/test-credit-topup-packages.ts`: extended to 16 tests — exact +100/+500/+1,000 grants with unchanged included balances and remainingCredits invariants, replay and redelivery idempotency for every package, post-crash ledger idempotency, untrusted metadata Price IDs, untrusted line-item Price IDs, exact $45/$85 amounts with no trusted identifier failing safely, Adaptive Pricing acceptance through metadata and legacy line-item Prices, price-drift fail-closed behavior, and unpaid/non-payment refusal.
+   - `CHANGELOG.md`: Dev entry records the resolution hardening.
+
+4. Problems marked
+   - blocker root cause: `resolveCreditPackageFromLineItems` tier 2 resolved any active package from exact session amount + currency, so a paid $45/$85 USD payment-mode checkout without trusted metadata could grant credit-package credits; removed in favor of Price-ID-only resolution.
+   - behavior: Adaptive Pricing acceptance now trusts the Price that actually identified the package (metadata or Stripe-authoritative line item), so legacy sessions charged in a local currency still grant through the package's own verified Price.
+   - observation: the mock loader harness required no production changes; all new behavior is covered by the existing `test:credit-topup-packages` runner.
+
+5. User learning
+   Credit packages can now be granted only through configured Stripe Price mappings; a payment's amount and currency can never choose a package, so unknown or tampered checkouts grant zero credits instead of guessing.
+
+6. AI-agent learning
+   When removing a resolution fallback, extend the remaining trusted identifier (line-item Price ID) into the dependent safety gate (Adaptive Pricing verification) so legitimate legacy sessions keep working while every untrusted identifier fails closed; check Square-side callers before deleting shared mapping helpers.
+
+7. Follow-up tasks
+   - None for this change; `.TODO` queues unchanged.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md` Dev section.

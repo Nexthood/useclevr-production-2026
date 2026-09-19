@@ -358,3 +358,10 @@
 - added: behavioral and production-contract regression test for Profile=pro with missing, zeroed, or plan-mismatched UserCredit covering the 500-credit grant, a 1-credit reservation, correct remaining/reserved balances, and replay without a second grant
 - recorded: Google ClevrSync OAuth consent redirect landing on 0.0.0.0:8080 in production as TODO task T-1058 for a follow-up fix
 - fixed: isolate Executive Dashboard and Executive Daily Health context to the selected dataset ID while allowing existing semantically compatible files to remain grouped
+- verified: 500-credit ($45 USD) and 1,000-credit ($85 USD) top-up packages grant exactly +500/+1,000 purchased credits through the Stripe webhook path with unchanged included balances, correct remainingCredits math, and exact CreditTopUp history rows
+- verified: Stripe webhook replay, redelivery with new event IDs, and post-crash ledger replay for both packages grant credits only once through provider-payment dedup and the topup ledger idempotency key
+- verified: Stripe Adaptive Pricing localized charges grant exact package credits only when the session used the package's own verified Stripe Price and fail closed on untrusted or drifted prices
+- added: behavioral credit-topup package test with in-memory Stripe/DB/account/email mocks and a module-loader mock harness covering 500/1,000 USD packages, replay idempotency, amount/currency validation, and legacy amount+currency fallback resolution
+- fixed: resolve Stripe credit-topup packages only through trusted Stripe Price mappings by removing the legacy amount+currency package fallback from the webhook while keeping Adaptive Pricing localized charges grantable through the package's own verified Price from metadata or line items
+- removed: the unused creditsFromMonetaryAmount conversion helper so configured credit packages stay the single source of truth for credit quantities
+- added: behavioral coverage for exact +100/+500/+1,000 grants, untrusted and amount-only sessions granting zero credits, and legacy line-item Price resolution with localized currency
