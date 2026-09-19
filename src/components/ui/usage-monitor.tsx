@@ -70,6 +70,7 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
             style={{ width: "100%", background: "linear-gradient(135deg, hsl(187 79% 53%), hsl(270 50% 65%))" }}
           />
         </div>
+        <AddCreditsLink onClick={onAddCreditsClick} />
       </div>
     );
   }
