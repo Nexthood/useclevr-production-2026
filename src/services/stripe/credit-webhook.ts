@@ -9,8 +9,13 @@ import {
 import {
   processStripeTopUpPayment,
   isProviderPaymentProcessed,
+  getCreditTopUpByProviderPaymentId,
+  refundTopUpCredits,
+  markTopUpRefundedWithoutGrant,
 } from "@/lib/billing/credit-topup-service"
+import { getCreditAccount } from "@/lib/billing/credit-account-service"
 import { sendCreditPurchaseEmail } from "@/lib/email/subscription-emails"
+import { getStripe } from "@/services/stripe/credit-checkout"
 import { debugError, debugLog } from "@/lib/utils/debug"
 
 export interface StripeCreditTopUpResult {
@@ -248,6 +253,62 @@ export async function handleStripeCreditCheckoutEvent(
     }
   }
 
+  // Currency verification with Stripe Adaptive Pricing support.
+  //
+  // Stripe may charge the package's own Stripe Price in the customer's local
+  // currency (e.g. a USD price presented as EUR). That localized charge is
+  // only accepted when the checkout session was created for exactly this
+  // package's Stripe Price AND the authoritative Stripe Price still matches
+  // the package configuration. Any other currency mismatch fails closed.
+  let chargeCurrency = currency
+  if (currency !== creditPackage.currency) {
+    const packagePriceId = creditPackage.providers.stripe ?? null
+    if (!packagePriceId || !stripePriceId || stripePriceId !== packagePriceId) {
+      debugLog("[stripe-credit-topup] Currency mismatch without trusted package price — safe failure.", {
+        sessionId: session.id,
+        chargeCurrency: currency,
+        packageCurrency: creditPackage.currency,
+        stripePriceId,
+      })
+      return {
+        processed: true,
+        synced: false,
+        reason: `Payment currency ${currency} does not match package currency ${creditPackage.currency} without a trusted Stripe Price — requires admin recovery.`,
+      }
+    }
+
+    try {
+      const price = await getStripe().prices.retrieve(stripePriceId)
+      if (
+        !price.active ||
+        price.type !== "one_time" ||
+        price.currency.toUpperCase() !== creditPackage.currency ||
+        price.unit_amount !== creditPackage.monetaryAmountCents
+      ) {
+        return {
+          processed: true,
+          synced: false,
+          reason: "Stripe Price no longer matches the credit package configuration — requires admin recovery.",
+        }
+      }
+    } catch (err) {
+      debugError("[stripe-credit-topup] Failed to verify Stripe price for localized charge.", { stripePriceId, error: err instanceof Error ? err.message : String(err) })
+      return {
+        processed: true,
+        synced: false,
+        reason: "Could not verify the Stripe Price for a localized payment — requires admin recovery.",
+      }
+    }
+
+    debugLog("[stripe-credit-topup] Stripe Adaptive Pricing charge accepted for package price.", {
+      sessionId: session.id,
+      packageCurrency: creditPackage.currency,
+      chargeCurrency: currency,
+      stripePriceId,
+    })
+    chargeCurrency = currency
+  }
+
   const payment = {
     provider: "stripe" as const,
     providerPaymentId,
@@ -255,6 +316,7 @@ export async function handleStripeCreditCheckoutEvent(
     providerEventId,
     amountMinor: amountTotal,
     currency: resolution.resolvedCurrency || currency,
+    chargeCurrency,
     stripePriceId,
     clientReferenceId: clientReferenceId || null,
     metadata: metadata as Record<string, string>,
@@ -278,19 +340,42 @@ export async function handleStripeCreditCheckoutEvent(
   // The recipient is the trusted server-side userEmail stored in checkout
   // metadata at session creation. Never derive it from metadata.userId or
   // clientReferenceId: those are UseClevr user IDs, not email addresses.
+  // Email runs AFTER the financial grant is committed and must never roll it
+  // back — every failure here is logged, never thrown.
   if (!result.duplicate && result.creditsIssued > 0) {
     try {
       const userEmail = normalizePriceId(metadata.userEmail)
+      const topUpUserId = metadata.userId || clientReferenceId || null
       if (userEmail && userEmail.includes("@")) {
         const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.useclevr.com/app"
+        const [receiptUrl, invoiceUrl, account] = await Promise.all([
+          retrieveStripeReceiptUrl(providerPaymentId).catch((err) => {
+            debugError("[stripe-credit-topup] Receipt URL lookup failed:", err)
+            return null
+          }),
+          retrieveStripeInvoiceUrl(session).catch((err) => {
+            debugError("[stripe-credit-topup] Invoice URL lookup failed:", err)
+            return null
+          }),
+          topUpUserId
+            ? getCreditAccount(topUpUserId).catch((err) => {
+                debugError("[stripe-credit-topup] Post-grant balance lookup failed:", err)
+                return null
+              })
+            : Promise.resolve(null),
+        ])
         await sendCreditPurchaseEmail({
           to: userEmail,
           creditsGranted: creditPackage.creditsGranted,
-          amount: creditPackage.monetaryAmountCents / 100,
-          currency: creditPackage.currency,
+          amount: amountTotal / 100,
+          currency: chargeCurrency || creditPackage.currency,
           purchasedAt: new Date().toISOString(),
           providerPaymentId,
           dashboardUrl: `${dashboardUrl}/app/settings/subscription`,
+          receiptUrl: receiptUrl ?? undefined,
+          invoicePdfUrl: invoiceUrl?.pdfUrl ?? undefined,
+          invoiceUrl: invoiceUrl?.hostedUrl,
+          newPurchasedBalance: account?.purchasedBalance,
         }).catch((err) => {
           debugError("[stripe-credit-topup] Credit purchase email failed:", err)
         })
@@ -305,5 +390,123 @@ export async function handleStripeCreditCheckoutEvent(
     synced: true,
     creditsIssued: result.creditsIssued,
     duplicate: result.duplicate,
+  }
+}
+
+/**
+ * Best-effort Stripe receipt URL (authoritative hosted receipt for the charge).
+ */
+async function retrieveStripeReceiptUrl(paymentIntentId: string): Promise<string | null> {
+  const stripe = getStripe()
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+  const chargeId = typeof paymentIntent.latest_charge === "string" ? paymentIntent.latest_charge : paymentIntent.latest_charge?.id
+  if (!chargeId) return null
+  const charge = await stripe.charges.retrieve(chargeId)
+  return charge.receipt_url ?? null
+}
+
+/**
+ * Best-effort Stripe invoice URLs (hosted invoice page + invoice PDF) for
+ * one-time Checkout payments created with invoice_creation enabled.
+ */
+async function retrieveStripeInvoiceUrl(
+  session: Stripe.Checkout.Session,
+): Promise<{ hostedUrl: string; pdfUrl: string | null } | null> {
+  const invoiceId = typeof session.invoice === "string" ? session.invoice : session.invoice?.id
+  if (!invoiceId) return null
+  const invoice = await getStripe().invoices.retrieve(invoiceId)
+  if (!invoice.hosted_invoice_url) return null
+  return { hostedUrl: invoice.hosted_invoice_url, pdfUrl: invoice.invoice_pdf ?? null }
+}
+
+/**
+ * Authoritative refund handling for credit top-up payments.
+ *
+ * A refunded payment must never become a permanent credit grant:
+ *   - Top-up never completed (credits never granted): mark the top-up
+ *     refunded for audit. Zero balance changes.
+ *   - Top-up completed: reverse the refunded credits from the ORIGINAL
+ *     purchaser only, idempotently per Stripe refund ID, inside the
+ *     established refund rules (no negative balances, no ledger deletion).
+ *
+ * Refunds for payments that are not credit top-ups (e.g. subscription
+ * invoices) are ignored here.
+ */
+export async function handleStripeRefundEvent(
+  event: Stripe.Event,
+): Promise<StripeCreditTopUpResult> {
+  if (event.type !== "charge.refunded") {
+    return { processed: false, synced: false, reason: `Not a charge.refunded event: ${event.type}` }
+  }
+
+  const charge = event.data.object as Stripe.Charge
+  const paymentIntent =
+    typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.payment_intent && typeof charge.payment_intent === "object"
+        ? charge.payment_intent.id
+        : null
+
+  if (!paymentIntent) {
+    return { processed: false, synced: false, reason: "Refunded charge has no payment_intent." }
+  }
+
+  const topUp = await getCreditTopUpByProviderPaymentId("stripe", paymentIntent)
+  if (!topUp) {
+    return { processed: false, synced: false, reason: "Refund does not belong to a credit top-up payment." }
+  }
+
+  if (topUp.status !== "completed") {
+    const marked = await markTopUpRefundedWithoutGrant(
+      "stripe",
+      paymentIntent,
+      `Stripe refund ${charge.id} before credits were granted`,
+    )
+    debugLog("[stripe-credit-topup] Refund processed for never-granted top-up.", {
+      topUpId: topUp.id,
+      paymentIntent,
+      marked: marked.updated,
+    })
+    return {
+      processed: true,
+      synced: true,
+      reason: "Payment was refunded before credits were granted — no credits were issued.",
+    }
+  }
+
+  // Credits were granted — reverse them per applied refund, idempotently.
+  const refunds = charge.refunds?.data?.length
+    ? charge.refunds.data
+    : (await getStripe().charges.retrieve(charge.id, { expand: ["refunds"] })).refunds?.data ?? []
+
+  let creditsReversed = 0
+  let flaggedForReview = false
+  for (const refund of refunds) {
+    if (refund.status !== "succeeded") {
+      debugLog("[stripe-credit-topup] Skipping non-succeeded refund.", { refundId: refund.id, status: refund.status })
+      continue
+    }
+    const refundResult = await refundTopUpCredits(
+      "stripe",
+      paymentIntent,
+      refund.amount,
+      `Stripe refund ${refund.id}`,
+      refund.id,
+    )
+    if (refundResult.success) {
+      creditsReversed += refundResult.creditsRefunded
+    }
+    if (refundResult.flaggedForReview) {
+      flaggedForReview = true
+    }
+  }
+
+  return {
+    processed: true,
+    synced: true,
+    creditsIssued: creditsReversed,
+    reason: flaggedForReview
+      ? "Refund recorded but consumed purchased credits require billing review."
+      : undefined,
   }
 }
