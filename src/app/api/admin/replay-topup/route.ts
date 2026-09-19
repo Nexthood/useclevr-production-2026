@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth"
+import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import Stripe from "stripe"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
@@ -14,15 +15,25 @@ export const dynamic = "force-dynamic"
  * All resolution is done from trusted Stripe server-side data — never from caller input.
  * The normal webhook processing path is reused, including all idempotency protections.
  *
+ * Refund protection: a payment that Stripe shows as refunded (fully or
+ * partially) is never replayed into a credit grant.
+ *
  * Usage: POST /api/admin/replay-topup with body { "sessionId": "cs_live_..." }
  *   or { "paymentIntentId": "pi_3UGl3pJunPTBXsIv0J2gv4u8" }
  */
 export async function POST(request: NextRequest) {
   const authSession = await auth()
   const user = authSession?.user
+  const role = String(user?.role ?? "")
+  const hasSuperAdminRole =
+    Boolean(user?.id && isSuperAdminUserId(user.id)) || role === "superadmin" || role === "admin"
 
   if (!user?.id || !user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (!hasSuperAdminRole) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const body = await request.json().catch(() => ({})) as Record<string, unknown>
@@ -137,6 +148,53 @@ export async function POST(request: NextRequest) {
       { error: "Session not paid", paymentStatus: checkoutSession.payment_status, diagnostics: sessionDiagnostics },
       { status: 400 },
     )
+  }
+
+  // Refund protection: never replay a refunded payment into a credit grant.
+  // PaymentIntent.amount_refunded is not present in the pinned Stripe API
+  // version, so the authoritative refund state comes from the latest charge.
+  const paymentIntentId =
+    typeof checkoutSession.payment_intent === "string"
+      ? checkoutSession.payment_intent
+      : checkoutSession.payment_intent && typeof checkoutSession.payment_intent === "object"
+        ? checkoutSession.payment_intent.id
+        : null
+
+  if (paymentIntentId) {
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+      const chargeId =
+        typeof paymentIntent.latest_charge === "string"
+          ? paymentIntent.latest_charge
+          : paymentIntent.latest_charge?.id ?? null
+      if (chargeId) {
+        const charge = await stripe.charges.retrieve(chargeId)
+        if (charge.amount_refunded > 0) {
+          debugLog("[replay-topup] Refused replay of refunded payment", {
+            sessionId: checkoutSession.id,
+            chargeId,
+            amountRefunded: charge.amount_refunded,
+            chargeAmount: charge.amount,
+          })
+          return NextResponse.json(
+            {
+              success: false,
+              processed: false,
+              synced: false,
+              reason: `Payment is refunded (${charge.amount_refunded} of ${charge.amount} refunded). Refunded payments are never replayed into credits.`,
+              diagnostics: sessionDiagnostics,
+            },
+            { status: 409 },
+          )
+        }
+      }
+    } catch (err) {
+      debugError("[replay-topup] Failed to verify refund state:", err)
+      return NextResponse.json(
+        { error: "Could not verify payment refund state — refusing to replay.", details: err instanceof Error ? err.message : String(err) },
+        { status: 500 },
+      )
+    }
   }
 
   // Build synthetic event from Stripe-retrieved session data — preserve livemode

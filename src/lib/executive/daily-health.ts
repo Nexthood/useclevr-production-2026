@@ -122,12 +122,13 @@ const DEFAULT_WORKSPACE_ID = null
 export async function getOrCreateDailyHealthBrief(input: {
   userId: string
   workspaceId?: string | null
+  datasetId?: string | null
   force?: boolean
 }): Promise<ExecutiveDailyBrief | null> {
   const workspaceId = input.workspaceId ?? DEFAULT_WORKSPACE_ID
-  const workspaceKey = getWorkspaceKey(input.userId, workspaceId)
+  const workspaceKey = getWorkspaceKey(input.userId, workspaceId, input.datasetId ?? null)
   const date = getUtcDateKey(new Date())
-  const source = await loadDailyHealthSource(input.userId, workspaceId, workspaceKey, date)
+  const source = await loadDailyHealthSource(input.userId, workspaceId, workspaceKey, date, input.datasetId ?? null)
   if (source.datasets.length === 0) return null
   const sourceHash = hashDailyHealthSource(source)
 
@@ -143,9 +144,10 @@ export async function getOrCreateDailyHealthBrief(input: {
 export async function listDailyHealthBriefs(input: {
   userId: string
   workspaceId?: string | null
+  datasetId?: string | null
   limit?: number
 }): Promise<ExecutiveDailyBrief[]> {
-  const workspaceKey = getWorkspaceKey(input.userId, input.workspaceId ?? DEFAULT_WORKSPACE_ID)
+  const workspaceKey = getWorkspaceKey(input.userId, input.workspaceId ?? DEFAULT_WORKSPACE_ID, input.datasetId ?? null)
   try {
     const records = await db.query.executiveDailyHealthChecks.findMany({
       where: and(
@@ -178,13 +180,19 @@ async function readStoredBrief(workspaceKey: string, date: string, sourceHash: s
   }
 }
 
-async function loadDailyHealthSource(userId: string, workspaceId: string | null, workspaceKey: string, date: string): Promise<DailyHealthSource> {
+async function loadDailyHealthSource(
+  userId: string,
+  workspaceId: string | null,
+  workspaceKey: string,
+  date: string,
+  datasetId: string | null,
+): Promise<DailyHealthSource> {
   const [profile, dashboardData] = await Promise.all([
     db.query.profiles.findFirst({
       where: eq(profiles.userId, userId),
       columns: { firstName: true, businessName: true, companyName: true, industry: true, location: true },
     }),
-    loadDashboardDatasetAggregation(userId),
+    loadDashboardDatasetAggregation(userId, datasetId ? { datasetId, includeCompatibleDatasets: true } : {}),
   ])
 
   return {
@@ -796,8 +804,11 @@ function getUtcDateKey(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`
 }
 
-function getWorkspaceKey(userId: string, workspaceId: string | null) {
-  return workspaceId ? `workspace:${workspaceId}` : `user:${userId}`
+function getWorkspaceKey(userId: string, workspaceId: string | null, datasetId: string | null) {
+  const baseKey = workspaceId ? `workspace:${workspaceId}` : `user:${userId}`
+  if (!datasetId) return baseKey
+  const datasetKey = createHash("sha256").update(datasetId).digest("hex").slice(0, 24)
+  return `${baseKey}:dataset:${datasetKey}`
 }
 
 function daysBetween(start: Date, end: Date) {

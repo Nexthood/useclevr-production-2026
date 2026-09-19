@@ -11,6 +11,7 @@ import {
   type DashboardSemanticMetric,
   type DashboardSemanticTrend,
 } from "@/lib/data/dashboard-semantic-profile"
+import { buildAreaChartLayout } from "@/lib/data/dashboard-chart-layout"
 import {
   getBusinessModelKpiNames,
   getBusinessModelLabel,
@@ -810,13 +811,13 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const selectedDatasetId = parseDatasetId(params.datasetId)
   const session = await auth()
   const userId = session?.user?.id ?? null
-  const [stats, dailyBrief] = await Promise.all([
-    getStats(userId, null),
-    userId && !selectedDatasetId ? getOrCreateDailyHealthBrief({ userId }) : Promise.resolve(null),
-  ])
+  const stats = await getStats(userId, selectedDatasetId)
   const activeDatasetId = selectedDatasetId ?? stats.latestDataset?.id ?? null
   const selected = selectDashboardDataset(stats, activeDatasetId)
   const dashboardStats = selected.stats
+  const dailyBrief = userId && activeDatasetId
+    ? await getOrCreateDailyHealthBrief({ userId, datasetId: activeDatasetId })
+    : null
   const semanticAnalysis = selected.selectedDataset
     ? await buildDashboardSemanticAnalysis(selected.selectedDataset).catch(() => null)
     : null
@@ -1145,6 +1146,7 @@ function ExecutiveDailyHealthSection({
   const priorities = brief?.todaysPriorities.slice(0, 3) ?? []
   const recommendations = brief?.recommendedActions.slice(0, 3) ?? []
   const criticalAlerts = brief?.alerts.filter((alert) => alert.severity === "critical") ?? []
+  const dailyHealthHref = datasetId ? `/app/daily-health?datasetId=${encodeURIComponent(datasetId)}` : "/app/daily-health"
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1167,7 +1169,7 @@ function ExecutiveDailyHealthSection({
             />
           )}
           {hasActiveDatasets ? (
-            <Link href="/app/daily-health" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 dark:text-cyan-100">
+            <Link href={dailyHealthHref} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 dark:text-cyan-100">
               View Full Daily Brief
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -1400,19 +1402,10 @@ function TrendPanel({ title, metricLabel, data, format, emptyLabel }: { title: s
 }
 
 function AreaChart({ data, format }: { data: SeriesPoint[]; format: "currency" | "number" | "percent" }) {
-  const max = Math.max(...data.map((point) => point.value), 1)
-  const width = 560
-  const height = 210
-  const points = data.map((point, index) => {
-    const x = data.length === 1 ? width / 2 : (index / (data.length - 1)) * width
-    const y = height - (point.value / max) * (height - 24) - 12
-    return { ...point, x, y }
-  })
-  const line = points.map((point) => `${point.x},${point.y}`).join(" ")
-  const area = `0,${height} ${line} ${width},${height}`
+  const chart = buildAreaChartLayout(data)
   return (
     <div>
-      <svg className="h-[220px] w-full overflow-visible" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Trend chart">
+      <svg className="h-[220px] w-full" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label="Trend chart">
         <defs>
           <linearGradient id="executiveAreaFill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.34" />
@@ -1420,18 +1413,21 @@ function AreaChart({ data, format }: { data: SeriesPoint[]; format: "currency" |
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((lineY) => (
-          <line key={lineY} x1="0" x2={width} y1={height * lineY} y2={height * lineY} className="stroke-border" strokeWidth="1" />
+          <line key={lineY} x1={chart.plot.left} x2={chart.plot.right} y1={chart.plot.top + chart.plot.height * lineY} y2={chart.plot.top + chart.plot.height * lineY} className="stroke-border" strokeWidth="1" />
         ))}
-        <polygon points={area} fill="url(#executiveAreaFill)" />
-        <polyline points={line} fill="none" stroke="#22d3ee" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
-        {points.map((point) => (
-          <circle key={`${point.label}-${point.value}`} cx={point.x} cy={point.y} r="3.5" fill="#22d3ee" />
+        {chart.zeroY !== null ? (
+          <line x1={chart.plot.left} x2={chart.plot.right} y1={chart.zeroY} y2={chart.zeroY} className="stroke-muted-foreground/40" strokeDasharray="5 5" strokeWidth="1" />
+        ) : null}
+        <polygon points={chart.areaPoints} fill="url(#executiveAreaFill)" />
+        <polyline points={chart.linePoints} fill="none" stroke="#22d3ee" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+        {chart.points.map((point, index) => (
+          <circle key={`${point.label}-${point.value}-${index}`} cx={point.x} cy={point.y} r="3.5" fill="#22d3ee" />
         ))}
       </svg>
-      <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{data[0]?.label}</span>
-        <span>{formatNullable(data[data.length - 1]?.value ?? null, format)}</span>
-        <span>{data[data.length - 1]?.label}</span>
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-xs text-muted-foreground">
+        <span className="truncate">{data[0]?.label}</span>
+        <span className="whitespace-nowrap">{formatNullable(data[data.length - 1]?.value ?? null, format)}</span>
+        <span className="truncate text-right">{data[data.length - 1]?.label}</span>
       </div>
     </div>
   )
