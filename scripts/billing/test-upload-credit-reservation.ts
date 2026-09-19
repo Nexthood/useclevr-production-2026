@@ -50,11 +50,11 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "pro plan can reserve the standard upload credit",
+    name: "standard upload analysis charges the full ten-credit feature on every plan",
     run() {
-      assert.equal(canPlanUseFeature("pro", "dataset_upload"), true)
-      assert.equal(estimateFeatureCredits("dataset_upload"), 1)
-      assert.equal(canPlanUseFeature("free", "dataset_upload"), true)
+      assert.equal(canPlanUseFeature("pro", "standard_upload_analysis"), true)
+      assert.equal(estimateFeatureCredits("standard_upload_analysis"), 10)
+      assert.equal(canPlanUseFeature("free", "standard_upload_analysis"), true)
       assert.equal(canPlanUseFeature("pro", "profitability_analysis"), true)
     },
   },

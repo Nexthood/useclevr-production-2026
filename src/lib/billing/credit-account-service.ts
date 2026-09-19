@@ -3,6 +3,7 @@ import { creditLedger, profiles, userCredits } from "@/lib/db/schema"
 import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { and, desc, eq, gte, lt, sql } from "drizzle-orm"
 import {
+  CREDITS_PER_EURO as CREDITS_PER_EURO_CANONICAL,
   canPlanUseFeature,
   estimateFeatureCredits,
   normalizeCreditFeature,
@@ -107,7 +108,7 @@ export interface ReconciliationResult {
   checkedAt: Date
 }
 
-export const CREDITS_PER_EURO = 10
+export const CREDITS_PER_EURO = CREDITS_PER_EURO_CANONICAL
 export const CREDIT_CURRENCY = "EUR"
 
 function accountId() {
@@ -914,6 +915,6 @@ export async function getCreditPricingPreview(feature: string, input: FeatureCos
     estimatedMonetaryEquivalent: monetaryEquivalent,
     currency: CREDIT_CURRENCY,
     pricingVersion: new Date().toISOString().slice(0, 10),
-    explanation: `${creditCost} credits at ${CREDITS_PER_EURO} credits per ${CREDIT_CURRENCY}`,
+    explanation: `${creditCost} credits (1 credit ≈ €0.085 customer value)`,
   }
 }

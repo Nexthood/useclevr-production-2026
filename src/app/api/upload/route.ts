@@ -1,6 +1,7 @@
 import { uploadCSV } from "@/app/actions/upload"
 import { buildCreditExhaustionStateFromUsage } from "@/lib/billing/credit-exhaustion"
-import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging"
+import { FEATURE_CREDIT_COSTS } from "@/lib/billing/feature-costs"
+import { UPLOAD_CREDIT_LIMIT_TITLE, buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging"
 import { allowedUploadDatasetCategories, getDatasetCategoryFromUpload, getUploadCategoryCandidate, normalizeDatasetCategory } from "@/lib/data/dataset-category"
 import { NextResponse } from "next/server"
 
@@ -190,7 +191,7 @@ export async function POST(request: Request) {
         error: stageMessage,
         message: stageMessage,
         code: errorCode || undefined,
-        title: insufficientCredits ? "Free upload limit reached" : undefined,
+        title: insufficientCredits ? UPLOAD_CREDIT_LIMIT_TITLE : undefined,
         upgradeRequired: insufficientCredits || undefined,
         stage,
         step: stage,
@@ -198,12 +199,13 @@ export async function POST(request: Request) {
         missingFields: [],
         receivedFields,
         usage: result.usage,
+        requiredCredits: result.requiredCredits,
         creditState: insufficientCredits || analystLimitReached
           ? buildCreditExhaustionStateFromUsage({
               tier: result.usage?.subscriptionTier,
               availableCredits: result.usage?.availableCredits ?? result.usage?.remainingCredits,
               reservedCredits: result.usage?.reservedCredits,
-              requiredCredits: 1,
+              requiredCredits: result.requiredCredits ?? FEATURE_CREDIT_COSTS.STANDARD_UPLOAD_ANALYSIS,
             })
           : undefined,
       }, { status })

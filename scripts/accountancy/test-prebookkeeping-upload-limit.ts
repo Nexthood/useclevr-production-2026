@@ -212,7 +212,7 @@ const tests: TestCase[] = [
     run() {
       const pageSource = readProjectFile("src/app/(auth)/app/datasets/page.tsx")
       assert.ok(pageSource.includes('ne(datasets.datasetType, "prebookkeeping")'), "Dataset Library page filters out prebookkeeping datasetType")
-      assert.ok(pageSource.includes('import { and, desc, eq, ne }'), "Dataset Library page imports ne and and from drizzle-orm")
+      assert.ok(pageSource.includes('import { and, desc, eq, isNull, ne, or }'), "Dataset Library page imports ne and and from drizzle-orm")
     },
   },
   {

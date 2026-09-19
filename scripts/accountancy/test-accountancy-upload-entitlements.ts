@@ -45,7 +45,7 @@ function testNormalDatasetUploadStillUsesCredits() {
   const uploadRoute = readFileSync("src/app/api/upload/route.ts", "utf8");
 
   assert.ok(uploadAction.includes("reserveCredits"), "normal dataset upload still reserves credits");
-  assert.ok(uploadAction.includes('feature: "dataset_upload"'), "normal dataset upload still uses dataset_upload credits");
+  assert.ok(uploadAction.includes('feature: "standard_upload_analysis"'), "normal dataset upload still uses the unified standard upload analysis feature");
   assert.ok(uploadAction.includes("finalizeCredits"), "normal dataset upload still finalizes credits");
   assert.ok(uploadAction.includes("UPLOAD_CREDITS_EXHAUSTED"), "normal dataset upload still blocks exhausted credits");
   assert.ok(uploadRoute.includes("buildUploadCreditLimitInlineMessage"), "normal upload API still maps exhausted credits to upgrade copy");

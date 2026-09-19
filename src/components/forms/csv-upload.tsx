@@ -11,7 +11,7 @@ import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
-import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
+import { UPLOAD_CREDIT_LIMIT_BUTTONS, UPLOAD_CREDIT_LIMIT_TITLE, buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
 import { MAX_UPLOAD_BYTES, formatUploadBytes } from "@/lib/upload/upload-limits"
 import type { UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError, debugLog } from "@/lib/utils/debug"
@@ -702,7 +702,7 @@ export function CsvUpload() {
                   <h3 className="text-lg font-semibold text-foreground">
                     {upgradeModalCopy.title || "Free plan limit reached"}
                   </h3>
-                  {upgradeModalCopy.title === "Free upload limit reached" ? (
+                  {upgradeModalCopy.title === UPLOAD_CREDIT_LIMIT_TITLE ? (
                     <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                       <p className="font-medium text-foreground">
                         {buildUploadCreditLimitCopy({

@@ -42,8 +42,10 @@ interface ReportListItem {
 }
 
 type UsageResponse = {
-  analysisCount: number
-  total: number
+  usedCredits: number
+  availableCredits: number
+  includedBalance: number
+  purchasedBalance: number
   subscriptionTier: string
   canAnalyze: boolean
   limitReached: boolean
@@ -60,7 +62,9 @@ export default function DownloadsPage() {
   const [usageLoadFailed, setUsageLoadFailed] = useState(false)
   const [isPro, setIsPro] = useState(false)
   const [creditsUsed, setCreditsUsed] = useState(0)
-  const [creditsLimit, setCreditsLimit] = useState(2)
+  const [availableCredits, setAvailableCredits] = useState(0)
+  const [includedBalance, setIncludedBalance] = useState(0)
+  const [purchasedBalance, setPurchasedBalance] = useState(0)
   const [limitReached, setLimitReached] = useState(false)
   const [unlimitedLabel, setUnlimitedLabel] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
@@ -102,8 +106,10 @@ export default function DownloadsPage() {
           Boolean(usageData.unlimited) ||
           ["pro", "business", "superadmin", "admin"].includes(usageData.subscriptionTier)
 
-        setCreditsUsed(usageData.analysisCount || 0)
-        setCreditsLimit(usageData.total || 2)
+        setCreditsUsed(usageData.usedCredits || 0)
+        setAvailableCredits(Math.max(0, usageData.availableCredits || 0))
+        setIncludedBalance(Math.max(0, usageData.includedBalance || 0))
+        setPurchasedBalance(Math.max(0, usageData.purchasedBalance || 0))
         setLimitReached(Boolean(usageData.limitReached))
         setUnlimitedLabel(usageData.unlimitedLabel || null)
         setIsPro(hasUnlimitedAccess)
@@ -179,17 +185,6 @@ export default function DownloadsPage() {
   const handleDownload = async (item: DownloadItem, format: "pdf" | "csv" = "pdf") => {
     if (item.status !== "ready") {
       return // Don't download if not ready
-    }
-
-    // Check download limit for non-pro users
-    if (!usageResolved) {
-      setError("Usage details are still loading. Please try again in a moment.")
-      return
-    }
-
-    if (!isPro && limitReached) {
-      setShowUpgradeModal(true)
-      return
     }
 
     setDownloadingId(item.id)
@@ -304,16 +299,22 @@ export default function DownloadsPage() {
     }
   }
 
-  // Calculate usage percentage
-  const creditPercent = Math.min((creditsUsed / Math.max(creditsLimit, 1)) * 100, 100)
+  // Calculate usage percentage of consumed credits within this period
+  const creditPercent = creditsUsed + availableCredits > 0
+    ? Math.min((creditsUsed / (creditsUsed + availableCredits)) * 100, 100)
+    : 0
   const canShowUpgradeUi = usageResolved && !usageLoadFailed && !isPro
+  const balanceBreakdown = [
+    includedBalance > 0 && `Included: ${includedBalance.toLocaleString()}`,
+    purchasedBalance > 0 && `Purchased: ${purchasedBalance.toLocaleString()}`,
+  ].filter(Boolean).join(" · ")
   const creditSummary = !usageResolved
-    ? "Loading usage..."
+    ? "Loading credit balance..."
     : usageLoadFailed
-      ? "Usage details unavailable"
+      ? "Credit details unavailable"
       : isPro
-        ? `${unlimitedLabel || "Unlimited"} analyses and downloads`
-        : `${creditsUsed} / ${creditsLimit} analyses used this month`
+        ? `${unlimitedLabel || "Unlimited"} credits`
+        : `${availableCredits.toLocaleString()} credits available`
 
   useEffect(() => {
     if (!canShowUpgradeUi && showUpgradeModal) {
@@ -445,6 +446,11 @@ export default function DownloadsPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {creditSummary}
                 </p>
+                {balanceBreakdown && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {balanceBreakdown}
+                  </p>
+                )}
               </div>
               {canShowUpgradeUi && limitReached && (
                 <Button
@@ -458,22 +464,22 @@ export default function DownloadsPage() {
             {canShowUpgradeUi && (
               <div className="mt-3">
                 <div className="h-2 rounded-full bg-border overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-primary rounded-full"
                     style={{ width: `${creditPercent}%` }}
                   />
                 </div>
                 {limitReached && (
                   <p className="text-xs text-amber-500 mt-2">
-                    You've reached your analysis limit. Upgrade for more AI credits, reports, and exports.
+                    You have no credits available. Upgrade for more AI credits, reports, and exports.
                   </p>
                 )}
               </div>
             )}
             <div className="mt-3 text-xs text-muted-foreground">
               {usageLoadFailed
-                ? "Refresh the page to reload usage details before starting paid-plan actions."
-                : "Downloads are counted against your analysis quota. Each file download uses one analysis credit."}
+                ? "Refresh the page to reload your credit balance before generating reports."
+                : "Generating or regenerating a report uses 3 credits. Downloading an existing report is free."}
             </div>
           </Card>
 
@@ -613,8 +619,8 @@ export default function DownloadsPage() {
             setIsStartingCheckout(false)
           }
         }}
-        title="Upgrade to continue downloading"
-        description={`You've used ${creditsUsed} of your ${creditsLimit} free analyses. Upgrade to continue with more AI credits, reports, and exports.`}
+        title="Upgrade to continue"
+        description={`You have ${availableCredits} credits available. Generating a report uses 3 credits. Upgrade to Pro or Business for more AI credits, reports, and exports.`}
       >
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-background p-4">

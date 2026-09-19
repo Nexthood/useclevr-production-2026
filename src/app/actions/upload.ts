@@ -26,6 +26,9 @@ import {
   releaseCredits,
   reserveCredits,
 } from "@/lib/billing/credit-engine";
+import { FEATURE_CREDIT_COSTS } from "@/lib/billing/feature-costs";
+
+const STANDARD_UPLOAD_ANALYSIS_CREDITS = FEATURE_CREDIT_COSTS.STANDARD_UPLOAD_ANALYSIS;
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
@@ -70,6 +73,7 @@ type UploadCSVResult = {
     unlimited?: boolean;
     unlimitedLabel?: string | null;
   };
+  requiredCredits?: number;
   step?: string;
   demoCreditsRemaining?: number;
 };
@@ -429,6 +433,7 @@ export async function uploadCSV(
         : `ds_${Date.now()}_${uuidv4().slice(0, 8)}`;
     const datasetName = file.name.replace(/\.(csv|xlsx|xls)$/i, "");
     let uploadCreditOperationId: string | null = null;
+    let uploadReservedCredits = 0;
 
     if (uploadUsage.unlimited) {
       debugLog("[UPLOAD] Credit reservation bypassed for unlimited role");
@@ -449,12 +454,14 @@ export async function uploadCSV(
         : isClevrSyncDatasetRefresh
           ? clevrSyncRefreshOperationId
         : `upload:${effectiveUserId}:${datasetId}`;
+      // Upload + the standard initial analysis form one billable feature: the
+      // full 10-credit cost is reserved once here and internal processing
+      // belonging to the same standard analysis never debits separately.
       const reservation = await reserveCredits({
         userId: effectiveUserId,
         operationId,
         idempotencyKey: uploadIdempotencyKey,
-        estimatedCredits: 1,
-        feature: "dataset_upload",
+        feature: "standard_upload_analysis",
         source: "upload",
         role: session?.user?.role ?? null,
         email: session?.user?.email ?? null,
@@ -482,8 +489,8 @@ export async function uploadCSV(
         const availableForMessage = uploadUsage.availableCredits ?? 0;
         const limitForMessage = uploadUsage.total ?? 2;
         const errorMessage = availableForMessage > 0
-          ? `UPLOAD_CREDITS_EXHAUSTED|Upload credit limit reached|You have ${availableForMessage} credits available. Each upload consumes 1 credit.`
-          : `UPLOAD_CREDITS_EXHAUSTED|No upload credits available|You have 0 credits available out of ${limitForMessage}. Each upload consumes 1 credit.`;
+          ? `UPLOAD_CREDITS_EXHAUSTED|Not enough credits|You have ${availableForMessage} credits available. Each upload with its standard analysis uses ${STANDARD_UPLOAD_ANALYSIS_CREDITS} credits.`
+          : `UPLOAD_CREDITS_EXHAUSTED|No upload credits available|You have 0 credits available out of ${limitForMessage}. Each upload with its standard analysis uses ${STANDARD_UPLOAD_ANALYSIS_CREDITS} credits.`;
         return fail(
           UPLOAD_STAGES.CREDITS_DEDUCTED,
           errorMessage,
@@ -500,11 +507,13 @@ export async function uploadCSV(
               unlimited: uploadUsage.unlimited,
               unlimitedLabel: uploadUsage.unlimitedLabel,
             },
+            requiredCredits: reservation.reservedCredits,
           },
         );
       }
 
       uploadCreditOperationId = operationId;
+      uploadReservedCredits = reservation.reservedCredits;
       uploadUsage = await getAnalystCreditUsage(
         effectiveUserId,
         session?.user?.role,
@@ -1005,7 +1014,7 @@ export async function uploadCSV(
     if (uploadCreditOperationId) {
       const finalized = await finalizeCredits({
         operationId: uploadCreditOperationId,
-        actualCredits: 1,
+        actualCredits: uploadReservedCredits,
         metadata: { datasetId, rowCount: totalRowCount, datasetType: datasetCategory, businessModel },
       });
       if (!finalized.success) {

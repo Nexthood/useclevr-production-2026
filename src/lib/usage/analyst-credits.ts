@@ -1,8 +1,8 @@
 import { isSuperAdminUserId, isSuperadmin } from "@/lib/auth/builtin-users"
 import { getUserCreditInfo, initializeUserCredits, isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
-import { FREE_PLAN_LIMITS, getBillingPlanByTier, getCreditsLimitForTier, mapPlanIdToTier } from "@/lib/billing/plans"
+import { FREE_PLAN_LIMITS, getCreditsLimitForTier } from "@/lib/billing/plans"
 import { getDb } from "@/lib/db"
-import { profiles, userCredits } from "@/lib/db/schema"
+import { profiles } from "@/lib/db/schema"
 import { debugError } from "@/lib/utils/debug"
 import { eq } from "drizzle-orm"
 import { getActiveDatasetCount } from "./dataset-limits"
@@ -21,6 +21,8 @@ export const ROW_LIMITS = {
 export type AnalystCreditUsage = {
   analysisCount: number | null
   total: number | null
+  includedBalance: number | null
+  purchasedBalance: number | null
   availableCredits: number | null
   reservedCredits: number | null
   usedCredits: number | null
@@ -40,6 +42,8 @@ export type AnalystCreditUsage = {
 const defaultUsage: AnalystCreditUsage = {
   analysisCount: 0,
   total: FREE_ANALYST_CREDITS,
+  includedBalance: FREE_ANALYST_CREDITS,
+  purchasedBalance: 0,
   availableCredits: FREE_ANALYST_CREDITS,
   reservedCredits: 0,
   usedCredits: 0,
@@ -99,6 +103,8 @@ function unlimitedUsage(
   return {
     analysisCount: null,
     total: null,
+    includedBalance: null,
+    purchasedBalance: null,
     availableCredits: null,
     reservedCredits: null,
     usedCredits: null,
@@ -146,21 +152,7 @@ export async function getAnalystCreditUsage(
         },
       })
 
-      const userCreditsRecord = await db.query.userCredits.findFirst({
-        where: eq(userCredits.userId, userId),
-        columns: {
-          planId: true,
-        },
-      })
-
       const profileTier = profile?.subscriptionTier || "free"
-      const creditPlanTier = mapPlanIdToTier(userCreditsRecord?.planId)
-
-      if (profileTier !== creditPlanTier) {
-        await syncCreditPlanToProfile(userId, profileTier)
-      }
-
-      const baseTier = profileTier
       const profileRole = profile?.role || null
       const profileEmail = profile?.email || null
       const hasUnlimitedAccess =
@@ -169,13 +161,15 @@ export async function getAnalystCreditUsage(
         isUnlimitedCreditRole(profileTier)
       const subscriptionTier = hasUnlimitedAccess
         ? profileRole === "admin" ? "admin" : "superadmin"
-        : baseTier
+        : profileTier
       const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
       const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId, email || profileEmail) : null
       const datasetCount = await getActiveDatasetCount(userId)
       if (hasUnlimitedAccess) {
         return unlimitedUsage(userId, profileRole || subscriptionTier, subscriptionTier, datasetCount, email || profileEmail)
       }
+      // initializeUserCredits reconciles plan drift against the authoritative
+      // credit engine, including preserving purchased balances.
       const creditInfo = await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
       if (!creditInfo) {
         debugError(
@@ -193,6 +187,8 @@ export async function getAnalystCreditUsage(
       return {
         analysisCount: usedCredits,
         total: usageTotal,
+        includedBalance: creditInfo?.includedBalance ?? 0,
+        purchasedBalance: creditInfo?.purchasedBalance ?? 0,
         availableCredits,
         reservedCredits,
         usedCredits,
@@ -210,47 +206,6 @@ export async function getAnalystCreditUsage(
       debugError("[USAGE] Failed to load analyst credits:", error)
       return defaultUsage
     }
-}
-
-export async function consumeAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {
-  const isOfficialSuperadmin = isSuperadmin({ id: userId, role, email }) || isUnlimitedCreditRole(role)
-
-  if (!userId || isOfficialSuperadmin) {
-    return getAnalystCreditUsage(userId, role, email)
-  }
-
-  const db = getDb()
-  if (!db) {
-    return defaultUsage
-  }
-
-  const usage = await getAnalystCreditUsage(userId, role, email)
-  if (usage.unlimited || ["pro", "business", "superadmin", "admin"].includes(usage.subscriptionTier)) {
-    return usage
-  }
-
-  const analysisCount = Math.min((usage.analysisCount ?? 0) + 1, FREE_ANALYST_CREDITS)
-
-  try {
-    await db.update(profiles)
-      .set({
-        analysisCount,
-        updatedAt: new Date(),
-      })
-      .where(eq(profiles.userId, userId))
-
-    return {
-      ...usage,
-      analysisCount,
-      canAnalyze: analysisCount < FREE_ANALYST_CREDITS,
-      limitReached: analysisCount >= FREE_ANALYST_CREDITS,
-      unlimited: false,
-      unlimitedLabel: null,
-    }
-  } catch (error) {
-    debugError("[USAGE] Failed to consume analyst credit:", error)
-    return usage
-  }
 }
 
 export async function requireAnalystCredit(userId?: string | null, role?: string | null, email?: string | null): Promise<AnalystCreditUsage> {
@@ -303,34 +258,4 @@ export function formatRowLimitError(rowCount: number, limit: number, planName: s
     return `ROW_LIMIT_EXCEEDED|Your dataset has ${rowCount.toLocaleString()} rows which exceeds the maximum supported rows.`
   }
   return `ROW_LIMIT_EXCEEDED|Your ${planName} plan allows up to ${limit.toLocaleString()} rows per file. Your file has ${rowCount.toLocaleString()} rows. Upgrade to a higher plan to handle larger datasets.`
-}
-
-async function syncCreditPlanToProfile(userId: string, profileTier: string): Promise<boolean> {
-  const db = getDb()
-  if (!db) return false
-
-  const plan = getBillingPlanByTier(profileTier)
-  const monthlyCredits = getCreditsLimitForTier(profileTier)
-  const resetDay = 1
-  const now = new Date()
-  const resetDate = new Date(now.getFullYear(), now.getMonth(), resetDay, 0, 0, 0, 0)
-  if (resetDate <= now) resetDate.setMonth(resetDate.getMonth() + 1)
-
-  try {
-    await db
-      .update(userCredits)
-      .set({
-        planId: plan.id,
-        totalCredits: monthlyCredits,
-        includedBalance: monthlyCredits,
-        remainingCredits: monthlyCredits,
-        creditsResetAt: resetDate,
-        updatedAt: now,
-      })
-      .where(eq(userCredits.userId, userId))
-    return true
-  } catch (error) {
-    debugError("[USAGE] Failed to sync credit plan to profile:", error)
-    return false
-  }
 }

@@ -1,3 +1,50 @@
+## Unified Credit Control System
+
+1. Interaction title
+   Single authoritative credit-control system across UseClevr.
+
+2. What was the user goal
+   Make every credit-consuming feature, balance display, entitlement check, and debit use the existing centralized credit engine with one authoritative feature-cost table (upload+standard analysis 10, AI Analyst message 1, report generation 3, forecast 3, profitability analysis 15, existing report download 0), remove legacy analysis counters/quota logic, unify the three credit displays, keep reservation/finalize/release semantics, and never commit or push.
+
+3. What changed
+   - `src/lib/billing/feature-costs.ts`: rewritten as the single source of truth — `FEATURE_CREDIT_COSTS` pins the six authoritative customer costs; `FEATURE_COST_REGISTRY` becomes flat deterministic costs (`variableCredits: 0`, `maxReservationCredits === baseCredits`); `CREDIT_VALUE_EUR = 0.085` derives `CREDITS_PER_EURO`; `normalizeCreditFeature` maps legacy action names (`dataset_upload`, `standard_analysis`, `dataset_analysis`, `forecast_analysis`, `report_download`, …) onto the unified features.
+   - `src/lib/billing/credit-engine.ts`: `CREDIT_COSTS` remaps every legacy action to the authoritative table; removed the dead token-priced `deductCredits` parallel debit path; the finalize replay lookup now matches the `type: "charge"` ledger row so re-finalizing a settled operation returns the original charge idempotently instead of erroring (unlimited path already wrote `transactionType: "charge"`, normal path writes `USAGE_DEBIT` with `type: "charge"`).
+   - `src/app/actions/upload.ts`, `src/app/api/datasets/route.ts`, `src/app/api/upload/simple/route.ts`: uploads reserve `standard_upload_analysis` (10 credits, no `estimatedCredits` stub) and finalize exactly the reserved amount; failure paths release the full reservation; exhaustion copy and `creditState.requiredCredits` reflect the 10-credit cost.
+   - `src/app/api/datasets/[id]/analyze/route.ts`: re-analysis reserves and finalizes the full 10-credit standard analysis (was a 1-credit stub).
+   - `src/app/api/analyze/route.ts`: AI Analyst questions debit `ai_question` (1 credit); Gemini `generateText` usage metadata (input/output/reasoning/cached tokens) is captured into the credit ledger and AI cost log for internal unit economics; blocked-path logs use `ai_chat`.
+   - `src/app/api/chat/route.ts`: the analytical-query branch no longer bypasses billing — the reservation happens before `handleAnalyticalQuery`, successful responses finalize exactly the reserved amount, and failures release (`analytical_chat_failed`/`analytical_chat_not_completed`).
+   - `src/app/api/reports/generate/route.ts` + `src/app/api/reports/route.ts`: unchanged code paths now debit 3 credits through the registry; `src/app/api/reports/download/route.ts` stays at 0 credits.
+   - UI unification: `src/components/ui/usage-monitor.tsx` + `useUsage` derive the primary number from the server `availableCredits` (remaining − reserved) instead of `total` (included+purchased); the sidebar (`app-sidebar.tsx`) reuses it; `src/app/(auth)/app/downloads/page.tsx` replaces "84 / 79 analyses used this month" with the authoritative available balance plus included/purchased breakdown and per-download quota gating is removed (downloads are free); `topbar.tsx` already read `getAnalystCreditUsage().availableCredits`; subscription, profile, and account-center pages now show the available balance with an Included/Purchased breakdown.
+   - Legacy removals: deleted `src/app/api/usage/increment/route.ts` (Profile.analysisCount counter endpoint) and `consumeAnalystCredit`; deleted `src/lib/utils/credits-context.tsx` (client-side localStorage credit system); deleted the unused `download-report-button.tsx` with its "free analyses" quota copy; removed `CREDIT_COSTS`/`CREDIT_PACKAGES`/`FREE_UPLOADS_LIMIT` from `src/lib/business/products.ts`; removed analyst-credits' duplicate `syncCreditPlanToProfile` (which reset purchased credits to the plan allowance) in favor of the engine's reconciling `initializeUserCredits`; `AnalystCreditUsage` now carries `includedBalance`/`purchasedBalance`.
+   - `src/lib/billing/upload-credit-messaging.ts`: copy is remaining-based and cost-aware ("Each upload with its standard analysis uses 10 credits") instead of used/limit quota language.
+   - `src/lib/usy/*`: Usy billing state and answers use `availableCredits` instead of `total − analysisCount`; localized upload-limit answers state the 10-credit cost and available balance; the usy chat schema forwards the new usage fields.
+   - `scripts/billing/test-unified-credit-control.ts` (+ `test:credit-unified`, wired into `test:all`): 12 behavioral checks covering master-prompt cases A–K plus the upload/re-analyze/chat wiring, run against the shared mock DB; mock-db gained the release-SQL shape; stale cost assertions in `test-credit-engine.ts`, `test-upload-credit-reservation.ts`, `test-accountancy-upload-entitlements.ts`, and `test-sidebar-credit-topup-link.ts` updated to the authoritative model; `test-prebookkeeping-upload-limit.ts` fixed a pre-existing stale import assertion.
+   - `CHANGELOG.md`: Added/Fixed/Changed entries under `## [Unreleased]`.
+
+4. Problems marked
+   - blocker: none.
+   - fixed: finalize replay previously returned "Reservation not found" for already-settled normal-path operations because the lookup matched only `transactionType: "charge"` while normal charges are `USAGE_DEBIT`; replay now matches `type: "charge"`.
+   - risk: the accountancy/pre-bookkeeping flows keep their credit-exempt entitlement (intentionally outside the standard upload analysis); their tests pin that exemption.
+   - observation: `processPlanChange` can leave `includedBalance + purchasedBalance ≠ remainingCredits` when purchased balance exceeds the new plan allowance; UI therefore always uses `remainingCredits − reservedCredits` as the authoritative number, never the sum of the two balance fields.
+
+5. User learning
+   Every credit display shows the same available balance the server enforces; uploading with its standard analysis costs 10 credits once, AI Analyst messages cost 1, reports cost 3 to generate or regenerate, and downloading existing reports is free.
+
+6. AI-agent learning
+   Keep one registry as the only place credit costs live: routes pass a stable feature identifier, the engine normalizes legacy names, and UI copy derives from the same table, so no surface can drift from the authoritative debit.
+
+7. Follow-up tasks
+   - None blocking; the forecast feature cost (3) is registered but no standalone endpoint currently debits it — wire it when a forecast endpoint debits credits.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Zero-Credit UX and Exhaustion Handling
 
 1. Interaction title
@@ -8000,3 +8047,42 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.
+
+## Interaction: Restore the public /subscription route
+
+1. Request
+   The user reported that https://app.useclevr.com/subscription returns 404 and asked to restore the public subscription/pricing page before any landing-page pricing work, reusing the existing pricing configuration and components without touching the authenticated billing flow or the landing page.
+
+2. Root-cause audit
+   - No route, rewrite, redirect, or middleware rule for /subscription exists in the working tree, and the src proxy passes non-API, non-root paths straight through.
+   - Full git history across all branches (main, beta, dist, dist-test, backups, production-fix branches), next.config history, vercel.json, sitemap, and compiled dist-branch build output contains no public /subscription page; only (auth)/app/settings/subscription and api/billing/subscription ever existed.
+   - The 2026 repository history starts at the migration merge (PR #106), and the old production app that served /subscription is not in this history, so the page was lost in the 2026 repo migration, not deleted by a recent commit.
+
+3. Restoration
+   - Added src/app/(public)/subscription/page.tsx in the (public) route group: public header/footer, PublicPageHeader, and the existing PublicPricingPlans component.
+   - All plan names, prices, market pills, monthly/yearly toggle, and CTAs come from the authoritative billingPlans in src/lib/billing/plans.ts and launch-pricing via the shared component, so there is no second pricing system and no hardcoded plan logic.
+   - CTAs keep the existing targets: Free to /signup, Pro/Business to /app/settings/checkout?plan=...&interval=..., which the (auth) layout already guards.
+   - The authenticated /app/settings/subscription page, billing APIs, Stripe checkout, and the landing page are untouched; the new file is the only change and is untracked (no commit, no push per instruction).
+
+4. Verification
+   - pnpm exec tsc --noEmit: zero errors in the new file; remaining errors are confined to other agents' in-flight files (scripts/billing/test-credit-engine.ts, src/app/api/upload/simple/route.ts, src/app/api/analyze/route.ts, src/lib/usy/router.ts).
+   - next dev smoke test on port 4322: GET /subscription returns 200 with no redirect for a logged-out visitor; the page renders Free (€0), Pro (€40/month primary EUR 4000 minor, GBP 3900, USD 4500, CAD 5500 pills), Business (€420/month, 42000 minor), the Most Popular Pro badge, the Monthly/Yearly toggle, and the checkout/signup CTAs with plan and interval parameters.
+   - Logged-in access needs no code: the (public) group has no auth layout and the proxy only special-cases /, MCP subdomains, /demo, and /api, so both visitor states reach the page; dev server output structure matches the working /pricing page.
+
+5. User learning
+   /subscription is publicly reachable again and always reflects the current plan configuration because it renders the same shared pricing component as /pricing.
+
+6. AI-agent learning
+   When a route predates the current repository, audit every branch including compiled dist branches and middleware/rewrite history before concluding a page never existed; the migration-loss conclusion required that exhaustive sweep.
+
+7. Follow-up tasks
+   - None for this change; landing-page pricing edits remain gated until the team confirms this restoration.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: project-logs/interactive-log.md; activity summary: project-logs/activity-log.md; latest interaction status: docs/AI-interaction/interaction-status.md.

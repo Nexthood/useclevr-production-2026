@@ -2,6 +2,24 @@
 
 ### Added
 
+- Add one authoritative credit pricing table so every credit action shows and charges the same amount: dataset uploads with their standard analysis cost 10 credits, AI Analyst messages cost 1 credit, report generation and regeneration cost 3 credits, forecasts cost 3 credits, profitability analysis costs 15 credits, and downloading an existing report stays free.
+- Add internal per-request AI token tracking so Gemini input, output, and thinking tokens are recorded for unit-economics analysis without changing customer credit prices.
+
+### Fixed
+
+- Fix credit displays so the sidebar card, the top subscription indicator, and the Reports & Downloads page always show the same authoritative available balance instead of contradictory legacy counts like "84 / 79 analyses used this month".
+- Fix dataset re-analysis so it charges the real 10-credit standard analysis instead of a 1-credit stub.
+- Fix AI Assistant analytical questions so they reserve, finalize, and release credits exactly like every other AI request instead of running free.
+- Fix report regeneration pricing so regenerating a report costs the same 3 credits as the first generation.
+- Fix credit finalization so retrying an already-settled operation returns the original charge instead of erroring or double-charging.
+- Fix failed uploads and AI actions so reserved credits are always released and unsuccessful operations never charge customers.
+
+### Changed
+
+- Change uploads so the file upload and its standard initial analysis form one 10-credit action instead of a separate 1-credit upload charge, and failed processing releases the full reservation.
+
+### Added
+
 - Add an out-of-credits dialog to AI actions that shows the exact usable credit balance and the right next step: paid plans open Add Credits and Free plans get Upgrade to Pro or Business because Free cannot purchase top-ups.
 - Add subscription state machine that pre-checks Stripe subscription status before cancel/resume actions to prevent HTTP 500 errors when subscription is already canceled, and reconciles database to Free tier when subscription is missing or not entitled.
 - Add an Add Credits button to the Pro and Business plan sidebar card so customers can open the credit top-up purchase section directly from the sidebar.

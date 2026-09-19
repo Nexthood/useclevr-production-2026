@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth/auth";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
 import { buildCreditExhaustionState } from "@/lib/billing/credit-exhaustion";
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
+import { estimateFeatureCredits } from "@/lib/billing/feature-costs";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
 import { parseCSVStreaming } from "@/lib/data/csvLoader";
@@ -489,8 +490,7 @@ export async function POST(request: Request) {
           userId,
           operationId,
           idempotencyKey: operationId,
-          estimatedCredits: 1,
-          feature: "dataset_upload",
+          feature: "standard_upload_analysis",
           source: "upload",
           role: session?.user?.role ?? null,
           email: session?.user?.email ?? null,
@@ -538,7 +538,7 @@ export async function POST(request: Request) {
           creditState: await buildCreditExhaustionState({
             userId,
             tier: creditUsage.subscriptionTier,
-            requiredCredits: 1,
+            requiredCredits: estimateFeatureCredits("standard_upload_analysis"),
           }),
         });
       }
@@ -567,7 +567,7 @@ export async function POST(request: Request) {
             creditState: await buildCreditExhaustionState({
               userId,
               tier: latestUsage.subscriptionTier,
-              requiredCredits: 1,
+              requiredCredits: estimateFeatureCredits("standard_upload_analysis"),
             }),
           },
         );
@@ -684,7 +684,7 @@ export async function POST(request: Request) {
         logStage(requestId, "credit_settlement_started", { operationId });
         const settlement = await finalizeCredits({
           operationId,
-          actualCredits: 1,
+          actualCredits: reservation?.reservedCredits,
           metadata: {
             datasetId,
             rowCount: parsed.rowCount,

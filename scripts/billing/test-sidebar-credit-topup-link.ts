@@ -54,7 +54,7 @@ assert(
 
 const paidProBlock = usageMonitor.slice(
   usageMonitor.indexOf("isPaidPlan) {"),
-  usageMonitor.indexOf("if (availableCredits <= 0)"),
+  usageMonitor.indexOf("if (totalAvailable <= 0)"),
 )
 assert(
   paidProBlock.includes("<AddCreditsLink"),
@@ -64,7 +64,7 @@ assert(
 // Free accounts must never see the + Add Credits purchase action: the two
 // Free card variants render an Upgrade link instead, and preserved purchased
 // credits are displayed as usable existing credits.
-const freeBlocks = usageMonitor.slice(usageMonitor.indexOf("if (availableCredits <= 0)"))
+const freeBlocks = usageMonitor.slice(usageMonitor.indexOf("if (totalAvailable <= 0)"))
 assert(
   !freeBlocks.includes("<AddCreditsLink"),
   "Free sidebar card variants must not render the + Add Credits purchase action.",

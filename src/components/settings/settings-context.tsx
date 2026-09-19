@@ -10,6 +10,8 @@ export type SettingsContextValue = {
     trialDaysRemaining: number
     analysisCount: number | null
     total: number | null
+    includedBalance: number | null
+    purchasedBalance: number | null
     availableCredits: number | null
     reservedCredits: number | null
     usedCredits: number | null

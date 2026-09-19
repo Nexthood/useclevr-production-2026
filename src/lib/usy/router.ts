@@ -984,8 +984,8 @@ function buildCreditsAnswer(context: UsyContext, language: SupportedUsyLanguage 
   const usageText =
     context.usage?.unlimited
       ? context.usage.unlimitedLabel || "unlimited usage"
-      : typeof context.usage?.analysisCount === "number" && typeof context.usage?.total === "number"
-        ? `${context.usage.analysisCount}/${context.usage.total}`
+      : typeof context.usage?.availableCredits === "number"
+        ? `${context.usage.availableCredits} credits available`
         : null;
   const facts: Record<SupportedUsyLanguage, { facts: string; uploads: string }> = {
     german: {
@@ -1026,32 +1026,31 @@ function buildCreditsAnswer(context: UsyContext, language: SupportedUsyLanguage 
 }
 
 function buildUploadLimitAnswer(context: UsyContext, language: SupportedUsyLanguage = "english") {
-  const limit = context.usage?.total ?? 2;
-  const used = context.usage?.analysisCount ?? limit;
+  const available = Math.max(0, context.usage?.availableCredits ?? 0);
   // Zero-credit guidance follows the same tier rules as the backend: Free
   // accounts upgrade to Pro/Business, paid accounts use Add Credits.
   const guidance = buildUsyZeroCreditsAnswer(context.usage, language);
   if (language === "german") {
-    return `Deine Upload-Credits sind aufgebraucht (${used}/${limit}). ${guidance}`;
+    return `Du hast ${available} Credits verfügbar. Jeder Upload mit Standardanalyse verbraucht 10 Credits. ${guidance}`;
   }
   if (language === "dutch") {
-    return `Je uploadcredits zijn op (${used}/${limit}). ${guidance}`;
+    return `Je hebt ${available} credits beschikbaar. Elke upload met standaardanalyse verbruikt 10 credits. ${guidance}`;
   }
   if (language === "spanish") {
-    return `Tus créditos de upload están agotados (${used}/${limit}). ${guidance}`;
+    return `Tienes ${available} créditos disponibles. Cada carga con su análisis estándar consume 10 créditos. ${guidance}`;
   }
   if (language === "hungarian") {
-    return `Elfogytak az upload kreditjeid (${used}/${limit}). ${guidance}`;
+    return `${available} kredited áll rendelkezésre. Minden upload a szabványos elemzéssel együtt 10 kreditet fogyaszt. ${guidance}`;
   }
   if (language === "romanian") {
-    return `Creditele tale de upload sunt epuizate (${used}/${limit}). ${guidance}`;
+    return `Ai ${available} credite disponibile. Fiecare upload cu analiza standard consumă 10 credite. ${guidance}`;
   }
-  const creditCopy = buildUploadCreditLimitCopy({ used, limit, remaining: 0 });
+  const creditCopy = buildUploadCreditLimitCopy({ remaining: available });
 
   return [
     creditCopy.title,
     "",
-    buildUploadCreditLimitMessage(creditCopy.limit),
+    buildUploadCreditLimitMessage(),
     "",
     guidance,
   ].join("\n");

@@ -186,7 +186,7 @@ export default async function ProfileSettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <MetricLine label="Plan" value={planLabel} />
-                  <MetricLine label="Analyst credits" value={usage.unlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount}/${usage.total} used, ${usage.availableCredits} available`} />
+                  <MetricLine label="Analyst credits" value={usage.unlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.availableCredits} credits available (Included: ${usage.includedBalance ?? 0} · Purchased: ${usage.purchasedBalance ?? 0})`} />
                   <Link href="/app/settings/subscription" className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                     Manage subscription
                   </Link>

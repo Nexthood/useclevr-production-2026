@@ -10,13 +10,14 @@ import {
 import {
   CREDIT_ENGINE_FEATURES,
   FEATURE_COST_REGISTRY,
+  CREDIT_VALUE_EUR,
   canPlanUseFeature,
   estimateFeatureCredits,
   normalizeCreditFeature,
 } from "@/lib/billing/feature-costs"
 import { FREE_PLAN_LIMITS, getCreditsLimitForTier } from "@/lib/billing/plans"
 import { emptyProviderUsage, normalizeProviderUsage } from "@/lib/billing/provider-usage"
-import { isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
+import { creditsToEuros, eurosToCredits, isUnlimitedCreditRole } from "@/lib/billing/credit-engine"
 
 type TestCase = {
   name: string
@@ -32,10 +33,37 @@ const tests: TestCase[] = [
         [],
       )
       assert.equal(normalizeCreditFeature("ai_chat"), "ai_question")
-      assert.equal(normalizeCreditFeature("dataset_analysis"), "standard_analysis")
-      assert.equal(normalizeCreditFeature("file_upload"), "dataset_upload")
-      assert.equal(normalizeCreditFeature("dataset_upload"), "dataset_upload")
+      assert.equal(normalizeCreditFeature("dataset_analysis"), "standard_upload_analysis")
+      assert.equal(normalizeCreditFeature("dataset_upload"), "standard_upload_analysis")
+      assert.equal(normalizeCreditFeature("file_upload"), "standard_upload_analysis")
+      assert.equal(normalizeCreditFeature("standard_analysis"), "standard_upload_analysis")
+      assert.equal(normalizeCreditFeature("report_download"), "existing_report_download")
+      assert.equal(normalizeCreditFeature("forecast_analysis"), "forecast")
       assert.equal(normalizeCreditFeature("report_generation"), "report_generation")
+    },
+  },
+  {
+    name: "authoritative feature costs match the centralized table",
+    run() {
+      assert.equal(estimateFeatureCredits("standard_upload_analysis"), 10)
+      assert.equal(estimateFeatureCredits("dataset_upload"), 10)
+      assert.equal(estimateFeatureCredits("file_upload"), 10)
+      assert.equal(estimateFeatureCredits("dataset_analysis"), 10)
+      assert.equal(estimateFeatureCredits("ai_question"), 1)
+      assert.equal(estimateFeatureCredits("ai_chat"), 1)
+      assert.equal(estimateFeatureCredits("report_generation"), 3)
+      assert.equal(estimateFeatureCredits("forecast"), 3)
+      assert.equal(estimateFeatureCredits("forecast_analysis"), 3)
+      assert.equal(estimateFeatureCredits("profitability_analysis"), 15)
+      assert.equal(estimateFeatureCredits("existing_report_download"), 0)
+    },
+  },
+  {
+    name: "credit economics stay configurable at one credit = €0.085",
+    run() {
+      assert.equal(CREDIT_VALUE_EUR, 0.085)
+      assert.ok(Math.abs(creditsToEuros(10) - 0.85) < 1e-9)
+      assert.equal(eurosToCredits(0.85), 10)
     },
   },
   {
@@ -67,20 +95,19 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "dataset upload reserves one credit on free plans",
+    name: "standard upload analysis reserves the full ten-credit feature",
     run() {
-      assert.equal(estimateFeatureCredits("dataset_upload"), 1)
-      assert.equal(estimateFeatureCredits("file_upload"), 1)
-      assert.equal(canPlanUseFeature("free", "dataset_upload"), true)
-      assert.equal(FEATURE_COST_REGISTRY.dataset_upload.maxReservationCredits, 1)
+      assert.equal(canPlanUseFeature("free", "standard_upload_analysis"), true)
+      assert.equal(estimateFeatureCredits("standard_upload_analysis"), 10)
+      assert.equal(FEATURE_COST_REGISTRY.standard_upload_analysis.maxReservationCredits, 10)
     },
   },
   {
     name: "feature estimates stay bounded by maximum reservation",
     run() {
-      const credits = estimateFeatureCredits("standard_analysis", { rowCount: 5_000_000 })
-      assert.equal(credits, FEATURE_COST_REGISTRY.standard_analysis.maxReservationCredits)
-      assert.equal(estimateFeatureCredits("ai_question", { estimatedTokens: 1 }), 3)
+      const credits = estimateFeatureCredits("standard_upload_analysis", { rowCount: 5_000_000 })
+      assert.equal(credits, FEATURE_COST_REGISTRY.standard_upload_analysis.maxReservationCredits)
+      assert.equal(estimateFeatureCredits("ai_question", { estimatedTokens: 1 }), 1)
     },
   },
   {
@@ -163,9 +190,9 @@ const tests: TestCase[] = [
     run() {
       const workspaceId = "user_test"
       const operationId = "analysis:user_test:op"
-      const feature = "standard_analysis"
+      const feature = "standard_upload_analysis"
       const key = `reserve:${workspaceId}:${operationId}:${feature}`
-      assert.match(key, /^reserve:user_test:analysis:user_test:op:standard_analysis$/)
+      assert.match(key, /^reserve:user_test:analysis:user_test:op:standard_upload_analysis$/)
     },
   },
   {
