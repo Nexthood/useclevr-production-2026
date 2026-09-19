@@ -49,6 +49,20 @@ export interface TopUpResult {
   error?: string
 }
 
+export interface RefundedTopUpWithoutGrantInput {
+  provider: "stripe"
+  providerPaymentId: string
+  providerCheckoutId: string | null
+  providerEventId: string | null
+  amountMinor: number
+  currency: string
+  clientReferenceId: string | null
+  metadata: Record<string, string>
+  refundAmountMinor: number
+  refundReason: string
+  stripeChargeId?: string | null
+}
+
 function topUpId(): string {
   return `tu_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
 }
@@ -110,6 +124,98 @@ export async function processStripeTopUpPayment(
   creditPackage: CreditPackageConfig,
 ): Promise<TopUpResult> {
   return processTopUpPayment(payment, creditPackage, "stripe")
+}
+
+export async function recordStripeRefundedTopUpWithoutGrant(
+  payment: RefundedTopUpWithoutGrantInput,
+  creditPackage: CreditPackageConfig,
+): Promise<TopUpResult> {
+  const db = getDb()
+  if (!db) {
+    return {
+      success: false,
+      creditsIssued: 0,
+      topUpId: null,
+      ledgerEntryId: null,
+      duplicate: false,
+      error: "Database unavailable",
+    }
+  }
+
+  const existingTopUp = await getCreditTopUpByProviderPaymentId(payment.provider, payment.providerPaymentId)
+  if (existingTopUp) {
+    if (existingTopUp.status !== "completed" && existingTopUp.status !== "refunded") {
+      await markTopUpRefundedWithoutGrant(
+        payment.provider,
+        payment.providerPaymentId,
+        payment.refundReason,
+      )
+    }
+
+    return {
+      success: true,
+      creditsIssued: 0,
+      topUpId: existingTopUp.id,
+      ledgerEntryId: existingTopUp.ledgerEntryId,
+      duplicate: true,
+    }
+  }
+
+  const userId = resolveUserIdFromMetadata(payment.metadata, payment.clientReferenceId)
+  if (!userId) {
+    return {
+      success: false,
+      creditsIssued: 0,
+      topUpId: null,
+      ledgerEntryId: null,
+      duplicate: false,
+      error: "Unable to resolve userId from trusted metadata",
+    }
+  }
+
+  const workspaceId = resolveWorkspaceId(payment.metadata, userId)
+  const topUpRecordId = topUpId()
+  const now = new Date()
+
+  await db.insert(creditTopUps).values({
+    id: topUpRecordId,
+    userId,
+    workspaceId,
+    provider: "stripe",
+    providerPaymentId: payment.providerPaymentId,
+    providerCheckoutId: payment.providerCheckoutId,
+    providerEventId: payment.providerEventId,
+    currency: payment.currency,
+    amountMinor: payment.amountMinor,
+    creditsGranted: 0,
+    creditPackageId: creditPackage.id,
+    pricingVersion: creditPackage.pricingVersion,
+    status: "refunded",
+    ledgerEntryId: null,
+    metadata: {
+      stripeChargeId: payment.stripeChargeId ?? null,
+      stripePriceId: creditPackage.providers.stripe ?? null,
+      refundReason: payment.refundReason,
+      refundedBeforeGrant: true,
+      refundedAt: now.toISOString(),
+      refundAmountMinor: payment.refundAmountMinor,
+      packageCreditsGranted: creditPackage.creditsGranted,
+      priceCurrency: creditPackage.currency,
+      priceAmountMinor: creditPackage.monetaryAmountCents,
+    },
+    createdAt: now,
+    updatedAt: now,
+  }).onConflictDoNothing()
+
+  const savedTopUp = await getCreditTopUpByProviderPaymentId(payment.provider, payment.providerPaymentId)
+
+  return {
+    success: true,
+    creditsIssued: 0,
+    topUpId: savedTopUp?.id ?? topUpRecordId,
+    ledgerEntryId: null,
+    duplicate: Boolean(savedTopUp && savedTopUp.id !== topUpRecordId),
+  }
 }
 
 export async function processSquareTopUpPayment(

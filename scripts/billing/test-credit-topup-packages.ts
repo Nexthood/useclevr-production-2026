@@ -17,7 +17,7 @@ process.env.USECLEVR_CREDITS_TOP_UP_1000_USD_STRIPE_PRICE_ID = "price_topup_1000
 
 async function run() {
   const { getCreditTopUpPackageByStripePriceId, getCreditTopUpPackageById, getActiveCreditTopUpPackages, resolveCreditTopUpPackageByAmount } = await import("@/lib/billing/credit-packages")
-  const { handleStripeCreditCheckoutEvent } = await import("@/services/stripe/credit-webhook")
+  const { handleStripeCreditCheckoutEvent, handleStripeRefundEvent } = await import("@/services/stripe/credit-webhook")
   const { processStripeTopUpPayment, getCreditTopUpHistory } = await import("@/lib/billing/credit-topup-service")
   const dbMock = (await import("./mocks/mock-db.mjs")) as {
     resetMockDb: () => void
@@ -34,9 +34,16 @@ async function run() {
   const stripeMock = (await import("./mocks/mock-stripe.mjs")) as {
     resetStripeMock: () => void
     setMockPrice: (price: { id: string; active: boolean; type: string; currency: string; unit_amount: number }) => void
-    stripeCalls: { priceRetrievals: string[] }
+    setMockPaymentRefundState: (state: {
+      paymentIntentId: string
+      chargeId?: string
+      amount: number
+      amountRefunded?: number
+      refunds?: Array<{ id: string; amount: number; status: string }>
+    }) => void
+    stripeCalls: { priceRetrievals: string[]; paymentIntentRetrievals: string[]; chargeRetrievals: string[] }
   }
-  const { resetStripeMock, setMockPrice, stripeCalls } = stripeMock
+  const { resetStripeMock, setMockPrice, setMockPaymentRefundState, stripeCalls } = stripeMock
   const emailMock = (await import("./mocks/mock-emails.mjs")) as {
     sentEmails: Array<Record<string, any>>
     resetEmails: () => void
@@ -86,6 +93,35 @@ async function run() {
           line_items: options.lineItems
             ? { object: "list", data: options.lineItems, has_more: false }
             : undefined,
+        },
+      },
+    } as unknown as Stripe.Event
+  }
+
+  function chargeRefundedEvent(options: {
+    chargeId: string
+    paymentIntentId: string
+    eventId: string
+    amount: number
+    amountRefunded: number
+    refunds: Array<{ id: string; amount: number; status: string }>
+  }): Stripe.Event {
+    return {
+      id: options.eventId,
+      object: "event",
+      type: "charge.refunded",
+      data: {
+        object: {
+          id: options.chargeId,
+          object: "charge",
+          payment_intent: options.paymentIntentId,
+          amount: options.amount,
+          amount_refunded: options.amountRefunded,
+          refunds: {
+            object: "list",
+            data: options.refunds,
+            has_more: false,
+          },
         },
       },
     } as unknown as Stripe.Event
@@ -359,6 +395,188 @@ const tests: TestModule[] = [
       assert.equal(topupRows.length, 1, "no additional CreditTopUp rows")
       assert.equal(ledgerRows.length, 1, "no additional ledger entries")
       assert.equal(sentEmails.length, 1, "no duplicate confirmation emails")
+    },
+  },
+  {
+    name: "refund after grant reverses purchased credits exactly once without touching included credits",
+    async run() {
+      resetTestState()
+      const userId = "user_refund_after_grant"
+      const paymentIntentId = "pi_refund_after_grant"
+      const chargeId = "ch_refund_after_grant"
+      setMockPaymentRefundState({
+        paymentIntentId,
+        chargeId,
+        amount: 4500,
+        amountRefunded: 0,
+      })
+
+      const checkout = await handleStripeCreditCheckoutEvent(
+        checkoutCompletedEvent({
+          paymentIntentId,
+          sessionId: "cs_refund_after_grant",
+          eventId: "evt_refund_after_grant_checkout",
+          amountTotal: 4500,
+          currency: "usd",
+          metadata: fiveHundredMetadata(userId),
+        }),
+      )
+      assert.equal(checkout.creditsIssued, 500)
+
+      const accountAfterGrant = await getCreditAccount(userId)
+      assert.equal(accountAfterGrant!.includedBalance, 50)
+      assert.equal(accountAfterGrant!.purchasedBalance, 500)
+      assert.equal(accountAfterGrant!.remainingCredits, 550)
+
+      const refundEvent = chargeRefundedEvent({
+        chargeId,
+        paymentIntentId,
+        eventId: "evt_refund_after_grant",
+        amount: 4500,
+        amountRefunded: 4500,
+        refunds: [{ id: "re_refund_after_grant", amount: 4500, status: "succeeded" }],
+      })
+
+      const refund = await handleStripeRefundEvent(refundEvent)
+      assert.equal(refund.processed, true)
+      assert.equal(refund.synced, true)
+      assert.equal(refund.creditsIssued, 500)
+
+      const accountAfterRefund = await getCreditAccount(userId)
+      assert.equal(accountAfterRefund!.includedBalance, 50, "included credits must never be reduced by a top-up refund")
+      assert.equal(accountAfterRefund!.purchasedBalance, 0, "purchased balance returns to zero")
+      assert.equal(accountAfterRefund!.remainingCredits, 50)
+      await assertCreditInvariant(userId)
+
+      const topUp = topupRows[0]
+      assert.equal(topUp.status, "refunded")
+      assert.equal(topUp.creditsGranted, 500)
+      assert.equal(topUp.metadata.refundedCredits, 500)
+      assert.equal(ledgerRows.filter((row) => row.transactionType === "REFUND").length, 1)
+
+      const duplicateRefund = await handleStripeRefundEvent({
+        ...refundEvent,
+        id: "evt_refund_after_grant_duplicate",
+      } as unknown as Stripe.Event)
+      assert.equal(duplicateRefund.synced, true)
+      assert.equal(duplicateRefund.creditsIssued, 0, "duplicate refund event does not deduct twice")
+      const accountAfterDuplicate = await getCreditAccount(userId)
+      assert.equal(accountAfterDuplicate!.includedBalance, 50)
+      assert.equal(accountAfterDuplicate!.purchasedBalance, 0, "purchased balance never becomes negative")
+      assert.equal(accountAfterDuplicate!.remainingCredits, 50)
+      assert.equal(ledgerRows.filter((row) => row.transactionType === "REFUND").length, 1)
+    },
+  },
+  {
+    name: "refund before grant followed by checkout replay records zero credits and stays idempotent",
+    async run() {
+      resetTestState()
+      const userId = "user_refund_before_grant"
+      const paymentIntentId = "pi_refund_before_grant"
+      const chargeId = "ch_refund_before_grant"
+      setMockPaymentRefundState({
+        paymentIntentId,
+        chargeId,
+        amount: 4500,
+        amountRefunded: 4500,
+        refunds: [{ id: "re_refund_before_grant", amount: 4500, status: "succeeded" }],
+      })
+
+      const event = checkoutCompletedEvent({
+        paymentIntentId,
+        sessionId: "cs_refund_before_grant",
+        eventId: "evt_refund_before_grant_checkout",
+        amountTotal: 4500,
+        currency: "usd",
+        metadata: fiveHundredMetadata(userId),
+      })
+
+      const checkoutAfterRefund = await handleStripeCreditCheckoutEvent(event)
+      assert.equal(checkoutAfterRefund.processed, true)
+      assert.equal(checkoutAfterRefund.synced, true)
+      assert.equal(checkoutAfterRefund.creditsIssued, 0)
+      assert.match(checkoutAfterRefund.reason ?? "", /fully refunded before credits were granted/)
+
+      assert.equal(await getCreditAccount(userId), null, "zero-credit refunded history does not initialize or mutate balances")
+      assert.equal(topupRows.length, 1)
+      assert.equal(topupRows[0].status, "refunded")
+      assert.equal(topupRows[0].creditsGranted, 0)
+      assert.equal(topupRows[0].providerPaymentId, paymentIntentId)
+      assert.equal(topupRows[0].metadata.refundedBeforeGrant, true)
+      assert.equal(topupRows[0].metadata.packageCreditsGranted, 500)
+      assert.equal(ledgerRows.length, 0, "no ledger grant or refund entry is created when credits were never issued")
+      assert.equal(sentEmails.length, 0)
+
+      const replay = await handleStripeCreditCheckoutEvent({
+        ...event,
+        id: "evt_refund_before_grant_checkout_replay",
+      } as unknown as Stripe.Event)
+      assert.equal(replay.processed, true)
+      assert.equal(replay.synced, true)
+      assert.equal(replay.duplicate, true)
+      assert.equal(replay.creditsIssued, 0)
+      assert.equal(await getCreditAccount(userId), null)
+      assert.equal(topupRows.length, 1)
+      assert.equal(ledgerRows.length, 0)
+      assert.equal(sentEmails.length, 0)
+    },
+  },
+  {
+    name: "partial refund preserves normal grant flow and reverses only the proportional purchased credits",
+    async run() {
+      resetTestState()
+      const userId = "user_partial_refund"
+      const paymentIntentId = "pi_partial_refund"
+      const chargeId = "ch_partial_refund"
+      setMockPaymentRefundState({
+        paymentIntentId,
+        chargeId,
+        amount: 4500,
+        amountRefunded: 2250,
+        refunds: [{ id: "re_partial_refund", amount: 2250, status: "succeeded" }],
+      })
+
+      const checkout = await handleStripeCreditCheckoutEvent(
+        checkoutCompletedEvent({
+          paymentIntentId,
+          sessionId: "cs_partial_refund",
+          eventId: "evt_partial_refund_checkout",
+          amountTotal: 4500,
+          currency: "usd",
+          metadata: fiveHundredMetadata(userId),
+        }),
+      )
+      assert.equal(checkout.processed, true)
+      assert.equal(checkout.synced, true)
+      assert.equal(checkout.creditsIssued, 500, "partial refund state does not block the normal grant")
+
+      const accountAfterGrant = await getCreditAccount(userId)
+      assert.equal(accountAfterGrant!.includedBalance, 50)
+      assert.equal(accountAfterGrant!.purchasedBalance, 500)
+
+      const refund = await handleStripeRefundEvent(
+        chargeRefundedEvent({
+          chargeId,
+          paymentIntentId,
+          eventId: "evt_partial_refund",
+          amount: 4500,
+          amountRefunded: 2250,
+          refunds: [{ id: "re_partial_refund", amount: 2250, status: "succeeded" }],
+        }),
+      )
+      assert.equal(refund.synced, true)
+      assert.equal(refund.creditsIssued, 250)
+
+      const accountAfterRefund = await getCreditAccount(userId)
+      assert.equal(accountAfterRefund!.includedBalance, 50)
+      assert.equal(accountAfterRefund!.purchasedBalance, 250)
+      assert.equal(accountAfterRefund!.remainingCredits, 300)
+      await assertCreditInvariant(userId)
+
+      assert.equal(topupRows[0].status, "completed")
+      assert.equal(topupRows[0].metadata.partiallyRefunded, true)
+      assert.equal(topupRows[0].metadata.refundedCredits, 250)
+      assert.equal(ledgerRows.filter((row) => row.transactionType === "REFUND").length, 1)
     },
   },
   {

@@ -1,3 +1,73 @@
+## Stripe Top-Up Refund-Before-Grant Race Fix
+
+1. Interaction title
+   Stripe top-up refund-before-grant race fix.
+
+2. What was the user goal
+   Fix only the missing Stripe credit top-up refund race where `charge.refunded` can arrive before `CreditTopUp` exists, then a delayed `checkout.session.completed` grants credits for an already fully refunded payment.
+
+3. What changed
+   The Stripe checkout grant handler now retrieves the authoritative PaymentIntent and latest Charge before issuing credits. Fully refunded charges record a zero-credit `refunded` top-up history row and skip all ledger and balance mutations, so later checkout replays see the provider payment as already processed and grant zero. Partial refunds continue through the normal grant path and remain handled by the existing `charge.refunded` reversal. The credit top-up service now has an audit-safe `recordStripeRefundedTopUpWithoutGrant` path for Stripe payments refunded before any credit grant. The Stripe mock now supports PaymentIntent and Charge refund states. Behavioral tests cover normal grants, duplicate checkout events, full refund after grant, duplicate refund events, refund before grant followed by checkout replay, partial refund, and included-credit invariants.
+
+4. Problems marked
+   blocker: none.
+   risk: deployment must complete before replaying the existing production `charge.refunded` event; replaying before deployment can still leave the old grant-side race open.
+   improvement: none.
+   observation: the fix performs no real payments, no Stripe refunds, no production balance changes, and no webhook event resend.
+
+5. User learning
+   The safe replay point is after this grant-side guard is deployed, because checkout replays for fully refunded payments then create zero-credit refunded history instead of granting purchased credits.
+
+6. AI-agent learning
+   Refund race fixes must guard the credit grant side with authoritative provider state, not only the refund webhook side, because webhook ordering is not guaranteed.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Sidebar Add Credits Action
+
+1. Interaction title
+   Sidebar Add Credits action.
+
+2. What was the user goal
+   Add a compact “+ Add Credits” action directly inside the existing left-sidebar credit/plan card, route it to the existing subscription billing top-up section, preserve credit display behavior, avoid duplicate checkout UI, and verify the change without committing or pushing.
+
+3. What changed
+   The usage monitor card now renders a compact `+ Add Credits` link for limited-credit users, including Free users because the existing billing tab already shows top-ups for non-unlimited accounts. The link uses a shared top-up billing href and points to `/app/settings/subscription?tab=billing#credit-topups`. The subscription billing page exposes the matching stable anchor on the existing Purchase Credit Top-Ups section. The mobile sidebar closes when the link is tapped. A focused static regression script verifies the shared href, sidebar link, billing anchor, and that the sidebar does not call checkout directly.
+
+4. Problems marked
+   blocker: none.
+   risk: `pnpm test:sidebar-credit-topup-link` cannot run in the sandbox because Corepack pnpm cannot open its global store database and escalation is rejected by policy.
+   improvement: none.
+   observation: the existing billing page already preserves entitlement behavior by hiding top-up packages only for unlimited accounts while checkout APIs continue to enforce server-side rules.
+
+5. User learning
+   The sidebar action is a navigation shortcut to the existing billing top-up flow, not a new purchase system.
+
+6. AI-agent learning
+   When adding a sidebar billing shortcut, the AI agent must anchor the existing billing section and keep checkout initiation inside the established top-up components and API routes.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
 ## Prebookkeeping Category Review Persistence Fix
 
 1. Interaction title

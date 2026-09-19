@@ -7,10 +7,10 @@ import {
 } from "@/lib/billing/credit-packages"
 import {
   processStripeTopUpPayment,
-  isProviderPaymentProcessed,
   getCreditTopUpByProviderPaymentId,
   refundTopUpCredits,
   markTopUpRefundedWithoutGrant,
+  recordStripeRefundedTopUpWithoutGrant,
 } from "@/lib/billing/credit-topup-service"
 import { getCreditAccount } from "@/lib/billing/credit-account-service"
 import { sendCreditPurchaseEmail } from "@/lib/email/subscription-emails"
@@ -31,6 +31,14 @@ function normalizeCurrency(currency: string | undefined | null): string {
 
 function normalizePriceId(price: string | undefined | null): string | null {
   return price && price.length > 0 ? price : null
+}
+
+type StripePaymentRefundState = {
+  chargeId: string | null
+  amount: number
+  amountRefunded: number
+  fullyRefunded: boolean
+  partiallyRefunded: boolean
 }
 
 /**
@@ -141,6 +149,40 @@ async function resolveCreditPackageDeterministically(
   return { package: null, resolvedCurrency: "", resolutionMethod: "none", resolvedPriceId: null }
 }
 
+async function retrievePaymentRefundState(paymentIntentId: string): Promise<StripePaymentRefundState> {
+  const stripe = getStripe()
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+    expand: ["latest_charge"],
+  })
+  const latestCharge = paymentIntent.latest_charge
+  const charge =
+    latestCharge && typeof latestCharge === "object"
+      ? latestCharge
+      : latestCharge
+        ? await stripe.charges.retrieve(latestCharge)
+        : null
+
+  if (!charge) {
+    return {
+      chargeId: null,
+      amount: paymentIntent.amount ?? 0,
+      amountRefunded: 0,
+      fullyRefunded: false,
+      partiallyRefunded: false,
+    }
+  }
+
+  const amount = Number(charge.amount ?? paymentIntent.amount ?? 0)
+  const amountRefunded = Number(charge.amount_refunded ?? 0)
+  return {
+    chargeId: charge.id,
+    amount,
+    amountRefunded,
+    fullyRefunded: amount > 0 && amountRefunded >= amount,
+    partiallyRefunded: amountRefunded > 0 && amountRefunded < amount,
+  }
+}
+
 export async function handleStripeCreditCheckoutEvent(
   event: Stripe.Event,
 ): Promise<StripeCreditTopUpResult> {
@@ -191,13 +233,17 @@ export async function handleStripeCreditCheckoutEvent(
   const providerCheckoutId = session.id
   const providerEventId = event.id
 
-  const isDuplicate = await isProviderPaymentProcessed("stripe", providerPaymentId)
-  if (isDuplicate) {
-    debugLog("[stripe-credit-topup] Duplicate payment detected, skipping.", { providerPaymentId })
+  const existingTopUp = await getCreditTopUpByProviderPaymentId("stripe", providerPaymentId)
+  if (existingTopUp) {
+    debugLog("[stripe-credit-topup] Duplicate payment detected, skipping.", {
+      providerPaymentId,
+      status: existingTopUp.status,
+    })
     return {
       processed: true,
       synced: true,
       duplicate: true,
+      creditsIssued: existingTopUp.status === "refunded" ? 0 : undefined,
       reason: "Payment already processed.",
     }
   }
@@ -310,6 +356,67 @@ export async function handleStripeCreditCheckoutEvent(
     stripePriceId: trustedPriceId,
     clientReferenceId: clientReferenceId || null,
     metadata: metadata as Record<string, string>,
+  }
+
+  let refundState: StripePaymentRefundState
+  try {
+    refundState = await retrievePaymentRefundState(providerPaymentId)
+  } catch (err) {
+    debugError("[stripe-credit-topup] Failed to verify Stripe PaymentIntent refund state before grant.", {
+      providerPaymentId,
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return {
+      processed: true,
+      synced: false,
+      creditsIssued: 0,
+      reason: "Could not verify payment refund state before credit grant — requires admin recovery.",
+    }
+  }
+
+  if (refundState.fullyRefunded) {
+    debugLog("[stripe-credit-topup] Fully refunded payment detected before grant. Recording zero-credit refunded top-up.", {
+      providerPaymentId,
+      chargeId: refundState.chargeId,
+      amount: refundState.amount,
+      amountRefunded: refundState.amountRefunded,
+    })
+
+    const refundedResult = await recordStripeRefundedTopUpWithoutGrant(
+      {
+        provider: "stripe",
+        providerPaymentId,
+        providerCheckoutId,
+        providerEventId,
+        amountMinor: amountTotal,
+        currency: chargeCurrency,
+        clientReferenceId: clientReferenceId || null,
+        metadata: metadata as Record<string, string>,
+        refundAmountMinor: refundState.amountRefunded,
+        refundReason: "Stripe payment was fully refunded before credits were granted",
+        stripeChargeId: refundState.chargeId,
+      },
+      creditPackage,
+    )
+
+    return {
+      processed: true,
+      synced: refundedResult.success,
+      creditsIssued: 0,
+      duplicate: refundedResult.duplicate,
+      reason: refundedResult.success
+        ? "Payment was fully refunded before credits were granted — zero credits issued."
+        : refundedResult.error || "Failed to record refunded top-up without grant.",
+    }
+  }
+
+  if (refundState.partiallyRefunded) {
+    debugLog("[stripe-credit-topup] Partially refunded payment detected before grant. Preserving normal grant flow.", {
+      providerPaymentId,
+      chargeId: refundState.chargeId,
+      amount: refundState.amount,
+      amountRefunded: refundState.amountRefunded,
+    })
   }
 
   const result = await processStripeTopUpPayment(payment, creditPackage)
@@ -460,6 +567,7 @@ export async function handleStripeRefundEvent(
     return {
       processed: true,
       synced: true,
+      creditsIssued: 0,
       reason: "Payment was refunded before credits were granted — no credits were issued.",
     }
   }
