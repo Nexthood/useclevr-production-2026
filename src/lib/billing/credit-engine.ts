@@ -3,6 +3,7 @@ import { creditLedger, profiles, subscriptionPlans, userCredits } from "@/lib/db
 import { isSuperAdminUserId } from "@/lib/auth/builtin-users"
 import { and, desc, eq, lt, sql } from "drizzle-orm"
 import {
+  CREDIT_VALUE_EUR as CREDIT_VALUE_EUR_CANONICAL,
   canPlanUseFeature,
   estimateFeatureCredits,
   normalizeCreditFeature,
@@ -17,7 +18,6 @@ import {
   mapPlanIdToTier,
   normalizeSubscriptionTier,
 } from "./plans"
-import { calculateTokenCost } from "./provider-pricing"
 import type { ProviderUsage } from "./provider-usage"
 
 export interface CreditCheckResult {
@@ -73,18 +73,29 @@ export type FinalizeCreditsInput = {
   metadata?: Record<string, unknown>
 }
 
-export const CREDITS_PER_EURO = 10
+/**
+ * Canonical customer value of one credit. 10 credits = €0.85. Internal only —
+ * never expose margin or provider cost data through this conversion.
+ */
+export const CREDIT_VALUE_EUR = CREDIT_VALUE_EUR_CANONICAL
 
+export const CREDITS_PER_EURO = 1 / CREDIT_VALUE_EUR
+
+/**
+ * Legacy action-name → authoritative feature-cost mapping. Every entry
+ * resolves through the centralized FEATURE_COST_REGISTRY so debit amounts
+ * stay deterministic and configurable in one place.
+ */
 export const CREDIT_COSTS: Record<string, number> = {
-  dataset_analysis: estimateFeatureCredits("standard_analysis"),
+  dataset_analysis: estimateFeatureCredits("standard_upload_analysis"),
   ai_chat: estimateFeatureCredits("ai_question"),
-  dashboard_generation: estimateFeatureCredits("standard_analysis"),
+  dashboard_generation: estimateFeatureCredits("standard_upload_analysis"),
   report_generation: estimateFeatureCredits("report_generation"),
-  forecast_analysis: estimateFeatureCredits("profitability_analysis"),
-  multi_dataset_analysis: estimateFeatureCredits("standard_analysis"),
-  data_insight: estimateFeatureCredits("standard_analysis"),
-  dataset_upload: estimateFeatureCredits("dataset_upload"),
-  file_upload: estimateFeatureCredits("dataset_upload"),
+  forecast_analysis: estimateFeatureCredits("forecast"),
+  multi_dataset_analysis: estimateFeatureCredits("standard_upload_analysis"),
+  data_insight: estimateFeatureCredits("standard_upload_analysis"),
+  dataset_upload: estimateFeatureCredits("standard_upload_analysis"),
+  file_upload: estimateFeatureCredits("standard_upload_analysis"),
   mcp_tool_invocation: estimateFeatureCredits("hybrid_retrieval"),
 }
 
@@ -786,8 +797,14 @@ export async function finalizeCredits(input: FinalizeCreditsInput): Promise<Cred
   })
 
   if (!reservation) {
+    // Idempotent replay: return the already-recorded charge for this operation
+    // instead of debiting a second time. Every finalized debit (normal and
+    // unlimited path) writes a ledger row with type "charge".
     const charge = await db.query.creditLedger.findFirst({
-      where: and(eq(creditLedger.operationId, input.operationId), eq(creditLedger.transactionType, "charge")),
+      where: and(
+        eq(creditLedger.operationId, input.operationId),
+        eq(creditLedger.type, "charge"),
+      ),
     })
     if (charge) {
       return {
@@ -1019,37 +1036,6 @@ export async function releaseCreditsForOperation(operationId: string, reason = "
 }
 
 export { releaseCreditsForOperation as releaseCredits }
-
-export async function deductCredits(
-  userId: string,
-  actionType: string,
-  datasetId?: string,
-  tokenCost?: { inputTokens: number; outputTokens: number; model: string }
-): Promise<CreditDeductionResult> {
-  let creditsToDeduct = getActionCreditCost(actionType)
-  if (tokenCost) {
-    creditsToDeduct = Math.max(creditsToDeduct, eurosToCredits(calculateTokenCost(tokenCost.model, tokenCost.inputTokens, tokenCost.outputTokens)))
-  }
-  const operationId = `legacy-deduct:${crypto.randomUUID()}`
-  const reservation = await reserveCredits({
-    userId,
-    operationId,
-    idempotencyKey: `deduct:${userId}:${operationId}`,
-    estimatedCredits: creditsToDeduct,
-    feature: normalizeCreditFeature(actionType),
-    metadata: datasetId ? { datasetId } : {},
-    source: "legacy_api",
-  })
-  if (!reservation.success) {
-    return {
-      success: false,
-      remainingCredits: reservation.remainingCredits,
-      creditsDeducted: 0,
-      error: reservation.error,
-    }
-  }
-  return finalizeCredits({ operationId, actualCredits: creditsToDeduct })
-}
 
 export async function refundCredits(
   userId: string,

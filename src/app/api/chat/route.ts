@@ -395,10 +395,6 @@ export async function POST(request: Request) {
 
     const isAnalyticalQuestion = isAnalyticalQuery || /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
 
-    if (datasetId && isAnalyticalQuestion) {
-      return handleAnalyticalQuery(datasetId, lastMessage, !!stream, userId, ghostMode);
-    }
-
     const operationId = `chat:${userId}:${crypto.randomUUID()}`;
     const hasUnlimitedCredits = isUnlimitedCreditRole(session?.user?.role ?? null)
     let spendingBlocked = false
@@ -452,6 +448,34 @@ export async function POST(request: Request) {
         },
         { status: 402 }
       );
+    }
+
+    // Analytical questions run the same reserved AI Analyst contract as every
+    // other assistant request: reserve before execution, finalize exactly the
+    // reserved amount on success, release on failure.
+    if (datasetId && isAnalyticalQuestion) {
+      const creditContext = reservation
+        ? { operationId, reservedCredits: reservation.reservedCredits }
+        : null
+      try {
+        const analyticalResponse = await handleAnalyticalQuery(datasetId, lastMessage, !!stream, userId, ghostMode);
+        if (creditContext) {
+          if (analyticalResponse.status < 400) {
+            await finalizeCredits({
+              operationId,
+              actualCredits: reservation!.reservedCredits,
+              actualUsage: emptyProviderUsage('google', 'gemini-2.5-flash'),
+              metadata: { datasetId, analytical: true },
+            });
+          } else {
+            await releaseCredits(operationId, 'analytical_chat_not_completed');
+          }
+        }
+        return analyticalResponse;
+      } catch (analyticalError) {
+        if (creditContext) await releaseCredits(operationId, 'analytical_chat_failed');
+        throw analyticalError;
+      }
     }
 
     if (stream) {

@@ -15,18 +15,16 @@ interface UsageMonitorProps {
   purchasedBalance: number
   totalAvailable: number
   used: number
-  reserved?: number
   isPro?: boolean
   unlimitedLabel?: string | null
   subscriptionTier?: string
   onAddCreditsClick?: () => void
 }
 
-export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable, used, reserved = 0, isPro = false, unlimitedLabel, subscriptionTier = "free", onAddCreditsClick }: UsageMonitorProps) {
-  const availableCredits = Math.max(0, totalAvailable - used - reserved)
-  const percent = totalAvailable > 0 ? Math.min((used / totalAvailable) * 100, 100) : 0
+export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable, used, isPro = false, unlimitedLabel, subscriptionTier = "free", onAddCreditsClick }: UsageMonitorProps) {
   const isUnlimited = isPro && Boolean(unlimitedLabel)
   const isPaidPlan = isPro || subscriptionTier === "pro" || subscriptionTier === "business"
+  const hasBalanceBreakdown = includedBalance > 0 || purchasedBalance > 0
 
   if (isUnlimited) {
     return (
@@ -56,11 +54,11 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
         <p className="text-sm font-medium text-foreground">
           {totalAvailable.toLocaleString()} credits available
         </p>
-        {(includedBalance > 0 || purchasedBalance > 0) && (
+        {hasBalanceBreakdown && (
           <p className="mt-1 text-xs text-muted-foreground">
-            {includedBalance > 0 && `${includedBalance.toLocaleString()} included`}
+            {includedBalance > 0 && `Included: ${includedBalance.toLocaleString()}`}
             {includedBalance > 0 && purchasedBalance > 0 && " · "}
-            {purchasedBalance > 0 && `${purchasedBalance.toLocaleString()} purchased`}
+            {purchasedBalance > 0 && `Purchased: ${purchasedBalance.toLocaleString()}`}
           </p>
         )}
         <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
@@ -74,16 +72,16 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
     );
   }
 
-  if (availableCredits <= 0) {
+  if (totalAvailable <= 0) {
     return (
       <div className="usage-box rounded-lg border border-amber-500/50 bg-amber-50 p-3 shadow-sm dark:bg-amber-950/10">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
           No credits available
         </h4>
         <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-          {includedBalance > 0 && `${includedBalance.toLocaleString()} included`}
+          {includedBalance > 0 && `Included: ${includedBalance.toLocaleString()}`}
           {includedBalance > 0 && purchasedBalance > 0 && " · "}
-          {purchasedBalance > 0 && `${purchasedBalance.toLocaleString()} purchased`}
+          {purchasedBalance > 0 && `Purchased: ${purchasedBalance.toLocaleString()}`}
         </p>
         <div className="h-1.5 mt-2 overflow-hidden rounded-full bg-amber-100 dark:bg-amber-900/40">
           <div
@@ -97,6 +95,8 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
     );
   }
 
+  const percent = used + totalAvailable > 0 ? Math.min((used / (used + totalAvailable)) * 100, 100) : 0
+
   return (
     <div className="usage-box rounded-lg border border-purple-200 bg-white p-3 shadow-sm dark:border-purple-800 dark:bg-purple-950/30 dark:shadow-none">
       <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
@@ -105,20 +105,17 @@ export function UsageMonitor({ includedBalance, purchasedBalance, totalAvailable
       <p className="text-sm font-medium text-foreground">
         {totalAvailable.toLocaleString()} credits available
       </p>
-      {(includedBalance > 0 || purchasedBalance > 0) && (
+      {hasBalanceBreakdown && (
         <p className="mt-1 text-xs text-muted-foreground">
-          {includedBalance > 0 && `${includedBalance.toLocaleString()} included`}
+          {includedBalance > 0 && `Included: ${includedBalance.toLocaleString()}`}
           {includedBalance > 0 && purchasedBalance > 0 && " · "}
-          {purchasedBalance > 0 && `${purchasedBalance.toLocaleString()} purchased`}
+          {purchasedBalance > 0 && `Purchased: ${purchasedBalance.toLocaleString()}`}
         </p>
       )}
       {purchasedBalance > 0 && (
         <p className="mt-1 text-xs text-muted-foreground">
           Your purchased credits remain usable on the Free plan.
         </p>
-      )}
-      {reserved > 0 && (
-        <p className="mt-1 text-xs text-muted-foreground">{reserved} reserved</p>
       )}
       <div className="h-1.5 mt-2 rounded-full bg-purple-100 dark:bg-purple-900/50 overflow-hidden">
         <div
@@ -161,7 +158,8 @@ export function useUsage() {
   const [usage, setUsage] = React.useState(0)
   const [includedBalance, setIncludedBalance] = React.useState(0)
   const [purchasedBalance, setPurchasedBalance] = React.useState(0)
-  const [totalAvailable, setTotalAvailable] = React.useState(2)
+  const [available, setAvailable] = React.useState(0)
+  const [totalAvailable, setTotalAvailable] = React.useState(0)
   const [reserved, setReserved] = React.useState(0)
   const [subscriptionTier, setSubscriptionTier] = React.useState("free")
   const [isPro, setIsPro] = React.useState(false)
@@ -178,13 +176,13 @@ export function useUsage() {
     }
 
     limitNoticeShownRef.current = true
-    const creditCopy = buildUploadCreditLimitCopy({ used: usage, limit: totalAvailable, remaining: totalAvailable - usage - reserved })
+    const creditCopy = buildUploadCreditLimitCopy({ remaining: available })
     showNotice({
       type: "info",
       title: creditCopy.title,
       message: creditCopy.inlineMessage,
     })
-  }, [showNotice, totalAvailable, usage, reserved])
+  }, [showNotice, available])
 
   const refreshUsage = React.useCallback(async () => {
     try {
@@ -193,19 +191,22 @@ export function useUsage() {
         const data = await res.json()
         const hasUnlimitedAccess = Boolean(data.unlimited) || ["superadmin", "admin"].includes(data.subscriptionTier)
         const usedCredits = data.usedCredits ?? data.analysisCount ?? 0
-        const availableCredits = hasUnlimitedAccess ? 0 : Math.max(0, data.availableCredits ?? 0)
+        // The authoritative usable balance: remaining credits minus active
+        // reservations, exactly what the server enforces before any debit.
+        const authoritativeAvailable = Math.max(0, data.availableCredits ?? 0)
 
         setUsage(hasUnlimitedAccess ? 0 : usedCredits)
         setIncludedBalance(hasUnlimitedAccess ? 0 : (data.includedBalance ?? 0))
         setPurchasedBalance(hasUnlimitedAccess ? 0 : (data.purchasedBalance ?? 0))
-        setTotalAvailable(hasUnlimitedAccess ? 0 : (data.total ?? availableCredits))
+        setAvailable(hasUnlimitedAccess ? 0 : authoritativeAvailable)
+        setTotalAvailable(hasUnlimitedAccess ? 0 : authoritativeAvailable)
         setReserved(hasUnlimitedAccess ? 0 : (data.reservedCredits ?? 0))
         setIsPro(hasUnlimitedAccess || data.subscriptionTier === "pro" || data.subscriptionTier === "business")
         setSubscriptionTier(data.subscriptionTier || "free")
         setUnlimitedLabel(data.unlimitedLabel || null)
-        setLimitReached(Boolean(data.limitReached))
-        setCanAnalyze(Boolean(data.canAnalyze ?? hasUnlimitedAccess))
-        maybeShowLimitNotice(!hasUnlimitedAccess && Boolean(data.limitReached))
+        setLimitReached(hasUnlimitedAccess ? false : authoritativeAvailable <= 0)
+        setCanAnalyze(hasUnlimitedAccess || authoritativeAvailable > 0)
+        maybeShowLimitNotice(!hasUnlimitedAccess && authoritativeAvailable <= 0)
       }
     } catch (error) {
       debugError("Failed to refresh usage:", error)
@@ -227,5 +228,5 @@ export function useUsage() {
     return () => window.removeEventListener(USAGE_REFRESH_EVENT, handleRefresh)
   }, [refreshUsage])
 
-  return { usage, includedBalance, purchasedBalance, totalAvailable, available: totalAvailable, total: totalAvailable, reserved, isPro, subscriptionTier, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
+  return { usage, includedBalance, purchasedBalance, available, totalAvailable, total: totalAvailable, reserved, isPro, subscriptionTier, isLoading, canAnalyze, limitReached, unlimitedLabel, refreshUsage }
 }

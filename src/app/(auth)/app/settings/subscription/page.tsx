@@ -485,8 +485,8 @@ const subs = await stripe.subscriptions.list({
               <MetricCard label="Current Plan" value={currentPlanLabel} detail="Active account access" />
               <MetricCard
                 label="AI Credits Summary"
-                value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.analysisCount} / ${usage.total} used`}
-                detail={isUnlimited ? "No monthly credit limit applies." : `${remaining} credits available.`}
+                value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : `${usage.availableCredits} credits available`}
+                detail={isUnlimited ? "No monthly credit limit applies." : `Included: ${usage.includedBalance} · Purchased: ${usage.purchasedBalance}`}
               />
               <MetricCard label="Dataset Usage" value={`${datasetCount} / ${datasetLimit}`} detail="Uploaded datasets in this workspace" />
               <MetricCard label="Storage Usage" value={bytesToDisplay(storageBytes)} detail="Based on uploaded dataset file sizes" />
@@ -799,12 +799,11 @@ const subs = await stripe.subscriptions.list({
         {activeTab === "usage" && (
           <div className="space-y-5">
             <div className="grid gap-3 md:grid-cols-3">
-              <MetricCard label="Monthly Credits" value={isUnlimited ? "Unlimited" : String(usage.total)} />
-              <MetricCard label="Credits Used" value={isUnlimited ? "0" : String(usage.analysisCount)} />
+              <MetricCard label="Included Credits" value={isUnlimited ? "Unlimited" : String(usage.includedBalance)} />
+              <MetricCard label="Purchased Credits" value={isUnlimited ? "0" : String(usage.purchasedBalance)} />
               <MetricCard label="Credits Reserved" value={isUnlimited ? "0" : String(usage.reservedCredits)} />
               <MetricCard label="Credits Available" value={isUnlimited ? usage.unlimitedLabel || "Unlimited" : String(remaining)} />
-              <MetricCard label="Token Usage" value="Calculated per AI request" />
-              <MetricCard label="Estimated AI Cost" value="Tracked by provider usage" />
+              <MetricCard label="Credits Used" value={isUnlimited ? "0" : String(usage.usedCredits)} />
               <MetricCard label="Monthly Reset Date" value="Monthly billing reset" />
             </div>
 

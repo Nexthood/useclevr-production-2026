@@ -71,9 +71,11 @@ export function resolveUsyBillingState(usage?: UsyUsageContext | null): UsyBilli
     : "free";
   const canPurchaseTopUps = tier === "pro" || tier === "business";
   const zeroUsableCredits = usage.limitReached === true
-    || (typeof usage.total === "number" && typeof usage.analysisCount === "number"
-      ? usage.total - usage.analysisCount <= 0
-      : false);
+    || (typeof usage.availableCredits === "number"
+      ? usage.availableCredits <= 0
+      : typeof usage.remainingCredits === "number"
+        ? usage.remainingCredits <= 0
+        : false);
 
   return { tier, canPurchaseTopUps, zeroUsableCredits, hasLiveState: true };
 }

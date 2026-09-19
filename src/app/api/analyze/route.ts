@@ -55,10 +55,19 @@ import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { ghostModeTraceMessage, normalizeGhostMode } from "@/lib/ai/ghost-mode";
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { FEATURE_CREDIT_COSTS } from "@/lib/billing/feature-costs";
 import { buildCreditExhaustionState } from "@/lib/billing/credit-exhaustion";
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
-import { estimateUsageFromText } from "@/lib/billing/provider-usage";
+import { estimateUsageFromText, normalizeProviderUsage } from "@/lib/billing/provider-usage";
 import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
+
+type GeminiUsageMetadata = {
+  inputTokens?: number
+  outputTokens?: number
+  totalTokens?: number
+  reasoningTokens?: number
+  cachedInputTokens?: number
+}
 
 type AiProviderStatus = {
   label: string;
@@ -204,6 +213,7 @@ export async function POST(request: Request) {
   let traceUserId: string | null = null
   let creditOperationId: string | null = null
   let reservedAnalysisCredits = 0
+  let geminiUsageMetadata: GeminiUsageMetadata | null = null
   let isGhostMode = false
 
   try {
@@ -311,7 +321,7 @@ export async function POST(request: Request) {
           subscriptionPlan: subscriptionTier,
           provider: "system",
           model: "system",
-          actionType: "dataset_analysis",
+          actionType: "ai_chat",
           inputTokens: 0,
           outputTokens: 0,
           estimatedCostEur: 0,
@@ -338,7 +348,7 @@ export async function POST(request: Request) {
         userId: effectiveUserId,
         operationId,
         idempotencyKey: request.headers.get("idempotency-key") || operationId,
-        feature: "standard_analysis",
+        feature: "ai_question",
         source: "api",
         role: userRole,
         email: userEmail,
@@ -350,7 +360,7 @@ export async function POST(request: Request) {
           subscriptionPlan: subscriptionTier,
           provider: "system",
           model: "system",
-          actionType: "dataset_analysis",
+          actionType: "ai_chat",
           inputTokens: 0,
           outputTokens: 0,
           estimatedCostEur: 0,
@@ -389,7 +399,7 @@ export async function POST(request: Request) {
           subscriptionPlan: subscriptionTier,
           provider: "system",
           model: "system",
-          actionType: "dataset_analysis",
+          actionType: "ai_chat",
           inputTokens: 0,
           outputTokens: 0,
           estimatedCostEur: 0,
@@ -837,10 +847,14 @@ try {
           text ||
           (mockAIMode
             ? await generateMockAnalysisText({ question, resultRows: result })
-            : (await generateText({
-                model: google("gemini-2.5-flash"),
-                prompt,
-              })).text);
+            : await (async () => {
+                const completion = await generateText({
+                  model: google("gemini-2.5-flash"),
+                  prompt,
+                })
+                geminiUsageMetadata = completion.usage ?? null
+                return completion.text
+              })());
         if (!mockAIMode && traceProvider !== "gemini-cloud" && !text) {
           traceProvider = "gemini-cloud";
           traceModel = "gemini-2.5-flash";
@@ -980,16 +994,33 @@ try {
       // Finalize credits only for successful AI-backed analysis; ordinary provider errors release reservations.
     if (traceUserId) {
       if (!hasUnlimitedCredits && !llmError) {
+        // Internal cost observability: prefer real Gemini usage metadata when
+        // available; fall back to a conservative text-length estimate.
+        const providerKey = traceProvider.toLowerCase().includes("gemini") ? "google" : traceProvider.toLowerCase().includes("ollama") ? "ollama" : "openai"
+        const usageMeta = geminiUsageMetadata as GeminiUsageMetadata | null
+        const actualUsage = usageMeta
+          ? normalizeProviderUsage({
+              provider: providerKey,
+              model: traceModel,
+              usage: {
+                inputTokens: usageMeta.inputTokens,
+                outputTokens: usageMeta.outputTokens,
+                thinkingTokens: usageMeta.reasoningTokens,
+                cachedTokens: usageMeta.cachedInputTokens,
+              },
+              rawUsageReference: { source: "gemini_generate_text_usage", datasetId: traceDatasetId },
+            })
+          : estimateUsageFromText({
+              provider: providerKey,
+              model: traceModel,
+              prompt: question,
+              output: answer,
+            })
         const deductionResult = creditOperationId
           ? await finalizeCredits({
               operationId: creditOperationId,
               actualCredits: reservedAnalysisCredits,
-              actualUsage: estimateUsageFromText({
-                provider: traceProvider.toLowerCase().includes("gemini") ? "google" : traceProvider.toLowerCase().includes("ollama") ? "ollama" : "openai",
-                model: traceModel,
-                prompt: question,
-                output: answer,
-              }),
+              actualUsage,
               metadata: { datasetId: traceDatasetId || null },
             })
           : { success: true, remainingCredits: 0, creditsDeducted: 0 }
@@ -998,13 +1029,13 @@ try {
         await logAiCost({
           userId: traceUserId,
           subscriptionPlan: subscriptionTier,
-          provider: traceProvider.toLowerCase().includes("gemini") ? "google" : traceProvider.toLowerCase().includes("ollama") ? "ollama" : "openai",
+          provider: providerKey,
           model: traceModel,
-          actionType: "dataset_analysis",
-          inputTokens: Math.ceil(question.length / 4),
-          outputTokens: Math.ceil(answer.length / 4),
+          actionType: "ai_chat",
+          inputTokens: actualUsage.inputTokens,
+          outputTokens: actualUsage.outputTokens,
           estimatedCostEur: 0.001,
-          creditsCharged: deductionResult.creditsDeducted || 10,
+          creditsCharged: deductionResult.creditsDeducted || FEATURE_CREDIT_COSTS.AI_ANALYST_MESSAGE,
           requestStatus: "success",
           datasetId: traceDatasetId || undefined,
           latencyMs,

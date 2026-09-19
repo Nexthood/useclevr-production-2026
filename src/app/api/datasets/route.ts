@@ -52,6 +52,7 @@ export async function POST(request: Request) {
   let creditOperationId: string | null = null
   let creditReserved = false
   let creditFinalized = false
+  let reservedCredits = 0
   let datasetId: string | null = null
 
   try {
@@ -130,8 +131,7 @@ export async function POST(request: Request) {
         userId: session.user.id,
         operationId: creditOperationId,
         idempotencyKey: creditOperationId,
-        estimatedCredits: 1,
-        feature: "dataset_upload",
+        feature: "standard_upload_analysis",
         source: "api_dataset_create",
         role: session.user.role ?? null,
         email: session.user.email ?? null,
@@ -163,6 +163,7 @@ export async function POST(request: Request) {
       }
 
       creditReserved = true
+      reservedCredits = reservation.reservedCredits
     }
     
     await db.insert(datasets).values({
@@ -193,7 +194,7 @@ export async function POST(request: Request) {
     if (creditReserved && creditOperationId) {
       const finalized = await finalizeCredits({
         operationId: creditOperationId,
-        actualCredits: 1,
+        actualCredits: reservedCredits,
         metadata: {
           datasetId: createdDatasetId,
           fileName: fileName || name || "dataset",

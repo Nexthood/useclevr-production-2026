@@ -143,6 +143,7 @@ export async function POST(
   { params }: RouteParams,
 ): Promise<NextResponse<CSVAnalysisResult | ErrorResponse>> {
   let creditOperationId: string | null = null;
+  let analysisReservedCredits = 0;
   try {
     const { id }: { id: string } = await params;
 
@@ -329,8 +330,7 @@ export async function POST(
         userId,
         operationId: creditOperationId,
         idempotencyKey: creditOperationId,
-        estimatedCredits: 1,
-        feature: "standard_analysis",
+        feature: "standard_upload_analysis",
         source: "dataset_analysis",
         role: session?.user?.role ?? null,
         email: session?.user?.email ?? null,
@@ -344,15 +344,16 @@ export async function POST(
       if (!reservation.success) {
         return NextResponse.json<ErrorResponse>(
           {
-            error: "You have used all included credits in your Free plan.",
+            error: "You do not have enough credits for this analysis.",
             code: "INSUFFICIENT_CREDITS",
-            title: "No credits remaining",
+            title: "Not enough credits",
             upgradeRequired: true,
             usage: await getUsagePayload(userId, session?.user?.role, session?.user?.email),
           },
           { status: 402 },
         );
       }
+      analysisReservedCredits = reservation.reservedCredits;
     }
 
     await updateAnalysisStatus("processing", "Analysis is still being prepared...", 50);
@@ -603,7 +604,7 @@ export async function POST(
     if (creditOperationId) {
       await finalizeCredits({
         operationId: creditOperationId,
-        actualCredits: 1,
+        actualCredits: analysisReservedCredits,
         metadata: {
           datasetId: id,
           rowCount: datasetData.rowCount,

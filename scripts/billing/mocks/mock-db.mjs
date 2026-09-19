@@ -149,6 +149,7 @@ const GRANT_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"purchasedBalance"\s*=\s*"purch
 const REFUND_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"purchasedBalance"\s*=\s*"purchasedBalance"\s*-\s*(\d+)\s*,\s*"remainingCredits"\s*=\s*GREATEST\("remainingCredits"\s*-\s*(\d+),\s*0\)[\s\S]*?WHERE\s+"userId"\s*=\s*'([^']*)'/
 const RESERVE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*"reservedCredits"\s*\+\s*(\d+)\s*,\s*"updatedAt"\s*=\s*'[^']*'\s*WHERE\s+"userId"\s*=\s*'([^']*)'\s*AND\s+\("remainingCredits"\s*-\s*"reservedCredits"\)\s*>=\s*(\d+)\s*RETURNING\s+"remainingCredits",\s*"reservedCredits"/
 const FINALIZE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*GREATEST\(0,\s*"reservedCredits"\s*-\s*(\d+)\)\s*,\s*"remainingCredits"\s*=\s*"remainingCredits"\s*-\s*(\d+)\s*,\s*"usedCredits"\s*=\s*"usedCredits"\s*\+\s*(\d+)\s*,\s*"lifetimeCreditsUsed"\s*=\s*"lifetimeCreditsUsed"\s*\+\s*(\d+)\s*,\s*"includedBalance"\s*=\s*GREATEST\(0,\s*"includedBalance"\s*-\s*(\d+)\)\s*,\s*"purchasedBalance"\s*=\s*CASE\s+WHEN\s+"includedBalance"\s*>=\s*(\d+)\s+THEN\s+"purchasedBalance"\s+ELSE\s+"purchasedBalance"\s*-\s*GREATEST\(0,\s*(\d+)\s*-\s*"includedBalance"\)\s+END\s*,\s*"updatedAt"\s*=\s*'[^']*'\s+WHERE\s+"userId"\s*=\s*'([^']*)'\s+AND\s+\("remainingCredits"\s*-\s*"reservedCredits"\s*\+\s*(\d+)\)\s*>=\s*(\d+)\s+RETURNING/
+const RELEASE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*GREATEST\(0,\s*"reservedCredits"\s*-\s*(\d+)\)\s*,\s*"updatedAt"\s*=\s*'[^']*'\s+WHERE\s+"userId"\s*=\s*'([^']*)'/
 
 function applyUserCreditFinalization(userId, reservedCredits, debitedCredits) {
   const account = userCreditRows.find((row) => row.userId === userId)
@@ -187,6 +188,16 @@ function executeRawSql(sqlObject) {
   const refund = text.match(REFUND_SQL)
   if (refund) {
     applyUserCreditRefund(refund[3], Number(refund[1]), 0)
+    return
+  }
+  const release = text.match(RELEASE_SQL)
+  if (release) {
+    const userId = release[2]
+    const releasedCredits = Number(release[1])
+    const account = userCreditRows.find((row) => row.userId === userId)
+    if (account) {
+      account.reservedCredits = Math.max(0, (account.reservedCredits ?? 0) - releasedCredits)
+    }
     return
   }
   const reserve = text.match(RESERVE_SQL)

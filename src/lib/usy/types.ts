@@ -21,6 +21,10 @@ export type UsyUsageContext = {
   subscriptionTier?: string;
   analysisCount?: number;
   total?: number;
+  includedBalance?: number;
+  purchasedBalance?: number;
+  availableCredits?: number;
+  remainingCredits?: number;
   limitReached?: boolean;
   unlimited?: boolean;
   unlimitedLabel?: string | null;
