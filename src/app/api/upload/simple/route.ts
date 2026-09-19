@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/auth";
 import { finalizeCredits, releaseCredits, reserveCredits } from "@/lib/billing/credit-engine";
+import { buildCreditExhaustionState } from "@/lib/billing/credit-exhaustion";
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
@@ -534,6 +535,11 @@ export async function POST(request: Request) {
           limit: creditUsage.total,
           remaining: creditUsage.availableCredits,
           usage: creditUsage,
+          creditState: await buildCreditExhaustionState({
+            userId,
+            tier: creditUsage.subscriptionTier,
+            requiredCredits: 1,
+          }),
         });
       }
 
@@ -558,6 +564,11 @@ export async function POST(request: Request) {
             limit: latestUsage.total,
             remaining: latestUsage.availableCredits,
             usage: latestUsage,
+            creditState: await buildCreditExhaustionState({
+              userId,
+              tier: latestUsage.subscriptionTier,
+              requiredCredits: 1,
+            }),
           },
         );
       }

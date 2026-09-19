@@ -7,6 +7,7 @@ import {
 } from '@/lib/utils/queryIntentPrompt';
 import { searchApp } from '@/lib/search/app-search';
 import { finalizeCredits, isUnlimitedCreditRole, releaseCredits, reserveCredits } from '@/lib/billing/credit-engine';
+import { buildCreditExhaustionState } from '@/lib/billing/credit-exhaustion';
 import { checkSpendingLimits } from '@/lib/billing/credit-account-service';
 import { emptyProviderUsage, estimateUsageFromText } from '@/lib/billing/provider-usage';
 import { checkActionEnforcement, incrementDailyRequestCount } from '@/lib/billing/usage-enforcement';
@@ -431,6 +432,10 @@ export async function POST(request: Request) {
           message: reservation.error || 'You do not have enough credits for this chat request.',
           upgradeRequired: true,
           remainingCredits: reservation.availableCredits,
+          creditState: await buildCreditExhaustionState({
+            userId,
+            requiredCredits: reservation.reservedCredits,
+          }),
         },
         { status: 402 }
       );

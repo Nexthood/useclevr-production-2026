@@ -6,6 +6,7 @@ import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { useNotice } from "@/components/ui/notice-bar"
 import { USAGE_REFRESH_EVENT, useUsage } from "@/components/ui/usage-monitor"
 import { UpgradeModal } from "@/components/shared/upgrade-modal"
+import { parseCreditExhaustionPayload, ZeroCreditModal, useZeroCreditModal } from "@/components/shared/zero-credit-modal"
 import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
@@ -115,6 +116,7 @@ export function CsvUpload() {
    const { toast } = useToast()
    const { showNotice } = useNotice()
    const creditUsage = useUsage()
+   const zeroCredit = useZeroCreditModal()
   
   // Cloud-first connection detection
   const connectionStatus = useConnectionStatus()
@@ -413,11 +415,24 @@ export function CsvUpload() {
         const uploadError = result.message || result.error || "Upload failed"
         const isInsufficientCredits =
           result.code === "INSUFFICIENT_CREDITS" ||
+          result.code === "UPLOAD_CREDITS_EXHAUSTED" ||
           uploadError.startsWith("INSUFFICIENT_CREDITS|") ||
           Boolean(result.usage?.limitReached)
 
         if (isInsufficientCredits) {
           window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+
+          // Paid plans purchase top-ups; the server-issued payload decides the
+          // plan-aware CTA from the authoritative usable balance.
+          const creditState = parseCreditExhaustionPayload(result)
+          if (creditState && creditState.tier !== "free") {
+            zeroCredit.openFromPayload(creditState)
+            setUploadStatus("error")
+            setErrorMessage(creditState.message)
+            setProcessingStep(0)
+            return
+          }
+
           showCreditLimitModal(result.usage)
           return
         }
@@ -819,6 +834,8 @@ export function CsvUpload() {
         secondaryActionLabel={upgradeModalCopy.secondaryActionLabel}
         secondaryActionHref={upgradeModalCopy.secondaryActionHref}
       />
+
+      <ZeroCreditModal state={zeroCredit.state} onOpenChange={(open) => { if (!open) zeroCredit.close() }} />
     </>
   )
 }

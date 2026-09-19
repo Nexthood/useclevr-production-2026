@@ -3,6 +3,7 @@
 import { debugError } from "@/lib/utils/debug"
 
 import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
+import { ZeroCreditModal, useZeroCreditModal } from "@/components/shared/zero-credit-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, MessageSquare, Send, Sparkles, X } from "lucide-react"
@@ -32,6 +33,7 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
   const [suggestions, setSuggestions] = React.useState<string[]>([])
   const [inputError, setInputError] = React.useState<string | null>(null)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
+  const zeroCredit = useZeroCreditModal()
 
   // Fetch suggestions when dataset changes
   React.useEffect(() => {
@@ -90,7 +92,22 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
         }),
       })
 
-      if (!response.ok) throw new Error("Failed")
+      if (!response.ok) {
+        const zeroCreditHandled = await zeroCredit.openFromResponse(response)
+        if (zeroCreditHandled) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: "assistant",
+              content: "You're out of AI credits. Check the options in the dialog to add credits or upgrade.",
+              timestamp: new Date(),
+            },
+          ])
+          return
+        }
+        throw new Error("Failed")
+      }
 
       const data = await response.json()
 
@@ -126,19 +143,23 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
 
   if (!isExpanded) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          size="icon"
-          className="h-12 w-12 rounded-full shadow-lg"
-          onClick={() => setIsExpanded(true)}
-        >
-          <MessageSquare className="h-5 w-5" />
-        </Button>
-      </div>
+      <>
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+            onClick={() => setIsExpanded(true)}
+          >
+            <MessageSquare className="h-5 w-5" />
+          </Button>
+        </div>
+        <ZeroCreditModal state={zeroCredit.state} onOpenChange={(open) => { if (!open) zeroCredit.close() }} />
+      </>
     )
   }
 
   return (
+    <>
     <div className="fixed bottom-6 right-6 z-50 w-full max-w-lg">
       <div className="relative bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
         {/* Header */}
@@ -261,6 +282,8 @@ export function ChatPanel({ datasetId, datasetName, columns = [], onColumnClick 
         </div>
       </div>
     </div>
+    <ZeroCreditModal state={zeroCredit.state} onOpenChange={(open) => { if (!open) zeroCredit.close() }} />
+    </>
   )
 }
 

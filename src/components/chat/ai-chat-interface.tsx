@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
+import { ZeroCreditModal, useZeroCreditModal } from "@/components/shared/zero-credit-modal"
 import { Input } from "@/components/ui/input"
 import {
     Columns, Copy, Database, Info,
@@ -38,6 +39,7 @@ export function AiChatInterface({ datasetId, datasetName, columns, rowCount }: A
   const [isLoading, setIsLoading] = React.useState(false)
   const [columnsUsed, setColumnsUsed] = React.useState<string[]>([])
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
+  const zeroCredit = useZeroCreditModal()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -80,7 +82,21 @@ export function AiChatInterface({ datasetId, datasetName, columns, rowCount }: A
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to get response")
+      if (!response.ok) {
+        const zeroCreditHandled = await zeroCredit.openFromResponse(response)
+        if (zeroCreditHandled) {
+          const exhaustedMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "You're out of AI credits. Check the options in the dialog to add credits or upgrade.",
+            timestamp: new Date(),
+            confidence: "low",
+          }
+          setMessages((prev) => [...prev, exhaustedMessage])
+          return
+        }
+        throw new Error("Failed to get response")
+      }
 
       const data = await response.json()
 
@@ -361,6 +377,7 @@ export function AiChatInterface({ datasetId, datasetName, columns, rowCount }: A
           </div>
         </div>
       </div>
+      <ZeroCreditModal state={zeroCredit.state} onOpenChange={(open) => { if (!open) zeroCredit.close() }} />
     </div>
   )
 }
