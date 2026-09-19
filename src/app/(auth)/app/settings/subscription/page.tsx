@@ -351,6 +351,9 @@ const subs = await stripe.subscriptions.list({
     : "Unlimited";
 
   const creditPackages = getActiveCreditTopUpPackages();
+  // Credit top-ups are a paid-plan feature: Free accounts cannot purchase
+  // them, and the server-side checkout gate enforces the same rule.
+  const canPurchaseTopUps = tier === "pro" || tier === "business";
   const topUpHistory = session?.user?.id ? await getCreditTopUpHistory(session.user.id, 20) : [];
   const pendingTopUp = topUpHistory.find(
     (t) => t.status === "pending" || t.status === "duplicate" || t.status === "failed",
@@ -557,7 +560,11 @@ const subs = await stripe.subscriptions.list({
                     Purchased credits are non-refundable and do not expire. For billing questions, contact support.
                   </p>
                 </div>
-                {creditPackages.length > 0 ? (
+                {!canPurchaseTopUps ? (
+                  <p className="text-sm text-muted-foreground">
+                    Credit top-ups are available on the Pro and Business plans. Upgrade your plan to purchase additional credits.
+                  </p>
+                ) : creditPackages.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {creditPackages.map((pkg) => (
                       <div

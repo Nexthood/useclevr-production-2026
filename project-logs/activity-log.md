@@ -369,3 +369,5 @@
 - fixed: resolve Stripe credit-topup packages only through trusted Stripe Price mappings by removing the legacy amount+currency package fallback from the webhook while keeping Adaptive Pricing localized charges grantable through the package's own verified Price from metadata or line items
 - removed: the unused creditsFromMonetaryAmount conversion helper so configured credit packages stay the single source of truth for credit quantities
 - added: behavioral coverage for exact +100/+500/+1,000 grants, untrusted and amount-only sessions granting zero credits, and legacy line-item Price resolution with localized currency
+- fixed: gate credit top-up purchase to Pro and Business plans at checkout so Free accounts cannot buy top-ups
+- fixed: cap Free-tier credit consumption to the plan's included allowance so preserved purchased credits stay intact and become usable again after an upgrade
