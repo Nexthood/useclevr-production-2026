@@ -7840,3 +7840,43 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.
+## Interaction: Gate credit top-ups to paid plans and fix the Pro-refund downgrade state
+
+1. Interaction title
+   Fix the production Pro-refund case: fully refunded Pro subscriptions synchronize the account back to Free, Pro included credits reset per the existing plan-change logic, preserved purchased credits survive but are unusable on Free, and top-up purchase/use is gated to Pro and Business.
+
+2. What was the user goal
+   Verify the Stripe subscription/refund state authoritatively, downgrade a fully refunded Pro account to Free through the existing sync and credit lifecycle paths without SQL edits, remove the remaining Pro included credits while preserving the 100 purchased credits, block Free top-up purchase and use generically for all customers, restore purchased-credit usability on re-upgrade, add regression tests, and report before any production recovery mutation.
+
+3. What changed
+   - `src/app/api/checkout/credit-topup/route.ts`: the POST handler loads the authenticated account's subscription tier and rejects Free accounts with HTTP 403 before any checkout session is created; Pro and Business accounts proceed unchanged.
+   - `src/lib/billing/credit-engine.ts`: `reserveCredits` stamps the account's plan tier on the reservation and, on the Free tier, requires the estimate to fit inside the included allowance so preserved purchased credits cannot be reserved; `finalizeCredits` gates purchased-credit consumption on the reservation's plan tier and caps the Free-tier debit to the included allowance, so purchased credits never decrease on Free and resume being consumed on Pro/Business.
+   - `src/app/(auth)/app/settings/subscription/page.tsx`: the Purchase Credit Top-Ups section shows an upgrade hint instead of purchase buttons for Free accounts; the section anchor and paid-plan buttons are unchanged.
+   - `scripts/billing/mocks/mock-db.mjs`: the in-memory DB also serves UserCredit, Profile, and SubscriptionPlan rows plus the reservation/finalization SQL shapes of the credit engine.
+   - `scripts/billing/test-credit-lifecycle-downgrade.ts` plus the `test:credit-lifecycle-downgrade` script: behavioral regression covering termination → downgrade to Free, included-credit reset, purchased-credit preservation, Free reserve/finalize blocking, Free included-allowance usage, and re-upgrade restoring purchased-credit consumption.
+   - `scripts/billing/test-credit-topup-architecture.ts`: the finalize contract now pins the tier-gated consumption behavior.
+   - `scripts/billing/diagnose-subscription-refund.ts`: read-only diagnostic for Stripe subscription/invoice state versus profile and credit state.
+   - `CHANGELOG.md`: Added entry for plan-based top-up availability.
+
+4. Problems marked
+   - root cause: the refunded Pro subscription stayed `active` in Stripe because refunds do not cancel subscriptions; the existing synchronization was correct for the provider state, so the account remained Pro with 437 included credits until the refunded subscription is canceled in Stripe.
+   - risk: Free-tier concurrent reservations can both fit the included allowance before finalization; the existing stale-reservation reclaim bounds the impact.
+   - observation: `processPlanChange` already preserves purchased credits and resets included credits on plan changes; the missing pieces were the provider-side cancelation and the Free purchase/use gates.
+
+5. User learning
+   A fully refunded Pro subscription now lands the account on Free with zero included credits, keeps purchased credits stored for a future upgrade, and cannot buy or use new top-ups until the account is on Pro or Business again.
+
+6. AI-agent learning
+   Tier-conditional balance consumption must be stamped at reservation time so finalize uses the same entitlement that authorized the operation; entitlement changes belong in Stripe first, with the existing sync paths following.
+
+7. Follow-up tasks
+   - Production recovery: cancel the refunded subscription `sub_1UG13AJunPTBXsIvORkSv4v8` in Stripe so `customer.subscription.deleted` runs the existing downgrade sync, then verify 0 included + 100 purchased for the account.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.

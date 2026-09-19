@@ -37,6 +37,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // Credit top-ups are a paid-plan feature: only Pro and Business accounts can
+  // purchase them. Free accounts keep previously purchased credits stored for
+  // when they upgrade again, but cannot buy new top-ups.
+  const topupDb = getDb()
+  const topupProfile = topupDb
+    ? await topupDb.query.profiles.findFirst({
+        where: eq(profiles.userId, user.id),
+        columns: { subscriptionTier: true },
+      })
+    : null
+  const accountTier = topupProfile?.subscriptionTier || "free"
+  if (accountTier !== "pro" && accountTier !== "business") {
+    return NextResponse.json(
+      { error: "Credit top-ups are available on the Pro and Business plans." },
+      { status: 403 },
+    )
+  }
+
   const body = await request.json().catch(() => ({})) as Record<string, unknown>
   const packageId = typeof body.packageId === "string" ? body.packageId : undefined
   const provider = (typeof body.provider === "string" ? body.provider : "stripe") as "stripe" | "square"

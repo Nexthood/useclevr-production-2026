@@ -4,6 +4,7 @@
 
 - Add subscription state machine that pre-checks Stripe subscription status before cancel/resume actions to prevent HTTP 500 errors when subscription is already canceled, and reconciles database to Free tier when subscription is missing or not entitled.
 - Add an Add Credits button to the Pro and Business plan sidebar card so customers can open the credit top-up purchase section directly from the sidebar.
+- Add plan-based credit top-up availability so credit top-ups can be purchased and used only on Pro and Business plans, while Free accounts keep their previously purchased credits stored until they upgrade again.
 
 ### Fixed
 

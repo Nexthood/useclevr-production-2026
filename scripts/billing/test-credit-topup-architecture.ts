@@ -47,20 +47,28 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "finalizeCredits consumes included credits before purchased credits",
+    name: "finalizeCredits consumes included credits before purchased credits and never consumes purchased credits on Free",
     run() {
       const engine = readProjectFile("src/lib/billing/credit-engine.ts")
       assert.ok(
-        engine.includes('"includedBalance" >= ${actualCredits}'),
+        engine.includes('"includedBalance" >= ${debitedCredits}'),
         "finalizeCredits checks if includedBalance covers the charge first",
       )
       assert.ok(
-        engine.includes('"purchasedBalance" - GREATEST(0, ${actualCredits} - "includedBalance")'),
+        engine.includes('"purchasedBalance" - GREATEST(0, ${debitedCredits} - "includedBalance")'),
         "finalizeCredits deducts from purchased only after included is exhausted",
       )
       assert.ok(
         engine.includes('THEN "purchasedBalance"'),
         "finalizeCredits leaves purchased unchanged when included covers the full charge",
+      )
+      assert.ok(
+        engine.includes('purchasedConsumable = planTier === "pro" || planTier === "business"'),
+        "finalizeCredits gates purchased-credit consumption to paid plans",
+      )
+      assert.ok(
+        engine.includes('debitedCredits = Math.min(actualCredits, Math.max(0, account?.includedBalance ?? 0))'),
+        "Free-tier debits are capped to the included allowance so preserved purchased credits stay intact",
       )
     },
   },

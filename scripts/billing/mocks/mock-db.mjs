@@ -1,12 +1,14 @@
 /**
  * In-memory replacement for `@/lib/db` used by the credit-topup behavioral
  * tests. It understands exactly the drizzle call shapes used by
- * `src/lib/billing/credit-topup-service.ts`:
+ * `src/lib/billing/credit-topup-service.ts` and
+ * `src/lib/billing/credit-engine.ts`:
  *   - db.query.<table>.findFirst({ where })      (eq / and(eq, eq) filters)
  *   - db.transaction(cb) with snapshot rollback on throw
  *   - tx.insert(table).values(...)[.returning()][.onConflictDoNothing()]
- *   - tx.update(table).set(...).where(eq(table.id, id))
- *   - tx.execute(sql`UPDATE "UserCredit" ...`)   (grant / refund shapes)
+ *   - tx.update(table).set(...).where(eq(table.col, val))
+ *   - tx.execute(sql`UPDATE "UserCredit" ...`)   (grant / refund / reserve /
+ *     finalize shapes)
  *   - db.select().from(table).where(...).orderBy(...).limit(...)
  * Any unsupported call throws loudly instead of silently faking success.
  */
@@ -20,6 +22,9 @@ import {
 
 export const topupRows = []
 export const ledgerRows = []
+export const userCreditRows = []
+export const profileRows = []
+export const subscriptionPlanRows = []
 
 export function resetMockDb() {
   topupRows.length = 0
@@ -29,11 +34,17 @@ export function resetMockDb() {
 export function resetAllMockState() {
   topupRows.length = 0
   ledgerRows.length = 0
+  userCreditRows.length = 0
+  profileRows.length = 0
+  subscriptionPlanRows.length = 0
 }
 
 function rowsFor(tableName) {
   if (tableName === "CreditTopUp") return topupRows
   if (tableName === "CreditLedger") return ledgerRows
+  if (tableName === "UserCredit") return userCreditRows
+  if (tableName === "Profile") return profileRows
+  if (tableName === "SubscriptionPlan") return subscriptionPlanRows
   throw new Error(`mock-db: unsupported table "${tableName}"`)
 }
 
@@ -136,6 +147,35 @@ function matchesAll(row, pairs) {
 
 const GRANT_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"purchasedBalance"\s*=\s*"purchasedBalance"\s*\+\s*(\d+)\s*,\s*"remainingCredits"\s*=\s*"remainingCredits"\s*\+\s*(\d+)\s*,\s*"totalPaidCents"\s*=\s*"totalPaidCents"\s*\+\s*(\d+)\s*,\s*"lifetimeCreditsEarned"\s*=\s*"lifetimeCreditsEarned"\s*\+\s*(\d+)[\s\S]*?WHERE\s+"userId"\s*=\s*'([^']*)'/
 const REFUND_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"purchasedBalance"\s*=\s*"purchasedBalance"\s*-\s*(\d+)\s*,\s*"remainingCredits"\s*=\s*GREATEST\("remainingCredits"\s*-\s*(\d+),\s*0\)[\s\S]*?WHERE\s+"userId"\s*=\s*'([^']*)'/
+const RESERVE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*"reservedCredits"\s*\+\s*(\d+)\s*,\s*"updatedAt"\s*=\s*'[^']*'\s*WHERE\s+"userId"\s*=\s*'([^']*)'\s*AND\s+\("remainingCredits"\s*-\s*"reservedCredits"\)\s*>=\s*(\d+)\s*AND\s+\((TRUE|FALSE)\s+OR\s+"includedBalance"\s*>=\s*(\d+)\)\s*RETURNING\s+"remainingCredits",\s*"reservedCredits"/
+const FINALIZE_SQL = /UPDATE\s+"UserCredit"\s+SET\s+"reservedCredits"\s*=\s*GREATEST\(0,\s*"reservedCredits"\s*-\s*(\d+)\)\s*,\s*"remainingCredits"\s*=\s*"remainingCredits"\s*-\s*(\d+)\s*,\s*"usedCredits"\s*=\s*"usedCredits"\s*\+\s*(\d+)\s*,\s*"lifetimeCreditsUsed"\s*=\s*"lifetimeCreditsUsed"\s*\+\s*(\d+)\s*,\s*"includedBalance"\s*=\s*GREATEST\(0,\s*"includedBalance"\s*-\s*(\d+)\)\s*,\s*"purchasedBalance"\s*=\s*CASE\s+WHEN\s+"includedBalance"\s*>=\s*(\d+)\s+THEN\s+"purchasedBalance"\s+ELSE\s+"purchasedBalance"\s*-\s*GREATEST\(0,\s*(\d+)\s*-\s*"includedBalance"\)\s+END\s*,\s*"updatedAt"\s*=\s*'[^']*'\s+WHERE\s+"userId"\s*=\s*'([^']*)'\s+AND\s+\("remainingCredits"\s*-\s*"reservedCredits"\s*\+\s*(\d+)\)\s*>=\s*(\d+)\s+RETURNING/
+
+function applyUserCreditFinalization(userId, reservedCredits, debitedCredits) {
+  const account = userCreditRows.find((row) => row.userId === userId)
+  if (!account) return []
+  if ((account.remainingCredits ?? 0) - (account.reservedCredits ?? 0) + reservedCredits < debitedCredits) return []
+  account.reservedCredits = Math.max(0, (account.reservedCredits ?? 0) - reservedCredits)
+  account.remainingCredits = (account.remainingCredits ?? 0) - debitedCredits
+  account.usedCredits = (account.usedCredits ?? 0) + debitedCredits
+  account.lifetimeCreditsUsed = (account.lifetimeCreditsUsed ?? 0) + debitedCredits
+  const includedBefore = account.includedBalance ?? 0
+  const includedAfter = Math.max(0, includedBefore - debitedCredits)
+  account.includedBalance = includedAfter
+  // The engine's debit is already capped to the included allowance on the
+  // Free tier, so the purchased balance only decreases for paid plans.
+  account.purchasedBalance = Math.max(
+    0,
+    (account.purchasedBalance ?? 0) - Math.max(0, debitedCredits - includedBefore),
+  )
+  return [
+    {
+      remainingCredits: account.remainingCredits,
+      usedCredits: account.usedCredits,
+      includedBalance: account.includedBalance,
+      purchasedBalance: account.purchasedBalance,
+    },
+  ]
+}
 
 function executeRawSql(sqlObject) {
   const text = renderSql(sqlObject)
@@ -149,6 +189,29 @@ function executeRawSql(sqlObject) {
     applyUserCreditRefund(refund[3], Number(refund[1]), 0)
     return
   }
+  const reserve = text.match(RESERVE_SQL)
+  if (reserve) {
+    const userId = reserve[2]
+    const estimatedCredits = Number(reserve[1])
+    // Match the engine guard: paid plans draw from remaining credits, the
+    // Free tier must fit inside the included allowance. Groups: 1=estimate,
+    // 2=userId, 3=remainingAvailable, 4=paidTier, 5=includedThreshold.
+    const paidTier = reserve[4] === "TRUE"
+    const account = userCreditRows.find((row) => row.userId === userId)
+    if (!account) return []
+    const remainingAvailable = (account.remainingCredits ?? 0) - (account.reservedCredits ?? 0)
+    const includedAvailable = account.includedBalance ?? 0
+    if (remainingAvailable < estimatedCredits || (!paidTier && includedAvailable < estimatedCredits)) return []
+    account.reservedCredits = (account.reservedCredits ?? 0) + estimatedCredits
+    return [{ remainingCredits: account.remainingCredits, reservedCredits: account.reservedCredits }]
+  }
+  const finalize = text.match(FINALIZE_SQL)
+  if (finalize) {
+    const userId = finalize[8]
+    const reservedCredits = Number(finalize[1])
+    const debitedCredits = Number(finalize[2])
+    return applyUserCreditFinalization(userId, reservedCredits, debitedCredits)
+  }
   throw new Error(`mock-db: unsupported SQL execution: ${text.slice(0, 200)}`)
 }
 
@@ -160,6 +223,13 @@ function findFirst(rows) {
   return async ({ where }) => {
     const pairs = wherePairs(where)
     return rows.find((row) => matchesAll(row, pairs)) ?? null
+  }
+}
+
+function findMany(rows) {
+  return async ({ where }) => {
+    const pairs = wherePairs(where)
+    return rows.filter((row) => matchesAll(row, pairs))
   }
 }
 
@@ -179,19 +249,20 @@ function insertBuilder(tableName) {
 
   return {
     // Drizzle inserts apply on .values() — .returning()/.onConflictDoNothing()
-    // only shape the response, so the row is committed eagerly here.
+    // only shape the response, so the row is committed eagerly here. Arrays
+    // insert one row per element (bulk values).
     values: (vals) => {
-      const conflict = detectConflict(vals)
-      if (conflict) {
-        return {
-          returning: async () => [],
-          onConflictDoNothing: async () => undefined,
-        }
+      const rowsToInsert = Array.isArray(vals) ? vals : [vals]
+      const insertedRows = []
+      for (const single of rowsToInsert) {
+        const conflict = detectConflict(single)
+        if (conflict) continue
+        const row = { ...single }
+        rows.push(row)
+        insertedRows.push(row)
       }
-      const row = { ...vals }
-      rows.push(row)
       return {
-        returning: async () => [row],
+        returning: async () => insertedRows,
         onConflictDoNothing: async () => {},
       }
     },
@@ -247,13 +318,19 @@ function selectBuilder(tableName) {
 function makeDb() {
   return {
     query: {
-      creditTopUps: { findFirst: findFirst(topupRows) },
-      creditLedger: { findFirst: findFirst(ledgerRows) },
+      creditTopUps: { findFirst: findFirst(topupRows), findMany: findMany(topupRows) },
+      creditLedger: { findFirst: findFirst(ledgerRows), findMany: findMany(ledgerRows) },
+      userCredits: { findFirst: findFirst(userCreditRows), findMany: findMany(userCreditRows) },
+      profiles: { findFirst: findFirst(profileRows), findMany: findMany(profileRows) },
+      subscriptionPlans: { findFirst: findFirst(subscriptionPlanRows), findMany: findMany(subscriptionPlanRows) },
     },
     transaction: async (callback) => {
       const snapshot = {
         topups: structuredClone(topupRows),
         ledger: structuredClone(ledgerRows),
+        credits: structuredClone(userCreditRows),
+        profiles: structuredClone(profileRows),
+        plans: structuredClone(subscriptionPlanRows),
         accounts: new Map(
           [...accountsStore.entries()].map(([key, value]) => [key, structuredClone(value)]),
         ),
@@ -265,6 +342,12 @@ function makeDb() {
         topupRows.push(...snapshot.topups)
         ledgerRows.length = 0
         ledgerRows.push(...snapshot.ledger)
+        userCreditRows.length = 0
+        userCreditRows.push(...snapshot.credits)
+        profileRows.length = 0
+        profileRows.push(...snapshot.profiles)
+        subscriptionPlanRows.length = 0
+        subscriptionPlanRows.push(...snapshot.plans)
         accountsStore.clear()
         for (const [key, value] of snapshot.accounts) accountsStore.set(key, value)
         throw error
