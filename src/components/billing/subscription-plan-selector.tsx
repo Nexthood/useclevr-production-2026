@@ -2,7 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import {
+  getCountryFromLocale,
+  getMarketForCountry,
   type BillingInterval,
+  type CheckoutMarket,
 } from "@/lib/billing/launch-pricing"
 import { formatPlanPrice, getPlanPriceForMarket, type BillingPlan } from "@/lib/billing/plans"
 import Link from "next/link"
@@ -18,6 +21,14 @@ export function SubscriptionPlanSelector({
   currentPlanLabel: string
 }) {
   const [billingInterval, setBillingInterval] = React.useState<BillingInterval>("monthly")
+  const [market, setMarket] = React.useState<CheckoutMarket>("eu")
+
+  // Resolve the displayed currency with the same authoritative market logic
+  // used by checkout: browser locale → supported billing market.
+  React.useEffect(() => {
+    const country = getCountryFromLocale(navigator.language)
+    if (country) setMarket(getMarketForCountry(country))
+  }, [])
 
   return (
     <div className="space-y-4">
@@ -41,7 +52,7 @@ export function SubscriptionPlanSelector({
                 <div className="min-w-0">
                   <p className="font-semibold text-foreground">{plan.name}</p>
                   <p className="break-words text-sm text-muted-foreground">
-                    {formatSubscriptionPlanPrice(plan, billingInterval)}
+                    {formatSubscriptionPlanPrice(plan, market, billingInterval)}
                   </p>
                 </div>
                 {isCurrent && (
@@ -104,9 +115,9 @@ function BillingIntervalSelector({
   )
 }
 
-function formatSubscriptionPlanPrice(plan: BillingPlan, billingInterval: BillingInterval) {
+function formatSubscriptionPlanPrice(plan: BillingPlan, market: CheckoutMarket, billingInterval: BillingInterval) {
   if (plan.tier === "free") return formatPlanPrice(plan)
-  const resolved = getPlanPriceForMarket(plan, "eu", billingInterval)
+  const resolved = getPlanPriceForMarket(plan, market, billingInterval)
   if (resolved?.amountMinor !== null && resolved?.amountMinor !== undefined) {
     return resolved.displayPrice
   }

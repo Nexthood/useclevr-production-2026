@@ -14,14 +14,14 @@ export function detectUsyLanguage(question: string): SupportedUsyLanguage {
   const normalized = normalizeUsyText(question);
 
   if (
-    /\b(deutsch|bitte|kontakt|kontaktiere|sprichst|sprechen|senden|bestatigen|bestaetigen|kannst du|kann ich|wie kann|was ist|was kann|was kostet|welche|daten|deine|gib mir|zeige mir|fur wen|für wen|gedacht|hochladen|rechnung|gutschrift|schlussel|schlüssel|datensatz|bericht|umsatz|marge|lager|handler|händler|verkauf|verkaufsanalyse|prognose|unterstutzung|unterstuetzung)\b/.test(
+    /\b(deutsch|bitte|kontakt|kontaktiere|sprichst|sprechen|senden|bestatigen|bestaetigen|kannst du|kann ich|wie kann|was ist|was kann|was kostet|was enthalt|enthalt|enthalten|welche|daten|deine|gib mir|zeige mir|fur wen|für wen|gedacht|hochladen|rechnung|gutschrift|schlussel|schlüssel|datensatz|bericht|umsatz|marge|lager|handler|händler|verkauf|verkaufsanalyse|prognose|unterstutzung|unterstuetzung)\b/.test(
       normalized,
     )
   ) {
     return "german";
   }
   if (
-    /\b(nederlands|spreek|talen|wat kan|wat is|voor wie|hoe kan|kan ik|uploaden|factuur|gegevensset|gegevens|tegoed|abonnement|omzet|marge|winkelier|voorraad|ondersteuning)\b/.test(
+    /\b(nederlands|spreek|talen|wat kan|wat is|voor wie|hoe kan|kan ik|uploaden|factuur|gegevensset|gegevens|tegoed|abonnement|omzet|marge|winkelier|voorraad|ondersteuning|bevat)\b/.test(
       normalized,
     )
   ) {

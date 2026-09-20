@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 
+import { getCreditsLimitForTier } from "@/lib/billing/plans";
+
 console.log("Running Stripe subscription lifecycle regression tests...\n");
 
 testCanceledSubscriptionDowngradesToFree();
@@ -135,17 +137,17 @@ function testProcessPlanChangeCalledOnTierChange() {
 }
 
 function testProPlanIncludesCorrectCredits() {
-  console.log("TEST: Pro plan includes correct credits (500)");
+  console.log("TEST: Plan credit limits come from the authoritative plan catalog");
 
-  const PRO_CREDITS = 500;
-  const BUSINESS_CREDITS = 5000;
-  const FREE_CREDITS = 2;
-  
+  const PRO_CREDITS = getCreditsLimitForTier("pro");
+  const BUSINESS_CREDITS = getCreditsLimitForTier("business");
+  const FREE_CREDITS = getCreditsLimitForTier("free");
+
   assert.equal(PRO_CREDITS, 500, "Pro tier should include 500 credits per month");
-  assert.equal(BUSINESS_CREDITS, 5000, "Business tier should include 5000 credits per month");
+  assert.equal(BUSINESS_CREDITS, 1500, "Business tier should include 1500 credits per month");
   assert.equal(FREE_CREDITS, 2, "Free tier should include 2 credits");
 
-  console.log("  ✓ Plan credit limits are correct: Pro=500, Business=5000, Free=2");
+  console.log("  ✓ Plan credit limits are correct: Pro=500, Business=1500, Free=2");
 }
 
 function testIdempotencyKeyPreventsDuplicateCredits() {

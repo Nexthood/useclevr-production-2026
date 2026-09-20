@@ -7,6 +7,7 @@ import {
   buildUsyRefundAnswer,
   buildUsyTopUpAnswer,
   buildUsyZeroCreditsAnswer,
+  formatUsyCreditCount,
   resolveUsyBillingState,
 } from "@/lib/usy/billing-knowledge";
 import {
@@ -277,8 +278,11 @@ const productIntents: ProductIntentRule[] = [
   {
     id: "datasets",
     keywords: ["datasets", "dataset library", "delete dataset", "open dataset", "datensatz", "gegevensset", "conjunto de datos", "adatkeszlet", "set de date"],
-    answer: () =>
-      "Datasets are the uploaded files UseClevr uses for dashboards, reports, and AI Assistant context. Open Datasets to review uploaded files, open the dashboard for a dataset, or delete files you no longer need.",
+    answer: () => {
+      const plans = getPlanSummary();
+      const limits = `Dataset limits by plan: Free ${formatUsyCreditCount(plans.free.maxDatasets, "english")}, Pro ${formatUsyCreditCount(plans.pro.maxDatasets, "english")}, Business ${formatUsyCreditCount(plans.business.maxDatasets, "english")}.`;
+      return `Datasets are the uploaded files UseClevr uses for dashboards, reports, and AI Assistant context. Open Datasets to review uploaded files, open the dashboard for a dataset, or delete files you no longer need. ${limits}`;
+    },
     followUps: ["Open Dashboard", "Generate a report", "Upload another file", "Ask AI Assistant"],
     actions: ["OPEN_DATASETS", "OPEN_DASHBOARD"],
   },
@@ -395,6 +399,21 @@ const productIntents: ProductIntentRule[] = [
     keywords: [
       "plans",
       "pricing",
+      "how many credits does business include",
+      "how many credits does pro include",
+      "how many credits does free include",
+      "how many datasets can i have",
+      "how many datasets does business include",
+      "business include",
+      "pro include",
+      "business credits",
+      "business datasets",
+      "was enthält der business plan",
+      "was enthält business",
+      "business plan enthalten",
+      "what does the business plan include",
+      "what is included in business",
+      "pricing",
       "price",
       "subscription",
       "which plan",
@@ -430,7 +449,7 @@ const productIntents: ProductIntentRule[] = [
     ],
     answer: () => {
       const plans = getPlanSummary();
-      return `Free includes ${plans.free.monthlyCredits} AI credits and up to ${plans.free.maxDatasets} datasets. Pro is ${plans.pro.priceText} with ${plans.pro.monthlyCredits} AI credits and up to ${plans.pro.maxDatasets} datasets. Business is ${plans.business.priceText} with ${plans.business.monthlyCredits} AI credits, up to ${plans.business.maxDatasets} datasets, larger uploads, Accounting AI, document processing, and dedicated support.`;
+      return `Free includes ${formatUsyCreditCount(plans.free.monthlyCredits, "english")} AI credits and up to ${formatUsyCreditCount(plans.free.maxDatasets, "english")} datasets. Pro is ${plans.pro.priceText} with ${formatUsyCreditCount(plans.pro.monthlyCredits, "english")} AI credits and up to ${formatUsyCreditCount(plans.pro.maxDatasets, "english")} datasets. Business is €${plans.business.monthlyPrice}/month with ${formatUsyCreditCount(plans.business.monthlyCredits, "english")} AI credits, up to ${formatUsyCreditCount(plans.business.maxDatasets, "english")} datasets, larger uploads, Accounting AI, document processing, and dedicated support.`;
     },
     followUps: pricingFollowUps,
     actions: ["OPEN_SUBSCRIPTION", "OPEN_BILLING"],
@@ -1015,9 +1034,19 @@ function buildCreditsAnswer(context: UsyContext, language: SupportedUsyLanguage 
   };
   const state = resolveUsyBillingState(context.usage);
   const zeroCreditGuidance = state.zeroUsableCredits ? buildUsyZeroCreditsAnswer(context.usage, language) : null;
+  const plans = getPlanSummary();
+  const planFacts: Record<SupportedUsyLanguage, string> = {
+    german: `Plan-Credits: Free ${formatUsyCreditCount(plans.free.monthlyCredits, language)}, Pro ${formatUsyCreditCount(plans.pro.monthlyCredits, language)}/Monat (bis zu ${formatUsyCreditCount(plans.pro.maxDatasets, language)} Datasets), Business ${formatUsyCreditCount(plans.business.monthlyCredits, language)}/Monat (bis zu ${formatUsyCreditCount(plans.business.maxDatasets, language)} Datasets).`,
+    dutch: `Plancredits: Free ${formatUsyCreditCount(plans.free.monthlyCredits, language)}, Pro ${formatUsyCreditCount(plans.pro.monthlyCredits, language)}/maand (tot ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasets), Business ${formatUsyCreditCount(plans.business.monthlyCredits, language)}/maand (tot ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasets).`,
+    spanish: `Créditos por plan: Free ${formatUsyCreditCount(plans.free.monthlyCredits, language)}, Pro ${formatUsyCreditCount(plans.pro.monthlyCredits, language)}/mes (hasta ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasets), Business ${formatUsyCreditCount(plans.business.monthlyCredits, language)}/mes (hasta ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasets).`,
+    hungarian: `Csomagkreditek: Free ${formatUsyCreditCount(plans.free.monthlyCredits, language)}, Pro ${formatUsyCreditCount(plans.pro.monthlyCredits, language)}/hó (legfeljebb ${formatUsyCreditCount(plans.pro.maxDatasets, language)} dataset), Business ${formatUsyCreditCount(plans.business.monthlyCredits, language)}/hó (legfeljebb ${formatUsyCreditCount(plans.business.maxDatasets, language)} dataset).`,
+    romanian: `Credite pe plan: Free ${formatUsyCreditCount(plans.free.monthlyCredits, language)}, Pro ${formatUsyCreditCount(plans.pro.monthlyCredits, language)}/lună (până la ${formatUsyCreditCount(plans.pro.maxDatasets, language)} seturi de date), Business ${formatUsyCreditCount(plans.business.monthlyCredits, language)}/lună (până la ${formatUsyCreditCount(plans.business.maxDatasets, language)} seturi de date).`,
+    english: `Plan credits: Free ${formatUsyCreditCount(plans.free.monthlyCredits, language)}, Pro ${formatUsyCreditCount(plans.pro.monthlyCredits, language)}/month (up to ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasets), Business ${formatUsyCreditCount(plans.business.monthlyCredits, language)}/month (up to ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasets).`,
+  };
   return [
     facts[language].facts,
     usageText ? (language === "german" ? `Aktuell sichtbare Nutzung: ${usageText}.` : `Current visible usage: ${usageText}.`) : null,
+    planFacts[language],
     buildUsyBillingOverviewAnswer(context.usage, language),
     buildUsyPurchasedRulesAnswer(language),
     zeroCreditGuidance,
@@ -1421,7 +1450,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
-      plans: `Free enthält ${plans.free.monthlyCredits} AI-Credits und bis zu ${plans.free.maxDatasets} Datasets. Pro kostet €40/Monat. Business kostet €420/Monat.`,
+      plans: `Free enthält ${plans.free.monthlyCredits} AI-Credits und bis zu ${plans.free.maxDatasets} Datasets. Pro kostet €${plans.pro.monthlyPrice}/Monat mit ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} AI-Credits und bis zu ${formatUsyCreditCount(plans.pro.maxDatasets, language)} Datasets. Business kostet €${plans.business.monthlyPrice}/Monat mit ${formatUsyCreditCount(plans.business.monthlyCredits, language)} AI-Credits und bis zu ${formatUsyCreditCount(plans.business.maxDatasets, language)} Datasets.`,
       billing: "Billing, Abos, Zahlungsdaten, Checkout, Rechnungen und Planaktionen werden in den sicheren Billing- und Account-Einstellungen verwaltet.",
       reports: "Berichte verwandeln abgeschlossene Analysen in teilbare Management-Zusammenfassungen mit PDF- oder Excel-Downloads, wenn diese Exporte verfügbar sind.",
       retail: `UseClevr hilft kleinen Händlern, Verkaufs- und Bestandsdaten in Umsatz-, Margen-, Stock-Risk-, Dead-Stock- und Produktleistungs-Hinweise zu übersetzen. Lade zuerst unterstützte Exporte (${uploadFormats}) hoch und nutze danach Dashboard oder AI Assistant.`,
@@ -1443,7 +1472,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
-      plans: `Free bevat ${plans.free.monthlyCredits} AI credits en maximaal ${plans.free.maxDatasets} datasets. Pro kost €40/maand. Business kost €420/maand.`,
+      plans: `Free bevat ${plans.free.monthlyCredits} AI credits en maximaal ${plans.free.maxDatasets} datasets. Pro kost €${plans.pro.monthlyPrice}/maand met ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} AI credits en maximaal ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasets. Business kost €${plans.business.monthlyPrice}/maand met ${formatUsyCreditCount(plans.business.monthlyCredits, language)} AI credits en maximaal ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasets.`,
       billing: "Billing, abonnementen, betalingsgegevens, checkout, facturen en planacties staan in de veilige billing- en accountinstellingen.",
       reports: "Rapporten zetten afgeronde analyses om in deelbare managementsamenvattingen met PDF- of Excel-downloads wanneer die exports beschikbaar zijn.",
       retail: "UseClevr helpt kleine retailers om verkoop- en voorraaddata om te zetten in omzet-, marge-, voorraadrisico-, dead-stock- en productprestatie-inzichten.",
@@ -1465,7 +1494,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
-      plans: `Free incluye ${plans.free.monthlyCredits} créditos AI y hasta ${plans.free.maxDatasets} datasets. Pro cuesta €40/mes. Business cuesta €420/mes.`,
+      plans: `Free incluye ${plans.free.monthlyCredits} créditos AI y hasta ${plans.free.maxDatasets} datasets. Pro cuesta €${plans.pro.monthlyPrice}/mes con ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} créditos AI y hasta ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasets. Business cuesta €${plans.business.monthlyPrice}/mes con ${formatUsyCreditCount(plans.business.monthlyCredits, language)} créditos AI y hasta ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasets.`,
       billing: "Facturación, suscripciones, pagos, checkout, facturas y acciones de plan se gestionan en la configuración segura de billing y cuenta.",
       reports: "Los informes convierten análisis completados en resúmenes de gestión compartibles con descargas PDF o Excel cuando estén disponibles.",
       retail: "Retail ayuda con inventario, riesgos de stock, dead stock, rendimiento de producto, márgenes, ingresos e integraciones.",
@@ -1487,7 +1516,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
-      plans: `A Free ${plans.free.monthlyCredits} AI kreditet és legfeljebb ${plans.free.maxDatasets} datasetet tartalmaz. A Pro ára €40/hó. A Business ára €420/hó.`,
+      plans: `A Free ${plans.free.monthlyCredits} AI kreditet és legfeljebb ${plans.free.maxDatasets} datasetet tartalmaz. A Pro ára €${plans.pro.monthlyPrice}/hó ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} AI kredittel és legfeljebb ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasettel. A Business ára €${plans.business.monthlyPrice}/hó ${formatUsyCreditCount(plans.business.monthlyCredits, language)} AI kredittel és legfeljebb ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasettel.`,
       billing: "A billing, előfizetés, fizetési adatok, checkout, számlák és csomagműveletek a biztonságos billing és account beállításokban kezelhetők.",
       reports: "A riportok a befejezett elemzéseket megosztható vezetői összefoglalókká alakítják PDF vagy Excel letöltéssel, amikor elérhető.",
       retail: "A Retail segít készlet, készletkockázat, dead stock, termékteljesítmény, margin, bevétel és integrációs állapot áttekintésében.",
@@ -1509,7 +1538,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
-      plans: `Free include ${plans.free.monthlyCredits} credite AI și până la ${plans.free.maxDatasets} seturi de date. Pro costă €40/lună. Business costă €420/lună.`,
+      plans: `Free include ${plans.free.monthlyCredits} credite AI și până la ${plans.free.maxDatasets} seturi de date. Pro costă €${plans.pro.monthlyPrice}/lună cu ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} credite AI și până la ${formatUsyCreditCount(plans.pro.maxDatasets, language)} seturi de date. Business costă €${plans.business.monthlyPrice}/lună cu ${formatUsyCreditCount(plans.business.monthlyCredits, language)} credite AI și până la ${formatUsyCreditCount(plans.business.maxDatasets, language)} seturi de date.`,
       billing: "Billingul, abonamentele, plățile, checkoutul, facturile și acțiunile de plan se gestionează în setările securizate de billing și cont.",
       reports: "Rapoartele transformă analizele finalizate în rezumate de management partajabile cu descărcări PDF sau Excel când sunt disponibile.",
       retail: "Retail ajută cu inventar, riscuri de stoc, dead stock, performanța produselor, marje, venituri și statusul integrărilor.",

@@ -5,6 +5,9 @@ import { Card } from "@/components/ui/card"
 import {
   formatRecurringPrice,
   getCheckoutMarketOptions,
+  getCountryFromLocale,
+  getMarketForCountry,
+  type CheckoutMarket,
   type CheckoutMarketPrice,
   type BillingInterval,
   type SupportedCurrency,
@@ -30,6 +33,14 @@ const ctaLabel: Record<BillingPlan["tier"], string> = {
 
 export function PublicPricingPlans() {
   const [billingInterval, setBillingInterval] = React.useState<BillingInterval>("monthly")
+  const [market, setMarket] = React.useState<CheckoutMarket>("eu")
+
+  // Resolve the displayed currency with the same authoritative market logic
+  // used by checkout: browser locale → supported billing market.
+  React.useEffect(() => {
+    const country = getCountryFromLocale(navigator.language)
+    if (country) setMarket(getMarketForCountry(country))
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -39,18 +50,17 @@ export function PublicPricingPlans() {
 
       <div className="grid gap-6 md:grid-cols-3">
         {plans.map((plan) => (
-          <PricingCard key={plan.id} plan={plan} billingInterval={billingInterval} />
+          <PricingCard key={plan.id} plan={plan} billingInterval={billingInterval} market={market} />
         ))}
       </div>
     </div>
   )
 }
 
-function PricingCard({ plan, billingInterval }: { plan: BillingPlan; billingInterval: BillingInterval }) {
+function PricingCard({ plan, billingInterval, market }: { plan: BillingPlan; billingInterval: BillingInterval; market: CheckoutMarket }) {
   const Icon = planIcon[plan.tier]
   const isPro = plan.tier === "pro"
-  const launchPrices = plan.id === "pro_monthly" ? getCheckoutMarketOptions("pro", billingInterval) : []
-  const primaryPrice = getPublicPlanPrice(plan, billingInterval)
+  const primaryPrice = getPublicPlanPrice(plan, billingInterval, market)
   const href =
     plan.tier === "free"
       ? "/signup"
@@ -80,18 +90,7 @@ function PricingCard({ plan, billingInterval }: { plan: BillingPlan; billingInte
           <h3 className="mb-1 text-xl font-bold">{plan.name}</h3>
           <p className="text-sm text-muted-foreground">{plan.description}</p>
         </div>
-        <RecurringPriceDisplay price={primaryPrice} size="large" />
-        {launchPrices.length > 0 && (
-          <div className="flex min-w-0 flex-wrap gap-2 text-xs">
-            {launchPrices.map((price) => (
-              <RecurringPriceDisplay
-                key={`${price.billingInterval}-${price.currency}`}
-                price={getMarketPriceDisplay(price)}
-                size="pill"
-              />
-            ))}
-          </div>
-        )}
+        <RecurringPriceDisplay price={primaryPrice} />
       </div>
 
       <ul className="flex-1 space-y-2">
@@ -152,7 +151,7 @@ type PublicPriceDisplay = {
   currency: SupportedCurrency | "MULTI"
 }
 
-function getPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval): PublicPriceDisplay {
+function getPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval, market: CheckoutMarket): PublicPriceDisplay {
   if (plan.tier === "free") {
     return {
       amountText: formatPlanPrice(plan).replace("/month", ""),
@@ -162,9 +161,12 @@ function getPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval)
     }
   }
 
-  const market = getCheckoutMarketOptions(plan.tier, billingInterval).find((option) => option.market === "eu")
-  if (market?.amountMinor !== null && market?.amountMinor !== undefined) {
-    return getMarketPriceDisplay(market)
+  const options = getCheckoutMarketOptions(plan.tier, billingInterval)
+  const marketOption =
+    options.find((option) => option.market === market && option.amountMinor !== null) ??
+    options.find((option) => option.amountMinor !== null)
+  if (marketOption) {
+    return getMarketPriceDisplay(marketOption)
   }
 
   return {
@@ -192,33 +194,14 @@ function formatCurrencyAmount(amountMinor: number | null, currency: SupportedCur
 
 function RecurringPriceDisplay({
   price,
-  size,
 }: {
   price: PublicPriceDisplay
-  size: "large" | "pill"
 }) {
   const periodLabel = price.period === "yearly" ? "year" : "month"
   const ariaLabel =
     price.amountMinor === null
       ? `Unavailable per ${periodLabel}`
       : `${price.amountText} per ${periodLabel}`
-
-  if (size === "pill") {
-    return (
-      <span
-        className="notranslate inline-flex max-w-full min-w-0 flex-wrap items-baseline gap-0.5 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground"
-        translate="no"
-        data-public-price="market"
-        data-price-amount-minor={price.amountMinor ?? undefined}
-        data-price-currency={price.currency}
-        data-billing-period={price.period}
-        aria-label={ariaLabel}
-      >
-        <span className="break-words">{price.amountText}</span>
-        <span className="text-muted-foreground">/{periodLabel}</span>
-      </span>
-    )
-  }
 
   return (
     <div

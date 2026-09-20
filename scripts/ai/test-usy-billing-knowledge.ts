@@ -221,6 +221,85 @@ function testConsistencyAcrossLanguages() {
   }
 }
 
+function testBusinessPlanCreditsAnswer() {
+  const reply = buildUsyReply({
+    question: "How many credits does Business include?",
+    context: contextFor("pro"),
+  })
+  assert.match(reply.answer, /Business/)
+  assert.match(reply.answer, /1,500/, "Business must answer with 1,500 AI credits")
+  assert.doesNotMatch(reply.answer, /5,000|5000|5\.000/)
+}
+
+function testBusinessPlanDatasetsAnswer() {
+  const reply = buildUsyReply({
+    question: "How many datasets can I have on Business?",
+    context: contextFor("pro"),
+  })
+  assert.match(reply.answer, /Business is €420\/month with 1,500 AI credits, up to 100 datasets/)
+  assert.match(reply.answer, /up to 100 datasets/)
+  assert.match(reply.answer, /Business is €420\/month with 1,500 AI credits/)
+  assert.doesNotMatch(reply.answer, /250 datasets|250 Datasets|up to 250/i)
+}
+
+function testProPlanCreditsAnswer() {
+  const reply = buildUsyReply({
+    question: "How many credits does Pro include?",
+    context: contextFor("free"),
+  })
+  assert.match(reply.answer, /Pro is €40\/month with 500 AI credits and up to 25 datasets/)
+  assert.doesNotMatch(reply.answer, /5,000|5000/)
+}
+
+function testGermanBusinessPlanAnswer() {
+  const reply = buildUsyReply({
+    question: "Was enthält der Business Plan?",
+    context: contextFor("free"),
+  })
+  assert.equal(reply.intent, "billing")
+  assert.equal(reply.language, "german")
+  assert.match(reply.answer, /Business kostet €420\/Monat/)
+  assert.match(reply.answer, /1\.500 AI-Credits/)
+  assert.match(reply.answer, /bis zu 100 Datasets/)
+  assert.doesNotMatch(reply.answer, /5\.000|5000|250 Datasets/)
+}
+
+function testPlanComparisonAnswer() {
+  const reply = buildUsyReply({
+    question: "Compare Free vs Pro vs Business credits and datasets.",
+    context: contextFor("free"),
+  })
+  assert.equal(reply.intent, "billing")
+  assert.match(reply.answer, /Free includes 2 AI credits and up to 2 datasets/)
+  assert.match(reply.answer, /Pro is €40\/month with 500 AI credits and up to 25 datasets/)
+  assert.match(reply.answer, /Business is €420\/month with 1,500 AI credits, up to 100 datasets/)
+}
+
+function testNoStaleBusinessNumbersAcrossLanguages() {
+  const questions = [
+    "How many credits does Business include?",
+    "How many datasets can I have on Business?",
+    "Was enthält der Business Plan?",
+    "¿Cuántos créditos incluye Business?",
+    "Câte credite include Business?",
+    "Hány kreditet tartalmaz a Business?",
+    "Hoeveel credits bevat Business?",
+    "Compare Free vs Pro vs Business",
+  ]
+  for (const question of questions) {
+    const reply = buildUsyReply({
+      question,
+      context: contextFor("pro"),
+    })
+    assert.doesNotMatch(
+      reply.answer,
+      /5,000|5000|5\.000|up to 250|250 Datasets|250 datasets|250 datensets|250 datsets/i,
+      `${question} must not answer with stale Business numbers`,
+    )
+    assert.match(reply.answer, /1,?500|1\.500/, `${question} must surface the 1,500 Business credits`)
+  }
+}
+
 const tests = [
   { name: "Free accounts cannot purchase top-ups; Usy explains the paid-plan gating", fn: testFreeCannotPurchaseTopUps },
   { name: "Pro and Business accounts can purchase additional credits via Add Credits", fn: testProAndBusinessCanPurchaseTopUps },
@@ -231,6 +310,12 @@ const tests = [
   { name: "Refund answers are central-handling only and never promise approval", fn: testRefundAnswersNeverPromiseApproval },
   { name: "Zero-credit guidance is tier-aware: Free upgrades, paid uses Add Credits", fn: testZeroCreditsGuidanceIsTierAware },
   { name: "Overview answers use the actual state and never invent balances", fn: testOverviewUsesActualStateAndNeverInvents },
+  { name: "Business plan answers use 1,500 credits and 100 datasets", fn: testBusinessPlanCreditsAnswer },
+  { name: "Business dataset limits answer with 100 datasets", fn: testBusinessPlanDatasetsAnswer },
+  { name: "Pro plan answers with 500 credits and 25 datasets", fn: testProPlanCreditsAnswer },
+  { name: "German Business plan answer includes 1,500 credits and 100 datasets", fn: testGermanBusinessPlanAnswer },
+  { name: "Plan comparison answers include all three plans with the new limits", fn: testPlanComparisonAnswer },
+  { name: "No business/plan answer across languages states 5,000 credits or 250 datasets", fn: testNoStaleBusinessNumbersAcrossLanguages },
   { name: "Answers stay deterministic and consistent across EN, DE, NL, ES, HU, RO", fn: testConsistencyAcrossLanguages },
 ]
 

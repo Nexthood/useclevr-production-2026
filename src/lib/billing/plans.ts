@@ -142,8 +142,8 @@ export const PRO_PLAN_LIMITS: PlanLimits = {
 };
 
 export const BUSINESS_PLAN_LIMITS: PlanLimits = {
-  monthlyCredits: 5000,
-  maxDatasets: 250,
+  monthlyCredits: 1500,
+  maxDatasets: 100,
   maxFileSizeMb: 500,
   maxRowsPerDataset: 300000,
   maxTeamMembers: 20,
@@ -204,8 +204,8 @@ export const billingPlans: BillingPlan[] = [
     description: "AI business intelligence platform for teams that need governed, explainable analysis.",
     features: [
       "Everything in Pro",
-      "5000 AI Credits / Month",
-      "Up to 250 Datasets",
+      "1,500 AI Credits / Month",
+      "Up to 100 Datasets",
       "Larger File Upload Limits",
       "Dataset-aware AI Analyst",
       "Executive AI Briefings",

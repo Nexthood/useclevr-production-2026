@@ -282,3 +282,20 @@ export function buildUsyPurchasedRulesAnswer(language: SupportedUsyLanguage): st
   };
   return purchasedRules[language];
 }
+
+const creditCountLocales: Record<SupportedUsyLanguage, string> = {
+  english: "en-US",
+  german: "de-DE",
+  dutch: "nl-NL",
+  spanish: "es-ES",
+  hungarian: "hu-HU",
+  romanian: "ro-RO",
+};
+
+/**
+ * Formats credit/dataset counts with the locale-appropriate separator
+ * (1,500 / 1.500) so answers stay deterministic in every language.
+ */
+export function formatUsyCreditCount(count: number, language: SupportedUsyLanguage): string {
+  return count.toLocaleString(creditCountLocales[language]);
+}
