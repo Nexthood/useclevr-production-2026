@@ -17,7 +17,9 @@ import {
   type SupportedCurrency,
 } from "@/lib/billing/launch-pricing"
 import {
+  BUSINESS_PLAN_LIMITS,
   FREE_PLAN_LIMITS,
+  PRO_PLAN_LIMITS,
   billingPlans,
   formatCustomerPlanLabel,
   formatPlanPrice,
@@ -67,6 +69,10 @@ assert.deepEqual(
 )
 assert.equal(billingPlans.some((plan) => plan.name === "Demo" || plan.id === "demo"), false, "Demo is not a customer-facing plan")
 assert.equal(FREE_PLAN_LIMITS.monthlyCredits, 2, "Free retains 2 included AI credits")
+assert.equal(PRO_PLAN_LIMITS.monthlyCredits, 500, "Pro retains 500 included AI credits")
+assert.equal(PRO_PLAN_LIMITS.maxDatasets, 25, "Pro retains 25 datasets")
+assert.equal(BUSINESS_PLAN_LIMITS.monthlyCredits, 1500, "Business includes 1,500 included AI credits")
+assert.equal(BUSINESS_PLAN_LIMITS.maxDatasets, 100, "Business allows up to 100 datasets")
 assert.equal(getBillingPlan("free").name, "Free", "Free plan resolves by ID")
 assert.equal(getBillingPlanByTier("free").name, "Free", "Free plan resolves by tier")
 assert.equal(formatPlanPrice(getBillingPlan("free")), "$0/€0/month", "Free displays both launch currencies")
@@ -557,8 +563,14 @@ const upgradeModal = readProjectFile("src/components/shared/upgrade-modal.tsx")
 assert.ok(upgradeModal.includes("getPlanPriceForMarket"), "UpgradeModal uses canonical pricing resolver for Business")
 
 const subscriptionSelector = readProjectFile("src/components/billing/subscription-plan-selector.tsx")
-assert.ok(!subscriptionSelector.includes("option.market === \"eu\""), "SubscriptionPlanSelector no longer hardcodes EU market lookup")
+assert.ok(!subscriptionSelector.includes('option.market === "eu"'), "SubscriptionPlanSelector no longer hardcodes EU market lookup")
 assert.ok(subscriptionSelector.includes("getPlanPriceForMarket"), "SubscriptionPlanSelector uses canonical pricing resolver")
+
+const publicPricing = readProjectFile("src/components/billing/public-pricing-plans.tsx")
+assert.ok(!publicPricing.includes('size="pill"'), "Public pricing no longer renders per-market currency pills")
+assert.ok(!publicPricing.includes('data-public-price="market"'), "Public pricing has no per-market pill price elements")
+assert.ok(publicPricing.includes("getMarketForCountry"), "Public pricing resolves the primary displayed price through the market resolver")
+assert.ok(!publicPricing.includes('option.market === "eu"'), "Public pricing does not hardcode the EU market for the primary price")
 
 const billingPlansSource = readProjectFile("src/lib/billing/plans.ts")
 assert.ok(billingPlansSource.includes("resolvePlanPrice"), "formatPlanPrice delegates to canonical resolver")

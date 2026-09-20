@@ -65,6 +65,7 @@ export function getPlanSummary() {
     free: {
       name: free?.name ?? "Free",
       monthlyCredits: free?.limits.monthlyCredits ?? 2,
+      monthlyPrice: free?.price ?? 0,
       maxDatasets: free?.limits.maxDatasets ?? 2,
       maxFileSizeMb: free?.limits.maxFileSizeMb ?? 10,
       features: free?.features ?? [],
@@ -72,6 +73,7 @@ export function getPlanSummary() {
     pro: {
       name: pro?.name ?? "Pro",
       priceText: `€${publicMonthlyPlanPrices.pro}/month`,
+      monthlyPrice: pro?.price ?? 40,
       monthlyCredits: pro?.limits.monthlyCredits ?? 500,
       maxDatasets: pro?.limits.maxDatasets ?? 25,
       maxFileSizeMb: pro?.limits.maxFileSizeMb ?? 100,
@@ -79,9 +81,10 @@ export function getPlanSummary() {
     },
     business: {
       name: business?.name ?? "Business",
-      priceText: `EUR ${publicMonthlyPlanPrices.business}/month`,
-      monthlyCredits: business?.limits.monthlyCredits ?? 5000,
-      maxDatasets: business?.limits.maxDatasets ?? 250,
+      priceText: `€${publicMonthlyPlanPrices.business}/month`,
+      monthlyPrice: business?.price ?? 420,
+      monthlyCredits: business?.limits.monthlyCredits ?? 1500,
+      maxDatasets: business?.limits.maxDatasets ?? 100,
       maxFileSizeMb: business?.limits.maxFileSizeMb ?? 500,
       features: business?.features ?? [],
     },

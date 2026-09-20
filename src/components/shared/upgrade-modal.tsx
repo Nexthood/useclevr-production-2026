@@ -2,9 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
+import { getCountryFromLocale, getMarketForCountry, type CheckoutMarket } from "@/lib/billing/launch-pricing"
 import { billingPlans, formatPlanPrice, getPlanPriceForMarket } from "@/lib/billing/plans"
 import { CreditCard, Sparkles, Store } from "lucide-react"
 import Link from "next/link"
+import * as React from "react"
 
 type UpgradeModalProps = {
   open: boolean
@@ -38,6 +40,14 @@ export function UpgradeModal({
   const proPlan = billingPlans.find((plan) => plan.id === "pro_monthly")
   const businessPlan = billingPlans.find((plan) => plan.id === "business_monthly")
 
+  // Resolve the displayed currency with the same authoritative market logic
+  // used by checkout: browser locale → supported billing market.
+  const [market, setMarket] = React.useState<CheckoutMarket>("eu")
+  React.useEffect(() => {
+    const country = getCountryFromLocale(navigator.language)
+    if (country) setMarket(getMarketForCountry(country))
+  }, [])
+
   return (
     <Modal open={open} onOpenChange={onOpenChange} title={title} description={description}>
       <div className="space-y-5">
@@ -64,7 +74,7 @@ export function UpgradeModal({
             <p className="text-xs text-muted-foreground mb-3">
               {proPlan?.description || "AI-powered analytics for growing businesses."}
             </p>
-            {proPlan && <p className="mb-3 text-sm font-semibold text-foreground">{formatPlanPrice(proPlan)}</p>}
+            {proPlan && <p className="mb-3 text-sm font-semibold text-foreground">{getPlanPriceForMarket(proPlan, market, "monthly")?.displayPrice ?? formatPlanPrice(proPlan)}</p>}
             <Link href={primaryActionHref} className="block">
               <Button size="sm" className="w-full" onClick={() => onOpenChange(false)}>
                 <CreditCard className="mr-2 h-4 w-4" />
@@ -83,7 +93,7 @@ export function UpgradeModal({
             </p>
             {businessPlan && (
               <p className="mb-3 text-sm font-semibold text-foreground">
-                {getPlanPriceForMarket(businessPlan, "eu", "monthly")?.displayPrice ?? formatPlanPrice(businessPlan)}
+                {getPlanPriceForMarket(businessPlan, market, "monthly")?.displayPrice ?? formatPlanPrice(businessPlan)}
               </p>
             )}
             <Link href="/app/settings/checkout?plan=business_monthly" className="block">

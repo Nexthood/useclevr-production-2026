@@ -114,6 +114,7 @@
     "test:tier-resolution": "node -r tsx/esm scripts/billing/test-tier-resolution.ts",
     "test:retail-pos": "node -r tsx/esm scripts/retail/test-pos-integration.ts",
     "test:pro-pricing": "node -r tsx/esm scripts/billing/test-pro-launch-pricing.ts",
+    "test:business-plan-limits": "node -r tsx/esm scripts/billing/test-business-plan-limits.ts",
     "test:mcp-dashboard": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-payload-mcp-dashboard.ts",
     "test:neon": "bash scripts/health/test-neon-connection.sh",
     "test:resend-verification": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/health/test-resend-verification-email.ts",
