@@ -4,39 +4,39 @@ import { readFileSync } from "node:fs";
 import { resolveAccountancyUploadEntitlement } from "../../src/lib/accountancy/upload-entitlements";
 
 function run() {
-  testAccountancyPrebookkeepingIsCreditExempt();
-  testAccountancyProcessorDoesNotDebitNormalCredits();
+  testAccountancyRequiresNormalUploadCredits();
+  testAccountancyProcessorUsesCentralizedCreditEngine();
   testNormalDatasetUploadStillUsesCredits();
   testSuperadminCreditBehaviorStaysInCreditEngine();
   testPrebookkeepingDatasetStaysTenantOwned();
   console.log("Accountancy upload entitlement regression tests passed.");
 }
 
-function testAccountancyPrebookkeepingIsCreditExempt() {
+function testAccountancyRequiresNormalUploadCredits() {
   const csv = resolveAccountancyUploadEntitlement({ datasetType: "prebookkeeping", uploadType: "csv" });
   const excel = resolveAccountancyUploadEntitlement({ datasetType: "prebookkeeping", uploadType: "excel" });
   const pdf = resolveAccountancyUploadEntitlement({ datasetType: "prebookkeeping", uploadType: "pdf" });
   const accountancy = resolveAccountancyUploadEntitlement({ datasetType: "accountancy", uploadType: "csv" });
 
   for (const entitlement of [csv, excel, pdf, accountancy]) {
-    assert.equal(entitlement.normalUploadCreditsRequired, false);
+    assert.equal(entitlement.normalUploadCreditsRequired, true, "Accountancy uploads no longer carry a credit exemption");
     assert.equal(entitlement.source, "accountancy_workflow");
-    assert.equal(entitlement.reason, "accountancy_prebookkeeping_credit_exempt");
+    assert.equal(entitlement.feature, "standard_upload_analysis", "Accountancy uploads use the authoritative standard upload+analysis feature cost");
   }
 }
 
-function testAccountancyProcessorDoesNotDebitNormalCredits() {
+function testAccountancyProcessorUsesCentralizedCreditEngine() {
   const processor = readFileSync("src/lib/accountancy/upload-processing.ts", "utf8");
   const ui = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8");
 
   assert.ok(processor.includes("resolveAccountancyUploadEntitlement"), "Accountancy upload resolves the dedicated entitlement");
   assert.ok(processor.includes("uploadEntitlement"), "Accountancy datasets store the entitlement decision in analysis metadata");
-  assert.ok(!processor.includes('feature: "dataset_upload"'), "Accountancy upload does not reserve normal dataset upload credits");
-  assert.ok(!processor.includes("reserveCredits"), "Accountancy upload does not reserve normal credits");
-  assert.ok(!processor.includes("finalizeCredits"), "Accountancy upload does not finalize normal credits");
-  assert.ok(!processor.includes("checkSpendingLimits"), "Accountancy upload does not enter the normal spending-limit check");
-  assert.ok(!processor.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy upload does not produce normal upload-credit exhaustion");
-  assert.ok(!ui.includes('fetch("/api/usage/credits"'), "Accountancy UI does not pre-block on normal credit balance");
+  assert.ok(processor.includes("reserveAccountancyUploadCredits"), "Accountancy upload reserves credits through the centralized engine");
+  assert.ok(processor.includes("finalizeAccountancyUploadCredits"), "Accountancy upload finalizes the reserved credits once");
+  assert.ok(processor.includes("releaseAccountancyUploadCredits"), "Accountancy upload releases the reservation when processing fails");
+  assert.ok(!processor.includes("RETAIL_CREDIT_COST") && !processor.includes("ACCOUNTANCY_CREDIT_COST"), "no accountancy-specific credit constant exists");
+  assert.ok(processor.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy upload produces structured credit exhaustion when the balance is insufficient");
+  assert.ok(ui.includes('fetch("/api/accountancy/upload"'), "Accountancy UI submits to the accountancy upload path");
   assert.ok(ui.includes("const isUploadBlocked = isPlanLimitReached"), "Accountancy UI leaves entitlement enforcement to the server path");
 }
 

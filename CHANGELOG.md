@@ -10,6 +10,14 @@
 
 ### Fixed
 
+- Fix Retail uploads so a completed Retail upload with its analysis consumes the same 10 credits as every other upload, a rejected upload can no longer continue as a free analysis, and the credit balance refreshes immediately.
+- Fix Accountancy and Pre-bookkeeping uploads so valid CSV and Excel files are accepted again instead of being rejected with "Please upload a valid csv file".
+- Fix Accountancy and Pre-bookkeeping uploads so both the structured CSV/Excel area and the document (PDF/receipt) area reserve, finalize, and release credits through the same central credit engine — each upload costs the standard 10 credits once, failed uploads release the reservation, and duplicate files stay free.
+- Fix the dashboard Upload History card so CSV, Excel, Google Sheets, OneDrive, SharePoint, Snowflake, API, ClevrSync, and document counts describe all datasets in the workspace with their real upload source, and the row total and dataset count share that same workspace scope.
+- Fix dataset records so every new upload stores how it entered UseClevr, existing datasets keep a source derived only from provable stored metadata, and unprovable origins show as Other/Unknown instead of a guessed type.
+- Fix dataset classification so Accountancy and Pre-bookkeeping datasets keep their Accountancy labels on the dashboard instead of appearing as Generic.
+- Fix Forecast Confidence so datasets without a usable time axis show no value instead of implying forecast support, and the score requires genuine multi-observation time-series data rather than a date-named column alone.
+
 - Fix credit displays so the sidebar card, the top subscription indicator, and the Reports & Downloads page always show the same authoritative available balance instead of contradictory legacy counts like "84 / 79 analyses used this month".
 - Fix dataset re-analysis so it charges the real 10-credit standard analysis instead of a 1-credit stub.
 - Fix AI Assistant analytical questions so they reserve, finalize, and release credits exactly like every other AI request instead of running free.

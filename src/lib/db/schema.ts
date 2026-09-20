@@ -458,6 +458,8 @@ export const datasets = pgTable(
     // Module routing
     datasetType: varchar("datasetType", { length: 50 }).default("standard"),
     businessModel: varchar("businessModel", { length: 50 }).default("generic").$type<DatasetBusinessModel>(),
+    // Normalized upload source (csv, excel, google_sheets, ..., unknown)
+    source: varchar("source", { length: 50 }).default("unknown").notNull(),
 
     // Legacy field - deprecated
     status: varchar("status", { length: 255 }).default("processing").notNull(),

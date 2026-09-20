@@ -1,4 +1,3 @@
-import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 
 import {
@@ -23,6 +22,12 @@ import {
 import type { HybridAiFeatureId } from "@/lib/hybrid-ai/features";
 import { debugLog, debugWarn } from "@/lib/utils/debug";
 import { normalizeProviderUsage, type ProviderUsage } from "@/lib/billing/provider-usage";
+import {
+  MANAGED_CLOUD_MODEL_NAME,
+  MANAGED_CLOUD_PROVIDER_NAME,
+  getManagedCloudLanguageModel,
+  managedCloudCredentialMissingMessage,
+} from "@/lib/ai/managed-cloud-provider";
 
 export interface ServerAiTextResult {
   text: string;
@@ -134,9 +139,30 @@ export async function generateServerAiText(
     return null;
   }
 
+  const cloudStartedAt = Date.now();
+  const managedModel = getManagedCloudLanguageModel();
+  if (!managedModel) {
+    if (options.userId) {
+      recordAiRequestAudit(defaultCloudAuditInput(options.userId, {
+        datasetId: options.datasetId,
+        mode: aiMode,
+        purpose,
+        fallbackUsed: false,
+        success: false,
+        errorReason: managedCloudCredentialMissingMessage(),
+        latencyMs: 0,
+        executionLocation: "none",
+      }));
+    }
+    debugWarn(`[${options.context}] Managed cloud is not configured (missing server credential)`, {
+      credentialEnv: "GOOGLE_GENERATIVE_AI_API_KEY | GEMINI_API_KEY",
+    });
+    return null;
+  }
+
   try {
     const { text, usage } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model: managedModel,
       prompt,
     });
     const normalizedText = text.trim();
@@ -149,24 +175,25 @@ export async function generateServerAiText(
         purpose,
         fallbackUsed: userProviderFailed,
         success: true,
+        latencyMs: Date.now() - cloudStartedAt,
       }));
     }
 
     debugLog(`[${options.context}] Default cloud AI response generated`, {
-      providerName: "gemini-cloud",
-      modelName: "gemini-2.5-flash",
+      providerName: MANAGED_CLOUD_PROVIDER_NAME,
+      modelName: MANAGED_CLOUD_MODEL_NAME,
       fallbackUsed: Boolean(options.userId),
     });
 
     return {
       text: normalizedText,
-      providerName: "gemini-cloud",
-      modelName: "gemini-2.5-flash",
+      providerName: MANAGED_CLOUD_PROVIDER_NAME,
+      modelName: MANAGED_CLOUD_MODEL_NAME,
       fallbackUsed: Boolean(options.userId),
       source: "default-cloud",
       usage: normalizeProviderUsage({
         provider: "google",
-        model: "gemini-2.5-flash",
+        model: MANAGED_CLOUD_MODEL_NAME,
         usage: usage as Record<string, unknown> | undefined,
         rawUsageReference: usage ? { source: "ai_sdk_usage" } : { source: "missing_provider_usage" },
       }),
@@ -180,6 +207,7 @@ export async function generateServerAiText(
         fallbackUsed: userProviderFailed,
         success: false,
         errorReason: error instanceof Error ? error.message : String(error),
+        latencyMs: Date.now() - cloudStartedAt,
       }));
     }
     debugWarn(`[${options.context}] Default cloud AI failed`, {
@@ -198,21 +226,23 @@ function defaultCloudAuditInput(
     fallbackUsed: boolean;
     success: boolean;
     errorReason?: string | null;
+    latencyMs?: number | null;
     executionLocation?: "cloud" | "none";
   },
 ): AiRequestAuditInput {
   return {
     userId,
     datasetId: input.datasetId,
-    providerName: "UseClevr Cloud Analysis",
+    providerName: MANAGED_CLOUD_PROVIDER_NAME,
     providerType: "default-cloud",
-    modelName: "gemini-2.5-flash",
+    modelName: MANAGED_CLOUD_MODEL_NAME,
     mode: input.mode,
     executionLocation: input.executionLocation || "cloud",
     fallbackUsed: input.fallbackUsed,
     purpose: input.purpose,
     success: input.success,
     errorReason: input.errorReason,
+    latencyMs: input.latencyMs,
   };
 }
 

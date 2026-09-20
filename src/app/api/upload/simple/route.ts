@@ -5,6 +5,7 @@ import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { estimateFeatureCredits } from "@/lib/billing/feature-costs";
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model";
+import { deriveDatasetSource } from "@/lib/data/dataset-source";
 import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
@@ -423,6 +424,7 @@ export async function POST(request: Request) {
       precomputedMetrics: parsed.aggregatedMetrics,
       datasetType: "standard",
       businessModel,
+      source: deriveDatasetSource({ fileName: uploadFile.name, mimeType: uploadFile.type }),
       status: "processing",
       analysisStatus: "processing",
       analysisProgress: 10,

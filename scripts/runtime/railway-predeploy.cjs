@@ -321,6 +321,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0031_fix_credit_ledger_missing_columns.sql"),
   readMigrationStatement("src/lib/db/migrations/0032_widen_credit_ledger_transaction_type.sql"),
   readMigrationStatement("src/lib/db/migrations/0033_concurrent_analysis_count.sql"),
+  readMigrationStatement("src/lib/db/migrations/0034_dataset_source.sql"),
 ];
 
 const constraints = [

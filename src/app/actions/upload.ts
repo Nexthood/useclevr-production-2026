@@ -27,6 +27,10 @@ import {
   reserveCredits,
 } from "@/lib/billing/credit-engine";
 import { FEATURE_CREDIT_COSTS } from "@/lib/billing/feature-costs";
+import {
+  deriveDatasetSource,
+  normalizeDatasetSource,
+} from "@/lib/data/dataset-source";
 
 const STANDARD_UPLOAD_ANALYSIS_CREDITS = FEATURE_CREDIT_COSTS.STANDARD_UPLOAD_ANALYSIS;
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging";
@@ -149,6 +153,40 @@ function parseStringArrayField(formData: FormData, key: string) {
 function numberFormField(formData: FormData, key: string) {
   const value = Number(formData.get(key));
   return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/**
+ * Authoritative upload-source persistence for file-based uploads. The explicit
+ * form source (ClevrSync connector type) wins, then the ClevrSync marker, then
+ * the immutable original file metadata. Nothing is inferred beyond that.
+ */
+function resolveUploadDatasetSource(
+  formData: FormData,
+  input: { uploadSource: string; fileName: string; datasetType: string },
+) {
+  const explicit = normalizeDatasetSource(
+    String(formData.get("dataset_source") || formData.get("datasetSource") || ""),
+  );
+  if (explicit) return explicit;
+
+  const clevrSyncConnectorType = normalizeDatasetSource(
+    String(formData.get("clevrsync_connector_type") || formData.get("clevrsyncConnectorType") || ""),
+  );
+  if (input.uploadSource === "clevrsync") {
+    return clevrSyncConnectorTypeIn(clevrSyncConnectorType) ?? "clevrsync";
+  }
+
+  return deriveDatasetSource({
+    uploadSource: input.uploadSource,
+    datasetType: input.datasetType,
+    fileName: input.fileName,
+  });
+}
+
+function clevrSyncConnectorTypeIn(value: string | null) {
+  return value === "google_sheets" || value === "onedrive" || value === "sharepoint" || value === "excel"
+    ? value
+    : null;
 }
 
 function sourceRowsFromProfitabilityData(profitabilityData: any) {
@@ -552,6 +590,11 @@ export async function uploadCSV(
       columns: headers,
       datasetName,
     });
+    const datasetSource = resolveUploadDatasetSource(formData, {
+      uploadSource: explicitUploadSource,
+      fileName: file.name,
+      datasetType: datasetCategory,
+    });
     const profitabilityAnalysisId = String(
       formData.get("profitability_analysis_id") ||
       formData.get("profitabilityAnalysisId") ||
@@ -569,6 +612,7 @@ export async function uploadCSV(
       business_model: businessModel,
       businessModel,
       uploadSource: explicitUploadSource || fileType || datasetCategory,
+      source: datasetSource,
       ...(isProfitabilityAnalysis
         ? {
             profitability_analysis_id: profitabilityAnalysisId || datasetId,
@@ -649,6 +693,7 @@ export async function uploadCSV(
             columnTypes: {},
             datasetType,
             businessModel,
+            source: datasetSource,
             status: "ready",
             ...initialAnalysisStatus,
             analysis: { ...baseAnalysis, profitability: profitabilityData },
@@ -719,6 +764,7 @@ export async function uploadCSV(
               columnTypes: {},
               datasetType,
               businessModel,
+              source: datasetSource,
               status: "ready",
               ...initialAnalysisStatus,
               analysis: { ...baseAnalysis, streamingMode: true },
@@ -740,6 +786,7 @@ export async function uploadCSV(
               columnTypes: {},
               datasetType,
               businessModel,
+              source: datasetSource,
               status: "ready",
               ...initialAnalysisStatus,
               analysis: baseAnalysis,

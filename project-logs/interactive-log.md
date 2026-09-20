@@ -1,3 +1,49 @@
+## 2026-09-20 — AI Governance: One Normalized Provider/Runtime Truth Across All Pages
+
+1. Interaction title
+   Fix AI governance consistency end-to-end: provider configuration, runtime routing, execution result, audit trace, transparency, provider monitoring, privacy, risk, and reports must describe the same underlying reality.
+
+2. What was the user goal
+   Audit first, then implement the smallest coherent architectural fix so all Governance pages derive provider/runtime/compliance status from one normalized source: Active Providers 0/0 root cause, Gemini shown while no provider is configured, missing GOOGLE_GENERATIVE_AI_API_KEY, "UseClevr Cloud fallback" contradicting fallbackUsed=false, Provider failures showing Ready despite failures, Transparency attributing failed calls, the 52% confidence meaning, compliance score recomputing naturally, and report/export consistency — with secrets never exposed and no commits or pushes.
+
+3. What changed
+   - `src/lib/ai/managed-cloud-provider.ts` (new): single authoritative UseClevr-managed cloud resolution — `getManagedCloudApiKey()` reads `GOOGLE_GENERATIVE_AI_API_KEY || GEMINI_API_KEY` (the existing dataset-chat mechanism), `getManagedCloudLanguageModel()` builds the explicit-credential `gemini-2.5-flash` client or null, plus provider-name/model constants and a safe credential-missing message. Keys stay server-side; only status is exposed.
+   - `src/lib/ai/server-ai-text.ts` (the exact production failure path): uses the shared resolver; when the credential is missing it fails fast, records an append-only audit failure with safe reason "Managed cloud credential missing…" (no raw SDK text, no secrets), executionLocation "none", and returns null; success and failure now record measured latency; provider constants come from the shared module.
+   - `src/lib/chat/fallback.ts`, `src/app/api/analyze/route.ts`, `src/app/api/hybrid-ai/dataset-chat/route.ts`: all switched to the same shared resolver, removing the `GEMINI_API_KEY`-check vs `GOOGLE_GENERATIVE_AI_API_KEY`-call mismatch; analyze keeps its deterministic fallback on failure; the orphaned inline secret-trimming helper was removed.
+   - `src/lib/ai/ai-request-audit.ts`: `errorReason` is redacted with the provider secret redactor at write time (append-only preserved), and `classifyAuditFailureCategory()` normalizes failures into credential_missing | credential_invalid | rate_limited | timeout | provider_unavailable | provider_error derived at read time (no schema change, no falsified history).
+   - `src/lib/ai/byoai-provider.ts`: exported the existing `redactProviderSecretText` for the audit writer.
+   - `src/lib/ai-governance/governance-service.ts` (the shared interpretation layer): new `buildProviderRuntime()` derives normalized state from the already-fetched provider configs, recent audit window (100 entries), and traces — managed-cloud monitored/configured flags, recent attempts/successes/failures, actual fallback usage, failure categories, last success/failure, `executionOrigin` (latest successful generation, deterministic-aware), `latestAttempt`, `latestManagedAttempt`; `summarizeProviders` now includes the UseClevr-managed cloud as a monitored route (status Online/Offline/Rate Limited/Invalid Key/Missing Key/Not tested derived from config + its latest audit attempt), separates missingCredential from invalidKey and notTested from failed, and separates fallbackConfigured from fallbackUsed; `buildPrivacyPosture` reports local availability, cloud availability/configuration, actual provider route (no hardcoded "UseClevr Cloud fallback"), retention, and sensitive-data controls with matching statuses ("Needs setup" is never Ready); `buildRiskPosture` elevates provider-failure risk from real recent audit failures plus config health; `buildComplianceScore` aligns Privacy with the control matrix and counts the managed route as monitored; `getAiGovernanceProviderStatus` shares the same monitored entries; `__governanceTestHooks` exposes pure builders for tests.
+   - `src/components/ai-governance/governance-view.tsx`: Transparency shows actual generation status/origin (AI-generated, Direct data analysis, or "No successful generation"), provider/model from the successful origin, "Governance confidence (readiness-based, not model confidence)", and last-request result with safe failure category; Providers KPIs count missing credentials into Errors, stop showing "Ready" when nothing is monitored, and report fallback usage only when a fallback actually handled requests; the provider table lists the managed route; the Audit Log gains Fallback and safe Failure-reason columns; mode labels map local-only/cloud-only correctly; the header Active-providers badge warns on problems; control matrix names the managed route; SettingsCard shows the truthful fallback route.
+   - `scripts/ai/test-governance-consistency.ts` (new, `test:ai-governance-consistency`, first in `test:all`): 11 groups covering managed-credential resolution, safe failure categories, secret redaction, and the provider-state matrices — no provider + missing managed key (production state), healthy tenant provider + managed success, invalid credential, fallback configured/unused/used/failed, deterministic direct data analysis, intentional local-mode privacy posture, and cross-page consistency (privacy, risk, transparency origin, compliance inputs, export sharing the same snapshot).
+
+4. Problems marked
+   - root cause 1: Active Providers 0/0 counted only tenant BYOK/local rows in `aiProviderConfigs`; the UseClevr-managed cloud route was not represented. Now the monitored set includes the managed route (status from its latest audit attempt + credential configuration).
+   - root cause 2: Gemini shown with no provider configured came from Transparency reading the latest audit entry regardless of success — the failed "UseClevr Cloud Analysis" attempt — plus the always-on "AI-generated" pill. Now provenance comes from the latest successful generation only.
+   - root cause 3: the missing key is a code-lookup inconsistency, not just env config: `server-ai-text.ts` and `chat/fallback.ts` relied on `@ai-sdk/google` reading only `GOOGLE_GENERATIVE_AI_API_KEY` while other paths accept `GEMINI_API_KEY`; production has neither set. One shared resolver now accepts both; the Railway variable to set is `GOOGLE_GENERATIVE_AI_API_KEY` (or `GEMINI_API_KEY`), no placeholder was fabricated.
+   - "UseClevr Cloud fallback" was a hardcoded Privacy display string; "UseClevr Cloud Analysis" is the managed-cloud route name in `defaultCloudAuditInput`; fallbackUsed=false was the truthful runtime fact — Privacy now reports fallback usage only from audit data.
+   - Provider failures showed Ready because risk derived only from provider config stats with zero configured providers; audit failures now drive it within the fetched recent window (no permanent historical scarring).
+   - The 52% confidence is governance readiness (compliance 57 − privacy gap penalty 5), not response/model confidence — now labeled "Governance confidence" with that explanation.
+   - Compliance recomputes naturally: Provider monitoring becomes complete (managed route monitored) while Privacy aligns with the control matrix; the production scenario stays 57% (4/7).
+
+5. User learning
+   AI Governance pages now agree: the managed cloud route appears as a monitored provider with truthful status, failed calls never claim successful AI generation, privacy distinguishes intentionally-disabled cloud from misconfigured cloud, risk reflects real recent failures, and the readiness score reflects the same evidence the pages show.
+
+6. AI-agent learning
+   A managed (system) provider route needs explicit representation in governance or "0/0 + no provider configured" hides a misconfigured system dependency; derive display truth from successful execution origin, never the latest attempt; derive safe failure categories at read time from append-only audit rows to normalize without rewriting history; credential resolution must be single-sourced because two env var names for one provider silently diverge per call site.
+
+7. Follow-up tasks
+   - Set `GOOGLE_GENERATIVE_AI_API_KEY` (or `GEMINI_API_KEY`) in the Railway production environment; the managed route will then record real latency/tokens on success and Transparency will show genuine AI provenance.
+   - `src/lib/ai/ai-router.ts` is unused dead code with its own env mismatch — candidate for removal in a separate cleanup.
+   - Consider a bounded-window query (e.g. 24h) if the 100-entry audit window ever proves too coarse for risk gating.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
 ## 2026-09-20 — Usy Contact Handoff: Dedicated 500-Character Message Step
 
 1. Interaction title

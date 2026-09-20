@@ -1213,7 +1213,7 @@ function publicProviderType(providerType: AiProviderType): AiProviderType {
   return providerType;
 }
 
-function redactProviderSecretText(value: string) {
+export function redactProviderSecretText(value: string) {
   return value
     .replace(/Authorization=Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Authorization=Bearer [redacted]")
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")

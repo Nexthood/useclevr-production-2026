@@ -18,6 +18,9 @@ export const analyzeRequestSchema = z.object({
   data: z.array(z.record(z.string(), z.any())).optional(),
   columns: z.array(z.string()).optional(),
   analysis: z.any().optional(),
+  // Marks the request as the initial analysis included in the upload's
+  // standard_upload_analysis feature. Only granted once per fresh dataset.
+  initialAnalysis: z.boolean().optional().default(false),
   ghostMode: z.boolean().optional().default(false),
 })
 

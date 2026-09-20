@@ -64,7 +64,7 @@ export function AiGovernanceView({
       <section className="rounded-lg border border-cyan-400/20 bg-card/90 p-2.5 shadow-sm sm:p-3" aria-label="AI Governance live status">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <HeaderBadge label="Compliance score" value={`${snapshot.compliance.score}%`} status={statusForScore(snapshot.compliance.score)} />
-          <HeaderBadge label="Active providers" value={`${snapshot.providers.online}/${snapshot.providers.total}`} status={snapshot.providers.online > 0 ? "Ready" : "Needs setup"} />
+          <HeaderBadge label="Active providers" value={`${snapshot.providers.online}/${snapshot.providers.total}`} status={activeProvidersStatus(snapshot)} />
           <HeaderBadge label="Audit logging" value={snapshot.audit.aiRequests > 0 ? "Recording" : "No data"} status={snapshot.audit.aiRequests > 0 ? "Ready" : "Needs data"} />
           <HeaderBadge label="Human oversight" value={snapshot.overrides.totalOverrides > 0 ? "Active" : "No events"} status={snapshot.overrides.totalOverrides > 0 ? "Ready" : "Needs data"} />
           <HeaderBadge label="Last updated" value={formatDateTime(snapshot.generatedAt)} status="Ready" />
@@ -298,12 +298,12 @@ function TransparencySection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           {[
-            ["AI-generated", "Displayed on assistant responses"],
-            ["Provider", latestProvider(snapshot)],
-            ["Model", latestModel(snapshot)],
-            ["Mode", formatMode(snapshot.settings.mode)],
-            ["Confidence score", estimateConfidence(snapshot)],
-            ["Generation timestamp", formatDateTime(snapshot.generatedAt)],
+            ["Generation status", originStatusLabel(snapshot)],
+            ["Provider", originProvider(snapshot)],
+            ["Model", originModel(snapshot)],
+            ["Mode", originMode(snapshot)],
+            ["Governance confidence", `${estimateConfidence(snapshot)} (readiness-based, not model confidence)`],
+            ["Last request result", lastAttemptLabel(snapshot)],
             ["Reasoning summary", "Shows the grounded reason or limitation behind recommendations"],
             ["Human controls", "Accept, reject, edit, and undo"],
           ].map(([label, value]) => (
@@ -316,14 +316,16 @@ function TransparencySection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
 }
 
 function ProvidersSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
+  const total = snapshot.providers.total
+  const errorCount = snapshot.providers.offline + snapshot.providers.missingCredential
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <KpiCard icon={CheckCircle2} label="Ready" value={formatNumber(snapshot.providers.online)} description="Healthy providers" status={snapshot.providers.online > 0 ? "Ready" : "Needs setup"} tooltip="Providers with successful health status." compact />
-        <KpiCard icon={XCircle} label="Errors" value={formatNumber(snapshot.providers.offline)} description="Unavailable or untested" status={snapshot.providers.offline > 0 ? "Error" : "Ready"} tooltip="Providers without a healthy status." compact />
-        <KpiCard icon={AlertTriangle} label="Warnings" value={formatNumber(snapshot.providers.rateLimited)} description="Provider throttling" status={snapshot.providers.rateLimited > 0 ? "Warning" : "Ready"} tooltip="Rate-limited providers need attention." compact />
-        <KpiCard icon={KeyRound} label="Invalid keys" value={formatNumber(snapshot.providers.invalidKey)} description="Credential failures" status={snapshot.providers.invalidKey > 0 ? "Error" : "Ready"} tooltip="Invalid credentials block cloud calls." compact />
-        <KpiCard icon={Zap} label="Fallback" value={formatNumber(snapshot.providers.fallbackActive)} description="Fallback providers" status={snapshot.providers.fallbackActive > 0 ? "Ready" : "Needs setup"} tooltip="Fallback providers protect continuity." compact />
+        <KpiCard icon={CheckCircle2} label="Ready" value={formatNumber(snapshot.providers.online)} description="Healthy provider routes" status={snapshot.providers.online > 0 ? "Ready" : "Needs setup"} tooltip="Providers with successful health status or successful recent requests." compact />
+        <KpiCard icon={XCircle} label="Errors" value={formatNumber(errorCount)} description="Failed providers or missing credentials" status={errorCount > 0 ? "Error" : total > 0 ? "Ready" : "Needs setup"} tooltip="Providers with failed health checks or missing credentials." compact />
+        <KpiCard icon={AlertTriangle} label="Warnings" value={formatNumber(snapshot.providers.rateLimited)} description="Provider throttling" status={snapshot.providers.rateLimited > 0 ? "Warning" : total > 0 ? "Ready" : "Needs setup"} tooltip="Rate-limited providers need attention." compact />
+        <KpiCard icon={KeyRound} label="Invalid keys" value={formatNumber(snapshot.providers.invalidKey)} description="Credential failures" status={snapshot.providers.invalidKey > 0 ? "Error" : total > 0 ? "Ready" : "Needs setup"} tooltip="Invalid credentials block cloud calls." compact />
+        <KpiCard icon={Zap} label="Fallback" value={formatNumber(snapshot.providers.fallbackConfigured)} description={snapshot.providers.fallbackUsed > 0 ? `${formatNumber(snapshot.providers.fallbackUsed)} recent fallback request(s)` : "Fallback providers configured"} status={snapshot.providers.fallbackConfigured > 0 ? "Ready" : "Needs setup"} tooltip="Fallback providers protect continuity. Usage counts only requests a fallback actually handled." compact />
       </div>
       <Card className="border-border bg-card shadow-sm">
         <CardHeader>
@@ -342,7 +344,7 @@ function ProvidersSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
               provider.endpointHost,
               provider.lastCheckedAt ? formatDateTime(provider.lastCheckedAt) : "Not tested",
             ])}
-            empty={<EmptyState icon={Server} title="No provider configured" text="Configure at least one AI provider to monitor health and usage." actionHref="/app/settings/ai-providers" actionLabel="Configure AI provider" />}
+            empty={<EmptyState icon={Server} title="No provider configured" text="No AI provider routes are monitored. Configure a provider or enable UseClevr-managed cloud." actionHref="/app/settings/ai-providers" actionLabel="Configure AI provider" />}
           />
         </CardContent>
       </Card>
@@ -388,7 +390,7 @@ function AuditLogSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
       </CardHeader>
       <CardContent>
         <ResponsiveTable
-          columns={["Timestamp", "Dataset", "Provider", "Model", "Mode", "Latency", "Tokens", "Result"]}
+          columns={["Timestamp", "Dataset", "Provider", "Model", "Mode", "Latency", "Tokens", "Fallback", "Failure reason", "Result"]}
           rows={snapshot.recentAuditEntries.map((entry) => [
             formatDateTime(entry.timestamp),
             entry.datasetId || "No dataset",
@@ -397,6 +399,8 @@ function AuditLogSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
             formatMode(entry.mode),
             entry.latencyMs ? `${entry.latencyMs} ms` : "Not recorded",
             formatNumber(entry.tokens || 0),
+            entry.fallbackUsed ? "Yes" : "No",
+            entry.failureCategory ? entry.failureCategory.replaceAll("_", " ") : "—",
             <StatusPill key={`${entry.id}-result`} status={entry.success ? "Ready" : "Warning"} label={entry.result} />,
           ])}
           empty={<EmptyState icon={History} title="No AI requests recorded" text="Run an AI analysis to begin collecting governance data." actionHref="/app/assistant" actionLabel="Open AI Assistant" />}
@@ -528,6 +532,12 @@ function ReportsSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
 }
 
 function AiGeneratedExample({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
+  const origin = snapshot.runtime.executionOrigin
+  const originPill = origin
+    ? origin.route === "deterministic"
+      ? { status: "Ready" as const, label: "Direct data analysis" }
+      : { status: "Ready" as const, label: "AI-generated" }
+    : { status: "Needs data" as const, label: "No successful generation" }
   return (
     <Card className="border-cyan-400/20 bg-card shadow-sm">
       <CardHeader className="pb-3">
@@ -536,23 +546,23 @@ function AiGeneratedExample({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
             <CardTitle>AI-generated response</CardTitle>
             <CardDescription>Compact transparency metadata shown with AI-assisted outputs.</CardDescription>
           </div>
-          <StatusPill status="Ready" label="AI-generated" />
+          <StatusPill status={originPill.status} label={originPill.label} />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
-          <MetadataChip label="Provider" value={latestProvider(snapshot)} />
-          <MetadataChip label="Model" value={latestModel(snapshot)} />
-          <MetadataChip label="Mode" value={formatMode(snapshot.settings.mode)} />
-          <MetadataChip label="Confidence" value={estimateConfidence(snapshot)} />
-          <MetadataChip label="Generated" value={formatDateTime(snapshot.generatedAt)} />
+          <MetadataChip label="Provider" value={originProvider(snapshot)} />
+          <MetadataChip label="Model" value={originModel(snapshot)} />
+          <MetadataChip label="Mode" value={originMode(snapshot)} />
+          <MetadataChip label="Governance confidence" value={estimateConfidence(snapshot)} />
+          <MetadataChip label="Generated" value={origin ? formatDateTime(origin.occurredAt) : "Not available"} />
           <MetadataChip label="Dataset" value={snapshot.recentAuditEntries[0]?.datasetId || snapshot.recentTraces[0]?.datasetId || "No dataset"} />
           <MetadataChip label="Human review" value={snapshot.overrides.totalOverrides > 0 ? "Oversight recorded" : "No override recorded"} />
         </div>
         <div className="grid gap-3 lg:grid-cols-3">
           <InfoTile label="Reasoning summary" value="The answer uses available dataset context, deterministic calculations when possible, provider routing metadata, and confidence limits." />
           <InfoTile label="Data sources" value={snapshot.recentAuditEntries.length > 0 || snapshot.recentTraces.length > 0 ? "Recent AI audit logs and interaction traces" : "No AI request data recorded yet"} status={snapshot.recentAuditEntries.length > 0 || snapshot.recentTraces.length > 0 ? "Ready" : "Needs data"} />
-          <InfoTile label="Limitations" value="Low data coverage, missing providers, or provider failures reduce readiness and should be reviewed before relying on outputs." status={snapshot.providers.total > 0 ? "Ready" : "Needs setup"} />
+          <InfoTile label="Limitations" value={lastAttemptLabel(snapshot)} status={snapshot.runtime.latestAttempt?.success === false ? "Warning" : snapshot.providers.total > 0 ? "Ready" : "Needs setup"} />
         </div>
       </CardContent>
     </Card>
@@ -570,7 +580,7 @@ function SettingsCard({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
         <InfoTile label="Preferred provider" value={snapshot.settings.preferredProviderId || "Default routing"} />
         <InfoTile label="Preferred model" value={snapshot.settings.preferredModel || "Provider default"} />
         <InfoTile label="Mode" value={formatMode(snapshot.settings.mode)} />
-        <InfoTile label="Fallback provider" value={snapshot.settings.fallbackProviderId || "UseClevr fallback policy"} />
+        <InfoTile label="Fallback route" value={snapshot.settings.fallbackProviderId || (snapshot.providers.managedCloudMonitored ? "UseClevr-managed cloud (policy fallback)" : "No fallback route configured")} />
         <InfoTile label="Temperature" value={String(snapshot.settings.temperature)} />
         <InfoTile label="Max tokens" value={snapshot.settings.maxTokens.toLocaleString()} />
         <InfoTile label="Logging" value={snapshot.settings.loggingEnabled ? "Enabled" : "Disabled"} status={snapshot.settings.loggingEnabled ? "Ready" : "Warning"} />
@@ -836,6 +846,12 @@ function readinessModel(snapshot: AiGovernanceSnapshot) {
   return { status: "Needs setup" as const, label: "Critical", explanation: "The module is rendering safely, but most governance evidence has not been collected yet." }
 }
 
+function activeProvidersStatus(snapshot: AiGovernanceSnapshot): GovernanceStatus {
+  if (snapshot.providers.online > 0) return "Ready"
+  if (snapshot.providers.offline + snapshot.providers.invalidKey + snapshot.providers.rateLimited + snapshot.providers.missingCredential > 0) return "Warning"
+  return "Needs setup"
+}
+
 function nextRecommendedAction(snapshot: AiGovernanceSnapshot) {
   if (snapshot.providers.total === 0) return { text: "Configure at least one AI provider so provider health and model metadata can be monitored.", label: "Configure AI", href: "/app/settings/ai-providers" }
   if (snapshot.audit.aiRequests === 0) return { text: "Run an AI analysis to start collecting audit logs, request metadata, latency, and provider usage.", label: "Open AI Assistant", href: "/app/assistant" }
@@ -869,7 +885,7 @@ function controlItems(snapshot: AiGovernanceSnapshot) {
     {
       label: "Provider monitoring",
       status: snapshot.providers.total > 0 ? "Ready" as const : "Needs setup" as const,
-      description: snapshot.providers.total > 0 ? `${formatNumber(snapshot.providers.total)} provider configuration${snapshot.providers.total === 1 ? "" : "s"} monitored.` : "No AI providers are configured for health monitoring.",
+      description: snapshot.providers.total > 0 ? `${formatNumber(snapshot.providers.total)} provider route${snapshot.providers.total === 1 ? "" : "s"} monitored${snapshot.providers.managedCloudMonitored ? ", including UseClevr-managed cloud" : ""}.` : "No AI provider routes are monitored.",
       action: "View providers",
       href: "/app/ai-governance/providers",
     },
@@ -975,12 +991,40 @@ function reportCards(snapshot: AiGovernanceSnapshot) {
   ]
 }
 
-function latestProvider(snapshot: AiGovernanceSnapshot) {
-  return snapshot.recentAuditEntries[0]?.providerName || snapshot.providers.models[0]?.provider || "Direct Data Analysis"
+function originProvider(snapshot: AiGovernanceSnapshot) {
+  const origin = snapshot.runtime.executionOrigin
+  if (origin) return origin.providerName
+  if (snapshot.runtime.latestAttempt && !snapshot.runtime.latestAttempt.success) {
+    return "Not available (last request failed)"
+  }
+  return "No successful AI generation recorded"
 }
 
-function latestModel(snapshot: AiGovernanceSnapshot) {
-  return snapshot.recentAuditEntries[0]?.modelName || snapshot.providers.models[0]?.model || "Deterministic engine"
+function originModel(snapshot: AiGovernanceSnapshot) {
+  const origin = snapshot.runtime.executionOrigin
+  if (origin) return origin.modelName
+  return "Not available"
+}
+
+function originMode(snapshot: AiGovernanceSnapshot) {
+  const origin = snapshot.runtime.executionOrigin
+  return formatMode(origin ? origin.mode : snapshot.settings.mode)
+}
+
+function originStatusLabel(snapshot: AiGovernanceSnapshot) {
+  const origin = snapshot.runtime.executionOrigin
+  if (!origin) return "No successful AI generation recorded"
+  if (origin.route === "deterministic") return "Direct data analysis (deterministic result)"
+  if (origin.route === "managed_cloud") return "AI-generated (UseClevr-managed cloud)"
+  if (origin.route === "local") return "AI-generated (local AI)"
+  return "AI-generated"
+}
+
+function lastAttemptLabel(snapshot: AiGovernanceSnapshot) {
+  const attempt = snapshot.runtime.latestAttempt
+  if (!attempt) return "No AI requests recorded yet"
+  if (attempt.success) return `Success (${formatMode(attempt.mode)})`
+  return `Failed: ${attempt.failureCategory?.replaceAll("_", " ") || "provider error"}`
 }
 
 function estimateConfidence(snapshot: AiGovernanceSnapshot) {
@@ -990,9 +1034,9 @@ function estimateConfidence(snapshot: AiGovernanceSnapshot) {
 }
 
 function formatMode(mode: string) {
-  if (mode === "local") return "Local AI"
+  if (mode === "local" || mode === "local-only") return "Local AI"
   if (mode === "byok") return "Hybrid AI"
-  if (mode === "useclevr_cloud") return "Cloud AI"
+  if (mode === "useclevr_cloud" || mode === "cloud-only") return "Cloud AI"
   return "Hybrid AI"
 }
 
@@ -1023,6 +1067,7 @@ function normalizeProviderStatus(value: string): GovernanceStatus {
   if (value === "Online" || value === "Fallback Active") return "Ready"
   if (value === "Rate Limited") return "Warning"
   if (value === "Invalid Key" || value === "Offline") return "Error"
+  if (value === "Missing Key" || value === "Not tested") return "Needs setup"
   return "Needs setup"
 }
 

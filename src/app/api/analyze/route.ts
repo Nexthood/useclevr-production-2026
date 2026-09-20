@@ -50,7 +50,7 @@ import {
   MOCK_AI_PROVIDER_NAME,
 } from "@/lib/ai/mock-ai";
 import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
+import { getManagedCloudLanguageModel } from "@/lib/ai/managed-cloud-provider";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { ghostModeTraceMessage, normalizeGhostMode } from "@/lib/ai/ghost-mode";
@@ -60,6 +60,7 @@ import { buildCreditExhaustionState } from "@/lib/billing/credit-exhaustion";
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { estimateUsageFromText, normalizeProviderUsage } from "@/lib/billing/provider-usage";
 import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
+import { consumeIncludedInitialAnalysis } from "@/lib/usage/initial-analysis";
 
 type GeminiUsageMetadata = {
   inputTokens?: number
@@ -248,7 +249,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const { question, datasetId, data, columns, analysis: precomputedAnalysis, ghostMode } = parseResult.data;
+    const { question, datasetId, data, columns, analysis: precomputedAnalysis, ghostMode, initialAnalysis } = parseResult.data;
     isGhostMode = normalizeGhostMode(ghostMode)
     traceQuestion = question
     traceDatasetId = datasetId || null
@@ -313,7 +314,16 @@ export async function POST(request: Request) {
       ? await getUseClevrCloudFallbackAllowed(effectiveUserId)
       : true
 
-    if (effectiveUserId && !hasUnlimitedCredits) {
+    // The upload feature already reserved the full 10-credit
+    // standard_upload_analysis cost once. The automatic first analysis of a
+    // freshly uploaded dataset is part of that same user operation and must
+    // not bill a second, separate ai_question transaction.
+    const initialAnalysisGranted = Boolean(
+      initialAnalysis && datasetId && effectiveUserId && !hasUnlimitedCredits &&
+      (await consumeIncludedInitialAnalysis(datasetId, effectiveUserId)),
+    )
+
+    if (effectiveUserId && !hasUnlimitedCredits && !initialAnalysisGranted) {
       const spendingLimitCheck = await checkSpendingLimits(effectiveUserId)
       if (spendingLimitCheck.blocked) {
         await logAiCost({
@@ -471,6 +481,9 @@ export async function POST(request: Request) {
         }
 
         if (!storedDataset) {
+          if (creditOperationId) {
+            await releaseCredits(creditOperationId, "dataset_not_found")
+          }
           return Response.json({
             success: false,
             error: "Dataset not found",
@@ -521,6 +534,9 @@ export async function POST(request: Request) {
         }
       } catch (loadError) {
         debugError('[ANALYZE] Failed to load stored dataset:', loadError);
+        if (creditOperationId) {
+          await releaseCredits(creditOperationId, "dataset_load_failed")
+        }
         return Response.json({
           success: false,
           error: "Failed to load dataset",
@@ -551,6 +567,9 @@ export async function POST(request: Request) {
         });
       } catch (loadError) {
         debugError('[ANALYZE] Failed to load data:', loadError);
+        if (creditOperationId) {
+          await releaseCredits(creditOperationId, "request_data_load_failed")
+        }
         return Response.json({
           success: false,
           error: "Failed to load dataset",
@@ -567,6 +586,9 @@ export async function POST(request: Request) {
     // Check if dataset is loaded
     if (requestDataset.length === 0) {
       debugLog('[ANALYZE] No dataset loaded');
+      if (creditOperationId) {
+        await releaseCredits(creditOperationId, "no_dataset_loaded")
+      }
       return Response.json({
         success: false,
         error: "No dataset loaded",
@@ -637,6 +659,9 @@ export async function POST(request: Request) {
         queryError = null; // Fallback worked
       } catch (fallbackError: any) {
         debugError('[ANALYZE] Fallback query also failed:', fallbackError);
+        if (creditOperationId) {
+          await releaseCredits(creditOperationId, "query_execution_failed")
+        }
         return Response.json({
           success: false,
           error: "Query execution failed: " + queryError,
@@ -653,6 +678,9 @@ export async function POST(request: Request) {
     // Step 3: Check if results are empty
     if (!result || result.length === 0) {
       debugLog('[ANALYZE] No matching data found');
+      if (creditOperationId) {
+        await releaseCredits(creditOperationId, "no_matching_results")
+      }
       return Response.json({
         success: true,
         answer: "No matching data found in the dataset.",
@@ -848,8 +876,12 @@ try {
           (mockAIMode
             ? await generateMockAnalysisText({ question, resultRows: result })
             : await (async () => {
+                const managedModel = getManagedCloudLanguageModel();
+                if (!managedModel) {
+                  throw new Error("Managed cloud credential missing: GOOGLE_GENERATIVE_AI_API_KEY (or GEMINI_API_KEY) is not configured.");
+                }
                 const completion = await generateText({
-                  model: google("gemini-2.5-flash"),
+                  model: managedModel,
                   prompt,
                 })
                 geminiUsageMetadata = completion.usage ?? null

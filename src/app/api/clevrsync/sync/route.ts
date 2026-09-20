@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     uploadFormData.set("uploadMode", "standard");
     uploadFormData.set("dataset_type", "standard");
     uploadFormData.set("uploadSource", "clevrsync");
+    uploadFormData.set("clevrsync_connector_type", connector.type);
     uploadFormData.set("business_model", "generic");
     if (existingDatasetId) {
       uploadFormData.set("clevrsync_dataset_id", existingDatasetId);
@@ -167,6 +168,7 @@ async function syncGoogleSheets(
     uploadFormData.set("uploadMode", "standard");
     uploadFormData.set("dataset_type", "standard");
     uploadFormData.set("uploadSource", "clevrsync");
+    uploadFormData.set("clevrsync_connector_type", connector.type);
     uploadFormData.set("business_model", "generic");
     if (existingDatasetId) {
       uploadFormData.set("clevrsync_dataset_id", existingDatasetId);

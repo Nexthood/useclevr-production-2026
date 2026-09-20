@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { getDatasetCategoryDestinationLabel, getDatasetCategoryLabel, normalizeDatasetCategory } from "@/lib/data/dataset-category"
+import { deriveDatasetSource, getDatasetSourceLabel } from "@/lib/data/dataset-source"
 import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -20,6 +21,7 @@ export interface DatasetListItem {
   analysisStatus?: string | null
   datasetType: string | null
   uploadSource?: string | null
+  source?: string | null
   destinationModule?: string | null
   createdAt: Date | null
   columns: string[]
@@ -133,8 +135,14 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       key: "uploadSource",
       header: "Upload source",
       render: (row) => {
-        const source = (row as unknown as DatasetListItem).uploadSource || "standard"
-        return <span className="text-sm text-muted-foreground">{source.replaceAll("_", " ")}</span>
+        const dataset = row as unknown as DatasetListItem
+        const source = deriveDatasetSource({
+          source: dataset.source,
+          uploadSource: dataset.uploadSource,
+          datasetType: dataset.datasetType,
+          fileName: dataset.fileName,
+        })
+        return <span className="text-sm text-muted-foreground">{getDatasetSourceLabel(source)}</span>
       },
     },
     {

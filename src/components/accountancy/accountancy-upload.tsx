@@ -8,6 +8,7 @@ import { UpgradeModal } from "@/components/shared/upgrade-modal"
 import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
+import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
 import { debugError, debugLog } from "@/lib/utils/debug"
 import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileText, Loader2, Receipt, Sparkles, Wifi, WifiOff } from "lucide-react"
@@ -109,6 +110,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
   const refreshCreditStatus = React.useCallback(async () => {
     setCreditExhaustedInfo(null)
+    window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
   }, [])
 
   React.useEffect(() => {
@@ -174,14 +176,35 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     }
 
     const extensions = validExtensions[selectedType]
-    const fileExt = "." + file.name.split(".").pop()?.toLowerCase()
+    // Extension detection must survive names like "LEDGER.CSV", names with
+    // trailing spaces, and multi-dot names. A file without any extension is
+    // still accepted when its MIME type matches the selected upload type.
+    const trimmedName = file.name.trim().toLowerCase()
+    const extensionMatch = /\.([a-z0-9]+)$/.exec(trimmedName)
+    const fileExt = extensionMatch ? `.${extensionMatch[1]}` : ""
+    const mime = (file.type || "").toLowerCase()
 
-    if (!extensions.includes(fileExt)) {
-      setErrorMessage(`Please upload a valid ${selectedType} file (${extensions.join(", ")})`)
-      return false
+    if (fileExt && extensions.includes(fileExt)) {
+      return true
     }
 
-    return true
+    const mimeByType: Record<UploadType, string[]> = {
+      csv: ["text/csv", "application/csv"],
+      excel: [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+      ],
+      pdf: ["application/pdf"],
+      receipt: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
+      bank: ["text/csv", "application/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    }
+
+    if (!fileExt && mimeMatchesSelection(mime, selectedType, mimeByType)) {
+      return true
+    }
+
+    setErrorMessage(`Please upload a valid ${selectedType} file (${extensions.join(", ")})`)
+    return false
   }
 
   const uploadFile = async (file: File) => {
@@ -298,6 +321,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
 
         // Credit and plan limits are upgrade states, not upload failures.
         if (result.code === "UPLOAD_CREDITS_EXHAUSTED") {
+          window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
           const creditInfo = {
             used: result.used ?? safeNumber(result.usage?.usedCredits) ?? safeNumber(result.usage?.analysisCount) ?? 2,
             limit: result.limit ?? safeNumber(result.usage?.total) ?? 2,
@@ -777,6 +801,10 @@ function AccountancyPlanSummaryCard({
       </ul>
     </div>
   )
+}
+
+function mimeMatchesSelection(mime: string, selectedType: UploadType, mimeByType: Record<UploadType, string[]>) {
+  return mime !== "" && mimeByType[selectedType].includes(mime)
 }
 
 function validateUploadApiResponse(value: unknown): AccountancyUploadApiResponse {
