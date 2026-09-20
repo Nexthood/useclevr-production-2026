@@ -16,13 +16,17 @@ import {
   usyProductFacts,
 } from "@/lib/usy/knowledge-base";
 import {
+  buildContactDepartmentPrompt,
+  buildContactDetailsPrompt,
+  buildContactMessageProblemAnswer,
+  buildContactMessagePrompt,
   buildContactSummary,
-  buildMissingContactFieldsAnswer,
   isCancellation,
   isConfirmation,
   isContactRequest,
   mergeContactDraft,
   missingContactFields,
+  validateContactMessage,
 } from "@/lib/usy/contact";
 import { detectUsyLanguage, normalizeUsyText } from "@/lib/usy/language";
 import { getLocalizedActionButton, usyActionRegistry, type UsyActionId } from "@/lib/usy/actions";
@@ -737,7 +741,10 @@ export function buildUsyReply(input: {
     return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps, "security_request", language, ["OPEN_SUPPORT"]);
   }
 
-  if (!isUsyContextAuthenticated(context) && asksForPersonalAccountData(normalized)) {
+  // When a contact request is already in progress, personal-account phrases
+  // describe the request itself (for example "my invoice is wrong"), so the
+  // draft and its department are preserved instead of forcing a sign-in.
+  if (!isUsyContextAuthenticated(context) && !input.contactDraft && asksForPersonalAccountData(normalized)) {
     return knowledgeAnswer(localizedCommon("signInRequired", language), ["Sign in", "What can you do?", "Contact support"], "account_help", language, ["OPEN_SUPPORT"]);
   }
 
@@ -772,13 +779,65 @@ export function buildUsyReply(input: {
   }
 
   if (existingContactDraft || isExplicitContactRequest) {
-    const draft = mergeContactDraft(input.contactDraft, question, input.contactDraft?.language ?? language);
-    const missing = missingContactFields(draft);
-    if (missing.length > 0) {
+    const contactLanguage = existingContactDraft?.language ?? language;
+
+    // A short cancel command stops the contact flow at any step before confirmation.
+    if (
+      existingContactDraft &&
+      !existingContactDraft.awaitingConfirmation &&
+      question.length <= 20 &&
+      isCancellation(question)
+    ) {
       return {
-        answer: buildMissingContactFieldsAnswer(draft),
+        answer: localizedCommon("contactCancelled", contactLanguage),
+        source: "knowledge",
+        followUps: localizeFollowUps(fallbackFollowUps, contactLanguage),
+        language: contactLanguage,
+        contactDraft: null,
+        action: "clear_contact",
+        intent: "contact_request",
+      };
+    }
+
+    const draft = mergeContactDraft(existingContactDraft, question, contactLanguage);
+    const missing = missingContactFields(draft);
+
+    if (missing.includes("category")) {
+      return {
+        answer: buildContactDepartmentPrompt(draft.language ?? language),
         source: "knowledge",
         followUps: localizeFollowUps(["Sales", "Technical Support", "Billing", "Management", "Executive Management"], draft.language ?? language),
+        language: draft.language ?? language,
+        contactDraft: draft,
+        intent: "contact_request",
+      };
+    }
+
+    if (missing.includes("message")) {
+      const wasAwaitingMessage = Boolean(
+        input.contactDraft?.category && !validateContactMessage(input.contactDraft.message).ok,
+      );
+      const attemptedCheck = validateContactMessage(question);
+      const messageAnswer =
+        wasAwaitingMessage && !attemptedCheck.ok && attemptedCheck.reason !== "empty"
+          ? buildContactMessageProblemAnswer(attemptedCheck.reason, draft.language ?? language)
+          : buildContactMessagePrompt(draft.language ?? language);
+      return {
+        answer: messageAnswer,
+        source: "knowledge",
+        followUps: [],
+        language: draft.language ?? language,
+        contactDraft: draft,
+        messageInput: true,
+        intent: "contact_request",
+      };
+    }
+
+    if (missing.includes("senderName") || missing.includes("replyEmail")) {
+      return {
+        answer: buildContactDetailsPrompt(draft.language ?? language),
+        source: "knowledge",
+        followUps: [],
         language: draft.language ?? language,
         contactDraft: draft,
         intent: "contact_request",

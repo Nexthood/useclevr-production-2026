@@ -339,8 +339,21 @@ function testGermanSalesContactRequiresConfirmation() {
   assert.equal(response.language, "german");
   assert.equal(response.contactDraft?.category, "sales");
   assert.equal(response.contactDraft?.awaitingConfirmation, false);
-  assert.match(response.answer, /deinen Namen/);
-  assert.match(response.answer, /deine Antwort-E-Mail/);
+  assert.equal(response.messageInput, true);
+  assert.match(response.answer, /Bitte beschreibe dein Anliegen/);
+  assert.doesNotMatch(response.answer, /Namen.*Antwort-E-Mail/);
+
+  const withMessage = buildUsyReply({
+    question: "Bitte erstellt uns ein Angebot für das Business-Panel.",
+    context: baseContext,
+    contactDraft: response.contactDraft,
+  });
+
+  assert.equal(withMessage.contactDraft?.category, "sales");
+  assert.equal(withMessage.contactDraft?.message, "Bitte erstellt uns ein Angebot für das Business-Panel.");
+  assert.match(withMessage.answer, /Kontaktdaten/);
+  assert.match(withMessage.answer, /deinen Namen/);
+  assert.match(withMessage.answer, /deine Antwort-E-Mail/);
 }
 
 function testInvalidAndRateLimitedRequests() {

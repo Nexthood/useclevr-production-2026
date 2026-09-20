@@ -81,4 +81,6 @@ export type UsyChatResponse = {
   action?: UsyChatAction;
   intent?: UsyIntent;
   actionButtons?: UsyActionButton[];
+  /** True when Usy is waiting for the dedicated contact message input. */
+  messageInput?: boolean;
 };

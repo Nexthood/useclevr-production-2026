@@ -34,16 +34,31 @@ const chatSchema = z.object({
   contactDraft: z
     .object({
       category: z.enum(["sales", "technical_support", "billing", "management", "executive"]).optional(),
-      message: z.string().optional(),
-      senderName: z.string().optional(),
-      company: z.string().optional(),
-      replyEmail: z.string().optional(),
+      message: z.string().max(2000).optional(),
+      senderName: z.string().max(120).optional(),
+      company: z.string().max(120).optional(),
+      replyEmail: z.string().max(254).optional(),
       language: z.enum(["english", "german", "dutch", "spanish", "hungarian", "romanian"]).optional(),
       awaitingConfirmation: z.boolean().optional(),
     })
     .nullable()
     .optional(),
 });
+
+// Authenticated drafts are completed from the verified server session, never
+// from client-claimed identity: missing name and reply email are prefilled
+// only for the signed-in user's own contact request.
+function withSessionContactDefaults(
+  draft: z.infer<typeof chatSchema>["contactDraft"],
+  user: { name?: string | null; email?: string | null } | undefined,
+) {
+  if (!draft || !user) return draft;
+  return {
+    ...draft,
+    senderName: draft.senderName?.trim() ? draft.senderName : user.name?.trim() || undefined,
+    replyEmail: draft.replyEmail?.trim() ? draft.replyEmail : user.email?.trim() || undefined,
+  };
+}
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "unknown";
@@ -86,7 +101,7 @@ export async function POST(request: NextRequest) {
   const response = buildUsyReply({
     question: parsed.data.question,
     context,
-    contactDraft: parsed.data.contactDraft as UsyContactDraft | null | undefined,
+    contactDraft: withSessionContactDefaults(parsed.data.contactDraft, session?.user) as UsyContactDraft | null | undefined,
   });
 
   return NextResponse.json(response, { headers: { "Cache-Control": "no-store" } });

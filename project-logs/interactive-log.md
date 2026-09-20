@@ -1,3 +1,47 @@
+## 2026-09-20 — Usy Contact Handoff: Dedicated 500-Character Message Step
+
+1. Interaction title
+   Usy contact handoff: add a structured message step before contact-detail collection.
+
+2. What was the user goal
+   Improve the existing Usy Secretariat contact flow: after department selection, Usy must ask for the actual request through a dedicated Message input (required, 10–500 characters, live 0/500 counter, trim, client AND server validation) before collecting name/reply email/optional company, keep the selected department stable through every step, keep the existing central n8n handoff (no parallel email logic), work for guests and authenticated users, stay localized in all six languages, keep mobile/desktop layout intact, add deterministic tests, and not commit or push.
+
+3. What changed
+   - Previous behavior/root cause: `buildUsyReply` collapsed the whole contact flow into one `mergeContactDraft` + `missingContactFields` check and answered with `buildMissingContactFieldsAnswer`, which asked for "department, your request, your name, your reply email" in a single message after any department chip click; the message had no dedicated UI, no counter, and only a 5–2000 character zod rule at the final `/api/usy/contact` gate, so a bare "Billing" click immediately asked for everything at once.
+   - `src/lib/usy/contact.ts`: `usyContactMessageMinLength = 10` / `usyContactMessageMaxLength = 500` pinned into `usyContactPayloadSchema` (message 10–500, trimmed); new `validateContactMessage` returning `{ ok, message } | { ok, reason: empty|too_short|too_long }`; `mergeContactDraft` accepts the dedicated message-step input verbatim when the draft already has a category (10–500, no collection-phrase guard), keeps the ≥20-char one-shot heuristic with the extended `isOnlyCollectionMessage` guard (department labels + contact-intent starters in six languages, so a bare "Executive Management" chip — exactly 20 chars — is never stored as the message), and only ever stores messages passing the 10–500 rule; `missingContactFields` uses the same rule; new localized `buildContactDepartmentPrompt`, `buildContactMessagePrompt`, `buildContactMessageProblemAnswer`, `buildContactDetailsPrompt` (six languages); removed the combined-ask `buildMissingContactFieldsAnswer`.
+   - `src/lib/usy/router.ts`: staged contact block — category missing → department prompt with localized team chips; message missing → message prompt or specific too-short/too-long problem answer with `messageInput: true` and empty follow-ups; name/reply email missing → "Thanks. Please provide your contact details so the team can reply..." prompt; complete → the existing `buildContactSummary` confirmation with Confirm/Cancel chips; short (≤20 chars) cancel commands clear the draft with `clear_contact` at any pre-confirmation step; the guest personal-account-data guard (`asksForPersonalAccountData`) is skipped while a contact draft is active so "my invoice is wrong" in a described request never drops the draft and department.
+   - `src/lib/usy/types.ts`: `UsyChatResponse.messageInput?: boolean` signals the dedicated message step to the chat UI.
+   - `src/app/api/usy/chat/route.ts`: contactDraft fields bounded at the boundary (message ≤2000, senderName ≤120, company ≤120, replyEmail ≤254); `withSessionContactDefaults` prefills missing senderName/replyEmail from the verified `auth()` session only for signed-in users (identity never from the client).
+   - `src/components/ui/help-chatbox.tsx`: dedicated message composer replaces the normal input while `messageInput` is active — labeled textarea (localized label/placeholder, e.g. "Message"/"Describe your request..."), input hard-capped via `.slice(0, 500)` plus `maxLength`, live `{n} / 500` counter, inline localized "at least 10 characters" hint, disabled Continue under 10 trimmed characters or while asking, localized Cancel that routes a server-side clear, Enter-to-send with Shift+newline, composer stays inside the existing chat panel width (no window resize, textarea wraps, counter visible, chat scroll unchanged).
+   - Tests: `scripts/ai/test-usy-contact-message-step.ts` (new, `test:usy-contact-message-step`, wired into `test:all`) covers the required matrix — department chips open the message step and preserve sales/technical_support/billing/management/executive through it, empty/whitespace/short/long message rejection (501 rejected server-side via `validateUsyContactPayload`), 10 and 500 boundary acceptance, whitespace normalization, valid message → details step, name/email required with company optional, guest flow to confirmation, authenticated flow with session-derived details, handoff payload containing category/message/senderName/replyEmail/company/language/timestamp/userId/organizationId, source guards for session-derived identity, n8n reuse, rate limiting, and no parallel email logic; `scripts/ai/test-usy-secretariat.ts` updated for the staged German flow; `CHANGELOG.md`, `requirements.md` (Usy Support section), and the three interaction records updated.
+
+4. Problems marked
+   - blocker: none.
+   - risk: a guest message beginning with a cancel word ("no", "stop") within 20 characters is treated as a cancel command at the message step; longer sentences are safe.
+   - improvement: message capture for combined one-shot inputs (message + name + email in a single sentence) still relies on the explicit "message:/Anliegen:/about …" patterns; phrases starting with contact-intent starters route to the message step for retyping instead of being captured.
+   - observation: `asksForRestrictedInformation` intentionally still fires during the contact flow — a security probe as message content refuses and ends the flow.
+
+5. User learning
+   Selecting a team in Usy now leads to a clear "Please describe your request." step with its own message box and character counter; the request is mandatory before any contact details are requested, and the 500-character ceiling is enforced in the UI and on the server.
+
+6. AI-agent learning
+   Guard order matters: the guest personal-data guard ran before the contact block and silently dropped active contact drafts on phrases like "my invoice"; routing guards must respect in-progress conversation state. Boundary-length chip labels (e.g. "Executive Management" = 20 chars) can satisfy generic length heuristics — exact department-label guards prevent selection text from becoming the message.
+
+7. Follow-up tasks
+   - Consider a dedicated structured input step for name/reply email/company mirroring the message composer for guests.
+   - Consider surfacing page/context metadata in the n8n payload only when the workflow contract explicitly accepts it.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
 ## 2026-09-20 — Investor Dashboard Trend/Snapshot Semantics + Score Identity Fix
 
 1. Interaction title

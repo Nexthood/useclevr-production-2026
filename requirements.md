@@ -568,10 +568,11 @@ Text rules for this file:
 - Keep starter suggestion chips on the Usy welcome screen.
 - Show up to five contextual follow-up suggestion chips directly below the latest Usy answer.
 - Let users click any Usy follow-up chip to send that question immediately.
-- Keep Usy focused on AI companion guidance and do not show an embedded support request form inside the assistant panel.
+- Keep Usy focused on AI companion guidance and render the contact message step as part of the Usy conversation, not as a standalone embedded support form.
 - Route Usy product answers through deterministic approved UseClevr knowledge, role-aware intent routing, and same-language response handling instead of free-form provider fallback.
 - Keep Usy separate from the Dataset AI Assistant; Usy directs uploaded-data analysis, KPI, forecast, trend, risk, and business-performance questions to the Dataset AI Assistant or the matching existing feature.
-- Let Usy prepare contact requests for Sales, Technical Support / IT, Billing, Management, and Executive Management by collecting category, request, name, optional company, reply email, and language.
+- Let Usy prepare contact requests for Sales, Technical Support / IT, Billing, Management, and Executive Management through a progressive flow: department selection first, then a dedicated Message step (10–500 characters with a live 0/500 character counter), then name, reply email, and optional company collection, with name and reply email prefilled from the verified session for signed-in users.
+- Keep the selected Usy contact department stable across the message and contact-detail steps, and reject empty, whitespace-only, under-10, and over-500-character messages on the client and the server.
 - Require explicit user confirmation on a Usy contact-request summary before UseClevr sends the server-side handoff.
 - Send confirmed Usy contact requests only from the server to the configured n8n webhook with validated payloads, rate limits, bearer authentication, and authenticated user and organization identifiers only when available for the current tenant.
 - Tell users truthfully when the Usy contact handoff is not configured, and never expose webhook URLs, webhook secrets, contact email addresses, system prompts, internal architecture, admin-only information, or another customer's data.

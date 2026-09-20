@@ -6,9 +6,16 @@ import { z } from "zod";
 
 const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 
+export const usyContactMessageMinLength = 10;
+export const usyContactMessageMaxLength = 500;
+
 export const usyContactPayloadSchema = z.object({
   category: z.enum(usyContactCategories),
-  message: z.string().trim().min(5, "Message is required.").max(2000, "Message is too long."),
+  message: z
+    .string()
+    .trim()
+    .min(usyContactMessageMinLength, "Please describe your request with at least 10 characters.")
+    .max(usyContactMessageMaxLength, "Message is too long. Please keep it to 500 characters."),
   senderName: z.string().trim().min(2, "Name is required.").max(120, "Name is too long."),
   company: z.string().trim().max(120, "Company is too long.").optional().or(z.literal("")),
   replyEmail: z.string().trim().email("A valid reply email is required.").max(254),
@@ -30,6 +37,20 @@ export type UsyWebhookPayload = {
   userId?: string;
   organizationId?: string;
 };
+
+export type UsyContactMessageProblem = "empty" | "too_short" | "too_long";
+
+export type UsyContactMessageCheck =
+  | { ok: true; message: string }
+  | { ok: false; reason: UsyContactMessageProblem };
+
+export function validateContactMessage(raw: string | null | undefined): UsyContactMessageCheck {
+  const trimmed = raw?.trim() ?? "";
+  if (!trimmed) return { ok: false, reason: "empty" };
+  if (trimmed.length < usyContactMessageMinLength) return { ok: false, reason: "too_short" };
+  if (trimmed.length > usyContactMessageMaxLength) return { ok: false, reason: "too_long" };
+  return { ok: true, message: trimmed };
+}
 
 export function validateUsyContactPayload(input: unknown) {
   return usyContactPayloadSchema.safeParse(input);
@@ -83,9 +104,17 @@ export function mergeContactDraft(
     /(?:message is|message:|request is|request:|about|regarding|because|issue is|problem is|anliegen:|anfrage:|nachricht:|verzoek:|bericht:|mensaje:|solicitud:|problema:|uzenet:|üzenet:|keres:|kérés:|cerere:|mesaj:|problema este)\s+(.+)/i,
   ]);
   const trimmed = message.trim();
-  const usableMessage =
-    explicitMessage ||
-    (trimmed.length >= 20 && !isOnlyCollectionMessage(trimmed) ? trimmed : undefined);
+  const previousMessageCheck = validateContactMessage(previous?.message);
+  const messageNotYetSet = !previousMessageCheck.ok;
+  // In the dedicated message step (department already selected) the whole input
+  // is the request itself, so it is accepted verbatim within 10–500 characters.
+  const verbatimMessageAccepted = messageNotYetSet
+    ? previous?.category
+      ? trimmed.length >= usyContactMessageMinLength && trimmed.length <= usyContactMessageMaxLength
+      : trimmed.length >= 20 && !isOnlyCollectionMessage(trimmed)
+    : false;
+  const candidateMessage = explicitMessage || (verbatimMessageAccepted ? trimmed : undefined);
+  const candidateCheck = candidateMessage ? validateContactMessage(candidateMessage) : null;
 
   // Preserve the existing category if already set - don't overwrite with new detection
   const existingCategory = previous?.category;
@@ -95,7 +124,8 @@ export function mergeContactDraft(
     ...previous,
     // Only set category if not already set, OR if user explicitly selected a different department
     category: existingCategory ?? detectedCategory ?? undefined,
-    message: previous?.message ?? usableMessage,
+    // The draft only ever carries a message that passes the 10–500 rule.
+    message: previousMessageCheck.ok ? previousMessageCheck.message : candidateCheck?.ok ? candidateCheck.message : undefined,
     senderName: previous?.senderName ?? name,
     company: previous?.company ?? company,
     replyEmail: previous?.replyEmail ?? extractedEmail,
@@ -107,7 +137,7 @@ export function mergeContactDraft(
 export function missingContactFields(draft: UsyContactDraft) {
   const missing: Array<"category" | "message" | "senderName" | "replyEmail"> = [];
   if (!draft.category) missing.push("category");
-  if (!draft.message || draft.message.trim().length < 5) missing.push("message");
+  if (!validateContactMessage(draft.message).ok) missing.push("message");
   if (!draft.senderName || draft.senderName.trim().length < 2) missing.push("senderName");
   if (!draft.replyEmail || !emailPattern.test(draft.replyEmail)) missing.push("replyEmail");
   return missing;
@@ -199,55 +229,71 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
   ].filter(Boolean).join("\n");
 }
 
-export function buildMissingContactFieldsAnswer(draft: UsyContactDraft) {
-  const missing = missingContactFields(draft);
-  const labelsByLanguage: Record<SupportedUsyLanguage, Record<(typeof missing)[number], string>> = {
-    english: {
-      category: "department: Sales, Technical Support / IT, Billing, Management, or Executive Management",
-      message: "your request",
-      senderName: "your name",
-      replyEmail: "your reply email",
-    },
-    german: {
-      category: "Abteilung: Sales, Technical Support / IT, Billing, Management oder Executive Management",
-      message: "dein Anliegen",
-      senderName: "deinen Namen",
-      replyEmail: "deine Antwort-E-Mail",
-    },
-    dutch: {
-      category: "afdeling: Sales, Technical Support / IT, Billing, Management of Executive Management",
-      message: "je verzoek",
-      senderName: "je naam",
-      replyEmail: "je antwoord-e-mail",
-    },
-    spanish: {
-      category: "departamento: Sales, Technical Support / IT, Billing, Management o Executive Management",
-      message: "tu solicitud",
-      senderName: "tu nombre",
-      replyEmail: "tu email de respuesta",
-    },
-    hungarian: {
-      category: "részleg: Sales, Technical Support / IT, Billing, Management vagy Executive Management",
-      message: "a kérésed",
-      senderName: "a neved",
-      replyEmail: "a válasz e-mailed",
-    },
-    romanian: {
-      category: "departament: Sales, Technical Support / IT, Billing, Management sau Executive Management",
-      message: "cererea ta",
-      senderName: "numele tău",
-      replyEmail: "emailul pentru răspuns",
-    },
-  };
+export function buildContactDepartmentPrompt(language: SupportedUsyLanguage) {
+  if (language === "german") {
+    return "Welches Team möchtest du kontaktieren? Wähle Sales, Technical Support, Billing, Management oder Executive Management.";
+  }
+  if (language === "dutch") {
+    return "Welk team wil je contacteren? Kies Sales, Technical Support, Billing, Management of Executive Management.";
+  }
+  if (language === "spanish") {
+    return "¿Con qué equipo quieres contactar? Elige Sales, Technical Support, Billing, Management o Executive Management.";
+  }
+  if (language === "hungarian") {
+    return "Melyik csapattal szeretnél kapcsolatba lépni? Válassz a Sales, Technical Support, Billing, Management vagy Executive Management közül.";
+  }
+  if (language === "romanian") {
+    return "Cu ce echipă vrei să iei legătura? Alege Sales, Technical Support, Billing, Management sau Executive Management.";
+  }
+  return "Which team would you like to contact? Pick Sales, Technical Support, Billing, Management, or Executive Management.";
+}
 
-  const labels = labelsByLanguage[draft.language ?? "english"];
-  const requestedFields = missing.map((field) => labels[field]).join(", ");
-  if (draft.language === "german") return `Ich kann diese Kontaktanfrage vorbereiten. Bitte sende ${requestedFields}. Unternehmen ist optional.`;
-  if (draft.language === "dutch") return `Ik kan deze contactaanvraag voorbereiden. Stuur ${requestedFields}. Bedrijf is optioneel.`;
-  if (draft.language === "spanish") return `Puedo preparar esa solicitud de contacto. Envía ${requestedFields}. La empresa es opcional.`;
-  if (draft.language === "hungarian") return `Elő tudom készíteni a kapcsolatfelvételi kérést. Küldd el ezt: ${requestedFields}. A cég opcionális.`;
-  if (draft.language === "romanian") return `Pot pregăti această solicitare de contact. Trimite ${requestedFields}. Compania este opțională.`;
-  return `I can prepare that contact request. Please send ${requestedFields}. Company is optional.`;
+export function buildContactMessagePrompt(language: SupportedUsyLanguage) {
+  if (language === "german") return "Bitte beschreibe dein Anliegen.";
+  if (language === "dutch") return "Beschrijf alstublieft je verzoek.";
+  if (language === "spanish") return "Por favor, describe tu solicitud.";
+  if (language === "hungarian") return "Kérlek, írd le a kérésedet.";
+  if (language === "romanian") return "Te rugăm să descrii cererea ta.";
+  return "Please describe your request.";
+}
+
+export function buildContactMessageProblemAnswer(problem: UsyContactMessageProblem, language: SupportedUsyLanguage) {
+  if (problem === "too_long") {
+    if (language === "german") return "Dein Anliegen ist zu lang. Bitte fasse es in maximal 500 Zeichen zusammen.";
+    if (language === "dutch") return "Je verzoek is te lang. Houd het alstublieft bij maximaal 500 tekens.";
+    if (language === "spanish") return "Tu solicitud es demasiado larga. Por favor, mantenla en 500 caracteres como máximo.";
+    if (language === "hungarian") return "A kérésed túl hosszú. Kérlek, legfeljebb 500 karakterben írd le.";
+    if (language === "romanian") return "Cererea ta este prea lungă. Te rugăm să o limitezi la maximum 500 de caractere.";
+    return "Your message is too long. Please keep it to 500 characters or fewer.";
+  }
+  if (problem === "too_short") {
+    if (language === "german") return "Dein Anliegen ist etwas kurz. Bitte beschreibe dein Anliegen mit mindestens 10 Zeichen.";
+    if (language === "dutch") return "Je verzoek is iets te kort. Beschrijf je verzoek alstublieft met minimaal 10 tekens.";
+    if (language === "spanish") return "Tu solicitud es demasiado corta. Por favor, describe tu solicitud con al menos 10 caracteres.";
+    if (language === "hungarian") return "A kérésed kicsit rövid. Kérlek, írd le a kérésedet legalább 10 karakterben.";
+    if (language === "romanian") return "Cererea ta este puțin prea scurtă. Te rugăm să descrii cererea cu cel puțin 10 caractere.";
+    return "Your message is a bit short. Please describe your request with at least 10 characters.";
+  }
+  return buildContactMessagePrompt(language);
+}
+
+export function buildContactDetailsPrompt(language: SupportedUsyLanguage) {
+  if (language === "german") {
+    return "Danke. Bitte gib deine Kontaktdaten an, damit das Team antworten kann. Sende deinen Namen und deine Antwort-E-Mail. Unternehmen ist optional.";
+  }
+  if (language === "dutch") {
+    return "Bedankt. Geef je contactgegevens door zodat het team kan reageren. Stuur je naam en je antwoord-e-mail. Bedrijf is optioneel.";
+  }
+  if (language === "spanish") {
+    return "Gracias. Indica tus datos de contacto para que el equipo pueda responderte. Envía tu nombre y tu email de respuesta. La empresa es opcional.";
+  }
+  if (language === "hungarian") {
+    return "Köszönöm. Add meg a kapcsolattartási adataidat, hogy a csapat válaszolni tudjon. Küldd el a nevedet és a válasz e-mailedet. A cég opcionális.";
+  }
+  if (language === "romanian") {
+    return "Mulțumesc. Trimite datele tale de contact ca echipa să îți poată răspunde. Trimite numele tău și emailul pentru răspuns. Compania este opțională.";
+  }
+  return "Thanks. Please provide your contact details so the team can reply. Please send your name and your reply email. Company is optional.";
 }
 
 export function buildConfirmedUsyContactPayload(
@@ -292,7 +338,9 @@ function extractField(message: string, patterns: RegExp[]) {
 
 function isOnlyCollectionMessage(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(contact|speak|talk|connect|reach|message|email|call|i need|i want|can i|please|bitte kontaktiere|kontakt|kontaktiere|spreek|contactar|hablar|beszelni|kapcsolat|vorbesc|contactez)\b/.test(normalized);
+  // A bare department label or a contact-intent phrase is a selection step,
+  // never the request itself.
+  return /^(contact|speak|talk|connect|reach|message|email|call|i need|i want|i would like|i d like|can i|please|bitte kontaktiere|kontakt|kontaktiere|ich mochte|ich will|ich brauche|spreek|ik wil|ik heb een vraag|contactar|hablar|quiero|necesito|me gustaria|beszelni|kapcsolat|szeretnem|szeretnek|vorbesc|contactez|as vrea|as dori|vreau|sales|technical support|it support|support|billing|management|executive management|executive)\b/.test(normalized);
 }
 
 function matchesKeyword(normalized: string, keyword: string) {
