@@ -15,7 +15,7 @@ import { getActionById } from "@/lib/usy/actions";
 import { ArrowUp, Bot, Loader2, Sparkles, X, ExternalLink, Mail } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import type { FormEvent } from "react";
+import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 const placeholderMap = {
@@ -35,6 +35,64 @@ const quickActionMap = {
   hungarian: "AI kreditek magyarázata",
   romanian: "Explică creditele AI"
 } as const satisfies Record<SupportedUsyLanguage, string>;
+
+const contactMessageLabels = {
+  english: {
+    label: "Message",
+    placeholder: "Describe your request...",
+    continue: "Continue",
+    cancel: "Cancel",
+    tooShort: "Please write at least 10 characters.",
+    counterLabel: "Message character count",
+  },
+  german: {
+    label: "Nachricht",
+    placeholder: "Beschreibe dein Anliegen...",
+    continue: "Weiter",
+    cancel: "Abbrechen",
+    tooShort: "Bitte schreibe mindestens 10 Zeichen.",
+    counterLabel: "Zeichenanzahl der Nachricht",
+  },
+  dutch: {
+    label: "Bericht",
+    placeholder: "Beschrijf je verzoek...",
+    continue: "Verder",
+    cancel: "Annuleren",
+    tooShort: "Schrijf alstublieft minimaal 10 tekens.",
+    counterLabel: "Tekenaantal van het bericht",
+  },
+  spanish: {
+    label: "Mensaje",
+    placeholder: "Describe tu solicitud...",
+    continue: "Continuar",
+    cancel: "Cancelar",
+    tooShort: "Escribe al menos 10 caracteres, por favor.",
+    counterLabel: "Recuento de caracteres del mensaje",
+  },
+  hungarian: {
+    label: "Üzenet",
+    placeholder: "Írd le a kérésedet...",
+    continue: "Tovább",
+    cancel: "Mégse",
+    tooShort: "Kérlek, írj legalább 10 karaktert.",
+    counterLabel: "Az üzenet karakter számlálója",
+  },
+  romanian: {
+    label: "Mesaj",
+    placeholder: "Descrie cererea ta...",
+    continue: "Continuă",
+    cancel: "Anulează",
+    tooShort: "Scrie te rugăm cel puțin 10 caractere.",
+    counterLabel: "Numărul de caractere al mesajului",
+  }
+} as const satisfies Record<SupportedUsyLanguage, {
+  label: string;
+  placeholder: string;
+  continue: string;
+  cancel: string;
+  tooShort: string;
+  counterLabel: string;
+}>;
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -225,6 +283,9 @@ function UsyAvatar({
   );
 }
 
+const contactMessageMaxLength = 500;
+const contactMessageMinLength = 10;
+
 export function HelpChatbox({
   audience = "public",
   hideOnApp = false,
@@ -242,10 +303,13 @@ export function HelpChatbox({
   const [isAsking, setIsAsking] = useState(false);
   const [usage, setUsage] = useState<UsyUsageContext | null>(null);
   const [contactDraft, setContactDraft] = useState<UsyContactDraft | null>(null);
+  const [awaitMessageInput, setAwaitMessageInput] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
   const [currentUsyLanguage, setCurrentUsyLanguage] = useState<SupportedUsyLanguage>("english");
   const [showLanguageHint, setShowLanguageHint] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const contactMessageRef = useRef<HTMLTextAreaElement>(null);
 
   function handleActionButton(actionButton: UsyActionButton) {
     if (actionButton.type === "navigation") {
@@ -296,6 +360,11 @@ export function HelpChatbox({
     if (!open) return;
     window.setTimeout(() => inputRef.current?.focus(), 80);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !awaitMessageInput) return;
+    window.setTimeout(() => contactMessageRef.current?.focus(), 80);
+  }, [open, awaitMessageInput]);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({
@@ -367,6 +436,7 @@ export function HelpChatbox({
 
       setCurrentUsyLanguage(result.language);
       setContactDraft(result.contactDraft ?? null);
+      setAwaitMessageInput(Boolean(result.messageInput));
 
       if (result.action === "submit_contact" && result.contactDraft) {
         await submitContactRequest(result.contactDraft);
@@ -423,6 +493,7 @@ export function HelpChatbox({
       : body?.error || "The contact request could not be submitted. Please try again shortly.";
 
     setContactDraft(null);
+    setAwaitMessageInput(false);
     setMessages((current) => [
       ...current,
       {
@@ -432,6 +503,35 @@ export function HelpChatbox({
         followUps: response.ok ? ["What can you do?", "Open dashboard"] : ["Contact support", "Try again"],
       },
     ]);
+  }
+
+  function handleContactMessageChange(event: ChangeEvent<HTMLTextAreaElement>) {
+    setContactMessage(event.target.value.slice(0, contactMessageMaxLength));
+  }
+
+  function handleContactMessageSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = contactMessage.trim();
+    if (trimmed.length < contactMessageMinLength || isAsking) return;
+    setContactMessage("");
+    submitQuestion(trimmed);
+  }
+
+  function handleContactMessageKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      const trimmed = contactMessage.trim();
+      if (trimmed.length >= contactMessageMinLength && !isAsking) {
+        setContactMessage("");
+        submitQuestion(trimmed);
+      }
+    }
+  }
+
+  function cancelContactMessage() {
+    if (isAsking) return;
+    setContactMessage("");
+    submitQuestion("cancel");
   }
 
   function handleQuestion(event: FormEvent<HTMLFormElement>) {
@@ -624,40 +724,93 @@ export function HelpChatbox({
 
           <form
             className="shrink-0 border-t border-cyan-100/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(8,13,30,0.98))] p-3 sm:p-4"
-            onSubmit={handleQuestion}
+            onSubmit={awaitMessageInput ? handleContactMessageSubmit : handleQuestion}
           >
-            <div className="rounded-[22px] border border-cyan-200/[0.2] bg-white/[0.08] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_18px_46px_rgba(2,6,23,0.2)] focus-within:border-cyan-200/70 focus-within:shadow-[0_0_0_1px_rgba(34,211,238,0.22),0_20px_56px_rgba(34,211,238,0.13)]">
-              <textarea
-                ref={inputRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    submitQuestion(query);
-                  }
-                }}
-                placeholder={placeholderMap[currentUsyLanguage] || placeholderMap.english}
-                rows={1}
-                className="max-h-24 min-h-9 w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-5 text-white placeholder:text-slate-400 focus:outline-none"
-              />
-              <div className="flex items-center justify-between gap-3 px-1 pb-0.5">
-                <span className="text-[11px] text-slate-400">Powered by UseClevr AI</span>
-                <Button
-                  type="submit"
-                  size="icon"
-                  disabled={!query.trim() || isAsking}
-                  className="h-11 w-11 shrink-0 rounded-full border border-cyan-100/35 bg-gradient-to-br from-cyan-300 via-sky-400 to-fuchsia-400 text-white shadow-[0_12px_30px_rgba(34,211,238,0.28),0_0_22px_rgba(216,180,254,0.16),inset_0_1px_0_rgba(255,255,255,0.34)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-50/70 hover:shadow-[0_16px_36px_rgba(34,211,238,0.36),0_0_28px_rgba(216,180,254,0.24),inset_0_1px_0_rgba(255,255,255,0.42)] active:translate-y-0 active:scale-95 focus-visible:ring-2 focus-visible:ring-cyan-100 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:border-white/10 disabled:bg-none disabled:bg-slate-700/75 disabled:text-slate-300/70 disabled:opacity-100 disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_22px_rgba(2,6,23,0.22)]"
-                  aria-label="Send message to Usy"
+            {awaitMessageInput ? (
+              <div className="rounded-[22px] border border-cyan-200/[0.2] bg-white/[0.08] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_18px_46px_rgba(2,6,23,0.2)] focus-within:border-cyan-200/70 focus-within:shadow-[0_0_0_1px_rgba(34,211,238,0.22),0_20px_56px_rgba(34,211,238,0.13)]">
+                <label
+                  htmlFor="usy-contact-message"
+                  className="block px-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100/80"
                 >
-                  {isAsking ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <ArrowUp className="h-5 w-5" />
-                  )}
-                </Button>
+                  {contactMessageLabels[currentUsyLanguage].label}
+                </label>
+                <textarea
+                  ref={contactMessageRef}
+                  id="usy-contact-message"
+                  value={contactMessage}
+                  onChange={handleContactMessageChange}
+                  onKeyDown={handleContactMessageKeyDown}
+                  placeholder={contactMessageLabels[currentUsyLanguage].placeholder}
+                  rows={4}
+                  maxLength={contactMessageMaxLength}
+                  className="max-h-40 min-h-20 w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-5 text-white placeholder:text-slate-400 focus:outline-none"
+                />
+                <div className="flex items-center justify-between gap-3 px-2 pb-1">
+                  <span className="min-w-0 truncate text-[11px] text-rose-300" aria-live="polite">
+                    {contactMessage.trim().length > 0 && contactMessage.trim().length < contactMessageMinLength
+                      ? contactMessageLabels[currentUsyLanguage].tooShort
+                      : ""}
+                  </span>
+                  <span
+                    className="ml-auto shrink-0 text-[11px] tabular-nums text-slate-400"
+                    aria-live="polite"
+                    aria-label={contactMessageLabels[currentUsyLanguage].counterLabel}
+                  >
+                    {contactMessage.trim().length} / {contactMessageMaxLength}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-1 pb-0.5 pt-1">
+                  <Button
+                    type="button"
+                    onClick={cancelContactMessage}
+                    disabled={isAsking}
+                    className="h-9 rounded-full border border-white/15 bg-white/[0.06] px-4 text-xs font-semibold text-slate-200 transition hover:bg-white/[0.12] hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-200 disabled:opacity-60"
+                  >
+                    {contactMessageLabels[currentUsyLanguage].cancel}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={contactMessage.trim().length < contactMessageMinLength || isAsking}
+                    className="h-9 rounded-full border border-cyan-100/35 bg-gradient-to-br from-cyan-300 via-sky-400 to-fuchsia-400 px-4 text-xs font-semibold text-white shadow-[0_10px_26px_rgba(34,211,238,0.26),inset_0_1px_0_rgba(255,255,255,0.32)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(34,211,238,0.34),inset_0_1px_0_rgba(255,255,255,0.4)] active:translate-y-0 active:scale-95 focus-visible:ring-2 focus-visible:ring-cyan-100 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:border-white/10 disabled:bg-none disabled:bg-slate-700/75 disabled:text-slate-300/70 disabled:opacity-100 disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  >
+                    {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : contactMessageLabels[currentUsyLanguage].continue}
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-[22px] border border-cyan-200/[0.2] bg-white/[0.08] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_18px_46px_rgba(2,6,23,0.2)] focus-within:border-cyan-200/70 focus-within:shadow-[0_0_0_1px_rgba(34,211,238,0.22),0_20px_56px_rgba(34,211,238,0.13)]">
+                <textarea
+                  ref={inputRef}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      submitQuestion(query);
+                    }
+                  }}
+                  placeholder={placeholderMap[currentUsyLanguage] || placeholderMap.english}
+                  rows={1}
+                  className="max-h-24 min-h-9 w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-5 text-white placeholder:text-slate-400 focus:outline-none"
+                />
+                <div className="flex items-center justify-between gap-3 px-1 pb-0.5">
+                  <span className="text-[11px] text-slate-400">Powered by UseClevr AI</span>
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={!query.trim() || isAsking}
+                    className="h-11 w-11 shrink-0 rounded-full border border-cyan-100/35 bg-gradient-to-br from-cyan-300 via-sky-400 to-fuchsia-400 text-white shadow-[0_12px_30px_rgba(34,211,238,0.28),0_0_22px_rgba(216,180,254,0.16),inset_0_1px_0_rgba(255,255,255,0.34)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-50/70 hover:shadow-[0_16px_36px_rgba(34,211,238,0.36),0_0_28px_rgba(216,180,254,0.24),inset_0_1px_0_rgba(255,255,255,0.42)] active:translate-y-0 active:scale-95 focus-visible:ring-2 focus-visible:ring-cyan-100 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:border-white/10 disabled:bg-none disabled:bg-slate-700/75 disabled:text-slate-300/70 disabled:opacity-100 disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_22px_rgba(2,6,23,0.22)]"
+                    aria-label="Send message to Usy"
+                  >
+                    {isAsking ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <ArrowUp className="h-5 w-5" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
             <AiAccuracyDisclaimer
               className="mt-2 px-1 text-slate-300/80"
               iconClassName="text-cyan-200/80"
