@@ -1401,6 +1401,21 @@ export const referralStats = pgTable(
   }),
 );
 
+export const referralEventTypes = [
+  "click",
+  "signup",
+  "paid",
+  "admin",
+] as const;
+export type ReferralEventType = (typeof referralEventTypes)[number];
+
+export const referralEventSources = [
+  "legacy",
+  "automated",
+  "admin",
+] as const;
+export type ReferralEventSource = (typeof referralEventSources)[number];
+
 export const referralEvents = pgTable(
   "ReferralEvent",
   {
@@ -1410,10 +1425,96 @@ export const referralEvents = pgTable(
     eventKey: varchar("eventKey", { length: 255 }).notNull(),
     referredUserId: text("referredUserId"),
     referredEmail: varchar("referredEmail", { length: 255 }),
+    source: varchar("source", { length: 20 })
+      .default("legacy")
+      .notNull()
+      .$type<ReferralEventSource>(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
     eventKeyIdx: uniqueIndex("ReferralEvent_eventKey_key").on(table.eventKey),
+  }),
+);
+
+export const referralRewardStatuses = [
+  "none",
+  "pending",
+  "qualified",
+  "granted",
+  "reversed",
+  "pending_fulfillment",
+  "fulfilled",
+] as const;
+export type ReferralRewardStatus = (typeof referralRewardStatuses)[number];
+
+/**
+ * Canonical per-referred-user referral attribution.
+ *
+ * One referred account can belong to exactly one referrer. The unique index on
+ * referredUserId locks the attribution at signup confirmation; later referral
+ * links can never switch the referrer. Reward state lives here so Clicks /
+ * Signups / Paid Users / Credits Earned stay reproducible from canonical
+ * records instead of client-triggered counters.
+ */
+export const referralAttributions = pgTable(
+  "ReferralAttribution",
+  {
+    id: text("id").primaryKey(),
+    code: varchar("code", { length: 32 }).notNull(),
+    referrerUserId: text("referrerUserId").notNull(),
+    referrerEmail: varchar("referrerEmail", { length: 255 }),
+    referredUserId: text("referredUserId").notNull(),
+    referredEmail: varchar("referredEmail", { length: 255 }),
+    status: varchar("status", { length: 20 }).default("signed_up").notNull(),
+    signupConfirmedAt: timestamp("signupConfirmedAt"),
+    paidConfirmedAt: timestamp("paidConfirmedAt"),
+    signupRewardStatus: varchar("signupRewardStatus", { length: 24 })
+      .default("pending")
+      .notNull()
+      .$type<ReferralRewardStatus>(),
+    signupRewardCredits: integer("signupRewardCredits").default(0).notNull(),
+    signupRewardLedgerId: text("signupRewardLedgerId"),
+    signupRewardGrantedAt: timestamp("signupRewardGrantedAt"),
+    paidRewardStatus: varchar("paidRewardStatus", { length: 24 })
+      .default("none")
+      .notNull()
+      .$type<ReferralRewardStatus>(),
+    paidRewardCredits: integer("paidRewardCredits").default(0).notNull(),
+    paidRewardLedgerId: text("paidRewardLedgerId"),
+    paidRewardGrantedAt: timestamp("paidRewardGrantedAt"),
+    proRewardStatus: varchar("proRewardStatus", { length: 24 })
+      .default("none")
+      .notNull()
+      .$type<ReferralRewardStatus>(),
+    proRewardMonths: integer("proRewardMonths").default(0).notNull(),
+    proRewardDecidedAt: timestamp("proRewardDecidedAt"),
+    stripeEventId: text("stripeEventId"),
+    stripeSessionId: text("stripeSessionId"),
+    stripeSubscriptionId: text("stripeSubscriptionId"),
+    stripeCustomerId: text("stripeCustomerId"),
+    refundObservedAt: timestamp("refundObservedAt"),
+    adminAudit: jsonb("adminAudit")
+      .$type<
+        Array<{
+          actor: string
+          action: string
+          reason: string
+          oldState: Record<string, unknown>
+          newState: Record<string, unknown>
+          at: string
+        }>
+      >()
+      .default([])
+      .notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    referredUserIdx: uniqueIndex("ReferralAttribution_referredUserId_key").on(table.referredUserId),
+    codeIdx: index("ReferralAttribution_code_idx").on(table.code),
+    referrerIdx: index("ReferralAttribution_referrerUserId_idx").on(table.referrerUserId),
+    statusIdx: index("ReferralAttribution_status_idx").on(table.status),
   }),
 );
 
@@ -1808,6 +1909,7 @@ export const creditLedgerTypes = [
   "REVERSAL",
   "ADMIN_ADJUSTMENT",
   "PROMOTIONAL_CREDIT",
+  "REFERRAL_REWARD",
   "EXPIRATION",
 ] as const;
 export type CreditLedgerType = (typeof creditLedgerTypes)[number];

@@ -666,3 +666,6 @@ moving work between states.
 - T-218. Add Mermaid editor guidance for project diagrams. (labels: workflow; commit: 53deaed7)
 - T-442. Extracted shared ErrorScreen component — replaced 7 duplicate error pages with a single reusable component. (labels: workflow; commit: 53deaed7)
 - T-305. Sign out redirect fixed to use relative URL. (labels: workflow; commit: 53deaed7)
+## Label: referral
+
+- T-1060. Make the Referral Center production-safe: remove user-accessible Record signup/Record paid mutation endpoints, automate click tracking and signup attribution from the referral link visit, confirm signups server-side after email verification, grant idempotent 5-credit signup rewards and Stripe-verified 25-credit paid rewards through the central credit engine, derive Clicks/Signups/Paid Users/Credits Earned from canonical records, and add a superadmin-authorized referral correction API with full audit. (labels: billing, payment, security, api; commit: worktree)

@@ -1,3 +1,47 @@
+## 2026-09-20 — Referral Automation: Production-Safe Automated Lifecycle
+
+1. Interaction title
+   Make the UseClevr Referral Center production-safe: normal users must never create, confirm, or manipulate referral signups, paid referrals, rewards, credits, or conversion counts; attribution and rewards must generate automatically from authoritative server-side events.
+
+2. What was the user goal
+   Audit every referral mutation path, remove the user-accessible "Record signup" / "Record paid" capability (UI and API), and implement one coherent automated lifecycle: referral link opened → attribution securely recorded → real account created → signup confirmed server-side → 5-credit signup reward exactly once → real Stripe subscription → paid conversion recorded exactly once → 25-credit reward exactly once, with self-referral prevention, DB-level idempotency, refund detectability, canonical statistics, superadmin-only corrections with audit, and no second credit system, no parallel Stripe handling, no client-trusted conversion status, no commits or pushes. The QR code implementation must stay untouched.
+
+3. What changed
+   - Audit findings (all unsafe paths): POST /api/referral/signup (any user POST with {code,userId,email} manufactured a signup + 5 credits), POST /api/referral/paid (any user manufactured a paid conversion + 25 credits), POST /api/referral/track (client-forged clicks), the Referral Center buttons calling them, GET /api/referral ownership takeover (any cookie value could rebind referral-code ownership to the caller), client-trust of body.code for attribution, `?ref=` dropped at /signup→/login so no attribution chain existed, and counters incremented directly from client actions.
+   - `src/app/api/referral/signup/route.ts`, `src/app/api/referral/paid/route.ts`, `src/app/api/referral/track/route.ts`: deleted — no client-callable referral mutation capability remains.
+   - `src/app/api/referral/visit/route.ts` (new): GET endpoint the referral link now routes through; records a deduped informational click (eventKey `code:click:sha256(ip):UTC-day`; logged-in referrer self-visits excluded; unknown codes get nothing) and sets the httpOnly `useclevr_ref_attribution` cookie (30 days, lax, secure). Grants nothing.
+   - `src/app/(public)/signup/page.tsx`: preserves the `/signup?ref=<code>` URL format and redirects ref visits through the visit handler; `src/lib/referrals/referral-store.ts` is now write-free (normalize/create/buildReferralLink only; the file-store and `recordReferralEvent` are gone).
+   - `src/app/actions/auth.ts`: after `markEmailVerified(email)` in `verifyEmailOtp` and the superadmin auth-bypass path, `confirmReferralAfterVerification` reads the attribution cookie server-side and calls the lifecycle — the authoritative signup event is the real account completing email verification; failures never block signup (reward stays pending and retries).
+   - `src/lib/referrals/referral-lifecycle.ts` (new): `recordReferralClick`, `confirmReferralSignup` (self-referral rejected by userId + email; attribution locked by unique `ReferralAttribution.referredUserId`; signup event keyed `code:signup:<uid>`; counters updated server-side), `grantReferralCredits` (single-transaction single-grant: conditional attribution-state claim gates the UserCredit purchasedBalance credit and the REFERRAL_REWARD ledger row; idempotencyKeys `referral:reward:signup:<uid>` / `referral:reward:paid:<uid>`; credits land in purchasedBalance — non-expiring, downgrade-surviving, consumable on Free), `confirmReferralPaidConversion` (one paid conversion per referred account; conditional paidConfirmedAt write; Stripe evidence stored), `grantPendingReferralRewardsForOwner` (lazy retry of outstanding grants on Referral Center load and admin retry), `recordReferralRefundObservation`/`recordReferralRefundForCustomer` (refund detection only), `reverseReferralReward` (claims granted→reversed first, GREATEST floors so balances never go negative, reverses only the corresponding referral grant, idempotent reversal key), `decideProReward` (records the 1-month Pro decision), `getOwnerReferralSummary` (Clicks from click events, Signups/Paid Users from attributions, Credits Earned from finalized non-reversed grants).
+   - `src/services/stripe/webhook.ts`: webhook-only `allowReferralConversion` flag — `checkout.session.completed` (subscription mode) with retrieved subscription status active and resolved tier pro/business, and webhook `customer.subscription.created/updated` with active status, confirm the paid referral; checkout-return/success-page sync and user resume/reconciliation paths never confirm; refund observation wired into `charge.refunded` in `src/app/api/webhooks/stripe/route.ts` resolving the account from the trusted Stripe customer ID.
+   - `src/app/api/referral/route.ts`: session-required; ownership takeover fixed (a cookie code owned by another user is replaced with a fresh code; unowned codes bind once); stats derived canonically; reward config exposed; visitor attribution cookie cleared in the owner center.
+   - `src/app/api/admin/referrals/route.ts` (new): requireSuperAdmin GET inspection and PATCH corrections (reverse_reward, retry_reward, pro_decision), reason-gated, with adminAudit entries + ReferralEvent "admin" rows (actor/timestamp/reason/old/new).
+   - `src/app/(auth)/app/referral/page.tsx`: mutation buttons and click-on-copy/share removed; panel replaced with the concise "Referral tracking is automatic" note; rewards breakdown reads the server config from the summary response; QR section untouched.
+   - `src/lib/db/schema.ts` + `src/lib/db/migrations/0035_referral_automation.sql` + `scripts/runtime/railway-predeploy.cjs`: ReferralAttribution (unique referredUserId, code/referrer/status indexes), ReferralEvent source (default legacy) + metadata columns, CreditLedger transactionType check extended with REFERRAL_REWARD, updatedAt trigger — all idempotent.
+   - `src/lib/referrals/referral-config.ts` (new): single authoritative reward config (signup 5 credits; paid 25 credits + 1 month Pro; cookie TTL; click dedupe; paid-evidence definition).
+   - `scripts/billing/test-referral-automation.ts` (new, `test:referral-automation`, in `test:all`): 23 checks.
+
+4. Problems marked
+   - Root cause of the user-accessible actions: the Referral Center shipped a development/testing panel whose buttons POSTed to open mutation endpoints that trusted `body.code`/cookie and client-supplied userId/email/paymentId — any authenticated or anonymous caller could mint conversions and rewards with curl.
+   - Historical ReferralEvent rows have no provenance; migration preserves them as `legacy` and never promotes them into attributions or stats (Signups/Paid now derive from verified attributions only, so legacy manual inflations no longer count).
+   - The 1-month Pro reward has no safe automated fulfillment path (profile.subscriptionTier is Stripe-synced; no expiring entitlement mechanism exists), so it is recorded as pending_fulfillment and decided by a superadmin; automatic reversal on refund stays disabled pending the same business decision.
+   - QR code untouched: it renders via the unchanged qrcode route using the same buildReferralLink, and QR traffic now enters the same automated visit → attribution → verified-signup lifecycle.
+
+5. User learning
+   The Referral Center is now a read-only performance dashboard: numbers reproduce from real history, rewards arrive automatically and exactly once, self-referrals and replay cannot earn anything, and support can correct exceptional cases with a full audit trail.
+
+6. Verification
+   - `pnpm test:referral-automation` 23/23; `test:auth`, `test:credit-unified` (12), `test:retail-credit-integration` (8), `test:zero-credit-ux` (12), `test:upload-credit-reservation` (8), `test:dataset-source-history` (7), `test:credit-topup-webhooks` (68), `test:credit-topup-architecture` (18), `test:credit-engine` all pass.
+   - `pnpm exec tsc --noEmit --pretty false` exit 0 (after `next typegen`); ESLint 0 errors on all changed files and repo-wide (warnings pre-existing); `lint:todos` pass; migration 0035 validated transactionally (BEGIN/ROLLBACK) against the dev Neon database.
+   - `test-billing-integrity` fails identically at pristine HEAD (pre-existing, unrelated).
+
+7. Remaining limitations / business decisions required
+   - 1-month Pro paid reward: recorded as pending_fulfillment, never auto-applied to subscription tier; a business decision plus an expiring-entitlement mechanism is required before automated fulfillment.
+   - Automatic reward reversal on refund: technically supported and idempotent but disabled pending the same business-policy decision; refunds are detected and auditable, and cancellation at period end is never treated as a refund.
+   - Click analytics cap obvious inflation (per code/IP-hash/day dedupe, self-visit skip) but a determined script farm across rotating IPs can still inflate clicks — clicks never unlock rewards, so this is informational only.
+   - Attribution relies on a 30-day httpOnly first-party cookie; clearing cookies before signup loses attribution (no invasive fingerprinting by design).
+   - Not committed or pushed per instruction.
+
 ## 2026-09-20 — AI Governance: One Normalized Provider/Runtime Truth Across All Pages
 
 1. Interaction title

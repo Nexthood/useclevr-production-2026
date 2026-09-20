@@ -158,6 +158,45 @@ const statements = [
     "updatedAt" timestamp DEFAULT now() NOT NULL
   )`,
 
+  `ALTER TABLE IF EXISTS "ReferralEvent" ADD COLUMN IF NOT EXISTS "source" varchar(20) DEFAULT 'legacy' NOT NULL`,
+  `ALTER TABLE IF EXISTS "ReferralEvent" ADD COLUMN IF NOT EXISTS "metadata" jsonb DEFAULT '{}'::jsonb NOT NULL`,
+
+  `CREATE TABLE IF NOT EXISTS "ReferralAttribution" (
+    "id" text PRIMARY KEY NOT NULL,
+    "code" varchar(32) NOT NULL,
+    "referrerUserId" text NOT NULL,
+    "referrerEmail" varchar(255),
+    "referredUserId" text NOT NULL,
+    "referredEmail" varchar(255),
+    "status" varchar(20) DEFAULT 'signed_up' NOT NULL,
+    "signupConfirmedAt" timestamp,
+    "paidConfirmedAt" timestamp,
+    "signupRewardStatus" varchar(24) DEFAULT 'pending' NOT NULL,
+    "signupRewardCredits" integer DEFAULT 0 NOT NULL,
+    "signupRewardLedgerId" text,
+    "signupRewardGrantedAt" timestamp,
+    "paidRewardStatus" varchar(24) DEFAULT 'none' NOT NULL,
+    "paidRewardCredits" integer DEFAULT 0 NOT NULL,
+    "paidRewardLedgerId" text,
+    "paidRewardGrantedAt" timestamp,
+    "proRewardStatus" varchar(24) DEFAULT 'none' NOT NULL,
+    "proRewardMonths" integer DEFAULT 0 NOT NULL,
+    "proRewardDecidedAt" timestamp,
+    "stripeEventId" text,
+    "stripeSessionId" text,
+    "stripeSubscriptionId" text,
+    "stripeCustomerId" text,
+    "refundObservedAt" timestamp,
+    "adminAudit" jsonb DEFAULT '[]'::jsonb NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  )`,
+
+  `CREATE UNIQUE INDEX IF NOT EXISTS "ReferralAttribution_referredUserId_key" ON "ReferralAttribution" USING btree ("referredUserId")`,
+  `CREATE INDEX IF NOT EXISTS "ReferralAttribution_code_idx" ON "ReferralAttribution" USING btree ("code")`,
+  `CREATE INDEX IF NOT EXISTS "ReferralAttribution_referrerUserId_idx" ON "ReferralAttribution" USING btree ("referrerUserId")`,
+  `CREATE INDEX IF NOT EXISTS "ReferralAttribution_status_idx" ON "ReferralAttribution" USING btree ("status")`,
+
   `CREATE TABLE IF NOT EXISTS "SupportTicket" (
     "id" text PRIMARY KEY NOT NULL,
     "userId" text NOT NULL,
@@ -322,6 +361,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0032_widen_credit_ledger_transaction_type.sql"),
   readMigrationStatement("src/lib/db/migrations/0033_concurrent_analysis_count.sql"),
   readMigrationStatement("src/lib/db/migrations/0034_dataset_source.sql"),
+  readMigrationStatement("src/lib/db/migrations/0035_referral_automation.sql"),
 ];
 
 const constraints = [
@@ -377,6 +417,7 @@ const updateTriggerTables = [
   "SupportTicket",
   "Workspace",
   "ReferralStats",
+  "ReferralAttribution",
   "AppSetting",
 ];
 
