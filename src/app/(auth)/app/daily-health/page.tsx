@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card"
 import { auth } from "@/lib/auth/auth"
 import { loadDashboardDatasetAggregation } from "@/lib/data/dashboard-dataset-aggregation"
 import { getOrCreateDailyHealthBrief, listDailyHealthBriefs, type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
+import { DAILY_ANALYSIS_CONFIDENCE_LABEL, DAILY_BUSINESS_HEALTH_SCORE_EXPLANATION, DAILY_BUSINESS_HEALTH_SCORE_LABEL } from "@/lib/executive/daily-health-semantics"
 import { Activity, AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, Sparkles, Target, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -100,11 +101,12 @@ function FullBrief({ brief }: { brief: ExecutiveDailyBrief }) {
         <div className="mt-5 flex items-center gap-5">
           <ScoreRing value={brief.score} />
           <div>
-            <p className="text-sm text-muted-foreground">Business Health Score</p>
+            <p className="text-sm text-muted-foreground">{DAILY_BUSINESS_HEALTH_SCORE_LABEL}</p>
             <p className="mt-1 text-2xl font-semibold text-foreground">{brief.score}/100</p>
-            <p className="mt-3 text-sm text-muted-foreground">AI Confidence: {brief.aiConfidence}/100</p>
+            <p className="mt-3 text-sm text-muted-foreground">{DAILY_ANALYSIS_CONFIDENCE_LABEL}: {brief.aiConfidence}/100</p>
           </div>
         </div>
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">{DAILY_BUSINESS_HEALTH_SCORE_EXPLANATION}</p>
         <div className="mt-6 grid gap-3">
           <MetricLine label="Generated" value={formatDate(brief.createdAt)} />
           <MetricLine label="Engine" value={brief.generatedBy === "ai" ? "AI generated" : "Deterministic"} />
@@ -223,7 +225,7 @@ function ScoreRing({ value }: { value: number }) {
   const offset = circumference - (value / 100) * circumference
   const color = value >= 75 ? "#34d399" : value >= 50 ? "#f59e0b" : "#fb7185"
   return (
-    <svg className="h-28 w-28 shrink-0" viewBox="0 0 100 100" role="img" aria-label={`Health score ${value} out of 100`}>
+    <svg className="h-28 w-28 shrink-0" viewBox="0 0 100 100" role="img" aria-label={`Business health score ${value} out of 100`}>
       <circle cx="50" cy="50" r="40" fill="none" className="stroke-muted" strokeWidth="10" />
       <circle cx="50" cy="50" r="40" fill="none" stroke={color} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" strokeWidth="10" transform="rotate(-90 50 50)" />
       <text x="50" y="56" fill="currentColor" textAnchor="middle" className="text-2xl font-bold text-foreground">{value}</text>

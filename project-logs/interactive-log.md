@@ -1,3 +1,48 @@
+## 2026-09-20 — Investor Dashboard Trend/Snapshot Semantics + Score Identity Fix
+
+1. Interaction title
+   Investor dashboard semantic consistency: real-trend eligibility, snapshot fallback, and distinct score identities.
+
+2. What was the user goal
+   Fix two semantic UX problems without redesigning the Investor flow or changing correct deterministic calculations: (a) charts labeled "Revenue Trend"/"Profit Trend" rendered even when the data could not establish a trend (including a single observation), and (b) the dashboard showed "Today's Score 58/100" with "AI confidence 65/100" while the generated Investor report showed Business Balanced Scorecard 76/100 with no explanation that these are different metrics. Require Trend/Snapshot/Unavailable states, never invent data, keep dashboard/PDF terminology consistent, keep recommendations unchanged, add deterministic tests, and do not commit or push.
+
+3. What changed
+   - Audit findings: `dashboard-semantic-profile.ts` emitted trend panels from any aggregated series with at least one nonzero point (no ≥2-period rule); `page.tsx` `TrendPanel` drew an AreaChart whenever `data.length > 0`, including exactly one point, under "Revenue Trend"/"Profit Trend"; for Investor datasets the semantic trends were empty by canonical rule (`financials.periodTrends = []`, `investment_date` excluded), so `activeTrendPanels` fell back to page-level `buildSeries` that treated `investment_date` (matched by `/date/`) as the temporal dimension for `annual_revenue`, manufacturing a fake "Revenue Trend" from cross-sectional data. Score audit: "Today's score" is the Executive Daily Health brief score = round(mean of 5 signal scores: dataset freshness, business profile readiness, inventory health, profitability, forecast reliability) − 3 × missingDataCount, clamped 0-100; "AI confidence" is round(mean signal confidences) + min(10, insightCount) — deterministic analysis coverage, not AI model certainty; BBSC overall = round(equal-weight average of available perspective scores), excluded perspectives not estimated; the overview tab's "Business Health Score" card is a different composite ((readiness + aiConfidence + forecastConfidence + growthScore)/4) that would collide with the renamed daily brief score.
+   - `src/lib/data/trend-semantics.ts` (new): shared deterministic rules — `isTrendEligible` requires at least two usable observations across at least two distinct period labels (duplicates collapse at aggregation; empty labels and non-finite values never count); `resolveTrendSemantics` returns trend (plot exactly the aggregated points), snapshot (deterministic metric value or last usable observation + "No sufficient time-series data is available for a {metric} trend."), or unavailable (named reason, no chart).
+   - `src/lib/data/dashboard-semantic-profile.ts`: `DashboardSemanticTrend` gains `state` and `snapshotValue`; new exported `buildTrendPanel` derives state-aware titles (base "…Trend" / "{metric} Snapshot" / "{metric} data unavailable"); `buildSemanticTrends` now covers every profile with metric values and unavailable reasons, adds an `investor_portfolio` branch ("Portfolio Company Annual Revenue" snapshot from `financials.revenue` + "Profit data unavailable" with the required-fields reason; investor series stay empty because investment dates are not revenue reporting periods), and keeps null-aware period series (explicit zeros stay plottable, missing values never become fabricated points).
+   - `src/app/(auth)/app/page.tsx`: `TrendPanel` renders by state (chart / snapshot value + supporting text / unavailable explanation); `activeTrendPanels` trusts the semantic profile whenever it exists and builds fallback panels through `buildTrendPanel` (metric totals + ≥2-point rule) only when no semantic analysis exists; the Financial tab's Monthly Comparison uses the same resolver; Executive Daily Health section relabels "Today's score" → "Business Health Score" and "AI confidence" → "Analysis confidence" with the deterministic formula explanations; overview cards renamed to "Workspace Health Score" and "Analysis Confidence" (distinct from the daily brief score) with hint text; `ScoreRing` aria-label updated; BBSC preview shows the concise methodology line "Average of available Balanced Scorecard perspectives. Perspectives with insufficient source data are excluded rather than estimated."
+   - `src/app/(auth)/app/daily-health/page.tsx`: uses the shared "Business Health Score" label, "Analysis confidence" label, and the score explanation.
+   - `src/lib/executive/daily-health-semantics.ts` (new): single source for all score labels and explanation copy; `daily-health.ts` exports `calculateMetrics` and `buildDeterministicBrief` for formula-pinning tests; its deterministic executive summary now says "Business health score is X/100 …" instead of "Today's health score".
+   - Tests: `scripts/analysis/test-trend-semantics.ts` (+ `test:trend-semantics`, in `test:all`) covers the ten required cases (multi-period trend, one-period snapshot, no temporal dimension, missing metric, profit trend/snapshot/unavailable, duplicate-date collapse, invalid/null dates, no artificial points) plus resolver edge cases; `scripts/analysis/test-score-semantics.ts` (+ `test:score-semantics`, in `test:all`, runs with load-env because importing the daily-health module triggers config env validation) pins both score formulas, the distinct labels, the BBSC equal-weight-average formula with excluded-perspective proof, and the exact methodology copy; `scripts/analysis/test-investor-questions.ts` now asserts state-aware trend semantics (no trend-state panel matching /revenue|mrr|arr|runway/i, "Portfolio Company Annual Revenue Snapshot" with value 126384909.53, "Profit data unavailable") replacing the blunt title regex that could not express the new snapshot requirement.
+   - `CHANGELOG.md` (two Added entries under Unreleased) and `requirements.md` (four new Downloads & Reports requirements) record the user-visible behavior.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `test:dataset-aware-report-profiles` fails at "saas: results summary top findings must suppress technical metadata" — verified pre-existing at pristine HEAD via a temporary worktree with linked node_modules; unrelated to this change (report findings/PDF metadata filtering, untouched files).
+   - improvement: the ≥2-point guards across report/PDF code (`drawTrendPanel`, `drawSaasTrendTable`, `drawMarketplaceTrendTable`, `hasTrendData`) remain per-site; a shared helper now exists for dashboard semantics and could be reused by report code later.
+   - observation: the default dashboard view without a selected dataset keeps the page-level generic series heuristics (including `investment_date` matching `/date/` for KPI sparklines); the selected-dataset path — which is the Investor dashboard — is now governed by the semantic profile.
+
+5. User learning
+   The Investor example numbers are legitimate different metrics: 58/100 is the workspace Business Health Score (signal average minus missing-data gaps), 65/100 is deterministic analysis confidence, and 76/100 is the BBSC equal-weight average of available perspectives — none should ever be made to match.
+
+6. AI-agent learning
+   When semantic-profile trends were empty, the page-level fallback silently bypassed canonical investor semantics (the investor test only guarded `semanticAnalysis.trends`, not the fallback). State-aware assertions (state/title/value/copy) catch what title-regex assertions cannot.
+
+7. Follow-up tasks
+   - Reuse the shared trend-eligibility helper in report/PDF trend guards to remove duplicated per-site `length >= 2` checks.
+   - Extend semantic-profile authority to the no-selected-dataset dashboard view so page-level generic series heuristics (e.g. `investment_date` sparklines) also respect canonical temporal semantics.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
 ## Unified Credit Control System
 
 1. Interaction title

@@ -2,6 +2,8 @@
 
 ### Added
 
+- Add trend trust to dashboards: a chart is called a trend only when uploaded data contains at least two distinct valid periods, a single observation now renders as a metric snapshot that says time-series data is insufficient, and a metric that cannot be calculated says it is unavailable and why.
+- Add short explanations under the Business Health Score, its analysis confidence, the Workspace Health Score, and the Business Balanced Scorecard overall score so each score shows what it measures and no two scores imply they are the same calculation.
 - Add one authoritative credit pricing table so every credit action shows and charges the same amount: dataset uploads with their standard analysis cost 10 credits, AI Analyst messages cost 1 credit, report generation and regeneration cost 3 credits, forecasts cost 3 credits, profitability analysis costs 15 credits, and downloading an existing report stays free.
 - Add internal per-request AI token tracking so Gemini input, output, and thinking tokens are recorded for unit-economics analysis without changing customer credit prices.
 
