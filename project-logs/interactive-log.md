@@ -88,6 +88,50 @@
    - Activity summary: project-logs/activity-log.md
    - Latest interaction status: docs/AI-interaction/interaction-status.md
 
+## 2026-09-20 — Usy Production Contact Handoff Repair
+
+1. Interaction title
+   Repair the production Usy contact handoff configuration and make confirmed submissions idempotent and retryable.
+
+2. What was the user goal
+   After the staged contact flow shipped, production returns "I cannot submit the request right now because the contact handoff is not configured." after Confirm. Trace the confirmed request path, identify the exact cause, audit the environment variables the existing n8n integration expects (no second webhook, no parallel email logic, no mailto, no client-side secrets), keep support@useclevr.com available as the Technical Support / IT destination, preserve department routing and the structured payload, keep guests working, and make success/failure behavior idempotent and truthful (no duplicate handoff, no lost draft, no false delivery claim).
+
+3. What changed
+   - Trace: confirmation → client POSTs the confirmed draft to `/api/usy/contact` → `checkUsyContactRateLimit` (3/10 min per user/IP) → `validateUsyContactPayload` (10–500 message, known department, valid email) → `getUsyContactWebhookConfig()` reads `USY_CONTACT_N8N_WEBHOOK_URL` + `USY_CONTACT_N8N_WEBHOOK_SECRET` from `process.env` → `buildConfirmedUsyContactPayload` adds server-derived userId/organizationId → `sendUsyContactWebhook` POSTs JSON with `Authorization: Bearer <secret>` and `X-UseClevr-Event: usy.contact_request` to the central n8n webhook → n8n routes by `category` to the department destination and delivers.
+   - Root cause: the live Railway project (project `useclevr-web`, env `production`) has **no** `USY_CONTACT_N8N_WEBHOOK_URL` and **no** `USY_CONTACT_N8N_WEBHOOK_SECRET` on the production `useclevr app` service (app.useclevr.com) nor on the `useclevr TEST` service (production and beta envs) — audited via `scripts/server/railway/railway.cjs variable list` with names only (no secret values printed). `getUsyContactWebhookConfig()` returns `missing: true` → the route returns 503 with the reported message. The variables are also absent from `.env.railway.example`/`.env.local.example`, so they were never provisioned anywhere.
+   - `src/lib/usy/contact.ts`: new `createUsyContactSubmissionGuard` (pending/delivered fingerprint store with 10-minute window), `fingerprintUsyContactSubmission` (sha256 of server identity + category/message/senderName/company/replyEmail/language), and `sendUsyContactWebhook` (the single central n8n webhook call with injectable fetch, bearer + event headers, safe retryable failure result).
+   - `src/app/api/usy/contact/route.ts`: submission guard wired in — duplicate confirmation of a delivered request returns 202 "already been submitted" without a second webhook call; an in-flight duplicate returns 409 with Retry-After; a failed webhook releases the fingerprint and returns the retryable 502; success marks the fingerprint delivered. Rate limiting, validation, 503 missing-config behavior, and secret handling unchanged.
+   - `src/components/ui/help-chatbox.tsx`: a failed submission keeps the confirmed draft (only success clears it) so the user can retry without retyping; localized success/failure confirmation in all six languages; failure shows localized Confirm/Cancel chips mirroring the server's confirmation chips; no duplicate submission (guarded by isAsking + the server-side fingerprint guard).
+   - Configuration documentation: `.env.railway.example` and `.env.local.example` now declare `USY_CONTACT_N8N_WEBHOOK_URL=` and `USY_CONTACT_N8N_WEBHOOK_SECRET=` (empty, never fabricated) with generation and routing notes; `docs/AI-interaction/developer-guides/usy-contact-handoff.md` gains a Railway Configuration section (set both variables on the production `useclevr app` and `useclevr TEST` services; values come from the operator's n8n instance; technical_support routes to support@useclevr.com on the n8n side) and Submission Semantics plus updated Responses; `CHANGELOG.md` and `requirements.md` record the user-visible behavior.
+   - Tests: `scripts/ai/test-usy-contact-handoff.ts` (new, `test:usy-contact-handoff`, in `test:all`) covers configured-webhook success (single call, bearer/event contract, full payload), missing/invalid configuration safe failures, network/server-error/401 webhook retryability, duplicate confirmation deduplication, guard window expiry, fingerprint separation by identity and payload, all five department routings, guest and authenticated payload contracts, and source guards for server-side-only secrets, guard wiring, and draft preservation on failure.
+
+4. Problems marked
+   - blocker: production delivery stays blocked until the operator sets `USY_CONTACT_N8N_WEBHOOK_URL` and `USY_CONTACT_N8N_WEBHOOK_SECRET` in Railway (values exist only in the operator's n8n instance and were not fabricated).
+   - risk: the submission guard is process-local; a multi-instance deployment could double-deliver an ambiguous retry (single Railway web service today; n8n-side dedup by replyEmail+timestamp would close it fully).
+   - improvement: n8n could return a stable delivery reference that UseClevr could surface to the user as a ticket reference.
+   - observation: department→mailbox routing is n8n-side configuration; UseClevr intentionally sends only `category` and never embeds destination addresses.
+
+5. User learning
+   The "not configured" message was truthful: the two server-side variables for the central n8n webhook were never set in Railway. Setting them on the production and test services (with the matching bearer value configured in the n8n workflow) activates delivery without any code change; departments keep their dedicated destinations, and support@useclevr.com receives Technical Support / IT.
+
+6. AI-agent learning
+   Railway environment audits must print variable names only (the CLI wrapper's `variable list` prints raw values); filtering output to names before it reaches the transcript keeps secrets out of the session. Source assertions in existing suites follow refactors — moving the webhook call into `sendUsyContactWebhook` required updating the event-contract source assertion to the new location.
+
+7. Follow-up tasks
+   - Set the two Railway variables and verify a live guest + authenticated contact submission end to end after deploy. (labels: production, railway, usy)
+   - Consider an n8n-side deduplication key so ambiguous retries cannot double-deliver across instances.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
 ## 2026-09-20 — Usy Contact Handoff: Dedicated 500-Character Message Step
 
 1. Interaction title

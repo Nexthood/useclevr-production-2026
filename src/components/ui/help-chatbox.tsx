@@ -283,6 +283,50 @@ function UsyAvatar({
   );
 }
 
+const contactSubmitLabels = {
+  english: {
+    submitted: "Your contact request has been submitted. The team will reply to you.",
+    submittedFailed: "The contact request could not be submitted right now. Your request is still prepared — reply \"send\" to try again.",
+    confirm: "Confirm",
+    cancel: "Cancel",
+  },
+  german: {
+    submitted: "Deine Kontaktanfrage wurde gesendet. Das Team antwortet dir.",
+    submittedFailed: "Die Kontaktanfrage konnte gerade nicht gesendet werden. Deine Anfrage ist noch vorbereitet — antworte mit \"senden\", um es erneut zu versuchen.",
+    confirm: "Bestätigen",
+    cancel: "Abbrechen",
+  },
+  dutch: {
+    submitted: "Je contactaanvraag is verzonden. Het team reageert op je verzoek.",
+    submittedFailed: "De contactaanvraag kon nu niet worden verzonden. Je verzoek staat nog klaar — antwoord met \"versturen\" om het opnieuw te proberen.",
+    confirm: "Bevestigen",
+    cancel: "Annuleren",
+  },
+  spanish: {
+    submitted: "Tu solicitud de contacto ha sido enviada. El equipo te responderá.",
+    submittedFailed: "La solicitud de contacto no pudo enviarse ahora. Tu solicitud sigue preparada — responde \"enviar\" para intentarlo de nuevo.",
+    confirm: "Confirmar",
+    cancel: "Cancelar",
+  },
+  hungarian: {
+    submitted: "A kapcsolatfelvételi kérésed el lett küldve. A csapat válaszol neked.",
+    submittedFailed: "A kapcsolatfelvételi kérést most nem sikerült elküldeni. A kérésed még készen áll — írd azt, hogy \"küld\", és megpróbálom újra.",
+    confirm: "Megerősítés",
+    cancel: "Megszakítás",
+  },
+  romanian: {
+    submitted: "Solicitarea ta de contact a fost trimisă. Echipa îți va răspunde.",
+    submittedFailed: "Solicitarea de contact nu a putut fi trimisă acum. Cererea ta este pregătită — răspunde cu \"trimite\" ca să reîncerci.",
+    confirm: "Confirmă",
+    cancel: "Anulează",
+  }
+} as const satisfies Record<SupportedUsyLanguage, {
+  submitted: string;
+  submittedFailed: string;
+  confirm: string;
+  cancel: string;
+}>;
+
 const contactMessageMaxLength = 500;
 const contactMessageMinLength = 10;
 
@@ -488,11 +532,16 @@ export function HelpChatbox({
       body: JSON.stringify({ ...draft, confirmed: true }),
     });
     const body = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
+    const labels = contactSubmitLabels[currentUsyLanguage];
     const text = response.ok
-      ? body?.message || "Your contact request has been submitted."
-      : body?.error || "The contact request could not be submitted. Please try again shortly.";
+      ? labels.submitted
+      : body?.error || labels.submittedFailed;
 
-    setContactDraft(null);
+    // A failed handoff keeps the confirmed draft so the user can retry the
+    // same request without retyping anything; only success clears it.
+    if (response.ok) {
+      setContactDraft(null);
+    }
     setAwaitMessageInput(false);
     setMessages((current) => [
       ...current,
@@ -500,7 +549,7 @@ export function HelpChatbox({
         role: "assistant",
         text,
         source: "knowledge",
-        followUps: response.ok ? ["What can you do?", "Open dashboard"] : ["Contact support", "Try again"],
+        followUps: response.ok ? ["What can you do?", "Open dashboard"] : [labels.confirm, labels.cancel],
       },
     ]);
   }
