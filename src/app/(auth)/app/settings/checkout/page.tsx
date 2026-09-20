@@ -292,7 +292,7 @@ function CheckoutClient() {
                       aria-hidden="true"
                     />
                   </span>
-                  <span className="mt-1 block text-sm font-medium text-foreground">{formatPlanPrice(getBillingPlan("free"))}</span>
+                  <span className="mt-1 block text-sm font-medium text-foreground">{formatPlanPrice(getBillingPlan("free"), selectedMarket)}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">Included plan. No checkout required.</span>
                 </button>
                 {paidPlans.map((candidate) => {
@@ -668,7 +668,7 @@ function getMarketSelectionForPlan(plan: CheckoutPlan, currentMarket: CheckoutMa
 }
 
 function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket, billingInterval: BillingInterval) {
-  if (plan.tier === "free") return formatPlanPrice(plan);
+  if (plan.tier === "free") return formatPlanPrice(plan, market);
 
   if (plan.id === "pro_monthly" || plan.id === "business_monthly") {
     const option = getSelectedMarketOption(plan, market, billingInterval);
@@ -676,7 +676,7 @@ function formatCheckoutPlanPrice(plan: CheckoutPlan, market: CheckoutMarket, bil
     return option.displayPrice;
   }
 
-  return formatPlanPrice(plan);
+  return formatPlanPrice(plan, market);
 }
 
 function buildCheckoutUrl({

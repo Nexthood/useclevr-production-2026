@@ -1,3 +1,48 @@
+## 2026-09-20 — Investor Dashboard Trend/Snapshot Semantics + Score Identity Fix
+
+1. Interaction title
+   Investor dashboard semantic consistency: real-trend eligibility, snapshot fallback, and distinct score identities.
+
+2. What was the user goal
+   Fix two semantic UX problems without redesigning the Investor flow or changing correct deterministic calculations: (a) charts labeled "Revenue Trend"/"Profit Trend" rendered even when the data could not establish a trend (including a single observation), and (b) the dashboard showed "Today's Score 58/100" with "AI confidence 65/100" while the generated Investor report showed Business Balanced Scorecard 76/100 with no explanation that these are different metrics. Require Trend/Snapshot/Unavailable states, never invent data, keep dashboard/PDF terminology consistent, keep recommendations unchanged, add deterministic tests, and do not commit or push.
+
+3. What changed
+   - Audit findings: `dashboard-semantic-profile.ts` emitted trend panels from any aggregated series with at least one nonzero point (no ≥2-period rule); `page.tsx` `TrendPanel` drew an AreaChart whenever `data.length > 0`, including exactly one point, under "Revenue Trend"/"Profit Trend"; for Investor datasets the semantic trends were empty by canonical rule (`financials.periodTrends = []`, `investment_date` excluded), so `activeTrendPanels` fell back to page-level `buildSeries` that treated `investment_date` (matched by `/date/`) as the temporal dimension for `annual_revenue`, manufacturing a fake "Revenue Trend" from cross-sectional data. Score audit: "Today's score" is the Executive Daily Health brief score = round(mean of 5 signal scores: dataset freshness, business profile readiness, inventory health, profitability, forecast reliability) − 3 × missingDataCount, clamped 0-100; "AI confidence" is round(mean signal confidences) + min(10, insightCount) — deterministic analysis coverage, not AI model certainty; BBSC overall = round(equal-weight average of available perspective scores), excluded perspectives not estimated; the overview tab's "Business Health Score" card is a different composite ((readiness + aiConfidence + forecastConfidence + growthScore)/4) that would collide with the renamed daily brief score.
+   - `src/lib/data/trend-semantics.ts` (new): shared deterministic rules — `isTrendEligible` requires at least two usable observations across at least two distinct period labels (duplicates collapse at aggregation; empty labels and non-finite values never count); `resolveTrendSemantics` returns trend (plot exactly the aggregated points), snapshot (deterministic metric value or last usable observation + "No sufficient time-series data is available for a {metric} trend."), or unavailable (named reason, no chart).
+   - `src/lib/data/dashboard-semantic-profile.ts`: `DashboardSemanticTrend` gains `state` and `snapshotValue`; new exported `buildTrendPanel` derives state-aware titles (base "…Trend" / "{metric} Snapshot" / "{metric} data unavailable"); `buildSemanticTrends` now covers every profile with metric values and unavailable reasons, adds an `investor_portfolio` branch ("Portfolio Company Annual Revenue" snapshot from `financials.revenue` + "Profit data unavailable" with the required-fields reason; investor series stay empty because investment dates are not revenue reporting periods), and keeps null-aware period series (explicit zeros stay plottable, missing values never become fabricated points).
+   - `src/app/(auth)/app/page.tsx`: `TrendPanel` renders by state (chart / snapshot value + supporting text / unavailable explanation); `activeTrendPanels` trusts the semantic profile whenever it exists and builds fallback panels through `buildTrendPanel` (metric totals + ≥2-point rule) only when no semantic analysis exists; the Financial tab's Monthly Comparison uses the same resolver; Executive Daily Health section relabels "Today's score" → "Business Health Score" and "AI confidence" → "Analysis confidence" with the deterministic formula explanations; overview cards renamed to "Workspace Health Score" and "Analysis Confidence" (distinct from the daily brief score) with hint text; `ScoreRing` aria-label updated; BBSC preview shows the concise methodology line "Average of available Balanced Scorecard perspectives. Perspectives with insufficient source data are excluded rather than estimated."
+   - `src/app/(auth)/app/daily-health/page.tsx`: uses the shared "Business Health Score" label, "Analysis confidence" label, and the score explanation.
+   - `src/lib/executive/daily-health-semantics.ts` (new): single source for all score labels and explanation copy; `daily-health.ts` exports `calculateMetrics` and `buildDeterministicBrief` for formula-pinning tests; its deterministic executive summary now says "Business health score is X/100 …" instead of "Today's health score".
+   - Tests: `scripts/analysis/test-trend-semantics.ts` (+ `test:trend-semantics`, in `test:all`) covers the ten required cases (multi-period trend, one-period snapshot, no temporal dimension, missing metric, profit trend/snapshot/unavailable, duplicate-date collapse, invalid/null dates, no artificial points) plus resolver edge cases; `scripts/analysis/test-score-semantics.ts` (+ `test:score-semantics`, in `test:all`, runs with load-env because importing the daily-health module triggers config env validation) pins both score formulas, the distinct labels, the BBSC equal-weight-average formula with excluded-perspective proof, and the exact methodology copy; `scripts/analysis/test-investor-questions.ts` now asserts state-aware trend semantics (no trend-state panel matching /revenue|mrr|arr|runway/i, "Portfolio Company Annual Revenue Snapshot" with value 126384909.53, "Profit data unavailable") replacing the blunt title regex that could not express the new snapshot requirement.
+   - `CHANGELOG.md` (two Added entries under Unreleased) and `requirements.md` (four new Downloads & Reports requirements) record the user-visible behavior.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `test:dataset-aware-report-profiles` fails at "saas: results summary top findings must suppress technical metadata" — verified pre-existing at pristine HEAD via a temporary worktree with linked node_modules; unrelated to this change (report findings/PDF metadata filtering, untouched files).
+   - improvement: the ≥2-point guards across report/PDF code (`drawTrendPanel`, `drawSaasTrendTable`, `drawMarketplaceTrendTable`, `hasTrendData`) remain per-site; a shared helper now exists for dashboard semantics and could be reused by report code later.
+   - observation: the default dashboard view without a selected dataset keeps the page-level generic series heuristics (including `investment_date` matching `/date/` for KPI sparklines); the selected-dataset path — which is the Investor dashboard — is now governed by the semantic profile.
+
+5. User learning
+   The Investor example numbers are legitimate different metrics: 58/100 is the workspace Business Health Score (signal average minus missing-data gaps), 65/100 is deterministic analysis confidence, and 76/100 is the BBSC equal-weight average of available perspectives — none should ever be made to match.
+
+6. AI-agent learning
+   When semantic-profile trends were empty, the page-level fallback silently bypassed canonical investor semantics (the investor test only guarded `semanticAnalysis.trends`, not the fallback). State-aware assertions (state/title/value/copy) catch what title-regex assertions cannot.
+
+7. Follow-up tasks
+   - Reuse the shared trend-eligibility helper in report/PDF trend guards to remove duplicated per-site `length >= 2` checks.
+   - Extend semantic-profile authority to the no-selected-dataset dashboard view so page-level generic series heuristics (e.g. `investment_date` sparklines) also respect canonical temporal semantics.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
 ## Unified Credit Control System
 
 1. Interaction title
@@ -8086,3 +8131,38 @@ Detailed session record: `project-logs/interactive-log.md`; activity summary: `p
 
 9. Minimal destination
    Detailed session record: project-logs/interactive-log.md; activity summary: project-logs/activity-log.md; latest interaction status: docs/AI-interaction/interaction-status.md.
+
+---
+
+## 2026-09-20 — Usy 401 Guest Mode + Free market currency fix
+
+### 1. Request
+Fix two production issues without weakening auth: (a) `POST /api/usy/chat` returned 401 with "Your session may have expired. Sign in again and retry." for normal visitors; (b) the subscription/pricing page showed `$0/€0` simultaneously for the Free plan. Usy must support Guest Mode (public product/billing knowledge, no private data, contact handoff) alongside Authenticated Mode, with guest abuse protection, multilingual sign-in responses, no second Usy implementation, no unrelated changes, no commit/push.
+
+### 2. Root-cause audit
+- Usy 401: Next.js 16 uses `src/proxy.ts` as middleware. `proxy()` at line 143 returns `401 {"error":"Unauthorized"}` for every unauthenticated request to `/api/*` unless the path is in `publicApiPrefixes` (`/api/auth`) or `publicApiPaths`. `/api/usy/chat` and `/api/usy/contact` were not allowlisted, so anonymous visitors were rejected at the edge before the route handlers ran. The handlers themselves were already guest-capable: `auth()` returns null session, rate limiting falls back to `ip:` key, `buildUsyReply` works without user data, and the contact handoff treats `userId` as nullable. The 401 text came from `notice-bar.tsx`'s global fetch wrapper (401 → "Your session may have expired. Sign in again and retry."). Development masked this only where a session cookie existed; the check is cookie-presence, not session validity.
+- Free `$0/€0`: `formatPlanPrice()` in `src/lib/billing/plans.ts` hardcoded `return "$0/€0/month"` for the free tier. `PublicPricingPlans` derived Free's `amountText` from that string while paid plans used `getCheckoutMarketOptions` → `formatRecurringPrice`, producing the mixed-currency display for Free only.
+
+### 3. Implementation
+- `src/proxy.ts`: added `/api/usy/chat` and `/api/usy/contact` to `publicApiPaths` (exact-path allowlist only; no prefix widening; all other APIs stay protected).
+- `src/lib/usy/types.ts`: added `isAuthenticated?: boolean` to `UsyContext`.
+- `src/lib/usy/router.ts`: `roleFromAudience` now derives roles from the verified session role only (anonymous audience claims → `public`; audience can no longer elevate admin→superadmin); new exported `isUsyContextAuthenticated` (defaults from role for legacy contexts) and `buildUsyRequestContext`, which drops client-supplied `plan`/`usage` for guests at the application boundary; new `asksForPersonalAccountData` (60+ signals across EN/DE/NL/ES/HU/RO, normalized through `normalizeUsyText`) returns a deterministic localized `signInRequired` knowledge answer for guests (HTTP 200, never 401) with `OPEN_SUPPORT` action; all six languages got a `signInRequired` message.
+- `src/app/api/usy/chat/route.ts`: computes `isAuthenticated` from the server session only, builds the context through `buildUsyRequestContext`, and passes it to the unchanged `buildUsyReply`; guest requests keep IP-keyed rate limiting (30/min, existing `checkRateLimit`), authenticated requests keep user-keyed limits. The Usy router remains 100% deterministic (no LLM call), so public Usy traffic cannot generate paid AI spend.
+- `src/components/ui/help-chatbox.tsx`: deterministic non-OK handling (401 → sign-in prompt, 429 → wait-and-retry, 400 → rephrase, others → generic retry) with no internals; network failures keep a connection-focused message.
+- `src/lib/billing/plans.ts`: `formatPlanPrice(plan, market = "eu")` resolves Free through `resolvePlanPrice` + `formatRecurringPrice` (single currency per market; fallback now "Unavailable"); `formatPlanPriceForCurrency` formats Free at 0 in the requested currency. No new currency table; Stripe checkout untouched (free tier has no Stripe price and checkout flows were not modified).
+- Market-aware call sites: `public-pricing-plans.tsx` (Free card uses the resolved market currency, `MULTI` type removed, `marketCurrency` reuses `checkoutMarkets`), `subscription-plan-selector.tsx`, `checkout/page.tsx` (Free review card + `formatCheckoutPlanPrice`), `account-center.tsx` (browser-locale market resolution, same pattern as the other billing components).
+
+### 4. Guest/private separation enforcement
+- Boundary is application logic, not prompt text: guests get `usage: null`, `plan: undefined` regardless of what the client sends (forged `business`/777-credit payloads are asserted dead in tests); the sign-in-required branch runs before any intent that could echo account state; existing restricted-information and admin-only guards still run first; contact handoff stays available to guests via the existing `/api/usy/contact` flow (n8n URL and secret remain server-side only).
+- Authenticated mode: valid sessions keep plan/usage context; `Explain AI credits` reflects the real balance ("2 credits available" / "480 credits available"); ownership and authorization rules unchanged (identity never comes from the client).
+
+### 5. Verification
+- `pnpm test:usy-guest-mode` (new, 9 groups): guest public answers (UseClevr, credits, Business 1,500 credits / 100 datasets, pricing, file formats, Pro price, sales contact), guest personal questions → sign-in-required (7 EN + DE/ES/RO/HU/NL), forged-usage stripping, authenticated preservation, session-only role derivation, proxy allowlist guards, rate-limit behavior (30/min then blocked; other IPs unaffected).
+- `pnpm test:usy-billing-knowledge` 16/16, `scripts/ai/test-usy-secretariat.ts` pass, `pnpm test:pro-pricing` (now with per-market Free $0/£0/$0/CA$0 + no-mixed-currency assertions), `pnpm test:business-plan-limits`, `pnpm test:zero-credit-ux`, `pnpm test:tier-resolution`, `pnpm test:sidebar-credit-topup-link`, `pnpm test:hybrid-ai-gates`, full `pnpm test:all`.
+- `pnpm validate:types` (`next typegen` + `tsc --noEmit`) exit 0; ESLint 0 errors on all changed files (6 warnings, all pre-existing at HEAD) and 0 errors repo-wide; `validate-pricing.js`, `check-secret-leaks.js`, `check-package-json.js`, `lint:todos`, `lint:workflows` pass. Business verified unchanged: €420/month, 1,500 AI credits, 100 datasets; 5,000/250 regression guards still assert.
+
+### 6. Remaining limitations
+- Guest personal-data detection is deterministic keyword matching; unusual phrasings that avoid possessive markers fall through to the standard knowledge/intent answers, which never include private data (answers are static product knowledge; no user lookup exists in the Usy path at all).
+- Language detection reuses the existing `detectUsyLanguage` markers; personal questions phrased without those markers get the English sign-in answer (existing detection architecture, unchanged).
+- `formatPlanPrice` without a market defaults to EU (established default) — downloads and admin billing tables show single-currency €0/month for Free rather than locale-resolved currency; the market-facing surfaces (pricing, checkout, subscription selector, account center) resolve the browser locale/market explicitly.
+- Not committed or pushed per instruction.

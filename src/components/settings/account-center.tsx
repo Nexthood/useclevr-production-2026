@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { useNotice } from "@/components/ui/notice-bar"
 import { saveAiProvider, updateProfile } from "@/app/actions/settings"
 import { FREE_PLAN_LIMITS, formatCustomerPlanLabel, formatPlanPrice, getBillingPlan } from "@/lib/billing/plans"
+import { getCountryFromLocale, getMarketForCountry, type CheckoutMarket } from "@/lib/billing/launch-pricing"
 import { Bot, Building2, CheckCircle2, CreditCard, FileText, LockKeyhole, ShieldCheck, Sparkles, User, Settings } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -25,8 +26,8 @@ const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
 
 const appVersion = pkg.version
 
-function formatAccountPlanPrice(plan: { id: string; price: number }) {
-  return formatPlanPrice(getBillingPlan(plan.id))
+function formatAccountPlanPrice(plan: { id: string; price: number }, market: CheckoutMarket) {
+  return formatPlanPrice(getBillingPlan(plan.id), market)
 }
 
 type AccountCenterProps = {
@@ -104,6 +105,14 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
         }
       : null,
   )
+  const [market, setMarket] = React.useState<CheckoutMarket>("eu")
+
+  // Resolve the displayed currency with the same authoritative market logic
+  // used by checkout: browser locale → supported billing market.
+  React.useEffect(() => {
+    const country = getCountryFromLocale(navigator.language)
+    if (country) setMarket(getMarketForCountry(country))
+  }, [])
 
   const fullName = profile?.fullName || session?.user?.name || ""
   const email = profile?.email || session?.user?.email || ""
@@ -357,7 +366,7 @@ export function AccountCenter({ profile, setupStatus, usage, billingSettings, se
                         <div className="flex min-w-0 items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="font-semibold text-foreground">{plan.name}</p>
-                            <p className="break-words text-sm text-muted-foreground">{formatAccountPlanPrice(plan)}</p>
+                            <p className="break-words text-sm text-muted-foreground">{formatAccountPlanPrice(plan, market)}</p>
                           </div>
                           {isCurrent && (
                             <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-300">

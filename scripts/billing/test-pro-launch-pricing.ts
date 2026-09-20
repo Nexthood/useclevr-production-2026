@@ -75,7 +75,8 @@ assert.equal(BUSINESS_PLAN_LIMITS.monthlyCredits, 1500, "Business includes 1,500
 assert.equal(BUSINESS_PLAN_LIMITS.maxDatasets, 100, "Business allows up to 100 datasets")
 assert.equal(getBillingPlan("free").name, "Free", "Free plan resolves by ID")
 assert.equal(getBillingPlanByTier("free").name, "Free", "Free plan resolves by tier")
-assert.equal(formatPlanPrice(getBillingPlan("free")), "$0/€0/month", "Free displays both launch currencies")
+assert.equal(formatPlanPrice(getBillingPlan("free")), "€0/month", "Free displays one primary market currency")
+assert.doesNotMatch(formatPlanPrice(getBillingPlan("free")), /\$0\/€0|£0\/€0/, "Free never displays two currencies at once")
 assert.equal(normalizeBillingPlanId("demo"), "free", "legacy demo plan IDs route to Free")
 assert.equal(normalizeSubscriptionTier("demo"), "free", "legacy demo subscription tiers route to Free")
 assert.equal(getBillingPlan("demo").name, "Free", "legacy demo plan requests display Free")
@@ -383,7 +384,7 @@ assert.ok(checkoutPageSource.includes("BillingIntervalSelector"), "checkout revi
 assert.ok(checkoutPageSource.includes("Billing:"), "checkout review shows the selected billing interval before Stripe")
 assert.ok(checkoutPageSource.includes("Free is active. No checkout required."), "Free checkout path explains that checkout is not required")
 assert.ok(checkoutPageSource.includes("const canReview = !isFreePlan"), "Free plan cannot enter paid checkout review")
-assert.ok(checkoutPageSource.includes('if (plan.tier === "free") return formatPlanPrice(plan);'), "Free checkout derives pricing from the billing formatter")
+assert.ok(checkoutPageSource.includes('if (plan.tier === "free") return formatPlanPrice(plan, market);'), "Free checkout derives pricing from the market-aware billing formatter")
 assert.equal(checkoutPageSource.includes("requestedAmountMinor"), false, "checkout browser payload does not send an amount override")
 assert.equal(checkoutPageSource.includes("requestedStripePriceId"), false, "checkout browser payload does not send a Stripe Price ID override")
 
@@ -392,7 +393,7 @@ assert.ok(checkoutRouteSource.includes("expectedAmountMinor: Number(checkoutPric
 
 const pricingPageSource = readProjectFile("src/app/(public)/pricing/page.tsx")
 const publicPricingPlansSource = readProjectFile("src/components/billing/public-pricing-plans.tsx")
-assert.ok(publicPricingPlansSource.includes('formatPlanPrice(plan).replace("/month", "")'), "public pricing derives Free pricing from the billing formatter")
+assert.ok(publicPricingPlansSource.includes('formatPlanPrice(plan, market).replace("/month", "")'), "public pricing derives Free pricing from the market-aware billing formatter")
 assert.ok(publicPricingPlansSource.includes("BillingIntervalSelector"), "public pricing exposes the Monthly and Yearly selector")
 assert.equal(pricingPageSource.includes("Demo"), false, "public pricing does not show a Demo plan")
 
@@ -520,9 +521,22 @@ assert.equal(getBillingPlan("free").price, 0, "Free plan price field is zero in 
 assert.equal(resolvePlanPrice("free", "eu", "monthly")?.amountMinor, 0, "Free EU amountMinor is zero")
 
 const freePlan = getBillingPlan("free")
-assert.equal(formatPlanPrice(freePlan), "$0/€0/month", "formatPlanPrice keeps Free as zero on backward-compat path")
+assert.equal(formatPlanPrice(freePlan), "€0/month", "formatPlanPrice keeps Free at zero on the backward-compat path")
 assert.equal(getPlanPriceForMarket(freePlan, "eu", "monthly")?.displayPrice, "Free", "Free shows market-neutral display via canonical resolver")
 assert.equal(getPlanPriceForMarket(freePlan, "us", "monthly")?.displayPrice, "Free", "Free shows market-neutral display for US market")
+
+const freePlanMarketPrices = [
+  { market: "eu", displayPrice: "€0/month" },
+  { market: "uk", displayPrice: "£0/month" },
+  { market: "us", displayPrice: "$0/month" },
+  { market: "ca", displayPrice: "CA$0/month" },
+] as const
+for (const expected of freePlanMarketPrices) {
+  const displayPrice = formatPlanPrice(freePlan, expected.market)
+  assert.equal(displayPrice, expected.displayPrice, `Free ${expected.market} primary price rendering`)
+  assert.equal(displayPrice.includes("/€0"), false, `Free ${expected.market} never mixes two currencies`)
+  assert.equal(getPlanPriceForMarket(freePlan, expected.market, "monthly")?.currency, expectedCurrencies[expected.market], `Free ${expected.market} currency matches the market resolver`)
+}
 
 const proPlan = getBillingPlan("pro_monthly")
 assert.equal(getPlanPriceForMarket(proPlan, "us", "monthly")?.displayPrice, "$45/month", "Pro US display via canonical resolver")
@@ -554,8 +568,8 @@ for (const market of markets) {
 }
 
 const checkoutPage = readProjectFile("src/app/(auth)/app/settings/checkout/page.tsx")
-assert.ok(checkoutPage.includes('if (plan.tier === "free") return formatPlanPrice(plan);'), "Free checkout derives pricing from the billing formatter")
-assert.ok(checkoutPage.includes('formatPlanPrice(getBillingPlan("free"))'), "Free button uses Free plan price, not selected plan price")
+assert.ok(checkoutPage.includes('if (plan.tier === "free") return formatPlanPrice(plan, market);'), "Free checkout derives pricing from the billing formatter")
+assert.ok(checkoutPage.includes('formatPlanPrice(getBillingPlan("free"), selectedMarket)'), "Free button uses the selected market price, not another plan's price")
 assert.ok(!checkoutPage.includes('formatPlanPrice(plan)}</span>'), "Free button does not show selected plan price")
 assert.ok(checkoutPage.includes('!option.enabled'), "checkout gates disabled market display on enabled flag")
 

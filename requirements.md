@@ -319,6 +319,11 @@ Text rules for this file:
 - Record report-generation AI cost telemetry against the deployed database schema, preserve credit reservation and finalization outcomes, and return customer-safe report errors when non-critical telemetry logging fails.
 - Keep generated Executive BI PDF reports structured as corporate documents with page-level hierarchy, discreet UseClevr branding on the cover, financial metric source classification, unavailable-state charts, cost data requirements, Balanced Scorecard comparison guardrails, dataset-grounded recommendations, provenance, and no numeric output for missing financial fields.
 - Compare strongest and weakest Business Balanced Scorecard perspectives only when at least two perspectives have valid comparable scores.
+- Present a dashboard time-series panel as a trend only when aggregation yields at least two distinct valid periods with usable metric observations; collapse duplicate rows of the same period into one point, exclude invalid or null dates, and never duplicate a single observation or manufacture dates to draw a line.
+- Render a metric snapshot panel with the deterministic current value and a time-series-insufficiency explanation when the metric exists but a valid trend does not, and render an unavailable panel that names the required source fields when the metric cannot be calculated.
+- Label the Executive Daily Health brief score as Business Health Score, label its deterministic signal-based confidence as Analysis confidence, label the workspace composite health card as Workspace Health Score, and keep the Business Balanced Scorecard title distinct so no two scores imply they are the same calculation.
+- Show concise methodology explanations for the Business Health Score, its analysis confidence, and the Business Balanced Scorecard overall score on the dashboard, with the full BBSC methodology remaining in the BBSC report.
+- Compare strongest and weakest Business Balanced Scorecard perspectives only when at least two perspectives have valid comparable scores.
 - Track downloads by dataset and report entry.
 - Combine charts and table details in PDF exports.
 - Use separated row actions for viewing, downloading, and deleting report rows.

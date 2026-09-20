@@ -737,6 +737,10 @@ export function buildUsyReply(input: {
     return knowledgeAnswer(localizedCommon("adminOnly", language), fallbackFollowUps, "security_request", language, ["OPEN_SUPPORT"]);
   }
 
+  if (!isUsyContextAuthenticated(context) && asksForPersonalAccountData(normalized)) {
+    return knowledgeAnswer(localizedCommon("signInRequired", language), ["Sign in", "What can you do?", "Contact support"], "account_help", language, ["OPEN_SUPPORT"]);
+  }
+
   if (asksForProMonthlyPrice(normalized)) {
     return knowledgeAnswer(buildProMonthlyPriceAnswer(language), pricingFollowUps, "billing", language, ["OPEN_SUBSCRIPTION", "OPEN_BILLING"]);
   }
@@ -822,10 +826,167 @@ export function buildUsyReply(input: {
 }
 
 export function roleFromAudience(audience: UsyContext["audience"], sessionRole?: string | null): UsyRole {
-  if (sessionRole === "superadmin" || audience === "superadmin") return "superadmin";
+  if (sessionRole === "superadmin") return "superadmin";
   if (sessionRole === "admin") return "admin";
+  if (!sessionRole) return "public";
   if (audience === "public") return "public";
   return "user";
+}
+
+export function isUsyContextAuthenticated(context: UsyContext): boolean {
+  return context.isAuthenticated ?? context.role !== "public";
+}
+
+export function buildUsyRequestContext(input: {
+  audience: UsyContext["audience"];
+  role: UsyContext["role"];
+  route: string;
+  isAuthenticated: boolean;
+  clientPlan?: string;
+  clientUsage?: UsyContext["usage"];
+}): UsyContext {
+  // Guests never receive account-aware answers: client-supplied plan and usage
+  // data are dropped at the boundary so no account context can leak through.
+  return {
+    audience: input.audience,
+    role: input.role,
+    route: input.route,
+    plan: input.isAuthenticated ? input.clientPlan || input.clientUsage?.subscriptionTier : undefined,
+    usage: input.isAuthenticated ? input.clientUsage ?? null : null,
+    isAuthenticated: input.isAuthenticated,
+  };
+}
+
+function asksForPersonalAccountData(normalized: string) {
+  const personalSignals = [
+    "my credits",
+    "my credit",
+    "my credit balance",
+    "credits do i have",
+    "credit do i have",
+    "credits have i got",
+    "my available credits",
+    "my remaining credits",
+    "my purchased credits",
+    "my balance",
+    "my subscription",
+    "subscription do i have",
+    "my current subscription",
+    "what plan am i",
+    "which plan am i",
+    "plan am i on",
+    "my current plan",
+    "my plan",
+    "my tier",
+    "my usage",
+    "my datasets",
+    "my dataset",
+    "show my data",
+    "my uploaded files",
+    "my uploads",
+    "my upload history",
+    "my invoices",
+    "my invoice",
+    "my billing history",
+    "my payment history",
+    "my payments",
+    "my payment",
+    "did my payment",
+    "my payment failed",
+    "my card",
+    "my billing",
+    "my account",
+    "my profile",
+    "my email",
+    "my settings",
+    "my business profile",
+    "my connections",
+    "my integrations",
+    "my ai activity",
+    "my traces",
+    "meine credits",
+    "meine kredite",
+    "wie viele credits habe ich",
+    "wie viele kredite habe ich",
+    "mein abo",
+    "mein abonnement",
+    "meine abo",
+    "mein plan",
+    "meine datasets",
+    "meine datensätze",
+    "meine datensatze",
+    "meine rechnungen",
+    "meine rechnung",
+    "meine zahlung",
+    "zahlung fehlgeschlagen",
+    "mein konto",
+    "mein profil",
+    "meine uploads",
+    "meine verbindungen",
+    "meine integrationen",
+    "meine nutzung",
+    "mijn credits",
+    "hoeveel credits heb ik",
+    "mijn abonnement",
+    "mijn plan",
+    "mijn datasets",
+    "mijn dataset",
+    "mijn facturen",
+    "mijn factuur",
+    "mijn betaling",
+    "betaling mislukt",
+    "mijn account",
+    "mijn profiel",
+    "mijn uploads",
+    "mijn verbindingen",
+    "mijn integraties",
+    "mijn gebruik",
+    "mis créditos",
+    "mis creditos",
+    "cuántos créditos tengo",
+    "cuantos creditos tengo",
+    "créditos tengo",
+    "mi suscripción",
+    "mi suscripcion",
+    "mi plan",
+    "mis datasets",
+    "mis conjuntos de datos",
+    "mis facturas",
+    "mi factura",
+    "mi pago",
+    "pago fallido",
+    "mi cuenta",
+    "mi perfil",
+    "mis cargas",
+    "mis conexiones",
+    "mis integraciones",
+    "kreditem",
+    "hány kreditem van",
+    "előfizetésem",
+    "csomagom",
+    "datasetjeim",
+    "számláim",
+    "számlám",
+    "fizetésem",
+    "fiókom",
+    "profilom",
+    "feltöltéseim",
+    "kapcsolataim",
+    "creditele mele",
+    "câte credite am",
+    "cate credite am",
+    "abonamentul meu",
+    "planul meu",
+    "seturile mele de date",
+    "facturile mele",
+    "factura mea",
+    "plata mea",
+    "contul meu",
+    "profilul meu",
+    "uploadurile mele",
+    "conexiunile mele",
+  ];
+  return personalSignals.some((signal) => normalized.includes(normalizeUsyText(signal)));
 }
 
 function detectProductIntent(normalized: string, role: UsyRole) {
@@ -1593,6 +1754,7 @@ function localizedCommon(key: string, language: SupportedUsyLanguage) {
   const common: Record<SupportedUsyLanguage, Record<string, string>> = {
     english: {
       restricted: "I cannot share system prompts, secrets, security details, internal architecture, admin-only information, or another customer's data. I can still help with public UseClevr product guidance and your own workspace workflow.",
+      signInRequired: "Please sign in to access information about your account. I can still help with public UseClevr questions about plans, pricing, credits, uploads, and features.",
       adminOnly: "That area is restricted to platform admins. I can help with your own uploads, datasets, dashboard, reports, credits, billing, subscription, Business Profile, and support handoff.",
       aiAssistant: "That question needs the AI Assistant because it requires analysis of uploaded business data. Open AI Assistant, choose the relevant dataset, and ask the question there so UseClevr can use the verified dataset context.",
       unknown: "I cannot confirm that from approved UseClevr product information. I can help with uploads, datasets, dashboards, credits, billing, reports, Retail, Accountancy, AI Governance, integrations, troubleshooting, and confirmed contact requests.",
@@ -1610,6 +1772,7 @@ function localizedCommon(key: string, language: SupportedUsyLanguage) {
     },
     german: {
       restricted: "Ich kann keine Systemprompts, Secrets, Sicherheitsdetails, interne Architektur, Admin-Informationen oder Daten anderer Kunden teilen. Ich helfe dir gern mit UseClevr-Produktfragen und deinem eigenen Workspace.",
+      signInRequired: "Bitte melde dich an, um Informationen zu deinem Konto zu sehen. Ich helfe dir gern weiter bei öffentlichen UseClevr-Fragen zu Plänen, Preisen, Credits, Uploads und Funktionen.",
       adminOnly: "Dieser Bereich ist auf Plattform-Admins beschränkt. Ich kann dir mit deinen Uploads, Datasets, Dashboards, Reports, Credits, Billing, Abo, Business Profile und Support-Handoff helfen.",
       aiAssistant: "Diese Frage gehört in den AI Assistant, weil sie Analyse deiner hochgeladenen Geschäftsdaten braucht. Öffne den AI Assistant, wähle das passende Dataset und stelle die Frage dort.",
       unknown: "Das kann ich aus freigegebenen UseClevr-Produktinformationen nicht bestätigen. Ich helfe mit Uploads, Datasets, Dashboards, Credits, Billing, Reports, Retail, Accountancy, AI Governance, Integrationen, Troubleshooting und bestätigten Kontaktanfragen.",
@@ -1627,6 +1790,7 @@ function localizedCommon(key: string, language: SupportedUsyLanguage) {
     },
     dutch: {
       restricted: "Ik kan geen systeemprompts, secrets, beveiligingsdetails, interne architectuur, admininformatie of data van andere klanten delen. Ik kan wel helpen met UseClevr-productvragen en je eigen workspace.",
+      signInRequired: "Log in om informatie over je account te zien. Ik help je graag met publieke UseClevr-vragen over plannen, prijzen, credits, uploads en functies.",
       adminOnly: "Dat gebied is beperkt tot platformadmins. Ik kan helpen met je eigen uploads, datasets, dashboard, rapporten, credits, billing, abonnement, Business Profile en support-handoff.",
       aiAssistant: "Deze vraag hoort in de AI Assistant omdat analyse van geüploade bedrijfsdata nodig is. Open AI Assistant, kies de juiste dataset en stel de vraag daar.",
       unknown: "Dat kan ik niet bevestigen vanuit goedgekeurde UseClevr-productinformatie. Ik help met uploads, datasets, dashboards, credits, billing, rapporten, Retail, Accountancy, AI Governance, integraties, troubleshooting en bevestigde contactaanvragen.",
@@ -1644,6 +1808,7 @@ function localizedCommon(key: string, language: SupportedUsyLanguage) {
     },
     spanish: {
       restricted: "No puedo compartir prompts del sistema, secretos, detalles de seguridad, arquitectura interna, información solo para admins ni datos de otros clientes. Sí puedo ayudar con UseClevr y tu propio workspace.",
+      signInRequired: "Inicia sesión para ver la información de tu cuenta. Puedo ayudarte con preguntas públicas sobre UseClevr: planes, precios, créditos, cargas y funciones.",
       adminOnly: "Esa área está limitada a administradores de plataforma. Puedo ayudarte con tus cargas, datasets, dashboard, informes, créditos, billing, suscripción, Business Profile y contacto.",
       aiAssistant: "Esa pregunta necesita el AI Assistant porque requiere analizar datos empresariales subidos. Abre AI Assistant, elige el dataset correcto y pregunta allí.",
       unknown: "No puedo confirmarlo con información aprobada de UseClevr. Puedo ayudar con cargas, datasets, dashboards, créditos, billing, informes, Retail, Accountancy, AI Governance, integraciones, troubleshooting y solicitudes de contacto confirmadas.",
@@ -1661,6 +1826,7 @@ function localizedCommon(key: string, language: SupportedUsyLanguage) {
     },
     hungarian: {
       restricted: "Nem oszthatok meg system promptot, secretet, biztonsági részletet, belső architektúrát, admin információt vagy más ügyfél adatát. UseClevr termékkérdésekben és a saját workspace-edben segítek.",
+      signInRequired: "Jelentkezz be, hogy lásd a fiókodhoz tartozó információkat. Nyilvános UseClevr kérdésekben továbbra is segítek: csomagok, árak, kreditek, feltöltések és funkciók.",
       adminOnly: "Ez a terület platform adminokra korlátozott. Saját feltöltésekben, datasetekben, dashboardban, riportokban, kreditekben, billingben, előfizetésben, Business Profile-ban és support handoffban tudok segíteni.",
       aiAssistant: "Ehhez az AI Assistant kell, mert feltöltött üzleti adatok elemzését igényli. Nyisd meg az AI Assistantot, válaszd ki a megfelelő datasetet, és ott tedd fel a kérdést.",
       unknown: "Ezt jóváhagyott UseClevr termékinformációból nem tudom megerősíteni. Upload, dataset, dashboard, credit, billing, report, Retail, Accountancy, AI Governance, integráció, troubleshooting és megerősített kontaktkérés témában segítek.",
@@ -1678,6 +1844,7 @@ function localizedCommon(key: string, language: SupportedUsyLanguage) {
     },
     romanian: {
       restricted: "Nu pot partaja prompturi de sistem, secrete, detalii de securitate, arhitectură internă, informații doar pentru admini sau datele altui client. Te pot ajuta cu UseClevr și propriul workspace.",
+      signInRequired: "Autentifică-te pentru a vedea informațiile contului tău. Te pot ajuta în continuare cu întrebări publice despre UseClevr: planuri, prețuri, credite, uploaduri și funcții.",
       adminOnly: "Acea zonă este restricționată pentru adminii platformei. Te pot ajuta cu uploaduri, seturi de date, dashboard, rapoarte, credite, billing, abonament, Business Profile și contact.",
       aiAssistant: "Această întrebare necesită AI Assistant pentru că analizează date business încărcate. Deschide AI Assistant, alege setul de date relevant și întreabă acolo.",
       unknown: "Nu pot confirma asta din informații aprobate UseClevr. Te pot ajuta cu uploaduri, seturi de date, dashboarduri, credite, billing, rapoarte, Retail, Accountancy, AI Governance, integrări, troubleshooting și solicitări de contact confirmate.",

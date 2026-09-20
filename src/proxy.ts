@@ -28,6 +28,8 @@ const publicApiPaths = [
   "/api/payload/cms-users/forgot-password",
   "/api/payload/cms-users/reset-password",
   "/api/payload/cms-users/unlock",
+  "/api/usy/chat",
+  "/api/usy/contact",
   SQUARE_CALLBACK_PATH,
 ]
 

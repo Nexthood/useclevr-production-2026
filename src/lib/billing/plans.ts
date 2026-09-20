@@ -1,4 +1,5 @@
 import {
+  formatRecurringPrice,
   getFixedProPrice,
   getCheckoutMarketOptions,
   getProLaunchPrices,
@@ -279,17 +280,18 @@ export function mapPlanIdToTier(planId: string | null | undefined): "free" | "pr
   }
 }
 
-export function formatPlanPrice(plan: BillingPlan) {
-  if (plan.tier === "free") return "$0/€0/month";
-  const resolved = resolvePlanPrice(plan.id, "eu", "monthly");
-  return resolved?.displayPrice ?? "$0/€0/month";
+export function formatPlanPrice(plan: BillingPlan, market: CheckoutMarket = "eu") {
+  const resolved = resolvePlanPrice(plan.id, market, "monthly");
+  if (!resolved) return "Unavailable";
+  if (plan.tier === "free") return formatRecurringPrice(resolved.amountMinor, resolved.currency, "monthly");
+  return resolved.displayPrice;
 }
 
 export function formatPlanPriceForCurrency(plan: BillingPlan, currency: SupportedCurrency = "EUR") {
-  if (plan.tier === "free") return "$0/€0/month";
+  if (plan.tier === "free") return formatRecurringPrice(0, currency, "monthly");
   const market = proMarketByCurrency[currency] ?? "eu";
   const resolved = resolvePlanPrice(plan.id, market, "monthly");
-  return resolved?.displayPrice ?? "$0/€0/month";
+  return resolved?.displayPrice ?? "Unavailable";
 }
 
 export function getPlanPriceForMarket(

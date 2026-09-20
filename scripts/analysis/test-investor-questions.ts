@@ -102,7 +102,25 @@ async function main() {
   const dashboard = await buildDashboardSemanticAnalysis(dataset("saas") as Parameters<typeof buildDashboardSemanticAnalysis>[0]);
   assert.equal(dashboard.businessProfile, "investor", "Dashboard profile agrees with Investor report routing");
   assert.equal(dashboard.reportProfileId, "investor_portfolio", "Dashboard report profile is Investor");
-  assert.ok(dashboard.trends.every((trend) => !/revenue|mrr|arr|runway/i.test(`${trend.title} ${trend.metricLabel}`)), "Dashboard does not expose incompatible Investor revenue, MRR, ARR, or runway trends");
+  assert.ok(
+    dashboard.trends.every((trend) => trend.state !== "trend" || !/revenue|mrr|arr|runway/i.test(`${trend.title} ${trend.metricLabel}`)),
+    "Dashboard does not expose incompatible Investor revenue, MRR, ARR, or runway trends",
+  );
+  const investorRevenuePanel = dashboard.trends.find((trend) => trend.metricLabel === "Portfolio Company Annual Revenue");
+  assert.ok(investorRevenuePanel, "Investor dashboard exposes the portfolio annual revenue panel");
+  assert.equal(investorRevenuePanel?.state, "snapshot", "annual revenue without valid reporting periods must render a snapshot");
+  assert.equal(investorRevenuePanel?.title, "Portfolio Company Annual Revenue Snapshot");
+  assert.equal(investorRevenuePanel?.data.length, 0, "Investor snapshot panel must not plot artificial chart points");
+  assert.ok(
+    investorRevenuePanel?.snapshotValue !== null && Math.abs(investorRevenuePanel.snapshotValue - 126384909.53) < 0.01,
+    "Investor revenue snapshot keeps the deterministic portfolio annual revenue total",
+  );
+  assert.match(investorRevenuePanel?.emptyLabel ?? "", /No sufficient time-series data is available for a portfolio company annual revenue trend/);
+  const investorProfitPanel = dashboard.trends.find((trend) => trend.metricLabel === "Profit");
+  assert.ok(investorProfitPanel, "Investor dashboard exposes the profit panel");
+  assert.equal(investorProfitPanel?.state, "unavailable", "profit without profit or cost fields must be unavailable");
+  assert.equal(investorProfitPanel?.title, "Profit data unavailable");
+  assert.equal(investorProfitPanel?.emptyLabel, "Profit requires a profit value or sufficient revenue and cost fields.");
 
   const totalRevenueAnswer = answerDatasetQuestionDeterministically({
     question: "What is the total revenue?",

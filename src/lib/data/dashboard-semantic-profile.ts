@@ -1,5 +1,11 @@
 import { buildDatasetReportInput } from "@/lib/reports/dataset-report-builder"
 import type { BusinessModel } from "@/lib/data/business-model"
+import {
+  resolveTrendSemantics,
+  snapshotTrendTitle,
+  unavailableTrendTitle,
+  type TrendSeriesPoint,
+} from "@/lib/data/trend-semantics"
 import type {
   EcommerceReportAnalysis,
   MarketplaceReportAnalysis,
@@ -56,12 +62,48 @@ export type DashboardSemanticMetric = {
   basis: string
 }
 
+export type DashboardSemanticTrendState = "trend" | "snapshot" | "unavailable"
+
 export type DashboardSemanticTrend = {
   title: string
   metricLabel: string
   format: "currency" | "number" | "percent"
+  state: DashboardSemanticTrendState
   data: { label: string; value: number }[]
+  snapshotValue: number | null
   emptyLabel: string
+}
+
+export type TrendPanelInput = {
+  baseTitle: string
+  metricLabel: string
+  format: DashboardSemanticTrend["format"]
+  series: TrendSeriesPoint[]
+  metricValue: number | null
+  unavailableReason: string
+}
+
+export function buildTrendPanel(input: TrendPanelInput): DashboardSemanticTrend {
+  const resolved = resolveTrendSemantics({
+    metricLabel: input.metricLabel,
+    series: input.series,
+    metricValue: input.metricValue,
+    unavailableReason: input.unavailableReason,
+  })
+  const title = resolved.state === "trend"
+    ? input.baseTitle
+    : resolved.state === "snapshot"
+      ? snapshotTrendTitle(input.metricLabel)
+      : unavailableTrendTitle(input.metricLabel)
+  return {
+    title,
+    metricLabel: input.metricLabel,
+    format: input.format,
+    state: resolved.state,
+    data: resolved.data,
+    snapshotValue: resolved.snapshotValue,
+    emptyLabel: resolved.emptyLabel,
+  }
 }
 
 export type DashboardSemanticAnalysis = {
@@ -229,48 +271,171 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
 function buildSemanticTrends(reportInput: DashboardReportInput): DashboardSemanticTrend[] {
   if (reportInput.reportProfile?.id === "profitability_pnl") {
     const periodTrends = reportInput.financials?.periodTrends ?? []
+    const financials = reportInput.financials
     return [
-      trend("Revenue Trend", "Revenue", "currency", periodTrends.map((item) => ({ name: item.period, value: item.revenue ?? 0 })).filter((item) => item.value !== 0), "Missing revenue/date columns."),
-      trend("Operating Profit Trend", "Operating Profit", "currency", periodTrends.map((item) => ({ name: item.period, value: item.operatingProfit ?? 0 })).filter((item) => item.value !== 0), "Missing operating-profit trend data."),
-    ].filter((item) => item.data.length > 0)
+      buildTrendPanel({
+        baseTitle: "Revenue Trend",
+        metricLabel: "Revenue",
+        format: "currency",
+        series: periodTrends.map((item) => ({ label: item.period, value: item.revenue })),
+        metricValue: financials?.revenue ?? null,
+        unavailableReason: "Revenue requires a recognized revenue source field.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Operating Profit Trend",
+        metricLabel: "Operating Profit",
+        format: "currency",
+        series: periodTrends.map((item) => ({ label: item.period, value: item.operatingProfit })),
+        metricValue: financials?.operatingProfit ?? null,
+        unavailableReason: "Operating profit requires an operating profit field or revenue and operating expense fields.",
+      }),
+    ]
+  }
+
+  if (reportInput.reportProfile?.id === "investor_portfolio") {
+    return [
+      buildTrendPanel({
+        baseTitle: "Portfolio Company Annual Revenue Trend",
+        metricLabel: "Portfolio Company Annual Revenue",
+        format: "currency",
+        series: [],
+        metricValue: reportInput.financials?.revenue ?? null,
+        unavailableReason: "Portfolio company annual revenue requires a recognized revenue source field.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Profit Trend",
+        metricLabel: "Profit",
+        format: "currency",
+        series: [],
+        metricValue: reportInput.financials?.netProfit ?? reportInput.financials?.grossProfit ?? null,
+        unavailableReason: "Profit requires a profit value or sufficient revenue and cost fields.",
+      }),
+    ]
   }
 
   if (reportInput.reportProfile?.id === "ecommerce" && reportInput.ecommerceAnalysis) {
     const ecommerce = reportInput.ecommerceAnalysis
     return [
-      trend("Revenue Trend", "Revenue", "currency", ecommerce.revenueTrend, "Missing revenue/date columns."),
-      trend("Orders Trend", "Orders", "number", ecommerce.ordersTrend, "Missing order/date columns."),
-    ].filter((item) => item.data.length > 0)
+      buildTrendPanel({
+        baseTitle: "Revenue Trend",
+        metricLabel: "Revenue",
+        format: "currency",
+        series: ecommerce.revenueTrend.map((item) => ({ label: item.name, value: item.value })),
+        metricValue: reportInput.financials?.revenue ?? null,
+        unavailableReason: "Revenue requires a recognized revenue source field.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Orders Trend",
+        metricLabel: "Orders",
+        format: "number",
+        series: ecommerce.ordersTrend.map((item) => ({ label: item.name, value: item.value })),
+        metricValue: ecommerce.orders,
+        unavailableReason: "Orders require recognized order or quantity columns.",
+      }),
+    ]
   }
 
   if (reportInput.reportProfile?.id === "saas_startup" && reportInput.saasAnalysis) {
     const saas = reportInput.saasAnalysis
     const revenueTrend = reportInput.financials?.periodTrends
-      ?.map((item) => ({ name: item.period, value: item.revenue ?? 0 }))
-      .filter((item) => item.value !== 0) ?? []
+      ?.map((item) => ({ label: item.period, value: item.revenue })) ?? []
     return [
-      trend("Revenue Trend", "Revenue", "currency", revenueTrend, "Missing revenue/date columns."),
-      trend("MRR Trend", "MRR", "currency", saas.mrrTrend, "Missing MRR/month columns."),
-      trend("Customer Trend", "Customers", "number", saas.customerTrend, "Missing customer/month columns."),
-      trend("Churn Trend", "Churned Customers", "number", saas.churnTrend, "Missing churn/month columns."),
-      trend("Runway Trend", "Runway", "number", saas.runwayTrend, "Missing runway/month columns."),
-    ].filter((item) => item.data.length > 0)
+      buildTrendPanel({
+        baseTitle: "Revenue Trend",
+        metricLabel: "Revenue",
+        format: "currency",
+        series: revenueTrend,
+        metricValue: saas.revenue ?? reportInput.financials?.revenue ?? null,
+        unavailableReason: "Revenue requires a recognized revenue source field.",
+      }),
+      buildTrendPanel({
+        baseTitle: "MRR Trend",
+        metricLabel: "MRR",
+        format: "currency",
+        series: namedSeries(saas.mrrTrend),
+        metricValue: saas.mrr,
+        unavailableReason: "MRR requires recognized MRR and month columns.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Customer Trend",
+        metricLabel: "Customers",
+        format: "number",
+        series: namedSeries(saas.customerTrend),
+        metricValue: saas.customers,
+        unavailableReason: "Customers require recognized customer and month columns.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Churn Trend",
+        metricLabel: "Churned Customers",
+        format: "number",
+        series: namedSeries(saas.churnTrend),
+        metricValue: null,
+        unavailableReason: "Churned customers require recognized churn and month columns.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Runway Trend",
+        metricLabel: "Runway",
+        format: "number",
+        series: namedSeries(saas.runwayTrend),
+        metricValue: saas.runwayMonths,
+        unavailableReason: "Runway requires recognized runway and month columns.",
+      }),
+    ]
   }
 
   if (reportInput.reportProfile?.id === "marketplace_startup" && reportInput.marketplaceAnalysis) {
     const marketplace = reportInput.marketplaceAnalysis
     return [
-      trend("GMV Trend", "GMV", "currency", marketplace.gmvTrend, "Missing GMV/date columns."),
-      trend("Marketplace Revenue Trend", "Marketplace Revenue", "currency", marketplace.marketplaceRevenueTrend, "Missing marketplace revenue/date columns."),
-      trend("Refund Trend", "Refund Amount", "currency", marketplace.refundTrend, "Missing refund/date columns."),
-    ].filter((item) => item.data.length > 0)
+      buildTrendPanel({
+        baseTitle: "GMV Trend",
+        metricLabel: "GMV",
+        format: "currency",
+        series: namedSeries(marketplace.gmvTrend),
+        metricValue: marketplace.gmv,
+        unavailableReason: "GMV requires a recognized GMV or revenue field.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Marketplace Revenue Trend",
+        metricLabel: "Marketplace Revenue",
+        format: "currency",
+        series: namedSeries(marketplace.marketplaceRevenueTrend),
+        metricValue: marketplace.marketplaceRevenue,
+        unavailableReason: "Marketplace revenue requires a platform fee or commission field.",
+      }),
+      buildTrendPanel({
+        baseTitle: "Refund Trend",
+        metricLabel: "Refund Amount",
+        format: "currency",
+        series: namedSeries(marketplace.refundTrend),
+        metricValue: marketplace.refunds,
+        unavailableReason: "Refund data requires a recognized refund amount field.",
+      }),
+    ]
   }
 
   const periodTrends = reportInput.financials?.periodTrends ?? []
   return [
-    trend("Revenue Trend", "Revenue", "currency", periodTrends.map((item) => ({ name: item.period, value: item.revenue ?? 0 })).filter((item) => item.value !== 0), "Missing revenue/date columns."),
-    trend("Profit Trend", "Profit", "currency", periodTrends.map((item) => ({ name: item.period, value: item.netProfit ?? item.grossProfit ?? 0 })).filter((item) => item.value !== 0), "Missing profit or revenue/cost columns."),
-  ].filter((item) => item.data.length > 0)
+    buildTrendPanel({
+      baseTitle: "Revenue Trend",
+      metricLabel: "Revenue",
+      format: "currency",
+      series: periodTrends.map((item) => ({ label: item.period, value: item.revenue })),
+      metricValue: reportInput.financials?.revenue ?? null,
+      unavailableReason: "Revenue requires a recognized revenue source field.",
+    }),
+    buildTrendPanel({
+      baseTitle: "Profit Trend",
+      metricLabel: "Profit",
+      format: "currency",
+      series: periodTrends.map((item) => ({ label: item.period, value: item.netProfit ?? item.grossProfit ?? null })),
+      metricValue: reportInput.financials?.netProfit ?? reportInput.financials?.grossProfit ?? null,
+      unavailableReason: "Profit requires a profit value or sufficient revenue and cost fields.",
+    }),
+  ]
+}
+
+function namedSeries(data: { name: string; value: number }[] | undefined): TrendSeriesPoint[] {
+  return (data ?? []).map((item) => ({ label: item.name, value: item.value }))
 }
 
 function businessProfileFromReport(profileId?: string | null, businessModel?: string | null): DashboardBusinessProfile {
@@ -300,22 +465,6 @@ function metric(
     available: typeof value === "number" && Number.isFinite(value),
     source: source || "Not available",
     basis,
-  }
-}
-
-function trend(
-  title: string,
-  metricLabel: string,
-  format: DashboardSemanticTrend["format"],
-  data: { name: string; value: number }[],
-  emptyLabel: string,
-): DashboardSemanticTrend {
-  return {
-    title,
-    metricLabel,
-    format,
-    data: data.map((item) => ({ label: item.name, value: item.value })),
-    emptyLabel,
   }
 }
 

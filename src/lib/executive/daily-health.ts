@@ -487,7 +487,7 @@ export const healthSignalProviders: HealthSignalProvider[] = [
   },
 ]
 
-function calculateMetrics(source: DailyHealthSource): DailyHealthMetrics {
+export function calculateMetrics(source: DailyHealthSource): DailyHealthMetrics {
   const rows = source.datasets.flatMap((dataset) => dataset.rows)
   const columns = detectColumns(source.datasets.flatMap((dataset) => dataset.columns), rows)
   const profitabilityMetrics = findActiveProfitabilityMetrics(source)
@@ -537,7 +537,7 @@ function calculateMetrics(source: DailyHealthSource): DailyHealthMetrics {
   }
 }
 
-function buildDeterministicBrief(source: DailyHealthSource, metrics: DailyHealthMetrics, signals: HealthSignal[]) {
+export function buildDeterministicBrief(source: DailyHealthSource, metrics: DailyHealthMetrics, signals: HealthSignal[]) {
   const weightedScore = Math.round(signals.reduce((total, signal) => total + signal.score, 0) / Math.max(signals.length, 1))
   const score = clamp(weightedScore - metrics.missingDataCount * 3, 0, 100)
   const aiConfidence = clamp(Math.round(signals.reduce((total, signal) => total + signal.confidence, 0) / Math.max(signals.length, 1)) + Math.min(10, metrics.aiInsightCount), 0, 100)
@@ -574,8 +574,8 @@ function buildDeterministicBrief(source: DailyHealthSource, metrics: DailyHealth
     executiveSummary: source.datasets.length === 0
       ? "No uploaded datasets are available yet. Upload business data to activate the Daily Executive Health Check."
       : metrics.isProfitabilityAnalysis
-        ? `Today's health score is ${score}/100 for the active Profitability analysis across ${source.datasets.length} dataset${source.datasets.length === 1 ? "" : "s"}.`
-        : `Today's health score is ${score}/100 across ${source.datasets.length} dataset${source.datasets.length === 1 ? "" : "s"} and ${formatNumber(metrics.rowCount)} processed rows.`,
+        ? `Business health score is ${score}/100 for the active Profitability analysis across ${source.datasets.length} dataset${source.datasets.length === 1 ? "" : "s"}.`
+        : `Business health score is ${score}/100 across ${source.datasets.length} dataset${source.datasets.length === 1 ? "" : "s"} and ${formatNumber(metrics.rowCount)} processed rows.`,
     topOpportunities,
     criticalRisks,
     anomalies: buildAnomalies(metrics),

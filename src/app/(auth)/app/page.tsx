@@ -6,11 +6,24 @@ import { auth } from "@/lib/auth/auth"
 import { calculateBusinessBalancedScorecard, type BusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
 import {
   buildDashboardSemanticAnalysis,
+  buildTrendPanel,
   type DashboardBusinessProfile,
   type DashboardSemanticAnalysis,
   type DashboardSemanticMetric,
   type DashboardSemanticTrend,
 } from "@/lib/data/dashboard-semantic-profile"
+import { isTrendEligible } from "@/lib/data/trend-semantics"
+import {
+  BBSC_SCORE_METHODOLOGY,
+  DAILY_ANALYSIS_CONFIDENCE_EXPLANATION,
+  DAILY_ANALYSIS_CONFIDENCE_LABEL,
+  DAILY_BUSINESS_HEALTH_SCORE_EXPLANATION,
+  DAILY_BUSINESS_HEALTH_SCORE_LABEL,
+  WORKSPACE_ANALYSIS_CONFIDENCE_EXPLANATION,
+  WORKSPACE_ANALYSIS_CONFIDENCE_LABEL,
+  WORKSPACE_HEALTH_SCORE_EXPLANATION,
+  WORKSPACE_HEALTH_SCORE_LABEL,
+} from "@/lib/executive/daily-health-semantics"
 import { buildAreaChartLayout } from "@/lib/data/dashboard-chart-layout"
 import {
   getBusinessModelKpiNames,
@@ -924,7 +937,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
 
         <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
           {activeTrendPanels(metrics).map((trend) => (
-            <TrendPanel key={trend.title} title={trend.title} metricLabel={trend.metricLabel} data={trend.data} format={trend.format} emptyLabel={trend.emptyLabel} />
+            <TrendPanel key={trend.title} trend={trend} />
           ))}
         </section>
 
@@ -958,8 +971,8 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
 
                 <DashboardSection icon={CheckCircle2} title="Business Health" compact>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <HealthCard label="Business Health Score" value={metrics.businessHealth.health} tone="cyan" />
-                    <HealthCard label="AI Confidence" value={metrics.businessHealth.aiConfidence} tone="violet" />
+                    <HealthCard label={WORKSPACE_HEALTH_SCORE_LABEL} value={metrics.businessHealth.health} tone="cyan" hint={WORKSPACE_HEALTH_SCORE_EXPLANATION} />
+                    <HealthCard label={WORKSPACE_ANALYSIS_CONFIDENCE_LABEL} value={metrics.businessHealth.aiConfidence} tone="violet" hint={WORKSPACE_ANALYSIS_CONFIDENCE_EXPLANATION} />
                     <HealthCard label="Readiness" value={metrics.businessHealth.readiness} tone="emerald" />
                     <HealthCard label="Forecast Confidence" value={metrics.businessHealth.forecastConfidence} tone="amber" />
                   </div>
@@ -1125,10 +1138,26 @@ function semanticKpi(metric: DashboardSemanticMetric): KpiDisplay {
 }
 
 function activeTrendPanels(metrics: ExecutiveMetrics): DashboardSemanticTrend[] {
-  if (metrics.semanticAnalysis?.trends.length) return metrics.semanticAnalysis.trends.slice(0, 2)
+  if (metrics.semanticAnalysis && metrics.semanticAnalysis.trends.length > 0) {
+    return metrics.semanticAnalysis.trends.slice(0, 2)
+  }
   return [
-    { title: "Revenue Trend", metricLabel: "Revenue", data: metrics.revenueTrend, format: "currency", emptyLabel: "Missing revenue/date columns." },
-    { title: "Profit Trend", metricLabel: "Profit", data: metrics.profitTrend, format: "currency", emptyLabel: "Missing profit or revenue/cost columns." },
+    buildTrendPanel({
+      baseTitle: "Revenue Trend",
+      metricLabel: "Revenue",
+      format: "currency",
+      series: metrics.revenueTrend.map((point) => ({ label: point.label, value: point.value })),
+      metricValue: metrics.totalRevenue,
+      unavailableReason: "Revenue requires a recognized revenue source field.",
+    }),
+    buildTrendPanel({
+      baseTitle: "Profit Trend",
+      metricLabel: "Profit",
+      format: "currency",
+      series: metrics.profitTrend.map((point) => ({ label: point.label, value: point.value })),
+      metricValue: metrics.totalProfit,
+      unavailableReason: "Profit requires a profit value or sufficient revenue and cost fields.",
+    }),
   ]
 }
 
@@ -1220,15 +1249,17 @@ function ExecutiveDailyHealthSection({
       <Card className="overflow-hidden p-0">
         <div className="grid gap-0 xl:grid-cols-[330px_minmax(0,1fr)_380px]">
           <div className="border-b border-border bg-background/60 p-5 xl:border-b-0 xl:border-r">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Today's score</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{DAILY_BUSINESS_HEALTH_SCORE_LABEL}</p>
             <div className="mt-5 flex items-center gap-5">
               <ScoreRing value={brief.score} tone={brief.score >= 75 ? "emerald" : brief.score >= 50 ? "amber" : "rose"} />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">AI confidence</p>
+                <p className="text-sm font-medium text-muted-foreground">{DAILY_ANALYSIS_CONFIDENCE_LABEL}</p>
                 <p className="mt-1 text-2xl font-semibold text-foreground">{brief.aiConfidence}/100</p>
                 <p className="mt-2 text-xs text-muted-foreground">{brief.generatedBy === "ai" ? "AI-generated brief" : "Deterministic brief"}</p>
               </div>
             </div>
+            <p className="mt-4 text-xs leading-5 text-muted-foreground">{DAILY_BUSINESS_HEALTH_SCORE_EXPLANATION}</p>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">{DAILY_ANALYSIS_CONFIDENCE_EXPLANATION}</p>
           </div>
 
           <div className="border-b border-border p-5 xl:border-b-0 xl:border-r">
@@ -1275,7 +1306,7 @@ function ScoreRing({ value, tone }: { value: number; tone: Tone }) {
   const circumference = 2 * Math.PI * 40
   const offset = circumference - (value / 100) * circumference
   return (
-    <svg className="h-28 w-28 shrink-0" viewBox="0 0 100 100" role="img" aria-label={`Daily health score: ${value} out of 100`}>
+    <svg className="h-28 w-28 shrink-0" viewBox="0 0 100 100" role="img" aria-label={`Business health score: ${value} out of 100`}>
       <circle cx="50" cy="50" r="40" fill="none" className="stroke-muted" strokeWidth="10" />
       <circle cx="50" cy="50" r="40" fill="none" stroke={toneHex(tone)} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" strokeWidth="10" transform="rotate(-90 50 50)" />
       <text x="50" y="56" fill="currentColor" textAnchor="middle" className="text-2xl font-bold text-foreground">{value}</text>
@@ -1358,10 +1389,35 @@ function FinancialDetail({ metrics }: { metrics: ExecutiveMetrics }) {
             </div>
           </div>
         </Card>
-        <TrendPanel title="Monthly Comparison" metricLabel="Revenue" data={metrics.revenueTrend.length > 0 ? metrics.revenueTrend : metrics.uploadTrend} format={metrics.revenueTrend.length > 0 ? "currency" : "number"} emptyLabel="Missing dated financial data." />
+        <TrendPanel trend={financialComparisonTrend(metrics)} />
       </div>
     </DashboardSection>
   )
+}
+
+function financialComparisonTrend(metrics: ExecutiveMetrics): DashboardSemanticTrend {
+  const revenueSeries = metrics.revenueTrend.map((point) => ({ label: point.label, value: point.value }))
+  const revenuePanel = buildTrendPanel({
+    baseTitle: "Monthly Comparison",
+    metricLabel: "Revenue",
+    format: "currency",
+    series: revenueSeries,
+    metricValue: metrics.totalRevenue,
+    unavailableReason: "Missing dated financial data.",
+  })
+  if (revenuePanel.state !== "unavailable") return revenuePanel
+  const uploadSeries = metrics.uploadTrend.map((point) => ({ label: point.label, value: point.value }))
+  if (isTrendEligible(uploadSeries)) {
+    return buildTrendPanel({
+      baseTitle: "Monthly Comparison",
+      metricLabel: "Rows",
+      format: "number",
+      series: uploadSeries,
+      metricValue: null,
+      unavailableReason: "Missing dated financial data.",
+    })
+  }
+  return revenuePanel
 }
 
 function InventoryDetail({ metrics }: { metrics: ExecutiveMetrics }) {
@@ -1389,13 +1445,31 @@ function InventoryDetail({ metrics }: { metrics: ExecutiveMetrics }) {
   )
 }
 
-function TrendPanel({ title, metricLabel, data, format, emptyLabel }: { title: string; metricLabel: string; data: SeriesPoint[]; format: "currency" | "number" | "percent"; emptyLabel: string }) {
-  const total = data.reduce((value, point) => value + point.value, 0)
+function TrendPanel({ trend }: { trend: DashboardSemanticTrend }) {
+  if (trend.state === "unavailable") {
+    return (
+      <Card className="p-5">
+        <PanelHeader title={trend.title} detail={trend.emptyLabel} />
+        <div className="mt-4">
+          <CompactEmpty label={trend.emptyLabel} />
+        </div>
+      </Card>
+    )
+  }
+  if (trend.state === "snapshot") {
+    return (
+      <Card className="p-5">
+        <PanelHeader title={trend.title} detail={trend.emptyLabel} />
+        <p className="mt-5 text-3xl font-semibold tracking-tight text-foreground">{formatNullable(trend.snapshotValue, trend.format)}</p>
+      </Card>
+    )
+  }
+  const total = trend.data.reduce((value, point) => value + point.value, 0)
   return (
     <Card className="p-5">
-      <PanelHeader title={title} detail={data.length > 0 ? `${metricLabel}: ${formatNullable(total, format)}` : emptyLabel} />
-      <div className={data.length > 0 ? "mt-5 min-h-[220px]" : "mt-4"}>
-        {data.length > 0 ? <AreaChart data={data} format={format} /> : <CompactEmpty label={emptyLabel} />}
+      <PanelHeader title={trend.title} detail={`${trend.metricLabel}: ${formatNullable(total, trend.format)}`} />
+      <div className="mt-5 min-h-[220px]">
+        <AreaChart data={trend.data} format={trend.format} />
       </div>
     </Card>
   )
@@ -1616,7 +1690,7 @@ function ActivityList({ stats }: { stats: DashboardStats }) {
   )
 }
 
-function HealthCard({ label, value, tone }: { label: string; value: number | null; tone: Tone }) {
+function HealthCard({ label, value, tone, hint }: { label: string; value: number | null; tone: Tone; hint?: string }) {
   const circumference = 2 * Math.PI * 34
   const offset = value === null ? circumference : circumference - (value / 100) * circumference
   return (
@@ -1629,9 +1703,10 @@ function HealthCard({ label, value, tone }: { label: string; value: number | nul
           )}
           <text x="40" y="45" fill="currentColor" textAnchor="middle" className="text-lg font-bold text-foreground">{value === null ? "—" : value}</text>
         </svg>
-        <div>
+        <div className="min-w-0">
           <p className="font-semibold text-foreground">{label}</p>
           <p className="mt-1 text-sm text-muted-foreground">{value === null ? "No data" : value >= 75 ? "Strong" : value >= 50 ? "Developing" : "Needs data"}</p>
+          {hint && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hint}</p>}
         </div>
       </div>
     </Card>
@@ -1670,6 +1745,7 @@ function BusinessBalancedScorecardPreview({
           <div className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-left lg:text-right">
             <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-100">Overall</p>
             <p className="mt-1 text-3xl font-semibold text-foreground">{scorecard.overallScore === null ? "No score" : scorecard.overallScore}</p>
+            <p className="mt-2 max-w-xs text-xs leading-5 text-muted-foreground">{BBSC_SCORE_METHODOLOGY}</p>
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

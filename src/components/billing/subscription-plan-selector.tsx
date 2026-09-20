@@ -116,10 +116,10 @@ function BillingIntervalSelector({
 }
 
 function formatSubscriptionPlanPrice(plan: BillingPlan, market: CheckoutMarket, billingInterval: BillingInterval) {
-  if (plan.tier === "free") return formatPlanPrice(plan)
+  if (plan.tier === "free") return formatPlanPrice(plan, market)
   const resolved = getPlanPriceForMarket(plan, market, billingInterval)
   if (resolved?.amountMinor !== null && resolved?.amountMinor !== undefined) {
     return resolved.displayPrice
   }
-  return formatPlanPrice(plan)
+  return formatPlanPrice(plan, market)
 }
