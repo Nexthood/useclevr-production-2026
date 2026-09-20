@@ -7,7 +7,17 @@ import {
   toPublicAiMode,
   type PublicAiProviderConfig,
 } from "@/lib/ai/byoai-provider"
-import { listAiRequestAuditLogs } from "@/lib/ai/ai-request-audit"
+import {
+  classifyAuditFailureCategory,
+  listAiRequestAuditLogs,
+  type AiAuditFailureCategory,
+  type AiRequestAuditEntry,
+} from "@/lib/ai/ai-request-audit"
+import {
+  MANAGED_CLOUD_MODEL_NAME,
+  MANAGED_CLOUD_PROVIDER_NAME,
+  isManagedCloudConfigured,
+} from "@/lib/ai/managed-cloud-provider"
 import { getDb } from "@/lib/db"
 import {
   aiGovernanceOverrideActions,
@@ -54,14 +64,52 @@ export type AiGovernanceOverrideInput = {
   reason?: string | null
 }
 
+export type GovernanceExecutionRoute = "managed_cloud" | "byok_cloud" | "local" | "deterministic"
+
+export type GovernanceExecutionOrigin = {
+  route: GovernanceExecutionRoute
+  providerName: string
+  modelName: string
+  mode: string
+  fallbackUsed: boolean
+  occurredAt: string
+}
+
+export type GovernanceLatestAttempt = {
+  success: boolean
+  providerName: string
+  modelName: string
+  mode: string
+  fallbackUsed: boolean
+  failureCategory: AiAuditFailureCategory | null
+  occurredAt: string
+}
+
+export type GovernanceProviderRuntime = {
+  managedCloudConfigured: boolean
+  managedCloudMonitored: boolean
+  managedCloudModel: string
+  recentAttempts: number
+  recentSuccesses: number
+  recentFailures: number
+  recentFallbackUses: number
+  failureCategories: Partial<Record<AiAuditFailureCategory, number>>
+  lastSuccessAt: string | null
+  lastFailureAt: string | null
+  executionOrigin: GovernanceExecutionOrigin | null
+  latestAttempt: GovernanceLatestAttempt | null
+  latestManagedAttempt: GovernanceLatestAttempt | null
+}
+
 export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
   try {
-    const [providers, settings, auditEntries, traces, overrideStats] = await Promise.all([
+    const [providers, settings, auditEntries, traces, overrideStats, allowUseclevrCloudFallback] = await Promise.all([
       safeListProviders(user.id),
       safeGetGovernanceSettings(user.id),
       safeListAudit(user, 100),
       safeListTraces(user, 50),
       safeGetOverrideStats(user),
+      getUseClevrCloudFallbackAllowed(user.id).catch(() => true),
     ])
 
     return buildGovernanceSnapshot({
@@ -70,6 +118,7 @@ export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
       auditEntries,
       traces,
       overrideStats,
+      allowUseclevrCloudFallback,
     })
   } catch (error) {
     logGovernanceDataError("snapshot-build", error)
@@ -79,6 +128,7 @@ export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
       auditEntries: [],
       traces: [],
       overrideStats: emptyOverrideStats(),
+      allowUseclevrCloudFallback: true,
     })
   }
 }
@@ -89,16 +139,23 @@ function buildGovernanceSnapshot(input: {
   auditEntries: Awaited<ReturnType<typeof listAiRequestAuditLogs>>
   traces: Awaited<ReturnType<typeof safeListTraces>>
   overrideStats: Awaited<ReturnType<typeof safeGetOverrideStats>>
+  allowUseclevrCloudFallback: boolean
 }) {
-  const providerStats = summarizeProviders(input.providers)
+  const runtime = buildProviderRuntime({
+    providers: input.providers,
+    auditEntries: input.auditEntries,
+    traces: input.traces,
+    allowUseclevrCloudFallback: input.allowUseclevrCloudFallback,
+  })
+  const providerStats = summarizeProviders(input.providers, runtime)
   const auditStats = summarizeAudit(input.auditEntries, input.traces, input.overrideStats.totalOverrides)
-  const privacy = buildPrivacyPosture(input.settings, input.providers)
-  const risk = buildRiskPosture(auditStats, providerStats, privacy)
+  const privacy = buildPrivacyPosture(input.settings, input.providers, runtime)
+  const risk = buildRiskPosture(auditStats, providerStats, privacy, runtime)
   const compliance = buildComplianceScore({
     auditLogged: input.auditEntries.length > 0 || input.traces.length > 0,
     providerMonitoring: providerStats.total > 0,
     humanOversight: input.overrideStats.totalOverrides > 0,
-    privacyConfigured: privacy.items.some((item) => item.status === "Configured"),
+    privacyConfigured: privacy.items.every((item) => item.status !== "Needs setup"),
     feedbackAvailable: input.traces.some((trace) => trace.feedback),
     policiesAvailable: true,
   })
@@ -111,13 +168,126 @@ function buildGovernanceSnapshot(input: {
     privacy,
     risk,
     compliance,
+    runtime,
     recentTraces: input.traces.map(toTraceSummary),
     recentAuditEntries: input.auditEntries.map(toAuditSummary),
     overrides: input.overrideStats,
     policies: getAiGovernancePolicies(),
     literacy: getAiLiteracyContent(),
-    reports: buildReports(input.auditEntries, input.traces, input.providers, compliance.score),
+    reports: buildReports(input.auditEntries, input.traces, providerStats.total, compliance.score),
   }
+}
+
+export function buildProviderRuntime(input: {
+  providers: PublicAiProviderConfig[]
+  auditEntries: AiRequestAuditEntry[]
+  traces: Awaited<ReturnType<typeof safeListTraces>>
+  allowUseclevrCloudFallback: boolean
+}): GovernanceProviderRuntime {
+  const managedEntries = input.auditEntries.filter((entry) => entry.providerType === "default-cloud")
+  const managedCloudConfigured = isManagedCloudConfigured()
+  const managedCloudMonitored = managedCloudConfigured || managedEntries.length > 0 || input.allowUseclevrCloudFallback
+
+  const successful = input.auditEntries.filter((entry) => entry.success)
+  const failed = input.auditEntries.filter((entry) => !entry.success)
+  const failureCategories = failedEntriesByCategory(input.auditEntries)
+
+  const successAudit = successful.find((entry) => entry.success) || null
+  const successTrace = input.traces.find((trace) => !trace.error && trace.response) || null
+  const executionOrigin = successAudit
+    ? executionOriginFromAudit(successAudit)
+    : successTrace
+      ? executionOriginFromTrace(successTrace)
+      : null
+
+  const latestEntry = input.auditEntries[0] || null
+  const latestAttempt: GovernanceLatestAttempt | null = latestEntry
+    ? {
+        success: latestEntry.success,
+        providerName: latestEntry.providerName,
+        modelName: latestEntry.modelName,
+        mode: latestEntry.mode,
+        fallbackUsed: latestEntry.fallbackUsed,
+        failureCategory: latestEntry.success ? null : classifyAuditFailureCategory(latestEntry.errorReason),
+        occurredAt: latestEntry.createdAt.toISOString(),
+      }
+    : null
+
+  const latestManagedEntry = managedEntries[0] || null
+  const latestManagedAttempt: GovernanceLatestAttempt | null = latestManagedEntry
+    ? {
+        success: latestManagedEntry.success,
+        providerName: latestManagedEntry.providerName,
+        modelName: latestManagedEntry.modelName,
+        mode: latestManagedEntry.mode,
+        fallbackUsed: latestManagedEntry.fallbackUsed,
+        failureCategory: latestManagedEntry.success ? null : classifyAuditFailureCategory(latestManagedEntry.errorReason),
+        occurredAt: latestManagedEntry.createdAt.toISOString(),
+      }
+    : null
+
+  return {
+    managedCloudConfigured,
+    managedCloudMonitored,
+    managedCloudModel: MANAGED_CLOUD_MODEL_NAME,
+    recentAttempts: input.auditEntries.length,
+    recentSuccesses: successful.length,
+    recentFailures: failed.length,
+    recentFallbackUses: input.auditEntries.filter((entry) => entry.fallbackUsed).length,
+    failureCategories,
+    lastSuccessAt: successAudit?.createdAt.toISOString() ?? null,
+    lastFailureAt: failed[0]?.createdAt.toISOString() ?? null,
+    executionOrigin,
+    latestAttempt,
+    latestManagedAttempt,
+  }
+}
+
+function failedEntriesByCategory(entries: AiRequestAuditEntry[]) {
+  return entries.reduce<Partial<Record<AiAuditFailureCategory, number>>>((acc, entry) => {
+    if (entry.success) return acc
+    const category = classifyAuditFailureCategory(entry.errorReason)
+    acc[category] = (acc[category] || 0) + 1
+    return acc
+  }, {})
+}
+
+export function executionOriginFromAudit(entry: AiRequestAuditEntry): GovernanceExecutionOrigin {
+  return {
+    route: executionRouteFromEntry(entry.providerType, entry.providerName, entry.modelName),
+    providerName: entry.providerName,
+    modelName: entry.modelName,
+    mode: entry.mode,
+    fallbackUsed: entry.fallbackUsed,
+    occurredAt: entry.createdAt.toISOString(),
+  }
+}
+
+export function executionOriginFromTrace(trace: {
+  providerName: string
+  modelName: string
+  createdAt: Date
+}): GovernanceExecutionOrigin {
+  return {
+    route: executionRouteFromEntry("", trace.providerName, trace.modelName),
+    providerName: trace.providerName,
+    modelName: trace.modelName,
+    mode: "auto",
+    fallbackUsed: false,
+    occurredAt: trace.createdAt.toISOString(),
+  }
+}
+
+function executionRouteFromEntry(providerType: string, providerName: string, modelName: string): GovernanceExecutionRoute {
+  const normalizedType = (providerType || "").toLowerCase()
+  const normalizedName = (providerName || "").toLowerCase()
+  const normalizedModel = (modelName || "").toLowerCase()
+  if (/direct data analysis/.test(normalizedName) || /deterministic/.test(normalizedModel) || normalizedType === "none") {
+    return "deterministic"
+  }
+  if (normalizedType === "default-cloud") return "managed_cloud"
+  if (normalizedType === "ollama" || normalizedType === "lm-studio") return "local"
+  return "byok_cloud"
 }
 
 export async function listAiGovernanceAuditRows(user: AiGovernanceUser, filters: AiGovernanceAuditFilters = {}) {
@@ -228,19 +398,28 @@ export async function recordAiGovernanceOverride(input: AiGovernanceOverrideInpu
 }
 
 export async function getAiGovernanceProviderStatus(userId: string) {
-  const providers = await safeListProviders(userId)
+  const [providers, auditEntries] = await Promise.all([
+    safeListProviders(userId),
+    safeListAudit({ id: userId, role: null }, 100),
+  ])
+  const runtime = buildProviderRuntime({
+    providers,
+    auditEntries,
+    traces: [],
+    allowUseclevrCloudFallback: await getUseClevrCloudFallbackAllowed(userId).catch(() => true),
+  })
   return {
     generatedAt: new Date().toISOString(),
-    providers: providers.map((provider) => ({
+    providers: buildMonitoredProviderEntries(providers, runtime).map((provider) => ({
       id: provider.id,
-      provider: labelProvider(provider.providerType, provider.providerName),
-      model: provider.modelName,
-      mode: provider.providerType === "ollama" || provider.providerType === "lm-studio" ? "Local AI" : "Hybrid AI",
-      status: mapProviderStatus(provider),
-      fallbackActive: provider.isFallback,
-      lastCheckedAt: provider.lastTestedAt,
-      latencyMs: provider.lastTestLatencyMs,
-      endpointHost: safeHost(provider.baseUrl),
+      provider: provider.provider,
+      model: provider.model,
+      mode: provider.mode,
+      status: provider.status,
+      fallbackActive: provider.fallback,
+      lastCheckedAt: provider.lastCheckedAt,
+      latencyMs: provider.latencyMs,
+      endpointHost: provider.endpointHost,
       hasApiKey: provider.hasApiKey,
     })),
   }
@@ -277,26 +456,115 @@ export function getAiLiteracyContent() {
   ]
 }
 
-function summarizeProviders(providers: PublicAiProviderConfig[]) {
-  const total = providers.length
-  const online = providers.filter((provider) => mapProviderStatus(provider) === "Online").length
-  const fallbackActive = providers.filter((provider) => provider.isFallback).length
-  const invalidKey = providers.filter((provider) => mapProviderStatus(provider) === "Invalid Key").length
+export type MonitoredProviderEntry = {
+  id: string
+  provider: string
+  model: string
+  mode: string
+  status: string
+  default: boolean
+  fallback: boolean
+  managed: boolean
+  lastCheckedAt: string | null
+  latencyMs: number | null
+  endpointHost: string
+  hasApiKey: boolean
+}
+
+export function buildMonitoredProviderEntries(
+  providers: PublicAiProviderConfig[],
+  runtime: GovernanceProviderRuntime,
+): MonitoredProviderEntry[] {
+  const tenantEntries: MonitoredProviderEntry[] = providers.map((provider) => ({
+    id: provider.id,
+    provider: labelProvider(provider.providerType, provider.providerName),
+    model: provider.modelName,
+    mode: provider.providerType === "ollama" || provider.providerType === "lm-studio" ? "Local AI" : "Hybrid AI",
+    status: mapProviderStatus(provider),
+    default: provider.isDefault,
+    fallback: provider.isFallback,
+    managed: false,
+    lastCheckedAt: provider.lastTestedAt,
+    latencyMs: provider.lastTestLatencyMs,
+    endpointHost: safeHost(provider.baseUrl),
+    hasApiKey: provider.hasApiKey,
+  }))
+
+  if (!runtime.managedCloudMonitored) return tenantEntries
+
+  return [managedCloudProviderEntry(runtime), ...tenantEntries]
+}
+
+function managedCloudProviderEntry(runtime: GovernanceProviderRuntime): MonitoredProviderEntry {
   return {
-    total,
+    id: "managed-useclevr-cloud",
+    provider: MANAGED_CLOUD_PROVIDER_NAME,
+    model: MANAGED_CLOUD_MODEL_NAME,
+    mode: "Cloud AI",
+    status: managedCloudStatus(runtime),
+    default: false,
+    fallback: false,
+    managed: true,
+    lastCheckedAt: runtime.lastSuccessAt || runtime.lastFailureAt,
+    latencyMs: null,
+    endpointHost: "UseClevr-managed",
+    hasApiKey: runtime.managedCloudConfigured,
+  }
+}
+
+function managedCloudStatus(runtime: GovernanceProviderRuntime) {
+  if (!runtime.managedCloudConfigured) return "Missing Key"
+  const managedStatus = latestManagedCloudAuditStatus(runtime)
+  if (managedStatus) return managedStatus
+  return "Not tested"
+}
+
+export function latestManagedCloudAuditStatus(runtime: GovernanceProviderRuntime) {
+  if (!runtime.latestManagedAttempt) return null
+  if (runtime.latestManagedAttempt.success) return "Online"
+  switch (runtime.latestManagedAttempt.failureCategory) {
+    case "credential_missing":
+      return "Missing Key"
+    case "credential_invalid":
+      return "Invalid Key"
+    case "rate_limited":
+      return "Rate Limited"
+    default:
+      return "Offline"
+  }
+}
+
+function summarizeProviders(providers: PublicAiProviderConfig[], runtime: GovernanceProviderRuntime) {
+  const entries = buildMonitoredProviderEntries(providers, runtime)
+  const statusOf = (entry: MonitoredProviderEntry) => entry.status
+  const online = entries.filter((entry) => statusOf(entry) === "Online" || statusOf(entry) === "Fallback Active").length
+  const offline = entries.filter((entry) => statusOf(entry) === "Offline").length
+  const rateLimited = entries.filter((entry) => statusOf(entry) === "Rate Limited").length
+  const invalidKey = entries.filter((entry) => statusOf(entry) === "Invalid Key").length
+  const missingCredential = entries.filter((entry) => statusOf(entry) === "Missing Key").length
+  const notTested = entries.filter((entry) => statusOf(entry) === "Not tested").length
+  return {
+    total: entries.length,
     online,
-    offline: providers.filter((provider) => mapProviderStatus(provider) === "Offline").length,
-    rateLimited: providers.filter((provider) => mapProviderStatus(provider) === "Rate Limited").length,
+    offline,
+    rateLimited,
     invalidKey,
-    fallbackActive,
-    models: providers.map((provider) => ({
-      provider: labelProvider(provider.providerType, provider.providerName),
-      model: provider.modelName,
-      status: mapProviderStatus(provider),
-      default: provider.isDefault,
-      fallback: provider.isFallback,
-      lastCheckedAt: provider.lastTestedAt,
-      endpointHost: safeHost(provider.baseUrl),
+    missingCredential,
+    notTested,
+    fallbackConfigured: providers.filter((provider) => provider.isFallback).length,
+    fallbackUsed: runtime.recentFallbackUses,
+    fallbackActive: providers.filter((provider) => provider.isFallback).length,
+    managedCloudConfigured: runtime.managedCloudConfigured,
+    managedCloudMonitored: runtime.managedCloudMonitored,
+    models: entries.map((entry) => ({
+      provider: entry.provider,
+      model: entry.model,
+      status: entry.status,
+      default: entry.default,
+      fallback: entry.fallback,
+      managed: entry.managed,
+      lastCheckedAt: entry.lastCheckedAt,
+      endpointHost: entry.endpointHost,
     })),
   }
 }
@@ -323,14 +591,58 @@ function summarizeAudit(
   }
 }
 
-function buildPrivacyPosture(settings: AiGovernanceSettings, providers: PublicAiProviderConfig[]) {
+function buildPrivacyPosture(
+  settings: AiGovernanceSettings,
+  providers: PublicAiProviderConfig[],
+  runtime: GovernanceProviderRuntime,
+) {
   const localProviders = providers.filter((provider) => provider.providerType === "ollama" || provider.providerType === "lm-studio")
-  const cloudProviders = providers.filter((provider) => !localProviders.includes(provider))
+  const byokCloudProviders = providers.filter(
+    (provider) => provider.providerType !== "ollama" && provider.providerType !== "lm-studio" && provider.providerType !== "useclevr_cloud",
+  )
+  const executionOrigin = runtime.executionOrigin
+
+  let providerUsedValue: string
+  let providerUsedStatus: "Configured" | "Needs data"
+  if (executionOrigin) {
+    const routeLabel = executionOrigin.route === "managed_cloud"
+      ? " (UseClevr-managed cloud)"
+      : executionOrigin.route === "deterministic"
+        ? " (direct data analysis)"
+        : executionOrigin.fallbackUsed
+          ? " (fallback route)"
+          : ""
+    providerUsedValue = `${executionOrigin.providerName}${routeLabel}`
+    providerUsedStatus = "Configured"
+  } else if (runtime.latestAttempt && !runtime.latestAttempt.success) {
+    providerUsedValue = "No successful provider response (last request failed)"
+    providerUsedStatus = "Needs data"
+  } else {
+    providerUsedValue = "No AI provider responses recorded yet"
+    providerUsedStatus = "Needs data"
+  }
+
+  const cloudValue = settings.mode === "local"
+    ? "Disabled by selected mode"
+    : runtime.managedCloudConfigured
+      ? byokCloudProviders.length > 0
+        ? "UseClevr-managed cloud available, plus BYOAI provider configured"
+        : "UseClevr-managed cloud available"
+      : byokCloudProviders.length > 0
+        ? "BYOAI cloud provider configured"
+        : "No cloud provider configured"
+
+  const cloudStatus = settings.mode === "local"
+    ? "Limited"
+    : runtime.managedCloudConfigured || byokCloudProviders.length > 0
+      ? "Configured"
+      : "Needs setup"
+
   return {
     items: [
       { label: "Data stays local?", value: settings.mode === "local" || localProviders.length > 0 ? "Available for local routes" : "No local provider configured", status: localProviders.length > 0 ? "Configured" : "Needs setup" },
-      { label: "Cloud processing?", value: settings.mode === "local" ? "Disabled by selected mode" : cloudProviders.length > 0 || settings.mode === "useclevr_cloud" ? "Available" : "No cloud provider configured", status: settings.mode === "local" ? "Limited" : "Configured" },
-      { label: "Provider used?", value: providers.find((provider) => provider.isDefault)?.providerName || "UseClevr Cloud fallback", status: "Configured" },
+      { label: "Cloud processing?", value: cloudValue, status: cloudStatus },
+      { label: "Provider used?", value: providerUsedValue, status: providerUsedStatus },
       { label: "Retention period?", value: `${settings.retentionDays} days`, status: "Configured" },
       { label: "Sensitive data detected?", value: "Trace redaction scans prompts and responses before storage", status: "Configured" },
     ],
@@ -341,13 +653,23 @@ function buildRiskPosture(
   auditStats: ReturnType<typeof summarizeAudit>,
   providerStats: ReturnType<typeof summarizeProviders>,
   privacy: ReturnType<typeof buildPrivacyPosture>,
+  runtime: GovernanceProviderRuntime,
 ) {
+  const topFailureCategory = topFailureCategoryOf(runtime)
+  const configProblems = providerStats.offline + providerStats.invalidKey + providerStats.rateLimited + providerStats.missingCredential
+  const providerFailureElevated = runtime.recentFailures > 0 || configProblems > 0
   const risks = [
     { label: "Hallucination risk", level: auditStats.aiRequests === 0 ? "Medium" : "Managed", detail: "Direct calculations and confidence metadata reduce unsupported-answer risk." },
     { label: "Missing data", level: "Managed", detail: "Dataset-aware answers expose missing-schema and low-data explanations." },
     { label: "Low confidence", level: auditStats.feedbackCount === 0 ? "Medium" : "Managed", detail: "Feedback and manual overrides identify answers needing review." },
     { label: "Data quality", level: "Managed", detail: "Dataset scanners and deterministic checks flag incomplete fields before analysis." },
-    { label: "Provider failures", level: providerStats.offline + providerStats.invalidKey + providerStats.rateLimited > 0 ? "Elevated" : "Managed", detail: "Provider health status and fallback routing show provider reliability." },
+    {
+      label: "Provider failures",
+      level: providerFailureElevated ? "Elevated" : "Managed",
+      detail: runtime.recentFailures > 0
+        ? `${runtime.recentFailures} failed provider request${runtime.recentFailures === 1 ? "" : "s"} in the recent audit window${topFailureCategory ? ` (${topFailureCategory})` : ""}.`
+        : "Provider health status and fallback routing show provider reliability.",
+    },
     { label: "Prompt injection detection", level: "Limited", detail: "Provider routing logs suspicious failures; dedicated injection classifiers are not yet a separate control." },
   ]
   return {
@@ -355,6 +677,20 @@ function buildRiskPosture(
     highCount: risks.filter((risk) => risk.level === "Elevated").length,
     privacyGaps: privacy.items.filter((item) => item.status === "Needs setup").length,
   }
+}
+
+function topFailureCategoryOf(runtime: GovernanceProviderRuntime) {
+  const categories = runtime.failureCategories
+  let top: AiAuditFailureCategory | null = null
+  let topCount = 0
+  for (const [category, countValue] of Object.entries(categories)) {
+    const typed = category as AiAuditFailureCategory
+    if ((countValue ?? 0) > topCount) {
+      top = typed
+      topCount = countValue ?? 0
+    }
+  }
+  return top
 }
 
 function buildComplianceScore(input: {
@@ -383,13 +719,13 @@ function buildComplianceScore(input: {
 function buildReports(
   auditEntries: Awaited<ReturnType<typeof listAiRequestAuditLogs>>,
   traces: Awaited<ReturnType<typeof safeListTraces>>,
-  providers: PublicAiProviderConfig[],
+  providerTotal: number,
   complianceScore: number,
 ) {
   return [
     { name: "AI usage report", metric: `${auditEntries.length} provider requests`, href: "/api/ai-governance/reports?type=usage" },
     { name: "Audit report", metric: `${traces.length} interaction traces`, href: "/api/ai-governance/reports?type=audit" },
-    { name: "Provider statistics", metric: `${providers.length} configured providers`, href: "/api/ai-governance/reports?type=providers" },
+    { name: "Provider statistics", metric: `${providerTotal} monitored providers`, href: "/api/ai-governance/reports?type=providers" },
     { name: "Error report", metric: `${auditEntries.filter((entry) => !entry.success).length} failed requests`, href: "/api/ai-governance/reports?type=errors" },
     { name: "Compliance report", metric: `${complianceScore}% readiness score`, href: "/api/ai-governance/reports?type=compliance" },
   ]
@@ -410,7 +746,7 @@ function toTraceSummary(trace: Awaited<ReturnType<typeof safeListTraces>>[number
   }
 }
 
-function toAuditSummary(entry: Awaited<ReturnType<typeof listAiRequestAuditLogs>>[number]) {
+function toAuditSummary(entry: AiRequestAuditEntry) {
   return {
     id: entry.id,
     userId: entry.userId,
@@ -425,6 +761,7 @@ function toAuditSummary(entry: Awaited<ReturnType<typeof listAiRequestAuditLogs>
     success: entry.success,
     fallbackUsed: entry.fallbackUsed,
     errorReason: entry.errorReason,
+    failureCategory: entry.success ? null : classifyAuditFailureCategory(entry.errorReason),
     result: entry.success ? "Success" : "Failed",
   }
 }
@@ -553,7 +890,7 @@ function normalizeSettings(
 function mapProviderStatus(provider: PublicAiProviderConfig) {
   const status = provider.lastTestStatus
   if (provider.isFallback && status && isHealthyStatus(status)) return "Fallback Active"
-  if (!status || status === "not_tested") return "Offline"
+  if (!status || status === "not_tested") return "Not tested"
   if (status === "connected" || status === "healthy" || status === "success") return "Online"
   if (status === "rate_limited") return "Rate Limited"
   if (status === "invalid_key" || status === "auth_failed") return "Invalid Key"
@@ -629,4 +966,16 @@ function logGovernanceDataError(stage: string, error: unknown) {
     message: error instanceof Error ? error.message : String(error),
     stack: error instanceof Error ? error.stack : undefined,
   })
+}
+
+export const __governanceTestHooks = {
+  buildProviderRuntime,
+  buildMonitoredProviderEntries,
+  summarizeProviders,
+  buildPrivacyPosture,
+  buildRiskPosture,
+  buildComplianceScore,
+  executionOriginFromAudit,
+  latestManagedCloudAuditStatus,
+  managedCloudProviderEntry,
 }

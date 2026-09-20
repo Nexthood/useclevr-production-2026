@@ -1,4 +1,3 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { z } from "zod";
 
@@ -10,6 +9,7 @@ import { auditInputFromAdapterResult, recordAiRequestAudit } from "@/lib/ai/ai-r
 import { ghostModeTraceMessage } from "@/lib/ai/ghost-mode";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
+import { getManagedCloudLanguageModel } from "@/lib/ai/managed-cloud-provider";
 import { isCloudProvider, listPrivateAiProviderConfigs } from "@/lib/ai/byoai-provider";
 import {
   generateWithUniversalAiAdapter,
@@ -1052,13 +1052,10 @@ async function generateDefaultCloudText(prompt: string): Promise<{
   usage?: Record<string, unknown>;
   usageSource: string;
 }> {
-  const geminiApiKey = normalizeProviderSecret(
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY,
-  );
-  if (geminiApiKey) {
-    const google = createGoogleGenerativeAI({ apiKey: geminiApiKey });
+  const managedModel = getManagedCloudLanguageModel();
+  if (managedModel) {
     const { text, usage } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model: managedModel,
       prompt,
       temperature: 0.3,
       maxOutputTokens: 900,
@@ -1222,12 +1219,6 @@ function providerErrorDiagnostic(error: unknown) {
     return "Gemini provider network request failed";
   }
   return "Gemini provider unavailable";
-}
-
-function normalizeProviderSecret(value?: string) {
-  const trimmed = value?.trim();
-  if (!trimmed) return "";
-  return trimmed.replace(/^['"]|['"]$/g, "").trim();
 }
 
 function normalizeMessages(input: z.infer<typeof datasetChatSchema>) {

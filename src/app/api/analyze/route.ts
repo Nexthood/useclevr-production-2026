@@ -50,7 +50,7 @@ import {
   MOCK_AI_PROVIDER_NAME,
 } from "@/lib/ai/mock-ai";
 import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
+import { getManagedCloudLanguageModel } from "@/lib/ai/managed-cloud-provider";
 import { and, eq } from "drizzle-orm";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { ghostModeTraceMessage, normalizeGhostMode } from "@/lib/ai/ghost-mode";
@@ -876,8 +876,12 @@ try {
           (mockAIMode
             ? await generateMockAnalysisText({ question, resultRows: result })
             : await (async () => {
+                const managedModel = getManagedCloudLanguageModel();
+                if (!managedModel) {
+                  throw new Error("Managed cloud credential missing: GOOGLE_GENERATIVE_AI_API_KEY (or GEMINI_API_KEY) is not configured.");
+                }
                 const completion = await generateText({
-                  model: google("gemini-2.5-flash"),
+                  model: managedModel,
                   prompt,
                 })
                 geminiUsageMetadata = completion.usage ?? null

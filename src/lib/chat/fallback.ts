@@ -9,8 +9,10 @@ import {
   logUniversalAiResponse,
 } from '@/lib/ai/universal-ai-adapter';
 import { and, eq } from 'drizzle-orm';
-import { google } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
+import {
+  getManagedCloudLanguageModel,
+} from '@/lib/ai/managed-cloud-provider';
 import { normalizeProviderUsage, type ProviderUsage } from '@/lib/billing/provider-usage';
 import { normalizeDataset, generateAggregatedContext } from './sql-executor';
 import { formatAIResponse } from './explanation';
@@ -298,7 +300,8 @@ export async function handleRegularChat(
     }
   }
 
-  if (!process.env.GEMINI_API_KEY) {
+  const managedModel = getManagedCloudLanguageModel();
+  if (!managedModel) {
     return {
       success: false,
       content: 'AI service not configured. Please contact support.',
@@ -313,7 +316,7 @@ export async function handleRegularChat(
 
   try {
     const { text, usage } = await generateText({
-      model: google('gemini-2.5-flash'),
+      model: managedModel,
       messages: buildMessages(messages, systemContent) as any,
       temperature: 0.3,
       maxOutputTokens: 1500,
@@ -394,8 +397,13 @@ export async function handleRegularChatStream(
     }
   }
 
+  const streamModel = getManagedCloudLanguageModel();
+  if (!streamModel) {
+    return textToStream("AI service not configured. Please contact support.");
+  }
+
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: streamModel,
     messages: buildMessages(messages, systemContent) as any,
     temperature: 0.3,
     maxOutputTokens: 1500,

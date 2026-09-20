@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { AiProviderType } from "@/lib/ai/byoai-provider";
+import { redactProviderSecretText } from "@/lib/ai/byoai-provider";
 import type { AiMode, UniversalAiGenerateResult } from "@/lib/ai/universal-ai-adapter";
 import { db } from "@/lib/db";
 import {
@@ -34,7 +35,60 @@ export type AiRequestAuditInput = {
 
 export type AiRequestAuditEntry = typeof aiRequestAuditLogs.$inferSelect;
 
+export type AiAuditFailureCategory =
+  | "credential_missing"
+  | "credential_invalid"
+  | "rate_limited"
+  | "timeout"
+  | "provider_unavailable"
+  | "provider_error";
+
 const MAX_ERROR_REASON_LENGTH = 1000;
+
+export function classifyAuditFailureCategory(errorReason: string | null | undefined): AiAuditFailureCategory {
+  const message = (errorReason || "").toLowerCase();
+  if (!message) return "provider_error";
+  if (
+    message.includes("api key is missing") ||
+    message.includes("api key missing") ||
+    message.includes("credential missing") ||
+    message.includes("not configured") ||
+    message.includes("requires an api key") ||
+    message.includes("encryption is not configured")
+  ) {
+    return "credential_missing";
+  }
+  if (
+    message.includes("invalid api key") ||
+    message.includes("401") ||
+    message.includes("403") ||
+    message.includes("unauthorized") ||
+    message.includes("forbidden") ||
+    message.includes("auth_failed") ||
+    message.includes("invalid_key")
+  ) {
+    return "credential_invalid";
+  }
+  if (message.includes("429") || message.includes("rate limit") || message.includes("rate_limited")) {
+    return "rate_limited";
+  }
+  if (message.includes("timed out") || message.includes("timeout") || message.includes("abort")) {
+    return "timeout";
+  }
+  if (
+    message.includes("econnrefused") ||
+    message.includes("econnreset") ||
+    message.includes("enotfound") ||
+    message.includes("fetch failed") ||
+    message.includes("unreachable") ||
+    message.includes("network") ||
+    message.includes("502") ||
+    message.includes("503")
+  ) {
+    return "provider_unavailable";
+  }
+  return "provider_error";
+}
 
 export function recordAiRequestAudit(input: AiRequestAuditInput) {
   void writeAiRequestAudit(input).catch((error) => {
@@ -152,7 +206,7 @@ function normalizeNullable(value: unknown) {
 
 function normalizeErrorReason(value: unknown) {
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
+  const trimmed = redactProviderSecretText(value).trim();
   return trimmed ? trimmed.slice(0, MAX_ERROR_REASON_LENGTH) : null;
 }
 
