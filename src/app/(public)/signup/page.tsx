@@ -1,3 +1,4 @@
+import { normalizeReferralCode } from "@/lib/referrals/referral-store"
 import { redirect } from "next/navigation"
 
 type SignupPageProps = {
@@ -9,6 +10,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const loginUrl = new URLSearchParams({ tab: "signup" })
   const callbackUrl = getParam(params.callbackUrl)
   const message = getParam(params.message)
+  const ref = normalizeReferralCode(getParam(params.ref))
 
   if (callbackUrl) {
     loginUrl.set("callbackUrl", callbackUrl)
@@ -16,6 +18,15 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
 
   if (message) {
     loginUrl.set("message", message)
+  }
+
+  // A referral link visit is routed through the automated visit handler so
+  // click tracking and attribution are recorded server-side before the signup
+  // form loads. The referral URL format (/signup?ref=<code>) is unchanged.
+  if (ref) {
+    const visitUrl = new URLSearchParams({ code: ref })
+    if (callbackUrl) visitUrl.set("callbackUrl", callbackUrl)
+    redirect(`/api/referral/visit?${visitUrl.toString()}`)
   }
 
   redirect(`/login?${loginUrl.toString()}`)

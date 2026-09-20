@@ -18,11 +18,47 @@ import {
 import { validatePasswordPolicy } from "@/lib/auth/password-policy";
 import { db } from "@/lib/db";
 import { profiles, users } from "@/lib/db/schema";
+import { confirmReferralSignup, referralAttributionCookieName } from "@/lib/referrals/referral-lifecycle";
+import { normalizeReferralCode } from "@/lib/referrals/referral-store";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
+
+/**
+ * Confirms the referral signup for a REAL account that just completed server
+ * side email verification. Attribution comes exclusively from the httpOnly
+ * visitor cookie set when the referral link was opened; nothing here trusts a
+ * client-supplied referrer or conversion status. Failures never block the
+ * user's signup — the reward stays pending and is retried automatically.
+ */
+async function confirmReferralAfterVerification(email: string) {
+  try {
+    const cookieStore = await cookies();
+    const attributionCode = normalizeReferralCode(
+      cookieStore.get(referralAttributionCookieName)?.value,
+    );
+    if (!attributionCode) return;
+
+    const account = await db.query.users.findFirst({
+      where: eq(users.email, email.trim().toLowerCase()),
+      columns: { id: true, email: true },
+    });
+    if (!account) return;
+
+    await confirmReferralSignup({
+      referredUserId: account.id,
+      referredEmail: account.email || email,
+      attributionCode,
+    });
+  } catch (error) {
+    console.warn("[Auth] Referral signup confirmation skipped:", {
+      email: email.slice(0, 3) + "***",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 export async function signup(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
@@ -307,6 +343,7 @@ export async function verifyEmailOtp(formData: FormData) {
 
   if (purpose === "signup") {
     await markEmailVerified(email);
+    await confirmReferralAfterVerification(email);
   }
 
   return { success: true, proof: result.proof, purpose };
@@ -368,6 +405,7 @@ export async function verifyAdminAuthBypass(formData: FormData) {
 
     if (purpose === "signup") {
       await markEmailVerified(email);
+      await confirmReferralAfterVerification(email);
     }
 
     const proof = await createVerifiedAuthProof({

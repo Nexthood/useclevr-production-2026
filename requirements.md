@@ -647,6 +647,13 @@ Text rules for this file:
 - Prevent self-referral rewards.
 - Make referral rewards idempotent.
 - Manage referral rules, customer levels, and discount rules from the super-admin sidebar.
+- Track referral clicks, signups, and paid conversions automatically from the referral link visit, the verified signup, and the Stripe subscription lifecycle; normal users cannot manually create or alter referral events.
+- Confirm each referral attribution once per referred account at the database level, keep it immutable after signup, and never switch a referred account to a different referrer.
+- Grant 5 AI credits per verified referred signup and 25 credits per referred paid customer through the central credit ledger, exactly once per referred account, with full audit metadata.
+- Confirm a paid referral only from an active Stripe subscription synced by the existing webhook lifecycle, never from checkout creation, redirects, or client success pages.
+- Derive Clicks, Signups, Paid Users, and Credits Earned from canonical referral records, counting only finalized non-reversed rewards.
+- Detect Stripe refunds for referred customers and keep automatic reversal disabled until business policy defines reversal timing; superadmins reverse referral rewards deliberately with a recorded reason and idempotent, non-negative credit adjustments.
+- Restrict referral inspection and correction to superadmins with server-side authorization and a recorded actor, reason, old state, and new state.
 
 ## Customer Management
 

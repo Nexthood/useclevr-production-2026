@@ -2,6 +2,9 @@
 
 ### Added
 
+- Add automatic referral tracking: referral links record clicks on their own, signups are confirmed automatically when a new account verifies its email, and paid referrals are confirmed automatically from the completed subscription payment — no manual recording anywhere.
+- Add referral reward payments through the central credit balance: each verified referred signup grants 5 AI credits and each referred paid customer grants 25 credits, each granted exactly once per referred account.
+- Add superadmin referral correction tooling so invalid or fraudulent referral rewards can be inspected and reversed with a recorded reason while normal users keep read-only referral performance.
 - Add a guided contact flow to the assistant: after picking a team, it asks for the request first through a dedicated message field with a live 0/500 character counter (10–500 characters) before collecting name and reply email, and signed-in users get their contact details prefilled from their account.
 - Add trend trust to dashboards: a chart is called a trend only when uploaded data contains at least two distinct valid periods, a single observation now renders as a metric snapshot that says time-series data is insufficient, and a metric that cannot be calculated says it is unavailable and why.
 - Add short explanations under the Business Health Score, its analysis confidence, the Workspace Health Score, and the Business Balanced Scorecard overall score so each score shows what it measures and no two scores imply they are the same calculation.
@@ -10,6 +13,8 @@
 
 ### Fixed
 
+- Fix the Referral Center so Clicks, Signups, Paid Users, and Credits Earned always reproduce from real referral history, reversed rewards stop counting, and sharing or copying your link never inflates the numbers.
+- Fix referral rewards so self-referrals, repeated signups, replayed confirmations, and referral-code takeover can never earn credits.
 - Fix Retail uploads so a completed Retail upload with its analysis consumes the same 10 credits as every other upload, a rejected upload can no longer continue as a free analysis, and the credit balance refreshes immediately.
 - Fix Accountancy and Pre-bookkeeping uploads so valid CSV and Excel files are accepted again instead of being rejected with "Please upload a valid csv file".
 - Fix Accountancy and Pre-bookkeeping uploads so both the structured CSV/Excel area and the document (PDF/receipt) area reserve, finalize, and release credits through the same central credit engine — each upload costs the standard 10 credits once, failed uploads release the reservation, and duplicate files stay free.
@@ -27,6 +32,7 @@
 
 ### Changed
 
+- Change the Referral Center panel that offered manual "Record signup" and "Record paid" actions into a note that referral tracking is automatic.
 - Change uploads so the file upload and its standard initial analysis form one 10-credit action instead of a separate 1-credit upload charge, and failed processing releases the full reservation.
 
 ### Added

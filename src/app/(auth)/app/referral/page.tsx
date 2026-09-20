@@ -12,12 +12,20 @@ interface ReferralStats {
   signups: number
   paidReferrals: number
   creditsEarned: number
+  pendingRewards: number
+}
+
+interface ReferralRewards {
+  signupCredits: number
+  paidCredits: number
+  paidProMonths: number
 }
 
 interface ReferralSummary {
   code: string
   referralLink: string
   stats: ReferralStats
+  rewards: ReferralRewards
 }
 
 const emptyStats: ReferralStats = {
@@ -25,17 +33,17 @@ const emptyStats: ReferralStats = {
   signups: 0,
   paidReferrals: 0,
   creditsEarned: 0,
+  pendingRewards: 0,
 }
 
 export default function ReferralCenter() {
   const [copied, setCopied] = useState(false)
   const [summary, setSummary] = useState<ReferralSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isRecording, setIsRecording] = useState<string | null>(null)
 
-  const referralCode = summary?.code || ""
   const referralLink = summary?.referralLink || ""
   const stats = summary?.stats || emptyStats
+  const rewards = summary?.rewards || { signupCredits: 5, paidCredits: 25, paidProMonths: 1 }
 
   const loadReferral = async () => {
     setIsLoading(true)
@@ -53,28 +61,12 @@ export default function ReferralCenter() {
     loadReferral()
   }, [])
 
-  const recordEvent = async (event: "track" | "signup" | "paid") => {
-    if (!referralCode) return
-    setIsRecording(event)
-    try {
-      const response = await fetch(`/api/referral/${event}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: referralCode }),
-      })
-      if (response.ok) {
-        const result = await response.json()
-        setSummary((current) => current ? { ...current, stats: result.stats } : current)
-      }
-    } finally {
-      setIsRecording(null)
-    }
-  }
-
+  // Copy and share are distribution actions only: they never create clicks,
+  // signups, paid conversions, or rewards. Clicks are tracked automatically
+  // server-side when someone actually opens the referral link.
   const handleCopy = async () => {
     if (!referralLink) return
     await navigator.clipboard.writeText(referralLink)
-    await recordEvent("track")
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -88,7 +80,6 @@ export default function ReferralCenter() {
           text: "Get instant insights from your CSV data with UseClevr. Sign up with my referral link!",
           url: referralLink,
         })
-        await recordEvent("track")
       } catch {
         debugLog("Share cancelled")
       }
@@ -196,9 +187,9 @@ export default function ReferralCenter() {
               </div>
               <div className="flex items-center gap-6">
                 <div className="w-36 overflow-hidden rounded-lg border border-border bg-white">
-                  {referralCode ? (
+                  {summary?.code ? (
                     <img
-                      src={`/api/referral/qrcode?code=${encodeURIComponent(referralCode)}`}
+                      src={`/api/referral/qrcode?code=${encodeURIComponent(summary.code)}`}
                       alt="Referral QR code"
                       className="h-auto w-full"
                     />
@@ -281,34 +272,12 @@ export default function ReferralCenter() {
           </div>
 
           <Card className="p-4 bg-card border-dashed border-border">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-sm font-medium text-foreground">Referral tracking is active</h2>
-                <p className="text-sm text-muted-foreground">
-                  Copy and share actions count as clicks. Signup and paid events can be recorded by the signup or billing flow.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!referralCode || isRecording !== null}
-                  onClick={() => recordEvent("signup")}
-                >
-                  {isRecording === "signup" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Record signup
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!referralCode || isRecording !== null}
-                  onClick={() => recordEvent("paid")}
-                >
-                  {isRecording === "paid" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Record paid
-                </Button>
-              </div>
-            </div>
+            <h2 className="text-sm font-medium text-foreground">Referral tracking is automatic</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Signups and paid conversions are verified automatically — no manual recording is needed. Credits appear
+              here and in your credit balance once each referral is confirmed.
+              {stats.pendingRewards > 0 ? ` ${stats.pendingRewards} referral reward${stats.pendingRewards === 1 ? " is" : "s are"} being finalized.` : ""}
+            </p>
           </Card>
 
           {/* How It Works */}
@@ -353,11 +322,13 @@ export default function ReferralCenter() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
                 <span className="text-sm">Per referral signup</span>
-                <span className="font-medium text-primary dark:text-cyan-100">5 AI credits</span>
+                <span className="font-medium text-primary dark:text-cyan-100">{rewards.signupCredits} AI credits</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
                 <span className="text-sm">Per paid referral</span>
-                <span className="font-medium text-primary dark:text-cyan-100">1 month Pro + 25 credits</span>
+                <span className="font-medium text-primary dark:text-cyan-100">
+                  {rewards.paidProMonths} month Pro + {rewards.paidCredits} credits
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
                 <span className="text-sm">Your referral bonus</span>

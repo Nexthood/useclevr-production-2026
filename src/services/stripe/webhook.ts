@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/index";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { processPlanChange } from "@/lib/billing/credit-engine";
 import { getSubscriptionTierForStripePriceId, getSubscriptionIntervalForStripePriceId } from "@/lib/billing/launch-pricing";
+import { confirmReferralPaidConversion } from "@/lib/referrals/referral-lifecycle";
 import { profiles, users } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -43,6 +44,52 @@ const REVOKED_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired",
 
 const TERMINAL_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid", "past_due", "ended"]);
 
+const ACTIVE_SUBSCRIPTION_STATUS = "active";
+
+const PAID_REFERRAL_TIERS = new Set(["pro", "business"]);
+
+/**
+ * Confirms a paid referral conversion from verified Stripe subscription state.
+ * Only called from webhook-driven lifecycle paths (never from checkout
+ * redirects or client success pages) and only for an ACTIVE paid
+ * subscription. Errors never break billing — the referral conversion is
+ * retried by the next authoritative event.
+ */
+async function maybeConfirmReferralPaidConversion(params: {
+  userId: string | null | undefined
+  tier: unknown
+  subscriptionStatus: string | null | undefined
+  evidence: {
+    eventId?: string | null
+    sessionId?: string | null
+    subscriptionId?: string | null
+    customerId?: string | null
+  }
+}) {
+  const tier = typeof params.tier === "string" ? params.tier : null
+  if (!params.userId || !tier || !PAID_REFERRAL_TIERS.has(tier)) return
+  if (params.subscriptionStatus !== ACTIVE_SUBSCRIPTION_STATUS) return
+
+  try {
+    const result = await confirmReferralPaidConversion({
+      referredUserId: params.userId,
+      tier,
+      evidence: params.evidence,
+    })
+    console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] referral_paid_conversion", {
+      confirmed: result.confirmed,
+      reason: result.confirmed ? undefined : result.reason,
+      userId: params.userId,
+      tier,
+    })
+  } catch (error) {
+    console.error("[STRIPE_SUBSCRIPTION_LIFECYCLE] referral_paid_conversion_failed", {
+      userId: params.userId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
 export async function handleSubscriptionEvent(
   event: Stripe.Event,
 ): Promise<{ synced: boolean; reason?: string }> {
@@ -57,7 +104,10 @@ export async function handleSubscriptionEvent(
   });
 
   if (event.type === "checkout.session.completed") {
-    const result = await syncCheckoutSession(event.data.object as Stripe.Checkout.Session);
+    const result = await syncCheckoutSession(event.data.object as Stripe.Checkout.Session, {
+      allowReferralConversion: true,
+      eventId: event.id,
+    });
     console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] checkout_completed", {
       synced: result.synced,
       reason: result.reason,
@@ -75,7 +125,7 @@ export async function handleSubscriptionEvent(
     metadataHasUserEmail: Boolean(sub.metadata?.userEmail),
     metadataHasSubscriptionTier: Boolean(sub.metadata?.subscriptionTier),
   });
-  return syncSubscriptionInternal(sub, event.type);
+  return syncSubscriptionInternal(sub, event.type, undefined, { allowReferralConversion: true, eventId: event.id });
 }
 
 export async function syncCheckoutSessionActivation(
@@ -94,6 +144,7 @@ export async function syncSubscription(
 
 async function syncCheckoutSession(
   session: Stripe.Checkout.Session,
+  options?: { allowReferralConversion?: boolean; eventId?: string | null },
 ): Promise<{ synced: boolean; reason?: string }> {
   console.warn("[SUBSCRIPTION_RECOVERY] checkout_session_sync_started", {
     sessionId: session.id,
@@ -223,6 +274,20 @@ async function syncCheckoutSession(
     },
   });
 
+  if (options?.allowReferralConversion) {
+    await maybeConfirmReferralPaidConversion({
+      userId: activityUserId,
+      tier: updates.subscriptionTier ?? profile?.subscriptionTier,
+      subscriptionStatus: stripeSubscription?.status ?? null,
+      evidence: {
+        eventId: options.eventId ?? null,
+        sessionId: session.id,
+        subscriptionId: subscriptionId,
+        customerId,
+      },
+    });
+  }
+
   const newTier = updates.subscriptionTier;
   const previousTier = profile?.subscriptionTier || null;
   const isActivation = previousTier === "free" || previousTier === null;
@@ -275,6 +340,7 @@ async function syncSubscriptionInternal(
   sub: Stripe.Subscription,
   eventType: string,
   authenticatedUserId?: string | null,
+  options?: { allowReferralConversion?: boolean; eventId?: string | null },
 ): Promise<{ synced: boolean; reason?: string }> {
 
   console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] sync_started", { eventType, subscriptionId: sub.id })
@@ -381,6 +447,20 @@ async function syncSubscriptionInternal(
     tierChanged: tierAfterUpdate !== currentTier,
     eventType,
   })
+
+  if (options?.allowReferralConversion) {
+    await maybeConfirmReferralPaidConversion({
+      userId: existing.userId,
+      tier: tierAfterUpdate,
+      subscriptionStatus: status,
+      evidence: {
+        eventId: options.eventId ?? null,
+        sessionId: null,
+        subscriptionId: sub.id,
+        customerId,
+      },
+    });
+  }
 
   const emailResult = await sendSubscriptionLifecycleEmail({
     previousTier: currentTier,

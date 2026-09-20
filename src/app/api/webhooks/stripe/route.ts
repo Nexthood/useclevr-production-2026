@@ -4,6 +4,7 @@ import {
   handleStripeCreditCheckoutEvent,
   handleStripeRefundEvent,
 } from "@/services/stripe/credit-webhook"
+import { recordReferralRefundForCustomer } from "@/lib/referrals/referral-lifecycle"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
@@ -66,6 +67,27 @@ export async function POST(request: NextRequest) {
 
     if (event.type === "charge.refunded") {
       const result = await handleStripeRefundEvent(event)
+
+      // Refund detection for referred customers: auditable only — automatic
+      // referral reward reversal stays disabled pending a business decision.
+      // A referred customer canceling at period end is NOT a refund and never
+      // reaches this branch.
+      const refundedCharge = event.data.object as Stripe.Charge
+      const refundedCustomerId =
+        typeof refundedCharge.customer === "string"
+          ? refundedCharge.customer
+          : refundedCharge.customer?.id || null
+      if (refundedCustomerId) {
+        await recordReferralRefundForCustomer({
+          stripeCustomerId: refundedCustomerId,
+          evidence: {
+            eventId: event.id,
+            chargeId: refundedCharge.id,
+            refundAmountMinor: refundedCharge.amount_refunded,
+          },
+        })
+      }
+
       return NextResponse.json({
         received: true,
         type: event.type,
