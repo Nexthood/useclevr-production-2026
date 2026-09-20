@@ -359,9 +359,9 @@ export function HelpChatbox({
       const result =
         body ??
         ({
-          answer: "Usy could not answer right now. Please try again shortly.",
+          answer: getUsyFailureMessage(response.status),
           source: "knowledge",
-          followUps: ["What can you do?", "Contact support"],
+          followUps: response.status === 401 ? ["Sign in", "What can you do?", "Contact support"] : ["What can you do?", "Contact support"],
           language: "english",
         } satisfies UsyChatResponse);
 
@@ -388,7 +388,7 @@ export function HelpChatbox({
         ...current,
         {
           role: "assistant",
-          text: "Usy could not answer right now. Please try again shortly.",
+          text: "Usy could not answer right now. Check your connection, then try again shortly.",
           source: "knowledge",
           followUps: ["What can you do?", "Contact support"],
         },
@@ -396,6 +396,19 @@ export function HelpChatbox({
     } finally {
       setIsAsking(false);
     }
+  }
+
+  function getUsyFailureMessage(status: number) {
+    if (status === 401) {
+      return "Please sign in to use Usy with account features. You can still ask public questions on the UseClevr website.";
+    }
+    if (status === 429) {
+      return "Usy is receiving too many requests right now. Please wait a minute and try again.";
+    }
+    if (status === 400) {
+      return "Usy could not read that question. Please rephrase it and try again.";
+    }
+    return "Usy could not answer right now. Please try again shortly.";
   }
 
   async function submitContactRequest(draft: UsyContactDraft) {

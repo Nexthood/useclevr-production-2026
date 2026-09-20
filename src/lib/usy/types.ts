@@ -36,6 +36,7 @@ export type UsyContext = {
   route: string;
   plan?: string;
   usage?: UsyUsageContext | null;
+  isAuthenticated?: boolean;
 };
 
 export type UsyContactDraft = {

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { buildUsyReply, roleFromAudience } from "@/lib/usy/router";
+import { buildUsyReply, buildUsyRequestContext, roleFromAudience } from "@/lib/usy/router";
 import type { HelpChatboxAudience, UsyContactDraft } from "@/lib/usy/types";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { NextResponse, type NextRequest } from "next/server";
@@ -70,16 +70,22 @@ export async function POST(request: NextRequest) {
   }
 
   const audience = parsed.data.context.audience as HelpChatboxAudience;
-  const role = roleFromAudience(audience, session?.user?.role ?? null);
+  // Identity and role come only from the verified server session; guests are
+  // always public regardless of any client-supplied audience.
+  const sessionRole = session?.user?.role ?? null;
+  const isAuthenticated = Boolean(session?.user?.id);
+  const role = roleFromAudience(audience, sessionRole);
+  const context = buildUsyRequestContext({
+    audience,
+    role,
+    route: parsed.data.context.route,
+    isAuthenticated,
+    clientPlan: parsed.data.context.plan,
+    clientUsage: parsed.data.context.usage ?? null,
+  });
   const response = buildUsyReply({
     question: parsed.data.question,
-    context: {
-      audience,
-      role,
-      route: parsed.data.context.route,
-      plan: parsed.data.context.plan || parsed.data.context.usage?.subscriptionTier,
-      usage: parsed.data.context.usage ?? null,
-    },
+    context,
     contactDraft: parsed.data.contactDraft as UsyContactDraft | null | undefined,
   });
 

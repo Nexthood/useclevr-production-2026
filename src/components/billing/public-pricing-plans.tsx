@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
+  checkoutMarkets,
   formatRecurringPrice,
   getCheckoutMarketOptions,
   getCountryFromLocale,
@@ -148,17 +149,17 @@ type PublicPriceDisplay = {
   amountText: string
   period: BillingInterval
   amountMinor: number | null
-  currency: SupportedCurrency | "MULTI"
+  currency: SupportedCurrency
 }
 
 function getPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval, market: CheckoutMarket): PublicPriceDisplay {
   if (plan.tier === "free") {
     return {
-      amountText: formatPlanPrice(plan).replace("/month", ""),
+      amountText: formatPlanPrice(plan, market).replace("/month", ""),
       period: "monthly",
       amountMinor: 0,
-      currency: "MULTI",
-    }
+      currency: marketCurrency(market),
+    };
   }
 
   const options = getCheckoutMarketOptions(plan.tier, billingInterval)
@@ -175,6 +176,10 @@ function getPublicPlanPrice(plan: BillingPlan, billingInterval: BillingInterval,
     amountMinor: null,
     currency: "EUR",
   }
+}
+
+function marketCurrency(market: CheckoutMarket): SupportedCurrency {
+  return checkoutMarkets.find((entry) => entry.market === market)?.currency ?? "EUR"
 }
 
 function getMarketPriceDisplay(price: CheckoutMarketPrice): PublicPriceDisplay {
