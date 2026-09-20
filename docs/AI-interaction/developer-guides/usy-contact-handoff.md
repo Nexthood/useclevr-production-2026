@@ -15,6 +15,26 @@ The endpoint accepts only confirmed contact requests. Normal chat messages use `
 
 When either value is missing, the endpoint returns `503` with a truthful user-safe message. The browser never receives the webhook URL or secret.
 
+### Railway Configuration
+
+Set both variables on every environment that serves the app (the production `useclevr app` service and the `useclevr TEST` service):
+
+1. `USY_CONTACT_N8N_WEBHOOK_URL` — the production webhook URL from the central n8n instance (must be the production webhook path, not a test path).
+2. `USY_CONTACT_N8N_WEBHOOK_SECRET` — generated with `openssl rand -hex 32`; the same value must be configured as the expected bearer token in the n8n workflow.
+
+The values come from the operator's n8n instance; UseClevr does not generate the webhook URL. Until both variables exist, Usy truthfully reports the contact handoff as not configured instead of failing silently.
+
+### Department Routing
+
+UseClevr sends the confirmed payload's `category` (`sales`, `technical_support`, `billing`, `management`, `executive`) unchanged. The n8n workflow routes each category to its destination mailbox. The existing alias `support@useclevr.com` is the destination for `technical_support` (Technical Support / IT); the other departments keep their dedicated n8n-side destinations. UseClevr never embeds destination email addresses in the payload or the code.
+
+## Submission Semantics
+
+- The webhook call happens exactly once per confirmed request. A successful handoff marks the request fingerprint (server identity + contact fields) as delivered for 10 minutes; a duplicate confirmation of the same request returns `202` with the success confirmation and does not call n8n again.
+- A second confirmation while the first submission is still in flight returns `409` with a retry-after hint; it never claims delivery.
+- A failed or unreachable webhook returns `502` and releases the fingerprint so the same confirmed request can be retried; the chat keeps the confirmed draft so the user can retry without retyping.
+- Secrets and the webhook URL are used only inside the server route handler.
+
 ## Authentication To n8n
 
 UseClevr sends:
@@ -45,8 +65,9 @@ n8n validates the bearer token before processing the request.
 
 ## Responses
 
-- `202`: `{"ok":true,"message":"Your contact request has been submitted."}`
+- `202`: `{"ok":true,"message":"Your contact request has been submitted."}` — also returned idempotently for a duplicate confirmation of an already-delivered request.
 - `400`: invalid JSON or validation failure.
+- `409`: the same confirmed request is already being submitted.
 - `429`: rate limit exceeded.
-- `502`: n8n rejects the handoff or cannot be reached.
+- `502`: n8n rejects the handoff or cannot be reached (retryable; the confirmed draft stays in the chat).
 - `503`: required handoff environment variables are missing.

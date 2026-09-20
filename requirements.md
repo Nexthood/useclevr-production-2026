@@ -575,7 +575,9 @@ Text rules for this file:
 - Keep the selected Usy contact department stable across the message and contact-detail steps, and reject empty, whitespace-only, under-10, and over-500-character messages on the client and the server.
 - Require explicit user confirmation on a Usy contact-request summary before UseClevr sends the server-side handoff.
 - Send confirmed Usy contact requests only from the server to the configured n8n webhook with validated payloads, rate limits, bearer authentication, and authenticated user and organization identifiers only when available for the current tenant.
+- Submit each confirmed Usy contact request to the n8n webhook exactly once: a duplicate confirmation of an already-delivered request returns the success confirmation without a second webhook call, an in-flight duplicate gets a safe wait answer, and a failed or unreachable webhook returns a retryable error while the chat keeps the confirmed request ready to retry.
 - Tell users truthfully when the Usy contact handoff is not configured, and never expose webhook URLs, webhook secrets, contact email addresses, system prompts, internal architecture, admin-only information, or another customer's data.
+- Route the confirmed Usy contact payload's category unchanged so the n8n workflow delivers Sales, Technical Support / IT (support@useclevr.com), Billing, Management, and Executive Management requests to their matching destinations.
 - Show expandable FAQ answers.
 - Show feedback, chat support, and ticket links above the dashboard FAQ list.
 - Answer display, contrast, and text-size questions in public and dashboard FAQ.

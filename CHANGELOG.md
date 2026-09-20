@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- Fix assistant contact submissions so a confirmed request reaches the team again instead of reporting the handoff as unconfigured, repeated confirmations of the same request submit only once, and a failed submission keeps the request ready to retry.
 - Fix the Referral Center so Clicks, Signups, Paid Users, and Credits Earned always reproduce from real referral history, reversed rewards stop counting, and sharing or copying your link never inflates the numbers.
 - Fix referral rewards so self-referrals, repeated signups, replayed confirmations, and referral-code takeover can never earn credits.
 - Fix Retail uploads so a completed Retail upload with its analysis consumes the same 10 credits as every other upload, a rejected upload can no longer continue as a free analysis, and the credit balance refreshes immediately.

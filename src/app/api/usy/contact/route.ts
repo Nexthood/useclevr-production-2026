@@ -3,13 +3,21 @@ import { listUserBusinesses } from "@/lib/business/business-store";
 import {
   buildConfirmedUsyContactPayload,
   checkUsyContactRateLimit,
+  createUsyContactSubmissionGuard,
+  fingerprintUsyContactSubmission,
   getUsyContactWebhookConfig,
+  sendUsyContactWebhook,
   validateUsyContactPayload,
 } from "@/lib/usy/contact";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+// Duplicate confirmations of the same confirmed request stay credit-neutral:
+// the first successful handoff marks the fingerprint delivered so an immediate
+// re-confirmation returns the success confirmation without a second webhook.
+const submissionGuard = createUsyContactSubmissionGuard();
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "unknown";
@@ -47,31 +55,37 @@ export async function POST(request: NextRequest) {
   const organizationId = userId ? await getAuthorizedOrganizationId(userId) : null;
   const payload = buildConfirmedUsyContactPayload(parsed.data, { userId, organizationId });
 
-  try {
-    const webhookResponse = await fetch(config.webhookUrl!, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.webhookSecret}`,
-        "X-UseClevr-Event": "usy.contact_request",
-      },
-      body: JSON.stringify(payload),
-    });
+  const fingerprint = fingerprintUsyContactSubmission(rateLimitKey, payload);
+  const beginState = submissionGuard.begin(fingerprint);
+  if (beginState === "delivered") {
+    return NextResponse.json(
+      { ok: true, message: "Your contact request has already been submitted." },
+      { status: 202 },
+    );
+  }
+  if (beginState === "pending") {
+    return NextResponse.json(
+      { error: "Your contact request is already being submitted. Please wait a moment before trying again." },
+      { status: 409, headers: { "Retry-After": "10" } },
+    );
+  }
 
-    if (!webhookResponse.ok) {
-      return NextResponse.json(
-        { error: "The contact handoff could not be completed. Please try again shortly." },
-        { status: 502 },
-      );
-    }
+  const result = await sendUsyContactWebhook(payload, {
+    webhookUrl: config.webhookUrl!,
+    webhookSecret: config.webhookSecret!,
+  });
 
-    return NextResponse.json({ ok: true, message: "Your contact request has been submitted." }, { status: 202 });
-  } catch {
+  if (!result.ok) {
+    // Free the fingerprint so the user can retry the same confirmed request.
+    submissionGuard.release(fingerprint);
     return NextResponse.json(
       { error: "The contact handoff could not be completed. Please try again shortly." },
       { status: 502 },
     );
   }
+
+  submissionGuard.confirm(fingerprint);
+  return NextResponse.json({ ok: true, message: "Your contact request has been submitted." }, { status: 202 });
 }
 
 async function getAuthorizedOrganizationId(userId: string) {

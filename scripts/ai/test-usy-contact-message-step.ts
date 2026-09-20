@@ -476,10 +476,14 @@ function testExistingHandoffReusedWithoutParallelEmailLogic() {
   const contactLib = readProjectFile("src/lib/usy/contact.ts");
   assert.ok(contactLib.includes("USY_CONTACT_N8N_WEBHOOK_URL"), "existing n8n webhook config is reused");
   assert.ok(contactLib.includes("getUsyContactWebhookConfig"), "existing handoff layer is reused");
+  assert.ok(
+    contactLib.includes('"X-UseClevr-Event": "usy.contact_request"'),
+    "existing n8n event contract is preserved in the central webhook sender",
+  );
   assert.doesNotMatch(contactLib, emailLibraryPattern, "no parallel email logic introduced");
 
   const contactRoute = readProjectFile("src/app/api/usy/contact/route.ts");
-  assert.ok(contactRoute.includes("X-UseClevr-Event"), "existing n8n event contract is preserved");
+  assert.ok(contactRoute.includes("sendUsyContactWebhook"), "the route submits through the central webhook sender");
   assert.ok(contactRoute.includes("checkUsyContactRateLimit"), "existing rate limiting is preserved");
   assert.doesNotMatch(contactRoute, emailLibraryPattern, "no parallel email logic in the route");
 

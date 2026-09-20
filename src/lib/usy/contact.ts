@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { normalizeUsyText } from "@/lib/usy/language";
 import { usyContactCategories, usyProductFacts } from "@/lib/usy/knowledge-base";
@@ -325,6 +327,99 @@ export function getUsyContactWebhookConfig(env: Record<string, string | undefine
 
 export function checkUsyContactRateLimit(identifier: string) {
   return checkRateLimit(`usy-contact:${identifier}`, 3, 10 * 60 * 1000);
+}
+
+// ---------------------------------------------------------------------------
+// Confirmed handoff submission: single central n8n webhook call with
+// idempotent duplicate protection and safe retryable failures.
+// ---------------------------------------------------------------------------
+
+export type UsyContactSubmissionState = "pending" | "delivered";
+
+export type UsyContactSubmissionGuard = {
+  /** Registers an in-flight submission; reports whether one already exists. */
+  begin(fingerprint: string): "accepted" | "pending" | "delivered";
+  /** Marks a fingerprint as delivered after a successful webhook response. */
+  confirm(fingerprint: string): void;
+  /** Frees a fingerprint after a failed attempt so a retry can go through. */
+  release(fingerprint: string): void;
+};
+
+export function fingerprintUsyContactSubmission(identifier: string, payload: UsyWebhookPayload): string {
+  return createHash("sha256")
+    .update(
+      [
+        identifier,
+        payload.category,
+        payload.message,
+        payload.senderName,
+        payload.company ?? "",
+        payload.replyEmail,
+        payload.language,
+      ].join("\u0000"),
+    )
+    .digest("hex");
+}
+
+export function createUsyContactSubmissionGuard(
+  store: Map<string, { state: UsyContactSubmissionState; at: number }> = new Map(),
+  now: () => number = Date.now,
+  windowMs = 10 * 60 * 1000,
+): UsyContactSubmissionGuard {
+  const prune = () => {
+    const cutoff = now() - windowMs;
+    for (const [key, entry] of store) {
+      if (entry.at <= cutoff) store.delete(key);
+    }
+  };
+  return {
+    begin(fingerprint) {
+      prune();
+      const existing = store.get(fingerprint);
+      if (!existing) {
+        store.set(fingerprint, { state: "pending", at: now() });
+        return "accepted";
+      }
+      return existing.state;
+    },
+    confirm(fingerprint) {
+      store.set(fingerprint, { state: "delivered", at: now() });
+    },
+    release(fingerprint) {
+      store.delete(fingerprint);
+    },
+  };
+}
+
+export type UsyContactWebhookConfig = {
+  webhookUrl: string;
+  webhookSecret: string;
+};
+
+export type UsyContactWebhookResult = { ok: true } | { ok: false; retryable: true };
+
+export async function sendUsyContactWebhook(
+  payload: UsyWebhookPayload,
+  config: UsyContactWebhookConfig,
+  fetchImpl: typeof fetch = fetch,
+): Promise<UsyContactWebhookResult> {
+  try {
+    const webhookResponse = await fetchImpl(config.webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.webhookSecret}`,
+        "X-UseClevr-Event": "usy.contact_request",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!webhookResponse.ok) {
+      return { ok: false, retryable: true };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, retryable: true };
+  }
 }
 
 function extractField(message: string, patterns: RegExp[]) {
