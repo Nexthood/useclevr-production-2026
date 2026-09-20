@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
 import { StatCard } from "@/components/ui/stat-card"
 import { UploadSuccessPanel } from "@/components/forms/upload-success-panel"
+import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { parseCreditExhaustionPayload, ZeroCreditModal, useZeroCreditModal } from "@/components/shared/zero-credit-modal"
 import { useToast } from "@/hooks/use-toast"
 import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
@@ -396,6 +397,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   const [showAllColumns, setShowAllColumns] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadDatasetResponse | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const activeUploadRef = useRef(false)
   const { toast } = useToast()
   const zeroCredit = useZeroCreditModal()
 
@@ -422,6 +424,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
           body: JSON.stringify({
             question: "Analyze this retail inventory data for a store owner. Explain exactly which product and SKU are affected, why each issue matters, and what action to take. Include low stock alerts, dead stock with stuck stock value, and top profit products without repeated duplicate product rows.",
             datasetId,
+            initialAnalysis: true,
           }),
         })
         if (!analyzeRes.ok) {
@@ -450,6 +453,8 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   }, [])
 
   const uploadFile = useCallback(async (originalFile: File, data: ParsedData) => {
+    if (activeUploadRef.current) return
+    activeUploadRef.current = true
     try {
       let uploadFile: File
       if (originalFile.name.match(/\.xlsx?$/i)) {
@@ -465,23 +470,38 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
 
       const result = await uploadDatasetFile({ file: uploadFile, uploadMode: "retail", source: "retail_upload" })
 
+      // Every credit/limit decision comes from the authoritative server
+      // response. A rejected upload must never silently continue as a free
+      // local analysis presented as a completed retail run.
       if (!result.ok || !result.success) {
         const uploadMessage = result.message || result.error || "Retail upload did not create a dataset."
         debugError("Upload failed:", uploadMessage)
+        window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
 
-        // Paid plans purchase top-ups; the server-issued payload decides the
-        // plan-aware CTA from the authoritative usable balance.
         const creditState = parseCreditExhaustionPayload(result)
-        if (creditState && creditState.tier !== "free") {
-          zeroCredit.openFromPayload(creditState)
+        if (creditState) {
+          if (creditState.tier !== "free") {
+            zeroCredit.openFromPayload(creditState)
+          }
+          toast({
+            title: creditState.title,
+            description: creditState.message,
+            variant: "default",
+          })
+          setErrorMessage(creditState.message)
+          setState("error")
+          setProcessingStep(0)
+          return
         }
 
         toast({
-          title: "Upload warning",
+          title: "Upload failed",
           description: uploadMessage,
           variant: "default",
         })
-        startAnalysis(null, data)
+        setErrorMessage(uploadMessage)
+        setState("error")
+        setProcessingStep(0)
         return
       }
 
@@ -495,17 +515,23 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
         analysisStatus: result.analysisStatus || "processing",
         redirectTo: result.redirectTo || "/app/retail",
       })
+      window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
       setTimeout(() => startAnalysis(result.datasetId || null, data), 300)
     } catch (err) {
       debugError("Upload error:", err)
+      window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
       toast({
-        title: "Upload warning",
-        description: "Continuing with local analysis",
+        title: "Upload failed",
+        description: "The dataset could not be uploaded. Please try again.",
         variant: "default",
       })
-      startAnalysis(null, data)
+      setErrorMessage("The dataset could not be uploaded. Please try again.")
+      setState("error")
+      setProcessingStep(0)
+    } finally {
+      activeUploadRef.current = false
     }
-  }, [toast, startAnalysis])
+  }, [toast, startAnalysis, zeroCredit])
 
   const parseFile = useCallback(async (file: File) => {
     if (file.size > 50 * 1024 * 1024) {

@@ -31,6 +31,7 @@ export default async function DatasetsPage() {
       status: datasets.status,
       analysisStatus: datasets.analysisStatus,
       datasetType: datasets.datasetType,
+      source: datasets.source,
       analysis: datasets.analysis,
       createdAt: datasets.createdAt,
       columns: datasets.columns,
@@ -63,6 +64,7 @@ export default async function DatasetsPage() {
         ...dataset,
         datasetType,
         uploadSource,
+        source: dataset.source,
         destinationModule: getDatasetCategoryDestinationLabel(datasetType),
       columns: Array.isArray(dataset.columns)
         ? dataset.columns.filter((column): column is string => typeof column === "string")

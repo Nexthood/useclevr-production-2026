@@ -29,6 +29,7 @@ const baseMeta = (uploadType: AccountancyUploadType, fileName: string, mimeType:
 
 async function run() {
   await testCommaCsv();
+  await testValidCsvTolerances();
   await testVerifiedBankCsvRegression();
   await testSemicolonCsv();
   await testExcel();
@@ -75,6 +76,51 @@ async function testCommaCsv() {
   assert.equal(parsed.route, "accountancy_csv_parser");
   assert.deepEqual(parsed.columns, ["date", "description", "amount"]);
   assert.equal(parsed.rowCount, 1);
+}
+
+async function testValidCsvTolerances() {
+  // Ragged rows and trailing delimiters are valid ledger CSVs in practice; the
+  // parser must normalize them instead of rejecting the whole file.
+  const raggedCsv = [
+    "date,description,amount",
+    "2026-01-01,Software,12.50",
+    "2026-01-02,Office chair,",
+    "2026-01-03,Web hosting,29.00,",
+  ].join("\n");
+  const ragged = await parseAccountancyUploadBuffer(
+    Buffer.from(raggedCsv),
+    baseMeta("csv", "ragged-ledger.csv", "text/csv"),
+  );
+  assert.equal(ragged.rowCount, 3, "ragged CSV rows are accepted");
+  assert.deepEqual(ragged.columns, ["date", "description", "amount"]);
+  assert.equal(ragged.rows[1]?.amount, null, "missing trailing fields normalize to null");
+
+  // Quoted fields containing the delimiter stay intact.
+  const quotedCsv = [
+    'date,description,amount',
+    '2026-01-05,"Parts, bolts and screws",42.10',
+  ].join("\n");
+  const quoted = await parseAccountancyUploadBuffer(
+    Buffer.from(quotedCsv),
+    baseMeta("csv", "quoted-ledger.csv", "text/csv"),
+  );
+  assert.equal(quoted.rowCount, 1);
+  assert.equal(quoted.rows[0]?.description, "Parts, bolts and screws");
+  assert.equal(quoted.rows[0]?.amount, 42.1);
+
+  // Browsers may label CSV files text/plain; the extension stays authoritative.
+  const plainMime = await parseAccountancyUploadBuffer(
+    Buffer.from("date,description,amount\n2026-01-01,Software,12.50\n"),
+    baseMeta("csv", "ledger.csv", "text/plain"),
+  );
+  assert.equal(plainMime.rowCount, 1, "text/plain CSVs are accepted for .csv uploads");
+
+  // A genuinely unreadable file still fails.
+  await assert.rejects(
+    parseAccountancyUploadBuffer(Buffer.from(""), baseMeta("csv", "empty.csv", "text/csv")),
+    (error: unknown) => error instanceof AccountancyUploadError,
+    "empty files still fail validation",
+  );
 }
 
 async function testVerifiedBankCsvRegression() {
@@ -594,13 +640,15 @@ function testApiRouteWiring() {
   assert.ok(route.includes("error.details"), "API route returns structured credit exhaustion details");
   assert.ok(processor.includes("eq(datasets.checksum, checksum)"), "processor reuses duplicate datasets by checksum");
   assert.ok(processor.includes("resolveAccountancyUploadEntitlement"), "Accountancy processor resolves its dedicated upload entitlement");
-  assert.ok(!processor.includes('feature: "dataset_upload"'), "Accountancy processor does not consume central dataset upload credits");
-  assert.ok(!processor.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy processor does not block on normal dataset upload credits");
+  assert.ok(!processor.includes('feature: "dataset_upload"'), "Accountancy processor does not mint a separate upload feature name");
+  assert.ok(processor.includes("UPLOAD_CREDITS_EXHAUSTED"), "Accountancy uploads block through the central credit engine when the balance is insufficient");
   const processUploadStart = processor.indexOf("export async function processAccountancyUpload");
   const entitlementIndex = processor.indexOf("const uploadEntitlement = resolveAccountancyUploadEntitlement", processUploadStart);
   const parseIndex = processor.indexOf("parsed = await parseAccountancyUploadBuffer", processUploadStart);
   assert.ok(entitlementIndex > processUploadStart && entitlementIndex < parseIndex, "Accountancy entitlement routing happens before parsing");
   assert.ok(processor.indexOf("if (existingDataset)", processUploadStart) < entitlementIndex, "duplicate existing datasets return before entitlement routing");
+  const creditReserveIndex = processor.indexOf("reserveAccountancyUploadCredits(creditContext)", processUploadStart);
+  assert.ok(creditReserveIndex > processUploadStart && creditReserveIndex < parseIndex, "credits are reserved before any expensive parsing work");
   assert.ok(processor.includes("categorizePrebookkeepingRows(parsed.rows, learningRules, { taxProfile: accountingContextResult.taxProfile })"), "Pre-bookkeeping uploads start categorization with Business Profile tax context");
   assert.ok(processor.includes("shouldCategorizePrebookkeepingUpload(parsed)"), "incomplete PDF extraction rows do not enter ready-for-review categorization");
   assert.ok(processor.includes("decodePdfContentStreams"), "machine-readable compressed PDF content streams are decoded before accounting extraction");

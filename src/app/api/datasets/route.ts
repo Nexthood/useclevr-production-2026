@@ -12,6 +12,7 @@ import { checkSpendingLimits } from "@/lib/billing/credit-account-service"
 import { buildUploadCreditLimitInlineMessage } from "@/lib/billing/upload-credit-messaging"
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { datasetCreateSchema, validateOrError } from "@/lib/validation"
+import { deriveDatasetSource } from "@/lib/data/dataset-source"
 import { getDatasetLimitInfo, getDatasetLimitError } from "@/lib/usage/dataset-limits"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
@@ -175,6 +176,7 @@ export async function POST(request: Request) {
       columnCount: columns?.length || 0,
       columns: columns || [],
       rowCount: rows?.length || 0,
+      source: deriveDatasetSource({ fileName: fileName || "" }),
       createdAt: now,
       updatedAt: now,
     })

@@ -2,6 +2,13 @@ import { getBusinessModelRedirect } from "@/lib/data/business-model";
 import { getAccountingContext, type AccountingContext } from "@/lib/accountancy/accounting-context";
 import { resolveAccountancyUploadEntitlement } from "@/lib/accountancy/upload-entitlements";
 import {
+  ACCOUNTANCY_UPLOAD_CREDITS,
+  finalizeAccountancyUploadCredits,
+  releaseAccountancyUploadCredits,
+  reserveAccountancyUploadCredits,
+} from "@/lib/accountancy/upload-credits";
+import { resolveAccountancyDatasetSource } from "@/lib/data/dataset-source";
+import {
   categorizePrebookkeepingRows,
   createDefaultPrebookkeepingReviewSummary,
   isPrebookkeepingCategorization,
@@ -146,7 +153,7 @@ const uploadSpecs: Record<
   csv: {
     route: "accountancy_csv_parser",
     extensions: [".csv"],
-    mimeTypes: ["text/csv", "application/csv", "application/vnd.ms-excel", "application/octet-stream", ""],
+    mimeTypes: ["text/csv", "application/csv", "text/plain", "application/vnd.ms-excel", "application/octet-stream", ""],
     tabular: true,
   },
   excel: {
@@ -404,10 +411,48 @@ export async function processAccountancyUpload(input: {
     uploadType: input.uploadType,
   });
 
+  // One centralized credit transaction per logical upload operation. Reserved
+  // after duplicate detection (reused datasets never charge) and before any
+  // expensive parsing/processing; released on failure, finalized on success.
+  const creditContext = {
+    userId: input.userId,
+    datasetId,
+    datasetType: input.datasetType,
+    uploadType: input.uploadType,
+    fileName: input.fileName,
+    rowCount: 0,
+    role: input.role ?? null,
+    email: input.email ?? null,
+  };
+  const creditOutcome = await reserveAccountancyUploadCredits(creditContext);
+  if (!creditOutcome.ok) {
+    throw new AccountancyUploadError(
+      "validation",
+      "UPLOAD_CREDITS_EXHAUSTED",
+      creditOutcome.error,
+      402,
+      false,
+      {
+        requiredCredits: creditOutcome.requiredCredits,
+        availableCredits: creditOutcome.availableCredits,
+        used: creditOutcome.usedCredits,
+        limit: creditOutcome.totalCredits,
+        remaining: creditOutcome.availableCredits,
+        usage: {
+          limitReached: true,
+          usedCredits: creditOutcome.usedCredits,
+          total: creditOutcome.totalCredits,
+          availableCredits: creditOutcome.availableCredits,
+        },
+      },
+    );
+  }
+
   let parsed: AccountancyParsedUpload;
   try {
     parsed = await parseAccountancyUploadBuffer(input.buffer, requestMeta);
   } catch (error) {
+    await releaseAccountancyUploadCredits(creditOutcome, "accountancy_parse_failed");
     if (error instanceof AccountancyUploadError) throw error;
     debugError("[ACCOUNTANCY-UPLOAD] parsing failed", safeLogMeta(input, "parsing", error));
     throw new AccountancyUploadError(
@@ -419,6 +464,7 @@ export async function processAccountancyUpload(input: {
       { diagnostic: error instanceof Error ? error.message : "The file could not be parsed." },
     );
   }
+  creditContext.rowCount = parsed.rowCount;
 
   debugLog("[ACCOUNTANCY-UPLOAD] parsing finished", {
     fileName: input.fileName,
@@ -436,6 +482,7 @@ export async function processAccountancyUpload(input: {
   try {
     storage = await storeUploadedFile(input.buffer, input.fileName, input.mimeType || inferMimeType(input.fileName));
   } catch (error) {
+    await releaseAccountancyUploadCredits(creditOutcome, "accountancy_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", error));
     throw new AccountancyUploadError(
       "storage",
@@ -447,6 +494,7 @@ export async function processAccountancyUpload(input: {
   }
 
   if (!storage.success) {
+    await releaseAccountancyUploadCredits(creditOutcome, "accountancy_storage_failed");
     debugError("[ACCOUNTANCY-UPLOAD] storage failed", safeLogMeta(input, "storage", storage.error));
     throw new AccountancyUploadError(
       "storage",
@@ -459,6 +507,11 @@ export async function processAccountancyUpload(input: {
 
   const now = new Date();
   const businessModel: DatasetBusinessModel = "generic";
+  const datasetSource = resolveAccountancyDatasetSource({
+    uploadType: input.uploadType,
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+  });
   const redirectTo = getBusinessModelRedirect({ datasetType: input.datasetType, businessModel, datasetId });
   const precomputedMetrics = parsed.rows.length > 0 ? computePrecomputedMetrics(parsed.rows, parsed.columns) : null;
   const accountingContextResult = await loadAccountingContextForUpload(input.userId);
@@ -509,6 +562,7 @@ export async function processAccountancyUpload(input: {
     columnTypes: parsed.columnTypes,
     datasetType: input.datasetType,
     businessModel,
+    source: datasetSource,
     status: "ready",
     analysisStatus: "ready",
     analysisProgress: 100,
@@ -522,6 +576,7 @@ export async function processAccountancyUpload(input: {
       dataset_type: input.datasetType,
       datasetCategory: input.datasetType,
       datasetType: input.datasetType,
+      uploadSource: datasetSource === "accountancy_document" ? "accountancy_document" : "accountancy_upload",
       accountancyUploadType: input.uploadType,
       processingRoute: parsed.route,
       selectedSheet: parsed.selectedSheet,
@@ -564,6 +619,7 @@ export async function processAccountancyUpload(input: {
     });
   } catch (error) {
     await deleteFile(storage.storageKey).catch(() => false);
+    await releaseAccountancyUploadCredits(creditOutcome, "accountancy_database_failed");
     debugError("[ACCOUNTANCY-UPLOAD] database failed", safeLogMeta(input, "database", error));
     throw new AccountancyUploadError(
       "database",
@@ -571,6 +627,23 @@ export async function processAccountancyUpload(input: {
       error instanceof Error ? error.message : "The dataset could not be saved.",
       500,
       true,
+    );
+  }
+
+  const finalizedCredits = await finalizeAccountancyUploadCredits(creditContext, creditOutcome);
+  if (!finalizedCredits.ok) {
+    await deleteFile(storage.storageKey).catch(() => false);
+    await db.transaction(async (tx) => {
+      await tx.delete(datasetRows).where(eq(datasetRows.datasetId, datasetId));
+      await tx.delete(datasets).where(eq(datasets.id, datasetId));
+    }).catch(() => undefined);
+    throw new AccountancyUploadError(
+      "validation",
+      "UPLOAD_CREDITS_EXHAUSTED",
+      finalizedCredits.error,
+      402,
+      false,
+      { requiredCredits: ACCOUNTANCY_UPLOAD_CREDITS },
     );
   }
 
@@ -694,21 +767,36 @@ function parseCsvUpload(buffer: Buffer, meta: AccountancyUploadMeta): Accountanc
     transformHeader: (header) => header.trim().replace(/^\uFEFF/, ""),
   });
 
-  if (parsed.errors.length > 0) {
+  // Only an unreadable file fails parsing. Recoverable PapaParse findings
+  // (field mismatches from trailing delimiters, ragged rows, stray quotes)
+  // describe valid CSVs that vendors emit every day; rows normalize through
+  // normalizeTabularRows, so rejecting the whole file for them rejected valid
+  // Accountancy CSVs in production.
+  const fatalErrors = parsed.errors.filter((error) => FATAL_CSV_ERROR_CODES.has(error.code));
+  if (fatalErrors.length > 0) {
     throw new AccountancyUploadError(
       "parsing",
       "CSV_PARSE_FAILED",
-      `CSV parsing failed: ${parsed.errors[0]?.message || "invalid CSV"}`,
+      `CSV parsing failed: ${fatalErrors[0]?.message || "invalid CSV"}`,
       422,
       false,
     );
   }
 
+  const structureWarnings = parsed.errors
+    .slice(0, 3)
+    .map((error) => `Row ${typeof error.row === "number" ? error.row + 1 : "?"}: ${error.message}.`);
+
   return normalizeTabularRows(parsed.meta.fields || [], parsed.data, {
     route: uploadSpecs[meta.uploadType].route,
-    warnings: [`Detected ${delimiter === "\t" ? "tab" : delimiter} delimiter.`],
+    warnings: [
+      `Detected ${delimiter === "\t" ? "tab" : delimiter} delimiter.`,
+      ...structureWarnings,
+    ],
   });
 }
+
+const FATAL_CSV_ERROR_CODES = new Set(["EmptyFileError"]);
 
 function parseExcelUpload(buffer: Buffer, meta: AccountancyUploadMeta): AccountancyParsedUpload {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true, cellFormula: true, cellStyles: true });

@@ -87,7 +87,9 @@ function assertDashboardPageDoesNotFallbackForExplicitMissingDataset() {
   assert.match(source, /getStats\(userId, selectedDatasetId\)/, "dashboard must load an explicit selected dataset directly instead of loading workspace context first")
   assert.match(source, /getOrCreateDailyHealthBrief\(\{ userId, datasetId: activeDatasetId \}\)/, "daily health must use the active selected dataset scope")
   assert.match(source, /brief=\{dashboardStats\.dashboardData\.activeDatasetCount === 0 \? null : dailyBrief\}/, "daily health uses selected dashboard stats")
-  assert.match(source, /<SourceMix dashboardData=\{dashboardStats\.dashboardData\}/, "source mix uses selected dashboard stats")
+  // Upload History is a workspace-level statistic: it must read the
+  // workspace-scope aggregation, never the selected dataset scope.
+  assert.match(source, /<SourceMix dashboardData=\{dashboardStats\.workspaceData\}/, "upload history source mix stays at workspace scope")
   assert.match(source, /<ActivityList stats=\{dashboardStats\}/, "AI activity uses selected dashboard stats")
 }
 
@@ -220,6 +222,7 @@ function aggregatedDataset(input: {
     datasetType: "standard",
     businessModel: input.businessModel,
     analysisStatus: "ready",
+    source: "csv" as const,
     status: "ready",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),

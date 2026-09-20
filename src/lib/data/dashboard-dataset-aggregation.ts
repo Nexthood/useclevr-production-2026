@@ -2,6 +2,10 @@ import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { combineBusinessSemanticProfiles, type MultiFileSemanticInput } from "@/lib/data/business-semantics"
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
+import {
+  deriveDatasetSource,
+  type DatasetSource,
+} from "@/lib/data/dataset-source"
 import { and, desc, eq, or, isNull, ne } from "drizzle-orm"
 
 export type DashboardDataRow = Record<string, unknown>
@@ -17,6 +21,7 @@ export type DashboardAggregatedDataset = {
   data: DashboardDataRow[]
   datasetType: string
   businessModel: BusinessModel
+  source: DatasetSource
   analysisStatus: string | null
   status: string
   createdAt: Date
@@ -35,8 +40,13 @@ export type NormalizedDashboardData = {
   fileTypeCounts: {
     csv: number
     excel: number
+    google_sheets: number
+    onedrive: number
+    sharepoint: number
     snowflake: number
     api: number
+    clevrsync: number
+    accountancy_document: number
     other: number
   }
   detectedColumns: {
@@ -88,6 +98,8 @@ export async function loadDashboardDatasetAggregation(
       data: true,
       datasetType: true,
       businessModel: true,
+      source: true,
+      mimeType: true,
       analysisStatus: true,
       status: true,
       createdAt: true,
@@ -120,6 +132,13 @@ export async function loadDashboardDatasetAggregation(
         datasetName: dataset.name,
         analysis,
       }),
+      source: deriveDatasetSource({
+        source: dataset.source,
+        uploadSource: isRecord(analysis) ? String(analysis.uploadSource || "") : null,
+        datasetType: dataset.datasetType,
+        fileName: dataset.fileName,
+        mimeType: dataset.mimeType,
+      }),
       analysisStatus: dataset.analysisStatus,
       status: dataset.status || "ready",
       createdAt: dataset.createdAt || new Date(),
@@ -140,14 +159,35 @@ export async function loadDashboardDatasetAggregation(
     ...activeDatasets.flatMap((dataset) => dataset.data.slice(0, 20).flatMap((row) => Object.keys(row))),
   ])
   const fileTypeCounts = activeDatasets.reduce<NormalizedDashboardData["fileTypeCounts"]>((counts, dataset) => {
-    const fileName = dataset.fileName.toLowerCase()
-    if (fileName.endsWith(".csv")) counts.csv += 1
-    else if (/\.(xlsx|xls)$/i.test(fileName)) counts.excel += 1
-    else if (dataset.datasetType === "snowflake") counts.snowflake += 1
-    else if (dataset.datasetType === "api") counts.api += 1
-    else counts.other += 1
+    switch (dataset.source) {
+      case "csv":
+        counts.csv += 1
+        break
+      case "excel":
+        counts.excel += 1
+        break
+      case "google_sheets":
+      case "onedrive":
+      case "sharepoint":
+        counts[dataset.source] += 1
+        break
+      case "snowflake":
+        counts.snowflake += 1
+        break
+      case "api":
+        counts.api += 1
+        break
+      case "clevrsync":
+        counts.clevrsync += 1
+        break
+      case "accountancy_document":
+        counts.accountancy_document += 1
+        break
+      default:
+        counts.other += 1
+    }
     return counts
-  }, { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 })
+  }, emptyFileTypeCounts())
 
   return {
     datasetCount: activeDatasets.length,
@@ -231,13 +271,13 @@ function findAlias(columns: string[], aliases: string[]) {
   })
 }
 
-function emptyDashboardData(): NormalizedDashboardData {
+export function emptyDashboardData(): NormalizedDashboardData {
   return {
     datasetCount: 0,
     activeDatasetCount: 0,
     totalRows: 0,
     latestUpload: null,
-    fileTypeCounts: { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 },
+    fileTypeCounts: emptyFileTypeCounts(),
     detectedColumns: {},
     businessModelCounts: {
       local_retail: 0,
@@ -251,6 +291,21 @@ function emptyDashboardData(): NormalizedDashboardData {
     dominantBusinessModel: "generic",
     allColumns: [],
     datasets: [],
+  }
+}
+
+function emptyFileTypeCounts(): NormalizedDashboardData["fileTypeCounts"] {
+  return {
+    csv: 0,
+    excel: 0,
+    google_sheets: 0,
+    onedrive: 0,
+    sharepoint: 0,
+    snowflake: 0,
+    api: 0,
+    clevrsync: 0,
+    accountancy_document: 0,
+    other: 0,
   }
 }
 

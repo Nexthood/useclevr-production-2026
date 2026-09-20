@@ -57,6 +57,7 @@ export async function findAccessibleDataset(
       analysis: true,
       datasetType: true,
       businessModel: true,
+      source: true,
       createdAt: true,
       updatedAt: true,
     },

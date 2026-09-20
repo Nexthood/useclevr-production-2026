@@ -4,15 +4,7 @@ import { ExecutiveDashboardTabs } from "@/components/dashboard/executive-dashboa
 import { GenerateReportAction } from "@/components/dashboard/generate-report-action"
 import { auth } from "@/lib/auth/auth"
 import { calculateBusinessBalancedScorecard, type BusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
-import {
-  buildDashboardSemanticAnalysis,
-  buildTrendPanel,
-  type DashboardBusinessProfile,
-  type DashboardSemanticAnalysis,
-  type DashboardSemanticMetric,
-  type DashboardSemanticTrend,
-} from "@/lib/data/dashboard-semantic-profile"
-import { isTrendEligible } from "@/lib/data/trend-semantics"
+import { buildDashboardSemanticAnalysis, buildTrendPanel, type DashboardBusinessProfile, type DashboardSemanticAnalysis, type DashboardSemanticMetric, type DashboardSemanticTrend } from "@/lib/data/dashboard-semantic-profile"
 import {
   BBSC_SCORE_METHODOLOGY,
   DAILY_ANALYSIS_CONFIDENCE_EXPLANATION,
@@ -25,17 +17,25 @@ import {
   WORKSPACE_HEALTH_SCORE_LABEL,
 } from "@/lib/executive/daily-health-semantics"
 import { buildAreaChartLayout } from "@/lib/data/dashboard-chart-layout"
+import { getDatasetCategoryLabel, normalizeDatasetCategory } from "@/lib/data/dataset-category"
 import {
   getBusinessModelKpiNames,
   getBusinessModelLabel,
   shouldRenderWorldMapForBusinessModel,
   type BusinessModel,
 } from "@/lib/data/business-model"
-import { loadDashboardDatasetAggregation, normalizeDashboardColumnName, type DashboardAggregatedDataset, type NormalizedDashboardData } from "@/lib/data/dashboard-dataset-aggregation"
+import {
+  emptyDashboardData as emptyAggregationData,
+  loadDashboardDatasetAggregation,
+  normalizeDashboardColumnName,
+  type DashboardAggregatedDataset,
+  type NormalizedDashboardData,
+} from "@/lib/data/dashboard-dataset-aggregation"
 import { db } from "@/lib/db"
 import { aiInteractionTraces, profiles } from "@/lib/db/schema"
 import { getOrCreateDailyHealthBrief, type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
 import { listAllReports } from "@/lib/reports/report-generator"
+import { isTrendEligible } from "@/lib/data/trend-semantics"
 import { count, desc, eq } from "drizzle-orm"
 import {
   Activity,
@@ -109,6 +109,7 @@ type DashboardStats = {
   reports: number
   aiTraceCount: number
   dashboardData: NormalizedDashboardData
+  workspaceData: NormalizedDashboardData
   hasProfile: boolean
   hasBusiness: boolean
   profile: {
@@ -172,7 +173,12 @@ const RANGE_LABELS: Record<RangeKey, string> = {
 async function getStats(userId: string | null, selectedDatasetId?: string | null): Promise<DashboardStats> {
   if (!userId) return emptyStats()
 
-  const dashboardData = await loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId })
+  // Workspace scope powers the Upload History card; the selected-dataset scope
+  // powers the interactive dashboard analytics. The two scopes stay separate.
+  const [dashboardData, workspaceData] = await Promise.all([
+    loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId }),
+    loadDashboardDatasetAggregation(userId),
+  ])
 
   try {
     const [aiTraceCount, profile, latestAiTraces] = await Promise.all([
@@ -208,6 +214,7 @@ async function getStats(userId: string | null, selectedDatasetId?: string | null
       reports: reportsList.length,
       aiTraceCount: Number(aiTraceCount[0]?.value || 0),
       dashboardData,
+      workspaceData,
       hasProfile: Boolean(profile),
       hasBusiness: Boolean(profile?.businessName || profile?.companyName),
       profile: profile
@@ -232,6 +239,7 @@ async function getStats(userId: string | null, selectedDatasetId?: string | null
       ...emptyStats(),
       datasets: dashboardData.datasetCount,
       dashboardData,
+      workspaceData,
       allDatasets: dashboardData.datasets,
       latestDataset: dashboardData.latestUpload,
     }
@@ -239,31 +247,14 @@ async function getStats(userId: string | null, selectedDatasetId?: string | null
 }
 
 function emptyStats(): DashboardStats {
+  const emptyDashboardData = emptyAggregationData()
   return {
     datasets: 0,
     analyses: 0,
     reports: 0,
     aiTraceCount: 0,
-    dashboardData: {
-      datasetCount: 0,
-      activeDatasetCount: 0,
-      totalRows: 0,
-      latestUpload: null,
-      fileTypeCounts: { csv: 0, excel: 0, snowflake: 0, api: 0, other: 0 },
-      detectedColumns: {},
-      businessModelCounts: {
-        local_retail: 0,
-        ecommerce: 0,
-        saas: 0,
-        startup: 0,
-        investor: 0,
-        marketplace: 0,
-        generic: 0,
-      },
-      dominantBusinessModel: "generic",
-      allColumns: [],
-      datasets: [],
-    },
+    dashboardData: emptyDashboardData,
+    workspaceData: emptyDashboardData,
     hasProfile: false,
     hasBusiness: false,
     profile: null,
@@ -347,8 +338,28 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
     Boolean(columns.revenue || columns.profit || columns.stock),
   ])
   const aiConfidence = Math.min(96, 34 + stats.analyses * 10 + aiInsightsGenerated * 2 + (rows.length > 0 ? 20 : 0) + (stats.hasBusiness ? 12 : 0))
-  const forecastConfidence = score([Boolean(columns.date), revenueTrend.length >= 3 || profitTrend.length >= 3, stats.datasets > 0, stats.analyses > 0])
+  // Forecast confidence measures genuine forecast readiness, never model
+  // certainty. A date-named column alone proves nothing: the temporal signal
+  // requires trend-eligible observations (the shared Trend/Snapshot/Unavailable
+  // minimum), and datasets without any usable time axis report no value
+  // instead of implying partially supported forecasting.
+  const hasTrendEligibleObservations = [revenueTrend, profitTrend, inventoryTrend, ordersTrend].some(isTrendEligible)
+  const forecastConfidence = !columns.date
+    ? null
+    : score([
+        hasTrendEligibleObservations,
+        revenueTrend.length >= 3 || profitTrend.length >= 3,
+        stats.datasets > 0,
+        stats.analyses > 0,
+      ])
   const growthScore = revenueTrend.length >= 2 ? trendScore(revenueTrend) : readiness
+
+  const healthSignals = [readiness, aiConfidence, forecastConfidence, growthScore].filter(
+    (value): value is number => value !== null,
+  )
+  const healthScore = healthSignals.length > 0
+    ? Math.round(healthSignals.reduce((total, value) => total + value, 0) / healthSignals.length)
+    : null
 
   return {
     columns,
@@ -380,7 +391,7 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
     supportedKpis: getDashboardProfileKpiNames(businessModel),
     semanticAnalysis,
     businessHealth: {
-      health: Math.round((readiness + aiConfidence + forecastConfidence + growthScore) / 4),
+      health: healthScore,
       aiConfidence,
       readiness,
       forecastConfidence,
@@ -736,18 +747,16 @@ function selectDashboardDataset(stats: DashboardStats, datasetId: string | null)
     ...selectedDataset.columns,
     ...selectedDataset.data.slice(0, 20).flatMap((row) => Object.keys(row)),
   ])
-  const fileTypeCounts: NormalizedDashboardData["fileTypeCounts"] = {
-    csv: 0,
-    excel: 0,
-    snowflake: 0,
-    api: 0,
-    other: 0,
-  }
-  const fileName = selectedDataset.fileName.toLowerCase()
-  if (fileName.endsWith(".csv")) fileTypeCounts.csv = 1
-  else if (/\.(xlsx|xls)$/i.test(fileName)) fileTypeCounts.excel = 1
-  else if (selectedDataset.datasetType === "snowflake") fileTypeCounts.snowflake = 1
-  else if (selectedDataset.datasetType === "api") fileTypeCounts.api = 1
+  const fileTypeCounts = emptyFileTypeCounts()
+  if (selectedDataset.source === "csv") fileTypeCounts.csv = 1
+  else if (selectedDataset.source === "excel") fileTypeCounts.excel = 1
+  else if (selectedDataset.source === "google_sheets") fileTypeCounts.google_sheets = 1
+  else if (selectedDataset.source === "onedrive") fileTypeCounts.onedrive = 1
+  else if (selectedDataset.source === "sharepoint") fileTypeCounts.sharepoint = 1
+  else if (selectedDataset.source === "snowflake") fileTypeCounts.snowflake = 1
+  else if (selectedDataset.source === "api") fileTypeCounts.api = 1
+  else if (selectedDataset.source === "clevrsync") fileTypeCounts.clevrsync = 1
+  else if (selectedDataset.source === "accountancy_document") fileTypeCounts.accountancy_document = 1
   else fileTypeCounts.other = 1
 
   const detected = detectColumns([selectedDataset], selectedDataset.data)
@@ -795,6 +804,21 @@ function selectDashboardDataset(stats: DashboardStats, datasetId: string | null)
   }
 
   return { stats: scopedStats, selectedDataset, missing: false }
+}
+
+function emptyFileTypeCounts(): NormalizedDashboardData["fileTypeCounts"] {
+  return {
+    csv: 0,
+    excel: 0,
+    google_sheets: 0,
+    onedrive: 0,
+    sharepoint: 0,
+    snowflake: 0,
+    api: 0,
+    clevrsync: 0,
+    accountancy_document: 0,
+    other: 0,
+  }
 }
 
 function emptySelectedDatasetStats(stats: DashboardStats): DashboardStats {
@@ -961,9 +985,9 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
                 <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
                   <Card className="p-5">
-                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
+                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.workspaceData.totalRows)} rows processed across ${formatNumber(dashboardStats.workspaceData.datasetCount)} dataset${dashboardStats.workspaceData.datasetCount === 1 ? "" : "s"} in this workspace.`} />
                     <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                      <SourceMix dashboardData={dashboardStats.dashboardData} />
+                      <SourceMix dashboardData={dashboardStats.workspaceData} />
                       <LatestDatasets datasets={selected.missing ? [] : stats.allDatasets.slice(0, 6)} activeDatasetId={selected.selectedDataset?.id ?? null} />
                     </div>
                   </Card>
@@ -1625,12 +1649,19 @@ function MetricTile({ label, value }: { label: string; value: string }) {
 }
 
 function SourceMix({ dashboardData }: { dashboardData: NormalizedDashboardData }) {
+  const counts = dashboardData.fileTypeCounts
   const sourceCounts = [
-    { label: "CSV", value: dashboardData.fileTypeCounts.csv },
-    { label: "Excel", value: dashboardData.fileTypeCounts.excel },
-    { label: "Snowflake", value: dashboardData.fileTypeCounts.snowflake },
-    { label: "API", value: dashboardData.fileTypeCounts.api },
-  ]
+    { label: "CSV", value: counts.csv },
+    { label: "Excel", value: counts.excel },
+    { label: "Google Sheets", value: counts.google_sheets },
+    { label: "OneDrive", value: counts.onedrive },
+    { label: "SharePoint", value: counts.sharepoint },
+    { label: "Snowflake", value: counts.snowflake },
+    { label: "API", value: counts.api },
+    { label: "ClevrSync", value: counts.clevrsync },
+    { label: "Documents", value: counts.accountancy_document },
+    { label: "Other / Unknown", value: counts.other },
+  ].filter((item) => item.value > 0 || item.label === "CSV" || item.label === "Excel")
   return (
     <div className="space-y-3">
       {sourceCounts.map((item) => (
@@ -1823,6 +1854,12 @@ function DataCoverageNote({ metrics }: { metrics: ExecutiveMetrics }) {
 }
 
 function dashboardDatasetContextLabel(dataset: DashboardDataset) {
+  const storedType = normalizeDatasetCategory(dataset.datasetType)
+  if (storedType === "accountancy" || storedType === "prebookkeeping") {
+    // The stored classification is authoritative: an Accountancy upload must
+    // never fall back to the Generic business-model label on the dashboard.
+    return getDatasetCategoryLabel(storedType)
+  }
   if (dataset.datasetType === "profitability" || hasProfitabilityAnalysis(dataset.analysis) || hasProfitabilityAnalysis(dataset.precomputedMetrics)) {
     const role = readProfitabilityRole(dataset.analysis) || readProfitabilityRole(dataset.precomputedMetrics)
     if (role === "revenue" || role === "revenue_input") return "Profitability · Revenue Input"
