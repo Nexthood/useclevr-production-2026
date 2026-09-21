@@ -19,7 +19,7 @@ When either value is missing, the endpoint returns `503` with a truthful user-sa
 
 Set both variables on every environment that serves the app (the production `useclevr app` service and the `useclevr TEST` service):
 
-1. `USY_CONTACT_N8N_WEBHOOK_URL` — the production webhook URL from the central n8n instance (must be the production webhook path, not a test path).
+1. `USY_CONTACT_N8N_WEBHOOK_URL` — the published production webhook URL from the central n8n instance (`https://<n8n-host>/webhook/usy-contact`). The `/webhook-test/` path is the n8n manual-test endpoint and only responds while the workflow runs in manual test mode; deployed environments (app.useclevr.com and test.useclevr.com) must never use it.
 2. `USY_CONTACT_N8N_WEBHOOK_SECRET` — generated with `openssl rand -hex 32`; the same value must be configured as the expected bearer token in the n8n workflow.
 
 The values come from the operator's n8n instance; UseClevr does not generate the webhook URL. Until both variables exist, Usy truthfully reports the contact handoff as not configured instead of failing silently.

@@ -118,7 +118,6 @@
     "test:usy-guest-mode": "node -r tsx/esm scripts/ai/test-usy-guest-mode.ts",
     "test:usy-contact-message-step": "node -r tsx/esm scripts/ai/test-usy-contact-message-step.ts",
     "test:usy-contact-handoff": "node -r tsx/esm scripts/ai/test-usy-contact-handoff.ts",
-    "test:usy-contact-handoff": "node -r tsx/esm scripts/ai/test-usy-contact-handoff.ts",
     "test:credit-topup-webhooks": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/billing/test-credit-topup-webhooks.ts",
     "test:credit-topup-architecture": "node -r ./scripts/runtime/load-env.cjs -r tsx/esm scripts/billing/test-credit-topup-architecture.ts",
     "test:credit-topup-packages": "node -r tsx/esm --import ./scripts/billing/mocks/register-hooks.mjs scripts/billing/test-credit-topup-packages.ts",

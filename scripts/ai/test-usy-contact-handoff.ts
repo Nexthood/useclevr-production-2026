@@ -100,6 +100,68 @@ function testMissingConfigurationFailsSafely() {
 }
 
 // ---------------------------------------------------------------------------
+// Published n8n response (HTTP 200 {"ok":true}) → successful handoff
+// ---------------------------------------------------------------------------
+
+function testPublishedN8nResponseIsSuccess() {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init: init ?? {} });
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as unknown as typeof fetch;
+
+  return (async () => {
+    const publishedUrl = "https://useclevr.app.n8n.cloud/webhook/usy-contact";
+    const result = await sendUsyContactWebhook(confirmedPayload, {
+      webhookUrl: publishedUrl,
+      webhookSecret: "secret-value-123",
+    }, fetchImpl);
+    assert.deepEqual(result, { ok: true }, 'a published n8n response of HTTP 200 {"ok":true} is a successful handoff');
+    assert.equal(calls.length, 1, "the published webhook receives exactly one call");
+    assert.equal(calls[0].url, publishedUrl, "the handoff posts to the published /webhook/ endpoint");
+  })();
+}
+
+// ---------------------------------------------------------------------------
+// Deployed configuration must target the published n8n webhook, never the
+// manual-test endpoint
+// ---------------------------------------------------------------------------
+
+function testDeployedConfigurationNeverUsesWebhookTestUrl() {
+  // Runtime code and environment examples carry the deployed configuration:
+  // none of them may reference the n8n manual-test webhook path in any form.
+  const strictFiles = [
+    "src/lib/usy/contact.ts",
+    "src/app/api/usy/contact/route.ts",
+    ".env.railway.example",
+    ".env.local.example",
+  ];
+  for (const file of strictFiles) {
+    const content = readProjectFile(file);
+    assert.doesNotMatch(content, /webhook[-_]test/i, `${file} must not reference the n8n manual-test webhook path`);
+  }
+
+  // The runtime config reads only USY_CONTACT_N8N_WEBHOOK_URL and passes the
+  // value through unchanged: no fallback URL, no rewriting toward a test path.
+  const publishedUrl = "https://useclevr.app.n8n.cloud/webhook/usy-contact";
+  const config = getUsyContactWebhookConfig({
+    USY_CONTACT_N8N_WEBHOOK_URL: publishedUrl,
+    USY_CONTACT_N8N_WEBHOOK_SECRET: "secret-value-123",
+  });
+  assert.equal(config.missing, false, "a full production configuration is complete");
+  assert.equal(config.webhookUrl, publishedUrl, "the configured URL is used exactly as provided");
+  assert.equal(config.webhookSecret, "secret-value-123", "the configured secret is used exactly as provided");
+
+  // The handoff guide must keep instructing the published production path.
+  const guide = readProjectFile("docs/AI-interaction/developer-guides/usy-contact-handoff.md");
+  assert.match(guide, /\/webhook\/usy-contact/, "the handoff guide names the published production webhook path");
+  assert.match(guide, /must never use it|never use it/, "the handoff guide forbids the manual-test path for deployed environments");
+}
+
+// ---------------------------------------------------------------------------
 // Duplicate confirmation → no duplicate handoff
 // ---------------------------------------------------------------------------
 
@@ -293,6 +355,8 @@ function testNoWebhookSecretExposedClientSide() {
 testMissingConfigurationFailsSafely();
 testConfiguredWebhookSucceeds();
 testFailedWebhookIsRetryableFailure();
+testPublishedN8nResponseIsSuccess();
+testDeployedConfigurationNeverUsesWebhookTestUrl();
 testDuplicateConfirmationDoesNotResubmit();
 testSubmissionGuardWindowExpires();
 testFingerprintSeparatesIdentitiesAndPayloads();
