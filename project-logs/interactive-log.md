@@ -1,3 +1,46 @@
+## 2026-09-21 — Usy → n8n Contact Handoff: Published Webhook Configuration Verified
+
+1. Interaction title
+   Fix and verify the Usy → n8n Contact Handoff configuration after the reported wrong n8n webhook URL (the `/webhook-test/` manual-test endpoint) without hardcoding URLs or changing kept behavior.
+
+2. What was the user goal
+   Search the repository and environment examples for `webhook-test/usy-contact`, `webhook/usy-contact`, and `USY_CONTACT_N8N_WEBHOOK_URL`; keep runtime code reading only the environment variable; use the published production webhook `https://useclevr.app.n8n.cloud/webhook/usy-contact` for both test.useclevr.com and app.useclevr.com; remove or correct anything suggesting the manual-test path for deployed environments; keep the secret, bearer auth, department routing, payload validation, rate limiting, duplicate protection, guest/auth behavior, and the existing message payload fix unchanged; treat HTTP 200 `{"ok":true}` as a successful handoff; add a regression test banning the manual-test path for deployed configuration; run Usy contact tests, TypeScript, and lint; commit and push nothing.
+
+3. What changed
+   - Search results: `webhook-test` (all case/separator variants, hidden files included) has zero matches in the repository — the wrong URL existed only as the operator-set Railway value. `USY_CONTACT_N8N_WEBHOOK_URL` is declared empty in `.env.railway.example` and `.env.local.example`; local `.env`/`.env.local` carry no USY or webhook entries.
+   - Runtime verification: `src/lib/usy/contact.ts` reads only `process.env.USY_CONTACT_N8N_WEBHOOK_URL` and `USY_CONTACT_N8N_WEBHOOK_SECRET` via `getUsyContactWebhookConfig()` (src/lib/usy/contact.ts:318), with no hardcoded or fallback URL; `sendUsyContactWebhook` posts the bearer-authenticated JSON payload to the configured URL and treats any 2xx response — including HTTP 200 `{"ok":true}` — as success (src/lib/usy/contact.ts:401), so a published n8n response is a successful handoff.
+   - `scripts/ai/test-usy-contact-handoff.ts`: adds `testPublishedN8nResponseIsSuccess` (fetch mock returns HTTP 200 `{"ok":true}`; asserts `{ok: true}` and exactly one call to the published `/webhook/usy-contact` endpoint) and `testDeployedConfigurationNeverUsesWebhookTestUrl` (strict no-`webhook-test` scan over `src/lib/usy/contact.ts`, `src/app/api/usy/contact/route.ts`, `.env.railway.example`, `.env.local.example`; asserts `getUsyContactWebhookConfig` passes the configured URL and secret through unchanged with no rewriting; asserts the developer guide names the published path and forbids the manual-test path).
+   - `.env.railway.example` and `docs/AI-interaction/developer-guides/usy-contact-handoff.md`: instruct the published production `/webhook/usy-contact` path and state that the manual-test path only responds while the n8n workflow runs in manual test mode, so deployed environments never use it.
+   - `package.json`: removes the duplicated `test:usy-contact-handoff` script key (duplicate JSON key).
+   - Interaction records and the done queue updated; no changelog or requirements change (no user-visible behavior change; repository runtime was already correct).
+
+4. Problems marked
+   - blocker: deployed behavior stays wrong until the operator sets `USY_CONTACT_N8N_WEBHOOK_URL=https://useclevr.app.n8n.cloud/webhook/usy-contact` on both the Railway `useclevr app` and `useclevr TEST` services; repository changes cannot update deployed environment values.
+   - observation: the manual-test path only responds while the n8n workflow is in manual test mode, so the misconfiguration surfaced as failed handoffs rather than silent data loss.
+   - improvement: the package.json duplicate script key is removed.
+
+5. User learning
+   - n8n exposes two inbound webhook paths: the published `/webhook/` path for production and the `/webhook-test/` path for manual test execution only; deployed UseClevr environments must always reference the published path through `USY_CONTACT_N8N_WEBHOOK_URL`.
+
+6. AI-agent learning
+   - Exhaustive `grep -rIlni -E 'webhook[-_. ]?test'` (hidden dirs included, build outputs excluded) is the reliable way to prove an erroneous URL never existed in the repository; the grep tool respects ignores, so a raw search confirms the negative.
+   - Regression guards for operator-set values stay at the repository boundary: strict scans over runtime source and env examples plus documentation instructions; deployed Railway values require manual verification.
+
+7. Follow-up tasks
+   - Operator: set `USY_CONTACT_N8N_WEBHOOK_URL` on both Railway services and verify a live contact handoff returns 202 after the change.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Regression pins: `scripts/ai/test-usy-contact-handoff.ts` (`test:usy-contact-handoff`)
+   - Configuration guidance: `.env.railway.example`, `docs/AI-interaction/developer-guides/usy-contact-handoff.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+   - No changelog or requirements update: no user-visible behavior change.
+
 ## 2026-09-20 — Referral Automation: Production-Safe Automated Lifecycle
 
 1. Interaction title
