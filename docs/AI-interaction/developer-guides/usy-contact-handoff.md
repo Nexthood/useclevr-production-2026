@@ -63,6 +63,15 @@ n8n validates the bearer token before processing the request.
 
 `category` is one of `sales`, `technical_support`, `billing`, `management`, or `executive`. `company`, `userId`, and `organizationId` are omitted when unavailable. `userId` and `organizationId` are included only for the authenticated user and the user's own primary organization.
 
+## Operational Diagnostics
+
+Every confirmed handoff writes exactly one structured event to the server logs (visible in Railway Deploy Logs), never to the browser response:
+
+- `usy_contact_handoff_delivered`: the n8n webhook answered HTTP 2xx.
+- `usy_contact_handoff_failed`: the handoff failed. `failureCode` names the exact class — `webhook_not_configured`, `invalid_webhook_url`, `dns_failure`, `connection_failure`, `tls_failure`, `timeout`, `n8n_http_400`, `n8n_http_401`, `n8n_http_404`, `n8n_http_5xx`, `n8n_http_other`, `invalid_n8n_response`, `unexpected_error` — and `stage` names where it happened (`configuration`, `url_validation`, `webhook_request`).
+
+Each event reports only safe operational fields: the configured host/path shape with per-field URL checks (`urlProtocolOk`, `urlHostOk`, `urlPathOk`) and `webhookTestPath: true` whenever the configured URL uses the n8n manual-test path, plus HTTP status, response content type, sanitized error name/code/message, and `durationMs`. Sanitization always redacts URLs, bearer tokens, and the configured secret; events never contain the webhook secret, the Authorization header, the request payload, or customer-identifying fields. A configured URL whose protocol is not `https` is refused before any request is sent so the bearer secret never leaves over plain http.
+
 ## Responses
 
 - `202`: `{"ok":true,"message":"Your contact request has been submitted."}` — also returned idempotently for a duplicate confirmation of an already-delivered request.

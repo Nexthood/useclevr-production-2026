@@ -1,3 +1,47 @@
+## 2026-09-21 — Usy → n8n Contact Handoff: 502 Diagnostics With Safe Failure Classification
+
+1. Interaction title
+   Fix the remaining Usy contact handoff 502 failure with targeted server-side diagnostics that expose the exact outbound cause on the next live request, without touching n8n, the payload structure, or any protected behavior.
+
+2. What was the user goal
+   Trace POST /api/usy/contact → getUsyContactWebhookConfig() → sendUsyContactWebhook() → outbound fetch → error handling → HTTP 502; identify every 502 condition; add safe structured logging (no secret, no Authorization header, no payload/customer fields, nothing in the browser response); distinguish webhook_not_configured, invalid_webhook_url, dns_failure, connection_failure, tls_failure, timeout, n8n_http_401, n8n_http_400, n8n_http_404, n8n_http_5xx, invalid_n8n_response, unexpected_error; verify the configured URL at runtime and report a lingering `/webhook-test/` URL; fix only deterministic bugs; add regression tests; run Usy contact tests, TypeScript, and lint; commit and push nothing.
+
+3. What changed
+   - Trace result: `/api/usy/contact` returns 502 in exactly one place — `sendUsyContactWebhook` returning `ok:false` (src/app/api/usy/contact/route.ts) — caused either by a non-2xx n8n response or by a thrown fetch error; the previous `catch {}` discarded every cause with zero logging, matching the unexplained Railway 502 and the empty n8n Executions list. Missing configuration returns 503 (not 502), so a 502 proves both environment variables were present. No deterministic code bug exists in the traced path.
+   - `src/lib/usy/contact-diagnostics.ts` (new): `inspectUsyContactWebhookUrl` (parse, https check, expected-host/path flags, `/webhook-test/` detection), `classifyUsyContactWebhookException` (walks the exception cause chain for ENOTFOUND/EAI_AGAIN → dns, ECONN*/EPIPE/EHOSTUNREACH/UND_ERR_SOCKET → connection, CERT/SSL/TLS codes → tls, ETIMEDOUT/UND_ERR_*_TIMEOUT/ABORT_ERR/AbortError → timeout, URL-parse messages → invalid_webhook_url, else unexpected_error), `classifyUsyContactWebhookHttpStatus` (400/401/404/5xx/n8n_http_other, terminal 3xx → invalid_n8n_response), `sanitizeUsyContactDiagnosticMessage` (redacts URLs, bearer tokens, and the configured secret; strips control characters; caps length), and the fixed-shape diagnostic builder plus the safe console logger.
+   - `src/lib/usy/contact.ts`: `sendUsyContactWebhook` now refuses unparseable or non-https URLs before any request (`invalid_webhook_url`; the bearer secret never leaves over plain http), attaches a full diagnostic to every failure and delivery, and returns it alongside the unchanged `{ok, retryable}` contract.
+   - `src/app/api/usy/contact/route.ts`: logs exactly one `usy_contact_handoff_failed` (stage `configuration` for the 503 path, `url_validation`/`webhook_request` for 502) or `usy_contact_handoff_delivered` event per confirmed submission via `logUsyContactHandoffDiagnostic`; every browser response body/status, the 502 fingerprint release, and the 202 delivered confirmation are unchanged.
+   - `scripts/ai/test-usy-contact-handoff.ts`: full failure-classification matrix through the sender path (exception shapes and HTTP statuses), `/webhook-test/` detection reporting (`webhookTestPath: true` + `n8n_http_404`), secret/customer-data redaction tests (URL, bearer token, secret, control characters), and route source assertions (safe logger only, no JSON.stringify in the route, diagnostics never read payload fields).
+   - `docs/AI-interaction/developer-guides/usy-contact-handoff.md`: new Operational Diagnostics section documenting both events, all failure classes, the safe field set, and the https pre-flight refusal.
+
+4. Problems marked
+   - blocker: the deployed 502's exact cause stays unproven until the next live request emits the diagnostic — the operator searches Railway Deploy Logs for `usy_contact_handoff_failed` and reads `failureCode`/`stage`.
+   - risk: no app-level fetch timeout exists; undici connect/headers timeouts classify as `timeout` if they fire.
+   - observation: a 502 with NO `usy_contact_handoff_failed` line would mean the response never originated from this route (proxy-level failure), which is itself diagnostic.
+   - improvement: non-https webhook URLs are now refused pre-flight so the bearer secret can never leave over plain http.
+
+5. User learning
+   - n8n webhook authentication failures (HTTP 401) and unregistered webhook paths (HTTP 404, including `/webhook-test/` outside manual-test mode) do not create n8n Executions — an empty Executions list is consistent with both a network-layer failure and a wrong-path/auth failure; the diagnostic event distinguishes them.
+
+6. AI-agent learning
+   - Classify fetch failures by walking `error.cause` for the undici/Node `code` (`ENOTFOUND`, `ECONNREFUSED`, `UND_ERR_CONNECT_TIMEOUT`, certificate codes) — the outer `TypeError: fetch failed` carries nothing.
+   - Keep diagnostics structurally safe (the builder never receives the payload) rather than trying to scrub arbitrary text; sanitize only what exceptions realistically embed (URLs, headers, secrets).
+
+7. Follow-up tasks
+   - Operator: deploy, run ONE Usy contact test, search Railway Deploy Logs for `usy_contact_handoff_failed`, and act on `failureCode`.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Diagnostics module: `src/lib/usy/contact-diagnostics.ts`; wiring: `src/lib/usy/contact.ts`, `src/app/api/usy/contact/route.ts`
+   - Regression pins: `scripts/ai/test-usy-contact-handoff.ts` (`test:usy-contact-handoff`)
+   - Operator guidance: `docs/AI-interaction/developer-guides/usy-contact-handoff.md`
+   - No changelog or requirements update: no user-visible behavior change; logs are server-side only.
+
 ## 2026-09-21 — Usy → n8n Contact Handoff: Published Webhook Configuration Verified
 
 1. Interaction title
