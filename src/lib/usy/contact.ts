@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
+import {
+  buildUsyContactHandoffDiagnostic,
+  classifyUsyContactWebhookException,
+  classifyUsyContactWebhookHttpStatus,
+  inspectUsyContactWebhookUrl,
+  type UsyContactHandoffDiagnostic,
+} from "@/lib/usy/contact-diagnostics";
 import { normalizeUsyText } from "@/lib/usy/language";
 import { usyContactCategories, usyProductFacts } from "@/lib/usy/knowledge-base";
 import type { SupportedUsyLanguage, UsyContactCategory, UsyContactDraft } from "@/lib/usy/types";
@@ -396,13 +403,35 @@ export type UsyContactWebhookConfig = {
   webhookSecret: string;
 };
 
-export type UsyContactWebhookResult = { ok: true } | { ok: false; retryable: true };
+export type UsyContactWebhookResult =
+  | { ok: true; diagnostic: UsyContactHandoffDiagnostic }
+  | { ok: false; retryable: true; diagnostic: UsyContactHandoffDiagnostic };
 
 export async function sendUsyContactWebhook(
   payload: UsyWebhookPayload,
   config: UsyContactWebhookConfig,
   fetchImpl: typeof fetch = fetch,
 ): Promise<UsyContactWebhookResult> {
+  const startedAt = Date.now();
+  const urlInspection = inspectUsyContactWebhookUrl(config.webhookUrl);
+  // An unparseable or non-https URL is a deterministic misconfiguration: the
+  // bearer secret must never leave over plain http, and fetch would fail
+  // anyway, so classify before any request is attempted.
+  if (!urlInspection.parsed || !urlInspection.protocolOk) {
+    return {
+      ok: false,
+      retryable: true,
+      diagnostic: buildUsyContactHandoffDiagnostic({
+        event: "usy_contact_handoff_failed",
+        stage: "url_validation",
+        failureCode: "invalid_webhook_url",
+        webhookConfigured: true,
+        webhookUrl: config.webhookUrl,
+        redactionSecret: config.webhookSecret,
+        durationMs: Date.now() - startedAt,
+      }),
+    };
+  }
   try {
     const webhookResponse = await fetchImpl(config.webhookUrl, {
       method: "POST",
@@ -413,12 +442,53 @@ export async function sendUsyContactWebhook(
       },
       body: JSON.stringify(payload),
     });
+    const durationMs = Date.now() - startedAt;
+    const responseContentType = webhookResponse.headers?.get?.("content-type") ?? null;
     if (!webhookResponse.ok) {
-      return { ok: false, retryable: true };
+      return {
+        ok: false,
+        retryable: true,
+        diagnostic: buildUsyContactHandoffDiagnostic({
+          event: "usy_contact_handoff_failed",
+          stage: "webhook_request",
+          failureCode: classifyUsyContactWebhookHttpStatus(webhookResponse.status),
+          webhookConfigured: true,
+          webhookUrl: config.webhookUrl,
+          httpStatus: webhookResponse.status,
+          responseContentType,
+          redactionSecret: config.webhookSecret,
+          durationMs,
+        }),
+      };
     }
-    return { ok: true };
-  } catch {
-    return { ok: false, retryable: true };
+    return {
+      ok: true,
+      diagnostic: buildUsyContactHandoffDiagnostic({
+        event: "usy_contact_handoff_delivered",
+        stage: "webhook_request",
+        failureCode: null,
+        webhookConfigured: true,
+        webhookUrl: config.webhookUrl,
+        httpStatus: webhookResponse.status,
+        responseContentType,
+        durationMs,
+      }),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      retryable: true,
+      diagnostic: buildUsyContactHandoffDiagnostic({
+        event: "usy_contact_handoff_failed",
+        stage: "webhook_request",
+        failureCode: classifyUsyContactWebhookException(error),
+        webhookConfigured: true,
+        webhookUrl: config.webhookUrl,
+        error,
+        redactionSecret: config.webhookSecret,
+        durationMs: Date.now() - startedAt,
+      }),
+    };
   }
 }
 

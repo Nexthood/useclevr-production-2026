@@ -9,6 +9,10 @@ import {
   sendUsyContactWebhook,
   validateUsyContactPayload,
 } from "@/lib/usy/contact";
+import {
+  buildUsyContactMissingConfigDiagnostic,
+  logUsyContactHandoffDiagnostic,
+} from "@/lib/usy/contact-diagnostics";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +49,7 @@ export async function POST(request: NextRequest) {
 
   const config = getUsyContactWebhookConfig();
   if (config.missing) {
+    logUsyContactHandoffDiagnostic(buildUsyContactMissingConfigDiagnostic(config.webhookUrl));
     return NextResponse.json(
       { error: "I cannot submit the request right now because the contact handoff is not configured." },
       { status: 503 },
@@ -78,12 +83,14 @@ export async function POST(request: NextRequest) {
   if (!result.ok) {
     // Free the fingerprint so the user can retry the same confirmed request.
     submissionGuard.release(fingerprint);
+    logUsyContactHandoffDiagnostic(result.diagnostic);
     return NextResponse.json(
       { error: "The contact handoff could not be completed. Please try again shortly." },
       { status: 502 },
     );
   }
 
+  logUsyContactHandoffDiagnostic(result.diagnostic);
   submissionGuard.confirm(fingerprint);
   return NextResponse.json({ ok: true, message: "Your contact request has been submitted." }, { status: 202 });
 }

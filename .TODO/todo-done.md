@@ -14,6 +14,7 @@ moving work between states.
 
 ## Label: deployment
 
+- T-1062. Usy contact handoff 502s expose their exact outbound cause: safe structured diagnostics classify DNS/connection/TLS/timeout/HTTP failures server-side without logging secrets or customer data. (labels: ai, deployment, observability; commit: worktree)
 - T-1061. The Usy → n8n contact handoff keeps repository configuration on the published production webhook path: regression tests ban the n8n manual-test path from runtime source and env examples and pin HTTP 200 `{"ok":true}` as a successful handoff. (labels: ai, deployment, quality; commit: worktree)
 - T-1025. Production application responses apply centralized security headers, a compatible Content Security Policy, HTTPS-only HSTS, and no global wildcard CORS. (labels: deployment, security, testing; commit: 1e8809b4)
 - T-988. Railway predeploy applies the upload-credit backfill with a conflict target that matches the Credit Ledger idempotency-key unique index. (labels: deployment, billing, stability; commit: b9eb8f5)
