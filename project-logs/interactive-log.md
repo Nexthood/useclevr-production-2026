@@ -88,6 +88,47 @@
    - Activity summary: project-logs/activity-log.md
    - Latest interaction status: docs/AI-interaction/interaction-status.md
 
+## 2026-09-21 — Usy Contact Handoff Payload Integrity Fix
+
+1. Interaction title
+   Fix the Usy contact handoff payload delivering a mangled/truncated request message.
+
+2. What was the user goal
+   Fix the payload bug in the Usy contact handoff without redesigning the working staged flow (department → message → details → confirmation → n8n).
+
+3. What changed
+   - Reproduced with an end-to-end probe: a dedicated message-step input containing a natural marker word ("… I have a question about the VAT certificate you need.") stored only `"the VAT certificate you need."` in the draft — everything before "about" was dropped; a one-shot combined input was hard-truncated to 120 of 197 characters. Both corruptions flowed into the final n8n webhook payload, so the team received a fragment instead of the request.
+   - Root cause: `mergeContactDraft` let `explicitMessage` extraction take precedence over the verbatim message-step input, and the extraction ran through the shared `extractField`, which slices every captured value to 120 characters and used a single-line `(.+)` capture (newlines ended the capture).
+   - `src/lib/usy/contact.ts`: in the dedicated message step (department set, no valid message yet) the exact typed input wins absolutely within 10–500 characters and marker-word extraction is skipped entirely — the typed text is the payload; one-shot combined inputs use a dedicated `extractContactMessage` (marker list unchanged, newline-tolerant `[\s\S]+` capture, no 120-character cap, paragraph structure preserved) with the 10–500 rule still enforced; name/company/email extraction via `extractField` keeps its 120-character caps.
+   - Tests: `test-usy-contact-message-step.ts` adds `testMessageStepKeepsExactTypedTextInPayload` (verbatim message with marker words, no 120-char cut, multi-line verbatim) and `testOneShotExplicitMessageIsNotTruncated` (full text after the marker, flow still completes); `test-usy-contact-handoff.ts` adds `testWebhookPayloadCarriesExactTypedMessage` (byte-identical payload message, fingerprint separation for payload differences).
+   - `CHANGELOG.md` and `requirements.md` record the user-visible behavior.
+
+4. Problems marked
+   - blocker: none.
+   - risk: none identified — extraction heuristics still apply only to combined one-shot inputs without an active dedicated message step.
+   - improvement: one-shot messages still absorb trailing "My name is …" text after the marker (pre-existing heuristic; the structured name/reply-email fields remain correct).
+   - observation: the bug was pre-existing but became user-visible once the message step made long natural requests the normal case; the verbatim precedence rule removes the whole class.
+
+5. User learning
+   The team now receives the exact request the user typed in the Usy message box; words like "about" inside a request no longer cut the message short.
+
+6. AI-agent learning
+   Shared extraction helpers leak their constraints into every caller: `extractField`'s 120-character slice (correct for name/company) silently truncated the message field. Precedence matters as much as presence — a heuristic candidate must never override a dedicated verbatim input path.
+
+7. Follow-up tasks
+   - None assigned.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
 ## 2026-09-20 — Usy Production Contact Handoff Repair
 
 1. Interaction title

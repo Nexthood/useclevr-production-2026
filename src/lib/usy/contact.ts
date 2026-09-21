@@ -102,20 +102,20 @@ export function mergeContactDraft(
   const company = extractField(message, [
     /(?:company is|company:|from company|for company|firma|unternehmen|bedrijf|empresa|ceg|cég|compania)\s+([^.,;\n]+)/i,
   ]);
-  const explicitMessage = extractField(message, [
-    /(?:message is|message:|request is|request:|about|regarding|because|issue is|problem is|anliegen:|anfrage:|nachricht:|verzoek:|bericht:|mensaje:|solicitud:|problema:|uzenet:|üzenet:|keres:|kérés:|cerere:|mesaj:|problema este)\s+(.+)/i,
-  ]);
   const trimmed = message.trim();
   const previousMessageCheck = validateContactMessage(previous?.message);
   const messageNotYetSet = !previousMessageCheck.ok;
-  // In the dedicated message step (department already selected) the whole input
-  // is the request itself, so it is accepted verbatim within 10–500 characters.
-  const verbatimMessageAccepted = messageNotYetSet
-    ? previous?.category
-      ? trimmed.length >= usyContactMessageMinLength && trimmed.length <= usyContactMessageMaxLength
-      : trimmed.length >= 20 && !isOnlyCollectionMessage(trimmed)
-    : false;
-  const candidateMessage = explicitMessage || (verbatimMessageAccepted ? trimmed : undefined);
+  const inDedicatedMessageStep = messageNotYetSet && Boolean(previous?.category);
+  const explicitMessage = inDedicatedMessageStep
+    ? // Marker words ("about", "regarding", "issue is", …) occur naturally in
+      // a described request, so extraction heuristics never rewrite the
+      // dedicated message-step input: the exact typed text is the payload.
+      undefined
+    : extractContactMessage(message);
+  const verbatimMessageAccepted = inDedicatedMessageStep
+    ? trimmed.length >= usyContactMessageMinLength && trimmed.length <= usyContactMessageMaxLength
+    : messageNotYetSet && trimmed.length >= 20 && !isOnlyCollectionMessage(trimmed);
+  const candidateMessage = explicitMessage ?? (verbatimMessageAccepted ? trimmed : undefined);
   const candidateCheck = candidateMessage ? validateContactMessage(candidateMessage) : null;
 
   // Preserve the existing category if already set - don't overwrite with new detection
@@ -429,6 +429,18 @@ function extractField(message: string, patterns: RegExp[]) {
     if (value) return value.replace(/\s+/g, " ").slice(0, 120);
   }
   return undefined;
+}
+
+// One-shot combined inputs ("Contact billing. Message: …") keep their request
+// text without the 120-character field cap or first-line limit, so the webhook
+// payload carries the full request; the 10–500 message rule still applies.
+const contactMessageMarkerPattern = /(?:message is|message:|request is|request:|about|regarding|because|issue is|problem is|anliegen:|anfrage:|nachricht:|verzoek:|bericht:|mensaje:|solicitud:|problema:|uzenet:|üzenet:|keres:|kérés:|cerere:|mesaj:|problema este)\s+([\s\S]+)/i;
+
+function extractContactMessage(message: string) {
+  const match = message.match(contactMessageMarkerPattern);
+  const value = match?.[1]?.trim();
+  if (!value) return undefined;
+  return value.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function isOnlyCollectionMessage(message: string) {

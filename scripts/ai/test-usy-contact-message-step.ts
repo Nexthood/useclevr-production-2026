@@ -205,6 +205,46 @@ function testMessageStepAcceptsBoundaryLengths() {
   assert.match(exactlyFiveHundred.answer, /contact details/i);
 }
 
+function testMessageStepKeepsExactTypedTextInPayload() {
+  // Marker words ("about", "regarding", "issue is") occur naturally in a real
+  // request; the webhook payload must carry the exact typed message instead of
+  // an extraction fragment cut at the marker and the 120-character field cap.
+  const typed = "Our invoice 4471 shows 21% VAT but we are exempt as a charity. Please correct the last two invoices and confirm our billing email. I have a question about the VAT certificate you need.";
+
+  const step = buildUsyReply({
+    question: typed,
+    context: guestContext(),
+    contactDraft: departmentDraft("billing"),
+  });
+
+  assert.equal(step.contactDraft?.message, typed, "the dedicated message step stores the exact typed text");
+  assert.equal(
+    step.contactDraft?.message?.length,
+    typed.length,
+    "the message is not truncated to the 120-character extraction cap",
+  );
+
+  const multiLineInput = "Our invoice 4471 is wrong.\nThe VAT total does not match the order.\nPlease correct both lines and resend it.";
+  const multiLine = buildUsyReply({
+    question: multiLineInput,
+    context: guestContext(),
+    contactDraft: departmentDraft("billing"),
+  });
+  assert.equal(multiLine.contactDraft?.message, multiLineInput, "multi-line message-step text stays verbatim");
+}
+
+function testOneShotExplicitMessageIsNotTruncated() {
+  const expected = "Please fix our VAT setup; our invoice 4471 shows 21% but we are exempt; also our billing email changed to finance@company.com; please update both invoices and reply today.";
+  const oneShot = `Contact billing. Message: ${expected} My name is Alex Rivera, alex@example.com`;
+
+  const reply = buildUsyReply({ question: oneShot, context: guestContext() });
+
+  const storedMessage = `${expected} My name is Alex Rivera, alex@example.com`;
+  assert.equal(reply.contactDraft?.message?.length, storedMessage.length, "one-shot explicit messages are not cut at 120 characters");
+  assert.equal(reply.contactDraft?.message, storedMessage, "the full request text after the marker reaches the payload");
+  assert.ok(reply.contactDraft?.awaitingConfirmation, "the combined one-shot still completes the flow");
+}
+
 // ---------------------------------------------------------------------------
 // Server-side payload validation (501 characters rejected at the handoff gate)
 // ---------------------------------------------------------------------------
@@ -565,6 +605,8 @@ testDepartmentSelectionOpensMessageStep();
 testDepartmentRoutingPreservedThroughMessageStep();
 testMessageStepRejectsInvalidMessages();
 testMessageStepAcceptsBoundaryLengths();
+testMessageStepKeepsExactTypedTextInPayload();
+testOneShotExplicitMessageIsNotTruncated();
 testServerRejectsInvalidContactPayloads();
 testContactFieldRequirements();
 testGuestContactFlowReachesConfirmation();
