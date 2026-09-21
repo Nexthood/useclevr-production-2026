@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- Fix assistant contact requests so the team receives the exact typed request instead of a fragment cut off at common words like "about" or shortened to a 120-character excerpt.
 - Fix assistant contact submissions so a confirmed request reaches the team again instead of reporting the handoff as unconfigured, repeated confirmations of the same request submit only once, and a failed submission keeps the request ready to retry.
 - Fix the Referral Center so Clicks, Signups, Paid Users, and Credits Earned always reproduce from real referral history, reversed rewards stop counting, and sharing or copying your link never inflates the numbers.
 - Fix referral rewards so self-referrals, repeated signups, replayed confirmations, and referral-code takeover can never earn credits.

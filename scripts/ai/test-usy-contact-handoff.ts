@@ -206,6 +206,36 @@ function testGuestSubmissionPayload() {
   assert.equal(payload.company, undefined, "omitted company stays out of the payload");
 }
 
+function testWebhookPayloadCarriesExactTypedMessage() {
+  // The request contains a natural marker word; the payload must deliver the
+  // exact typed request, not an extraction fragment cut at "about" or the
+  // 120-character extraction cap.
+  const typed = "Our invoice 4471 shows 21% VAT but we are exempt as a charity. Please correct the last two invoices and confirm our billing email. I have a question about the VAT certificate you need.";
+
+  const parsed = validateUsyContactPayload({
+    category: "billing",
+    message: typed,
+    senderName: "Alex Rivera",
+    replyEmail: "alex@example.com",
+    language: "english",
+    confirmed: true,
+  });
+  assert.equal(parsed.success, true);
+  if (!parsed.success) return;
+
+  const payload = buildConfirmedUsyContactPayload(parsed.data, { timestamp: "2026-09-20T12:00:00.000Z" });
+  assert.equal(payload.message, typed, "the n8n payload message is byte-identical to the typed request");
+  assert.equal(payload.message.length, typed.length, "the payload message is not truncated");
+
+  const fingerprintA = fingerprintUsyContactSubmission("user:payload-check", payload);
+  const payloadWithDifferentTail = { ...payload, message: `${typed.slice(0, -1)}!` };
+  assert.notEqual(
+    fingerprintUsyContactSubmission("user:payload-check", payloadWithDifferentTail),
+    fingerprintA,
+    "payload differences change the fingerprint so distinct requests never dedupe together",
+  );
+}
+
 function testAuthenticatedSubmissionPayload() {
   const parsed = validateUsyContactPayload({
     category: "billing",
@@ -268,6 +298,7 @@ testSubmissionGuardWindowExpires();
 testFingerprintSeparatesIdentitiesAndPayloads();
 testDepartmentRoutingInPayload();
 testGuestSubmissionPayload();
+testWebhookPayloadCarriesExactTypedMessage();
 testAuthenticatedSubmissionPayload();
 testNoWebhookSecretExposedClientSide();
 
