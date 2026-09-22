@@ -80,6 +80,20 @@ export function isMostlyCanonicalDate(rows: Record<string, unknown>[], column: s
   return valid / values.length >= threshold
 }
 
+/**
+ * Safely format an untrusted timestamp value as ISO-8601.
+ * Never calls Date.toISOString on an invalid Date: invalid, missing, or
+ * non-date values return null so callers can fall back safely instead of
+ * throwing RangeError during rendering.
+ */
+export function formatCanonicalIsoTimestamp(value: unknown): string | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString()
+  }
+  const date = parseCanonicalDate(value)
+  return date ? date.toISOString() : null
+}
+
 export function periodKeyFromDate(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`
 }

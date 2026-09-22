@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- Fix Risk Intelligence so one dataset with a broken or missing created/updated timestamp can no longer crash the whole workspace before a dataset is selected; invalid timestamps render safely as unavailable while the dataset stays selectable.
 - Fix Risk Intelligence so investor portfolio datasets score from portfolio concentration and runway evidence instead of claiming a critical revenue decline from investment amounts, valuations, or portfolio annual revenue, and investment dates validate as dates instead of reporting bogus invalid-date percentages.
 - Fix dataset classification for Risk Intelligence so each rule runs only for its matching business type (retail, ecommerce, SaaS, profitability, accountancy, investor portfolio, or generic business) with semantically confirmed columns, and unsupported rules show as not applicable instead of shaping the score.
 - Fix date validation so upload analysis, KPI calculations, and Risk Intelligence share one date parser, keeping identifiers, bare numbers, and mixed date formats from being silently read as calendar dates.

@@ -30,13 +30,17 @@ function main() {
 
   const datasetAccess = readProjectFile("src/lib/data/dataset-access.ts")
   assertIncludes(datasetAccess, "customerDatasetAccessWhere(datasetId: string, userId: string)", "shared dataset access exposes one owner-scoped predicate")
-  assertIncludes(datasetAccess, "where: customerDatasetAccessWhere(datasetId, userId)", "shared dataset helper uses the owner-scoped predicate")
+  assertIncludes(datasetAccess, "isSuperadmin({ id: userId, role })", "shared dataset access grants superadmin read access through the explicit identity helper, not a raw role check")
+  assertIncludes(datasetAccess, "customerDatasetAccessWhere(datasetId, userId)", "shared dataset helper keeps the owner-scoped predicate for normal users")
   assertNotIncludes(datasetAccess, 'role === "superadmin"', "shared dataset helper does not grant superadmin role dataset access")
   assertNotIncludes(datasetAccess, 'role === "admin"', "shared dataset helper does not grant admin role dataset access")
 
   const deleteDatasets = readProjectFile("src/lib/data/delete-datasets.ts")
-  assertIncludes(deleteDatasets, "where: and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds))", "dataset deletion stays owner-scoped")
+  assertIncludes(deleteDatasets, "and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds))", "dataset deletion stays owner-scoped for normal users")
+  assertIncludes(deleteDatasets, "isSuperadmin({ id: userId, role, email: userEmail })", "cross-user dataset deletion is gated by the explicit Superadmin identity helper on the shared deletion path")
+  assertIncludes(deleteDatasets, "? inArray(datasets.id, requestedIds)", "superadmin deletion matches selected datasets by ID on the same canonical path")
   assertNotIncludes(deleteDatasets, "canDeleteAcrossUsers", "dataset deletion has no role-based cross-user branch")
+  assertNotIncludes(deleteDatasets, 'role === "admin"', "dataset deletion does not grant admin role cross-user access")
 
   const reportsRoute = readProjectFile("src/app/api/reports/route.ts")
   assertIncludes(reportsRoute, "const result = await findAccessibleDataset(datasetId, userId, role)", "report generation/list/delete use the shared access helper")

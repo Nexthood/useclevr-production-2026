@@ -1,4 +1,5 @@
 import { recordActivity } from "@/lib/activity/activity-store"
+import { isSuperadmin } from "@/lib/auth/builtin-users"
 import { deleteFile } from "@/lib/data/upload-handler"
 import { db } from "@/lib/db"
 import {
@@ -63,7 +64,7 @@ export async function deleteDatasetsForUser({
   datasetIds,
   userId,
   userEmail,
-  role: _role,
+  role,
 }: DeleteDatasetsInput): Promise<DeleteDatasetsResult> {
   const requestedIds = sanitizeDatasetIds(datasetIds)
   if (requestedIds.length === 0) {
@@ -81,8 +82,14 @@ export async function deleteDatasetsForUser({
     }
   }
 
+  // Superadmin uses the same core deletion path with read-all dataset privileges
+  // (matching Risk Intelligence visibility). Normal users remain strictly
+  // owner-scoped: a submitted ID can never delete another user's dataset.
+  const superadminAccess = isSuperadmin({ id: userId, role, email: userEmail })
   const accessibleDatasets = await db.query.datasets.findMany({
-    where: and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds)),
+    where: superadminAccess
+      ? inArray(datasets.id, requestedIds)
+      : and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds)),
     columns: {
       id: true,
       userId: true,

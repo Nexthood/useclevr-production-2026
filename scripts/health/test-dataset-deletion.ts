@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
 import { deleteDatasetsForUser } from "@/lib/data/delete-datasets"
+import { findAccessibleDataset } from "@/lib/data/dataset-access"
 import { db } from "@/lib/db"
 import { datasetRows, datasets, prebookkeepingAuditEvents, retrievalDocuments, users } from "@/lib/db/schema"
 import { eq, inArray, sql } from "drizzle-orm"
@@ -13,6 +14,9 @@ async function main() {
   const datasetA1 = `delete_test_dataset_a1_${suffix}`
   const datasetA2 = `delete_test_dataset_a2_${suffix}`
   const datasetB1 = `delete_test_dataset_b1_${suffix}`
+  const datasetB2 = `delete_test_dataset_b2_${suffix}`
+  const datasetB3 = `delete_test_dataset_b3_${suffix}`
+  const datasetB4 = `delete_test_dataset_b4_${suffix}`
   const bulkDatasetIds = Array.from({ length: 100 }, (_, index) => `delete_test_bulk_${String(index + 1).padStart(3, "0")}_${suffix}`)
   const now = new Date()
   const retrievalTableExists = await tableExists("RetrievalDocument")
@@ -142,9 +146,58 @@ async function main() {
     await assertDatasetRowsAbsentForMany(bulkDatasetIds)
     if (prebookkeepingAuditTableExists) await assertPrebookkeepingAuditAbsent(bulkDatasetIds)
 
+    // Superadmin parity: superadmin uses the same core deletion path with
+    // read-all dataset privileges (matching Risk Intelligence visibility), so
+    // datasets selected from another workspace still delete. Normal users stay
+    // strictly owner-scoped.
+    const superadminUserId = "super-admin-user-id"
+    await db.insert(datasets).values([
+      buildDataset(datasetB2, userB, "Delete Test Retail B2", now),
+      buildDataset(datasetB3, userB, "Delete Test Retail B3", now),
+      buildDataset(datasetB4, userB, "Delete Test Retail B4", now),
+    ])
+
+    const ownerView = await findAccessibleDataset(datasetB2, userA, "user")
+    assert.equal(ownerView.dataset, null, "normal user cannot resolve another user's dataset through the canonical access helper")
+
+    const superadminView = await findAccessibleDataset(datasetB2, superadminUserId, "superadmin")
+    assert.equal(superadminView.dataset?.id, datasetB2, "superadmin resolves another user's dataset through the same canonical access helper")
+
+    const superadminSingle = await deleteDatasetsForUser({
+      datasetIds: [datasetB2],
+      userId: superadminUserId,
+      role: "superadmin",
+      userEmail: "superadmin@useclevr.com",
+    })
+    assert.equal(superadminSingle.ok, true, "superadmin single delete succeeds on the shared deletion path")
+    assert.equal(superadminSingle.deletedCount, 1, "superadmin single delete confirms database deletion")
+    assert.deepEqual(superadminSingle.deletedIds, [datasetB2], "superadmin single delete returns the deleted dataset")
+    await assertDatasetAbsent(datasetB2)
+
+    const superadminBulk = await deleteDatasetsForUser({
+      datasetIds: [datasetB3, datasetB4],
+      userId: superadminUserId,
+      role: "superadmin",
+      userEmail: "superadmin@useclevr.com",
+    })
+    assert.equal(superadminBulk.ok, true, "superadmin bulk delete succeeds on the shared deletion path")
+    assert.equal(superadminBulk.matchedCount, 2, "superadmin bulk delete matches every selected dataset regardless of owner")
+    assert.equal(superadminBulk.deletedCount, 2, "superadmin bulk delete confirms every selected dataset deleted")
+    assert.equal(superadminBulk.failed.length, 0, "superadmin bulk delete reports no failures")
+    await assertDatasetsAbsent([datasetB3, datasetB4])
+
+    const normalUserCrossTenant = await deleteDatasetsForUser({
+      datasetIds: [datasetB3],
+      userId: userA,
+      role: "user",
+      userEmail: `${userA}@example.test`,
+    })
+    assert.equal(normalUserCrossTenant.deletedCount, 0, "normal user cannot delete another user's dataset by submitting its ID")
+    assert.equal(normalUserCrossTenant.failed[0]?.datasetId, datasetB3, "normal user cross-tenant delete reports the denied dataset")
+
     console.log(`Dataset deletion verification passed. retrievalTableExists=${retrievalTableExists} prebookkeepingAuditTableExists=${prebookkeepingAuditTableExists}`)
   } finally {
-    await cleanup([datasetA1, datasetA2, datasetB1, ...bulkDatasetIds], [userA, userB], retrievalTableExists, prebookkeepingAuditTableExists)
+    await cleanup([datasetA1, datasetA2, datasetB1, datasetB2, datasetB3, datasetB4, ...bulkDatasetIds], [userA, userB], retrievalTableExists, prebookkeepingAuditTableExists)
   }
 }
 

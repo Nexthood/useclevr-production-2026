@@ -3,6 +3,7 @@ import { datasets } from "@/lib/db/schema"
 import { isSuperadmin } from "@/lib/auth/builtin-users"
 import { canAccessAllDatasets, loadDatasetData } from "@/lib/data/dataset-access"
 import { normalizeDatasetCategory, resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
+import { formatCanonicalIsoTimestamp } from "@/lib/data/canonical-date"
 import {
   calculateRiskIntelligence,
   getDatasetTypeLabel,
@@ -25,8 +26,10 @@ export type RiskDatasetSummary = {
   datasetTypeLabel: string
   rowCount: number
   columnCount: number
-  createdAt: string
-  updatedAt: string
+  /** ISO timestamp or null when the stored value is not a valid date. */
+  createdAt: string | null
+  /** ISO timestamp or null when the stored value is not a valid date. */
+  updatedAt: string | null
   supported: boolean
 }
 
@@ -35,6 +38,19 @@ export type RiskModuleScope = DatasetCategory
 export type RiskDatasetListOptions = {
   scope?: string | null
   datasetId?: string | null
+}
+
+export type RiskDatasetRow = {
+  id: string
+  name: string | null
+  fileName: string | null
+  rowCount: number | null
+  columnCount: number | null
+  datasetType: string | null
+  analysis: unknown
+  status: string
+  createdAt: Date | string | null
+  updatedAt: Date | string | null
 }
 
 export type RiskCalculationOptions = {
@@ -47,6 +63,29 @@ export type RiskAccessResult =
 
 export function canAccessRiskDataset(user: RiskUserContext, datasetOwnerId: string) {
   return user.id === datasetOwnerId || canAccessAllDatasets(user.role) || isSuperadmin(user)
+}
+
+/**
+ * Map one stored dataset row to a Risk dataset summary without throwing.
+ * Metadata timestamps go through canonical validation; invalid or missing
+ * timestamps become null so one bad candidate row can never break the
+ * workspace listing that determines the initial dataset.
+ */
+export function toRiskDatasetSummary(row: RiskDatasetRow): RiskDatasetSummary | null {
+  if (!isVisibleRiskDataset(row.name, row.fileName, row.id)) return null
+  const datasetType = resolveDatasetType(row.datasetType, row.analysis)
+  return {
+    id: row.id,
+    name: row.name || row.id,
+    fileName: row.fileName || null,
+    datasetType,
+    datasetTypeLabel: getDatasetTypeLabel(datasetType),
+    rowCount: row.rowCount || 0,
+    columnCount: row.columnCount || 0,
+    createdAt: formatCanonicalIsoTimestamp(row.createdAt),
+    updatedAt: formatCanonicalIsoTimestamp(row.updatedAt),
+    supported: isSupportedRiskDatasetType(datasetType),
+  }
 }
 
 export async function listRiskIntelligenceDatasets(
@@ -86,22 +125,8 @@ export async function listRiskIntelligenceDatasets(
   })
 
   return dedupeByDatasetId(rows)
-    .filter((dataset) => isVisibleRiskDataset(dataset.name, dataset.fileName, dataset.id))
-    .map((dataset) => {
-      const datasetType = resolveDatasetType(dataset.datasetType, dataset.analysis)
-      return {
-        id: dataset.id,
-        name: dataset.name,
-        fileName: dataset.fileName || null,
-        datasetType,
-        datasetTypeLabel: getDatasetTypeLabel(datasetType),
-        rowCount: dataset.rowCount || 0,
-        columnCount: dataset.columnCount || 0,
-        createdAt: dataset.createdAt.toISOString(),
-        updatedAt: dataset.updatedAt.toISOString(),
-        supported: isSupportedRiskDatasetType(datasetType),
-      }
-    })
+    .map((row) => toRiskDatasetSummary(row as RiskDatasetRow))
+    .filter((dataset): dataset is RiskDatasetSummary => dataset !== null)
     .filter((dataset) => !scope || dataset.datasetType === scope)
 }
 
