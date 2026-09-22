@@ -11,12 +11,14 @@ const METRIC_LABELS: Record<MetricKey, string> = {
 
 export function GeographicMapControls({
   metric,
+  availableMetrics,
   onMetricChange,
   onZoomIn,
   onZoomOut,
   onReset,
 }: {
   metric: MetricKey
+  availableMetrics: MetricKey[]
   onMetricChange: (metric: MetricKey) => void
   onZoomIn: () => void
   onZoomOut: () => void
@@ -25,19 +27,29 @@ export function GeographicMapControls({
   return (
     <div className="absolute right-3 top-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-end gap-2">
       <div className="flex rounded-lg border border-slate-700/80 bg-slate-950/90 p-1 shadow-lg backdrop-blur">
-        {(Object.keys(METRIC_LABELS) as MetricKey[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onMetricChange(key)}
-            className={[
-              "rounded-md px-2.5 py-1.5 text-xs font-semibold transition",
-              metric === key ? "bg-cyan-400/15 text-cyan-100" : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            ].join(" ")}
-          >
-            {METRIC_LABELS[key]}
-          </button>
-        ))}
+        {(Object.keys(METRIC_LABELS) as MetricKey[]).map((key) => {
+          const isSelectable = availableMetrics.includes(key)
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => isSelectable && onMetricChange(key)}
+              disabled={!isSelectable}
+              aria-disabled={!isSelectable}
+              title={isSelectable ? undefined : `${METRIC_LABELS[key]} data is not available in the current dataset`}
+              className={[
+                "rounded-md px-2.5 py-1.5 text-xs font-semibold transition",
+                metric === key
+                  ? "bg-cyan-400/15 text-cyan-100"
+                  : isSelectable
+                    ? "text-slate-300 hover:bg-slate-800 hover:text-white"
+                    : "cursor-not-allowed text-slate-600 line-through opacity-60",
+              ].join(" ")}
+            >
+              {METRIC_LABELS[key]}
+            </button>
+          )
+        })}
       </div>
 
       <div className="flex rounded-lg border border-slate-700/80 bg-slate-950/90 p-1 shadow-lg backdrop-blur">

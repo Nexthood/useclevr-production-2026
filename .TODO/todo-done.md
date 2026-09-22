@@ -60,6 +60,7 @@ moving work between states.
 
 ## Label: ai
 
+- T-1065. Audit dashboard World Map metric semantics so country popups, summary totals, and metric tabs distinguish unavailable order/customer metrics (N/A, disabled tabs) from measured zeros (0), resolve orders only from recognized order/transaction/invoice identity or count fields and customers only from recognized customer/client/buyer identity fields with investor portfolio company records never promoted, and keep datasets as a real count. (labels: ai, business, data, metrics; commit: worktree)
 - T-1054. Usy answers approved product questions through deterministic knowledge, routes uploaded-data analysis to the Dataset AI Assistant, and sends confirmed department contact handoffs through the configured n8n webhook. (labels: ai, api, security, workflow; commit: worktree)
 - T-1047. Selected-dataset Marketplace questions use Marketplace deterministic routing before generic analytical dispatch for GMV totals, GMV trends, buyer GMV rankings, and seller or merchant GMV rankings. (labels: ai, api, data, metrics, testing; commit: worktree)
 - T-1046. Marketplace selected-dataset metric answers label GMV-backed totals, trends, buyer rankings, seller rankings, and missing inventory evidence with Marketplace wording and null evidence semantics. (labels: ai, data, metrics, testing; commit: worktree)

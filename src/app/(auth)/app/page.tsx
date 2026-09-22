@@ -3,6 +3,12 @@ import { Card } from "@/components/ui/card"
 import { ExecutiveDashboardTabs } from "@/components/dashboard/executive-dashboard-tabs"
 import { GenerateReportAction } from "@/components/dashboard/generate-report-action"
 import { auth } from "@/lib/auth/auth"
+import {
+  detectGeographicCustomerMetric,
+  detectGeographicOrderMetric,
+  mergeGeographicMetricValues,
+  readSummedGeographicMetric,
+} from "@/lib/data/geographic-metric-semantics"
 import { calculateBusinessBalancedScorecard, type BusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
 import { buildDashboardSemanticAnalysis, buildTrendPanel, type DashboardBusinessProfile, type DashboardSemanticAnalysis, type DashboardSemanticMetric, type DashboardSemanticTrend } from "@/lib/data/dashboard-semantic-profile"
 import {
@@ -468,6 +474,11 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
     ...rows.slice(0, 20).flatMap((row) => Object.keys(row)),
   ])
   const fromDetected = (keys: string[]) => keys.map((key) => detected?.[key]).find((value): value is string => typeof value === "string")
+  // Order and customer resolution shares the canonical semantic vocabulary with
+  // the World Map aggregation, so order_id/customer_id concepts cannot diverge
+  // between the dashboard KPIs and the map.
+  const orderMetric = detectGeographicOrderMetric(allColumns, rows)
+  const customerMetric = detectGeographicCustomerMetric(allColumns, rows)
 
   return {
     revenue: fromDetected(["revenueColumn", "revenue"]) || findColumn(allColumns, [/revenue/, /^sales$/, /sales_amount/, /net_sales/, /gross_sales/, /amount/, /turnover/, /total_revenue/]),
@@ -482,8 +493,8 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
     price: findColumn(allColumns, [/price/, /unit_price/, /sale_price/, /retail_price/]),
     category: findColumn(allColumns, [/category/, /department/, /segment/, /type/]),
     region: fromDetected(["regionColumn", "fallbackRegionColumn", "region"]) || findColumn(allColumns, [/country/, /region/, /city/, /state/, /territory/, /market/, /location/]),
-    customer: findColumn(allColumns, [/customer/, /client/, /account/, /company/]),
-    order: findColumn(allColumns, [/order id/, /^order$/, /invoice/, /transaction/]),
+    customer: fromDetected(["customerColumn", "customer"]) || customerMetric?.column || findColumn(allColumns, [/customer/, /client/, /account/, /company/]),
+    order: fromDetected(["orderColumn", "order"]) || (orderMetric?.mode === "distinct" ? orderMetric.column : undefined) || findColumn(allColumns, [/order id/, /^order$/, /invoice/, /transaction/]),
     supplier: findColumn(allColumns, [/supplier/, /vendor/, /brand/]),
     latitude: findColumn(allColumns, [/^lat$/, /latitude/]),
     longitude: findColumn(allColumns, [/^lon$/, /^lng$/, /longitude/]),
@@ -602,15 +613,33 @@ function buildDeadStock(rows: DataRow[], columns: ColumnMap): RankedItem[] {
 
 function buildRegions(rows: { row: DataRow; dataset: DashboardDataset }[], columns: ColumnMap): RegionData[] {
   if (!columns.region) return []
-  const aggregate = new Map<string, { revenue: number; profit: number; orders: number; datasets: Set<string>; products: Map<string, number>; categories: Map<string, number>; latitude: number | null; longitude: number | null }>()
+  // Orders and customers require their own semantic source columns; missing
+  // concepts stay null (unavailable) instead of becoming fabricated zeros.
+  const datasetColumns = unique(rows.flatMap(({ dataset }) => dataset.columns))
+  const datasetRows = rows.map(({ row }) => row)
+  const orderMetric = detectGeographicOrderMetric(datasetColumns, datasetRows)
+  const customerMetric = detectGeographicCustomerMetric(datasetColumns, datasetRows)
+  const aggregate = new Map<string, { revenue: number | null; profit: number; orderIds: Set<string>; orderTotal: number; customerIds: Set<string>; datasets: Set<string>; products: Map<string, number>; categories: Map<string, number>; latitude: number | null; longitude: number | null }>()
   for (const { row, dataset } of rows) {
     const name = String(row[columns.region] || "").trim()
     if (!name) continue
-    const current = aggregate.get(name) || { revenue: 0, profit: 0, orders: 0, datasets: new Set(), products: new Map(), categories: new Map(), latitude: null, longitude: null }
-    const revenue = getNumber(row, columns.revenue) || 0
-    current.revenue += revenue
-    current.profit += getNumber(row, columns.profit) || (columns.cost ? revenue - (getNumber(row, columns.cost) || 0) : 0)
-    current.orders += columns.order ? (String(row[columns.order] || "").trim() ? 1 : 0) : getNumber(row, columns.quantity) || 0
+    const current = aggregate.get(name) || { revenue: null, profit: 0, orderIds: new Set<string>(), orderTotal: 0, customerIds: new Set<string>(), datasets: new Set(), products: new Map(), categories: new Map(), latitude: null, longitude: null }
+    const revenue = getNumber(row, columns.revenue)
+    current.revenue = mergeGeographicMetricValues(current.revenue, revenue)
+    const revenueValue = revenue || 0
+    current.profit += getNumber(row, columns.profit) || (columns.cost ? revenueValue - (getNumber(row, columns.cost) || 0) : 0)
+    if (orderMetric) {
+      if (orderMetric.mode === "sum") {
+        current.orderTotal += readSummedGeographicMetric([row], orderMetric.column)
+      } else {
+        const orderId = String(row[orderMetric.column] ?? "").trim()
+        if (orderId) current.orderIds.add(orderId)
+      }
+    }
+    if (customerMetric) {
+      const customerId = String(row[customerMetric.column] ?? "").trim()
+      if (customerId) current.customerIds.add(customerId)
+    }
     current.datasets.add(dataset.id)
     const latitude = getNumber(row, columns.latitude)
     const longitude = getNumber(row, columns.longitude)
@@ -618,8 +647,8 @@ function buildRegions(rows: { row: DataRow; dataset: DashboardDataset }[], colum
       current.latitude = latitude
       current.longitude = longitude
     }
-    addGroupedValue(current.products, String(row[columns.product || ""] || ""), revenue)
-    addGroupedValue(current.categories, String(row[columns.category || ""] || ""), revenue)
+    addGroupedValue(current.products, String(row[columns.product || ""] || ""), revenueValue)
+    addGroupedValue(current.categories, String(row[columns.category || ""] || ""), revenueValue)
     aggregate.set(name, current)
   }
   return Array.from(aggregate.entries())
@@ -629,15 +658,16 @@ function buildRegions(rows: { row: DataRow; dataset: DashboardDataset }[], colum
       longitude: value.longitude ?? undefined,
       revenue: value.revenue,
       profit: value.profit,
-      orders: value.orders,
+      orders: orderMetric ? (orderMetric.mode === "sum" ? value.orderTotal : value.orderIds.size) : null,
+      customers: customerMetric ? value.customerIds.size : null,
       datasets: value.datasets.size,
-      margin: value.revenue > 0 ? (value.profit / value.revenue) * 100 : null,
+      margin: value.revenue !== null && value.revenue > 0 ? (value.profit / value.revenue) * 100 : null,
       growth: null,
       topProduct: topMapEntry(value.products),
       topCategory: topMapEntry(value.categories),
     }))
-    .filter((region) => region.revenue > 0 || region.orders > 0)
-    .sort((a, b) => b.revenue - a.revenue)
+    .filter((region) => region.revenue !== null && region.revenue > 0 || region.orders !== null && region.orders > 0 || region.customers !== null && region.customers > 0)
+    .sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))
 }
 
 function buildRecommendations(input: {

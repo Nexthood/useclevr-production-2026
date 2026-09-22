@@ -1,3 +1,45 @@
+## 2026-09-22 — Dashboard World Map: Unavailable Metric Semantics (Unavailable ≠ 0)
+
+1. Interaction title
+   Audit the dashboard World Map metric semantics for Revenue, Orders, Customers, and Datasets so missing order and customer concepts render as unavailable instead of measured zeros, without touching the fixed geography rendering.
+
+2. What was the user goal
+   Trace the complete World Map pipeline (source column → semantic mapping → aggregation → country aggregation → map data structure → summary cards → country popup → metric tabs) for the observed Germany view (Revenue $4,261.3, Orders 0, Customers 0, Datasets 1; totals: revenue $17,685.2, orders 0, 9 mapped locations, 0 unmapped); determine whether Orders=0 and Customers=0 are genuine measured zeros or fabricated from missing data under the rule "Unavailable ≠ 0"; verify order, customer, and revenue semantics against the dataset type; return the exact source field; keep geography rendering (projection, TopoJSON, zoom, markers, styling, layout) unchanged; add regression tests proving missing metric ≠ zero; run types, World Map tests, semantic mapping tests, dashboard semantic-profile tests, and lint; commit and push nothing.
+
+3. What changed
+   - Pipeline trace (dashboard path): `loadDashboardDatasetAggregation` loads the dataset-scoped rows → `detectColumns` (page-level regex + stored `detectedColumns`) picks the region and revenue columns → `buildRegions` aggregates per region value → `WorldMapRevenue` (`world-map-revenue.tsx`) groups by normalized country → `GeographicRevenueMap` (`geographic-revenue-map.tsx`) renders summary cards, country detail popup, and metric tabs → `GeographicMapControls`/`GeographicMapTooltip` complete the metric surface. The canonical business semantic profile (`business-semantics.ts`) and the dashboard semantic profile (`dashboard-semantic-profile.ts`) govern KPIs but were never consulted by this pipeline.
+   - Germany $4,261.3 = sum of the dataset's detected revenue column over rows whose region value normalizes to Germany; total mapped revenue $17,685.2 = the same sum across the 9 mapped countries. The exact source column is the dataset's revenue-mapped field (`detectedColumns.revenueColumn` or the page-level revenue regex fallback); the screenshot dataset lives in the user's database, so the live column name is derived from the deterministic detection contract rather than the stored row.
+   - Orders=0 (fabricated): `buildRegions` counted rows with a non-empty order id when `columns.order` matched (`/order id/, /^order$/, /invoice/, /transaction/`), else summed the quantity column, else coerced `getNumber(row, undefined) || 0` → hardcoded 0; the geography+revenue dataset has no order, transaction, invoice, or quantity concept, so the displayed zero was manufactured from missing data. Customers=0 (structural): `buildRegions` never populated `customers` (the column was detected but unused), and the wrapper coerced `Number(undefined || 0)` → 0. Datasets=1 is a genuine distinct-dataset count.
+   - `src/lib/data/geographic-metric-semantics.ts` (new): the single semantic-availability resolver — `detectGeographicOrderMetric` (exact alias sets for order/transaction/invoice/receipt identity fields → distinct-mode, plus explicit numeric count fields → sum-mode, with numeric validation and an investment/company/name/date/currency/status reserved pattern that rejects company ids, portfolio records, and investor fields), `detectGeographicCustomerMetric` (customer/client/buyer identity aliases with value evidence so header-only columns report unavailable), `readSummedGeographicMetric`/`readDistinctGeographicEntities` (measured readers excluding NaN/Infinity), `mergeGeographicMetricValues` (null + null → null, null + n → n, n + null → n, n + m → n + m), `sumMeasuredGeographicValues` (totals stay null until a measured value exists), `collectAvailableGeographicMetrics` (selector availability incl. real datasets count), and `aggregateWorldMapRegions` (the per-country aggregation extracted from the wrapper).
+   - `buildRegions` (page.tsx): emits `revenue: number | null` (no revenue column → null), `orders: number | null` (no order concept → null; distinct recognized order ids or summed explicit counts when the concept exists), `customers: number | null` (same pattern), keeps the profit derivation and grouped product/category aggregation numerically identical, filters regions on measured positive values, and sorts null-safe.
+   - `world-map-revenue.tsx`: `RegionData` now re-exports the null-aware `WorldMapRegion` contract; aggregation delegates to `aggregateWorldMapRegions`; `availableMetrics` flows into the map; no `|| 0` coercions remain.
+   - `geographic-revenue-map.tsx`: `GeographicMetric` fields are nullable; summary "Total mapped revenue"/"Total mapped orders" and the country popup render `formatMetricOrUnavailable`; unavailable metric tabs are disabled via the new `availableMetrics` prop; layout, projection, TopoJSON decoding, zoom, marker stacking, hit targets, and the hover/selection behavior stay untouched.
+   - `geographic-map-controls.tsx`: unavailable metric tabs render disabled with strikethrough, reduced opacity, `aria-disabled`, and an unavailable-metric title; selectable tabs keep the previous styling.
+   - `geographic-map-tooltip.tsx`: orders, customers, and the selected metric render through `formatMetricOrUnavailable` (N/A for null/undefined/non-finite, measured zeros render as 0); `formatMetricOrUnavailable` is exported for the popup and tests.
+   - `dataset-analyzer.tsx`: its World Map feed uses the same resolver (orders distinct or summed, customers distinct, unavailable concepts null), the region popup shows "N/A" for unavailable revenue/orders, and measured zero orders now render explicitly.
+   - Regression tests: `scripts/analysis/test-world-map-metric-semantics.ts` (`test:world-map-semantics`, wired into `test:all` after `test:world-map`) pins merge/totals null preservation, measured-zero preservation, the seven dataset-class cross-cases (retail, ecommerce, SaaS, investor portfolio, profitability, accountancy, generic business), marketplace buyer/transaction semantics, investor company-id rejection, generic-id rejection, metric-selector availability, no NaN/Infinity output, and source invariants (popup/tooltip N/A rendering, wrapper availability forwarding, zero `|| 0` coercions in the wrapper).
+
+4. Files changed
+   - `src/lib/data/geographic-metric-semantics.ts` (new)
+   - `src/app/(auth)/app/page.tsx` (`buildRegions` + imports)
+   - `src/components/ui/world-map-revenue.tsx`
+   - `src/components/dashboard/geographic-revenue-map.tsx` (also merged the concurrent geography-fix marker work)
+   - `src/components/dashboard/geographic-map-tooltip.tsx`
+   - `src/components/dashboard/geographic-map-controls.tsx`
+   - `src/components/dataset/dataset-analyzer.tsx`
+   - `scripts/analysis/test-world-map-metric-semantics.ts` (new)
+   - `scripts/analysis/test-world-map-geography.ts` (completes the concurrent agent's `tooltipSource` declaration)
+   - `package.json` (`test:world-map-semantics` + `test:all` wiring)
+   - `CHANGELOG.md`, `docs/AI-interaction/interaction-status.md`, `project-logs/activity-log.md`, `.TODO/todo-done.md`, `.TODO/config.json`
+
+5. Before/after
+   - Before: Germany popup Revenue $4,261.3, Orders 0, Customers 0, Datasets 1; summary Total mapped revenue $17,685.2, Total mapped orders 0, Mapped locations 9, Unmapped locations 0; all four metric tabs selectable with an all-zero Orders/Customers map view.
+   - After: Germany popup Revenue $4,261.3 (measured), Orders N/A, Customers N/A, Datasets 1 (real count); Total mapped revenue $17,685.2 (measured), Total mapped orders N/A; Orders and Customers tabs render disabled with an unavailable title; the map opens in the measured Revenue view. Datasets with genuine order/customer fields keep numeric values and measured zeros render as 0.
+
+6. Verification
+   - `pnpm validate:types` exit 0; `pnpm test:world-map` passes (geography rendering unchanged: 177 country features, Mercator projection, bundled TopoJSON, zoom transform, marker stacking, hit targets all pinned); `pnpm test:world-map-semantics` passes; business-semantics, business-model-routing, dashboard-semantic-profiles, investor-portfolio-aggregation, and risk-intelligence suites pass; ESLint 0 errors on changed files; changelog, TODO, package, and secret checks pass.
+   - Not committed or pushed per instruction.
+
 ## 2026-09-21 — Usy → n8n Contact Handoff: 502 Diagnostics With Safe Failure Classification
 
 1. Interaction title
