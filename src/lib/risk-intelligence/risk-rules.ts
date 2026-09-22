@@ -1,4 +1,4 @@
-export const RISK_ENGINE_VERSION = "risk-intelligence-lite-v1" as const
+export const RISK_ENGINE_VERSION = "risk-intelligence-lite-v2" as const
 
 export type RiskCategory =
   | "inventory"
@@ -12,6 +12,16 @@ export type RiskSeverity = "low" | "medium" | "high" | "critical"
 
 export type RiskOperator = ">=" | "<=" | ">" | "<"
 
+export type RiskSemanticDatasetType =
+  | "standard"
+  | "retail"
+  | "profitability"
+  | "accountancy"
+  | "prebookkeeping"
+  | "marketplace"
+  | "saas"
+  | "investor"
+
 export type RiskMetricKey =
   | "deadStockRatio"
   | "revenueGrowthPct"
@@ -23,6 +33,9 @@ export type RiskMetricKey =
   | "topProductRevenueShare"
   | "topCategoryRevenueShare"
   | "topCustomerRevenueShare"
+  | "topPortfolioCompanyRevenueShare"
+  | "portfolioRunwayBreachRatio"
+  | "runwayMonths"
   | "missingValueRatio"
   | "invalidNumericRatio"
   | "invalidDateRatio"
@@ -47,7 +60,10 @@ export type RiskRule = {
   weight: number
   thresholds: RiskThreshold[]
   requiredFields: string[]
-  supportedDatasetTypes: string[]
+  /** Semantic business concepts that must be confirmed before this rule may execute. */
+  requiredConcepts: string[]
+  /** Semantic dataset types whose module scope supports this rule. */
+  supportedDatasetTypes: RiskSemanticDatasetType[]
   recommendationTemplate: string
   sourceTemplate: string
 }
@@ -80,6 +96,17 @@ export function thresholdMatches(value: number, threshold: RiskThreshold) {
   return value < threshold.value
 }
 
+export const RISK_SEMANTIC_DATASET_TYPES: RiskSemanticDatasetType[] = [
+  "standard",
+  "retail",
+  "profitability",
+  "accountancy",
+  "prebookkeeping",
+  "marketplace",
+  "saas",
+  "investor",
+]
+
 export const SUPPORTED_RISK_DATASET_TYPES = [
   "standard",
   "retail",
@@ -88,9 +115,10 @@ export const SUPPORTED_RISK_DATASET_TYPES = [
   "prebookkeeping",
 ] as const
 
-const ALL_SUPPORTED_TYPES = [...SUPPORTED_RISK_DATASET_TYPES]
-const FINANCIAL_TYPES = ["standard", "profitability", "accountancy", "prebookkeeping"]
-const RETAIL_TYPES = ["standard", "retail"]
+const ALL_SEMANTIC_TYPES = [...RISK_SEMANTIC_DATASET_TYPES]
+const TREND_FINANCIAL_TYPES: RiskSemanticDatasetType[] = ["standard", "retail", "profitability", "saas"]
+const PRODUCT_CONCENTRATION_TYPES: RiskSemanticDatasetType[] = ["standard", "retail", "profitability"]
+const DATA_QUALITY_TYPES = ALL_SEMANTIC_TYPES
 
 export const RISK_RULES: RiskRule[] = [
   {
@@ -101,7 +129,8 @@ export const RISK_RULES: RiskRule[] = [
     metric: "deadStockRatio",
     weight: 1.2,
     requiredFields: ["stock", "quantity sold", "product"],
-    supportedDatasetTypes: RETAIL_TYPES,
+    requiredConcepts: ["product", "inventory_on_hand", "units_sold"],
+    supportedDatasetTypes: ["standard", "retail"],
     sourceTemplate: "Retail or uploaded inventory rows",
     recommendationTemplate: "Review products with stock on hand and no detected sales before reordering.",
     thresholds: [
@@ -117,8 +146,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Compares the latest detected revenue period against the previous period.",
     metric: "revenueGrowthPct",
     weight: 1.15,
-    requiredFields: ["revenue", "date"],
-    supportedDatasetTypes: FINANCIAL_TYPES,
+    requiredFields: ["validated revenue", "comparable period dimension"],
+    requiredConcepts: ["revenue", "date"],
+    supportedDatasetTypes: TREND_FINANCIAL_TYPES,
     sourceTemplate: "Revenue trend KPI",
     recommendationTemplate: "Investigate the latest revenue decline and review affected products, customers, or periods.",
     thresholds: [
@@ -134,8 +164,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Flags a drop in gross margin between comparable periods.",
     metric: "grossMarginTrendPct",
     weight: 1,
-    requiredFields: ["revenue", "cost", "date"],
-    supportedDatasetTypes: FINANCIAL_TYPES,
+    requiredFields: ["validated revenue", "validated cost", "comparable period dimension"],
+    requiredConcepts: ["revenue", "date"],
+    supportedDatasetTypes: TREND_FINANCIAL_TYPES,
     sourceTemplate: "Profitability period KPI",
     recommendationTemplate: "Compare revenue and cost movement in the latest period before changing pricing or costs.",
     thresholds: [
@@ -151,8 +182,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Detects datasets where known costs exceed revenue.",
     metric: "netMarginPct",
     weight: 1.2,
-    requiredFields: ["revenue", "cost or profit"],
-    supportedDatasetTypes: FINANCIAL_TYPES,
+    requiredFields: ["validated revenue", "validated cost or profit"],
+    requiredConcepts: ["revenue"],
+    supportedDatasetTypes: TREND_FINANCIAL_TYPES,
     sourceTemplate: "Profitability KPI",
     recommendationTemplate: "Review the rows or segments contributing negative margin and validate cost inputs.",
     thresholds: [
@@ -167,8 +199,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Measures product groups with negative calculated profit.",
     metric: "unprofitableProductRatio",
     weight: 0.9,
-    requiredFields: ["product", "revenue", "cost or profit"],
-    supportedDatasetTypes: ["standard", "retail", "profitability"],
+    requiredFields: ["validated product", "validated revenue", "validated cost or profit"],
+    requiredConcepts: ["product", "revenue"],
+    supportedDatasetTypes: PRODUCT_CONCENTRATION_TYPES,
     sourceTemplate: "Product profitability breakdown",
     recommendationTemplate: "Rank negative-margin products by impact and validate whether price, cost, or returns drive the loss.",
     thresholds: [
@@ -184,8 +217,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Compares latest-period cost growth against revenue growth.",
     metric: "costRevenueGrowthGapPct",
     weight: 0.9,
-    requiredFields: ["revenue", "cost", "date"],
-    supportedDatasetTypes: FINANCIAL_TYPES,
+    requiredFields: ["validated revenue", "validated cost", "comparable period dimension"],
+    requiredConcepts: ["revenue", "date"],
+    supportedDatasetTypes: TREND_FINANCIAL_TYPES,
     sourceTemplate: "Revenue and cost period KPIs",
     recommendationTemplate: "Review recent cost growth against revenue movement by period and category.",
     thresholds: [
@@ -201,8 +235,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Compares known expense or cost values against revenue.",
     metric: "expenseRevenueRatio",
     weight: 1.15,
-    requiredFields: ["revenue", "expenses or cost"],
-    supportedDatasetTypes: FINANCIAL_TYPES,
+    requiredFields: ["validated revenue", "validated expenses or cost"],
+    requiredConcepts: ["revenue"],
+    supportedDatasetTypes: TREND_FINANCIAL_TYPES,
     sourceTemplate: "Revenue and expense KPIs",
     recommendationTemplate: "Review expense categories that exceed revenue and validate whether the dataset covers the same period.",
     thresholds: [
@@ -212,14 +247,69 @@ export const RISK_RULES: RiskRule[] = [
     ],
   },
   {
+    ruleId: "cash_flow.low_runway.v1",
+    category: "cash_flow",
+    title: "Low cash runway",
+    description: "Compares confirmed cash balance against confirmed monthly burn as a point-in-time runway signal.",
+    metric: "runwayMonths",
+    weight: 0.9,
+    requiredFields: ["validated cash balance", "validated burn"],
+    requiredConcepts: ["cash_balance", "burn"],
+    supportedDatasetTypes: ["saas"],
+    sourceTemplate: "Cash balance and burn KPIs",
+    recommendationTemplate: "Review confirmed cash balance against monthly burn and extend runway before scaling spend.",
+    thresholds: [
+      { severity: "medium", operator: "<=", value: 12, score: 45 },
+      { severity: "high", operator: "<=", value: 6, score: 70 },
+      { severity: "critical", operator: "<=", value: 3, score: 92 },
+    ],
+  },
+  {
+    ruleId: "investor.portfolio_company_concentration.v1",
+    category: "revenue_concentration",
+    title: "Portfolio company concentration",
+    description: "Measures the largest portfolio company share of combined portfolio-company annual revenue.",
+    metric: "topPortfolioCompanyRevenueShare",
+    weight: 1,
+    requiredFields: ["validated portfolio company", "validated portfolio company revenue"],
+    requiredConcepts: ["portfolio_company", "portfolio_company_annual_revenue"],
+    supportedDatasetTypes: ["investor"],
+    sourceTemplate: "Portfolio company revenue breakdown",
+    recommendationTemplate: "Review dependency on the largest portfolio company and compare diversification across the remaining portfolio.",
+    thresholds: [
+      { severity: "medium", operator: ">=", value: 35, score: 45 },
+      { severity: "high", operator: ">=", value: 50, score: 70 },
+      { severity: "critical", operator: ">=", value: 70, score: 92 },
+    ],
+  },
+  {
+    ruleId: "investor.portfolio_runway_breach.v1",
+    category: "cash_flow",
+    title: "Portfolio companies below runway threshold",
+    description: "Measures the share of portfolio companies with runway below 6 months as point-in-time exposure.",
+    metric: "portfolioRunwayBreachRatio",
+    weight: 0.9,
+    requiredFields: ["validated portfolio company runway"],
+    requiredConcepts: ["portfolio_company_runway"],
+    supportedDatasetTypes: ["investor"],
+    sourceTemplate: "Portfolio company runway distribution",
+    recommendationTemplate: "Review portfolio companies with runway below the threshold before their next funding milestone.",
+    thresholds: [
+      { severity: "medium", operator: ">=", value: 10, score: 42 },
+      { severity: "high", operator: ">=", value: 25, score: 70 },
+      { severity: "critical", operator: ">=", value: 40, score: 88 },
+    ],
+  },
+  {
     ruleId: "concentration.top_product_share.v1",
     category: "revenue_concentration",
     title: "Top-product revenue concentration",
     description: "Measures the top product share of detected revenue.",
     metric: "topProductRevenueShare",
     weight: 0.95,
-    requiredFields: ["product", "revenue"],
-    supportedDatasetTypes: ["standard", "retail", "profitability"],
+    requiredFields: ["validated product", "validated revenue"],
+    requiredConcepts: ["product", "revenue"],
+    supportedDatasetTypes: PRODUCT_CONCENTRATION_TYPES,
     sourceTemplate: "Product revenue breakdown",
     recommendationTemplate: "Review dependency on the top revenue product and compare alternatives before scaling spend.",
     thresholds: [
@@ -235,8 +325,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Measures the top category share of detected revenue.",
     metric: "topCategoryRevenueShare",
     weight: 0.9,
-    requiredFields: ["category", "revenue"],
-    supportedDatasetTypes: ["standard", "retail", "profitability"],
+    requiredFields: ["validated category", "validated revenue"],
+    requiredConcepts: ["category", "revenue"],
+    supportedDatasetTypes: PRODUCT_CONCENTRATION_TYPES,
     sourceTemplate: "Category revenue breakdown",
     recommendationTemplate: "Review category dependency and compare performance across secondary categories.",
     thresholds: [
@@ -252,8 +343,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Measures the largest customer share of detected revenue.",
     metric: "topCustomerRevenueShare",
     weight: 1,
-    requiredFields: ["customer", "revenue"],
-    supportedDatasetTypes: ["standard", "profitability", "accountancy"],
+    requiredFields: ["validated customer", "validated revenue"],
+    requiredConcepts: ["customer", "revenue"],
+    supportedDatasetTypes: ["standard", "retail", "profitability", "accountancy", "saas", "marketplace"],
     sourceTemplate: "Customer revenue breakdown",
     recommendationTemplate: "Review customer concentration and compare revenue across the remaining customer base.",
     thresholds: [
@@ -265,14 +357,15 @@ export const RISK_RULES: RiskRule[] = [
   {
     ruleId: "data_quality.missing_values.v1",
     category: "data_quality",
-    title: "Missing values in detected business fields",
-    description: "Measures blanks only across detected business-critical columns.",
+    title: "Missing values in mapped business fields",
+    description: "Measures blanks only across semantically mapped business-critical columns.",
     metric: "missingValueRatio",
     weight: 0.75,
-    requiredFields: ["detected business columns"],
-    supportedDatasetTypes: ALL_SUPPORTED_TYPES,
+    requiredFields: ["mapped business columns"],
+    requiredConcepts: [],
+    supportedDatasetTypes: DATA_QUALITY_TYPES,
     sourceTemplate: "Dataset profiling",
-    recommendationTemplate: "Fill blanks in detected business-critical fields or remove rows that cannot support KPI calculations.",
+    recommendationTemplate: "Fill blanks in mapped business-critical fields or remove rows that cannot support KPI calculations.",
     thresholds: [
       { severity: "low", operator: ">=", value: 5, score: 20 },
       { severity: "medium", operator: ">=", value: 15, score: 45 },
@@ -283,13 +376,14 @@ export const RISK_RULES: RiskRule[] = [
     ruleId: "data_quality.invalid_numeric_values.v1",
     category: "data_quality",
     title: "Invalid numeric business values",
-    description: "Detects unparseable numbers in detected metric columns.",
+    description: "Detects unparseable numbers in semantically mapped metric columns.",
     metric: "invalidNumericRatio",
     weight: 0.85,
-    requiredFields: ["numeric business columns"],
-    supportedDatasetTypes: ALL_SUPPORTED_TYPES,
+    requiredFields: ["mapped numeric business columns"],
+    requiredConcepts: [],
+    supportedDatasetTypes: DATA_QUALITY_TYPES,
     sourceTemplate: "Dataset profiling",
-    recommendationTemplate: "Fix numeric formatting in revenue, cost, stock, quantity, and margin fields before relying on the score.",
+    recommendationTemplate: "Fix numeric formatting in mapped revenue, cost, stock, quantity, and valuation fields before relying on the score.",
     thresholds: [
       { severity: "medium", operator: ">=", value: 5, score: 45 },
       { severity: "high", operator: ">=", value: 15, score: 70 },
@@ -300,11 +394,12 @@ export const RISK_RULES: RiskRule[] = [
     ruleId: "data_quality.invalid_dates.v1",
     category: "data_quality",
     title: "Invalid date values",
-    description: "Detects unparseable values in detected date columns.",
+    description: "Detects unparseable values in semantically confirmed date columns using the canonical date parser.",
     metric: "invalidDateRatio",
     weight: 0.65,
-    requiredFields: ["date"],
-    supportedDatasetTypes: ALL_SUPPORTED_TYPES,
+    requiredFields: ["validated date or period column"],
+    requiredConcepts: [],
+    supportedDatasetTypes: DATA_QUALITY_TYPES,
     sourceTemplate: "Dataset profiling",
     recommendationTemplate: "Normalize date values so trend and period comparisons use comparable rows.",
     thresholds: [
@@ -321,7 +416,8 @@ export const RISK_RULES: RiskRule[] = [
     metric: "duplicateRowRatio",
     weight: 0.65,
     requiredFields: ["rows"],
-    supportedDatasetTypes: ALL_SUPPORTED_TYPES,
+    requiredConcepts: [],
+    supportedDatasetTypes: DATA_QUALITY_TYPES,
     sourceTemplate: "Dataset profiling",
     recommendationTemplate: "Remove exact duplicate rows before calculating final KPIs and reports.",
     thresholds: [
@@ -337,8 +433,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Detects multiple currency labels in one dataset.",
     metric: "currencyInconsistencyRatio",
     weight: 0.75,
-    requiredFields: ["currency"],
-    supportedDatasetTypes: ALL_SUPPORTED_TYPES,
+    requiredFields: ["validated currency column"],
+    requiredConcepts: ["currency"],
+    supportedDatasetTypes: DATA_QUALITY_TYPES,
     sourceTemplate: "Dataset profiling",
     recommendationTemplate: "Split or normalize rows with different currency labels before comparing revenue, costs, or profit.",
     thresholds: [
@@ -351,12 +448,13 @@ export const RISK_RULES: RiskRule[] = [
     ruleId: "data_quality.low_classification_confidence.v1",
     category: "data_quality",
     title: "Low calculation readiness",
-    description: "Measures whether enough business columns are mapped for reliable risk intelligence.",
+    description: "Measures whether enough business columns are semantically mapped for reliable risk intelligence.",
     metric: "classificationConfidence",
     weight: 0.8,
     requiredFields: ["mapped revenue, inventory, or profitability columns"],
-    supportedDatasetTypes: ALL_SUPPORTED_TYPES,
-    sourceTemplate: "Column mapping profile",
+    requiredConcepts: [],
+    supportedDatasetTypes: DATA_QUALITY_TYPES,
+    sourceTemplate: "Semantic mapping profile",
     recommendationTemplate: "Map or rename core business columns such as revenue, cost, product, stock, quantity, date, category, or customer.",
     thresholds: [
       { severity: "medium", operator: "<=", value: 40, score: 45 },
@@ -371,8 +469,9 @@ export const RISK_RULES: RiskRule[] = [
     description: "Detects when comparable period history is too short for trend analysis.",
     metric: "historyPeriodCount",
     weight: 0.45,
-    requiredFields: ["date", "revenue"],
-    supportedDatasetTypes: ALL_SUPPORTED_TYPES,
+    requiredFields: ["validated date", "validated revenue"],
+    requiredConcepts: ["revenue", "date"],
+    supportedDatasetTypes: TREND_FINANCIAL_TYPES,
     sourceTemplate: "Revenue trend profile",
     recommendationTemplate: "Upload at least two comparable periods before relying on trend-based risk signals.",
     thresholds: [

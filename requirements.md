@@ -215,10 +215,14 @@ Text rules for this file:
 - Detect business risks including declining revenue, falling margins, low stock, customer concentration, seasonal or trend anomalies, and outliers.
 - Detect business opportunities including high-performing products, growth opportunities, upselling opportunities, inventory optimization, and cost savings.
 - Show a concise executive summary and prioritized High, Medium, and Low recommended actions with reason, expected business impact, and confidence.
-- Show Risk Intelligence as an authenticated dashboard module for supported standard, retail, profitability, accountancy, and pre-bookkeeping datasets.
-- Calculate Risk Intelligence on the server from existing KPI outputs, uploaded dataset rows, and centralized versioned rules.
+- Show Risk Intelligence as an authenticated dashboard module for supported standard, retail, ecommerce, SaaS, profitability, accountancy, investor portfolio, and pre-bookkeeping datasets.
+- Classify Risk Intelligence datasets through the authoritative business semantic profile so investor portfolio datasets use portfolio concentration and runway rules instead of operating revenue, margin, expense, or inventory claims, and so accountancy ledgers never claim revenue or profitability risks.
+- Execute each Risk Intelligence rule only when its semantic dataset type matches, every required business concept maps to a confirmed column, and the metric is computable from that evidence; report every other rule in the result as not applicable with its reason.
+- Derive Risk Intelligence revenue trends only from a validated revenue or sales series column paired with a validated reporting-period dimension and at least two comparable periods from the same series; investment dates never serve as reporting periods.
+- Parse and validate every Risk Intelligence date with the shared canonical date parser used by data cleaning and semantic profiling so a value cannot be valid in one module and invalid in another.
+- Calculate Risk Intelligence on the server from semantically mapped dataset rows and centralized versioned rules.
 - Score Risk Intelligence from 0 to 100 where higher scores mean greater risk, with Low at 0-24, Medium at 25-49, High at 50-74, and Critical at 75-100.
-- Calculate category and overall Risk Intelligence scores from applicable rule weights only, without penalizing datasets for unsupported metrics.
+- Calculate category and overall Risk Intelligence scores from applicable rule weights only, exclude rules that cannot execute from both the numerator and denominator, and keep identical inputs producing identical scores.
 - Keep Risk Intelligence isolated to one selected dataset or module scope at a time.
 - Show Risk Intelligence summary cards, severity counts, last calculated time, dataset scope, prioritized findings, recommendations, and source links.
 - Show "No supported business data is available yet. Upload or connect a dataset to generate risk intelligence." when supported data is unavailable.

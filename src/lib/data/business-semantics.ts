@@ -1,4 +1,5 @@
 import { debugLog } from "@/lib/utils/debug"
+import { isMostlyCanonicalDate } from "@/lib/data/canonical-date"
 
 export const BUSINESS_SEMANTIC_PROFILE_VERSION = "useclevr.business-semantics.v1"
 
@@ -287,9 +288,9 @@ const conceptRules: ConceptRule[] = [
   rule("return", "retail", ["return_status", "returned", "return_amount"]),
   rule("reorder_point", "retail", ["reorder_point", "reorder_level"], { requireNumeric: true }),
   rule("revenue", "profitability", ["revenue", "income", "subscription_revenue"], { contextualAliases: ["sales", "net_sales", "total_sales"], requireNumeric: true, rejectDomains: ["accountancy", "prebookkeeping", "marketplace"] }),
-  rule("cogs", "profitability", ["cogs", "cost_of_goods_sold", "cost_of_goods", "cost_of_sales", "direct_cost", "product_cost"], { requireNumeric: true }),
+  rule("cogs", "profitability", ["cogs", "cost_of_goods_sold", "cost_of_goods", "cost_of_sales", "direct_cost", "product_cost", "cost", "costs", "total_cost", "total_costs"], { requireNumeric: true }),
   rule("gross_profit", "profitability", ["gross_profit", "gross_profit_amount"], { requireNumeric: true }),
-  rule("operating_expense", "profitability", ["operating_expense", "operating_expenses", "opex", "sg_a", "sga"], { requireNumeric: true }),
+  rule("operating_expense", "profitability", ["operating_expense", "operating_expenses", "opex", "sg_a", "sga", "expense", "expenses", "operating_cost", "operating_costs"], { requireNumeric: true }),
   rule("operating_profit", "profitability", ["operating_profit", "ebit"], { requireNumeric: true }),
   rule("interest_expense", "profitability", ["interest_expense", "interest"], { requireNumeric: true }),
   rule("tax", "profitability", ["tax_expense", "tax", "taxes", "vat"], { requireNumeric: true }),
@@ -535,7 +536,8 @@ function classifyBusinessDataset(input: SemanticDatasetInput): SemanticClassific
   const hasStrongInvestorPortfolioSignal = hasStrongInvestorPortfolioSchema(input.columns, input.datasetName ?? input.fileName ?? "")
   const hasSaasSubscriptionSignal = /mrr|arr|subscription|recurring|churn|active_customers/.test(normalizedText)
   const hasSaasStartupFinanceSignal = /runway|cash_burn|burn_rate/.test(normalizedText) && /saas|startup|billing|subscription|customer|active_customer|user/.test(normalizedText)
-  if (hasSaasSubscriptionSignal || (!hasStrongInvestorPortfolioSignal && hasSaasStartupFinanceSignal)) add("saas", 6, "SaaS/subscription terminology detected.")
+  const hasCashAndBurnSchema = /cash_balance|cash/.test(normalizedText) && /(^|_)burn(_|$)|burn_rate|runway/.test(normalizedText)
+  if (hasSaasSubscriptionSignal || (!hasStrongInvestorPortfolioSignal && (hasSaasStartupFinanceSignal || hasCashAndBurnSchema))) add("saas", 6, "SaaS/subscription terminology detected.")
   if (/sku|stock|inventory|reorder|store|branch|pos|unit_cost/.test(normalizedText)) add("retail", 5, "Retail inventory or point-of-sale terminology detected.")
   if (hasInvestorPortfolioSignal && (hasInvestorFinancialSignal || explicit === "investor" || explicitBusinessModel === "investor")) {
     add("investor", hasStrongInvestorPortfolioSignal ? 12 : 6, hasStrongInvestorPortfolioSignal ? "Strong Investor portfolio schema detected." : "Investor portfolio terminology detected.")
@@ -923,10 +925,7 @@ function isMostlyNumeric(rows: Record<string, unknown>[], column: string) {
 }
 
 function isMostlyDate(rows: Record<string, unknown>[], column: string) {
-  const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== undefined && value !== "")
-  if (values.length === 0) return false
-  const valid = values.filter((value) => !Number.isNaN(Date.parse(String(value)))).length
-  return valid / values.length >= 0.5
+  return isMostlyCanonicalDate(rows, column)
 }
 
 function numericValue(value: unknown): number | null {

@@ -123,6 +123,14 @@ const REVENUE_PATTERNS = [
   'total', 'grand_total', 'subtotal', 'gross', 'net_revenue'
 ];
 
+// Monetary fields that must never be detected as operating revenue, cost, or
+// profit without an explicit semantic mapping (e.g. investor portfolio data).
+const INVESTMENT_FIELD_PATTERN = /invest|valuation|ownership|stake|burn|runway|funding|capital|equity|irr|moic|dividend|growth_rate|portfolio/;
+
+function isReservedMonetaryField(normalizedName: string): boolean {
+  return INVESTMENT_FIELD_PATTERN.test(normalizedName);
+}
+
 const COST_PATTERNS = [
   'cost', 'cogs', 'cost_of_goods', 'cost_of_sales', 'cost_of_revenue',
   'expense', 'expenses', 'unit_cost', 'product_cost', 'cost_price'
@@ -149,9 +157,10 @@ function findColumnByPatterns(columns: string[], patterns: string[]): string | n
   
   for (const pattern of patterns) {
     const match = normalizedCols.find(c => 
-      c.normalized.includes(pattern) || 
+      (c.normalized.includes(pattern) || 
       c.normalized === pattern ||
-      pattern === c.normalized
+      pattern === c.normalized) &&
+      !isReservedMonetaryField(c.normalized)
     );
     if (match) return match.original;
   }
@@ -257,11 +266,13 @@ export function detectBusinessColumns(rows: any[]): DetectedBusinessColumns {
     };
   }
   
-  // 🔍 Revenue Detection - UNIVERSAL (matches any variant)
-  const revenueColumn = findColumnByPatterns(columns, REVENUE_PATTERNS);
+  // 🔍 Revenue Detection - UNIVERSAL (matches any variant, numeric-validated)
+  const revenueCandidate = findColumnByPatterns(columns, REVENUE_PATTERNS);
+  const revenueColumn = revenueCandidate && isNumericColumn(rows, revenueCandidate) ? revenueCandidate : null;
   
-  // 💰 Profit Detection - UNIVERSAL
-  const profitColumn = findColumnByPatterns(columns, PROFIT_PATTERNS);
+  // 💰 Profit Detection - UNIVERSAL (numeric-validated)
+  const profitCandidate = findColumnByPatterns(columns, PROFIT_PATTERNS);
+  const profitColumn = profitCandidate && isNumericColumn(rows, profitCandidate) ? profitCandidate : null;
   
   // Cost Detection - UNIVERSAL (validated)
   let costColumn = findColumnByPatterns(columns, COST_PATTERNS);

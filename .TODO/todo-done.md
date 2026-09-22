@@ -671,3 +671,7 @@ moving work between states.
 ## Label: referral
 
 - T-1060. Make the Referral Center production-safe: remove user-accessible Record signup/Record paid mutation endpoints, automate click tracking and signup attribution from the referral link visit, confirm signups server-side after email verification, grant idempotent 5-credit signup rewards and Stripe-verified 25-credit paid rewards through the central credit engine, derive Clicks/Signups/Paid Users/Credits Earned from canonical records, and add a superadmin-authorized referral correction API with full audit. (labels: billing, payment, security, api; commit: worktree)
+
+## Label: business
+
+- T-1063. Fix Risk Intelligence dataset semantics so investor portfolio datasets classify through the authoritative business semantic profile and score only portfolio concentration and runway evidence, gate every risk rule on semantic dataset type plus confirmed column concepts plus computable metrics, report unsupported rules as not applicable with reasons, derive revenue trends only from validated revenue-or-sales series with a reporting-period dimension, and unify date validation across data cleaning, business semantics, and the risk engine through one canonical date parser. (labels: business, ai; commit: worktree)

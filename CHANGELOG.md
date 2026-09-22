@@ -13,6 +13,11 @@
 
 ### Fixed
 
+- Fix Risk Intelligence so investor portfolio datasets score from portfolio concentration and runway evidence instead of claiming a critical revenue decline from investment amounts, valuations, or portfolio annual revenue, and investment dates validate as dates instead of reporting bogus invalid-date percentages.
+- Fix dataset classification for Risk Intelligence so each rule runs only for its matching business type (retail, ecommerce, SaaS, profitability, accountancy, investor portfolio, or generic business) with semantically confirmed columns, and unsupported rules show as not applicable instead of shaping the score.
+- Fix date validation so upload analysis, KPI calculations, and Risk Intelligence share one date parser, keeping identifiers, bare numbers, and mixed date formats from being silently read as calendar dates.
+- Fix overall Risk Intelligence scores so they aggregate only rules that can genuinely execute, exclude unavailable metrics from both sides of the score, and stay deterministic across recalculations.
+
 - Fix assistant contact requests so the team receives the exact typed request instead of a fragment cut off at common words like "about" or shortened to a 120-character excerpt.
 - Fix assistant contact submissions so a confirmed request reaches the team again instead of reporting the handoff as unconfigured, repeated confirmations of the same request submit only once, and a failed submission keeps the request ready to retry.
 - Fix the Referral Center so Clicks, Signups, Paid Users, and Credits Earned always reproduce from real referral history, reversed rewards stop counting, and sharing or copying your link never inflates the numbers.

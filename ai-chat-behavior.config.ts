@@ -212,6 +212,10 @@ export const aiChatBehaviorConfig = {
       "Deterministic application logic, query results, and precomputed analysis are the source of truth for all numeric claims.",
     aiRole:
       "The model explains verified results, summarizes trends, suggests next questions, and helps users interpret business meaning.",
+    riskSemantics:
+      "Risk Intelligence rules run only for their semantic dataset type with confirmed column concepts and computable metrics; unsupported rules stay not applicable and never shape scores, and investor portfolio monetary fields never count as operating revenue.",
+    dateSemantics:
+      "All date parsing and validation uses the shared canonical date parser so a value cannot be valid in one module and invalid in another.",
     neverInvent: [
       "dataset rows",
       "column names",
