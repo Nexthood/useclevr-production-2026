@@ -6,7 +6,10 @@ import {
   formatMetric,
   labelForMetric,
 } from "@/components/dashboard/geographic-map-tooltip";
+import { geoMercator, geoPath } from "d3-geo";
+import { feature } from "topojson-client";
 import { scaleSqrt } from "d3-scale";
+import worldTopologyJson from "@/assets/maps/world-110m.json";
 import { type KeyboardEvent, type MouseEvent, useMemo, useRef, useState } from "react";
 
 export type GeographicMetric = {
@@ -30,8 +33,33 @@ type Props = {
   onCountrySelect?: (country: GeographicMetric) => void;
 };
 
-const MAP_WIDTH = 960;
-const MAP_HEIGHT = 540;
+type WorldTopology = {
+  type?: string;
+  objects?: {
+    countries?: unknown;
+  };
+};
+
+type CountryFeature = {
+  id?: string | number;
+  properties?: { name?: string } | null;
+};
+
+const MAP_WIDTH = 800;
+const MAP_HEIGHT = 500;
+
+const worldTopology = worldTopologyJson as WorldTopology;
+const hasWorldTopology =
+  worldTopology.type === "Topology" && Boolean(worldTopology.objects?.countries);
+
+// Same projection parameters the map rendered with before the dependency swap:
+// geoMercator centered at [0, 18], scale 118, translated to the map center.
+const projection = geoMercator()
+  .center([0, 18])
+  .scale(118)
+  .translate([MAP_WIDTH / 2, MAP_HEIGHT / 2]);
+
+const pathGenerator = geoPath(projection);
 
 export function GeographicRevenueMap({
   data,
@@ -46,6 +74,25 @@ export function GeographicRevenueMap({
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>(metric);
   const [zoom, setZoom] = useState(1);
+
+  const countryPaths = useMemo(() => {
+    if (!hasWorldTopology || !worldTopology.objects?.countries) return [];
+    const collection = feature(
+      worldTopologyJson as unknown as Parameters<typeof feature>[0],
+      worldTopology.objects.countries as unknown as Parameters<typeof feature>[1],
+    );
+    const countryFeatures: CountryFeature[] =
+      "features" in collection
+        ? (collection.features as CountryFeature[])
+        : [collection as unknown as CountryFeature];
+    return countryFeatures
+      .map((countryFeature) => ({
+        id: String(countryFeature.id ?? ""),
+        name: String(countryFeature.properties?.name ?? ""),
+        d: pathGenerator(countryFeature as Parameters<typeof pathGenerator>[0]) || "",
+      }))
+      .filter((country) => country.d.length > 0);
+  }, []);
 
   const sortedData = useMemo(() => {
     return [...data]
@@ -69,6 +116,10 @@ export function GeographicRevenueMap({
 
   if (sortedData.length === 0) {
     return <EmptyGeoState />;
+  }
+
+  if (!hasWorldTopology || countryPaths.length === 0) {
+    return <MapUnavailableState />;
   }
 
   const handleMarkerMove = (event: MouseEvent<SVGCircleElement>, item: GeographicMetric) => {
@@ -96,6 +147,13 @@ export function GeographicRevenueMap({
     }
   };
 
+  const projectedPoints = new Map(
+    sortedData.map((item) => {
+      const point = projection([item.longitude, item.latitude]);
+      return [item, point ?? null] as const;
+    }),
+  );
+
   return (
     <div
       ref={containerRef}
@@ -120,43 +178,52 @@ export function GeographicRevenueMap({
             role="img"
             aria-label="Geographic revenue map"
           >
-            <defs>
-              <radialGradient id="geo-map-glow" cx="50%" cy="45%" r="70%">
-                <stop offset="0%" stopColor="#164e63" stopOpacity="0.42" />
-                <stop offset="100%" stopColor="#08111f" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#geo-map-glow)" />
-            <MapGrid />
-            <ApproximateLandmasses />
-            {sortedData.map((item, index) => {
-              const value = Number(item[selectedMetric] ?? 0);
-              const selectedCountry = selected?.countryCode === item.countryCode;
-              const point = projectPoint(item.longitude, item.latitude, zoom);
+            <g
+              transform={`translate(${(MAP_WIDTH / 2) * (1 - zoom)} ${(MAP_HEIGHT / 2) * (1 - zoom)}) scale(${zoom})`}
+            >
+              <g>
+                {countryPaths.map((country) => (
+                  <path
+                    key={country.id || country.name}
+                    d={country.d}
+                    fill="#1f2d44"
+                    stroke="#62708a"
+                    strokeWidth={0.45}
+                    className="transition-colors outline-none hover:fill-[#2d4264]"
+                  />
+                ))}
+              </g>
+              {sortedData.map((item, index) => {
+                const value = Number(item[selectedMetric] ?? 0);
+                const selectedCountry = selected?.countryCode === item.countryCode;
+                const point = projectedPoints.get(item);
 
-              return (
-                <circle
-                  key={`${item.countryCode || item.countryName}-${selectedMetric}`}
-                  cx={point.x}
-                  cy={point.y}
-                  r={radiusScale(value)}
-                  fill={index === 0 ? "#a78bfa" : "#22d3ee"}
-                  opacity={selectedCountry ? 0.92 : 0.75}
-                  stroke="rgba(255,255,255,0.65)"
-                  strokeWidth={selectedCountry ? 1.5 : 1}
-                  className="cursor-pointer transition-transform hover:scale-110 focus:outline-none"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${item.countryName}: ${formatMetric(value, selectedMetric, currency)}`}
-                  onMouseMove={(event) => handleMarkerMove(event, item)}
-                  onMouseLeave={() => setHovered(null)}
-                  onFocus={() => setHovered(item)}
-                  onBlur={() => setHovered(null)}
-                  onClick={() => handleCountrySelect(item)}
-                  onKeyDown={(event) => handleMarkerKeyDown(event, item)}
-                />
-              );
-            })}
+                if (!point) return null;
+
+                return (
+                  <circle
+                    key={`${item.countryCode || item.countryName}-${selectedMetric}`}
+                    cx={point[0]}
+                    cy={point[1]}
+                    r={radiusScale(value)}
+                    fill={index === 0 ? "#a78bfa" : "#22d3ee"}
+                    opacity={selectedCountry ? 0.92 : 0.75}
+                    stroke="rgba(255,255,255,0.65)"
+                    strokeWidth={selectedCountry ? 1.5 : 1}
+                    className="cursor-pointer transition-transform hover:scale-110 focus:outline-none"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${item.countryName}: ${formatMetric(value, selectedMetric, currency)}`}
+                    onMouseMove={(event) => handleMarkerMove(event, item)}
+                    onMouseLeave={() => setHovered(null)}
+                    onFocus={() => setHovered(item)}
+                    onBlur={() => setHovered(null)}
+                    onClick={() => handleCountrySelect(item)}
+                    onKeyDown={(event) => handleMarkerKeyDown(event, item)}
+                  />
+                );
+              })}
+            </g>
           </svg>
 
           {hovered && (
@@ -287,72 +354,22 @@ function EmptyGeoState() {
   );
 }
 
+function MapUnavailableState() {
+  return (
+    <div className="flex max-h-[220px] min-h-[180px] flex-col items-center justify-center rounded-lg border border-dashed border-cyan-300/20 bg-slate-950/70 p-5 text-center">
+      <p className="text-sm font-semibold text-white">World map data unavailable</p>
+      <p className="mt-2 max-w-lg text-sm leading-6 text-slate-400">
+        Geographic context cannot be loaded for this view.
+      </p>
+    </div>
+  );
+}
+
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
     </div>
-  );
-}
-
-function projectPoint(longitude: number, latitude: number, zoom: number) {
-  const safeLatitude = Math.max(-84, Math.min(84, latitude));
-  const latitudeRadians = (safeLatitude * Math.PI) / 180;
-  const x = ((longitude + 180) / 360) * MAP_WIDTH;
-  const mercator =
-    (1 - Math.log(Math.tan(latitudeRadians) + 1 / Math.cos(latitudeRadians)) / Math.PI) / 2;
-  const y = mercator * MAP_HEIGHT;
-
-  return {
-    x: (x - MAP_WIDTH / 2) * zoom + MAP_WIDTH / 2,
-    y: (y - MAP_HEIGHT / 2) * zoom + MAP_HEIGHT / 2,
-  };
-}
-
-function MapGrid() {
-  const longitudes = [-120, -60, 0, 60, 120];
-  const latitudes = [-60, -30, 0, 30, 60];
-
-  return (
-    <g opacity="0.25">
-      {longitudes.map((longitude) => {
-        const x = projectPoint(longitude, 0, 1).x;
-        return <line key={longitude} x1={x} x2={x} y1="28" y2={MAP_HEIGHT - 28} stroke="#64748b" strokeWidth="0.7" />;
-      })}
-      {latitudes.map((latitude) => {
-        const y = projectPoint(0, latitude, 1).y;
-        return <line key={latitude} x1="34" x2={MAP_WIDTH - 34} y1={y} y2={y} stroke="#64748b" strokeWidth="0.7" />;
-      })}
-    </g>
-  );
-}
-
-function ApproximateLandmasses() {
-  const landmasses = [
-    { cx: 245, cy: 190, rx: 135, ry: 78 },
-    { cx: 305, cy: 315, rx: 72, ry: 126 },
-    { cx: 485, cy: 190, rx: 92, ry: 56 },
-    { cx: 520, cy: 288, rx: 72, ry: 93 },
-    { cx: 655, cy: 220, rx: 170, ry: 86 },
-    { cx: 735, cy: 358, rx: 74, ry: 45 },
-  ];
-
-  return (
-    <g>
-      {landmasses.map((landmass, index) => (
-        <ellipse
-          key={index}
-          cx={landmass.cx}
-          cy={landmass.cy}
-          rx={landmass.rx}
-          ry={landmass.ry}
-          fill="#1f2d44"
-          stroke="#62708a"
-          strokeWidth="0.7"
-          opacity="0.82"
-        />
-      ))}
-    </g>
   );
 }

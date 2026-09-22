@@ -10,7 +10,8 @@ const dailyHealth = fs.readFileSync("src/lib/executive/daily-health.ts", "utf8")
 const dailyHealthPage = fs.readFileSync("src/app/(auth)/app/daily-health/page.tsx", "utf8")
 
 assert(
-  aggregation.includes('const activeDatasets = normalizedDatasets.filter((dataset) => dataset.status !== "deleted")'),
+  aggregation.includes('normalizedDatasets.filter((dataset) => dataset.status !== "deleted")') &&
+    aggregation.includes('const activeDatasets = datasetList.filter((dataset) => dataset.status !== "deleted")'),
   "Dashboard aggregation must filter deleted datasets out of current analytics.",
 )
 assert(
@@ -49,7 +50,7 @@ assert(
 )
 assert(
   dailyHealthPage.includes("const hasActiveDatasets = dashboardData.activeDatasetCount > 0") &&
-    dailyHealthPage.includes("hasActiveDatasets ? getOrCreateDailyHealthBrief") &&
+    dailyHealthPage.includes("hasActiveDatasets && activeDatasetId ? getOrCreateDailyHealthBrief") &&
     dailyHealthPage.includes("const reports = hasActiveDatasets ?"),
   "Full Daily Health page must avoid showing current or historical briefs as active analytics when datasets are empty.",
 )

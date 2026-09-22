@@ -311,6 +311,37 @@ assert.ok(assistantWorkspaceSource.includes("datasetId: selectedDatasetId || und
 assert.ok(prebookkeepingPageSource.includes("scope=prebookkeeping"), "pre-bookkeeping review links risk intelligence with pre-bookkeeping scope")
 assert.ok(accountancyUploadSource.includes("useclevr_active_prebookkeeping_dataset_id"), "successful pre-bookkeeping upload persists active dataset ID")
 
+// ============================================================================
+// Open Source navigation regression suite
+// ============================================================================
+//
+// The Risk Intelligence "Open source" button must land on the canonical
+// dataset route for the active dataset. A cross-user dataset selected by the
+// superadmin previously produced a Next.js 404 because the canonical route
+// helper stayed strictly owner-scoped.
+
+assert.equal(getDatasetSourceHref("ds_123", "standard"), "/app/datasets/ds_123/analyze", "standard risk source links to the canonical dataset analyze route")
+assert.equal(getDatasetSourceHref("ds_123", "retail"), "/app/retail", "retail risk source links to the retail module")
+assert.equal(getDatasetSourceHref("ds_123", "accountancy"), "/app/accountancy?datasetId=ds_123", "accountancy risk source links to the selected accountancy dataset")
+assert.equal(getDatasetSourceHref("ds_123", undefined), "/app/datasets/ds_123/analyze", "unknown risk source types fall back to the canonical dataset route")
+
+const analyzePagePath = "src/app/(auth)/app/datasets/[id]/analyze/page.tsx"
+const analyzePageSource = readFileSync(analyzePagePath, "utf8")
+const datasetAccessSource = readFileSync("src/lib/data/dataset-access.ts", "utf8")
+const dashboardAggregationSource = readFileSync("src/lib/data/dashboard-dataset-aggregation.ts", "utf8")
+
+assert.ok(analyzePageSource.includes("notFound()"), "canonical dataset analyze route renders the Next.js not-found state for inaccessible datasets")
+assert.ok(analyzePageSource.includes("findAccessibleDataset(id, userId, userRole)"), "canonical dataset analyze route resolves datasets through the shared access helper")
+assert.ok(datasetAccessSource.includes("isSuperadmin({ id: userId, role })"), "shared dataset access grants superadmin read access on the canonical routes")
+assert.ok(datasetAccessSource.includes("customerDatasetAccessWhere(datasetId, userId)"), "shared dataset access keeps normal users strictly owner-scoped")
+assert.ok(datasetAccessSource.includes("? eq(datasets.id, datasetId)"), "superadmin dataset access drops only the ownership filter, never the dataset ID filter")
+
+assert.ok(deleteDatasetsServiceSource.includes("isSuperadmin({ id: userId, role, email: userEmail })"), "bulk delete shares the superadmin-aware access decision with dataset navigation")
+assert.ok(deleteDatasetsServiceSource.includes("? inArray(datasets.id, requestedIds)"), "superadmin bulk delete matches selected datasets regardless of owner on the shared path")
+assert.ok(deleteDatasetsServiceSource.includes("and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds))"), "normal users can never delete datasets they do not own")
+
+assert.ok(dashboardAggregationSource.includes("eq(datasets.userId, userId),\n          or(isNull(datasets.datasetType), ne(datasets.datasetType, \"prebookkeeping\"))"), "dashboard aggregation keeps workspace owner scoping together with the pre-bookkeeping exclusion")
+
 console.log("Risk Intelligence engine tests passed.")
 
 // ============================================================================

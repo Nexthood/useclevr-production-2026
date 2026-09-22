@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db"
+import { isSuperadmin } from "@/lib/auth/builtin-users"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { and, eq } from "drizzle-orm"
@@ -19,13 +20,19 @@ export function canAccessAllDatasets(_role?: string | null) {
 export async function findAccessibleDataset(
   datasetId: string,
   userId: string,
-  _role?: string | null,
+  role?: string | null,
 ): Promise<DatasetAccessResult> {
   const db = getDb()
   if (!db) return { dataset: null, dbUnavailable: true }
 
+  // Superadmin shares the canonical dataset routes with read-all privileges,
+  // matching Risk Intelligence dataset visibility. Normal users stay strictly
+  // owner-scoped.
+  const superadminAccess = isSuperadmin({ id: userId, role })
   const dataset = await db.query.datasets.findFirst({
-    where: customerDatasetAccessWhere(datasetId, userId),
+    where: superadminAccess
+      ? eq(datasets.id, datasetId)
+      : customerDatasetAccessWhere(datasetId, userId),
     columns: {
       id: true,
       userId: true,

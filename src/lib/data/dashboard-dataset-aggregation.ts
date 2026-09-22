@@ -81,10 +81,15 @@ export async function loadDashboardDatasetAggregation(
   if (!userId) return emptyDashboardData()
 
   const loadCompatibleScope = Boolean(options.datasetId && options.includeCompatibleDatasets)
+  // The dashboard is workspace-scoped: always filter by owner, and exclude
+  // pre-bookkeeping datasets from dashboard aggregation (they have their own module).
   const rows = await db.query.datasets.findMany({
     where: options.datasetId && !loadCompatibleScope
       ? and(eq(datasets.userId, userId), eq(datasets.id, options.datasetId))
-      : or(isNull(datasets.datasetType), ne(datasets.datasetType, "prebookkeeping")),
+      : and(
+          eq(datasets.userId, userId),
+          or(isNull(datasets.datasetType), ne(datasets.datasetType, "prebookkeeping")),
+        ),
     orderBy: [desc(datasets.createdAt)],
     limit: options.datasetId && !loadCompatibleScope ? 1 : 500,
     columns: {
