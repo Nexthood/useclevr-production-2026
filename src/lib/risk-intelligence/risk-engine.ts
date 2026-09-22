@@ -4,12 +4,13 @@ import {
   type CategorizedTransaction,
   type PrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization"
+import { parseCanonicalDate, periodKeyFromDate } from "@/lib/data/canonical-date"
 import {
-  analyzeBusinessData,
-  detectBusinessColumns,
-  type DetectedBusinessColumns,
-} from "@/lib/business/business-columns"
-import { normalizeDashboardColumnName } from "@/lib/data/dashboard-dataset-aggregation"
+  buildBusinessSemanticProfile,
+  conceptColumn,
+  type BusinessConcept,
+  type SemanticProfile,
+} from "@/lib/data/business-semantics"
 import {
   getSeverityForScore,
   RISK_ENGINE_VERSION,
@@ -21,6 +22,7 @@ import {
   type RiskCategory,
   type RiskMetricKey,
   type RiskRule,
+  type RiskSemanticDatasetType,
   type RiskSeverity,
   type RiskThreshold,
 } from "@/lib/risk-intelligence/risk-rules"
@@ -78,6 +80,13 @@ export type RiskCategorySummary = {
   triggeredRuleCount: number
 }
 
+export type RiskNotApplicableRule = {
+  ruleId: string
+  title: string
+  category: RiskCategory
+  reason: string
+}
+
 export type RiskIntelligenceResult = {
   engineVersion: string
   dataset: {
@@ -85,6 +94,8 @@ export type RiskIntelligenceResult = {
     name: string
     fileName: string | null
     datasetType: string
+    semanticDatasetType: RiskSemanticDatasetType
+    semanticConfidence: string
     businessModel: string
     rowCount: number
     sourceHref: string
@@ -97,6 +108,7 @@ export type RiskIntelligenceResult = {
   severityCounts: Record<RiskSeverity, number>
   categorySummaries: RiskCategorySummary[]
   findings: RiskFinding[]
+  notApplicableRules: RiskNotApplicableRule[]
   metrics: Record<RiskMetricKey, RiskMetric>
   missingMetrics: RiskMetricKey[]
   trendComparison: string
@@ -132,17 +144,27 @@ export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskD
     return null
   }
 
-  const detectedBusinessColumns = mergeDetectedColumns(detectBusinessColumns(normalizedRows), dataset.detectedColumns)
-  const businessAnalysis = analyzeBusinessData(normalizedRows, detectedBusinessColumns)
+  const profile = buildBusinessSemanticProfile({
+    datasetId: dataset.id,
+    datasetType: dataset.datasetType,
+    businessModel: dataset.businessModel,
+    fileName: dataset.fileName ?? null,
+    datasetName: dataset.name,
+    columns,
+    rows: normalizedRows,
+  })
+  const semanticType = normalizeRiskSemanticType(profile)
+
   const derived = deriveRiskMetrics({
     rows: normalizedRows,
     columns,
-    detectedColumns: detectedBusinessColumns,
-    precomputedMetrics: dataset.precomputedMetrics,
-    businessAnalysis,
+    profile,
   })
 
-  const applicableRules = RISK_RULES.filter((rule) => rule.supportedDatasetTypes.includes(datasetType))
+  const applicableRules = RISK_RULES.filter((rule) =>
+    rule.supportedDatasetTypes.includes(semanticType) &&
+    rule.requiredConcepts.every((concept) => resolveConceptColumn(profile, concept) !== null),
+  )
   const evaluated = applicableRules.map((rule) => evaluateRule(rule, derived.metrics[rule.metric]))
   const applicableEvaluations = evaluated.filter((item) => item.metric.available && item.metric.value !== null)
   const findings = applicableEvaluations
@@ -171,6 +193,12 @@ export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskD
     })
     .sort(compareFindings)
 
+  const notApplicableRules = buildNotApplicableRules({
+    evaluatedRuleIds: new Set(applicableEvaluations.map((item) => item.rule.ruleId)),
+    metrics: derived.metrics,
+    profile,
+  })
+
   const categorySummaries = buildCategorySummaries(applicableEvaluations)
   const overallScore = calculateWeightedScore(applicableEvaluations)
   const overallSeverity = getSeverityForScore(overallScore)
@@ -182,18 +210,21 @@ export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskD
       name: dataset.name,
       fileName: dataset.fileName || null,
       datasetType,
+      semanticDatasetType: semanticType,
+      semanticConfidence: profile.classificationConfidence,
       businessModel: dataset.businessModel || "generic",
       rowCount: dataset.rowCount ?? normalizedRows.length,
       sourceHref: getDatasetSourceHref(dataset.id, datasetType),
     },
     calculatedAt: new Date().toISOString(),
-    scope: `Single ${getDatasetTypeLabel(datasetType)} dataset`,
+    scope: `Single ${getDatasetTypeLabel(semanticType)} dataset`,
     overallScore,
     overallSeverity,
     overallSeverityLabel: RISK_SEVERITY_LABELS[overallSeverity],
     severityCounts: countSeverities(findings),
     categorySummaries,
     findings,
+    notApplicableRules,
     metrics: derived.metrics,
     missingMetrics: Object.entries(derived.metrics)
       .filter(([, metric]) => !metric.available)
@@ -227,6 +258,8 @@ export function calculatePrebookkeepingRiskIntelligence(dataset: RiskDatasetInpu
       name: dataset.name,
       fileName: dataset.fileName || null,
       datasetType: "prebookkeeping",
+      semanticDatasetType: "prebookkeeping",
+      semanticConfidence: "HIGH",
       businessModel: dataset.businessModel || "bookkeeping",
       rowCount: dataset.rowCount ?? transactions.length,
       sourceHref: getDatasetSourceHref(dataset.id, "prebookkeeping"),
@@ -239,6 +272,7 @@ export function calculatePrebookkeepingRiskIntelligence(dataset: RiskDatasetInpu
     severityCounts: countSeverities(findings),
     categorySummaries,
     findings,
+    notApplicableRules: [],
     metrics: {
       deadStockRatio: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
       revenueGrowthPct: metricFromValue(null, "percent", "Bookkeeping categorization"),
@@ -250,6 +284,9 @@ export function calculatePrebookkeepingRiskIntelligence(dataset: RiskDatasetInpu
       topProductRevenueShare: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
       topCategoryRevenueShare: metricFromValue(calculateTopExpenseCategoryShare(transactions), "percent", "Bookkeeping category summary"),
       topCustomerRevenueShare: metricFromValue(calculateSupplierConcentrationShare(transactions), "percent", "Bookkeeping supplier summary"),
+      topPortfolioCompanyRevenueShare: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
+      portfolioRunwayBreachRatio: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
+      runwayMonths: metricFromValue(null, "percent", "Not applicable to bookkeeping"),
       missingValueRatio: metricFromValue(calculateBookkeepingMissingDataRatio(transactions), "percent", "Bookkeeping review queue"),
       invalidNumericRatio: metricFromValue(null, "percent", "Bookkeeping parser validation"),
       invalidDateRatio: metricFromValue(calculateBookkeepingMissingDateRatio(transactions), "percent", "Bookkeeping transaction dates"),
@@ -489,37 +526,139 @@ function calculateBookkeepingCurrencyInconsistencyRatio(transactions: Categorize
 function calculateBookkeepingPeriodCount(transactions: CategorizedTransaction[]) {
   const periods = new Set<string>()
   for (const transaction of transactions) {
-    const date = parseDate(transaction.transactionDate)
+    const date = parseCanonicalDate(transaction.transactionDate)
     if (!date) continue
-    periods.add(`${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`)
+    periods.add(periodKeyFromDate(date))
   }
   return periods.size
+}
+
+function normalizeRiskSemanticType(profile: SemanticProfile): RiskSemanticDatasetType {
+  const type = profile.datasetType
+  if (
+    type === "standard" ||
+    type === "retail" ||
+    type === "profitability" ||
+    type === "accountancy" ||
+    type === "prebookkeeping" ||
+    type === "marketplace" ||
+    type === "saas" ||
+    type === "investor"
+  ) {
+    return type
+  }
+  return "standard"
+}
+
+const NUMERIC_CONCEPTS = new Set<BusinessConcept>([
+  "quantity",
+  "gross_sales",
+  "net_sales",
+  "units_sold",
+  "inventory_on_hand",
+  "inventory_value",
+  "unit_cost",
+  "selling_price",
+  "discount",
+  "reorder_point",
+  "revenue",
+  "cogs",
+  "gross_profit",
+  "operating_expense",
+  "operating_profit",
+  "interest_expense",
+  "tax",
+  "net_profit",
+  "debit",
+  "credit",
+  "opening_balance",
+  "closing_balance",
+  "gmv",
+  "marketplace_revenue",
+  "merchant_payout",
+  "refund",
+  "commission",
+  "mrr",
+  "arr",
+  "subscription_revenue",
+  "new_mrr",
+  "expansion_mrr",
+  "contraction_mrr",
+  "churned_mrr",
+  "active_customers",
+  "new_customers",
+  "churned_customers",
+  "customer_churn_rate",
+  "revenue_churn_rate",
+  "burn",
+  "cash_balance",
+  "runway",
+  "arpu",
+  "portfolio_company_annual_revenue",
+  "invested_amount",
+  "entry_valuation",
+  "latest_valuation",
+  "ownership_percent",
+  "portfolio_company_growth_rate",
+  "portfolio_company_monthly_burn",
+  "portfolio_company_runway",
+  "portfolio_company_employees",
+])
+
+const DATE_LIKE_CONCEPTS: BusinessConcept[] = ["date", "journal_date", "investment_date"]
+
+function resolveConceptColumn(profile: SemanticProfile, concept: string): string | null {
+  switch (concept) {
+    case "date":
+      return conceptColumn(profile, "date") || conceptColumn(profile, "journal_date")
+    case "customer":
+      return conceptColumn(profile, "customer") || conceptColumn(profile, "customer_id")
+    case "product":
+      return conceptColumn(profile, "product") || conceptColumn(profile, "sku")
+    case "units_sold":
+      return conceptColumn(profile, "units_sold") || conceptColumn(profile, "quantity")
+    case "revenue":
+      return resolveTrendRevenueColumn(profile)
+    default:
+      return conceptColumn(profile, concept as BusinessConcept)
+  }
+}
+
+function resolveTrendRevenueColumn(profile: SemanticProfile): string | null {
+  return (
+    conceptColumn(profile, "revenue") ||
+    conceptColumn(profile, "net_sales") ||
+    conceptColumn(profile, "gross_sales") ||
+    conceptColumn(profile, "subscription_revenue")
+  )
 }
 
 function deriveRiskMetrics(input: {
   rows: RiskDataRow[]
   columns: string[]
-  detectedColumns: DetectedBusinessColumns
-  precomputedMetrics: unknown
-  businessAnalysis: ReturnType<typeof analyzeBusinessData>
+  profile: SemanticProfile
 }): { metrics: Record<RiskMetricKey, RiskMetric>; hasComparableHistory: boolean; trendComparison: string } {
-  const extraColumns = detectRiskColumns(input.columns)
-  const revenueColumn = input.detectedColumns.revenueColumn
+  const { rows, columns, profile } = input
+  const revenueColumn = resolveTrendRevenueColumn(profile)
   const costColumns = unique([
-    input.detectedColumns.costColumn,
-    ...Object.values(input.detectedColumns.costComponents || {}),
-    extraColumns.expense,
+    conceptColumn(profile, "cogs"),
+    conceptColumn(profile, "operating_expense"),
   ].filter(Boolean) as string[])
-  const productColumn = input.detectedColumns.productColumn || extraColumns.product
-  const dateColumn = input.detectedColumns.dateColumn || extraColumns.date
-  const stockColumn = extraColumns.stock
-  const soldColumn = extraColumns.quantitySold || input.detectedColumns.quantityColumn
-  const categoryColumn = extraColumns.category
-  const customerColumn = extraColumns.customer
-  const currencyColumn = input.detectedColumns.currencyColumn || extraColumns.currency
+  const productColumn = resolveConceptColumn(profile, "product")
+  const dateColumn = resolveConceptColumn(profile, "date")
+  const stockColumn = conceptColumn(profile, "inventory_on_hand")
+  const soldColumn = resolveConceptColumn(profile, "units_sold")
+  const categoryColumn = conceptColumn(profile, "category")
+  const customerColumn = resolveConceptColumn(profile, "customer")
+  const currencyColumn = conceptColumn(profile, "currency")
+  const portfolioCompanyColumn = conceptColumn(profile, "portfolio_company")
+  const portfolioRevenueColumn = conceptColumn(profile, "portfolio_company_annual_revenue")
+  const portfolioRunwayColumn = conceptColumn(profile, "portfolio_company_runway")
+  const cashBalanceColumn = conceptColumn(profile, "cash_balance")
+  const burnColumn = conceptColumn(profile, "burn")
 
-  const revenueSeries = dateColumn && revenueColumn ? groupByPeriod(input.rows, dateColumn, revenueColumn) : []
-  const costSeries = dateColumn && costColumns.length > 0 ? groupByPeriod(input.rows, dateColumn, costColumns) : []
+  const revenueSeries = dateColumn && revenueColumn ? groupByPeriod(rows, dateColumn, revenueColumn) : []
+  const costSeries = dateColumn && costColumns.length > 0 ? groupByPeriod(rows, dateColumn, costColumns) : []
   const profitSeries =
     dateColumn && revenueColumn && costColumns.length > 0
       ? revenueSeries.map((period) => {
@@ -537,63 +676,89 @@ function deriveRiskMetrics(input: {
   const costRevenueGrowthGapPct =
     costGrowthPct !== null && revenueGrowthPct !== null ? costGrowthPct - revenueGrowthPct : null
 
-  const totalRevenue = sumColumn(input.rows, revenueColumn)
-  const totalCosts = sumColumns(input.rows, costColumns)
+  const totalRevenue = sumColumn(rows, revenueColumn)
+  const totalCosts = sumColumns(rows, costColumns)
   const netMarginPct =
     totalRevenue !== null && totalCosts !== null && totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue) * 100 : null
   const expenseRevenueRatio =
     totalRevenue !== null && totalCosts !== null && totalRevenue > 0 ? (totalCosts / totalRevenue) * 100 : null
 
+  const runwayMonths = calculateRunwayMonths(rows, cashBalanceColumn, burnColumn)
+  const mappedNumericColumns = mappedConceptColumnsForConcepts(profile, NUMERIC_CONCEPTS)
+  const dateLikeColumns = DATE_LIKE_CONCEPTS
+    .map((concept) => conceptColumn(profile, concept))
+    .filter(Boolean) as string[]
+  const classificationConfidence = calculateClassificationConfidence(profile, columns)
+
   const metrics: Record<RiskMetricKey, RiskMetric> = {
-    deadStockRatio: metricFromValue(calculateDeadStockRatio(input.rows, productColumn, stockColumn, soldColumn), "percent", "Inventory columns"),
-    revenueGrowthPct: metricFromValue(revenueGrowthPct, "percent", "Revenue trend KPI"),
-    grossMarginTrendPct: metricFromValue(grossMarginTrendPct, "percent", "Gross margin trend KPI"),
-    netMarginPct: metricFromValue(netMarginPct, "percent", "Revenue and cost columns"),
-    unprofitableProductRatio: metricFromValue(
-      calculateUnprofitableProductRatio(input.rows, productColumn, revenueColumn, costColumns),
+    deadStockRatio: metricFromValue(
+      calculateDeadStockRatio(rows, productColumn, stockColumn, soldColumn),
       "percent",
-      "Product profitability breakdown",
+      "Mapped inventory columns",
     ),
-    costRevenueGrowthGapPct: metricFromValue(costRevenueGrowthGapPct, "percent", "Revenue and cost trend KPIs"),
-    expenseRevenueRatio: metricFromValue(expenseRevenueRatio, "percent", "Revenue and expense columns"),
-    topProductRevenueShare: metricFromValue(calculateTopShare(input.rows, productColumn, revenueColumn), "percent", "Product revenue breakdown"),
-    topCategoryRevenueShare: metricFromValue(calculateTopShare(input.rows, categoryColumn, revenueColumn), "percent", "Category revenue breakdown"),
-    topCustomerRevenueShare: metricFromValue(calculateTopShare(input.rows, customerColumn, revenueColumn), "percent", "Customer revenue breakdown"),
+    revenueGrowthPct: metricFromValue(revenueGrowthPct, "percent", "Validated revenue trend KPI"),
+    grossMarginTrendPct: metricFromValue(grossMarginTrendPct, "percent", "Validated gross margin trend KPI"),
+    netMarginPct: metricFromValue(netMarginPct, "percent", "Validated revenue and cost columns"),
+    unprofitableProductRatio: metricFromValue(
+      calculateUnprofitableProductRatio(rows, productColumn, revenueColumn, costColumns),
+      "percent",
+      "Mapped product profitability breakdown",
+    ),
+    costRevenueGrowthGapPct: metricFromValue(costRevenueGrowthGapPct, "percent", "Validated revenue and cost trend KPIs"),
+    expenseRevenueRatio: metricFromValue(expenseRevenueRatio, "percent", "Validated revenue and expense columns"),
+    topProductRevenueShare: metricFromValue(
+      calculateTopShare(rows, productColumn, revenueColumn),
+      "percent",
+      "Mapped product revenue breakdown",
+    ),
+    topCategoryRevenueShare: metricFromValue(
+      calculateTopShare(rows, categoryColumn, revenueColumn),
+      "percent",
+      "Mapped category revenue breakdown",
+    ),
+    topCustomerRevenueShare: metricFromValue(
+      calculateTopShare(rows, customerColumn, revenueColumn),
+      "percent",
+      "Mapped customer revenue breakdown",
+    ),
+    topPortfolioCompanyRevenueShare: metricFromValue(
+      calculateTopShare(rows, portfolioCompanyColumn, portfolioRevenueColumn),
+      "percent",
+      "Mapped portfolio company revenue breakdown",
+    ),
+    portfolioRunwayBreachRatio: metricFromValue(
+      calculateRunwayBreachRatio(rows, portfolioRunwayColumn),
+      "percent",
+      "Mapped portfolio company runway distribution",
+    ),
+    runwayMonths: metricFromValue(runwayMonths, "count", "Validated cash balance and burn KPIs"),
     missingValueRatio: metricFromValue(
-      calculateMissingRatio(input.rows, unique([
-        revenueColumn,
-        ...costColumns,
-        productColumn,
-        stockColumn,
-        soldColumn,
-        dateColumn,
-        categoryColumn,
-        customerColumn,
-      ].filter(Boolean) as string[])),
+      calculateMissingRatio(rows, mappedConceptColumns(profile)),
       "percent",
       "Dataset profiling",
     ),
     invalidNumericRatio: metricFromValue(
-      calculateInvalidNumericRatio(input.rows, unique([revenueColumn, ...costColumns, stockColumn, soldColumn].filter(Boolean) as string[])),
+      calculateInvalidNumericRatio(rows, mappedNumericColumns),
       "percent",
       "Dataset profiling",
     ),
-    invalidDateRatio: metricFromValue(calculateInvalidDateRatio(input.rows, dateColumn), "percent", "Dataset profiling"),
-    duplicateRowRatio: metricFromValue(calculateDuplicateRatio(input.rows), "percent", "Dataset profiling"),
-    currencyInconsistencyRatio: metricFromValue(calculateCurrencyInconsistencyRatio(input.rows, currencyColumn), "percent", "Dataset profiling"),
-    classificationConfidence: metricFromValue(calculateClassificationConfidence({
-      revenueColumn,
-      costColumns,
-      productColumn,
-      stockColumn,
-      soldColumn,
-      dateColumn,
-      categoryColumn,
-      customerColumn,
-      precomputedMetrics: input.precomputedMetrics,
-      businessAnalysis: input.businessAnalysis,
-    }), "score", "Column mapping profile"),
-    historyPeriodCount: metricFromValue(revenueSeries.length, "count", "Revenue trend profile"),
+    invalidDateRatio: metricFromValue(
+      calculateInvalidDateRatio(rows, dateLikeColumns),
+      "percent",
+      "Dataset profiling",
+    ),
+    duplicateRowRatio: metricFromValue(calculateDuplicateRatio(rows), "percent", "Dataset profiling"),
+    currencyInconsistencyRatio: metricFromValue(
+      calculateCurrencyInconsistencyRatio(rows, currencyColumn),
+      "percent",
+      "Dataset profiling",
+    ),
+    classificationConfidence: metricFromValue(classificationConfidence, "score", "Semantic mapping profile"),
+    historyPeriodCount: metricFromValue(
+      revenueColumn && dateColumn ? revenueSeries.length : null,
+      "count",
+      "Validated revenue trend profile",
+    ),
   }
 
   return {
@@ -612,6 +777,33 @@ function evaluateRule(rule: RiskRule, metric: RiskMetric) {
         .sort((a, b) => RISK_SEVERITY_RANK[b.severity] - RISK_SEVERITY_RANK[a.severity] || b.score - a.score)[0] || null
     : null
   return { rule, metric, threshold }
+}
+
+function buildNotApplicableRules(input: {
+  evaluatedRuleIds: Set<string>
+  metrics: Record<RiskMetricKey, RiskMetric>
+  profile: SemanticProfile
+}): RiskNotApplicableRule[] {
+  const reasons: RiskNotApplicableRule[] = []
+  for (const rule of RISK_RULES) {
+    if (input.evaluatedRuleIds.has(rule.ruleId)) continue
+    const missingConcepts = rule.requiredConcepts.filter(
+      (concept) => resolveConceptColumn(input.profile, concept) === null,
+    )
+    const semanticTypeMismatch = !rule.supportedDatasetTypes.includes(input.profile.datasetType as RiskSemanticDatasetType)
+    const reason = semanticTypeMismatch
+      ? `Not applicable to ${getDatasetTypeLabel(input.profile.datasetType)} datasets.`
+      : missingConcepts.length > 0
+        ? `Requires mapped ${missingConcepts.join(", ")} evidence.`
+        : `Insufficient data for ${rule.metric}.`
+    reasons.push({
+      ruleId: rule.ruleId,
+      title: rule.title,
+      category: rule.category,
+      reason,
+    })
+  }
+  return reasons
 }
 
 function buildCategorySummaries(
@@ -656,49 +848,6 @@ function compareFindings(a: RiskFinding, b: RiskFinding) {
     b.estimatedImpact - a.estimatedImpact ||
     a.title.localeCompare(b.title)
   )
-}
-
-function mergeDetectedColumns(detected: DetectedBusinessColumns, stored: unknown): DetectedBusinessColumns {
-  if (!isRecord(stored)) return detected
-  const storedCostComponents = isRecord(stored.costComponents) ? stored.costComponents : {}
-  return {
-    revenueColumn: firstString(stored.revenueColumn, stored.revenue, detected.revenueColumn),
-    profitColumn: firstString(stored.profitColumn, stored.profit, detected.profitColumn),
-    costColumn: firstString(stored.costColumn, stored.cost, detected.costColumn),
-    dateColumn: firstString(stored.dateColumn, stored.date, detected.dateColumn),
-    productColumn: firstString(stored.productColumn, stored.product, detected.productColumn),
-    regionColumn: firstString(stored.regionColumn, stored.region, detected.regionColumn),
-    fallbackRegionColumn: firstString(stored.fallbackRegionColumn, stored.country, detected.fallbackRegionColumn),
-    currencyColumn: firstString(stored.currencyColumn, stored.currency, detected.currencyColumn),
-    quantityColumn: firstString(stored.quantityColumn, stored.quantity, detected.quantityColumn),
-    costComponents: {
-      ...detected.costComponents,
-      ...Object.fromEntries(
-        Object.entries(storedCostComponents).filter(([, value]) => typeof value === "string" || value === null),
-      ),
-    } as Record<string, string | null>,
-  }
-}
-
-function detectRiskColumns(columns: string[]) {
-  return {
-    stock: findAlias(columns, ["stock", "inventory", "quantity_on_hand", "units_in_stock", "on_hand", "available"]),
-    quantitySold: findAlias(columns, ["quantity_sold", "units_sold", "sold", "sales_units", "qty_sold"]),
-    category: findAlias(columns, ["category", "product_category", "department", "segment", "collection"]),
-    customer: findAlias(columns, ["customer", "customer_id", "client", "client_id", "account", "account_id"]),
-    expense: findAlias(columns, ["expense", "expenses", "operating_expenses", "opex", "spend"]),
-    currency: findAlias(columns, ["currency", "currency_code", "iso_currency"]),
-    date: findAlias(columns, ["date", "order_date", "sale_date", "transaction_date", "month", "period", "created_at"]),
-    product: findAlias(columns, ["product", "product_name", "sku", "item", "item_name", "title"]),
-  }
-}
-
-function findAlias(columns: string[], aliases: string[]) {
-  const normalizedAliases = aliases.map(normalizeDashboardColumnName)
-  return columns.find((column) => {
-    const normalized = normalizeDashboardColumnName(column)
-    return normalizedAliases.some((alias) => normalized === alias || normalized.includes(alias))
-  }) || null
 }
 
 function calculateDeadStockRatio(rows: RiskDataRow[], productColumn: string | null, stockColumn: string | null, soldColumn: string | null) {
@@ -754,6 +903,27 @@ function calculateTopShare(rows: RiskDataRow[], dimensionColumn: string | null, 
   return (top / total) * 100
 }
 
+function calculateRunwayBreachRatio(rows: RiskDataRow[], runwayColumn: string | null) {
+  if (!runwayColumn) return null
+  const values = rows.map((row) => parseNumber(row[runwayColumn])).filter((value): value is number => value !== null)
+  if (values.length === 0) return null
+  const breaches = values.filter((value) => value < 6).length
+  return (breaches / values.length) * 100
+}
+
+function calculateRunwayMonths(rows: RiskDataRow[], cashBalanceColumn: string | null, burnColumn: string | null) {
+  if (!cashBalanceColumn || !burnColumn) return null
+  let latest: { cash: number; burn: number } | null = null
+  for (const row of rows) {
+    const cash = parseNumber(row[cashBalanceColumn])
+    const burn = parseNumber(row[burnColumn])
+    if (cash === null || burn === null || burn <= 0 || cash <= 0) continue
+    latest = { cash, burn }
+  }
+  if (!latest) return null
+  return latest.cash / latest.burn
+}
+
 function calculateMissingRatio(rows: RiskDataRow[], columns: string[]) {
   if (rows.length === 0 || columns.length === 0) return null
   let missing = 0
@@ -781,12 +951,18 @@ function calculateInvalidNumericRatio(rows: RiskDataRow[], columns: string[]) {
   return total > 0 ? (invalid / total) * 100 : null
 }
 
-function calculateInvalidDateRatio(rows: RiskDataRow[], dateColumn: string | null) {
-  if (!dateColumn || rows.length === 0) return null
-  const values = rows.map((row) => row[dateColumn]).filter((value) => !isBlank(value))
-  if (values.length === 0) return null
-  const invalid = values.filter((value) => Number.isNaN(new Date(String(value)).getTime())).length
-  return (invalid / values.length) * 100
+function calculateInvalidDateRatio(rows: RiskDataRow[], dateColumns: string[]) {
+  if (dateColumns.length === 0 || rows.length === 0) return null
+  let invalid = 0
+  let total = 0
+  for (const column of dateColumns) {
+    const values = rows.map((row) => row[column]).filter((value) => !isBlank(value))
+    for (const value of values) {
+      total += 1
+      if (parseCanonicalDate(value) === null) invalid += 1
+    }
+  }
+  return total > 0 ? (invalid / total) * 100 : null
 }
 
 function calculateDuplicateRatio(rows: RiskDataRow[]) {
@@ -809,40 +985,31 @@ function calculateCurrencyInconsistencyRatio(rows: RiskDataRow[], currencyColumn
   return ((values.length - dominant) / values.length) * 100
 }
 
-function calculateClassificationConfidence(input: {
-  revenueColumn: string | null
-  costColumns: string[]
-  productColumn: string | null
-  stockColumn: string | null
-  soldColumn: string | null
-  dateColumn: string | null
-  categoryColumn: string | null
-  customerColumn: string | null
-  precomputedMetrics: unknown
-  businessAnalysis: ReturnType<typeof analyzeBusinessData>
-}) {
-  const signals = [
-    input.revenueColumn,
-    input.costColumns.length > 0 ? "cost" : null,
-    input.productColumn,
-    input.stockColumn,
-    input.soldColumn,
-    input.dateColumn,
-    input.categoryColumn,
-    input.customerColumn,
-    input.businessAnalysis.kpis.totalRevenue !== null ? "kpiRevenue" : null,
-    isRecord(input.precomputedMetrics) && Object.keys(input.precomputedMetrics).length > 0 ? "precomputedMetrics" : null,
-  ].filter(Boolean).length
-  return Math.min(100, Math.round((signals / 10) * 100))
+function calculateClassificationConfidence(profile: SemanticProfile, columns: string[]) {
+  if (columns.length === 0) return 0
+  const confirmed = profile.concepts.filter((mapping) => mapping.status === "confirmed").length
+  return Math.min(100, Math.round((confirmed / columns.length) * 100))
+}
+
+function mappedConceptColumns(profile: SemanticProfile): string[] {
+  return unique(profile.concepts.filter((mapping) => mapping.status === "confirmed").map((mapping) => mapping.sourceColumn))
+}
+
+function mappedConceptColumnsForConcepts(profile: SemanticProfile, concepts: Set<BusinessConcept>): string[] {
+  return unique(
+    profile.concepts
+      .filter((mapping) => mapping.status === "confirmed" && concepts.has(mapping.concept))
+      .map((mapping) => mapping.sourceColumn),
+  )
 }
 
 function groupByPeriod(rows: RiskDataRow[], dateColumn: string, valueColumns: string | string[]) {
   const columns = Array.isArray(valueColumns) ? valueColumns : [valueColumns]
   const periods = new Map<string, number>()
   for (const row of rows) {
-    const date = parseDate(row[dateColumn])
+    const date = parseCanonicalDate(row[dateColumn])
     if (!date) continue
-    const period = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`
+    const period = periodKeyFromDate(date)
     periods.set(period, (periods.get(period) || 0) + sumRowColumns(row, columns))
   }
   return [...periods.entries()]
@@ -883,7 +1050,10 @@ function sumRowColumns(row: RiskDataRow, columns: string[]) {
 }
 
 function metricFromValue(value: number | null, unit: RiskMetric["unit"], source: string): RiskMetric {
-  return { value: value === null ? null : roundMetric(value), available: value !== null && Number.isFinite(value), unit, source }
+  if (value === null || !Number.isFinite(value)) {
+    return { value: null, available: false, unit, source }
+  }
+  return { value: roundMetric(value), available: true, unit, source }
 }
 
 function parseNumber(value: unknown) {
@@ -893,13 +1063,6 @@ function parseNumber(value: unknown) {
   if (!normalized || normalized === "-" || normalized === ".") return null
   const parsed = Number(normalized)
   return Number.isFinite(parsed) ? parsed : null
-}
-
-function parseDate(value: unknown) {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) return value
-  if (typeof value !== "string" && typeof value !== "number") return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
 function getColumns(columns: string[] | null | undefined, rows: RiskDataRow[]) {
@@ -918,8 +1081,15 @@ export function normalizeDatasetType(datasetType?: string | null) {
 }
 
 export function getDatasetTypeLabel(datasetType?: string | null) {
-  const normalized = normalizeDatasetType(datasetType)
-  if (normalized === "prebookkeeping") return "Pre-bookkeeping"
+  const normalized = (datasetType || "standard").trim().toLowerCase()
+  if (normalized === "prebookkeeping" || normalized === "pre-bookkeeping") return "Pre-bookkeeping"
+  if (normalized === "investor") return "Investor Portfolio"
+  if (normalized === "saas") return "SaaS"
+  if (normalized === "marketplace") return "Marketplace"
+  if (normalized === "accountancy" || normalized === "accounting") return "Accountancy"
+  if (normalized === "retail") return "Retail"
+  if (normalized === "profitability") return "Profitability"
+  if (normalized === "standard") return "Standard"
   return normalized.charAt(0).toUpperCase() + normalized.slice(1)
 }
 
@@ -949,14 +1119,6 @@ function unique<T>(values: T[]) {
   return Array.from(new Set(values.filter(Boolean)))
 }
 
-function firstString(...values: unknown[]) {
-  return values.find((value): value is string => typeof value === "string" && value.trim().length > 0) || null
-}
-
-function isRecord(value: unknown): value is RiskDataRow {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value))
-}
-
 function isBlank(value: unknown) {
   return value === null || value === undefined || String(value).trim() === ""
 }
@@ -966,4 +1128,8 @@ function countValues(values: string[]) {
     counts[value] = (counts[value] || 0) + 1
     return counts
   }, {})
+}
+
+function isRecord(value: unknown): value is RiskDataRow {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value))
 }

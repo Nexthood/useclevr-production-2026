@@ -26,6 +26,7 @@ import {
   isPlaceholderValue,
   isNullish
 } from '@/lib/utils/number-parser';
+import { parseCanonicalDate } from '@/lib/data/canonical-date';
 
 const _DATE_PATTERNS = [
   { regex: /^\d{4}-\d{2}-\d{2}$/, format: 'iso' },
@@ -37,7 +38,8 @@ const _DATE_PATTERNS = [
 ];
 
 /**
- * Parse date value to ISO string
+ * Parse date value to ISO string using the canonical date parser so every
+ * module (cleaner, semantic profiler, risk engine) shares one date semantics.
  */
 function parseDateToISO(value: any): { parsed: string | null; wasCleaned: boolean } {
   if (isNullish(value)) {
@@ -51,36 +53,9 @@ function parseDateToISO(value: any): { parsed: string | null; wasCleaned: boolea
     return { parsed: null, wasCleaned: false };
   }
 
-  // Try ISO format first
-  if (/^\d{4}-\d{2}-\d{2}/.test(strValue)) {
-    const d = new Date(strValue);
-    if (!isNaN(d.getTime())) {
-      return { parsed: d.toISOString().split('T')[0], wasCleaned: true };
-    }
-  }
-
-  // US: MM/DD/YYYY
-  const usMatch = strValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (usMatch) {
-    const d = new Date(parseInt(usMatch[3]), parseInt(usMatch[1]) - 1, parseInt(usMatch[2]));
-    if (!isNaN(d.getTime())) {
-      return { parsed: d.toISOString().split('T')[0], wasCleaned: true };
-    }
-  }
-
-  // EU: DD-MM-YYYY or DD.MM.YYYY
-  const euMatch = strValue.match(/^(\d{2})[-.](\d{2})[-.](\d{4})$/);
-  if (euMatch) {
-    const d = new Date(parseInt(euMatch[3]), parseInt(euMatch[2]) - 1, parseInt(euMatch[1]));
-    if (!isNaN(d.getTime())) {
-      return { parsed: d.toISOString().split('T')[0], wasCleaned: true };
-    }
-  }
-
-  // Try native Date parsing as fallback
-  const d = new Date(strValue);
-  if (!isNaN(d.getTime())) {
-    return { parsed: d.toISOString().split('T')[0], wasCleaned: true };
+  const parsedDate = parseCanonicalDate(strValue);
+  if (parsedDate) {
+    return { parsed: parsedDate.toISOString().split('T')[0], wasCleaned: true };
   }
 
   return { parsed: null, wasCleaned: false };
