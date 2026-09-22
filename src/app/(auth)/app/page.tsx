@@ -474,6 +474,11 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
     ...rows.slice(0, 20).flatMap((row) => Object.keys(row)),
   ])
   const fromDetected = (keys: string[]) => keys.map((key) => detected?.[key]).find((value): value is string => typeof value === "string")
+  // Order and customer resolution shares the canonical semantic vocabulary with
+  // the World Map aggregation, so order_id/customer_id concepts cannot diverge
+  // between the dashboard KPIs and the map.
+  const orderMetric = detectGeographicOrderMetric(allColumns, rows)
+  const customerMetric = detectGeographicCustomerMetric(allColumns, rows)
 
   return {
     revenue: fromDetected(["revenueColumn", "revenue"]) || findColumn(allColumns, [/revenue/, /^sales$/, /sales_amount/, /net_sales/, /gross_sales/, /amount/, /turnover/, /total_revenue/]),
@@ -488,8 +493,8 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
     price: findColumn(allColumns, [/price/, /unit_price/, /sale_price/, /retail_price/]),
     category: findColumn(allColumns, [/category/, /department/, /segment/, /type/]),
     region: fromDetected(["regionColumn", "fallbackRegionColumn", "region"]) || findColumn(allColumns, [/country/, /region/, /city/, /state/, /territory/, /market/, /location/]),
-    customer: findColumn(allColumns, [/customer/, /client/, /account/, /company/]),
-    order: findColumn(allColumns, [/order id/, /^order$/, /invoice/, /transaction/]),
+    customer: fromDetected(["customerColumn", "customer"]) || customerMetric?.column || findColumn(allColumns, [/customer/, /client/, /account/, /company/]),
+    order: fromDetected(["orderColumn", "order"]) || (orderMetric?.mode === "distinct" ? orderMetric.column : undefined) || findColumn(allColumns, [/order id/, /^order$/, /invoice/, /transaction/]),
     supplier: findColumn(allColumns, [/supplier/, /vendor/, /brand/]),
     latitude: findColumn(allColumns, [/^lat$/, /latitude/]),
     longitude: findColumn(allColumns, [/^lon$/, /^lng$/, /longitude/]),
