@@ -8507,3 +8507,36 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - Investor valuation-vs-invested-capital exposure and burn-based portfolio risks beyond runway remain future work.
 - The canonical parser's native fallback accepts month-name dates ("Mar 15, 2026") but not ambiguous numeric formats beyond the canonical set; such values surface as data-quality invalid-date evidence instead of being silently interpreted.
 - The uploaded test env for 05_investor_portfolio remains a source-equivalent synthetic 45-row fixture because the sanitized source file is not in the workspace; severity numbers from the user's production dataset cannot be re-derived locally.
+
+## Risk Intelligence Production Invalid-Time-Value Repair
+
+### 1. Request summary
+- Production Railway error after the Risk Intelligence semantic/date hardening: `[RISK_INTELLIGENCE_PAGE] Failed to render risk workspace RangeError: Invalid time value at Date.toISOString(...)` with `requestedScope: 'standard'`, `requestedDatasetId: null`. Trace the exact call, scan the full execution/render path for unguarded date operations, route every untrusted date value through `src/lib/data/canonical-date.ts` without weakening it, keep the parser strict (PC-001-style identifiers and bare numbers stay rejected), reproduce the crash with regression tests plus an Invalid-Date toISOString invariant, and run tests, typecheck, and lint. No UI redesign; no commit or push.
+
+### 2. Exact crashing file/function
+- `src/lib/risk-intelligence/risk-service.ts` → `listRiskIntelligenceDatasets()` (row→summary mapping), lines that executed `dataset.createdAt.toISOString()` and `dataset.updatedAt.toISOString()` directly on stored dataset rows.
+
+### 3. Exact value that reached toISOString()
+- A dataset metadata timestamp from the `datasets` table that the database driver materialized as a JS `Date` whose time value is NaN (an Invalid Date — consistent with a PostgreSQL `infinity`/`-infinity` timestamp or a legacy/imported value outside the driver's parse range). `.toISOString()` exists on the object (so the call is a RangeError, not a TypeError) but throws `Invalid time value`. With `requestedDatasetId=null` the Risk Intelligence page lists up to 100 candidate datasets to determine the initial dataset, so a single such row crashed the render before any dataset was selected.
+
+### 4. Why existing tests missed it
+- `listRiskIntelligenceDatasets` requires a live database, so the existing regression suite only asserted source strings for the service (`dedupeByDatasetId`, `isVisibleRiskDataset`, scope filters) and never executed the row→summary mapping.
+- All engine/fixture datasets carry valid `createdAt`/`updatedAt` metadata; no fixture simulated a candidate row with an invalid or missing timestamp, and the no-selection auto-determination path (requestedDatasetId=null over a mixed workspace) was never exercised end to end.
+
+### 5. Durable changes
+- `src/lib/data/canonical-date.ts`: new `formatCanonicalIsoTimestamp(value)` — validates via the canonical parser (or a direct NaN check for Date instances), returns ISO-8601 for valid values, null for invalid/missing values, and never calls `Date.toISOString` on an Invalid Date. The parser itself stays strict: `PC-001`, `PC-045`, bare numeric identifiers, `infinity`, and arbitrary strings remain rejected as dates.
+- `src/lib/risk-intelligence/risk-service.ts`: row→summary mapping extracted into a pure exported `toRiskDatasetSummary` that cannot throw; `createdAt`/`updatedAt` now format through canonical validation and are typed `string | null`; the listing pipeline (dedupe → summary → visibility → scope) survives one bad candidate row; `RiskDatasetSummary` timestamps documented as nullable. The dataset itself stays listed and selectable.
+- `src/app/(auth)/app/risk-intelligence/page.tsx`: `formatDateTime` validates its value with `parseCanonicalDate` first and renders "Not available" for invalid timestamps instead of calling `Intl.DateTimeFormat.format` on an invalid date.
+- `src/lib/risk-intelligence/risk-engine.ts`: `calculatedAt` (both generic and pre-bookkeeping paths) routes through the same safe formatter with a deterministic fallback, so even the engine's own timestamp output can never execute `toISOString` on an invalid Date.
+- `scripts/risk-intelligence/test-risk-engine.ts`: new regression block — production-crash reproduction (candidate rows with `new Date("not-a-date")` createdAt, `"infinity"` updatedAt, null timestamps; plus a workspace whose rows carry identifier-like `PC-001` values in a date-aliased column under standard scope with no selected dataset), an invariant harness that monkey-patches `Date.prototype.toISOString` to record any call on an Invalid Date and runs the engine, the listing mapping, and a hostile-value corpus under it, timestamp renderability checks (`calculatedAt` always parses canonically), and source invariants pinning the service to `formatCanonicalIsoTimestamp(row.createdAt/updatedAt)` with no direct `.createdAt.toISOString()` and pinning the page to canonical validation before rendering.
+
+### 6. Verification
+- `node -r tsx/esm scripts/risk-intelligence/test-risk-engine.ts` — full suite passes including the new crash reproduction and invariant tests.
+- `pnpm validate:types` (next typegen + tsc --noEmit) exit 0.
+- Neighbor suites pass: csv-edge-cases, csv-analyzer, business semantics engine, trend semantics, dashboard semantic profiles, investor questions golden flow, prebookkeeping export/risk fix pack, business intelligence engine.
+- ESLint 0 errors on all changed files (scripts/ excluded by repo config).
+- Canonical strictness re-verified in tests: `parseCanonicalDate("PC-001")`, `("PC-045")`, `(44744)`, `("infinity")` all return null; identifiers and bare numbers are still rejected.
+
+### 7. Remaining limitations
+- The production database row that carried the invalid timestamp cannot be inspected from the workspace, so the fix is proven by reproduction with the plausible value classes (Invalid Date instance, `infinity` string, null) rather than the live row; the listing now tolerates any of them.
+- Datasets with invalid metadata timestamps still appear in the selector (visibility is not timestamp-based) with null timestamps; the selector does not render timestamps, so no UI change was needed.

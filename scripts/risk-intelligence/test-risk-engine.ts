@@ -10,8 +10,14 @@ import {
   type RiskDatasetInput,
 } from "../../src/lib/risk-intelligence/risk-engine"
 import { RISK_RULES, RISK_SEVERITY_LABELS } from "../../src/lib/risk-intelligence/risk-rules"
-import { parseCanonicalDate, periodKeyFromDate } from "../../src/lib/data/canonical-date"
-import { canAccessRiskDataset, normalizeRiskModuleScope, riskScopeEmptyMessage } from "../../src/lib/risk-intelligence/risk-service"
+import { formatCanonicalIsoTimestamp, parseCanonicalDate, periodKeyFromDate } from "../../src/lib/data/canonical-date"
+import {
+  canAccessRiskDataset,
+  normalizeRiskModuleScope,
+  riskScopeEmptyMessage,
+  toRiskDatasetSummary,
+  type RiskDatasetRow,
+} from "../../src/lib/risk-intelligence/risk-service"
 
 function buildDataset(overrides: Partial<RiskDatasetInput> = {}): RiskDatasetInput {
   return {
@@ -667,4 +673,178 @@ const aggregationFixture = runFixture([
 assert.ok(aggregationFixture, "aggregation fixture produces a result")
 assertExpectedOverallScore(aggregationFixture)
 assertFiniteNumbers(aggregationFixture)
+
+// --- Production crash regression: invalid metadata timestamps ---------------
+
+function runWithoutInvalidToISOString(action: () => void) {
+  const original = Date.prototype.toISOString
+  const violations: string[] = []
+  const patched = function (this: Date) {
+    if (Number.isNaN(this.getTime())) {
+      violations.push("toISOString executed on an Invalid Date")
+    }
+    return original.call(this)
+  }
+  ;(Date.prototype as unknown as { toISOString: () => string }).toISOString = patched
+  try {
+    action()
+  } finally {
+    Date.prototype.toISOString = original
+  }
+  assert.equal(violations.length, 0, violations[0] || "no toISOString violation expected")
+}
+
+const crashCandidateRows: RiskDatasetRow[] = [
+  {
+    id: "ds_invalid_timestamps",
+    name: "05_investor_portfolio",
+    fileName: "05_investor_portfolio.xlsx",
+    rowCount: 45,
+    columnCount: 16,
+    datasetType: "standard",
+    analysis: null,
+    status: "ready",
+    createdAt: new Date("not-a-date"),
+    updatedAt: "infinity",
+  },
+  {
+    id: "ds_missing_timestamps",
+    name: "identifier_value_dataset",
+    fileName: null,
+    rowCount: 2,
+    columnCount: 3,
+    datasetType: "standard",
+    analysis: null,
+    status: "ready",
+    createdAt: null,
+    updatedAt: null,
+  },
+]
+
+const crashSummaries = crashCandidateRows.map((row) => toRiskDatasetSummary(row))
+assert.ok(crashSummaries.every((summary) => summary !== null), "candidate rows with invalid timestamps still produce summaries")
+assert.equal(crashSummaries[0]?.createdAt, null, "invalid Date createdAt formats as null instead of throwing")
+assert.equal(crashSummaries[0]?.updatedAt, null, "'infinity' updatedAt formats as null instead of throwing")
+assert.equal(crashSummaries[0]?.supported, true, "a candidate with invalid metadata stays selectable for risk calculation")
+assert.equal(crashSummaries[1]?.createdAt, null, "missing timestamps format as null")
+
+// standard scope, requestedDatasetId=null: workspace listing + initial dataset
+// determination must complete even when a candidate dataset's rows contain
+// identifier-like values in a date-aliased column.
+const identifierValueRows: RiskDataRow[] = [
+  { date: "PC-001", revenue: 100, cost: 40 },
+  { date: "PC-045", revenue: 120, cost: 50 },
+  { date: "PC-002", revenue: 90, cost: 45 },
+]
+const identifierValueResult = runFixture(identifierValueRows, { name: "identifier_values_fixture" })
+assert.ok(identifierValueResult, "identifier-like date values complete the calculation")
+assert.equal(identifierValueResult.metrics.revenueGrowthPct.available, false, "identifier values never fabricate a revenue trend")
+assert.equal(identifierValueResult.trendComparison, "No previous comparison available.", "identifier-like values produce no trend comparison")
+assert.equal(identifierValueResult.metrics.invalidDateRatio.available, false, "a garbage date column never confirms a period dimension")
+assert.equal(
+  identifierValueResult.findings.some((finding) => finding.ruleId === "financial.revenue_decline.v1"),
+  false,
+  "identifier-like values produce no revenue decline claim",
+)
+assert.ok(
+  identifierValueResult.notApplicableRules.some((rule) => rule.ruleId === "financial.revenue_decline.v1"),
+  "revenue decline reports why it cannot execute for identifier-valued datasets",
+)
+assertFiniteNumbers(identifierValueResult)
+
+runWithoutInvalidToISOString(() => {
+  for (const row of crashCandidateRows) toRiskDatasetSummary(row)
+  calculateRiskIntelligence(
+    {
+      id: "ds_invalid_timestamps",
+      name: "05_investor_portfolio",
+      datasetType: "standard",
+      rowCount: 3,
+      columns: ["date", "revenue", "cost"],
+    },
+    identifierValueRows,
+  )
+  const investorRisk = calculateRiskIntelligence(
+    {
+      id: "synthetic_05_investor_portfolio",
+      name: "05_investor_portfolio",
+      datasetType: "standard",
+      businessModel: "saas",
+      rowCount: 45,
+      columns: null,
+    },
+    investorRows,
+  )
+  assert.ok(investorRisk, "investor portfolio calculation completes under the invariant")
+  assert.ok(Number.isNaN(new Date("not-a-date").getTime()), "hostile date stays invalid")
+  formatCanonicalIsoTimestamp(new Date("not-a-date"))
+  formatCanonicalIsoTimestamp("infinity")
+  formatCanonicalIsoTimestamp("PC-001")
+  formatCanonicalIsoTimestamp(44744)
+  formatCanonicalIsoTimestamp(NaN)
+  formatCanonicalIsoTimestamp(undefined)
+  formatCanonicalIsoTimestamp({ nested: true } as unknown)
+})
+
+// --- Invariant: hostile values never format through an invalid Date ---------
+
+const hostileTimestampValues: unknown[] = [
+  new Date("not-a-date"),
+  new Date(NaN),
+  "infinity",
+  "-infinity",
+  "PC-001",
+  "PC-045",
+  44744,
+  NaN,
+  Infinity,
+  null,
+  undefined,
+  "",
+  "not-a-date",
+  { nested: true },
+  [1, 2, 3],
+  true,
+]
+runWithoutInvalidToISOString(() => {
+  for (const value of hostileTimestampValues) {
+    const formatted = formatCanonicalIsoTimestamp(value)
+    if (formatted !== null) {
+      assert.ok(
+        parseCanonicalDate(formatted) !== null,
+        "formatted timestamps must re-parse canonically",
+      )
+    }
+  }
+})
+assert.equal(formatCanonicalIsoTimestamp(new Date("2026-03-15T10:30:00Z")), "2026-03-15T10:30:00.000Z", "valid timestamps keep their ISO format")
+assert.equal(formatCanonicalIsoTimestamp("2026-03-15"), "2026-03-15T00:00:00.000Z", "canonical date strings format to ISO")
+
+// --- Risk result timestamps stay renderable ---------------------------------
+
+for (const result of [investorResult, concentratedPortfolio, retailResult, ledgerResult, genericResult]) {
+  assert.ok(result, "result exists for timestamp check")
+  assert.ok(parseCanonicalDate(result.calculatedAt) !== null, "calculatedAt always parses canonically")
+}
+assert.equal(
+  runFixture([{ date: "PC-001", revenue: 5 }])?.dataset.semanticDatasetType,
+  "standard",
+  "identifier-valued datasets keep a supported semantic type",
+)
+
+// --- Source invariants: service and page never format unguarded -------------
+
+assert.ok(
+  riskServiceSource.includes("formatCanonicalIsoTimestamp(row.createdAt)") &&
+    riskServiceSource.includes("formatCanonicalIsoTimestamp(row.updatedAt)"),
+  "risk dataset listing formats metadata timestamps through canonical validation",
+)
+assert.ok(
+  !riskServiceSource.includes(".createdAt.toISOString()") && !riskServiceSource.includes(".updatedAt.toISOString()"),
+  "risk dataset listing never calls toISOString directly on dataset metadata",
+)
+assert.ok(
+  riskPageSource.includes("parseCanonicalDate(value)") && riskPageSource.includes("if (!date) return \"Not available\""),
+  "risk page validates timestamps before rendering them",
+)
 

@@ -15,6 +15,7 @@ import {
   type RiskDatasetSummary,
 } from "@/lib/risk-intelligence/risk-service"
 import { RISK_SEVERITY_LABELS, type RiskSeverity } from "@/lib/risk-intelligence/risk-rules"
+import { parseCanonicalDate } from "@/lib/data/canonical-date"
 import { AlertTriangle, ArrowDownWideNarrow, CheckCircle2, Gauge, LockKeyhole, ShieldAlert } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -351,10 +352,12 @@ function formatMetric(value: number, unit: "percent" | "count" | "score") {
 }
 
 function formatDateTime(value: string) {
+  const date = parseCanonicalDate(value)
+  if (!date) return "Not available"
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value))
+  }).format(date)
 }
 
 function safeRiskPageReason(reason: string) {

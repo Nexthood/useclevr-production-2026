@@ -4,7 +4,7 @@ import {
   type CategorizedTransaction,
   type PrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization"
-import { parseCanonicalDate, periodKeyFromDate } from "@/lib/data/canonical-date"
+import { formatCanonicalIsoTimestamp, parseCanonicalDate, periodKeyFromDate } from "@/lib/data/canonical-date"
 import {
   buildBusinessSemanticProfile,
   conceptColumn,
@@ -216,7 +216,7 @@ export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskD
       rowCount: dataset.rowCount ?? normalizedRows.length,
       sourceHref: getDatasetSourceHref(dataset.id, datasetType),
     },
-    calculatedAt: new Date().toISOString(),
+    calculatedAt: serverTimestamp(),
     scope: `Single ${getDatasetTypeLabel(semanticType)} dataset`,
     overallScore,
     overallSeverity,
@@ -264,7 +264,7 @@ export function calculatePrebookkeepingRiskIntelligence(dataset: RiskDatasetInpu
       rowCount: dataset.rowCount ?? transactions.length,
       sourceHref: getDatasetSourceHref(dataset.id, "prebookkeeping"),
     },
-    calculatedAt: new Date().toISOString(),
+    calculatedAt: serverTimestamp(),
     scope: "Single Pre-bookkeeping dataset",
     overallScore,
     overallSeverity,
@@ -1105,6 +1105,10 @@ export function getDatasetSourceHref(datasetId: string, datasetType?: string | n
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, value))
+}
+
+function serverTimestamp() {
+  return formatCanonicalIsoTimestamp(new Date()) ?? "1970-01-01T00:00:00.000Z"
 }
 
 function roundMetric(value: number) {
