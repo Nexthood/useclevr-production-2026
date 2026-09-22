@@ -13,6 +13,8 @@
 
 ### Fixed
 
+- Fix the dashboard World Map so a country shows "N/A" for orders and customers when the uploaded data has no order or customer fields, and unavailable metrics no longer display as 0.
+- Fix the World Map totals and metric tabs so totals report "N/A" and metric tabs disable when no mapped country carries a measured value, keeping missing data separate from measured zero activity.
 - Fix Risk Intelligence so one dataset with a broken or missing created/updated timestamp can no longer crash the whole workspace before a dataset is selected; invalid timestamps render safely as unavailable while the dataset stays selectable.
 - Fix Risk Intelligence so investor portfolio datasets score from portfolio concentration and runway evidence instead of claiming a critical revenue decline from investment amounts, valuations, or portfolio annual revenue, and investment dates validate as dates instead of reporting bogus invalid-date percentages.
 - Fix dataset classification for Risk Intelligence so each rule runs only for its matching business type (retail, ecommerce, SaaS, profitability, accountancy, investor portfolio, or generic business) with semantically confirmed columns, and unsupported rules show as not applicable instead of shaping the score.

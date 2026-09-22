@@ -4,8 +4,13 @@ import { GeographicMapControls } from "@/components/dashboard/geographic-map-con
 import {
   GeographicMapTooltip,
   formatMetric,
+  formatMetricOrUnavailable,
   labelForMetric,
 } from "@/components/dashboard/geographic-map-tooltip";
+import {
+  sumMeasuredGeographicValues,
+  UNAVAILABLE_METRIC_LABEL,
+} from "@/lib/data/geographic-metric-semantics";
 import { geoMercator, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import { scaleSqrt } from "d3-scale";
@@ -17,9 +22,9 @@ export type GeographicMetric = {
   countryName: string;
   latitude: number;
   longitude: number;
-  revenue?: number;
-  orders?: number;
-  customers?: number;
+  revenue?: number | null;
+  orders?: number | null;
+  customers?: number | null;
   datasets?: number;
 };
 
@@ -28,6 +33,7 @@ export type MetricKey = "revenue" | "orders" | "customers" | "datasets";
 type Props = {
   data: GeographicMetric[];
   metric?: MetricKey;
+  availableMetrics?: MetricKey[];
   currency?: string;
   unmappedLocations?: number;
   onCountrySelect?: (country: GeographicMetric) => void;
@@ -48,6 +54,10 @@ type CountryFeature = {
 const MAP_WIDTH = 800;
 const MAP_HEIGHT = 500;
 
+// Invisible interaction target (viewBox units) so small bubbles stay clickable
+// without enlarging the visible metric bubble.
+const MIN_HIT_RADIUS = 14;
+
 const worldTopology = worldTopologyJson as WorldTopology;
 const hasWorldTopology =
   worldTopology.type === "Topology" && Boolean(worldTopology.objects?.countries);
@@ -64,10 +74,15 @@ const pathGenerator = geoPath(projection);
 export function GeographicRevenueMap({
   data,
   metric = "revenue",
+  availableMetrics,
   currency = "USD",
   unmappedLocations = 0,
   onCountrySelect,
 }: Props) {
+  const selectableMetrics = useMemo(
+    () => availableMetrics ?? (["revenue", "orders", "customers", "datasets"] as MetricKey[]),
+    [availableMetrics],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<GeographicMetric | null>(null);
   const [selected, setSelected] = useState<GeographicMetric | null>(null);
@@ -105,14 +120,41 @@ export function GeographicRevenueMap({
     [sortedData, selectedMetric],
   );
   const totalSelectedMetric = values.reduce((total, value) => total + value, 0);
-  const totalRevenue = sortedData.reduce((total, item) => total + Number(item.revenue ?? 0), 0);
-  const totalOrders = sortedData.reduce((total, item) => total + Number(item.orders ?? 0), 0);
+  // null only when no region reports a measured value; measured zeros sum as zeros
+  const totalRevenue = sumMeasuredGeographicValues(sortedData.map((item) => item.revenue ?? null));
+  const totalOrders = sumMeasuredGeographicValues(sortedData.map((item) => item.orders ?? null));
   const topLocation = sortedData[0];
 
   const radiusScale = useMemo(() => {
     const maxValue = Math.max(...values, 1);
     return scaleSqrt().domain([0, maxValue]).range([4, 22]);
   }, [values]);
+
+  // Projected centers depend only on the projection and data; hover and
+  // selection must never re-project or displace them.
+  const projectedPoints = useMemo(
+    () =>
+      new Map(
+        sortedData.map((item) => {
+          const point = projection([item.longitude, item.latitude]);
+          return [item, point ?? null] as const;
+        }),
+      ),
+    [sortedData],
+  );
+
+  // Deterministic marker stacking: large bubbles render first so smaller
+  // bubbles paint on top and win hit-testing in overlaps. Only a selection
+  // raises a marker above the stack; hover never reorders markers.
+  const orderedMarkerData = useMemo(() => {
+    if (!selected) return sortedData;
+    const selectedIndex = sortedData.indexOf(selected);
+    if (selectedIndex < 0) return sortedData;
+    const ordered = [...sortedData];
+    ordered.splice(selectedIndex, 1);
+    ordered.push(selected);
+    return ordered;
+  }, [sortedData, selected]);
 
   if (sortedData.length === 0) {
     return <EmptyGeoState />;
@@ -147,13 +189,6 @@ export function GeographicRevenueMap({
     }
   };
 
-  const projectedPoints = new Map(
-    sortedData.map((item) => {
-      const point = projection([item.longitude, item.latitude]);
-      return [item, point ?? null] as const;
-    }),
-  );
-
   return (
     <div
       ref={containerRef}
@@ -163,6 +198,7 @@ export function GeographicRevenueMap({
         <div className="relative min-h-[390px] overflow-hidden bg-[#08111f] pt-20 sm:min-h-[480px] lg:pt-0">
           <GeographicMapControls
             metric={selectedMetric}
+            availableMetrics={selectableMetrics}
             onMetricChange={setSelectedMetric}
             onZoomIn={() => setZoom((value) => Math.min(value + 0.5, 6))}
             onZoomOut={() => setZoom((value) => Math.max(value - 0.5, 1))}
@@ -193,34 +229,63 @@ export function GeographicRevenueMap({
                   />
                 ))}
               </g>
-              {sortedData.map((item, index) => {
+              {orderedMarkerData.map((item) => {
                 const value = Number(item[selectedMetric] ?? 0);
                 const selectedCountry = selected?.countryCode === item.countryCode;
+                const hoveredCountry = hovered?.countryCode === item.countryCode;
+                const emphasized = hoveredCountry || selectedCountry;
                 const point = projectedPoints.get(item);
 
                 if (!point) return null;
 
+                // The center is the immutable projected coordinate: identical
+                // across normal, hover, and selected for the same zoom state.
+                const x = point[0];
+                const y = point[1];
+                const visualRadius = radiusScale(value);
+                const hitRadius = Math.max(visualRadius, MIN_HIT_RADIUS);
+
                 return (
-                  <circle
-                    key={`${item.countryCode || item.countryName}-${selectedMetric}`}
-                    cx={point[0]}
-                    cy={point[1]}
-                    r={radiusScale(value)}
-                    fill={index === 0 ? "#a78bfa" : "#22d3ee"}
-                    opacity={selectedCountry ? 0.92 : 0.75}
-                    stroke="rgba(255,255,255,0.65)"
-                    strokeWidth={selectedCountry ? 1.5 : 1}
-                    className="cursor-pointer transition-transform hover:scale-110 focus:outline-none"
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`${item.countryName}: ${formatMetric(value, selectedMetric, currency)}`}
-                    onMouseMove={(event) => handleMarkerMove(event, item)}
-                    onMouseLeave={() => setHovered(null)}
-                    onFocus={() => setHovered(item)}
-                    onBlur={() => setHovered(null)}
-                    onClick={() => handleCountrySelect(item)}
-                    onKeyDown={(event) => handleMarkerKeyDown(event, item)}
-                  />
+                  <g key={`${item.countryCode || item.countryName}-${selectedMetric}`}>
+                    {emphasized && (
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={visualRadius + 4}
+                        fill="none"
+                        stroke="rgba(165,243,252,0.55)"
+                        strokeWidth={1.5}
+                        pointerEvents="none"
+                      />
+                    )}
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={visualRadius}
+                      fill={item === topLocation ? "#a78bfa" : "#22d3ee"}
+                      opacity={selectedCountry ? 0.92 : hoveredCountry ? 0.9 : 0.75}
+                      stroke={emphasized ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.65)"}
+                      strokeWidth={emphasized ? 1.5 : 1}
+                      pointerEvents="none"
+                    />
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={hitRadius}
+                      fill="transparent"
+                      pointerEvents="all"
+                      className="cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${item.countryName}: ${formatMetric(value, selectedMetric, currency)}`}
+                      onMouseMove={(event) => handleMarkerMove(event, item)}
+                      onMouseLeave={() => setHovered(null)}
+                      onFocus={() => setHovered(item)}
+                      onBlur={() => setHovered(null)}
+                      onClick={() => handleCountrySelect(item)}
+                      onKeyDown={(event) => handleMarkerKeyDown(event, item)}
+                    />
+                  </g>
                 );
               })}
             </g>
@@ -243,11 +308,11 @@ export function GeographicRevenueMap({
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
             <SummaryCard
               label="Total mapped revenue"
-              value={formatMetric(totalRevenue, "revenue", currency)}
+              value={totalRevenue === null ? UNAVAILABLE_METRIC_LABEL : formatMetric(totalRevenue, "revenue", currency)}
             />
             <SummaryCard
               label="Total mapped orders"
-              value={formatMetric(totalOrders, "orders", currency)}
+              value={totalOrders === null ? UNAVAILABLE_METRIC_LABEL : formatMetric(totalOrders, "orders", currency)}
             />
             <SummaryCard label="Top location" value={topLocation?.countryName || "No data"} />
             <SummaryCard
@@ -315,19 +380,19 @@ export function GeographicRevenueMap({
           <div className="mt-3 grid grid-cols-2 gap-2">
             <SummaryCard
               label="Revenue"
-              value={formatMetric(Number(selected.revenue ?? 0), "revenue", currency)}
+              value={formatMetricOrUnavailable(selected.revenue, "revenue", currency)}
             />
             <SummaryCard
               label="Orders"
-              value={formatMetric(Number(selected.orders ?? 0), "orders", currency)}
+              value={formatMetricOrUnavailable(selected.orders, "orders", currency)}
             />
             <SummaryCard
               label="Customers"
-              value={formatMetric(Number(selected.customers ?? 0), "customers", currency)}
+              value={formatMetricOrUnavailable(selected.customers, "customers", currency)}
             />
             <SummaryCard
               label="Datasets"
-              value={formatMetric(Number(selected.datasets ?? 0), "datasets", currency)}
+              value={formatMetricOrUnavailable(selected.datasets, "datasets", currency)}
             />
           </div>
         </div>

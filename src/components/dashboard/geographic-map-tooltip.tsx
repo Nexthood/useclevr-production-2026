@@ -1,6 +1,7 @@
 "use client"
 
 import type { GeographicMetric, MetricKey } from "@/components/dashboard/geographic-revenue-map"
+import { UNAVAILABLE_METRIC_LABEL } from "@/lib/data/geographic-metric-semantics"
 
 export function GeographicMapTooltip({
   item,
@@ -34,8 +35,8 @@ export function GeographicMapTooltip({
       <p className="text-sm font-semibold text-white">{item.countryName}</p>
       <div className="mt-2 space-y-1.5">
         <TooltipLine label={labelForMetric(metric)} value={formatMetric(value, metric, currency)} accent />
-        <TooltipLine label="Orders" value={formatNumber(Number(item.orders ?? 0))} />
-        {item.customers !== undefined && <TooltipLine label="Customers" value={formatNumber(Number(item.customers ?? 0))} />}
+        <TooltipLine label="Orders" value={formatMetricOrUnavailable(item.orders, "orders", currency)} />
+        {item.customers !== undefined && <TooltipLine label="Customers" value={formatMetricOrUnavailable(item.customers, "customers", currency)} />}
         {item.datasets !== undefined && <TooltipLine label="Datasets" value={formatNumber(Number(item.datasets ?? 0))} />}
         <TooltipLine label="Share" value={`${share.toFixed(1)}%`} />
         <TooltipLine label="Rank" value={`#${rank}`} />
@@ -54,6 +55,16 @@ export function formatMetric(value: number, metric: MetricKey, currency = "USD")
     }).format(value)
   }
   return formatNumber(value)
+}
+
+// Unavailable semantic metrics render as N/A; measured zeros render as 0.
+export function formatMetricOrUnavailable(
+  value: number | null | undefined,
+  metric: MetricKey,
+  currency = "USD",
+) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return UNAVAILABLE_METRIC_LABEL
+  return formatMetric(value, metric, currency)
 }
 
 export function labelForMetric(metric: MetricKey) {

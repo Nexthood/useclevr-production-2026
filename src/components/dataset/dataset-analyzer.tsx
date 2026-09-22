@@ -5,6 +5,11 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 
 
 import { WorldMapRevenue, type RegionData as MapRegionData } from "@/components/ui/world-map-revenue"
+import {
+  detectGeographicCustomerMetric,
+  detectGeographicOrderMetric,
+  readSummedGeographicMetric,
+} from "@/lib/data/geographic-metric-semantics"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -2277,6 +2282,11 @@ function detectProductColumn(columns: string[]): string | null {
   return columns.find(col => /product|item|name|description/i.test(col)) || null;
 }
 
+function formatMapMetricValue(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "N/A"
+  return value.toLocaleString()
+}
+
 // World Map Chart component - shows interactive world map with revenue bubbles
 function WorldMapChart({ 
   rawData,
@@ -2304,21 +2314,33 @@ function WorldMapChart({
       debugLog('[WorldMapChart] Detected columns:', { geoCol, revenueCol, ordersCol, growthCol, categoryCol, productCol });
       
       if (geoCol && revenueCol) {
-        const agg: Record<string, { revenue: number; orders: number; growth: number | null; topCategory: string | undefined; topProduct: string | undefined }> = {};
+        const orderMetric = detectGeographicOrderMetric(columns, rawData);
+        const customerMetric = detectGeographicCustomerMetric(columns, rawData);
+        const agg: Record<string, { revenue: number; orderIds: Set<string>; orderTotal: number; customerIds: Set<string>; growth: number | null; topCategory: string | undefined; topProduct: string | undefined }> = {};
         
         rawData.forEach(r => {
           const key = String(r[geoCol] || 'Unknown').trim() || 'Unknown';
           const revenue = parseFloat(String(r[revenueCol])) || 0;
-          const orders = ordersCol ? (parseFloat(String(r[ordersCol])) || 0) : 0;
           const growth = growthCol ? (parseFloat(String(r[growthCol])) || null) : null;
           const category = categoryCol ? String(r[categoryCol] || '') : '';
           const product = productCol ? String(r[productCol] || '') : '';
           
           if (!agg[key]) {
-            agg[key] = { revenue: 0, orders: 0, growth: null, topCategory: undefined, topProduct: undefined };
+            agg[key] = { revenue: 0, orderIds: new Set(), orderTotal: 0, customerIds: new Set(), growth: null, topCategory: undefined, topProduct: undefined };
           }
           agg[key].revenue += revenue;
-          agg[key].orders += orders;
+          if (orderMetric) {
+            if (orderMetric.mode === "sum") {
+              agg[key].orderTotal += readSummedGeographicMetric([r], orderMetric.column);
+            } else {
+              const orderId = String(r[orderMetric.column] ?? '').trim();
+              if (orderId) agg[key].orderIds.add(orderId);
+            }
+          }
+          if (customerMetric) {
+            const customerId = String(r[customerMetric.column] ?? '').trim();
+            if (customerId) agg[key].customerIds.add(customerId);
+          }
           if (growth !== null) agg[key].growth = growth;
           if (category && !agg[key].topCategory) agg[key].topCategory = category;
           if (product && !agg[key].topProduct) agg[key].topProduct = product;
@@ -2328,7 +2350,8 @@ function WorldMapChart({
           .map(([name, data]) => ({
             name,
             revenue: data.revenue,
-            orders: data.orders,
+            orders: orderMetric ? (orderMetric.mode === "sum" ? data.orderTotal : data.orderIds.size) : null,
+            customers: customerMetric ? data.customerIds.size : null,
             profit: data.revenue * 0.3, // Approximate
             margin: 30,
             growth: data.growth,
@@ -2384,9 +2407,9 @@ function WorldMapChart({
             <div>
               <p className="font-semibold text-foreground">{selectedRegion.name}</p>
               <p className="text-sm text-muted-foreground">
-                Revenue: {selectedRegion.revenue?.toLocaleString()}
-                {selectedRegion.orders ? ` • Orders: ${selectedRegion.orders.toLocaleString()}` : ''}
-                {selectedRegion.growth !== null ? ` • Growth: ${selectedRegion.growth >= 0 ? '+' : ''}${selectedRegion.growth.toFixed(1)}%` : ''}
+                Revenue: {formatMapMetricValue(selectedRegion.revenue)}
+                {selectedRegion.orders !== null ? ` • Orders: ${selectedRegion.orders.toLocaleString()}` : ''}
+                {selectedRegion.growth != null ? ` • Growth: ${selectedRegion.growth >= 0 ? '+' : ''}${selectedRegion.growth.toFixed(1)}%` : ''}
               </p>
               {selectedRegion.topCategory && (
                 <p className="text-xs text-muted-foreground mt-1">
