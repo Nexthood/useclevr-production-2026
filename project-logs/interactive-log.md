@@ -1,3 +1,47 @@
+## 2026-09-23 — Risk Intelligence Explainability UX Polish
+
+1. Interaction title
+   Presentation-only restructuring of the expanded Risk Intelligence finding into business-first progressive disclosure (What happened / Why this severity / Recommended investigation / Technical calculation details), with scoring, evidence generation, and engine behavior unchanged and no commits or pushes.
+
+2. What was the user goal
+   Turn the dense technical explanation into a layout a business user understands in seconds while keeping every piece of deterministic evidence available for audit: a clean baseline → current comparison block using dynamic values, a compact threshold explanation with the matched band obvious, a clearly visible recommended-investigation block, and implementation-oriented detail behind one additional disclosure; responsive on desktop/tablet/mobile, accessible (keyboard, focus, text-carried severity), generic across every rule and dataset class, with regression tests proving the structure, no duplicated scoring constants, and no hardcoded fixtures.
+
+3. What changed
+    - `src/app/(auth)/app/risk-intelligence/page.tsx` (only production file): `RiskFindingRow` now composes four sections — `RiskWhatHappenedSection`, `RiskWhySeveritySection`, `RiskInvestigationSection`, `RiskTechnicalSection` — inside the existing outer disclosure; the old single-column text dump and `RiskEvidenceBlock` were replaced.
+    - What happened: when evidence carries periods compared plus both absolute and relative change (genuine period-over-period deltas), it renders Previous → Current comparison cards ("Previous"/"Current" caption badges, dynamic labels and displays, arrow that rotates on narrow screens with an sr-only "changed to"), Absolute change / Relative change stat chips, and the compared periods; all other evidence shapes render a responsive labeled value-card grid plus a Change line (when absolute change exists) and a metric-labeled value line (when only a share/ratio exists), so rules like dead stock, concentration, net margin, runway, and data quality render correctly without empty cards.
+    - Why <severity>: Measured / <severity> threshold / Risk score trio, the severity reason sentence, the full threshold ladder (severity label, condition display, score, matched band highlighted with border/background and the text "— matched"), and the business interpretation.
+    - Recommended investigation: action block rendering `explanation.investigation`; the duplicate row-level recommendation paragraph was removed.
+    - Technical calculation details: secondary nested `<details>` (collapsed) with rule score, importance weight, weighted contribution + the not-a-monetary-estimate note, category formula (mono, wrapping), source metric, source columns, compared periods, row scope, and the unavailable list.
+    - Accessibility/responsive: native `<details>/<summary>` preserved with `focus-visible:ring-2` visible focus on both disclosures; `sr-only` text for the arrow; severity and matched-band meaning carried in text; `sm:`/`lg:` grid stacking, `min-w-0` + `break-words` against horizontal overflow.
+    - `scripts/risk-intelligence/test-risk-explainability.ts` gains section 8: UI/source assertions proving ordering (business summary before technical details), the secondary `<summary>` disclosure, measured value + threshold + score visibility, investigation/contribution/interpretation/not-a-monetary-estimate availability, no duplicated scoring constants (`≤ -20`, `≤ -5`, `1.15`, `round((`, …) and no hardcoded fixtures (`2026-01`, `24,994`, `-32.7`, …) in presentation code, responsive (`sm:grid-cols`, `lg:grid-cols`, `min-w-0`, `break-words`, `sm:rotate-0`) and accessibility (`focus-visible:ring-2`, `sr-only`, `RISK_SEVERITY_LABELS[band.severity]`, "— matched") classes, and all rendered evidence sourced from `RiskFindingExplanation`.
+    - Engine, thresholds, severity bands, weights, aggregation, evidence generation, applicability, and API shape are untouched.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the comparison-card layout intentionally appears only for evidence with compared periods plus both change measures; other rules render the value grid, so the layout adapts per evidence shape rather than assuming a trend metric.
+   - improvement: none beyond the restructure itself.
+   - observation: the summary-text source assertions must tolerate JSX formatting, so the test matches `<summary>…</summary>` with whitespace-tolerant regex instead of single-line substrings.
+
+5. User learning
+   The expanded finding now reads top-down: what changed (with baseline → current values), how serious it is and why (threshold ladder with the matched band), what to investigate, and — one more click down — the exact formulas for auditability.
+
+6. AI-agent learning
+   Progressive disclosure works best when sections render conditionally on evidence shape rather than rule identity: gating the comparison cards on "periods compared + absolute + relative change" keeps the presentation rule-agnostic while still producing the familiar Previous → Current view for trend rules.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - UI: `src/app/(auth)/app/risk-intelligence/page.tsx`
+   - Regression pins: `scripts/risk-intelligence/test-risk-explainability.ts` (section 8)
+   - Release notes: `CHANGELOG.md`; product requirements: `requirements.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
 ## 2026-09-23 — Risk Intelligence Explainability Audit + Fix
 
 1. Interaction title

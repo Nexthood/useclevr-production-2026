@@ -13,6 +13,10 @@
 - Add one authoritative credit pricing table so every credit action shows and charges the same amount: dataset uploads with their standard analysis cost 10 credits, AI Analyst messages cost 1 credit, report generation and regeneration cost 3 credits, forecasts cost 3 credits, profitability analysis costs 15 credits, and downloading an existing report stays free.
 - Add internal per-request AI token tracking so Gemini input, output, and thinking tokens are recorded for unit-economics analysis without changing customer credit prices.
 
+### Changed
+
+- Restructure the expanded Risk Intelligence finding so it opens with what happened, why the severity applies, and the recommended investigation, while the exact scoring formulas move behind a secondary "Technical calculation details" disclosure.
+
 ### Fixed
 
 - Fix Risk Intelligence rule details so the internal ranking value appears as a labeled weighted contribution to the category score (rule score × rule importance) instead of a bare "Impact" number.

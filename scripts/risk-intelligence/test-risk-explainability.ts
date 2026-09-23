@@ -450,4 +450,70 @@ const strip = (result: RiskIntelligenceResult) => {
 }
 assert.equal(strip(first), strip(second), "risk explanations are deterministic across runs")
 
+// ============================================================================
+// 8. Explainability UX structure: business-first progressive disclosure
+// ============================================================================
+
+assert.ok(riskPageSource.includes("What happened"), "the expanded finding leads with the business summary")
+assert.ok(
+  riskPageSource.includes("Why {finding.severityLabel}?"),
+  "the severity explanation renders for every severity level",
+)
+assert.ok(riskPageSource.includes("Recommended investigation"), "the recommended investigation is a labeled action block")
+assert.match(
+  riskPageSource,
+  /<summary[^>]*>\s*Technical calculation details\s*<\/summary>/,
+  "technical calculation details sit behind their own secondary disclosure",
+)
+assert.ok(
+  riskPageSource.indexOf("What happened") < riskPageSource.indexOf("Technical calculation details"),
+  "the business summary renders before the technical details",
+)
+assert.ok(
+  riskPageSource.indexOf("Recommended investigation") < riskPageSource.indexOf("Technical calculation details"),
+  "the recommended investigation renders before the technical details",
+)
+assert.ok(
+  (riskPageSource.match(/<details/g) || []).length >= 2,
+  "the finding uses the outer explanation disclosure plus the nested technical disclosure",
+)
+assert.ok(riskPageSource.includes("explanation.evidence.whatHappened"), "what-happened evidence stays rendered")
+assert.ok(riskPageSource.includes("explanation.metricDisplay"), "the measured value stays visible in the severity explanation")
+assert.ok(riskPageSource.includes("explanation.threshold.display"), "the crossed threshold stays visible in the severity explanation")
+assert.ok(riskPageSource.includes("finding.score"), "the risk score stays visible in the severity explanation")
+assert.ok(riskPageSource.includes("explanation.threshold.severityReason"), "the severity reason stays rendered")
+assert.ok(riskPageSource.includes("explanation.evidence.interpretation"), "the business interpretation stays rendered")
+assert.ok(riskPageSource.includes("explanation.investigation"), "the recommended investigation renders from the explanation")
+assert.ok(riskPageSource.includes("explanation.score.contributionDisplay"), "the weighted contribution stays available")
+assert.ok(riskPageSource.includes("explanation.score.contributionNote"), "the not-a-monetary-estimate note stays available")
+assert.ok(riskPageSource.includes("evidence.sourceMetric"), "the evidence source stays available in technical details")
+assert.ok(riskPageSource.includes("evidence.sourceColumns"), "source columns stay available in technical details")
+assert.ok(riskPageSource.includes("evidence.scope"), "row scope stays available in technical details")
+assert.ok(riskPageSource.includes("evidence.unavailable"), "unavailable evidence stays declared, never fabricated")
+assert.ok(riskPageSource.includes("finding.explanation"), "all rendered explanation content is sourced from RiskFindingExplanation")
+
+// No scoring constants duplicated in presentation code.
+for (const scoringConstant of ["≤ -20", "≤ -5", "≤ -10", "≤ -3", "≤ -15", "≥ 35", "≥ 50", "≥ 70", "1.15", "0.95", "round(("]) {
+  assert.ok(
+    !riskPageSource.includes(scoringConstant),
+    `presentation code does not duplicate the scoring constant "${scoringConstant}"`,
+  )
+}
+// No hardcoded ecommerce/date/value fixtures in production UI.
+for (const fixtureValue of ["2026-01", "2026-02", "2026-03", "March 2026", "April 2026", "24,994", "16,816", "2,400", "1,616", "-32.7", "32.7%"]) {
+  assert.ok(!riskPageSource.includes(fixtureValue), `presentation code does not hardcode the fixture value "${fixtureValue}"`)
+}
+// Responsive behavior: comparison cards stack, long values wrap, no overflow.
+assert.ok(riskPageSource.includes("sm:grid-cols"), "value comparison cards stack on narrow screens")
+assert.ok(riskPageSource.includes("lg:grid-cols"), "the finding layout adapts at desktop widths")
+assert.ok(riskPageSource.includes("min-w-0"), "value cards cannot force horizontal overflow")
+assert.ok(riskPageSource.includes("break-words"), "long source columns and formulas wrap safely")
+assert.ok(riskPageSource.includes("sm:rotate-0"), "the comparison arrow reorients on narrow screens")
+// Accessibility: text-carried meaning and visible focus.
+assert.ok(riskPageSource.includes("focus-visible:ring-2"), "disclosure summaries expose a visible keyboard focus state")
+assert.ok(riskPageSource.includes("sr-only"), "the comparison arrow carries a screen-reader text alternative")
+assert.ok(riskPageSource.includes("RISK_SEVERITY_LABELS[band.severity]"), "the severity ladder names severity in text, not color alone")
+assert.ok(riskPageSource.includes("— matched"), "the matched threshold band is labeled in text")
+assert.ok(riskPageSource.includes("finding.explanation"), "all rendered evidence comes from the finding explanation contract")
+
 console.log("Risk Intelligence explainability tests passed.")
