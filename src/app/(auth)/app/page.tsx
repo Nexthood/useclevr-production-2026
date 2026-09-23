@@ -5,6 +5,7 @@ import { GenerateReportAction } from "@/components/dashboard/generate-report-act
 import { auth } from "@/lib/auth/auth"
 import {
   detectGeographicCustomerMetric,
+  detectGeographicLocationColumn,
   detectGeographicOrderMetric,
   mergeGeographicMetricValues,
   readSummedGeographicMetric,
@@ -486,6 +487,10 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
   // between the dashboard KPIs and the map.
   const orderMetric = detectGeographicOrderMetric(allColumns, rows)
   const customerMetric = detectGeographicCustomerMetric(allColumns, rows)
+  // Geography resolves through the canonical location resolver (country tier
+  // first) shared with the Dataset Analyzer, so the same dataset maps the same
+  // locations in both modules.
+  const locationColumn = detectGeographicLocationColumn(allColumns, rows)?.column
 
   return {
     revenue: fromDetected(["revenueColumn", "revenue"]) || findColumn(allColumns, [/revenue/, /^sales$/, /sales_amount/, /net_sales/, /gross_sales/, /amount/, /turnover/, /total_revenue/]),
@@ -499,7 +504,7 @@ function detectColumns(datasetsToInspect: DashboardDataset[], rows: DataRow[]): 
     stock: findColumn(allColumns, [/stock/, /inventory/, /inventory_level/, /quantity_on_hand/, /units_in_stock/, /on_hand/, /available/]),
     price: findColumn(allColumns, [/price/, /unit_price/, /sale_price/, /retail_price/]),
     category: findColumn(allColumns, [/category/, /department/, /segment/, /type/]),
-    region: fromDetected(["regionColumn", "fallbackRegionColumn", "region"]) || findColumn(allColumns, [/country/, /region/, /city/, /state/, /territory/, /market/, /location/]),
+    region: fromDetected(["regionColumn", "fallbackRegionColumn", "region"]) || locationColumn || findColumn(allColumns, [/country/, /region/, /city/, /state/, /territory/, /market/, /location/]),
     customer: fromDetected(["customerColumn", "customer"]) || customerMetric?.column || findColumn(allColumns, [/customer/, /client/, /account/, /company/]),
     order: fromDetected(["orderColumn", "order"]) || (orderMetric?.mode === "distinct" ? orderMetric.column : undefined) || findColumn(allColumns, [/order id/, /^order$/, /invoice/, /transaction/]),
     supplier: findColumn(allColumns, [/supplier/, /vendor/, /brand/]),

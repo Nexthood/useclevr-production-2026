@@ -10,6 +10,7 @@ import { buildProfileCalculationLayer } from "@/lib/business/company-calculation
 import { getCompanySetup } from "@/lib/business/company-setup-store";
 import type { CSVAnalysisResult, DatasetRecord } from "@/lib/data/csv-analyzer";
 import { analyzeCSV } from "@/lib/data/csv-analyzer";
+import { parseCanonicalDate } from "@/lib/data/canonical-date";
 import type { DatasetAnalysis } from "@/lib/data/dataset-analyzer";
 import { analyzeDataset, generateAIExecutiveSummary } from "@/lib/data/dataset-analyzer";
 import { buildDatasetIntelligenceEngine, type DatasetIntelligenceEngineResult } from "@/lib/data/dataset-intelligence-engine";
@@ -407,11 +408,10 @@ export async function POST(
         }
 
         // Check for date (only if not already detected as numeric)
+        // The canonical parser rejects identifier-shaped strings ("ORD-00001")
+        // that the native Date parser silently converts into dates.
         if (!hasNumeric) {
-          const hasDate = data.some((r) => {
-            const val = r[col];
-            return typeof val === "string" && !isNaN(Date.parse(val));
-          });
+          const hasDate = data.some((r) => parseCanonicalDate(r[col]) !== null);
           if (hasDate) {
             dateCols.push(col);
             colTypes[col] = "date";
@@ -529,12 +529,21 @@ export async function POST(
     };
 
     // Generate AI Executive Summary - USE business_analysis data for accurate KPIs
-    // This ensures Executive Summary matches the KPI cards
+    // This ensures Executive Summary matches the KPI cards, including the
+    // resolved profit definition (source profit field, recognized cost
+    // components, or margin-based estimate) instead of a parallel formula.
     try {
       // Merge business_analysis data into executiveAnalysis for the summary
       const enrichedAnalysis = {
         ...executiveAnalysis,
         totalRevenue: businessAnalysis.kpis.totalRevenue ?? executiveAnalysis.totalRevenue,
+        avgRevenue: businessAnalysis.kpis.avgRevenue ?? executiveAnalysis.avgRevenue,
+        avgRevenueBasis: businessAnalysis.kpis.avgRevenueBasis,
+        totalProfit: businessAnalysis.kpis.totalProfit,
+        profitMargin: businessAnalysis.kpis.profitMargin,
+        profitReliability: businessAnalysis.kpis.profitReliability,
+        profitDefinition: businessAnalysis.kpis.profitDefinition,
+        profitSourceColumns: businessAnalysis.kpis.profitSourceColumns,
         topProducts: businessAnalysis.kpis.topProducts,
         topRegions: businessAnalysis.kpis.topRegions,
         detectedColumns: detectedColumns,

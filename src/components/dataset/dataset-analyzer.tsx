@@ -7,6 +7,7 @@ import { debugError, debugLog } from "@/lib/utils/debug"
 import { WorldMapRevenue, type RegionData as MapRegionData } from "@/components/ui/world-map-revenue"
 import {
   detectGeographicCustomerMetric,
+  detectGeographicLocationColumn,
   detectGeographicOrderMetric,
   readSummedGeographicMetric,
 } from "@/lib/data/geographic-metric-semantics"
@@ -38,10 +39,13 @@ interface CSVAnalysisResult {
     kpis: {
       totalRevenue: number | null
       avgRevenue: number | null
+      avgRevenueBasis?: 'order' | 'row'
       totalCost?: number | null
       totalProfit: number | null
       profitMargin: number | null
       profitReliability: 'verified' | 'derived' | 'unavailable'
+      profitDefinition?: 'source_profit' | 'cost_component_profit' | 'estimated_margin_profit' | 'unavailable'
+      profitSourceColumns?: string[]
       topProducts: { name: string; revenue: number; percentage: number }[]
       topRegions: { name: string; revenue: number; percentage: number }[]
       worstProducts: { name: string; profit: number }[]
@@ -71,6 +75,7 @@ interface CSVAnalysisResult {
       dateColumn: string | null
       productColumn: string | null
       regionColumn: string | null
+      fallbackRegionColumn?: string | null
     }
     businessProfileContext?: {
       profileInputs: {
@@ -189,12 +194,17 @@ export function DatasetAnalyzer({
     const detected = analysis?.business_analysis?.detectedColumns
     const kpis = analysis?.business_analysis?.kpis
     const revenueAvailable = !!detected?.revenueColumn && kpis?.totalRevenue !== null
+    // Canonical location column: the analyzer resolves geography through the
+    // same resolver as the Dashboard. regionColumn and fallbackRegionColumn
+    // carry the same canonical column, so a country-only dataset can never be
+    // treated as non-geographic here while the Dashboard maps it.
+    const locationColumn = detected?.regionColumn || detected?.fallbackRegionColumn || null
     // Validate numeric usability for cost column from raw data
     const hasValidCostNumeric = (() => {
       const col = detected?.costColumn
       if (!col || !data || data.length === 0) return false
       let valid = 0
-      for (const row of data.slice(0, 50)) {
+      for (const row of data) {
         const v = (row as Record<string, unknown>)[col as string]
         if (v === null || v === undefined || v === '') continue
         const n = Number(v)
@@ -210,9 +220,9 @@ export function DatasetAnalyzer({
     const hasValidRevenueSeries = revenueAvailable
     const hasValidCostSeries = hasValidCostNumeric
     const trendAvailable = !!detected?.dateColumn && (hasValidRevenueSeries || hasValidCostSeries)
-    const regionRankingAvailable = !!detected?.regionColumn && revenueAvailable
+    const regionRankingAvailable = !!locationColumn && revenueAvailable
     const productRankingAvailable = !!detected?.productColumn && revenueAvailable
-    return { revenueAvailable, costAvailable, profitAvailable, trendAvailable, regionRankingAvailable, productRankingAvailable }
+    return { revenueAvailable, costAvailable, profitAvailable, trendAvailable, regionRankingAvailable, productRankingAvailable, locationColumn }
   }, [analysis, data])
   
   // Generate validated insights from computed KPIs
@@ -237,13 +247,14 @@ export function DatasetAnalyzer({
       })
     }
     
-    // Profit insight
+    // Profit insight - definition-aware label matches the resolved formula
     if (capabilities.profitAvailable && kpis.totalProfit !== null) {
       const profitLabel = kpis.totalProfit >= 0 ? 'profit' : 'loss'
+      const definitionText = profitDefinitionText(kpis.profitDefinition, kpis.profitSourceColumns)
       insights.push({
-        message: `Total ${profitLabel}: ${formatCurrencyForKPI(Math.abs(kpis.totalProfit))}`,
+        message: `${definitionText} total ${profitLabel}: ${formatCurrencyForKPI(Math.abs(kpis.totalProfit))}`,
         type: 'profit',
-        evidence: `Profit: ${formatCurrencyForKPI(kpis.totalProfit)}`,
+        evidence: `Profit (${definitionText}): ${formatCurrencyForKPI(kpis.totalProfit)}`,
         reliability: 'verified'
       })
     }
@@ -289,10 +300,11 @@ export function DatasetAnalyzer({
       })
     }
     
-    // Average transaction value
+    // Average transaction/order value - the basis follows the detected order identity
     if (capabilities.revenueAvailable && kpis.avgRevenue !== null) {
+      const averageLabel = kpis.avgRevenueBasis === 'order' ? 'Average order value' : 'Average transaction value'
       insights.push({
-        message: `Average transaction value: ${formatCurrencyForKPI(kpis.avgRevenue)}`,
+        message: `${averageLabel}: ${formatCurrencyForKPI(kpis.avgRevenue)}`,
         type: 'average',
         evidence: `Average: ${formatCurrencyForKPI(kpis.avgRevenue)}`,
         reliability: 'verified'
@@ -302,7 +314,30 @@ export function DatasetAnalyzer({
     return insights
   }, [analysis, capabilities])
   
-  // Generate validated recommendations from computed KPIs with strict triggers
+type AnalyzerProfitDefinition = NonNullable<
+  NonNullable<CSVAnalysisResult['business_analysis']>['kpis']['profitDefinition']
+>
+
+// Shared profit definition labels: the Dataset Analyzer and its summary must
+// never rename one profit concept into another. One definition, one label.
+function profitDefinitionText(
+  definition: AnalyzerProfitDefinition | undefined,
+  sourceColumns?: string[],
+): string {
+  const source = Array.isArray(sourceColumns) && sourceColumns.length > 0 ? sourceColumns[0] : null
+  switch (definition) {
+    case 'source_profit':
+      return `Dataset profit (source field: ${source ?? 'profit'})`
+    case 'cost_component_profit':
+      return 'Profit after recognized dataset costs'
+    case 'estimated_margin_profit':
+      return 'Estimated profit'
+    default:
+      return 'Total profit'
+  }
+}
+
+// Generate validated recommendations from computed KPIs with strict triggers
   const getValidatedRecommendations = React.useCallback(() => {
     if (!analysis?.business_analysis?.kpis) return []
     
@@ -689,48 +724,10 @@ export function DatasetAnalyzer({
   // ============================================================================
   // Data Detection Helpers
   // ============================================================================
+  // Geography and revenue column fallbacks live at module level and share the
+  // canonical geographic resolver, so every view in this component resolves the
+  // same columns from the same data.
   
-  // Detect revenue column with priority: Revenue_USD > revenue > sales > amount > total
-  const detectRevenueColumn = (cols: string[], rawData: any[]): string | null => {
-    // Priority order for revenue columns
-    const priorityKeywords = ['revenue_usd', 'revenue', 'sales', 'amount', 'total', 'income', 'value'];
-    
-    for (const kw of priorityKeywords) {
-      const found = cols.find(c => 
-        c.toLowerCase().includes(kw) && 
-        !c.toLowerCase().includes('fx') && 
-        !c.toLowerCase().includes('rate') &&
-        !c.toLowerCase().includes('cost')
-      );
-      if (found) {
-        // Verify it's a valid numeric column
-        let validCount = 0;
-        for (const row of rawData.slice(0, 30)) {
-          const val = row[found];
-          if (val === null || val === undefined || val === '') continue;
-          const num = parseFloat(String(val));
-          if (!isNaN(num) && isFinite(num) && num > 0) {
-            validCount++;
-          }
-        }
-        if (validCount >= 5) return found;
-      }
-    }
-    return null;
-  };
-  
-  // Detect region/continent column
-  const detectRegionColumn = (cols: string[]): string | null => {
-    const regionKeywords = ['region', 'continent', 'territory', 'area', 'zone'];
-    return cols.find(c => regionKeywords.some(kw => c.toLowerCase().includes(kw))) || null;
-  };
-  
-  // Detect country column
-  const detectCountryColumn = (cols: string[]): string | null => {
-    const countryKeywords = ['country', 'nation', 'market', 'location'];
-    return cols.find(c => countryKeywords.some(kw => c.toLowerCase().includes(kw))) || null;
-  };
-
   // ============================================================================
   // Render
   // ============================================================================
@@ -1129,30 +1126,34 @@ export function DatasetAnalyzer({
                {capabilities.profitAvailable && (
                <div 
                    className="bg-card rounded-xl p-5 flex flex-col justify-between min-h-[140px] border border-border hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 cursor-pointer group"
-                   onClick={() => {
-                     const kpis = analysis!.business_analysis!.kpis;
-                     const reliability = kpis.profitReliability || 'unavailable';
-                     const reliabilityLabel = reliability === 'verified' ? 'Verified' : reliability === 'derived' ? 'Derived' : 'Unavailable';
-                    const explanation = reliability === 'derived' 
-                      ? 'Profit is derived from revenue and margin (no cost data available in dataset).'
-                      : reliability === 'verified'
-                      ? 'Profit calculated from actual cost data in your dataset.'
-                      : 'Total profit is the net earnings after subtracting all costs from revenue. It indicates the actual financial health and sustainability of your business.';
-                    setDrilldownItem({
-                      type: 'kpi',
-                      title: 'Total Profit',
-                      value: kpis.totalProfit !== null ? formatCurrencyForKPI(kpis.totalProfit) : 'No data',
-                      explanation,
-                      supportingData: [
-                        { label: 'Revenue', value: kpis.totalRevenue ? formatCurrencyForKPI(kpis.totalRevenue) : 'N/A' },
-                        { label: 'Margin', value: kpis.profitMargin !== null ? formatPercentSimple(kpis.profitMargin) : 'N/A' },
-                        { label: 'Calculation', value: reliabilityLabel },
-                        { label: 'Negative Products', value: kpis.worstProducts?.length ? `${kpis.worstProducts.length} products` : 'None' }
-                      ],
-                      nextActions: ['Review underperforming products', 'Analyze cost structure', 'Identify high-margin items'],
-                      reliability
-                    })
-                  }}
+                  onClick={() => {
+                      const kpis = analysis!.business_analysis!.kpis;
+                      const reliability = kpis.profitReliability || 'unavailable';
+                      const reliabilityLabel = reliability === 'verified' ? 'Verified' : reliability === 'derived' ? 'Derived' : 'Unavailable';
+                     const definitionText = profitDefinitionText(kpis.profitDefinition, kpis.profitSourceColumns);
+                     const explanation = reliability === 'derived' 
+                       ? 'Estimated profit: derived from revenue and margin (no cost data available in dataset).'
+                       : reliability === 'verified'
+                       ? `${definitionText}. This value follows the dataset's resolved profit definition and is not adjusted for Business Profile fixed costs, insurance, employer contributions, or tax.`
+                       : 'Total profit is the net earnings after subtracting all costs from revenue. It indicates the actual financial health and sustainability of your business.';
+                     setDrilldownItem({
+                       type: 'kpi',
+                       title: definitionText,
+                       value: kpis.totalProfit !== null ? formatCurrencyForKPI(kpis.totalProfit) : 'No data',
+                       explanation,
+                       supportingData: [
+                         { label: 'Revenue', value: kpis.totalRevenue ? formatCurrencyForKPI(kpis.totalRevenue) : 'N/A' },
+                         { label: 'Margin', value: kpis.profitMargin !== null ? formatPercentSimple(kpis.profitMargin) : 'N/A' },
+                         { label: 'Definition', value: definitionText },
+                         { label: 'Source', value: kpis.profitSourceColumns?.length ? kpis.profitSourceColumns.join(', ') : (reliability === 'derived' ? 'Revenue and margin estimate' : 'N/A') },
+                         { label: 'Calculation', value: reliabilityLabel },
+                         { label: 'Profile-adjusted profit', value: 'See Business Profile Context card' },
+                         { label: 'Negative Products', value: kpis.worstProducts?.length ? `${kpis.worstProducts.length} products` : 'None' }
+                       ],
+                       nextActions: ['Review underperforming products', 'Analyze cost structure', 'Identify high-margin items'],
+                       reliability
+                     })
+                   }}
                 >
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium text-center group-hover:text-foreground transition-colors">Total Profit</span>
@@ -1330,7 +1331,7 @@ export function DatasetAnalyzer({
                   <p>Cost / Expense Overview: Total expenses {formatCurrencyForKPI(analysis!.business_analysis!.kpis!.totalCost)}.</p>
                 )}
                 {capabilities.profitAvailable && typeof analysis!.business_analysis!.kpis!.totalProfit === 'number' && (
-                  <p>Profitability: Net {analysis!.business_analysis!.kpis!.totalProfit >= 0 ? 'profit' : 'loss'} {formatCurrencyForKPI(Math.abs(analysis!.business_analysis!.kpis!.totalProfit))}{typeof analysis!.business_analysis!.kpis!.profitMargin === 'number' ? `; margin ${formatPercentSimple(analysis!.business_analysis!.kpis!.profitMargin)}` : ''}.</p>
+                  <p>Profitability: {profitDefinitionText(analysis!.business_analysis!.kpis.profitDefinition, analysis!.business_analysis!.kpis.profitSourceColumns)} — {analysis!.business_analysis!.kpis!.totalProfit >= 0 ? 'profit' : 'loss'} {formatCurrencyForKPI(Math.abs(analysis!.business_analysis!.kpis!.totalProfit))}{typeof analysis!.business_analysis!.kpis!.profitMargin === 'number' ? `; margin ${formatPercentSimple(analysis!.business_analysis!.kpis!.profitMargin)}` : ''}.</p>
                 )}
                 {capabilities.trendAvailable && analysis!.business_analysis!.kpis!.growthValid && typeof analysis!.business_analysis!.kpis!.growthPercentage === 'number' && (
                   <p>Growth / Trend: {analysis!.business_analysis!.kpis!.growthPercentage >= 0 ? 'Growth' : 'Decline'} of {formatPercentage(analysis!.business_analysis!.kpis!.growthPercentage)} over the measured period.</p>
@@ -1425,6 +1426,7 @@ export function DatasetAnalyzer({
                     <WorldMapChart 
                       rawData={data} 
                       breakdowns={analysis.business_analysis.breakdowns}
+                      detectedColumns={analysis.business_analysis.detectedColumns}
                       businessModel={businessModel}
                     />
                   </CardContent>
@@ -1746,11 +1748,13 @@ export function DatasetAnalyzer({
                 // PRIMARY: Use breakdowns data (processed from analysis)
                 // With Region/Country toggle for drilldown
                 if ((regionData && regionData.length > 0) || (data && data.length > 0)) {
-                  // Get columns for dynamic detection
+                  // Get columns for dynamic detection through the canonical
+                  // geographic resolver so region/country granularity is shared
+                  // with the World Revenue Map and the Dashboard.
                   const cols = data && data.length > 0 ? Object.keys(data[0]) : [];
-                  const revenueCol = detectRevenueColumn(cols, data);
-                  const regionCol = detectRegionColumn(cols);
-                  const countryCol = detectCountryColumn(cols);
+                  const revenueCol = analysis?.business_analysis?.detectedColumns?.revenueColumn || detectRevenueColumn(cols, data);
+                  const regionCol = detectGeographicLocationColumn(cols, data, { scope: 'regional' })?.column || null;
+                  const countryCol = detectGeographicLocationColumn(cols, data, { scope: 'country' })?.column || null;
                   
                   // Get data based on view mode
                   const getAggregatedData = () => {
@@ -1767,10 +1771,10 @@ export function DatasetAnalyzer({
                           .filter(item => item.value > 0)
                           .sort((a, b) => b.value - a.value);
                       }
-                      groupCol = regionCol || detectRegionColumn(cols);
+                      groupCol = regionCol;
                     } else {
                       // For country view, always aggregate from raw data
-                      groupCol = countryCol || detectCountryColumn(cols);
+                      groupCol = countryCol;
                     }
                     
                     if (!groupCol) return null;
@@ -2117,7 +2121,7 @@ export function DatasetAnalyzer({
                   {(() => {
                     const columns = Object.keys(data[0] || {});
                     const numericCol = detectRevenueColumn(columns, data);
-                    const groupCol = detectRegionColumn(columns) || detectCountryColumn(columns) || columns.find(c => c !== numericCol);
+                    const groupCol = detectGeographicLocationColumn(columns, data)?.column || columns.find(c => c !== numericCol);
                     
                     if (!numericCol || !groupCol) {
                       return <p className="text-muted-foreground">Could not find suitable columns for visualization.</p>;
@@ -2254,32 +2258,47 @@ interface Breakdowns {
   revenueByProduct?: Record<string, number>;
 }
 
-// Geographic column detection
-const GEOGRAPHIC_COLUMNS = ['country', 'region', 'city', 'market', 'location', 'state', 'province', 'territory', 'area', 'zone'];
-const REVENUE_COLUMNS = ['revenue_eur', 'revenue', 'sales', 'amount', 'total_sales', 'net_sales', 'order_total', 'total'];
-
-function detectGeographicColumns(columns: string[]): string | null {
-  return columns.find(col => GEOGRAPHIC_COLUMNS.some(geo => col.toLowerCase().includes(geo))) || null;
+interface DetectedColumnsLite {
+  revenueColumn: string | null
+  profitColumn?: string | null
+  regionColumn?: string | null
+  fallbackRegionColumn?: string | null
 }
 
-function detectRevenueColumn(columns: string[]): string | null {
-  return columns.find(col => REVENUE_COLUMNS.some(rev => col.toLowerCase().includes(rev))) || null;
+// Client-side fallbacks used only when a stored analysis predates server-side
+// column detection. Server-provided detectedColumns always take precedence.
+const REVENUE_FALLBACK_PATTERNS = [/^revenue(_|$)/, /^sales(_|$)/, /^amount(_|$)/, /^total(_|$)/, /^income(_|$)/, /^net_sales/, /^gross_sales/]
+
+function detectRevenueColumn(cols: string[], rawData: any[]): string | null {
+  for (const pattern of REVENUE_FALLBACK_PATTERNS) {
+    const found = cols.find((c) => pattern.test(c.toLowerCase().trim().replace(/\s+/g, "_")))
+    if (!found) continue
+    let validCount = 0
+    for (const row of rawData) {
+      const val = row[found]
+      if (val === null || val === undefined || val === '') continue
+      const num = parseFloat(String(val))
+      if (!isNaN(num) && isFinite(num) && num > 0) validCount++
+      if (validCount >= 5) return found
+    }
+  }
+  return null
 }
 
 function detectOrdersColumn(columns: string[]): string | null {
-  return columns.find(col => /order|quantity|unit|count/i.test(col)) || null;
+  return columns.find(col => /order|quantity|unit|count/i.test(col)) || null
 }
 
 function detectGrowthColumn(columns: string[]): string | null {
-  return columns.find(col => /growth|pct|percent|change/i.test(col)) || null;
+  return columns.find(col => /growth|pct|percent|change/i.test(col)) || null
 }
 
 function detectCategoryColumn(columns: string[]): string | null {
-  return columns.find(col => /category|product|type|segment/i.test(col)) || null;
+  return columns.find(col => /category|product|type|segment/i.test(col)) || null
 }
 
 function detectProductColumn(columns: string[]): string | null {
-  return columns.find(col => /product|item|name|description/i.test(col)) || null;
+  return columns.find(col => /product|item|name|description/i.test(col)) || null
 }
 
 function formatMapMetricValue(value: number | null | undefined) {
@@ -2287,14 +2306,20 @@ function formatMapMetricValue(value: number | null | undefined) {
   return value.toLocaleString()
 }
 
-// World Map Chart component - shows interactive world map with revenue bubbles
+// World Map Chart component - shows interactive world map with revenue bubbles.
+// Geography resolves through the canonical location resolver shared with the
+// Dashboard, so the same dataset maps the same locations in both modules.
+// Profit and margin are never fabricated here: without a source profit field
+// they stay unavailable instead of becoming estimated values.
 function WorldMapChart({ 
   rawData,
   breakdowns,
+  detectedColumns,
   businessModel,
 }: { 
   rawData?: any[]; 
   breakdowns?: Breakdowns;
+  detectedColumns?: DetectedColumnsLite;
   businessModel: BusinessModel;
 }) {
   const [selectedRegion, setSelectedRegion] = React.useState<MapRegionData | null>(null);
@@ -2304,19 +2329,24 @@ function WorldMapChart({
 
     if (rawData && rawData.length > 0) {
       const columns = Object.keys(rawData[0] || {});
-      const geoCol = detectGeographicColumns(columns);
-      const revenueCol = detectRevenueColumn(columns);
+      // Canonical location column: server-resolved first, canonical resolver as fallback
+      const geoCol = detectedColumns?.regionColumn
+        || detectedColumns?.fallbackRegionColumn
+        || detectGeographicLocationColumn(columns, rawData)?.column
+        || null;
+      const revenueCol = detectedColumns?.revenueColumn || detectRevenueColumn(columns, rawData);
       const ordersCol = detectOrdersColumn(columns);
       const growthCol = detectGrowthColumn(columns);
       const categoryCol = detectCategoryColumn(columns);
       const productCol = detectProductColumn(columns);
+      const profitCol = detectedColumns?.profitColumn || null;
       
-      debugLog('[WorldMapChart] Detected columns:', { geoCol, revenueCol, ordersCol, growthCol, categoryCol, productCol });
+      debugLog('[WorldMapChart] Detected columns:', { geoCol, revenueCol, ordersCol, growthCol, categoryCol, productCol, profitCol });
       
       if (geoCol && revenueCol) {
         const orderMetric = detectGeographicOrderMetric(columns, rawData);
         const customerMetric = detectGeographicCustomerMetric(columns, rawData);
-        const agg: Record<string, { revenue: number; orderIds: Set<string>; orderTotal: number; customerIds: Set<string>; growth: number | null; topCategory: string | undefined; topProduct: string | undefined }> = {};
+        const agg: Record<string, { revenue: number; profit: number | null; orderIds: Set<string>; orderTotal: number; customerIds: Set<string>; growth: number | null; topCategory: string | undefined; topProduct: string | undefined }> = {};
         
         rawData.forEach(r => {
           const key = String(r[geoCol] || 'Unknown').trim() || 'Unknown';
@@ -2326,9 +2356,15 @@ function WorldMapChart({
           const product = productCol ? String(r[productCol] || '') : '';
           
           if (!agg[key]) {
-            agg[key] = { revenue: 0, orderIds: new Set(), orderTotal: 0, customerIds: new Set(), growth: null, topCategory: undefined, topProduct: undefined };
+            agg[key] = { revenue: 0, profit: null, orderIds: new Set(), orderTotal: 0, customerIds: new Set(), growth: null, topCategory: undefined, topProduct: undefined };
           }
           agg[key].revenue += revenue;
+          if (profitCol) {
+            const profitValue = parseFloat(String(r[profitCol]));
+            if (!Number.isNaN(profitValue) && Number.isFinite(profitValue)) {
+              agg[key].profit = (agg[key].profit ?? 0) + profitValue;
+            }
+          }
           if (orderMetric) {
             if (orderMetric.mode === "sum") {
               agg[key].orderTotal += readSummedGeographicMetric([r], orderMetric.column);
@@ -2352,8 +2388,9 @@ function WorldMapChart({
             revenue: data.revenue,
             orders: orderMetric ? (orderMetric.mode === "sum" ? data.orderTotal : data.orderIds.size) : null,
             customers: customerMetric ? data.customerIds.size : null,
-            profit: data.revenue * 0.3, // Approximate
-            margin: 30,
+            // Profit only from the resolved source profit field; never estimated here
+            profit: data.profit ?? undefined,
+            margin: data.profit !== null && data.revenue > 0 ? (data.profit / data.revenue) * 100 : null,
             growth: data.growth,
             topCategory: data.topCategory,
             topProduct: data.topProduct,
@@ -2375,7 +2412,7 @@ function WorldMapChart({
     
     debugLog('[WorldMapChart] No geographic column detected');
     return [];
-  }, [rawData, breakdowns]);
+  }, [rawData, breakdowns, detectedColumns]);
 
   const handleRegionClick = (region: MapRegionData) => {
     setSelectedRegion(region);

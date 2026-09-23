@@ -604,8 +604,11 @@ Write 2-4 executive sentences that explain the main outcome, risk, or opportunit
 }
 
 /**
- * Generate a fallback summary when AI is not available
- * Provides executive-style insights based on accurate computed values
+ * Generate a fallback summary when AI is not available.
+ * Provides executive-style insights based on accurate computed values.
+ * Every line derives from the same resolved business KPIs that power the KPI
+ * cards (including the resolved profit definition), never from a parallel
+ * formula, so the summary cannot disagree with the displayed metrics.
  */
 function generateFallbackSummary(analysis: DatasetAnalysis): string {
   const parts: string[] = [];
@@ -621,56 +624,65 @@ function generateFallbackSummary(analysis: DatasetAnalysis): string {
     }).format(value);
   };
   
-  // Calculate accurate top region
-  const categoryDist = analysis.categoryDistribution || {};
-  const sortedEntries = Object.entries(categoryDist).sort((a, b) => (b[1]?.revenue || 0) - (a[1]?.revenue || 0));
-  const topEntry = sortedEntries[0];
+  const a = analysis as any;
   
   // Check if we have valid growth data
-  const a = analysis as any;
   const hasValidGrowth = a.growthValid && 
     a.growthPercentage !== null && 
-    a.growthPercentage !== undefined &&
-    a.previousRevenue !== null &&
-    a.previousRevenue !== undefined &&
-    a.previousRevenue > 0;
+    a.growthPercentage !== undefined;
   
-  // Calculate profit and margin if available
-  // Use 30% COGS fallback if no cost column exists
-  const hasProfitData = a.detectedColumns?.profitColumn || a.detectedColumns?.costColumn;
-  const revenue = analysis.totalRevenue || 0;
-  const cost = a.totalCost || (revenue * 0.3); // Fallback: assume 30% costs if no cost column
-  const profit = hasProfitData ? revenue - cost : revenue * 0.7; // Always calculate profit
-  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+  const revenue = a.totalRevenue ?? analysis.totalRevenue ?? null;
   
   // 1. Revenue line - only show growth if valid previous period exists
-  if (revenue > 0) {
+  if (revenue !== null && revenue > 0) {
     if (hasValidGrowth) {
       const gp = a.growthPercentage;
       const growthSign = gp >= 0 ? '+' : '';
       const trendText = gp >= 0 ? 'increase' : 'decline';
       parts.push(`Revenue totals ${formatCurrency(revenue)}, representing a ${growthSign}${gp.toFixed(2)}% ${trendText} compared to the previous period.`);
     } else {
-      parts.push(`Revenue totals ${formatCurrency(revenue)} for the selected period.`);
+      parts.push(`Revenue totals ${formatCurrency(revenue)} for the analyzed period.`);
     }
   }
   
-  // 2. Profit and margin line - only if cost data available
-  if (hasProfitData && profit !== null && margin !== null) {
-    parts.push(`Gross profit reached ${formatCurrency(profit)} with a ${margin.toFixed(2)}% margin.`);
+  // 2. Profit line - only from the resolved profit definition, never a fallback formula
+  const profitReliability = a.profitReliability as string | undefined;
+  const totalProfit = typeof a.totalProfit === 'number' ? a.totalProfit : null;
+  const profitMargin = typeof a.profitMargin === 'number' ? a.profitMargin : null;
+  if (profitReliability && profitReliability !== 'unavailable' && totalProfit !== null) {
+    const definitionText = profitSummaryDefinition(a.profitDefinition, a.profitSourceColumns);
+    const profitLabel = totalProfit >= 0 ? 'profit' : 'loss';
+    const marginText = profitMargin !== null ? ` with a ${profitMargin.toFixed(2)}% margin` : '';
+    parts.push(`${definitionText} reached ${formatCurrency(Math.abs(totalProfit))} in ${profitLabel}${marginText}.`);
   }
   
   // 3. Top product line
-  const topProduct = (analysis as any).topProducts?.[0];
+  const topProduct = a.topProducts?.[0];
   if (topProduct) {
     parts.push(`The top-performing product was ${topProduct.name}, generating ${formatCurrency(topProduct.revenue)} (${topProduct.percentage?.toFixed(2)}% of total revenue).`);
   }
   
-  // 4. Top region line
-  if (topEntry) {
-    const percentage = topEntry[1]?.percentage || 0;
-    parts.push(`${topEntry[0]} contributed ${percentage.toFixed(2)}% of total revenue.`);
+  // 4. Top region line - revenue share comes from the resolved location column
+  const hasLocationData = Boolean(a.detectedColumns?.regionColumn || a.detectedColumns?.fallbackRegionColumn);
+  const topRegion = a.topRegions?.[0];
+  if (hasLocationData && topRegion) {
+    const percentage = topRegion.percentage || 0;
+    parts.push(`${topRegion.name} contributed ${percentage.toFixed(2)}% of total revenue.`);
   }
   
   return parts.join(' ');
+}
+
+function profitSummaryDefinition(definition: unknown, sourceColumns: unknown): string {
+  const source = Array.isArray(sourceColumns) && sourceColumns.length > 0 ? String(sourceColumns[0]) : null;
+  switch (definition) {
+    case 'source_profit':
+      return `Profit from source field ${source ?? 'profit'} (dataset-native)`;
+    case 'cost_component_profit':
+      return 'Profit after recognized dataset cost components';
+    case 'estimated_margin_profit':
+      return 'Estimated profit (revenue minus estimated costs)';
+    default:
+      return 'Profit';
+  }
 }
