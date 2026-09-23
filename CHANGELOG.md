@@ -13,6 +13,11 @@
 
 ### Fixed
 
+- Fix the Dataset Analyzer world map so datasets with a country column always show their mapped locations: the map, the region rankings, and the dashboard now resolve geography from one shared location resolver, and the map only shows profit when the uploaded data carries a real profit field.
+- Fix Dataset Analyzer profit labeling so the displayed profit names its exact definition (dataset profit field, profit after recognized costs, or an estimate), the dataset's own profit field is used as the source when present, and profile-adjusted profit stays a separately labeled Business Profile calculation.
+- Fix analysis date detection so order identifiers, invoice numbers, and decimal values no longer pass as dates, growth and date ranges now derive only from genuine calendar columns, and refund amounts, payout fields, and marketplace GMV no longer count as revenue.
+- Fix the Dataset Analyzer executive summary so its numbers come from the same resolved KPIs as the metric cards instead of a parallel estimate.
+
 - Fix the dashboard World Map so its revenue, orders, and customer totals aggregate the same dataset rows as the KPI cards instead of only the rows inside the default 30-day window.
 - Fix the dashboard World Map so a country shows "N/A" for orders and customers when the uploaded data has no order or customer fields, and unavailable metrics no longer display as 0.
 - Fix the World Map totals and metric tabs so totals report "N/A" and metric tabs disable when no mapped country carries a measured value, keeping missing data separate from measured zero activity.

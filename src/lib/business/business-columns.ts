@@ -1,4 +1,10 @@
 import { debugLog } from "@/lib/utils/debug";
+import { parseCanonicalDate } from "@/lib/data/canonical-date";
+import {
+  detectGeographicLocationColumn,
+  detectGeographicOrderMetric,
+  readDistinctGeographicEntities,
+} from "@/lib/data/geographic-metric-semantics";
 
 // ============================================================================
 // UNIVERSAL COST COLUMN DETECTOR
@@ -127,6 +133,20 @@ const REVENUE_PATTERNS = [
 // profit without an explicit semantic mapping (e.g. investor portfolio data).
 const INVESTMENT_FIELD_PATTERN = /invest|valuation|ownership|stake|burn|runway|funding|capital|equity|irr|moic|dividend|growth_rate|portfolio/;
 
+// Money-like fields that describe deductions, refunds, or payouts must never
+// become revenue: refund_amount is not sales and seller_payout is not income.
+// GMV describes gross merchandise value, not company revenue (the canonical
+// semantic profile blocks the same conflation).
+const REVENUE_RESERVED_PATTERN = /refund|return|payout|cost|expense|discount|tax|fee|gmv|gross_merchandise/;
+
+// Margin columns are ratios, not additive amounts: a gross_margin percentage
+// must never become a profit source field that gets summed.
+const PROFIT_RESERVED_PATTERN = /margin|rate|pct|percent/;
+
+// Marketplace GMV and valuation fields describe merchandise value or company
+// valuation, not products or SKUs.
+const PRODUCT_RESERVED_PATTERN = /gmv|gross_merchandise|merchandise_value|valuation|revenue|profit|cost|price|amount/;
+
 function isReservedMonetaryField(normalizedName: string): boolean {
   return INVESTMENT_FIELD_PATTERN.test(normalizedName);
 }
@@ -141,18 +161,22 @@ const PROFIT_PATTERNS = [
   'gross_margin', 'profit_margin', 'income', 'net_income'
 ];
 
-const REGION_PATTERNS = [
-  'region', 'country', 'geo', 'location', 'market', 'territory',
-  'area', 'zone', 'state', 'province', 'city', 'country_code',
-  'country_iso', 'nation', 'geography'
-];
+// Geography resolves through the canonical location resolver
+// (geographic-metric-semantics.ts) so the Dashboard and the Dataset Analyzer
+// agree on the same location column for the same dataset. The legacy substring
+// REGION_PATTERNS list was removed because raw substring matching turned
+// non-geographic columns such as marketing_spend into regions.
 
 const PRODUCT_PATTERNS = [
   'product', 'item', 'sku', 'variant', 'name', 'title', 'product_name',
   'item_name', 'product_title', 'goods', 'merchandise', 'description'
 ];
 
-function findColumnByPatterns(columns: string[], patterns: string[]): string | null {
+function findColumnByPatterns(
+  columns: string[],
+  patterns: string[],
+  reservedPatterns: RegExp[] = [],
+): string | null {
   const normalizedCols = columns.map(c => ({ original: c, normalized: normalizeColumnName(c) }));
   
   for (const pattern of patterns) {
@@ -160,7 +184,8 @@ function findColumnByPatterns(columns: string[], patterns: string[]): string | n
       (c.normalized.includes(pattern) || 
       c.normalized === pattern ||
       pattern === c.normalized) &&
-      !isReservedMonetaryField(c.normalized)
+      !isReservedMonetaryField(c.normalized) &&
+      !reservedPatterns.some(reserved => reserved.test(c.normalized))
     );
     if (match) return match.original;
   }
@@ -207,26 +232,35 @@ function hasNonZeroValues(rows: any[], column: string): boolean {
 }
 
 // ============================================================================
-// Helper: Validate date column (≥30% parseable, ≥2 distinct months)
+// Helper: Validate date column (≥30% plausible parseable, ≥2 distinct months)
+// The canonical date parser rejects identifier-shaped strings ("ORD-00001")
+// and decimal values that the native Date parser silently turns into dates.
+// Bare four-digit numbers only count as dates when they are plausible years,
+// so money values such as 2555 never become a time axis.
 // ============================================================================
 
+function isPlausibleDateValue(value: unknown): boolean {
+  const date = parseCanonicalDate(value);
+  if (!date) return false;
+  const text = String(value ?? '').trim();
+  if (/^\d{4}$/.test(text)) {
+    const year = date.getUTCFullYear();
+    return year >= 1900 && year <= 2100;
+  }
+  return true;
+}
+
 function isValidDateColumn(rows: any[], column: string): boolean {
-  const parseableCount = rows.filter(r => {
-    const val = r[column];
-    return typeof val === 'string' && val.trim() !== '' && !isNaN(Date.parse(val));
-  }).length;
+  const parseableCount = rows.filter(r => isPlausibleDateValue(r[column])).length;
   
-  if (parseableCount < rows.length * 0.3) return false;
+  if (rows.length === 0 || parseableCount < rows.length * 0.3) return false;
   
   // Check for at least 2 distinct months
   const months = new Set<string>();
   rows.forEach(r => {
-    const val = r[column];
-    if (typeof val === 'string') {
-      const date = new Date(val);
-      if (!isNaN(date.getTime())) {
-        months.add(`${date.getFullYear()}-${date.getMonth()}`);
-      }
+    const date = parseCanonicalDate(r[column]);
+    if (date && isPlausibleDateValue(r[column])) {
+      months.add(`${date.getUTCFullYear()}-${date.getUTCMonth()}`);
     }
   });
   
@@ -266,12 +300,13 @@ export function detectBusinessColumns(rows: any[]): DetectedBusinessColumns {
     };
   }
   
-  // 🔍 Revenue Detection - UNIVERSAL (matches any variant, numeric-validated)
-  const revenueCandidate = findColumnByPatterns(columns, REVENUE_PATTERNS);
+  // 🔍 Revenue Detection - UNIVERSAL (matches any variant, numeric-validated;
+  // refunds, payouts, and cost-like fields never become revenue)
+  const revenueCandidate = findColumnByPatterns(columns, REVENUE_PATTERNS, [REVENUE_RESERVED_PATTERN]);
   const revenueColumn = revenueCandidate && isNumericColumn(rows, revenueCandidate) ? revenueCandidate : null;
   
-  // 💰 Profit Detection - UNIVERSAL (numeric-validated)
-  const profitCandidate = findColumnByPatterns(columns, PROFIT_PATTERNS);
+  // 💰 Profit Detection - UNIVERSAL (numeric-validated; ratio columns excluded)
+  const profitCandidate = findColumnByPatterns(columns, PROFIT_PATTERNS, [REVENUE_RESERVED_PATTERN, PROFIT_RESERVED_PATTERN]);
   const profitColumn = profitCandidate && isNumericColumn(rows, profitCandidate) ? profitCandidate : null;
   
   // Cost Detection - UNIVERSAL (validated)
@@ -288,15 +323,19 @@ export function detectBusinessColumns(rows: any[]): DetectedBusinessColumns {
     isValidDateColumn(rows, col)
   ) || null;
   
-  // 🛍 Product Detection - UNIVERSAL
-  const productColumn = findColumnByPatterns(columns, PRODUCT_PATTERNS);
+  // 🛍 Product Detection - UNIVERSAL (GMV and valuation fields are not products)
+  const productColumn = findColumnByPatterns(columns, PRODUCT_PATTERNS, [PRODUCT_RESERVED_PATTERN]);
   
-  // 🌍 Region Detection - UNIVERSAL (try region first, then country)
-  const regionColumn = findColumnByPatterns(columns, REGION_PATTERNS.filter(p => p !== 'country')) || null;
-  const countryColumn = columns.find(col => /country|nation|geo|location/i.test(col)) || null;
-  
-  // Use region if found, otherwise use country as fallback
-  const fallbackRegionColumn = regionColumn || countryColumn;
+  // 🌍 Region Detection - canonical resolver (country tier first, then region)
+  // Both regionColumn and fallbackRegionColumn carry the same canonical column
+  // so UI capability gates cannot treat a country-only dataset as
+  // non-geographic while the Dashboard maps it.
+  const locationColumn = detectGeographicLocationColumn(
+    columns,
+    rows as Record<string, unknown>[],
+  );
+  const regionColumn = locationColumn?.column ?? null;
+  const fallbackRegionColumn = regionColumn;
   
   // 💱 Currency Detection
   const currencyColumn = columns.find(col => 
@@ -315,7 +354,6 @@ export function detectBusinessColumns(rows: any[]): DetectedBusinessColumns {
     date: dateColumn,
     product: productColumn,
     region: regionColumn,
-    country: countryColumn,
     fallbackRegion: fallbackRegionColumn,
     costComponents: detectedCostComponents
   });
@@ -347,6 +385,9 @@ export interface BusinessKPIs {
   totalProfit: number | null;
   profitMargin: number | null;
   profitReliability: 'verified' | 'derived' | 'unavailable';  // How profit was calculated
+  profitDefinition: 'source_profit' | 'cost_component_profit' | 'estimated_margin_profit' | 'unavailable';
+  profitSourceColumns: string[];  // Source fields or formula inputs behind totalProfit
+  avgRevenueBasis: 'order' | 'row';  // Average revenue per distinct order or per row
   
   // Top Performers
   topProducts: { name: string; revenue: number; percentage: number }[];
@@ -419,13 +460,19 @@ export function analyzeBusinessData(
   let totalShipping = 0;
   let totalRefunds = 0;
   let totalDiscount = 0;
+  let totalSourceProfit = 0;
   let validRevenueCount = 0;
+  let validSourceProfitCount = 0;
   let flagFinancialError = false;
   
   const revenueByProduct: Record<string, number> = {};
   const revenueByRegion: Record<string, number> = {};
   const profitByProduct: Record<string, number> = {};
   const profitByRegion: Record<string, number> = {};
+  const orderIdentityColumn = detectGeographicOrderMetric(
+    Object.keys(rows[0] || {}),
+    rows as Record<string, unknown>[],
+  );
   
   rows.forEach(r => {
     // Get revenue
@@ -468,10 +515,21 @@ export function analyzeBusinessData(
     totalRefunds += refunds;
     totalDiscount += discount;
     
-    // Calculate TRUE PROFIT per row (spec formula: revenue - cogs - marketing - shipping - refunds)
+    // Profit per row follows the resolved profit definition:
+    // - source_profit: the dataset's own profit field is authoritative
+    // - otherwise the spec formula (revenue - cogs - marketing - shipping - refunds)
     // Note: discount is NOT subtracted from profit per the spec
     if (revenueColumn) {
-      const rowProfit = revValue - cogs - marketing - shipping - refunds;
+      const rowProfit = profitColumn
+        ? (parseFloat(String(r[profitColumn])) || 0)
+        : revValue - cogs - marketing - shipping - refunds;
+      if (profitColumn) {
+        const sourceProfitValue = parseFloat(String(r[profitColumn]));
+        if (!isNaN(sourceProfitValue)) {
+          totalSourceProfit += sourceProfitValue;
+          validSourceProfitCount++;
+        }
+      }
       
       // Aggregate profit by product
       if (productColumn) {
@@ -487,9 +545,9 @@ export function analyzeBusinessData(
     }
   });
   
-  // Total TRUE PROFIT (spec formula: revenue - cogs - marketing - shipping - refunds)
-  // Note: discount is NOT included per spec
-  const totalProfit = totalRevenue - totalCOGS - totalMarketing - totalShipping - totalRefunds;
+  // Total profit follows the resolved profit definition (see profitDefinition).
+  const componentProfit = totalRevenue - totalCOGS - totalMarketing - totalShipping - totalRefunds;
+  const totalProfit = profitColumn && validSourceProfitCount > 0 ? totalSourceProfit : componentProfit;
   
   // FINANCIAL VALIDATION
   if (totalProfit > totalRevenue) {
@@ -508,29 +566,50 @@ export function analyzeBusinessData(
     flagFinancialError 
   });
   
-  // Calculate avg and margin using TRUE PROFIT
+  // Calculate avg and margin using the resolved profit definition.
   // Spec: If revenue == 0 → return null. Round margin to 1 decimal.
-  const avgRevenue = validRevenueCount > 0 ? totalRevenue / validRevenueCount : 0;
+  // A recognized order identity makes the average per distinct order (matching
+  // the Dashboard's Average Order Value semantics); otherwise it is per row.
+  const orderIdentityCount = orderIdentityColumn && orderIdentityColumn.mode === "distinct"
+    ? readDistinctGeographicEntities(rows as Record<string, unknown>[], orderIdentityColumn.column)
+    : 0;
+  const avgRevenueBasis: 'order' | 'row' = orderIdentityCount > 0 ? 'order' : 'row';
+  const avgRevenue = avgRevenueBasis === 'order'
+    ? totalRevenue / orderIdentityCount
+    : validRevenueCount > 0 ? totalRevenue / validRevenueCount : 0;
   const profitMargin = totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 1000) / 10 : null;
   
-  // Determine profit reliability after profitMargin is calculated:
-  // - 'verified': profit column exists OR real cost columns exist (not estimated)
-  // - 'derived': no profit/cost columns but revenue and margin are available
+  // Determine profit reliability and definition after profitMargin is calculated:
+  // - 'verified' + source_profit: a dataset-native profit field is authoritative
+  // - 'verified' + cost_component_profit: recognized cost components (not estimated)
+  // - 'derived' + estimated_margin_profit: no profit/cost columns; margin-based estimate
   // - 'unavailable': cannot calculate profit at all
-  // Check if we have real cost data (not estimated)
   const hasRealCostData = costComponents?.cogs || costComponents?.marketing_cost || costComponents?.shipping_cost || costComponents?.refunds;
   let profitReliability: 'verified' | 'derived' | 'unavailable' = 'unavailable';
+  let profitDefinition: BusinessKPIs['profitDefinition'] = 'unavailable';
+  let profitSourceColumns: string[] = [];
   let finalProfit = totalProfit;
   
-  if (profitColumn) {
-    // Direct profit column exists
+  if (profitColumn && validSourceProfitCount > 0) {
+    // Direct profit column exists and carries values
     profitReliability = 'verified';
-  } else if (hasRealCostData) {
+    profitDefinition = 'source_profit';
+    profitSourceColumns = [profitColumn];
+  } else if (hasRealCostData && revenueColumn) {
     // Real cost columns exist (not estimated)
     profitReliability = 'verified';
+    profitDefinition = 'cost_component_profit';
+    profitSourceColumns = [
+      revenueColumn,
+      ...(['cogs', 'marketing_cost', 'shipping_cost', 'refunds'] as const)
+        .map((key) => costComponents?.[key])
+        .filter((value): value is string => Boolean(value)),
+    ];
   } else if (totalRevenue > 0 && profitMargin !== null) {
     // No profit/cost columns but we have revenue and margin - derive profit
     profitReliability = 'derived';
+    profitDefinition = 'estimated_margin_profit';
+    profitSourceColumns = revenueColumn ? [revenueColumn] : [];
     finalProfit = totalRevenue * (profitMargin / 100);
   }
   
@@ -597,16 +676,13 @@ export function analyzeBusinessData(
     const months: string[] = [];
     
     rows.forEach(r => {
-      const dateVal = r[dateColumn];
-      if (dateVal) {
-        const date = new Date(dateVal);
-        if (!isNaN(date.getTime())) {
-          const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          if (!months.includes(month)) months.push(month);
-          
-          const rev = parseFloat(String(r[revenueColumn])) || 0;
-          monthlyRevenue[month] = (monthlyRevenue[month] || 0) + rev;
-        }
+      const date = parseCanonicalDate(r[dateColumn]);
+      if (date) {
+        const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+        if (!months.includes(month)) months.push(month);
+        
+        const rev = parseFloat(String(r[revenueColumn])) || 0;
+        monthlyRevenue[month] = (monthlyRevenue[month] || 0) + rev;
       }
     });
     
@@ -636,15 +712,15 @@ export function analyzeBusinessData(
         }
         
         // Get date range
-        const dates = rows
-          .map(r => r[dateColumn])
-          .filter(d => d)
-          .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+        const parsedDates = rows
+          .map(r => parseCanonicalDate(r[dateColumn]))
+          .filter((date): date is Date => date !== null)
+          .sort((a, b) => a.getTime() - b.getTime());
         
-        if (dates.length > 0) {
+        if (parsedDates.length > 0) {
           dateRange = {
-            start: new Date(dates[0]).toISOString().split('T')[0],
-            end: new Date(dates[dates.length - 1]).toISOString().split('T')[0]
+            start: parsedDates[0].toISOString().split('T')[0],
+            end: parsedDates[parsedDates.length - 1].toISOString().split('T')[0]
           };
         }
       } else {
@@ -687,7 +763,7 @@ export function analyzeBusinessData(
   if (totalRevenue > 0) {
     insights.push({
       type: 'revenue',
-      message: `Total revenue is ${formatCurrencySimple(totalRevenue)} with an average of ${formatCurrencySimple(avgRevenue)} per transaction.`
+      message: `Total revenue is ${formatCurrencySimple(totalRevenue)} with an average of ${formatCurrencySimple(avgRevenue)} per ${avgRevenueBasis === 'order' ? 'order' : 'transaction'}.`
     });
   }
   
@@ -703,15 +779,15 @@ export function analyzeBusinessData(
   if (topRegions.length > 0) {
     insights.push({
       type: 'regional',
-      message: `Top region ${topRegions[0].name} drives ${topRegions[0].percentage}% of business.`
+      message: `Top location ${topRegions[0].name} drives ${topRegions[0].percentage}% of business.`
     });
   }
   
-  // Margin health
+  // Margin health (definition-aware: the margin follows the resolved profit definition)
   if (totalRevenue > 0 && profitMargin !== null) {
     insights.push({
       type: 'margin',
-      message: `Profit margin is ${profitMargin.toFixed(2)}%, which is ${marginRisk.toLowerCase()}.`
+      message: `${profitDefinitionLabel(profitDefinition)} margin is ${profitMargin.toFixed(2)}%, which is ${marginRisk.toLowerCase()}.`
     });
   }
   
@@ -763,6 +839,9 @@ export function analyzeBusinessData(
       totalProfit: profitReliability !== 'unavailable' ? finalProfit : null,
       profitMargin: totalRevenue > 0 ? finalProfitMargin : null,
       profitReliability,
+      profitDefinition,
+      profitSourceColumns,
+      avgRevenueBasis,
       topProducts,
       topRegions,
       allRegions,  // ALL regions for chart
@@ -794,4 +873,21 @@ export function analyzeBusinessData(
   debugLog('[AGGREGATION] Chart data - revenueByRegion:', JSON.stringify(revenueByRegion));
   debugLog('[AGGREGATION] Chart data - revenueByProduct:', JSON.stringify(revenueByProduct));
   debugLog('[AGGREGATION] Chart data - topRegions count:', Object.keys(revenueByRegion).length);
+}
+
+// One shared definition label per profit concept so every surface (KPI card,
+// insights, executive summary) names the same formula the same way.
+export function profitDefinitionLabel(
+  definition: BusinessKPIs['profitDefinition'],
+): string {
+  switch (definition) {
+    case 'source_profit':
+      return 'Dataset profit (source profit field)';
+    case 'cost_component_profit':
+      return 'Profit after recognized dataset cost components';
+    case 'estimated_margin_profit':
+      return 'Estimated profit (revenue minus estimated costs)';
+    default:
+      return 'Profit';
+  }
 }

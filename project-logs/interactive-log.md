@@ -1,3 +1,50 @@
+## 2026-09-23 — Dataset Analyzer Semantic Consistency Audit + Fix
+
+1. Interaction title
+   System-wide audit of Dataset Analyzer semantic consistency (geography, metric provenance, profit definitions, row scope) across every supported dataset class, with general fixes only — no fixture-specific production logic, no commits or pushes.
+
+2. What was the user goal
+   Establish one canonical geography semantic contract and one metric semantic architecture shared by the Dashboard, the Dataset Analyzer, and the server-side KPI engine; determine the exact profit formulas behind the Analyzer KPIs and the Business Profile Context card; keep the verified-working Dashboard World Map behavior unchanged; cover ecommerce, retail, inventory, SaaS, investor portfolio, profitability, accountancy, marketplace, and generic business datasets; return a full audit report with a SAFE TO COMMIT or BLOCKER verdict.
+
+3. What changed
+    - Root cause of the Dataset Analyzer geography failure: `detectBusinessColumns` deliberately excludes `country` from `regionColumn` (it lands only in `fallbackRegionColumn`), while the Analyzer UI capability gate required exactly `detected.regionColumn` — so any dataset whose only location column is `country` rendered no World Revenue Map card while the Dashboard mapped the same dataset.
+    - `src/lib/data/geographic-metric-semantics.ts` gains `detectGeographicLocationColumn(columns, rows, { scope })`: one canonical location resolver (country tier: country/country_code/nation/geo/geography; regional tier: region/territory/state/province/zone/area/market/location/city) with token-based matching, measure-token rejection (market_share, marketing_spend, time_zone never become geography), and mostly-non-numeric value evidence.
+    - `business-columns.ts` uses the canonical resolver for `regionColumn`/`fallbackRegionColumn` (both carry the same column), validates date columns through `parseCanonicalDate` with a plausible-year rule (1900–2100) so `ORD-00001`, `35.5`, and money values never become a time axis, resolves profit provenance (`source_profit` / `cost_component_profit` / `estimated_margin_profit` + `profitSourceColumns`), makes a detected source profit column authoritative (previously it was ignored while labeled "Verified"), computes `avgRevenueBasis` (`order` when a canonical order identity exists, else `row`), and rejects refund/payout/GMV fields as revenue and margin/ratio columns as profit sources (aligning with the canonical `GMV_REVENUE_CONFLATION` rule).
+    - `canonical-date.ts` tightens the lenient native fallback: free-form text needs explicit date shape evidence (leading year component, two-separator numeric date, or month name); `ORD-00001` and `35.5` no longer parse as dates.
+    - `src/components/dataset/dataset-analyzer.tsx`: geography capability uses `regionColumn || fallbackRegionColumn`; the WorldMapChart uses the canonical location column, drops the local substring geography detector (`GEOGRAPHIC_COLUMNS`), and never fabricates `profit = revenue * 0.3` / `margin: 30` — profit and margin come only from the resolved source profit field; profit KPI card, insights, and Executive Financial Summary render definition-aware labels; the Region/Country toggle uses the canonical resolver.
+    - `src/app/api/datasets/[id]/analyze/route.ts`: column type classification uses `parseCanonicalDate`; the AI executive summary receives the resolved profit definition and source fields.
+    - `src/lib/data/dataset-analyzer.ts` `generateFallbackSummary`: derives every line from the enriched business KPIs (revenue, resolved profit definition, top products, top regions) instead of a parallel 30%-COGS formula that disagreed with the KPI cards.
+    - `src/app/(auth)/app/page.tsx` `detectColumns`: region resolution falls back to the canonical resolver before the legacy regexes (Dashboard behavior preserved; country tier keeps the verified map intact).
+    - `business-intelligence-engine.ts`: `toDate` uses `parseCanonicalDate` so identifier strings cannot fabricate trend risks.
+    - `scripts/analysis/test-dataset-analyzer-semantics.ts` (`test:dataset-analyzer-semantics`, wired into `test:all` after `test:dashboard-map-scope`): cross-dataset matrix over ecommerce (csv+xlsx), local retail, SaaS, marketplace, investor portfolio, and generic fixtures — geography applicability, metric applicability, profit provenance, fake-date prevention, missing ≠ zero, genuine zero stays zero, row scope (500-row totals), Dashboard↔Analyzer parity via `aggregateWorldMapRegions`, and source invariants (no fabricated map profit, owner-scoped analyze route, canonical resolvers shared).
+
+4. Problems marked
+   - blocker: none.
+   - risk: legacy stored analyses keep their stored `detectedColumns`; the Analyzer UI now accepts `fallbackRegionColumn`, so old country-only datasets regain the map without re-analysis. `test:dataset-aware-report-profiles` fails on beta before and after this change (SaaS report top-findings wording) — pre-existing, unrelated.
+   - improvement: profit provenance now flows through `profitDefinition`/`profitSourceColumns`; the Business Profile Context card ("Profit After Profile Costs" = revenue − (dataset costs + profile fixed costs/insurance/employer contributions) − tax) keeps its own accurate label and the drilldown links the two concepts instead of merging them.
+   - observation: the ecommerce fixture resolves `avgRevenueBasis: order` (397.36 = revenue/220 distinct orders), matching the Dashboard's Average Order Value semantics; `investor-portfolio` revenue stays the portfolio annual revenue source field inside the legacy generic engine (the Dashboard's investor profile names it explicitly).
+
+5. User learning
+   The Dataset Analyzer hid the World Map for country-only datasets because its capability gate required the strict `regionColumn` while the canonical detector stored countries in `fallbackRegionColumn`; the "Total Profit" card summed revenue minus recognized cost components (shipping etc.) while ignoring a real profit column, and identifiers like `ORD-00001` parsed as dates under the native parser.
+
+6. AI-agent learning
+   When several modules detect the same concept with different vocabularies, reproduce each detector's output on the same fixture rows before changing code: three parallel geography detectors and a lenient date parser each caused a different symptom (hidden map card, province-vs-country buckets, fake growth windows) from one root vocabulary divergence.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Canonical geography resolver: `src/lib/data/geographic-metric-semantics.ts`; detector: `src/lib/business/business-columns.ts`
+   - UI wiring: `src/components/dataset/dataset-analyzer.tsx`, `src/app/(auth)/app/page.tsx`; date canonicalization: `src/lib/data/canonical-date.ts`
+   - Regression pins: `scripts/analysis/test-dataset-analyzer-semantics.ts` (`test:dataset-analyzer-semantics`)
+   - Release notes: `CHANGELOG.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
 ## 2026-09-22 — Dashboard World Map Row Scope: 220-Row KPI Scope vs 30-Day Map Window
 
 1. Interaction title

@@ -1,4 +1,5 @@
 import { debugWarn } from "@/lib/utils/debug"
+import { parseCanonicalDate } from "@/lib/data/canonical-date"
 
 export type BusinessIntelligencePriority = "High" | "Medium" | "Low"
 
@@ -561,10 +562,9 @@ function isValidDate(value: unknown) {
 }
 
 function toDate(value: unknown) {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) return value
-  if (typeof value !== "string" && typeof value !== "number") return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
+  // Canonical date parsing keeps identifier-shaped strings ("ORD-00001") from
+  // becoming fabricated trend periods, matching the rest of the pipeline.
+  return parseCanonicalDate(value)
 }
 
 function clamp(value: number, min = 0, max = 100) {

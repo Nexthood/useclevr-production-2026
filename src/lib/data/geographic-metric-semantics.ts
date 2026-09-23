@@ -62,6 +62,124 @@ const CUSTOMER_ID_FIELDS = new Set([
 
 const NUMERIC_TEXT_PATTERN = /^[+-]?(\d+(\.\d*)?|\.\d+)$/
 
+// Canonical location-column resolver: one geographic vocabulary shared by the
+// Dashboard, the Dataset Analyzer, and the business column detector so the same
+// dataset resolves the same location column (and mapped locations) everywhere.
+// Matching is token-based, never a raw substring match: "marketing_spend" must
+// not become geography just because it contains "market".
+const COUNTRY_LOCATION_ALIASES = [
+  "country",
+  "country_code",
+  "country_name",
+  "country_iso",
+  "iso_country",
+  "nation",
+  "geography",
+  "geo",
+]
+
+const REGIONAL_LOCATION_ALIASES = [
+  "region",
+  "territory",
+  "state",
+  "province",
+  "zone",
+  "area",
+  "market",
+  "location",
+  "city",
+  "town",
+]
+
+// Suffix/segment tokens that mark a column as a measure, rate, or identifier
+// rather than a location dimension even when a location alias appears in the
+// name (for example market_share, marketing_budget, market_growth).
+const LOCATION_MEASURE_TOKENS = new Set([
+  "time",
+  "rate",
+  "pct",
+  "percent",
+  "percentage",
+  "share",
+  "spend",
+  "cost",
+  "price",
+  "revenue",
+  "profit",
+  "sales",
+  "amount",
+  "value",
+  "growth",
+  "budget",
+  "count",
+  "number",
+  "qty",
+  "quantity",
+])
+
+export type GeographicLocationColumn = {
+  column: string
+  scope: "country" | "regional"
+}
+
+function columnTokens(normalizedName: string): string[] {
+  return normalizedName.split("_").filter(Boolean)
+}
+
+function isMeasureLikeLocationColumn(normalizedName: string): boolean {
+  return columnTokens(normalizedName).some((token) => LOCATION_MEASURE_TOKENS.has(token))
+}
+
+function isMostlyNonNumericLocationColumn(
+  rows: Record<string, unknown>[],
+  column: string,
+): boolean {
+  if (rows.length === 0) return true
+  const values = rows
+    .map((row) => row[column])
+    .filter((value) => value !== null && value !== undefined && String(value).trim() !== "")
+  if (values.length === 0) return false
+  const numeric = values.filter((value) => readGeographicNumber(value) !== null).length
+  return numeric / values.length < 0.5
+}
+
+export function detectGeographicLocationColumn(
+  columns: string[],
+  rows: Record<string, unknown>[] = [],
+  options: { scope?: "country" | "regional" } = {},
+): GeographicLocationColumn | null {
+  const candidates = columns
+    .map((column) => ({ column, normalized: normalizeGeographicColumnName(column) }))
+    .filter((entry) => entry.normalized.length > 0)
+    .filter((entry) => !isMeasureLikeLocationColumn(entry.normalized))
+    .filter((entry) => isMostlyNonNumericLocationColumn(rows, entry.column))
+
+  const tiers: Array<{ scope: "country" | "regional"; aliases: string[] }> = [
+    { scope: "country", aliases: COUNTRY_LOCATION_ALIASES },
+    { scope: "regional", aliases: REGIONAL_LOCATION_ALIASES },
+  ]
+  const requestedScope = options.scope
+  const orderedTiers = requestedScope
+    ? tiers.filter((tier) => tier.scope === requestedScope)
+    : tiers
+
+  for (const tier of orderedTiers) {
+    const match = candidates.find((entry) =>
+      tier.aliases.some((alias) => matchesLocationAlias(entry.normalized, alias)),
+    )
+    if (match) return { column: match.column, scope: tier.scope }
+  }
+  return null
+}
+
+// Token-based matching only: "marketing_spend" must never match "market",
+// while "ship_to_country" and "country_code" still resolve as geography.
+function matchesLocationAlias(normalizedName: string, alias: string): boolean {
+  return columnTokens(normalizedName).some(
+    (token) => token === alias || token === `${alias}s`,
+  )
+}
+
 export function normalizeGeographicColumnName(column: string) {
   return column
     .toLowerCase()

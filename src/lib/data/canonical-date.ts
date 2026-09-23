@@ -15,11 +15,18 @@ function createUtcDate(year: number, monthIndex: number, day: number): Date | nu
 
 const MONTH_NAME_PATTERN = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/i
 
+// Free-form text needs explicit date evidence before the native parser may
+// touch it: a leading year component, a numeric date shape with two separators
+// (d/m/y or y/m/d), or a month name. Identifier strings ("ORD-00001"), decimal
+// numbers ("35.5"), and percent values carry digit runs or a lone separator but
+// no date shape, so they must never parse as dates.
+function hasDateShapeEvidence(value: string): boolean {
+  if (MONTH_NAME_PATTERN.test(value)) return true
+  return /^(\d{1,4})([-/.]\d{1,2}){2}([T\s]|$)/.test(value)
+}
+
 function fromNativeParse(value: string): Date | null {
-  // The native Date parser is lenient enough to turn arbitrary identifiers
-  // ("PC-001") into dates. Only parse free-form text that carries explicit date
-  // evidence: a four-digit year or a month name.
-  if (!/\d{4}/.test(value) && !MONTH_NAME_PATTERN.test(value)) return null
+  if (!hasDateShapeEvidence(value)) return null
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
