@@ -51,6 +51,106 @@ export type RiskThreshold = {
   score: number
 }
 
+/**
+ * Explainability contract: every displayed risk number must be reproducible
+ * from deterministic rule evidence. Evidence carries only values that were
+ * actually measured; anything unknown is listed in `unavailable`, never
+ * fabricated.
+ */
+export type RiskEvidenceValue = {
+  label: string
+  display: string
+  raw?: number | string | null
+}
+
+export type RiskEvidence = {
+  whatHappened: string
+  values: RiskEvidenceValue[]
+  absoluteChange: { display: string; raw: number } | null
+  percentChange: { display: string; raw: number } | null
+  periodsCompared: string | null
+  scope: string | null
+  sourceColumns: string[]
+  unavailable: string[]
+  interpretation: string
+  sourceMetric: string
+}
+
+export type RiskThresholdExplanation = {
+  operator: RiskOperator
+  value: number
+  display: string
+  severity: RiskSeverity
+  score: number
+  severityReason: string
+  bands: Array<{ severity: RiskSeverity; display: string; score: number; matched: boolean }>
+}
+
+export type RiskScoreExplanation = {
+  ruleScore: number
+  weight: number
+  weightedPoints: number
+  contributionDisplay: string
+  contributionNote: string
+  categoryLabel: string
+  categoryScore: number
+  categoryFormula: string
+}
+
+export type RiskFindingExplanation = {
+  metricLabel: string
+  metricDisplay: string
+  evidence: RiskEvidence
+  threshold: RiskThresholdExplanation
+  score: RiskScoreExplanation
+  investigation: string
+}
+
+export type RiskScoringModel = {
+  ruleScoring: string
+  categoryAggregation: string
+  overallAggregation: string
+  overallFormula: string
+  severityBands: Array<{ severity: RiskSeverity; label: string; condition: string }>
+}
+
+export const RISK_SCORE_SEVERITY_BANDS: Array<{ severity: RiskSeverity; label: string; condition: string }> = [
+  { severity: "critical", label: "Critical", condition: "score 75–100" },
+  { severity: "high", label: "High", condition: "score 50–74" },
+  { severity: "medium", label: "Medium", condition: "score 25–49" },
+  { severity: "low", label: "Low", condition: "score 0–24" },
+]
+
+export const RISK_METRIC_LABELS: Record<RiskMetricKey, string> = {
+  deadStockRatio: "Dead-stock share of stocked products",
+  revenueGrowthPct: "Revenue change vs previous period",
+  grossMarginTrendPct: "Gross margin change vs previous period",
+  netMarginPct: "Net margin across all rows",
+  unprofitableProductRatio: "Share of unprofitable products",
+  costRevenueGrowthGapPct: "Cost growth minus revenue growth",
+  expenseRevenueRatio: "Costs as share of revenue",
+  topProductRevenueShare: "Top product share of revenue",
+  topCategoryRevenueShare: "Top category share of revenue",
+  topCustomerRevenueShare: "Top customer share of revenue",
+  topPortfolioCompanyRevenueShare: "Top portfolio company share of portfolio revenue",
+  portfolioRunwayBreachRatio: "Portfolio companies below 6 months of runway",
+  runwayMonths: "Cash runway (months)",
+  missingValueRatio: "Missing values in mapped business fields",
+  invalidNumericRatio: "Invalid numeric values",
+  invalidDateRatio: "Invalid date values",
+  duplicateRowRatio: "Duplicate rows",
+  currencyInconsistencyRatio: "Inconsistent currency labels",
+  classificationConfidence: "Column mapping readiness",
+  historyPeriodCount: "Comparable revenue periods",
+}
+
+export function formatRiskOperator(operator: RiskOperator) {
+  if (operator === ">=") return "≥"
+  if (operator === "<=") return "≤"
+  if (operator === ">") return ">"
+  return "<"
+}
+
 export type RiskRule = {
   ruleId: string
   category: RiskCategory

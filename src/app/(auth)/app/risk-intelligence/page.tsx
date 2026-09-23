@@ -200,6 +200,24 @@ function RiskDashboard({ intelligence }: { intelligence: RiskIntelligenceResult 
               ))}
             </div>
           </div>
+          <details className="mt-4 rounded-md border border-border bg-background px-3 py-2">
+            <summary className="cursor-pointer text-xs font-medium text-primary">How is the overall risk score calculated?</summary>
+            <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+              <p>{intelligence.scoringModel.ruleScoring}</p>
+              <p>{intelligence.scoringModel.categoryAggregation}</p>
+              <p>{intelligence.scoringModel.overallAggregation}</p>
+              <p className="break-words rounded-md border border-border px-2 py-1 font-mono text-[11px] text-foreground">
+                {intelligence.scoringModel.overallFormula}
+              </p>
+              <div className="space-y-1">
+                {intelligence.scoringModel.severityBands.map((band) => (
+                  <p key={band.severity}>
+                    {band.label}: {band.condition}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </details>
         </div>
         <div className="rounded-lg border border-border bg-card p-5">
           <div className="space-y-3 text-sm">
@@ -228,7 +246,7 @@ function RiskDashboard({ intelligence }: { intelligence: RiskIntelligenceResult 
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">Prioritized risks</h2>
-            <p className="text-xs text-muted-foreground">Sorted by severity, score, and estimated impact.</p>
+            <p className="text-xs text-muted-foreground">Sorted by severity, rule score, and weighted contribution.</p>
           </div>
           <ArrowDownWideNarrow className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </div>
@@ -266,31 +284,132 @@ function RiskSummaryCard({ summary }: { summary: RiskCategorySummary }) {
         </div>
         <SeverityBadge severity={summary.severity} />
       </div>
+      {summary.topTriggeredRules.length > 0 ? (
+        <ul className="mt-3 space-y-1 border-t border-border pt-3">
+          {summary.topTriggeredRules.map((rule) => (
+            <li key={rule.ruleId} className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{rule.title}:</span> {rule.metricDisplay}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </article>
   )
 }
 
 function RiskFindingRow({ finding }: { finding: RiskFinding }) {
+  const explanation = finding.explanation
   return (
-    <article className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_160px]">
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SeverityBadge severity={finding.severity} />
-          <span className="text-xs text-muted-foreground">{RISK_CATEGORY_LABELS[finding.category]}</span>
+    <article className="px-5 py-4">
+      <div className="grid gap-4 lg:grid-cols-[1fr_220px]">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SeverityBadge severity={finding.severity} />
+            <span className="text-xs text-muted-foreground">{RISK_CATEGORY_LABELS[finding.category]}</span>
+          </div>
+          <h3 className="mt-2 text-sm font-semibold text-foreground">{finding.title}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{explanation.evidence.whatHappened}</p>
+          <p className="mt-3 text-sm text-foreground">{finding.recommendation}</p>
+          <Link href={finding.sourceHref} className="mt-2 inline-flex text-xs font-medium text-primary hover:underline">
+            {finding.sourceLabel}
+          </Link>
         </div>
-        <h3 className="mt-2 text-sm font-semibold text-foreground">{finding.title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{finding.description}</p>
-        <p className="mt-3 text-sm text-foreground">{finding.recommendation}</p>
-        <Link href={finding.sourceHref} className="mt-2 inline-flex text-xs font-medium text-primary hover:underline">
-          {finding.sourceLabel}
-        </Link>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+          <MetricPill label="Rule score" value={`${finding.score} / 100`} />
+          <MetricPill label={explanation.metricLabel} value={explanation.metricDisplay} />
+          <MetricPill label="Contribution to category" value={explanation.score.contributionDisplay} />
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
-        <MetricPill label="Score" value={String(finding.score)} />
-        <MetricPill label="Metric" value={formatMetric(finding.metricValue, finding.metricUnit)} />
-        <MetricPill label="Impact" value={String(finding.estimatedImpact)} />
-      </div>
+      <details className="mt-3 rounded-md border border-border bg-background px-3 py-2">
+        <summary className="cursor-pointer text-xs font-medium text-primary">
+          Why {finding.severityLabel.toLowerCase()}? How was this calculated?
+        </summary>
+        <div className="mt-3 space-y-4 text-xs">
+          <RiskEvidenceBlock evidence={explanation.evidence} />
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-muted-foreground">Threshold crossed</p>
+            <p className="mt-1 text-foreground">
+              {finding.severityLabel} band: {explanation.threshold.display} → score {explanation.threshold.score}
+            </p>
+            <p className="mt-1 text-muted-foreground">{explanation.threshold.severityReason}</p>
+            <ul className="mt-2 space-y-1">
+              {explanation.threshold.bands.map((band) => (
+                <li key={`${band.severity}-${band.display}`} className={band.matched ? "font-semibold text-foreground" : "text-muted-foreground"}>
+                  {band.severity === "critical" ? "Critical" : band.severity === "high" ? "High" : band.severity === "medium" ? "Medium" : "Low"}:{" "}
+                  {band.display} → score {band.score}
+                  {band.matched ? " (matched)" : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-muted-foreground">How this score was produced</p>
+            <ul className="mt-1 space-y-1 text-muted-foreground">
+              <li>Rule score: {explanation.score.ruleScore} of 100 ({finding.severityLabel} band)</li>
+              <li>Rule importance (weight): {explanation.score.weight}</li>
+              <li>Contribution: {explanation.score.contributionDisplay}</li>
+              <li>{explanation.score.contributionNote}</li>
+              {explanation.score.categoryFormula ? (
+                <li className="break-words rounded-md border border-border bg-background px-2 py-1 font-mono text-[11px] text-foreground">
+                  {explanation.score.categoryFormula}
+                </li>
+              ) : null}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-muted-foreground">What this means</p>
+            <p className="mt-1 text-muted-foreground">{explanation.evidence.interpretation}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-muted-foreground">Suggested investigation</p>
+            <p className="mt-1 text-muted-foreground">{explanation.investigation}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-muted-foreground">Evidence source</p>
+            <p className="mt-1 text-muted-foreground">
+              {explanation.evidence.sourceMetric}
+              {explanation.evidence.sourceColumns.length > 0 ? ` — columns: ${explanation.evidence.sourceColumns.join(", ")}` : ""}
+              {explanation.evidence.scope ? ` — ${explanation.evidence.scope}` : ""}
+            </p>
+            {explanation.evidence.unavailable.length > 0 ? (
+              <p className="mt-1 text-muted-foreground">Not available: {explanation.evidence.unavailable.join(" ")}</p>
+            ) : null}
+          </div>
+        </div>
+      </details>
     </article>
+  )
+}
+
+function RiskEvidenceBlock({ evidence }: { evidence: RiskIntelligenceResult["findings"][number]["explanation"]["evidence"] }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-normal text-muted-foreground">What happened and what was measured</p>
+      <ul className="mt-1 space-y-1">
+        {evidence.values.map((value) => (
+          <li key={value.label} className="flex items-start justify-between gap-4">
+            <span className="text-muted-foreground">{value.label}</span>
+            <span className="text-right font-medium text-foreground">{value.display}</span>
+          </li>
+        ))}
+      </ul>
+      {evidence.absoluteChange ? (
+        <p className="mt-1 text-muted-foreground">
+          Absolute change: <span className="font-medium text-foreground">{evidence.absoluteChange.display}</span>
+        </p>
+      ) : null}
+      {evidence.percentChange ? (
+        <p className="text-muted-foreground">
+          Relative change: <span className="font-medium text-foreground">{evidence.percentChange.display}</span>
+        </p>
+      ) : null}
+      {evidence.periodsCompared ? (
+        <p className="text-muted-foreground">
+          Periods compared: <span className="font-medium text-foreground">{evidence.periodsCompared}</span>
+        </p>
+      ) : null}
+      {evidence.scope ? <p className="mt-1 text-muted-foreground">Scope: {evidence.scope}</p> : null}
+    </div>
   )
 }
 
@@ -344,11 +463,6 @@ function MetricPill({ label, value }: { label: string; value: string }) {
       <p className="text-sm font-semibold text-foreground">{value}</p>
     </div>
   )
-}
-
-function formatMetric(value: number, unit: "percent" | "count" | "score") {
-  if (unit === "percent") return `${value}%`
-  return value.toLocaleString()
 }
 
 function formatDateTime(value: string) {

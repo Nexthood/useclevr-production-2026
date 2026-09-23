@@ -215,6 +215,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-1067. Every triggered Risk Intelligence rule shows deterministic evidence — what happened, measured value, baseline, absolute and relative change, compared periods, crossed threshold with all severity bands, severity and score reasoning with the exact category formula, business interpretation, and suggested investigation — and the internal ranking value (score × rule weight) renders as a labeled weighted contribution instead of a naked impact number. (labels: dashboard, data, metrics, quality; commit: worktree)
 - T-1050. Dashboard Dataset Library openings preserve the clicked dataset ID through navigation, selected dashboard statistics, semantic analysis, reports, and AI activity without falling back to another dataset. (labels: dashboard, data, testing; commit: worktree)
 - T-1004. Executive Daily Health mounts Generate Report on the default dashboard by using the latest reportable dashboard dataset when no dataset is explicitly selected. (labels: dashboard, reports, ui, testing; commit: worktree)
 - T-1002. Executive Daily Health shows the existing Generate Report action beside View Full Daily Brief and scopes report generation to the active dashboard dataset. (labels: dashboard, reports, ui, testing; commit: worktree)
