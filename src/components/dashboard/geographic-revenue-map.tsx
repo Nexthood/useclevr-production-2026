@@ -15,7 +15,7 @@ import { geoMercator, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import { scaleSqrt } from "d3-scale";
 import worldTopologyJson from "@/assets/maps/world-110m.json";
-import { type KeyboardEvent, type MouseEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 
 export type GeographicMetric = {
   countryCode?: string;
@@ -84,6 +84,7 @@ export function GeographicRevenueMap({
     [availableMetrics],
   );
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [hovered, setHovered] = useState<GeographicMetric | null>(null);
   const [selected, setSelected] = useState<GeographicMetric | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -164,12 +165,20 @@ export function GeographicRevenueMap({
     return <MapUnavailableState />;
   }
 
-  const handleMarkerMove = (event: MouseEvent<SVGCircleElement>, item: GeographicMetric) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
+  // The tooltip anchors once per hover to the marker's fixed projected
+  // position; pointer movement inside a bubble never re-renders the map.
+  const handleMarkerEnter = (item: GeographicMetric) => {
+    const svgElement = svgRef.current;
+    const point = projectedPoints.get(item);
+    if (!svgElement || !point) return;
+    const svgRect = svgElement.getBoundingClientRect();
+    const paneElement = svgElement.parentElement;
+    const paneRect = paneElement?.getBoundingClientRect();
+    const offsetX = paneRect ? svgRect.left - paneRect.left : 0;
+    const offsetY = paneRect ? svgRect.top - paneRect.top : 0;
     setTooltipPosition({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (point[0] / MAP_WIDTH) * svgRect.width + offsetX,
+      y: (point[1] / MAP_HEIGHT) * svgRect.height + offsetY,
     });
     setHovered(item);
   };
@@ -209,6 +218,7 @@ export function GeographicRevenueMap({
           />
 
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
             className="h-[390px] w-full sm:h-[480px] lg:h-[540px]"
             role="img"
@@ -225,7 +235,7 @@ export function GeographicRevenueMap({
                     fill="#1f2d44"
                     stroke="#62708a"
                     strokeWidth={0.45}
-                    className="transition-colors outline-none hover:fill-[#2d4264]"
+                    className="outline-none hover:fill-[#2d4264]"
                   />
                 ))}
               </g>
@@ -238,8 +248,9 @@ export function GeographicRevenueMap({
 
                 if (!point) return null;
 
-                // The center is the immutable projected coordinate: identical
-                // across normal, hover, and selected for the same zoom state.
+                // The center and radius are the immutable projected values:
+                // identical across idle, hover, and selected for the same
+                // zoom state. Emphasis only swaps stroke and a static halo.
                 const x = point[0];
                 const y = point[1];
                 const visualRadius = radiusScale(value);
@@ -263,9 +274,9 @@ export function GeographicRevenueMap({
                       cy={y}
                       r={visualRadius}
                       fill={item === topLocation ? "#a78bfa" : "#22d3ee"}
-                      opacity={selectedCountry ? 0.92 : hoveredCountry ? 0.9 : 0.75}
+                      opacity={0.8}
                       stroke={emphasized ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.65)"}
-                      strokeWidth={emphasized ? 1.5 : 1}
+                      strokeWidth={selectedCountry ? 1.5 : 1}
                       pointerEvents="none"
                     />
                     <circle
@@ -278,9 +289,9 @@ export function GeographicRevenueMap({
                       tabIndex={0}
                       role="button"
                       aria-label={`${item.countryName}: ${formatMetric(value, selectedMetric, currency)}`}
-                      onMouseMove={(event) => handleMarkerMove(event, item)}
+                      onMouseEnter={() => handleMarkerEnter(item)}
                       onMouseLeave={() => setHovered(null)}
-                      onFocus={() => setHovered(item)}
+                      onFocus={() => handleMarkerEnter(item)}
                       onBlur={() => setHovered(null)}
                       onClick={() => handleCountrySelect(item)}
                       onKeyDown={(event) => handleMarkerKeyDown(event, item)}
@@ -338,7 +349,7 @@ export function GeographicRevenueMap({
                     key={`${item.countryCode || item.countryName}-rank`}
                     type="button"
                     onClick={() => handleCountrySelect(item)}
-                    className="group w-full rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-cyan-300/35 hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50"
+                    className="group w-full rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left hover:border-cyan-300/35 hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="min-w-0 truncate text-sm font-medium text-slate-100">
@@ -411,7 +422,7 @@ function EmptyGeoState() {
       </p>
       <a
         href="/app/datasets"
-        className="mt-3 rounded-md bg-cyan-400/15 px-3 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/25"
+        className="mt-3 rounded-md bg-cyan-400/15 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/25"
       >
         Upload geographic data
       </a>

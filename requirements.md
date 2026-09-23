@@ -165,6 +165,7 @@ Text rules for this file:
 - Show a professional dark BI world map with detected location nodes, restrained flow lines, compact metric cards, hover tooltips, and top-location summaries when geographic columns are available.
 - Show "No geographic data detected." and "Upload data with country, city, region, or location columns to generate a map." when no geographic columns are available.
 - Never render fake geographic locations for datasets that do not contain geographic columns.
+- Aggregate the World Map from the same dataset rows that drive the Dashboard KPI cards: geographic column filtering decides whether a row can be mapped, and no preview limit, sample, or date window may silently shrink the map's row scope below the KPI row scope.
 - Classify date, numeric, text, boolean, identifier, and mixed CSV columns from representative values.
 - Calculate profit, margin, ROAS, net profit, and LTV only when the dataset contains the required source columns.
 - Name missing calculation columns instead of substituting proxy costs, lifespans, benchmarks, or values.

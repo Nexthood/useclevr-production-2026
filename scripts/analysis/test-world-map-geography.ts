@@ -127,7 +127,7 @@ const hitTargetBlock = mapComponentSource.slice(
 for (const interaction of [
   "tabIndex={0}",
   'role="button"',
-  "onMouseMove",
+  "onMouseEnter",
   "onMouseLeave",
   "onFocus",
   "onBlur",
@@ -136,6 +136,36 @@ for (const interaction of [
 ]) {
   assert.ok(hitTargetBlock.includes(interaction), `hit target carries the full interaction surface (${interaction})`)
 }
+
+// ---------------------------------------------------------------------------
+// C) Bubble calmness regression: the marker layer is fully static.
+//
+// For a given country + metric + zoom state, x, y, and radius never change
+// over time, on hover, or on selection. No CSS transitions, no CSS
+// animations, no scaling, no timer-driven mutation. Emphasis may only swap
+// stroke color and a static halo instantly.
+// ---------------------------------------------------------------------------
+assert.ok(!mapComponentSource.includes("transition"), "the world map renders no CSS transitions anywhere in the marker tree")
+assert.ok(!mapComponentSource.includes("animate-"), "the world map uses no CSS animation utilities")
+assert.ok(!mapComponentSource.includes("keyframes"), "the world map defines no keyframes")
+assert.ok(!/setInterval|setTimeout|requestAnimationFrame|performance\.now|Date\.now/.test(mapComponentSource), "the world map drives no timer-based marker mutation")
+assert.ok(!mapComponentSource.includes("onMouseMove"), "the tooltip anchors once per hover instead of tracking the pointer and re-rendering the map")
+assert.ok(mapComponentSource.includes("onMouseEnter"), "hover emphasis applies once on marker enter")
+assert.ok(mapComponentSource.includes("opacity={0.8}"), "bubble opacity is constant across idle, hover, and selected states")
+const rAttrs = mapComponentSource.match(/(?<![a-zA-Z])r=\{[^}]*\}/g) || []
+assert.deepEqual(
+  rAttrs,
+  ["r={visualRadius + 4}", "r={visualRadius}", "r={hitRadius}"],
+  "marker radius attributes are static expressions independent of hover or selection state",
+)
+assert.ok(
+  mapComponentSource.includes('key={`${item.countryCode || item.countryName}-${selectedMetric}`}'),
+  "marker keys derive only from country identity and metric, never from interaction state",
+)
+assert.ok(
+  !mapComponentSource.includes("hovered ?") && !mapComponentSource.includes("selected ?"),
+  "marker geometry and styling never depend on raw interaction-state truthiness",
+)
 
 // Deterministic stacking: large bubbles paint first so smaller bubbles stay
 // on top and clickable in overlaps; only selection raises a marker, hover

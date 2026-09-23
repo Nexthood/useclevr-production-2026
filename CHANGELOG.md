@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- Fix the dashboard World Map so its revenue, orders, and customer totals aggregate the same dataset rows as the KPI cards instead of only the rows inside the default 30-day window.
 - Fix the dashboard World Map so a country shows "N/A" for orders and customers when the uploaded data has no order or customer fields, and unavailable metrics no longer display as 0.
 - Fix the World Map totals and metric tabs so totals report "N/A" and metric tabs disable when no mapped country carries a measured value, keeping missing data separate from measured zero activity.
 - Fix Risk Intelligence so one dataset with a broken or missing created/updated timestamp can no longer crash the whole workspace before a dataset is selected; invalid timestamps render safely as unavailable while the dataset stays selectable.
