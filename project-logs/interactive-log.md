@@ -1,3 +1,45 @@
+## 2026-09-22 — Dashboard World Map Row Scope: 220-Row KPI Scope vs 30-Day Map Window
+
+1. Interaction title
+   Trace and fix the World Map row-scope divergence from the main Dashboard KPIs and explain the 113 vs 96 distinct-customers discrepancy, with production-row recalculation, before changing any code.
+
+2. What was the user goal
+   For the same active dataset, explain why the Dashboard KPI row shows 220 rows / Revenue $87,420 / Orders 220 / Customers 113 / Units Sold 666 / Products 50 while the World Map shows Revenue $17,685.2 / Orders 42 / Germany $4,261.3 / 8 orders / 8 customers / 9 mapped locations; report both pipelines side by side (row sources, filters, limits), find the exact divergence point, recalculate COUNT(DISTINCT customer_id) from the same 220 production rows and explain the 113 vs 96 fixture-audit discrepancy, then apply the minimal scope fix plus tests proving Dashboard and World Map share one scope. Do not touch geography, bubble interaction, semantic detection, commits, or pushes.
+
+3. What changed
+    - Production recalculation (read-only Neon query of the active dataset `ds_9a4457d5a78b42b72085af15`, `02_ecommerce.xlsx`, uploaded 2026-09-22): 220 rows (all stored inline in `Dataset.data` and mirrored in `DatasetRow`, `previewRowCount` 1000 — no preview or sample limit), revenue $87,420.20, 220 distinct `order_id`, 113 distinct `customer_id`, 666 units, 50 distinct `product_id`, 9 countries, dates 2026-01-01..2026-04-30.
+    - Exact divergence: the KPI row renders from `buildDashboardSemanticAnalysis(dataset)` → `buildDatasetReportInput` → `loadDatasetData` — every stored row, no date filter — through the ecommerce semantic branch (`Orders` = distinct `order_id`, `Customers` = distinct `customer_id`). The World Map renders `buildRegions(activeRows, columns)` where `activeRows = filterRowsByRange(rows, columns.date, range)` and `range` defaults to `30d` when the URL has no range parameter — the default 30-day window keeps only 42 of the 220 rows (2026-03-31..2026-04-30).
+    - Every reported map number reproduced exactly from that 42-row window: 42 distinct orders, revenue $17,685.18 (displayed $17,685.2), 9 mapped countries, Germany 8 rows / 8 orders / 8 customers / $4,261.30. No cache, preview, sample, or row limit participates.
+    - Customers 113 vs 96: both are correct for different inputs. The production 220 rows contain 113 distinct `customer_id` values (recalculated directly; the Dashboard is right). The 96 came from the earlier "Dashboard Semantic Profile Unification" audit measuring the repository fixture `test-fixtures/business-models/02_ecommerce.csv/xlsx` (96 customers, 550 units, 12 products, 5 countries, revenue $87,419.20) — a same-named but different variant of the uploaded production file (113 customers, 666 units, 50 products, 9 countries, revenue $87,420.20).
+    - Aggregation note: with equal scope, the map's per-country distinct customer totals can still exceed the global KPI count because 65 of the 113 production customers appear in more than one country (per-country distincts sum to 203); per-country distinct semantics stay untouched per instruction.
+    - Fix: `src/lib/data/dashboard-row-scope.ts` (new) exports `selectDashboardRegionRows({ rows, activeRows, semanticDrivesKpis })`; `page.tsx` computes `semanticDrivesKpis = Boolean(semanticAnalysis?.metrics.length)` (mirroring `buildBusinessModelKpis`' semantic branch) and feeds `buildRegions` the full row scope when semantic metrics drive the KPI row, keeping the range-filtered scope for fallback-KPI datasets. Geography, bubble interaction, and semantic detection are unchanged.
+    - Regression: `scripts/analysis/test-dashboard-map-scope.ts` (`test:dashboard-map-scope`, wired into `test:all` after `test:world-map-semantics`) pins the 220/42 fingerprint window, semantic KPIs over every stored row, map totals equal to KPI totals under the fixed scope (via the shared geographic resolvers and `aggregateWorldMapRegions`), the fallback scope rule, and page source invariants (scope flag mirrors the KPI semantic branch; `buildRegions` never receives `activeRows` directly).
+
+4. Problems marked
+   - observation: with the fixed scope the map's per-country distinct customers cover all 220 rows, so its summary customer total reflects per-country distinct semantics (203 across the production countries) rather than the global 113; per-country semantics stay by design.
+   - improvement: the repository `02_ecommerce` fixture no longer matches the production upload of the same name; refreshing it would keep future audits from measuring stale inputs.
+   - risk: trend panels and fallback KPIs remain range-scoped by design; only the map scope changed.
+
+5. User learning
+   The KPI row and the World Map read the same 220 stored rows; the map additionally passed them through the dashboard's default 30-day date window, so it displayed the last month (42 orders, $17,685.18) while the semantic KPI row displayed the full dataset (220 orders, $87,420.20).
+
+6. AI-agent learning
+   When a page renders KPIs from one pipeline (semantic profile over stored rows) and a widget from another (page-level filtered rows), compare the exact row arrays rather than the displayed numbers: reproducing the fingerprint subset (42 rows since latest minus 30 days) proves the mechanism faster than scanning for slice/sample/cache causes.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Scope selector: `src/lib/data/dashboard-row-scope.ts`; wiring: `src/app/(auth)/app/page.tsx`
+   - Regression pins: `scripts/analysis/test-dashboard-map-scope.ts` (`test:dashboard-map-scope`)
+   - Release notes: `CHANGELOG.md`; requirements: `requirements.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
 ## 2026-09-22 — Dashboard World Map: Unavailable Metric Semantics (Unavailable ≠ 0)
 
 1. Interaction title

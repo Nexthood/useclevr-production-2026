@@ -37,6 +37,7 @@ import {
   type DashboardAggregatedDataset,
   type NormalizedDashboardData,
 } from "@/lib/data/dashboard-dataset-aggregation"
+import { selectDashboardRegionRows } from "@/lib/data/dashboard-row-scope"
 import { db } from "@/lib/db"
 import { aiInteractionTraces, profiles } from "@/lib/db/schema"
 import { getOrCreateDailyHealthBrief, type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
@@ -314,7 +315,13 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
     ? buildCountSeries(activeRows, columns.date, columns.order, range)
     : buildSeries(activeRows, columns.date, columns.quantity, range)
   const uploadTrend = buildUploadSeries(stats.allDatasets, range)
-  const regions = buildRegions(activeRows, columns)
+  // The World Map must aggregate the same rows the KPI row displays: semantic
+  // KPIs are computed from every stored row of the active dataset, so the map
+  // uses that full scope; fallback KPIs use the range-filtered scope. The
+  // condition mirrors buildBusinessModelKpis' semantic branch.
+  const semanticDrivesKpis = Boolean(semanticAnalysis?.metrics.length)
+  const regionRows = selectDashboardRegionRows({ rows, activeRows, semanticDrivesKpis })
+  const regions = buildRegions(regionRows, columns)
   const aiInsightsGenerated = countAiInsights(stats.allDatasets) + stats.aiTraceCount
   const recommendations = semanticAnalysis?.recommendations.length
     ? semanticAnalysis.recommendations.map((recommendation) => ({
