@@ -1,3 +1,48 @@
+## 2026-09-23 — Risk Intelligence Explainability Audit + Fix
+
+1. Interaction title
+   System-wide Risk Intelligence UX + explainability audit/fix: expose the deterministic evidence and scoring math behind every triggered rule from the UI, trace Financial Risk 94 from metric −32.7%, and resolve "Impact 108" semantics — with scoring, thresholds, and applicability unchanged and no commits or pushes.
+
+2. What was the user goal
+   Make every triggered Risk Intelligence rule explainable from the UI across all categories (financial, profitability, cash flow, revenue concentration, data quality, inventory, SaaS, investor portfolio, accountancy, and future deterministic rules) with a 12-point evidence contract (what happened, current value, baseline, absolute change, percentage change, periods/rows compared, crossed threshold, severity reasoning, score contribution, business interpretation, recommended investigation, source metric); reproduce exactly how Financial Risk 94 comes from −32.7%; determine what Impact 108 represents and stop presenting it as a naked number; keep concise overview cards; never fabricate evidence; preserve prior applicability fixes; add deterministic regression tests across representative dataset classes; return a full report with a SAFE TO COMMIT or BLOCKER verdict.
+
+3. What changed
+    - Impact 108 decoded: `estimatedImpact = Math.round(score × weight)` — 94 × 1.15 = 108 for the critical revenue-decline finding; it is a ranking tiebreaker inside `compareFindings` with no business meaning as an "impact". Value and sort behavior stay identical; the UI no longer renders it under an "Impact" label.
+    - `risk-rules.ts` gains the explainability contract types (`RiskEvidence`, `RiskThresholdExplanation`, `RiskScoreExplanation`, `RiskFindingExplanation`, `RiskScoringModel`), `RISK_SCORE_SEVERITY_BANDS` (Critical 75–100, High 50–74, Medium 25–49, Low 0–24), `RISK_METRIC_LABELS` (canonical user-facing metric names), and `formatRiskOperator`.
+    - `risk-engine.ts` main path: each finding carries `explanation` (evidence values with raw numbers, baseline/current labels, absolute/relative change, periods compared `YYYY-MM → YYYY-MM`, row scope, source columns, unavailable list, interpretation, investigation, crossed threshold with every band marked matched/unmatched and a severity reason); `RiskMetric.details` is populated for all 20 derived metrics via new detail builders (dead stock, unprofitable products, top product/category/customer/portfolio shares, runway breach, runway months, missing/invalid/duplicate/currency data quality, mapping readiness, history periods); category aggregates compute once and feed both summaries and finding explanations; `RiskCategorySummary` gains `scoreFormula` + `topTriggeredRules` (title + metric display); the result gains `scoringModel` with the full overall weighted-average formula and severity bands.
+    - `risk-engine.ts` pre-bookkeeping path: findings are drafted with bands + evidence (duplicate counts, VAT review counts, classification gaps, large-expense counts, supplier concentration, expense/income totals), then finalized with the same explanation contract; category scores use their actual mean-based formula strings and the result gains the matching `scoringModel`.
+    - `page.tsx`: the overall card gets a "How is the overall risk score calculated?" disclosure (aggregation text, full formula, severity bands); category cards keep the concise score/severity/counts and add triggered-rule lines with metric display; the finding row shows what happened, rule score /100, the canonical metric label with its display, and "Contribution to category" (94 × 1.15 = 108 weighted points) with the not-a-monetary-estimate note; a per-finding "Why <severity>? How was this calculated?" disclosure renders measured values, absolute/relative change, periods compared, scope, the crossed threshold with all bands, the score derivation (rule score, importance, contribution, category formula), interpretation, suggested investigation, evidence source (metric + columns + scope), and the explicit unavailable list; the sort note now names severity, rule score, and weighted contribution.
+    - `scripts/risk-intelligence/test-risk-explainability.ts` (new, `test:risk-explainability`, wired into `test:all` after `test:risk-intelligence`): pins the Financial Risk 94 case end-to-end (metric −32.7 = round1((1616−2400)/2400×100), critical band ≤ −20 → score 94, category formula, impact 108, periods 2026-01 → 2026-02, baseline 2,400 / current 1,616, absolute −784), the cross-fixture invariants (exactly one matched band, displayed severity/score = matched band, displayed threshold truly crossed by the displayed metric, no deeper band matched by the metric, finite evidence, contribution = score × weight), unavailable-evidence honesty (no-history, revenue-only, one-period history), genuine zeros stay zero and trigger nothing, cross-dataset applicability (investor and ledger stay in their rule families), impact semantics in page source (no naked Impact label; contribution note rendered), unit-aware displays, and byte-identical determinism across runs.
+    - Scoring math, thresholds, weights, severity mapping, applicability, and `estimatedImpact` values are unchanged; no risk scores moved.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the displayed metric rounds to one decimal while threshold matching uses the raw value, so a raw value just across a band boundary can display on the boundary side (pre-existing, unchanged); runway stays a point-in-time latest-valid-row signal by design.
+   - improvement: category/overall formulas render the full weighted-average term list, so any user can reproduce every displayed score by hand.
+   - observation: `data_quality.insufficient_history` evidence lists the period-key series (capped at 12 keys) rather than per-period values; `estimatedImpact` keeps its name and sort role for compatibility with existing assertions.
+
+5. User learning
+   "Impact 108" was never a business impact: it is the rule score (94) times the rule importance (1.15), used only to rank rules; Financial Risk 94 is the revenue-decline critical band score (≤ −20% → 94) weighted over the financial category, and −32.7% is the month-over-month revenue change between the two latest comparable periods.
+
+6. AI-agent learning
+   When a numeric UI value has no user meaning, trace it to its producer before deciding display treatment: `estimatedImpact` was defined and consumed in one file, so the score-formula relabeling could stay behavior-preserving; embedding the explanation on the finding (not re-deriving in the view) keeps server API consumers and the page on one deterministic evidence source.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Explainability contract types: `src/lib/risk-intelligence/risk-rules.ts`
+   - Evidence + explanations + scoring model: `src/lib/risk-intelligence/risk-engine.ts`
+   - UI: `src/app/(auth)/app/risk-intelligence/page.tsx`
+   - Regression pins: `scripts/risk-intelligence/test-risk-explainability.ts` (`test:risk-explainability`)
+   - Release notes: `CHANGELOG.md`; product requirements: `requirements.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
 ## 2026-09-23 — Dataset Analyzer Semantic Consistency Audit + Fix
 
 1. Interaction title

@@ -2,6 +2,8 @@
 
 ### Added
 
+- Add a "Why is this Critical? How was this calculated?" breakdown to every triggered Risk Intelligence rule so each finding explains what happened, the measured value against its baseline, the compared periods, the crossed threshold with all severity bands, how the score and category score were produced, and the suggested investigation.
+- Add score transparency to Risk Intelligence so each category card and the overall score show their exact weighted-average formula and severity bands.
 - Add automatic referral tracking: referral links record clicks on their own, signups are confirmed automatically when a new account verifies its email, and paid referrals are confirmed automatically from the completed subscription payment — no manual recording anywhere.
 - Add referral reward payments through the central credit balance: each verified referred signup grants 5 AI credits and each referred paid customer grants 25 credits, each granted exactly once per referred account.
 - Add superadmin referral correction tooling so invalid or fraudulent referral rewards can be inspected and reversed with a recorded reason while normal users keep read-only referral performance.
@@ -13,6 +15,7 @@
 
 ### Fixed
 
+- Fix Risk Intelligence rule details so the internal ranking value appears as a labeled weighted contribution to the category score (rule score × rule importance) instead of a bare "Impact" number.
 - Fix the Dataset Analyzer world map so datasets with a country column always show their mapped locations: the map, the region rankings, and the dashboard now resolve geography from one shared location resolver, and the map only shows profit when the uploaded data carries a real profit field.
 - Fix Dataset Analyzer profit labeling so the displayed profit names its exact definition (dataset profit field, profit after recognized costs, or an estimate), the dataset's own profit field is used as the source when present, and profile-adjusted profit stays a separately labeled Business Profile calculation.
 - Fix analysis date detection so order identifiers, invoice numbers, and decimal values no longer pass as dates, growth and date ranges now derive only from genuine calendar columns, and refund amounts, payout fields, and marketplace GMV no longer count as revenue.
