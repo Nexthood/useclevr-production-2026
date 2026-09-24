@@ -220,6 +220,7 @@ Text rules for this file:
 - Classify Risk Intelligence datasets through the authoritative business semantic profile so investor portfolio datasets use portfolio concentration and runway rules instead of operating revenue, margin, expense, or inventory claims, and so accountancy ledgers never claim revenue or profitability risks.
 - Execute each Risk Intelligence rule only when its semantic dataset type matches, every required business concept maps to a confirmed column, and the metric is computable from that evidence; report every other rule in the result as not applicable with its reason.
 - Explain every triggered Risk Intelligence rule from deterministic evidence: what happened, the measured value, the baseline and comparison value, the absolute and relative change, the periods or rows compared, the crossed threshold with all severity bands, why the severity is Low/Medium/High/Critical, the rule score with its importance weight and weighted contribution to the category formula, a business interpretation, and the suggested investigation; list evidence that is unavailable instead of fabricating it.
+- Present the expanded Risk Intelligence finding business-first — what happened, why the severity applies, and the recommended investigation before a secondary technical calculation details disclosure — with every rendered value sourced from the deterministic explanation and no scoring constants or fixture values duplicated in presentation code.
 - Display the internal Risk Intelligence ranking value (rule score × rule importance) as a labeled weighted contribution to the category score, never as a bare impact number, and expose the category and overall score formulas with their severity bands.
 - Derive Risk Intelligence revenue trends only from a validated revenue or sales series column paired with a validated reporting-period dimension and at least two comparable periods from the same series; investment dates never serve as reporting periods.
 - Parse and validate every Risk Intelligence date with the shared canonical date parser used by data cleaning and semantic profiling so a value cannot be valid in one module and invalid in another.
@@ -463,19 +464,17 @@ Text rules for this file:
 - Show Accountancy as a dashboard workspace with overview, reporting, tax, and compliance sections.
 - Show the same owner-selected overview, reporting, tax, and compliance context in Payload for
   superadmin operators.
-- Show the Accountancy empty state as "Pre-bookkeeping center" for users with no accountancy data.
-- Show upload and bookkeeping-package actions from the Accountancy empty state instead of treating missing accountancy data as an error.
+- Keep Accountancy as the financial overview hub with financial overview, tax context, reporting, compliance tools, and quick actions.
+- Show the Accountancy empty state with the Open Pre-bookkeeping action so users without accountancy data can start uploading.
 - Show a real Accountancy error only when server data loading fails.
-- Show Accountancy workflow steps for Business Profile setup, accounting-document upload, data extraction, pre-bookkeeping summary, PDF/Excel/CSV export, and accountant email handoff.
-- Collect accountant email, company name, tax period, and notes or message in the Accountancy bookkeeping-package form.
+- Keep every accountancy upload inside the Pre-bookkeeping workspace; Accountancy renders no bookkeeping uploader, bookkeeping package form, or bookkeeping queue.
 - Use saved Business Profile context for Accountancy tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed-cost assumptions.
-- Show bookkeeping actions for bank reconciliation, expense coding, monthly close, and tax preparation.
-- Show a bookkeeping queue with current status and direct action links.
 - Show monthly close readiness for business profile, financial dataset, and tax context.
-- Link accounting uploads to dataset upload.
 - Show reporting metrics from connected datasets.
 - Show tax region and business activity from the primary business profile.
 - Show compliance checks for business profile, operating location, and industry context.
+- Show one canonical CSV, Excel, and PDF-Scan uploader in Pre-bookkeeping for file upload, dataset creation, AI review, transaction review, categorization, VAT handling, duplicate detection, bookkeeping package, and accountant exports.
+- Detect the uploaded or dropped file format from the actual file so a supported CSV, Excel, PDF, or scan file is accepted from any format tab, and show a neutral unsupported-format message for other extensions.
 
 ## Support
 

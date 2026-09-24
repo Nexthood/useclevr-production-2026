@@ -9,12 +9,18 @@ import type { ConnectionMode } from "@/hooks/use-connection-status"
 import { getConnectionDescription, getConnectionMessage, useConnectionStatus } from "@/hooks/use-connection-status"
 import { useToast } from "@/hooks/use-toast"
 import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
+import {
+  ACCOUNTANCY_UPLOAD_ACCEPT,
+  ACCOUNTANCY_UPLOAD_UNSUPPORTED_MESSAGE,
+  detectAccountancyUploadFormat,
+  type AccountancyUploadFormat,
+} from "@/lib/accountancy/upload-detection"
 import { UPLOAD_CREDIT_LIMIT_BUTTONS, buildUploadCreditLimitCopy } from "@/lib/billing/upload-credit-messaging"
 import { debugError, debugLog } from "@/lib/utils/debug"
 import { AlertCircle, CheckCircle2, Cloud, Cpu, CreditCard, FileText, Loader2, Receipt, Sparkles, Wifi, WifiOff } from "lucide-react"
 import * as React from "react"
 
-type UploadType = "csv" | "excel" | "pdf" | "receipt" | "bank"
+type UploadType = AccountancyUploadFormat
 type AccountancyUploadDatasetType = "accountancy" | "prebookkeeping"
 
 const ACTIVE_PREBOOKKEEPING_DATASET_ID_KEY = "useclevr_active_prebookkeeping_dataset_id"
@@ -65,8 +71,9 @@ export function AccountancyUpload({
   const [currentFileName, setCurrentFileName] = React.useState("")
   const [processingStep, setProcessingStep] = React.useState(0)
   const [processingLabel, setProcessingLabel] = React.useState("Uploading")
-const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
-   const [selectedType, setSelectedType] = React.useState<UploadType>("csv")
+   const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
+    const [selectedType, setSelectedType] = React.useState<UploadType>("csv")
+   const [uploadFormat, setUploadFormat] = React.useState<UploadType>("csv")
    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false)
    const [upgradeModalData, setUpgradeModalData] = React.useState<{currentCount: number, limit: number, planName: string} | null>(null)
    const [upgradeModalCopy, setUpgradeModalCopy] = React.useState<{title?: string, description?: string, usageLabel?: string}>({})
@@ -153,72 +160,59 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     e.stopPropagation()
     setDragActive(false)
 
-    if (isUploadBlocked) return
+    if (isUploadBlocked || uploading) return
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       await uploadFile(e.dataTransfer.files[0])
     }
   }
 
-  const validateFile = (file: File): boolean => {
+  // The selected/dropped file determines its supported format. Tabs are a UX
+  // selection aid: a valid supported file is never rejected because a different
+  // tab was active, and the detected format routes to its existing pipeline.
+  const resolveUploadFormat = (file: File): UploadType | null => {
     const maxSize = 50 * 1024 * 1024
     if (file.size > maxSize) {
       setErrorMessage("File size must be less than 50MB. For larger files, please split before uploading.")
-      return false
+      return null
     }
 
-    const validExtensions: Record<UploadType, string[]> = {
-      csv: [".csv"],
-      excel: [".xlsx", ".xls"],
-      pdf: [".pdf"],
-      receipt: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
-      bank: [".csv", ".xlsx", ".xls", ".ofx", ".qif"],
+    const detectedFormat = detectAccountancyUploadFormat(file.name, file.type)
+    if (!detectedFormat) {
+      setErrorMessage(ACCOUNTANCY_UPLOAD_UNSUPPORTED_MESSAGE)
+      return null
     }
 
-    const extensions = validExtensions[selectedType]
-    // Extension detection must survive names like "LEDGER.CSV", names with
-    // trailing spaces, and multi-dot names. A file without any extension is
-    // still accepted when its MIME type matches the selected upload type.
-    const trimmedName = file.name.trim().toLowerCase()
-    const extensionMatch = /\.([a-z0-9]+)$/.exec(trimmedName)
-    const fileExt = extensionMatch ? `.${extensionMatch[1]}` : ""
-    const mime = (file.type || "").toLowerCase()
-
-    if (fileExt && extensions.includes(fileExt)) {
-      return true
-    }
-
-    const mimeByType: Record<UploadType, string[]> = {
-      csv: ["text/csv", "application/csv"],
-      excel: [
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.ms-excel",
-      ],
-      pdf: ["application/pdf"],
-      receipt: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
-      bank: ["text/csv", "application/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
-    }
-
-    if (!fileExt && mimeMatchesSelection(mime, selectedType, mimeByType)) {
-      return true
-    }
-
-    setErrorMessage(`Please upload a valid ${selectedType} file (${extensions.join(", ")})`)
-    return false
+    return detectedFormat
   }
 
   const uploadFile = async (file: File) => {
+    if (uploading) return
+
     if (isUploadBlocked) {
       setUploadStatus("limit-reached")
       setShowUpgradeModal(Boolean(creditExhaustedInfo))
       return
     }
 
-    if (!validateFile(file)) {
+    const detectedFormat = resolveUploadFormat(file)
+    if (!detectedFormat) {
       setUploadStatus("error")
       setProcessingStep(0)
       return
     }
+
+    // Keep the visible format in sync when the detected format is one of the
+    // visible CSV / Excel / PDF-Scan choices; scan and bank pipelines stay on
+    // their detected format without changing the visible tab.
+    if (
+      detectedFormat === "csv" ||
+      detectedFormat === "excel" ||
+      detectedFormat === "pdf"
+    ) {
+      setSelectedType(detectedFormat)
+    }
+    setUploadFormat(detectedFormat)
 
     setCurrentFileName(file.name)
     setUploading(true)
@@ -250,13 +244,13 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     try {
       const formData = new FormData()
       formData.append("file", file)
-      formData.append("uploadType", selectedType)
-      formData.append("type", selectedType)
+      formData.append("uploadType", detectedFormat)
+      formData.append("type", detectedFormat)
       formData.append("uploadMode", datasetType)
       formData.append("dataset_type", datasetType)
-      formData.append("fileType", `${datasetType}_${selectedType}`)
+      formData.append("fileType", `${datasetType}_${detectedFormat}`)
 
-      debugLog("[ACCOUNTANCY-UPLOAD] Starting upload for file:", { fileName: file.name, datasetType, uploadType: selectedType })
+      debugLog("[ACCOUNTANCY-UPLOAD] Starting upload for file:", { fileName: file.name, datasetType, uploadType: detectedFormat })
 
       const response = await fetch("/api/accountancy/upload", {
         method: "POST",
@@ -284,11 +278,11 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         const newFile: UploadedFile = {
           id: result.datasetId ?? fileId,
           name: file.name,
-          type: selectedType,
+          type: detectedFormat,
           size: file.size,
           status: "categorized",
           extractedData,
-          category: selectedType === "receipt" ? "Receipts/Invoices" : selectedType === "bank" ? "Bank exports" : selectedType === "pdf" ? "Documents" : selectedType === "excel" ? "Spreadsheets" : "CSV data",
+          category: detectedFormat === "receipt" ? "Receipts/Invoices" : detectedFormat === "bank" ? "Bank exports" : detectedFormat === "pdf" ? "Documents" : detectedFormat === "excel" ? "Spreadsheets" : "CSV data",
         }
 
         const updatedFiles = [...uploadedFiles, newFile]
@@ -437,10 +431,10 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
     }
   }
 
-  const fileTypeOptions: { type: UploadType; label: string; icon: React.ReactNode; accept: string }[] = [
-    { type: "csv", label: "CSV", icon: <FileText className="h-4 w-4" />, accept: ".csv,text/csv,application/csv,application/vnd.ms-excel,application/octet-stream" },
-    { type: "excel", label: "Excel", icon: <FileText className="h-4 w-4" />, accept: ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" },
-    { type: "pdf", label: "PDF / Scan", icon: <FileText className="h-4 w-4" />, accept: ".pdf,application/pdf" },
+  const fileTypeOptions: { type: UploadType; label: string; icon: React.ReactNode }[] = [
+    { type: "csv", label: "CSV", icon: <FileText className="h-4 w-4" /> },
+    { type: "excel", label: "Excel", icon: <FileText className="h-4 w-4" /> },
+    { type: "pdf", label: "PDF / Scan", icon: <FileText className="h-4 w-4" /> },
   ]
 
   const selectedOption = fileTypeOptions.find((opt) => opt.type === selectedType)
@@ -510,7 +504,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
         <input
           ref={fileInputRef}
           type="file"
-          accept={selectedOption?.accept || "*"}
+          accept={ACCOUNTANCY_UPLOAD_ACCEPT}
           onChange={(e) => e.target.files && e.target.files[0] && uploadFile(e.target.files[0])}
           className="hidden"
           id={`accountancy-upload-${selectedType}`}
@@ -585,7 +579,7 @@ const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
             <div className="text-center space-y-1.5">
               {uploadStatus === "uploading" ? (
                 <>
-                  <h3 className="text-base font-semibold">Processing {selectedType.toUpperCase()}...</h3>
+                  <h3 className="text-base font-semibold">Processing {UPLOAD_FORMAT_LABELS[uploadFormat]}...</h3>
                   <p className="text-xs text-muted-foreground">{currentFileName}</p>
                 </>
               ) : uploadStatus === "success" ? (
@@ -803,8 +797,12 @@ function AccountancyPlanSummaryCard({
   )
 }
 
-function mimeMatchesSelection(mime: string, selectedType: UploadType, mimeByType: Record<UploadType, string[]>) {
-  return mime !== "" && mimeByType[selectedType].includes(mime)
+const UPLOAD_FORMAT_LABELS: Record<UploadType, string> = {
+  csv: "CSV",
+  excel: "Excel",
+  pdf: "PDF / Scan",
+  receipt: "PDF / Scan",
+  bank: "Bank export",
 }
 
 function validateUploadApiResponse(value: unknown): AccountancyUploadApiResponse {

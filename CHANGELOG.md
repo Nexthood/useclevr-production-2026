@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Changed
+
+- Make Accountancy the financial overview hub: financial overview, tax context, reporting, and compliance tools stay here while uploads, the bookkeeping package, and the review workflow live in Pre-bookkeeping.
+- Detect the upload format from the file you select or drop so valid CSV, Excel, PDF, and scan files upload correctly from any format tab.
+
 ### Added
 
 - Add a "Why is this Critical? How was this calculated?" breakdown to every triggered Risk Intelligence rule so each finding explains what happened, the measured value against its baseline, the compared periods, the crossed threshold with all severity bands, how the score and category score were produced, and the suggested investigation.
@@ -12,6 +17,10 @@
 - Add short explanations under the Business Health Score, its analysis confidence, the Workspace Health Score, and the Business Balanced Scorecard overall score so each score shows what it measures and no two scores imply they are the same calculation.
 - Add one authoritative credit pricing table so every credit action shows and charges the same amount: dataset uploads with their standard analysis cost 10 credits, AI Analyst messages cost 1 credit, report generation and regeneration cost 3 credits, forecasts cost 3 credits, profitability analysis costs 15 credits, and downloading an existing report stays free.
 - Add internal per-request AI token tracking so Gemini input, output, and thinking tokens are recorded for unit-economics analysis without changing customer credit prices.
+
+### Changed
+
+- Restructure the expanded Risk Intelligence finding so it opens with what happened, why the severity applies, and the recommended investigation, while the exact scoring formulas move behind a secondary "Technical calculation details" disclosure.
 
 ### Fixed
 

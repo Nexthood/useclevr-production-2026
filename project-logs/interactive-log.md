@@ -1,3 +1,47 @@
+## 2026-09-23 — Risk Intelligence Explainability UX Polish
+
+1. Interaction title
+   Presentation-only restructuring of the expanded Risk Intelligence finding into business-first progressive disclosure (What happened / Why this severity / Recommended investigation / Technical calculation details), with scoring, evidence generation, and engine behavior unchanged and no commits or pushes.
+
+2. What was the user goal
+   Turn the dense technical explanation into a layout a business user understands in seconds while keeping every piece of deterministic evidence available for audit: a clean baseline → current comparison block using dynamic values, a compact threshold explanation with the matched band obvious, a clearly visible recommended-investigation block, and implementation-oriented detail behind one additional disclosure; responsive on desktop/tablet/mobile, accessible (keyboard, focus, text-carried severity), generic across every rule and dataset class, with regression tests proving the structure, no duplicated scoring constants, and no hardcoded fixtures.
+
+3. What changed
+    - `src/app/(auth)/app/risk-intelligence/page.tsx` (only production file): `RiskFindingRow` now composes four sections — `RiskWhatHappenedSection`, `RiskWhySeveritySection`, `RiskInvestigationSection`, `RiskTechnicalSection` — inside the existing outer disclosure; the old single-column text dump and `RiskEvidenceBlock` were replaced.
+    - What happened: when evidence carries periods compared plus both absolute and relative change (genuine period-over-period deltas), it renders Previous → Current comparison cards ("Previous"/"Current" caption badges, dynamic labels and displays, arrow that rotates on narrow screens with an sr-only "changed to"), Absolute change / Relative change stat chips, and the compared periods; all other evidence shapes render a responsive labeled value-card grid plus a Change line (when absolute change exists) and a metric-labeled value line (when only a share/ratio exists), so rules like dead stock, concentration, net margin, runway, and data quality render correctly without empty cards.
+    - Why <severity>: Measured / <severity> threshold / Risk score trio, the severity reason sentence, the full threshold ladder (severity label, condition display, score, matched band highlighted with border/background and the text "— matched"), and the business interpretation.
+    - Recommended investigation: action block rendering `explanation.investigation`; the duplicate row-level recommendation paragraph was removed.
+    - Technical calculation details: secondary nested `<details>` (collapsed) with rule score, importance weight, weighted contribution + the not-a-monetary-estimate note, category formula (mono, wrapping), source metric, source columns, compared periods, row scope, and the unavailable list.
+    - Accessibility/responsive: native `<details>/<summary>` preserved with `focus-visible:ring-2` visible focus on both disclosures; `sr-only` text for the arrow; severity and matched-band meaning carried in text; `sm:`/`lg:` grid stacking, `min-w-0` + `break-words` against horizontal overflow.
+    - `scripts/risk-intelligence/test-risk-explainability.ts` gains section 8: UI/source assertions proving ordering (business summary before technical details), the secondary `<summary>` disclosure, measured value + threshold + score visibility, investigation/contribution/interpretation/not-a-monetary-estimate availability, no duplicated scoring constants (`≤ -20`, `≤ -5`, `1.15`, `round((`, …) and no hardcoded fixtures (`2026-01`, `24,994`, `-32.7`, …) in presentation code, responsive (`sm:grid-cols`, `lg:grid-cols`, `min-w-0`, `break-words`, `sm:rotate-0`) and accessibility (`focus-visible:ring-2`, `sr-only`, `RISK_SEVERITY_LABELS[band.severity]`, "— matched") classes, and all rendered evidence sourced from `RiskFindingExplanation`.
+    - Engine, thresholds, severity bands, weights, aggregation, evidence generation, applicability, and API shape are untouched.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the comparison-card layout intentionally appears only for evidence with compared periods plus both change measures; other rules render the value grid, so the layout adapts per evidence shape rather than assuming a trend metric.
+   - improvement: none beyond the restructure itself.
+   - observation: the summary-text source assertions must tolerate JSX formatting, so the test matches `<summary>…</summary>` with whitespace-tolerant regex instead of single-line substrings.
+
+5. User learning
+   The expanded finding now reads top-down: what changed (with baseline → current values), how serious it is and why (threshold ladder with the matched band), what to investigate, and — one more click down — the exact formulas for auditability.
+
+6. AI-agent learning
+   Progressive disclosure works best when sections render conditionally on evidence shape rather than rule identity: gating the comparison cards on "periods compared + absolute + relative change" keeps the presentation rule-agnostic while still producing the familiar Previous → Current view for trend rules.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - UI: `src/app/(auth)/app/risk-intelligence/page.tsx`
+   - Regression pins: `scripts/risk-intelligence/test-risk-explainability.ts` (section 8)
+   - Release notes: `CHANGELOG.md`; product requirements: `requirements.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
 ## 2026-09-23 — Risk Intelligence Explainability Audit + Fix
 
 1. Interaction title
@@ -8716,3 +8760,43 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 ### 7. Remaining limitations
 - The production database row that carried the invalid timestamp cannot be inspected from the workspace, so the fix is proven by reproduction with the plausible value classes (Invalid Date instance, `infinity` string, null) rather than the live row; the listing now tolerates any of them.
 - Datasets with invalid metadata timestamps still appear in the selector (visibility is not timestamp-based) with null timestamps; the selector does not render timestamps, so no UI change was needed.
+
+## Accountancy vs Pre-bookkeeping Ownership Final Fix
+
+### 1. Request summary
+- Confirmed product architecture: Accountancy = financial/accounting overview hub; Pre-bookkeeping = operational bookkeeping workspace. Remove the duplicated operational Pre-bookkeeping render paths from Accountancy (uploader, bookkeeping package, bookkeeping queue) without CSS hiding, keep the verified-working Pre-bookkeeping backend untouched, fix the misleading tab-based format rejection with automatic file-type detection using existing supported format definitions, add regression invariants including a reintroduction guard, and investigate git history for the duplicate. No commit or push.
+
+### 2. Ownership audit before the fix
+- `src/app/(auth)/app/accountancy/page.tsx` rendered `<AccountancyUpload datasetType="accountancy" />` (main content and empty state) — the exact shared CSV/Excel/PDF-Scan uploader component used by Pre-bookkeeping, plus the "Bookkeeping package" card (`AccountancyPackageForm` with accountant email, package CSV/Excel/PDF export, mailto handoff) and a `BookkeepingQueue` table (bank reconciliation, expense coding, monthly close).
+- `src/app/(auth)/app/accountancy/error.tsx` rendered a second `AccountancyUpload` (defaulting to `datasetType="prebookkeeping"`) plus a static bookkeeping-package form, so the Accountancy error boundary instantiated a Pre-bookkeeping uploader.
+- `src/app/(auth)/app/prebookkeeping/page.tsx` rendered the canonical uploader once, the empty-state card ("No pre-bookkeeping dataset selected"), and the review workspace (`PrebookkeepingReviewWorkspace` with AI Review Summary, transaction review, categorization, VAT, duplicates, bookkeeping package/export) plus `StartCategorizationButton` for legacy datasets.
+
+### 3. Root cause of the duplicate uploader (git evidence, not guesswork)
+- `01222ca3f` (2026-06-22, "feat: improve business setup and accountancy onboarding") created `src/components/accountancy/accountancy-upload.tsx` and built the full operational workflow — uploader, package form, accountant handoff — into the Accountancy page while Accountancy hosted the pre-bookkeeping center (CHANGELOG: "Show Accountancy as a pre-bookkeeping center for new users with document upload, package generation, export, accountant email handoff...").
+- `73fa26e3b` (2026-08-01, "feat: complete pre-bookkeeping upload processing flow") created the canonical `/app/prebookkeeping` page reusing the same `AccountancyUpload` component, but the Accountancy page's operational sections were never removed.
+- `5aeb2a422` (2026-09-13, "fix: remove duplicate pre-bookkeeping upload actions") removed duplicate upload buttons only from the Pre-bookkeeping page (header + empty-state `Upload document` buttons), leaving the Accountancy copies intact. The duplicate is original heritage from the pre-canonical era, never a re-introduction after removal.
+
+### 4. Durable changes
+- `src/app/(auth)/app/accountancy/page.tsx`: removed the `AccountancyUpload` render (main + empty state), the Bookkeeping package card with `AccountancyPackageForm`, the `bookkeepingRows` data, and the `BookkeepingQueue` component plus its `getCompanyName`/`profileContextRows` helpers; hero and Quick actions copy now state that uploads happen in the Pre-bookkeeping workspace; the empty state gained an "Open Pre-bookkeeping" CTA. Kept: financial overview hero, Business Profile/tax context, routed accountancy dataset card with metrics, Monthly close card, Financial overview links, compliance/reporting/tax links, Review close action, Quick actions with the Open Pre-bookkeeping CTA.
+- `src/app/(auth)/app/accountancy/error.tsx`: rewritten as a financial-overview error state — retry card plus "Open Pre-bookkeeping" action; no uploader and no bookkeeping package form; error-boundary assertions from `test:business-profile-context` retained ("Could not load Accountancy", no hardcoded "Not configured", no "Complete Business Profile Setup").
+- `src/lib/accountancy/upload-detection.ts` (new): pure format detection mirroring the server `uploadSpecs` — extension routing (.csv→csv, .xlsx/.xls→excel, .pdf→pdf, .jpg/.jpeg/.png/.webp→receipt scanner, .ofx/.qif/.qfx→bank parser; tab-visible formats win shared extensions), extension-less MIME fallback (text/csv, application/csv, text/plain, spreadsheet MIMEs, application/pdf, image MIMEs, OFX/QFX MIMEs), ambiguous catch-alls (octet-stream, empty) never match, the exact neutral unsupported message ("Unsupported file format. Upload a CSV, Excel, PDF, or supported scan file."), and a union file-picker accept list so the active tab never blocks selecting another supported format.
+- `src/components/accountancy/accountancy-upload.tsx`: `validateFile` replaced by `resolveUploadFormat` (detect → neutral error when unsupported); the detected format drives validation, `formData` `uploadType`/`type`/`fileType`, the uploaded-file record, and the processing label; the visible tab auto-follows the detected format for CSV/Excel/PDF (scan/bank pipelines keep the current tab); the misleading "Please upload a valid ${selectedType} file" rejection is removed; the file input uses the union accept list; `handleDrop` and `uploadFile` gained an `uploading` guard so one upload action cannot start a second concurrent upload. Upload endpoint, dataset creation, categorization, VAT, review workflow, and credit settlement are untouched.
+- `scripts/accountancy/test-accountancy-ownership.ts` (new, wired into `test:all` as `test:accountancy-ownership`): 18-invariant regression suite — Accountancy app directory contains no uploader/package-form/file-input/dropzone/processing-flow/bookkeeping queue (reintroduction guard scanning every file under `src/app/(auth)/app/accountancy/`), "Open Pre-bookkeeping" retained and pointing at the existing canonical route, Pre-bookkeeping renders exactly one `<AccountancyUpload`, empty-state and selected-dataset states instantiate no second uploader, 13 functional detection cases including CSV-tab+.xlsx→Excel, Excel-tab+.csv→CSV, dropped/detected routing into the existing server specs, unsupported extensions→neutral message, one `tx.insert(datasets)` per upload with the duplicate-checksum path returning before insert, retry clearing only the failure state, dataset limits enforced before processing, owner-scoped focused-dataset lookups, explicit superadmin handling, and the canonical Pre-bookkeeping structure intact.
+- `scripts/accountancy/test-accountancy-upload-system.ts`: `testUiWiring` now pins the detected-format submission (`formData.append("uploadType", detectedFormat)`), the detection entry point, and the absence of the tab-mismatch rejection message.
+- `scripts/business/test-accountancy-business-profile-source.ts`: pins that Accountancy renders no BookkeepingQueue/AccountancyUpload/AccountancyPackageForm (previously pinned the queue's presence).
+- `scripts/accountancy/test-prebookkeeping-upload-limit.ts`: the stale "credit-exempt" case (pre-existing failure on the baseline, proven via `git stash` re-run) now pins the current unified credit model (reserve/finalize/release through the central engine, `normalUploadCreditsRequired: true`).
+
+### 5. Cause of the misleading CSV error
+- `validateFile` checked the file extension against only the ACTIVE tab's extension list and rejected mismatches with "Please upload a valid ${selectedType} file (.csv)". A valid .xlsx with the CSV tab active therefore failed client-side before any format detection; the same applied to picker and drop uploads.
+
+### 6. Verification
+- `pnpm validate:types` (next typegen + tsc --noEmit) exit 0.
+- Full `pnpm test:all` exit 0 (23 suites, 58 ok/passed lines, 0 failures) including the new `test:accountancy-ownership`.
+- Focused: `test:accountancy-upload-system`, `test:accountancy-upload-entitlements`, `test-prebookkeeping-upload-limit` (19 checks), `test-accounting-context`, `test-accountancy-package-csv-export`, `test-accountancy-package-pdf-export`, `test:business-profile-context`, `test:business-profile-ssot`, `test:risk-intelligence`, `test:standard-upload-success-ui`, `test:zero-credit-ux`, `test:credit-unified`, `test:dataset-isolation` (DB-backed cross-user isolation), `test:customer-data-owner-scope` all pass.
+- ESLint 0 errors on all changed files (scripts/ excluded by repo config).
+- Not committed or pushed per instruction.
+
+### 7. Remaining limitations
+- `src/components/accountancy/accountancy-package-form.tsx`, `src/lib/accountancy/package-csv.ts`, and `/api/accountancy/package/pdf` remain on disk with no Accountancy render path (their suites still pass); the package generation and accountant handoff surface remains the Pre-bookkeeping review workspace, so a dedicated accountant-email handoff UI is no longer reachable from Accountancy.
+- With the Accountancy uploader removed, new accountancy-type datasets have no creation path from the Accountancy page (per the confirmed architecture: no second upload architecture); existing accountancy datasets remain viewable and routable there.
+- Detection is extension-first with a MIME fallback only for extension-less files; a genuinely mislabeled file (e.g. a .csv whose browser MIME is application/pdf) passes client detection and is rejected server-side by the existing 415 validation, which stays the authority.

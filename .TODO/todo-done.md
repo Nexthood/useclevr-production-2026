@@ -91,6 +91,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1069. Accountancy stays the financial overview hub and renders no bookkeeping uploader, bookkeeping package form, or bookkeeping queue; Pre-bookkeeping keeps the one canonical CSV/Excel/PDF-Scan uploader, detects the selected or dropped file format automatically so valid files are never rejected for the wrong active tab, and returns the neutral unsupported-format message for other extensions, with the ownership and format-routing invariants pinned by a regression suite. (labels: upload, ui, workflow, testing; commit: worktree)
 - T-1021. Standard CSV and Excel uploads enforce centralized server-side size, type, structure, worksheet-bound, and parser resource limits before heavy file reads. (labels: upload, security, testing; commit: 345a7676)
 - T-1020. Ordinary Dataset and Report access enforces requested dataset ownership for the authenticated user and ignores admin or superadmin roles in customer-data routes. (labels: security, data, reports, testing; commit: 090a5718)
 - T-1019. Paired Profitability result actions omit single-dataset navigation while keeping Open Profitability, Upload Another File, and report generation actions. (labels: upload, ui, testing; commit: 74e31041)
@@ -215,6 +216,7 @@ moving work between states.
 
 ## Label: dashboard
 
+- T-1068. The expanded Risk Intelligence finding opens business-first — What happened (baseline → current comparison cards with absolute and relative change), Why <severity> (measured value, threshold, score, threshold ladder, interpretation), Recommended investigation — with the exact scoring formulas, source columns, row scope, and unavailable evidence behind a secondary "Technical calculation details" disclosure, responsive stacking, visible focus states, and text-carried severity. (labels: dashboard, ui, quality; commit: worktree)
 - T-1067. Every triggered Risk Intelligence rule shows deterministic evidence — what happened, measured value, baseline, absolute and relative change, compared periods, crossed threshold with all severity bands, severity and score reasoning with the exact category formula, business interpretation, and suggested investigation — and the internal ranking value (score × rule weight) renders as a labeled weighted contribution instead of a naked impact number. (labels: dashboard, data, metrics, quality; commit: worktree)
 - T-1050. Dashboard Dataset Library openings preserve the clicked dataset ID through navigation, selected dashboard statistics, semantic analysis, reports, and AI activity without falling back to another dataset. (labels: dashboard, data, testing; commit: worktree)
 - T-1004. Executive Daily Health mounts Generate Report on the default dashboard by using the latest reportable dashboard dataset when no dataset is explicitly selected. (labels: dashboard, reports, ui, testing; commit: worktree)
