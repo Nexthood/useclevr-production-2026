@@ -224,15 +224,16 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "pre-bookkeeping route does not consume normal upload credits (remains credit-exempt)",
+    name: "pre-bookkeeping route reserves and settles credits through the central engine",
     run() {
       const processorSource = readProjectFile("src/lib/accountancy/upload-processing.ts")
       const entitlementSource = readProjectFile("src/lib/accountancy/upload-entitlements.ts")
-      assert.ok(!processorSource.includes('feature: "dataset_upload"'), "pre-bookkeeping processor still does not consume dataset_upload credits")
-      assert.ok(!processorSource.includes("reserveCredits"), "pre-bookkeeping processor still does not reserve credits")
-      assert.ok(!processorSource.includes("finalizeCredits"), "pre-bookkeeping processor still does not finalize credits")
+      assert.ok(!processorSource.includes('feature: "dataset_upload"'), "pre-bookkeeping processor does not mint a separate dataset_upload feature")
+      assert.ok(processorSource.includes("reserveAccountancyUploadCredits"), "pre-bookkeeping uploads reserve credits through the central engine")
+      assert.ok(processorSource.includes("finalizeAccountancyUploadCredits"), "pre-bookkeeping uploads finalize credits once on success")
+      assert.ok(processorSource.includes("releaseAccountancyUploadCredits"), "pre-bookkeeping uploads release credits on failure")
       assert.ok(processorSource.includes("resolveAccountancyUploadEntitlement"), "pre-bookkeeping processor still resolves its dedicated entitlement")
-      assert.ok(entitlementSource.includes("normalUploadCreditsRequired: false"), "pre-bookkeeping remains credit-exempt in the entitlement resolver")
+      assert.ok(entitlementSource.includes("normalUploadCreditsRequired: true"), "pre-bookkeeping uploads require the authoritative standard upload analysis credits")
     },
   },
   {

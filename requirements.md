@@ -464,19 +464,17 @@ Text rules for this file:
 - Show Accountancy as a dashboard workspace with overview, reporting, tax, and compliance sections.
 - Show the same owner-selected overview, reporting, tax, and compliance context in Payload for
   superadmin operators.
-- Show the Accountancy empty state as "Pre-bookkeeping center" for users with no accountancy data.
-- Show upload and bookkeeping-package actions from the Accountancy empty state instead of treating missing accountancy data as an error.
+- Keep Accountancy as the financial overview hub with financial overview, tax context, reporting, compliance tools, and quick actions.
+- Show the Accountancy empty state with the Open Pre-bookkeeping action so users without accountancy data can start uploading.
 - Show a real Accountancy error only when server data loading fails.
-- Show Accountancy workflow steps for Business Profile setup, accounting-document upload, data extraction, pre-bookkeeping summary, PDF/Excel/CSV export, and accountant email handoff.
-- Collect accountant email, company name, tax period, and notes or message in the Accountancy bookkeeping-package form.
+- Keep every accountancy upload inside the Pre-bookkeeping workspace; Accountancy renders no bookkeeping uploader, bookkeeping package form, or bookkeeping queue.
 - Use saved Business Profile context for Accountancy tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed-cost assumptions.
-- Show bookkeeping actions for bank reconciliation, expense coding, monthly close, and tax preparation.
-- Show a bookkeeping queue with current status and direct action links.
 - Show monthly close readiness for business profile, financial dataset, and tax context.
-- Link accounting uploads to dataset upload.
 - Show reporting metrics from connected datasets.
 - Show tax region and business activity from the primary business profile.
 - Show compliance checks for business profile, operating location, and industry context.
+- Show one canonical CSV, Excel, and PDF-Scan uploader in Pre-bookkeeping for file upload, dataset creation, AI review, transaction review, categorization, VAT handling, duplicate detection, bookkeeping package, and accountant exports.
+- Detect the uploaded or dropped file format from the actual file so a supported CSV, Excel, PDF, or scan file is accepted from any format tab, and show a neutral unsupported-format message for other extensions.
 
 ## Support
 

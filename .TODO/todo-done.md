@@ -91,6 +91,7 @@ moving work between states.
 
 ## Label: upload
 
+- T-1069. Accountancy stays the financial overview hub and renders no bookkeeping uploader, bookkeeping package form, or bookkeeping queue; Pre-bookkeeping keeps the one canonical CSV/Excel/PDF-Scan uploader, detects the selected or dropped file format automatically so valid files are never rejected for the wrong active tab, and returns the neutral unsupported-format message for other extensions, with the ownership and format-routing invariants pinned by a regression suite. (labels: upload, ui, workflow, testing; commit: worktree)
 - T-1021. Standard CSV and Excel uploads enforce centralized server-side size, type, structure, worksheet-bound, and parser resource limits before heavy file reads. (labels: upload, security, testing; commit: 345a7676)
 - T-1020. Ordinary Dataset and Report access enforces requested dataset ownership for the authenticated user and ignores admin or superadmin roles in customer-data routes. (labels: security, data, reports, testing; commit: 090a5718)
 - T-1019. Paired Profitability result actions omit single-dataset navigation while keeping Open Profitability, Upload Another File, and report generation actions. (labels: upload, ui, testing; commit: 74e31041)

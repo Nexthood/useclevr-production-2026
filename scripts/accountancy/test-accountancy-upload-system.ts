@@ -612,7 +612,9 @@ function testUiWiring() {
   const source = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8");
   assert.ok(source.includes('fetch("/api/accountancy/upload"'), "Accountancy UI uses dedicated route");
   assert.ok(source.includes("validateUploadApiResponse"), "Accountancy upload API responses are validated before rendering");
-  assert.ok(source.includes('formData.append("uploadType", selectedType)'), "selected upload type is submitted");
+  assert.ok(source.includes('formData.append("uploadType", detectedFormat)'), "the detected file format is submitted as the upload type");
+  assert.ok(source.includes("detectAccountancyUploadFormat"), "the uploader detects the file format from the actual file instead of trusting the active tab");
+  assert.ok(!source.includes("Please upload a valid"), "tab-mismatched format rejections are removed");
   assert.ok(source.includes("resetSelectedFileState"), "tab switching clears selected file and errors");
   assert.ok(source.includes("fileInputRef.current.value = \"\""), "file input is cleared on tab switch");
   assert.ok(source.includes('label: "CSV"'), "visible Accountancy upload choices include CSV");

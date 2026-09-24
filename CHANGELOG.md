@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Changed
+
+- Make Accountancy the financial overview hub: financial overview, tax context, reporting, and compliance tools stay here while uploads, the bookkeeping package, and the review workflow live in Pre-bookkeeping.
+- Detect the upload format from the file you select or drop so valid CSV, Excel, PDF, and scan files upload correctly from any format tab.
+
 ### Added
 
 - Add a "Why is this Critical? How was this calculated?" breakdown to every triggered Risk Intelligence rule so each finding explains what happened, the measured value against its baseline, the compared periods, the crossed threshold with all severity bands, how the score and category score were produced, and the suggested investigation.
