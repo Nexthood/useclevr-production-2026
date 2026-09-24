@@ -509,6 +509,7 @@ Text rules for this file:
 - Keep Google and LinkedIn social sign-in environment variables unnecessary for MVP authentication.
 - Keep generated app links on a safe public app origin, never on the internal server bind host.
 - Convert local development redirects from `0.0.0.0` to `localhost` before sending them to the browser.
+- Keep ClevrSync Google Sheets OAuth authorization, token-exchange, success, and error redirects on the canonical public app origin in deployed environments.
 - Accept authentication redirects only for the current origin, local development origins, or HTTPS UseClevr origins.
 - Redirect signed-out dashboard requests before nested layouts or pages access session-owned data.
 - Use a compact default text scale across public and dashboard pages.

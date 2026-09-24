@@ -1,3 +1,37 @@
+## 2026-09-24 — ClevrSync Google OAuth Production Redirect Fix
+
+1. Interaction title
+   Root-cause fix for the production ClevrSync Google OAuth consent redirect landing on Railway's internal `http://0.0.0.0:8080` bind origin instead of `https://app.useclevr.com`, with one shared safe public-origin resolver covering authorization redirect_uri, token-exchange redirect_uri, and success/error callback redirects; OAuth design, state/HMAC, nonce, token encryption, ownership checks, and CSRF protections untouched; no commits or pushes.
+
+2. What was the user goal
+   Complete the T-1058 production fix: after Google consent, the browser must return to the originating public app origin (app.useclevr.com in production, test.useclevr.com on the test deployment, localhost in local development), the Google redirect_uri must stay identical and environment-correct between authorization and token exchange, deployed environments must never emit 0.0.0.0/localhost/internal-host browser redirects, and regression tests must prove all of it.
+
+3. What changed
+    - Traced the full flow: `GET /api/clevrsync/google/oauth/start` builds the Google authorization URL via `buildGoogleSheetsAuthorizationUrl` with `redirect_uri` from `GOOGLE_CLEVRSYNC_REDIRECT_URI` or a fallback derived from `request.nextUrl.origin`; `GET /api/clevrsync/google/oauth/callback` verifies HMAC-signed state, exchanges the code with the same resolver logic, stores encrypted tokens, and redirects the browser to `new URL(state.returnTo, request.nextUrl.origin)`; the error fallback also derived from `request.nextUrl.origin`.
+    - Root cause: on Railway, `scripts/runtime/start-dist.cjs` binds Next.js to `0.0.0.0:8080` and `request.nextUrl.origin` resolves to the internal bind origin, so the callback route's final success redirect (and error fallback) used `http://0.0.0.0:8080/...`; token exchange succeeded because production Railway sets `GOOGLE_CLEVRSYNC_REDIRECT_URI=https://app.useclevr.com/api/clevrsync/google/oauth/callback`, isolating the bug to the browser-facing redirect construction.
+    - New pure `src/services/clevrsync/oauth-redirect.ts` (no secrets, no server-only import so scripts can test it): `resolveClevrSyncBrowserOrigin(requestOrigin)` prefers the canonical env config (NEXT_PUBLIC_APP_URL → AUTH_URL → NEXTAUTH_URL), then a safe request origin in non-production, then `https://app.useclevr.com` in production or `http://localhost:${PORT||3000}` in development; `isSafeBrowserUrl` always rejects 0.0.0.0, rejects non-HTTPS, localhost/loopback, private IP ranges, `.internal`/`.local` hosts, and the metadata IP in production; `resolveClevrSyncGoogleRedirectUri(requestOrigin)` uses a safe configured `GOOGLE_CLEVRSYNC_REDIRECT_URI` verbatim (Google requires an exact registered match) and ignores unsafe configured values in favor of the derived safe callback URL; `buildClevrSyncGoogleRedirect` builds final browser URLs.
+    - `start/route.ts` and `callback/route.ts` now resolve one `browserOrigin` through the shared resolver and build every browser-facing URL (sign-in redirect, checkout redirect, error fallback, success redirect) from it; both routes resolve `redirect_uri` through the same `resolveClevrSyncGoogleRedirectUri`, guaranteeing authorization/token-exchange identity; local per-route `getGoogleRedirectUri` helpers removed.
+    - New `scripts/clevrsync/test-google-oauth-redirect.ts` (`test:clevrsync-google-oauth-redirect`, registered in `test:all`): production never generates 0.0.0.0/localhost redirects for any unsafe request origin; test env with canonical env vars resolves test.useclevr.com; production resolves app.useclevr.com (env config and fallback); local development keeps localhost and converts 0.0.0.0 dev origins; unsafe configured redirect_uri values are rejected in production while localhost config stays honored in development; authorization and token-exchange redirect_uri identity; route source assertions prove both routes use the shared resolver only (raw request origin never reaches URL construction) and that state verification, HMAC state creation, and token encryption wiring remain.
+    - Requirements, CHANGELOG, TODO records (T-1058 → done with `commit: worktree`), and logs updated; `.env.local.example`/`.env.railway.example` guidance unchanged (still accurate).
+
+4. Problems marked
+   - blocker: none.
+   - note: the Google client secret value was incidentally displayed in this session's terminal output while listing Railway variables with a mis-keyed redaction filter; no file, log, commit, or documentation contains it, and no secret was written anywhere — recommend rotating only if the local machine's scrollback is considered sensitive.
+   - note: the test Railway service ("useclevr TEST", beta environment) has no `GOOGLE_CLEVRSYNC_*` variables; ClevrSync Google OAuth is production-only until client credentials and the test redirect URI are configured.
+
+5. Verification
+   - `pnpm test:clevrsync-google-oauth-redirect` — pass (all origin, identity, safety, and source invariants).
+   - `pnpm test:auth` — pass (existing auth redirect suite unbroken).
+   - `pnpm exec tsc --noEmit --pretty false` — exit 0.
+   - ESLint on all changed source files — 0 errors (scripts test file is intentionally eslint-ignored like all script tests).
+   - `check-package-json`, `check-todo-management`, changelog/records checks — pass.
+   - Railway environment verified read-only via `railway.cjs variable list`: production service sets `GOOGLE_CLEVRSYNC_REDIRECT_URI=https://app.useclevr.com/api/clevrsync/google/oauth/callback` plus correct `NEXT_PUBLIC_APP_URL`/`AUTH_URL`/`NEXTAUTH_URL`; test service sets `https://test.useclevr.com` for the same URL variables.
+
+6. Final redirect resolution
+    - Production: origin `https://app.useclevr.com`; redirect_uri `https://app.useclevr.com/api/clevrsync/google/oauth/callback` (explicit env); final redirect `https://app.useclevr.com/app/settings/data-connections?google=connected&connectorId=...`.
+    - Test: origin/redirect_uri derive from `NEXT_PUBLIC_APP_URL=https://test.useclevr.com` → `https://test.useclevr.com/api/clevrsync/google/oauth/callback` (requires Google Console registration once test credentials exist).
+    - Local: request origin `http://localhost:3000`; redirect_uri `http://localhost:3000/api/clevrsync/google/oauth/callback` (or the local `GOOGLE_CLEVRSYNC_REDIRECT_URI` value).
+
 ## 2026-09-23 — Risk Intelligence Explainability UX Polish
 
 1. Interaction title
