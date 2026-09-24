@@ -297,6 +297,7 @@ moving work between states.
 
 ## Label: api
 
+- T-1058. Route ClevrSync Google OAuth browser redirects through one safe public-origin resolver so authorization redirect_uri, token-exchange redirect_uri, success, and error callbacks all resolve from the canonical public app URL and never from Railway's internal 0.0.0.0:8080 bind origin, with the resolver rejecting internal hosts and falling back to app.useclevr.com in production while localhost development stays intact. (labels: auth, api, deployment; commit: worktree)
 - T-1022. The external Public AI API returns a generic production 404 before exposing authentication, action, or dataset-processing behavior. (labels: api, security, ai, testing; commit: 7981ac1e)
 - T-786. Remove orphaned dataset comparison, alert, and live-refresh API routes that expose non-persistent or no-op production behavior. (labels: api, data, quality; commit: worktree)
 - T-782. Require authentication and dataset ownership for upload and direct dataset query operations. (labels: api, auth, upload, security; commit: worktree)

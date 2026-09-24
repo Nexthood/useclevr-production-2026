@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- Fix Google Sheets connections so finishing Google consent returns you to the app address you connected from instead of an unreachable internal server address.
 - Fix Risk Intelligence rule details so the internal ranking value appears as a labeled weighted contribution to the category score (rule score × rule importance) instead of a bare "Impact" number.
 - Fix the Dataset Analyzer world map so datasets with a country column always show their mapped locations: the map, the region rankings, and the dashboard now resolve geography from one shared location resolver, and the map only shows profit when the uploaded data carries a real profit field.
 - Fix Dataset Analyzer profit labeling so the displayed profit names its exact definition (dataset profit field, profit after recognized costs, or an estimate), the dataset's own profit field is used as the source when present, and profile-adjusted profit stays a separately labeled Business Profile calculation.

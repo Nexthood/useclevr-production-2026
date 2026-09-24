@@ -35,7 +35,6 @@ moving work between states.
 
 ## Label: auth
 
-- T-1058. Fix the Google ClevrSync OAuth consent redirect in production: after Google consent the browser lands on 0.0.0.0:8080; resolve the production base URL and OAuth redirect URI so consent returns to the live production domain. Address when the production credit-account repair is verified. (labels: auth, api, deployment)
 
 ## Deferred
 
