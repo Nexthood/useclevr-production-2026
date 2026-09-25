@@ -44,6 +44,7 @@ type DashboardReportInput = Awaited<ReturnType<typeof buildDatasetReportInput>> 
   semanticContext?: {
     confidence?: number | null
     revenueField?: string | null
+    mappings?: Record<string, string | null>
   }
   diagnostics?: {
     loadedRowsLength?: number | null
@@ -189,6 +190,9 @@ function buildSemanticMetrics(reportInput: DashboardReportInput): DashboardSeman
     const ecommerce = reportInput.ecommerceAnalysis
     return [
       metric("Revenue", reportInput.financials?.revenue ?? null, "currency", reportInput.semanticContext?.revenueField ?? null, "Source revenue field."),
+      metric("Cost", reportInput.financials?.cogs ?? null, "currency", reportInput.semanticContext?.mappings?.cogs ?? null, "Direct-cost source field kept separate from shipping and operating costs."),
+      metric("Profit", reportInput.financials?.grossProfit ?? null, "currency", reportInput.semanticContext?.mappings?.grossProfit ?? null, reportInput.financials?.metricSources?.grossProfit?.kind === "source_value" ? "Source profit field." : "Revenue minus recognized direct cost."),
+      metric("Profit Margin", reportInput.financials?.grossMargin ?? null, "percent", "profit / revenue", "Profit divided by revenue when revenue is non-zero."),
       metric("Orders", ecommerce.orders, "number", ecommerce.orderField, "Distinct recognized order IDs."),
       metric("Average Order Value", ecommerce.averageOrderValue, "currency", ecommerce.orderField, "Revenue divided by distinct order count."),
       metric("Customers", ecommerce.customers, "number", ecommerce.customerField, "Distinct recognized customer IDs."),

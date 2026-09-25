@@ -1,3 +1,47 @@
+## 2026-09-25 — ClevrSync E-commerce Profitability Semantics Completion
+
+1. Interaction title
+   Completion of the unfinished central profitability-semantics fix that makes explicit Profit and safe retail Cost fields feed canonical e-commerce report and dashboard KPIs.
+
+2. What was the user goal
+   Continue the in-progress working-tree fix (not restart it) so the ClevrSync Retail Test 500 dataset reports Revenue ≈ 99,167, Cost ≈ 55,675, Profit ≈ 43,492, Profit Margin ≈ 43.86% instead of "COGS/Gross Profit/Gross Margin: Not available" plus add-cost recommendations; explicit Profit must take precedence, unsafe operating/shipping/marketing costs must never become COGS, missing metrics stay unavailable, ClevrSync and normal CSV/XLSX uploads share one central semantics, and regression tests must verify totals from the actual schema (Date, Order ID, Product, Category, Quantity, Unit Price, Revenue, Cost, Profit, Customer, Country, Inventory) without committing or pushing.
+
+3. What changed
+   - Preserved the previous agent's working-tree edits in `src/lib/data/semantic-schema.ts` (safe "cost"/"profit" exact aliases with retail-sales context validators) and `src/lib/reports/dataset-report-builder.ts` (`applyRetailProfitabilitySemantics` mapping direct cost into `columnMap.cogs` and explicit profit into `columnMap.grossProfit` before `buildGenericFinancials`, clearing a conflicting `netProfit` alias).
+   - `src/lib/reports/dataset-report-builder.ts`: the e-commerce KPI branch now emits Cost, Profit, and Profit Margin strictly from canonical `financials.cogs`/`grossProfit`/`grossMargin` so operating, shipping, or marketing expenses can never render as Cost.
+   - `src/lib/data/dashboard-semantic-profile.ts`: the e-commerce dashboard metric list now exposes Cost, Profit, and Profit Margin (positioned right after Revenue) sourced from canonical financials and semantic-context mappings, so the top dashboard KPI row shows them when available.
+   - `scripts/analysis/test-generic-business-canonical-resolution.ts`: updated the outdated e-commerce assertion that pinned "exact cost must not become COGS" to the new context-gated contract (cost feeds COGS, explicit profit feeds gross profit, profit is not relabeled net profit).
+   - `scripts/analysis/test-clevrsync-retail-profitability-semantics.ts` (new, `test:clevrsync-retail-profitability`, wired into `test:all`): pins the exact ClevrSync schema — expected totals computed from the fixture rows, explicit-profit precedence (fixture profit deliberately diverges from revenue − cost), provenance notes, semantic-context mappings, KPI values, recommendation suppression, ClevrSync vs standard-upload parity, dashboard metric exposure, unsafe-cost rejection with recommendation retained, and PDF output without missing-COGS claims.
+   - `package.json`: registered `test:clevrsync-retail-profitability` and added it to `test:all`.
+   - Bookkeeping: CHANGELOG [Unreleased] Fixed entry, `.TODO/todo-done.md` T-1070 with `.TODO/config.json` nextTaskNumber 1070 → 1071, activity log, interaction status.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `test:dataset-aware-report-profiles` fails at its saas PDF "top findings must suppress technical metadata" assertion on the unmodified HEAD baseline too — pre-existing and unrelated to profitability semantics; the e-commerce portion of that suite passes.
+   - improvement: the pre-existing saas results-summary finding filter deserves its own fix pass.
+   - observation: the semantic profile already mapped Cost→cogs for retail-classified datasets, but the column map never consumed it; the new retail profitability semantics close that gap centrally before `buildGenericFinancials`.
+
+5. User learning
+   ClevrSync-synced sheets and direct CSV/XLSX uploads flow through the same dataset pipeline, so one central semantic fix covers both; explicit Profit fields now win over derived values, and genuinely missing metrics still render as unavailable instead of being estimated.
+
+6. AI-agent learning
+   E-commerce KPIs must source cost metrics from canonical `financials.cogs` only — the raw `columns.cost` alias pattern also matches operating-expense columns and would mislabel them as Cost on the dashboard.
+
+7. Follow-up tasks
+   - Fix the pre-existing `test:dataset-aware-report-profiles` saas top-findings metadata suppression failure.
+
+8. Instruction sources
+   - AGENTS.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md [Unreleased]
+   - Completed work: .TODO/todo-done.md T-1070
+
 ## 2026-09-24 — ClevrSync Google OAuth Production Artifact Diagnosis
 
 1. Interaction title

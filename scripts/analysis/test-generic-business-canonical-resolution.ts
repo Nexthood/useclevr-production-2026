@@ -204,7 +204,9 @@ async function assertModelScopedFallbacks() {
     businessModel: "ecommerce",
   })) as EcommerceReportInput
   assert(ecommerceInput.ecommerceAnalysis?.orders === null, "e-commerce must not globally promote invoice_id to order_id")
-  assert(ecommerceInput.financials?.cogs === null, "e-commerce must not globally treat exact cost as COGS")
+  nearlyEqual(ecommerceInput.financials?.cogs, 180, "e-commerce must treat exact cost as COGS when retail sales context exists")
+  nearlyEqual(ecommerceInput.financials?.grossProfit, 120, "e-commerce gross profit must use the explicit profit field when present")
+  assert(ecommerceInput.financials?.netProfit === null, "e-commerce explicit profit field must not be labeled net profit")
 
   const retailRows = [
     { invoice_id: "INV-1", revenue: 100, unit_cost: 10, quantity: 2, product: "A", category: "Cat", stock_on_hand: 5, reorder_point: 2 },
