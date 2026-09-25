@@ -1,3 +1,47 @@
+## 2026-09-24 — ClevrSync Google OAuth Production Artifact Diagnosis
+
+1. Interaction title
+   Deployment-artifact diagnosis for the live ClevrSync Google OAuth callback still redirecting successful consent to Railway's internal `http://0.0.0.0:8080` origin.
+
+2. What was the user goal
+   Verify the previous source fix on `beta`, verify whether it reached `main` and the Production `dist` artifact, inspect the compiled callback that Railway serves, determine whether Production runs stale callback code, and identify the exact required fix without redesigning OAuth or adding a second workaround.
+
+3. What changed
+   - No source, pipeline, or generated artifact code changed.
+   - Refreshed `origin/beta`, `origin/main`, and `origin/dist` from GitHub because local refs were stale.
+   - Confirmed fixed commit `51c9ca487` exists only on `origin/beta`.
+   - Confirmed current `origin/main` commit `1684b3ae1` still lacks `src/services/clevrsync/oauth-redirect.ts` and still uses raw `request.nextUrl.origin` in the Google OAuth routes.
+   - Confirmed current `origin/dist` commit `218c2cb5e` was built from `main` commit `1684b3a` and its compiled callback still uses `new URL(returnTo, nextUrl.origin)`.
+   - Confirmed Railway production service `useclevr app` on `app.useclevr.com` latest deployment `57e4ab51-e40c-40f0-86d0-ab4821b80041` was created at `2026-09-24T17:48:51.496Z`, matching the successful Sync Beta And Publish Dist run from `main` commit `1684b3a`.
+
+4. Problems marked
+   - blocker: Production serves stale compiled callback code because the previous beta fix has not reached `main` or `dist`.
+   - risk: current ClevrSync redirect tests validate source only, so a source fix can pass while the generated Production artifact remains stale.
+   - improvement: add a generated-artifact regression check after `pnpm prod:build` that inspects `dist/.next/server/app/api/clevrsync/google/oauth/{start,callback}/route.js` for the safe-origin contract.
+   - observation: `pnpm railway:status` failed before the wrapper ran because pnpm tried to install and hit a cache/network error; direct `node ./scripts/server/railway/railway.cjs status/inspect --json` verified the Railway project.
+
+5. User learning
+   Production serves the `dist` branch artifact, not the current `beta` source tree; the live behavior stays stale until the existing beta fix lands in `main` and the dist branch is rebuilt from that main commit.
+
+6. AI-agent learning
+   For Production deploy bugs in this project, refresh remote refs first and inspect `origin/dist` compiled route files before assuming local branch state reflects Railway.
+
+7. Follow-up tasks
+   - Merge or cherry-pick `51c9ca487` from `beta` into `main`.
+   - Rebuild and publish `dist` from the corrected `main` commit.
+   - Add the dist-artifact ClevrSync OAuth redirect regression check.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - detailed session record: `project-logs/interactive-log.md`
+   - activity summary: `project-logs/activity-log.md`
+   - latest interaction status: `docs/AI-interaction/interaction-status.md`
+
 ## 2026-09-24 — ClevrSync Google OAuth Production Redirect Fix
 
 1. Interaction title
@@ -8834,3 +8878,34 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - `src/components/accountancy/accountancy-package-form.tsx`, `src/lib/accountancy/package-csv.ts`, and `/api/accountancy/package/pdf` remain on disk with no Accountancy render path (their suites still pass); the package generation and accountant handoff surface remains the Pre-bookkeeping review workspace, so a dedicated accountant-email handoff UI is no longer reachable from Accountancy.
 - With the Accountancy uploader removed, new accountancy-type datasets have no creation path from the Accountancy page (per the confirmed architecture: no second upload architecture); existing accountancy datasets remain viewable and routable there.
 - Detection is extension-first with a MIME fallback only for extension-less files; a genuinely mislabeled file (e.g. a .csv whose browser MIME is application/pdf) passes client detection and is rejected server-side by the existing 415 validation, which stays the authority.
+
+## ClevrSync Connect & Analyze Dashboard Routing
+
+### 1. Request summary
+- Fix the Google Sheets ClevrSync "Connect & Analyze" flow so a newly synced worksheet enters the normal UseClevr dataset dashboard/analysis workflow instead of staying on `/app/settings/data-connections`. Preserve the central dataset pipeline, connector ownership, OAuth security, preview behavior, dataset identity on refresh, and centralized credits. No commits or pushes.
+
+### 2. Root cause
+- The sync route already feeds Google Sheets through `uploadCSV`, which creates or updates the canonical dataset, persists rows, resolves `source = google_sheets`, runs the Business Intelligence initialization, and returns the normal upload redirect. The settings page ignored that dataset destination after a successful sync and only refreshed connector state with "Google Sheet synced", leaving the user on the ClevrSync page.
+- A linked ClevrSync refresh also passed through the initial `standard_upload_analysis` credit reservation with a timestamped operation ID. That made "Sync now" behave like another initial upload charge even though it updates the same linked dataset.
+
+### 3. Durable changes
+- `src/app/(auth)/app/settings/data-connections/page.tsx`: imports `useRouter`, extracts a safe in-app dashboard destination from the sync response (`redirectTo`, `redirectUrl`, or `datasetId` fallback), pushes to `/app/dashboard?datasetId=...` after Google Sheets or Excel sync success, and shows a useful error while staying on ClevrSync if no dataset destination is returned.
+- `src/app/api/clevrsync/sync/route.ts`: adds `buildClevrSyncSyncResponse` so both Excel and Google Sheets sync responses include top-level `datasetId`, `redirectUrl`, and `redirectTo`, using the central upload result first and `/app/dashboard?datasetId=...` as fallback.
+- `src/app/actions/upload.ts`: detects an existing owned ClevrSync dataset before credit reservation, bypasses the initial upload-analysis reservation only for that linked refresh, reuses the same ownership check for update-vs-insert, and keeps first Connect & Analyze on the existing central `standard_upload_analysis` credit flow.
+- `next.config.mjs`: sets `experimental.useTypeScriptCli = false` so Next uses the TypeScript compiler API path during production builds; the local TypeScript 6 CLI bin exits 0 with empty stdout when launched as `node node_modules/typescript/bin/tsc --showConfig`, which made Next parse empty output and fail before app compilation.
+- `scripts/clevrsync/test-clevrsync.ts`: adds regression checks for central upload reuse, Google Sheets source persistence, sync response navigation, UI dashboard routing, same-dataset refresh behavior, no duplicate initial credit reservation on refresh, entitlement/ownership guards, and the current premium-lock copy.
+
+### 4. Verification
+- `pnpm test:clevrsync` passes.
+- `pnpm test:standard-upload-success-ui` passes and confirms the established successful-upload destination is `/app/dashboard?datasetId=...`.
+- `pnpm validate:types` passes (`next typegen` + `tsc --noEmit --pretty false`).
+- `pnpm validate:dist` passes.
+- `pnpm prod:build` passes and creates `/home/csaba/Documents/Useclever-2026/dist`.
+- Regenerated artifact verification:
+  - `dist/.next/server/app/api/clevrsync/sync/route.js` contains the sync response with `datasetId`, `redirectUrl`, `redirectTo`, and `/app/dashboard?datasetId=${encodeURIComponent(datasetId)}` fallback.
+  - `dist/.next/server/app/(auth)/app/settings/data-connections/page.js` and the matching static chunk contain the Google Sheets "Connect & Analyze"/"Sync now" UI and call `router.push(...)` with the dashboard destination after successful sync.
+
+### 5. Remaining limitations
+- Production still needs commit/push/CI publication through the normal beta -> main -> dist path before users see this fix.
+- The generated local `dist/` is ignored output and was not committed.
+- Not committed or pushed per instruction.

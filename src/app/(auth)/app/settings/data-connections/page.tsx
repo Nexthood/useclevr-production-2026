@@ -11,7 +11,7 @@ import {
   Share2,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,19 @@ type ClevrSyncAccess = {
   };
 };
 
+type ClevrSyncSyncPayload = {
+  datasetId?: string | null;
+  redirectUrl?: string | null;
+  redirectTo?: string | null;
+  upload?: {
+    datasetId?: string | null;
+    redirectUrl?: string | null;
+    redirectTo?: string | null;
+    error?: string | null;
+  };
+  error?: string | null;
+};
+
 const connectorOptions = [
   { type: "excel", label: "Excel Connector", status: "Available", description: "Connect Excel workbooks", icon: FileSpreadsheet },
   { type: "google_sheets", label: "Google Sheets", status: "Available", description: "Connect Google Sheets", icon: Database },
@@ -48,6 +61,7 @@ const connectorOptions = [
 ];
 
 export default function DataConnectionsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [connector, setConnector] = useState<Connector | null>(null);
@@ -159,8 +173,14 @@ export default function DataConnectionsPage() {
       if (!response.ok)
         throw new Error(payload.upload?.error || payload.error || "Unable to sync workbook");
 
+      const nextHref = getClevrSyncDatasetHref(payload);
+      if (!nextHref) {
+        throw new Error("Dataset synced, but UseClevr did not return an analysis destination.");
+      }
+
       setMessage("Dataset synced");
       await loadConnectors();
+      router.push(nextHref);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to sync workbook");
     } finally {
@@ -222,8 +242,15 @@ export default function DataConnectionsPage() {
       const payload = await response.json();
       if (!response.ok)
         throw new Error(payload.upload?.error || payload.error || "Unable to sync Google Sheet");
+
+      const nextHref = getClevrSyncDatasetHref(payload);
+      if (!nextHref) {
+        throw new Error("Google Sheet synced, but UseClevr did not return an analysis destination.");
+      }
+
       setGoogleMessage("Google Sheet synced");
       await loadConnectors();
+      router.push(nextHref);
     } catch (error) {
       setGoogleMessage(error instanceof Error ? error.message : "Unable to sync Google Sheet");
     } finally {
@@ -464,6 +491,24 @@ export default function DataConnectionsPage() {
       </Card>
     </div>
   );
+}
+
+function getClevrSyncDatasetHref(payload: ClevrSyncSyncPayload) {
+  const directHref =
+    readSyncString(payload.redirectTo) ||
+    readSyncString(payload.redirectUrl) ||
+    readSyncString(payload.upload?.redirectTo) ||
+    readSyncString(payload.upload?.redirectUrl);
+  if (directHref?.startsWith("/app/")) {
+    return directHref;
+  }
+
+  const datasetId = readSyncString(payload.datasetId) || readSyncString(payload.upload?.datasetId);
+  return datasetId ? `/app/dashboard?datasetId=${encodeURIComponent(datasetId)}` : null;
+}
+
+function readSyncString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function ConnectionBadge({ connector }: { connector: Connector | null }) {

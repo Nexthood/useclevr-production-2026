@@ -472,9 +472,19 @@ export async function uploadCSV(
     const datasetName = file.name.replace(/\.(csv|xlsx|xls)$/i, "");
     let uploadCreditOperationId: string | null = null;
     let uploadReservedCredits = 0;
+    const existingClevrSyncDatasetBeforeCredit = isClevrSyncDatasetRefresh
+      ? await db.query.datasets.findFirst({
+          where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
+          columns: { id: true },
+        })
+      : null;
+    const shouldBypassClevrSyncRefreshCredits = Boolean(existingClevrSyncDatasetBeforeCredit);
+    const shouldChargeUploadCredits = !uploadUsage.unlimited && !shouldBypassClevrSyncRefreshCredits;
 
     if (uploadUsage.unlimited) {
       debugLog("[UPLOAD] Credit reservation bypassed for unlimited role");
+    } else if (shouldBypassClevrSyncRefreshCredits) {
+      debugLog("[UPLOAD] Credit reservation bypassed for ClevrSync dataset refresh");
     } else {
       const profitabilityRole = String(
         formData.get("profitability_file_role") ||
@@ -813,10 +823,7 @@ export async function uploadCSV(
             })
           : null;
         const existingClevrSyncDataset = isClevrSyncDatasetRefresh
-          ? await db.query.datasets.findFirst({
-              where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
-              columns: { id: true },
-            })
+          ? existingClevrSyncDatasetBeforeCredit
           : null;
         const shouldUpdateExistingDataset = Boolean(existingProfitabilityParent || existingClevrSyncDataset);
 
@@ -1058,7 +1065,7 @@ export async function uploadCSV(
 
     const previewRowsToReturn = useStreamingStorage ? previewRows : allRows.slice(0, 5);
 
-    if (uploadCreditOperationId) {
+    if (shouldChargeUploadCredits && uploadCreditOperationId) {
       const finalized = await finalizeCredits({
         operationId: uploadCreditOperationId,
         actualCredits: uploadReservedCredits,
