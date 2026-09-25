@@ -17,6 +17,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
+    useTypeScriptCli: false,
   },
   outputFileTracingIncludes: {
     "**/*": [

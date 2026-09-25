@@ -24,6 +24,33 @@ import { getGoogleSheetsAccessToken } from "@/services/clevrsync/google-auth-sto
 
 export const dynamic = "force-dynamic";
 
+function getDatasetDashboardRedirect(datasetId?: string | null) {
+  return datasetId ? `/app/dashboard?datasetId=${encodeURIComponent(datasetId)}` : null;
+}
+
+function buildClevrSyncSyncResponse({
+  run,
+  uploadResult,
+  datasetId,
+}: {
+  run: Awaited<ReturnType<typeof createClevrSyncRun>>;
+  uploadResult: Awaited<ReturnType<typeof uploadCSV>>;
+  datasetId?: string | null;
+}) {
+  const redirectUrl =
+    uploadResult.redirectTo ||
+    uploadResult.redirectUrl ||
+    getDatasetDashboardRedirect(datasetId);
+
+  return {
+    sync: run,
+    upload: uploadResult,
+    datasetId,
+    redirectUrl,
+    redirectTo: redirectUrl,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -108,7 +135,10 @@ export async function POST(request: Request) {
     });
 
     const status = uploadResult.success ? 200 : 422;
-    return NextResponse.json({ sync: run, upload: uploadResult }, { status });
+    return NextResponse.json(
+      buildClevrSyncSyncResponse({ run, uploadResult, datasetId }),
+      { status },
+    );
   } catch (error) {
     const accessError = clevrSyncAccessErrorPayload(error);
     if (accessError) {
@@ -210,7 +240,7 @@ async function syncGoogleSheets(
     });
 
     return NextResponse.json(
-      { sync: run, upload: uploadResult },
+      buildClevrSyncSyncResponse({ run, uploadResult, datasetId }),
       { status: uploadResult.success ? 200 : 422 },
     );
   } catch (error) {

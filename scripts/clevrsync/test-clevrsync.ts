@@ -131,7 +131,7 @@ function testFreeUiPremiumLock() {
   assert.match(page, /PremiumLock/);
   assert.match(page, /Upgrade to Pro/);
   assert.match(page, /ClevrSync requires Pro or Business/);
-  assert.match(page, /manual CSV\/XLSX uploads available/);
+  assert.match(page, /upload CSV and XLSX files directly through the Datasets page/);
   assert.match(page, /disabled=\{!access\?\.enabled/);
 }
 
@@ -223,12 +223,44 @@ function testClevrSyncDatasetRefreshInUpload() {
   assert.match(uploadAction, /isClevrSyncDatasetRefresh/);
   assert.match(uploadAction, /clevrsync_dataset_id/);
   assert.match(uploadAction, /Clear existing ClevrSync dataset rows/);
+  assert.match(uploadAction, /shouldBypassClevrSyncRefreshCredits/);
+  assert.match(uploadAction, /Credit reservation bypassed for ClevrSync dataset refresh/);
+  assert.match(uploadAction, /feature: "standard_upload_analysis"/);
 }
 
 function testGoogleSheetsSyncReusesUploadPipeline() {
   const syncRoute = readFileSync("src/app/api/clevrsync/sync/route.ts", "utf8");
   assert.match(syncRoute, /uploadCSV\(uploadFormData/);
   assert.match(syncRoute, /uploadSource.*clevrsync/);
+  assert.match(syncRoute, /clevrsync_connector_type", connector\.type/);
+  assert.match(syncRoute, /const datasetId = uploadResult\.datasetId \?\? existingDatasetId/);
+  assert.match(syncRoute, /buildClevrSyncSyncResponse/);
+  assert.match(syncRoute, /\/app\/dashboard\?datasetId=/);
+  assert.match(syncRoute, /redirectTo: redirectUrl/);
+}
+
+function testClevrSyncConnectAnalyzeNavigatesToDatasetDashboard() {
+  const page = readFileSync("src/app/(auth)/app/settings/data-connections/page.tsx", "utf8");
+  assert.match(page, /useRouter/);
+  assert.match(page, /router\.push\(nextHref\)/);
+  assert.match(page, /getClevrSyncDatasetHref/);
+  assert.match(page, /\/app\/dashboard\?datasetId=/);
+  assert.match(page, /encodeURIComponent\(datasetId\)/);
+  assert.match(page, /Google Sheet synced, but UseClevr did not return an analysis destination/);
+  assert.match(page, /selectedGoogleConnector\.sourceMeta\?\.datasetId \? "Sync now" : "Connect & Analyze"/);
+}
+
+function testClevrSyncGoogleSourcePersistsCanonicalDatasetSource() {
+  const syncRoute = readFileSync("src/app/api/clevrsync/sync/route.ts", "utf8");
+  const uploadAction = readFileSync("src/app/actions/upload.ts", "utf8");
+  const datasetSource = readFileSync("src/lib/data/dataset-source.ts", "utf8");
+
+  assert.match(syncRoute, /uploadFormData\.set\("clevrsync_connector_type", connector\.type\)/);
+  assert.match(uploadAction, /resolveUploadDatasetSource\(formData/);
+  assert.match(uploadAction, /clevrSyncConnectorTypeIn/);
+  assert.match(uploadAction, /value === "google_sheets"/);
+  assert.match(uploadAction, /return clevrSyncConnectorTypeIn\(clevrSyncConnectorType\) \?\? "clevrsync"/);
+  assert.match(datasetSource, /"google_sheets"/);
 }
 
 function testGoogleOAuthMinimumScope() {
@@ -264,6 +296,8 @@ testGoogleSheetsOwnershipProtection();
 testGoogleSheetsSyncTokenUsage();
 testClevrSyncDatasetRefreshInUpload();
 testGoogleSheetsSyncReusesUploadPipeline();
+testClevrSyncConnectAnalyzeNavigatesToDatasetDashboard();
+testClevrSyncGoogleSourcePersistsCanonicalDatasetSource();
 testGoogleOAuthMinimumScope();
 testDowngradeKeepsData();
 
