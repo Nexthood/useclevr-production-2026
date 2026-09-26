@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import * as XLSX from "xlsx"
 import {
   Upload, FileText, AlertTriangle, TrendingDown,
   TrendingUp, Loader2, CheckCircle2, AlertCircle,
   Table, BarChart3, Info, Building2,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, RefreshCw, Store,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataProcessingFlow } from "@/components/ui/data-processing-flow"
@@ -18,6 +18,26 @@ import { useToast } from "@/hooks/use-toast"
 import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
 import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError } from "@/lib/utils/debug"
+import {
+  buildRetailRecords,
+  computeDeadStock,
+  computeLowStock,
+  computeTopProfit,
+  detectColumns,
+} from "@/lib/retail/retail-record-engine"
+import type {
+  RetailDeadStockItem,
+  RetailLowStockItem,
+  RetailTopProfitItem,
+} from "@/lib/retail/retail-record-engine"
+import {
+  formatRetailSourceParam,
+  parseRetailSourceRef,
+  type RetailAnalyticsSnapshot,
+} from "@/lib/retail/retail-snapshot";
+import {
+  setActiveRetailSource,
+} from "@/lib/retail/retail-source-bridge"
 
 type PageState = "idle" | "parsing" | "uploading" | "analyzing" | "complete" | "error"
 
@@ -29,362 +49,60 @@ interface ParsedData {
   columnCount: number
 }
 
-interface LowStockItem {
-  product: string
-  sku: string
-  category: string
-  stock: number
-  reorderPoint: number
-  unitsSold: number
-  revenue: number
-  cost: number
-  grossProfit: number
-  margin: number
-  lastSaleDate: string
-  orderId: string
-  recommendation: string
-}
-
-interface DeadStockItem {
-  product: string
-  sku: string
-  category: string
-  stock: number
-  reorderPoint: number
-  unitsSold: number
-  revenue: number
-  cost: number
-  grossProfit: number
-  margin: number
-  lastSaleDate: string
-  daysSinceLastSale: number | null
-  stockValue: number
-  orderId: string
-  suggestedAction: string
-  recommendation: string
-}
-
-interface TopProfitItem {
-  product: string
-  sku: string
-  category: string
-  stock: number
-  reorderPoint: number
-  unitsSold: number
-  profit: number
-  margin: number
-  revenue: number
-  cost: number
-  lastSaleDate: string
-  orderId: string
-  reason: string
-  recommendation: string
-}
-
 interface RetailInsights {
   aiSummary: string | null
   aiExplanation: string | null
   aiRecommendation: string | null
-  lowStock: LowStockItem[]
-  deadStock: DeadStockItem[]
-  topProfit: TopProfitItem[]
+  lowStock: RetailLowStockItem[]
+  deadStock: RetailDeadStockItem[]
+  topProfit: RetailTopProfitItem[]
 }
 
-function matchColumn(columns: string[], keywords: string[]): string | null {
-  const normalized = columns.map((c) => ({
-    original: c,
-    normalized: c.toLowerCase().trim().replace(/[^a-z0-9]/g, "_"),
-  }))
-  for (const keyword of keywords) {
-    const kw = keyword.toLowerCase().trim().replace(/[^a-z0-9]/g, "_")
-    const found = normalized.find((c) => c.normalized.includes(kw))
-    if (found) return found.original
-  }
-  return null
+type SourceOptionDataset = {
+  type: "dataset"
+  id: string
+  label: string
+  fileName: string | null
+  rowCount: number
+  columnCount: number
+  createdAt: string | null
 }
 
-function toNumber(val: unknown): number {
-  if (typeof val === "number") return val
-  if (typeof val === "string") {
-    const cleaned = val.replace(/[^0-9.\-]/g, "")
-    const n = parseFloat(cleaned)
-    return isNaN(n) ? 0 : n
-  }
-  return 0
+type SourceOptionConnection = {
+  type: "square"
+  id: string
+  label: string
+  merchantId: string | null
+  connectionStatus: string
+  lastSuccessfulSyncAt: string | null
+  counts: { locations: number; products: number; variants: number; orders: number }
 }
 
-function toText(val: unknown, fallback = "Not provided"): string {
-  if (val === null || val === undefined) return fallback
-  const text = String(val).trim()
-  return text.length > 0 ? text : fallback
+type RetailSources = {
+  datasets: SourceOptionDataset[]
+  connections: SourceOptionConnection[]
 }
 
-function parseDateValue(val: unknown): Date | null {
-  if (val instanceof Date && !isNaN(val.getTime())) return val
-  if (typeof val === "number" && val > 0) {
-    const excelEpoch = new Date(Date.UTC(1899, 11, 30))
-    const date = new Date(excelEpoch.getTime() + val * 24 * 60 * 60 * 1000)
-    return isNaN(date.getTime()) ? null : date
-  }
-  if (typeof val === "string" && val.trim()) {
-    const date = new Date(val)
-    return isNaN(date.getTime()) ? null : date
-  }
-  return null
+const MAX_SYNC_POLL_ATTEMPTS = 40
+const SYNC_POLL_INTERVAL_MS = 3000
+
+const EMPTY_STATE_HINT = "Connect a retail system or upload CSV/Excel to start analyzing your business."
+
+type SourceView = {
+  loading: boolean
+  error: string | null
+  snapshot: RetailAnalyticsSnapshot | null
 }
 
-function formatDateValue(date: Date | null): string {
-  return date ? date.toISOString().slice(0, 10) : "Not provided"
+function sourceOptionValue(option: SourceOptionDataset | SourceOptionConnection): string {
+  return option.type === "dataset"
+    ? formatRetailSourceParam({ type: "dataset", datasetId: option.id })
+    : formatRetailSourceParam({ type: option.type, connectionId: option.id })
 }
 
-function isUnitCostColumn(column: string | null): boolean {
-  if (!column) return false
-  return /unit|wholesale|purchase|buying|cost_price|product_cost/i.test(column)
-}
-
-function detectColumns(columns: string[]) {
-  return {
-    skuCol: matchColumn(columns, [
-      "sku", "product_sku", "item_sku", "variant_sku", "barcode",
-      "upc", "ean", "code", "item_code", "product_code",
-    ]),
-    productCol: matchColumn(columns, [
-      "product_name", "item_name", "product", "name", "item", "title",
-      "description", "article",
-    ]),
-    categoryCol: matchColumn(columns, [
-      "category", "department", "collection", "product_type", "type",
-      "class", "group",
-    ]),
-    stockCol: matchColumn(columns, [
-      "stock", "quantity", "qty", "on_hand", "inventory", "available",
-      "qty_in_stock", "units_in_stock", "stock_qty", "stock_level",
-    ]),
-    reorderPointCol: matchColumn(columns, [
-      "reorder_point", "reorder", "minimum_stock", "min_stock", "par_level",
-      "safety_stock", "restock_level",
-    ]),
-    salesCol: matchColumn(columns, [
-      "sold", "units_sold", "quantity_sold", "sales_quantity", "qty_sold",
-      "sales", "sell", "quantity", "qty",
-    ]),
-    revenueCol: matchColumn(columns, [
-      "revenue", "sales_amount", "total_sales", "income", "turnover",
-      "total_revenue", "amount", "price", "selling_price", "retail_price",
-      "unit_price", "sale_price",
-    ]),
-    costCol: matchColumn(columns, [
-      "cost", "cogs", "unit_cost", "product_cost", "cost_price",
-      "wholesale_price", "purchase_price", "cost_of_goods", "buying_price",
-    ]),
-    dateCol: matchColumn(columns, [
-      "date", "transaction_date", "order_date", "sale_date", "created_at",
-      "timestamp", "datetime", "date_created",
-    ]),
-    orderCol: matchColumn(columns, [
-      "order_number", "order_id", "orderid", "order", "invoice_number",
-      "invoice_id", "receipt_number", "transaction_id",
-    ]),
-  }
-}
-
-type DetectedColumns = ReturnType<typeof detectColumns>
-
-interface RetailRecord {
-  product: string
-  sku: string
-  category: string
-  stock: number
-  reorderPoint: number
-  unitsSold: number
-  revenue: number
-  cost: number
-  grossProfit: number
-  margin: number
-  lastSaleDate: string
-  lastSaleAt: Date | null
-  orderId: string
-  stockValue: number
-}
-
-function buildRetailRecords(rows: Record<string, unknown>[], detected: DetectedColumns): RetailRecord[] {
-  return rows
-    .map((row) => {
-      const product = detected.productCol
-        ? toText(row[detected.productCol], "Unknown product")
-        : "Unknown product"
-      const sku = detected.skuCol ? toText(row[detected.skuCol]) : "Not provided"
-      const category = detected.categoryCol ? toText(row[detected.categoryCol]) : "Not provided"
-      const stock = detected.stockCol ? toNumber(row[detected.stockCol]) : 0
-      const reorderPoint = detected.reorderPointCol ? toNumber(row[detected.reorderPointCol]) : 10
-      const unitsSold = detected.salesCol ? toNumber(row[detected.salesCol]) : 0
-      const revenue = detected.revenueCol ? toNumber(row[detected.revenueCol]) : 0
-      const rawCost = detected.costCol ? toNumber(row[detected.costCol]) : 0
-      const unitCost = isUnitCostColumn(detected.costCol) ? rawCost : unitsSold > 0 ? rawCost / unitsSold : rawCost
-      const cost = isUnitCostColumn(detected.costCol) && unitsSold > 0 ? rawCost * unitsSold : rawCost
-      const grossProfit = revenue - cost
-      const margin = revenue > 0 ? (grossProfit / revenue) * 100 : 0
-      const lastSaleAt = detected.dateCol ? parseDateValue(row[detected.dateCol]) : null
-      const orderId = detected.orderCol ? toText(row[detected.orderCol]) : "Not provided"
-
-      return {
-        product,
-        sku,
-        category,
-        stock,
-        reorderPoint,
-        unitsSold,
-        revenue,
-        cost,
-        grossProfit,
-        margin,
-        lastSaleDate: formatDateValue(lastSaleAt),
-        lastSaleAt,
-        orderId,
-        stockValue: Math.max(stock, 0) * Math.max(unitCost, 0),
-      }
-    })
-    .filter((record) => record.product !== "Unknown product" || record.sku !== "Not provided")
-}
-
-function getReferenceDate(records: RetailRecord[]): Date | null {
-  return records.reduce<Date | null>((latest, record) => {
-    if (!record.lastSaleAt) return latest
-    if (!latest || record.lastSaleAt > latest) return record.lastSaleAt
-    return latest
-  }, null)
-}
-
-function computeLowStock(
-  records: RetailRecord[],
-): LowStockItem[] {
-  return records
-    .filter((item) => item.stock <= item.reorderPoint && (item.product !== "Unknown product" || item.sku !== "Not provided"))
-    .map((item) => ({
-      ...item,
-      recommendation: `Stock ${formatPlainNumber(item.stock)}, reorder point ${formatPlainNumber(item.reorderPoint)}, sold ${formatPlainNumber(item.unitsSold)} units recently → reorder recommended.`,
-    }))
-    .sort((a, b) => a.stock - b.stock)
-    .slice(0, 20)
-}
-
-function computeDeadStock(
-  records: RetailRecord[],
-): DeadStockItem[] {
-  const referenceDate = getReferenceDate(records)
-
-  return records
-    .map((item) => {
-      const daysSinceLastSale = referenceDate && item.lastSaleAt
-        ? Math.max(0, Math.floor((referenceDate.getTime() - item.lastSaleAt.getTime()) / 86_400_000))
-        : null
-      const suggestedAction = item.unitsSold === 0
-        ? "Discount or bundle"
-        : daysSinceLastSale !== null && daysSinceLastSale >= 60
-          ? "Bundle or stop reorder"
-          : "Review before reorder"
-
-      return {
-        ...item,
-        daysSinceLastSale,
-        suggestedAction,
-        recommendation:
-          `${suggestedAction}: ${item.stock > 0 ? "clear stocked units before buying more" : "keep off reorder lists until demand returns"}.`,
-      }
-    })
-    .filter((item) => item.stock > 0 && (item.unitsSold <= 0 || (item.daysSinceLastSale !== null && item.daysSinceLastSale >= 60)))
-    .sort((a, b) => b.stockValue - a.stockValue)
-    .slice(0, 20)
-}
-
-function computeTopProfit(
-  records: RetailRecord[],
-): TopProfitItem[] {
-  const grouped = new Map<string, RetailRecord>()
-
-  for (const record of records) {
-    const key = [
-      record.product.toLowerCase(),
-      record.sku.toLowerCase(),
-      record.orderId === "Not provided" ? "" : record.orderId.toLowerCase(),
-    ].join("|")
-    const existing = grouped.get(key)
-
-    if (!existing) {
-      grouped.set(key, { ...record })
-      continue
-    }
-
-    const revenue = existing.revenue + record.revenue
-    const cost = existing.cost + record.cost
-    const grossProfit = revenue - cost
-    const lastSaleAt = !existing.lastSaleAt || (record.lastSaleAt && record.lastSaleAt > existing.lastSaleAt)
-      ? record.lastSaleAt
-      : existing.lastSaleAt
-
-    grouped.set(key, {
-      ...existing,
-      stock: Math.max(existing.stock, record.stock),
-      reorderPoint: Math.max(existing.reorderPoint, record.reorderPoint),
-      unitsSold: existing.unitsSold + record.unitsSold,
-      revenue,
-      cost,
-      grossProfit,
-      margin: revenue > 0 ? (grossProfit / revenue) * 100 : 0,
-      lastSaleAt,
-      lastSaleDate: formatDateValue(lastSaleAt),
-      stockValue: existing.stockValue + record.stockValue,
-    })
-  }
-
-  return Array.from(grouped.values())
-    .filter((item) => item.grossProfit > 0 && (item.product !== "Unknown product" || item.sku !== "Not provided"))
-    .sort((a, b) => b.grossProfit - a.grossProfit)
-    .slice(0, 20)
-    .map((item) => ({
-      ...item,
-      profit: item.grossProfit,
-      reason: item.margin >= 50
-        ? "High margin converts sales into strong profit."
-        : item.unitsSold >= 10
-          ? "Sales volume drives strong total profit."
-          : "Positive margin and profitable sales make this worth protecting.",
-      recommendation: "Keep this item in stock and protect margin before discounting.",
-    }))
-}
-
-function formatPlainNumber(val: number): string {
-  return new Intl.NumberFormat().format(val)
-}
-
-function generateFallbackSummary(
-  rows: Record<string, unknown>[],
-  columns: string[],
-  lowStock: LowStockItem[],
-  deadStock: DeadStockItem[],
-  topProfit: TopProfitItem[],
-): { insight: string; explanation: string; recommendation: string } {
-  const total = new Intl.NumberFormat().format(rows.length)
-  const cols = columns.length
-  const low = lowStock.length
-  const dead = deadStock.length
-  const profit = topProfit.length > 0 ? topProfit[0].product : "N/A"
-  const maxProfit = topProfit.length > 0
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(topProfit[0].profit)
-    : "N/A"
-
-  return {
-    insight: `Analysis of ${total} products complete`,
-    explanation:
-      `Found ${total} inventory records across ${cols} columns. ` +
-      `${low} products have low stock (below 10 units). ` +
-      `${dead} products have no recorded sales. ` +
-      `Top profit product: ${profit} (${maxProfit}).`,
-    recommendation:
-      low > 0
-        ? `Restock ${low} low-inventory products to prevent stockouts. Focus on reordering top-selling items first.`
-        : "Review pricing strategy and consider promotions for slow-moving items.",
-  }
+function sourceOptionLabel(option: SourceOptionDataset | SourceOptionConnection): string {
+  if (option.type === "dataset") return option.label || option.fileName || option.id
+  return option.merchantId ? `Square — ${option.merchantId}` : "Square"
 }
 
 export function RetailInventoryClient({ embedded = false }: { embedded?: boolean }) {
@@ -400,6 +118,192 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   const activeUploadRef = useRef(false)
   const { toast } = useToast()
   const zeroCredit = useZeroCreditModal()
+
+  // Multi-source retail analytics state. The upload flow keeps its exact
+  // historical behavior; connected sources render from a normalized
+  // snapshot served by /api/retail/analytics.
+  const [sources, setSources] = useState<RetailSources | null>(null)
+  const [sourcesError, setSourcesError] = useState<string | null>(null)
+  const [selectedSource, setSelectedSource] = useState<string | null>(null)
+  const [sourceView, setSourceView] = useState<SourceView>({ loading: false, error: null, snapshot: null })
+  const [syncing, setSyncing] = useState(false)
+  const analyticsRequestRef = useRef(0)
+  const selectedSourceRef = useRef<string | null>(null)
+
+  const uploadFlowActive = state === "parsing" || state === "uploading" || state === "analyzing" || state === "complete" || state === "error"
+
+  const updateSelectedSource = useCallback((value: string | null) => {
+    selectedSourceRef.current = value
+    setSelectedSource(value)
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href)
+      if (value) {
+        url.searchParams.set("source", value)
+        url.searchParams.delete("datasetId")
+      } else {
+        url.searchParams.delete("source")
+      }
+      window.history.replaceState(null, "", url.toString())
+    }
+    const parsedRef = parseRetailSourceRef(value)
+    setActiveRetailSource(
+      parsedRef && parsedRef.type === "square"
+        ? { type: "square", connectionId: parsedRef.connectionId, label: "Square" }
+        : null,
+    )
+  }, [])
+
+  const loadSources = useCallback(async (): Promise<RetailSources | null> => {
+    try {
+      const response = await fetch("/api/retail/sources", { cache: "no-store" })
+      const payload = (await response.json()) as RetailSources & { error?: string }
+      if (!response.ok) throw new Error(payload.error || "Retail data sources could not be loaded.")
+      const nextSources: RetailSources = {
+        datasets: Array.isArray(payload.datasets) ? payload.datasets : [],
+        connections: Array.isArray(payload.connections) ? payload.connections : [],
+      }
+      setSources(nextSources)
+      setSourcesError(null)
+      return nextSources
+    } catch (err) {
+      debugError("Retail sources load error:", err)
+      setSourcesError(err instanceof Error ? err.message : "Retail data sources could not be loaded.")
+      return null
+    }
+  }, [])
+
+  const fetchSnapshot = useCallback(async (sourceValue: string) => {
+    const requestId = ++analyticsRequestRef.current
+    setSourceView({ loading: true, error: null, snapshot: null })
+    try {
+      const response = await fetch(`/api/retail/analytics?source=${encodeURIComponent(sourceValue)}`, { cache: "no-store" })
+      const payload = (await response.json()) as { snapshot?: RetailAnalyticsSnapshot; error?: string }
+      if (analyticsRequestRef.current !== requestId) return
+      if (!response.ok || !payload.snapshot) {
+        throw new Error(payload.error || "Retail analytics could not be loaded.")
+      }
+      setSourceView({ loading: false, error: null, snapshot: payload.snapshot })
+    } catch (err) {
+      if (analyticsRequestRef.current !== requestId) return
+      setSourceView({ loading: false, error: err instanceof Error ? err.message : "Retail analytics could not be loaded.", snapshot: null })
+    }
+  }, [])
+
+  // Initial source selection: URL param wins (deep-link + refresh), then the
+  // connected Square source, then the most recent retail dataset.
+  useEffect(() => {
+    let cancelled = false
+    async function init() {
+      const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null
+      const urlSource = parseRetailSourceRef(params?.get("source") ?? null)
+      const urlDatasetId = params?.get("datasetId")
+      const initial = urlSource
+        ? formatRetailSourceParam(urlSource)
+        : urlDatasetId
+          ? formatRetailSourceParam({ type: "dataset", datasetId: urlDatasetId })
+          : null
+      const loadedSources = await loadSources()
+      if (cancelled) return
+      const available = loadedSources ?? { datasets: [], connections: [] }
+      if (initial) {
+        updateSelectedSource(initial)
+        return
+      }
+      const square = available.connections[0]
+      const fallback = square
+        ? sourceOptionValue(square)
+        : available.datasets[0]
+          ? sourceOptionValue(available.datasets[0])
+          : null
+      if (fallback) updateSelectedSource(fallback)
+    }
+    void init()
+    return () => {
+      cancelled = true
+    }
+  }, [loadSources, updateSelectedSource])
+
+  // Fetch analytics whenever a selected source is not covered by the active
+  // upload flow (the upload flow renders its own fresh analysis).
+  useEffect(() => {
+    if (!selectedSource) {
+      setSourceView({ loading: false, error: null, snapshot: null })
+      return
+    }
+    if (uploadFlowActive) return
+    void fetchSnapshot(selectedSource)
+  }, [selectedSource, uploadFlowActive, fetchSnapshot])
+
+  // A selected source that disappears (dataset deleted, Square disconnected)
+  // falls back safely to the next available source.
+  useEffect(() => {
+    if (!sourceView.error || !sources || !selectedSource) return
+    const stillAvailable = [...sources.connections, ...sources.datasets].some(
+      (option) => sourceOptionValue(option) === selectedSource,
+    )
+    if (stillAvailable) return
+    const fallback = sources.connections[0]
+      ? sourceOptionValue(sources.connections[0])
+      : sources.datasets[0]
+        ? sourceOptionValue(sources.datasets[0])
+        : null
+    updateSelectedSource(fallback)
+    if (fallback) toast({
+      title: "Retail source switched",
+      description: "The previously selected retail source is no longer available.",
+    })
+  }, [sourceView.error, sources, selectedSource, updateSelectedSource, toast])
+
+  async function handleSourceSelect(value: string) {
+    if (value === selectedSource) return
+    updateSelectedSource(value)
+  }
+
+  async function handleSyncNow() {
+    const parsedRef = parseRetailSourceRef(selectedSourceRef.current)
+    if (!parsedRef || parsedRef.type !== "square") return
+    setSyncing(true)
+    try {
+      const response = await fetch(`/api/integrations/retail/${parsedRef.connectionId}/sync`, { method: "POST" })
+      const payload = (await response.json()) as { error?: string }
+      if (!response.ok) throw new Error(payload.error || "Sync could not be started.")
+
+      const syncStartedAt = Date.now()
+      for (let attempt = 0; attempt < MAX_SYNC_POLL_ATTEMPTS; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, SYNC_POLL_INTERVAL_MS))
+        const requestId = ++analyticsRequestRef.current
+        const analyticsResponse = await fetch(
+          `/api/retail/analytics?source=${encodeURIComponent(selectedSourceRef.current ?? "")}`,
+          { cache: "no-store" },
+        )
+        const analyticsPayload = (await analyticsResponse.json()) as { snapshot?: RetailAnalyticsSnapshot; error?: string }
+        if (analyticsRequestRef.current !== requestId) return
+        if (!analyticsResponse.ok || !analyticsPayload.snapshot) {
+          throw new Error(analyticsPayload.error || "Retail analytics could not be refreshed after sync.")
+        }
+        const snapshot = analyticsPayload.snapshot
+        const posSource = snapshot.source.type === "square" ? snapshot.source : null
+        const attemptAt = posSource?.lastSyncAttemptAt ? new Date(posSource.lastSyncAttemptAt).getTime() : 0
+        const syncRunFinished = Boolean(
+          posSource
+          && attemptAt >= syncStartedAt
+          && posSource.syncStatus !== "queued"
+          && posSource.syncStatus !== "running",
+        )
+        if (syncRunFinished || attempt === MAX_SYNC_POLL_ATTEMPTS - 1) {
+          setSourceView({ loading: false, error: null, snapshot })
+          void loadSources()
+          break
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Sync could not be completed."
+      toast({ title: "Square sync", description: message, variant: "default" })
+      void loadSources()
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const startAnalysis = useCallback(async (datasetId: string | null, data: ParsedData) => {
     setState("analyzing")
@@ -516,6 +420,9 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
         redirectTo: result.redirectTo || "/app/retail",
       })
       window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+      if (result.datasetId) {
+        updateSelectedSource(formatRetailSourceParam({ type: "dataset", datasetId: result.datasetId }))
+      }
       setTimeout(() => startAnalysis(result.datasetId || null, data), 300)
     } catch (err) {
       debugError("Upload error:", err)
@@ -531,7 +438,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
     } finally {
       activeUploadRef.current = false
     }
-  }, [toast, startAnalysis, zeroCredit])
+  }, [toast, startAnalysis, zeroCredit, updateSelectedSource])
 
   const parseFile = useCallback(async (file: File) => {
     if (file.size > 50 * 1024 * 1024) {
@@ -643,16 +550,141 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
 
   const formatNumber = (val: number) => new Intl.NumberFormat().format(val)
 
+  const formatCurrencyOrDash = (val: number | null) => (val === null ? "—" : formatCurrency(val))
+  const formatPercentOrDash = (val: number | null) => (val === null ? "—" : formatPercent(val))
+  const formatNumberOrDash = (val: number | null) => (val === null ? "—" : formatNumber(val))
+
   const visibleColumns = parsedData
     ? showAllColumns
       ? parsedData.columns
       : parsedData.columns.slice(0, 8)
     : []
 
+  // The rendered analytics content. Upload-flow results take precedence;
+  // otherwise the selected source snapshot drives every card.
+  const snapshot = uploadFlowActive ? null : sourceView.snapshot
+  const snapshotIsSquare = snapshot?.source.type === "square"
+  const hasAnySource = Boolean(sources && (sources.datasets.length > 0 || sources.connections.length > 0))
+
+  const aiSummary = uploadFlowActive || snapshot === null
+    ? insights?.aiSummary ?? null
+    : snapshot.summary.insight
+  const aiExplanation = uploadFlowActive || snapshot === null
+    ? insights?.aiExplanation ?? null
+    : snapshot.summary.explanation
+  const aiRecommendation = uploadFlowActive || snapshot === null
+    ? insights?.aiRecommendation ?? null
+    : snapshot.summary.recommendation
+  const showSquareSummaryTag = !uploadFlowActive && snapshotIsSquare
+
+  const lowStockItems = uploadFlowActive || snapshot === null
+    ? insights?.lowStock ?? []
+    : snapshot.lowStock.items
+  const lowStockBanner = uploadFlowActive || snapshot === null
+    ? (insights?.lowStock.length ? "Reorder these items first so recent sellers do not run out before the next buying cycle." : null)
+    : snapshot.lowStock.items.length
+      ? snapshot.lowStock.message
+      : null
+  const lowStockStatus = uploadFlowActive || snapshot === null
+    ? null
+    : snapshot.lowStock.items.length === 0 && snapshot.lowStock.status !== "ok"
+      ? snapshot.lowStock.message
+      : null
+  const lowStockDatasetEmpty = uploadFlowActive && insights && insights.lowStock.length === 0
+  const lowStockSnapshotOkEmpty = !uploadFlowActive && snapshot !== null
+    && snapshot.lowStock.items.length === 0 && snapshot.lowStock.status === "ok"
+
+  const deadStockItems = uploadFlowActive || snapshot === null
+    ? insights?.deadStock ?? []
+    : snapshot.deadStock.items
+  const deadStockBanner = uploadFlowActive || snapshot === null
+    ? (insights?.deadStock.length ? "Free cash from items that sit on the shelf before reordering more of the same stock." : null)
+    : snapshot.deadStock.items.length
+      ? snapshot.deadStock.message
+      : null
+  const deadStockStatus = uploadFlowActive || snapshot === null
+    ? null
+    : snapshot.deadStock.items.length === 0 && snapshot.deadStock.status !== "ok"
+      ? snapshot.deadStock.message
+      : null
+  const deadStockDatasetEmpty = uploadFlowActive && insights && insights.deadStock.length === 0
+  const deadStockSnapshotOkEmpty = !uploadFlowActive && snapshot !== null
+    && snapshot.deadStock.items.length === 0 && snapshot.deadStock.status === "ok"
+
+  const topProfitItems = uploadFlowActive || snapshot === null
+    ? insights?.topProfit ?? []
+    : snapshot.topProfit.items
+  const topProfitBanner = uploadFlowActive || snapshot === null
+    ? (insights?.topProfit.length ? "Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost." : null)
+    : snapshot.topProfit.items.length
+      ? snapshot.topProfit.message
+      : null
+  const topProfitStatus = uploadFlowActive || snapshot === null
+    ? null
+    : snapshot.topProfit.items.length === 0 && snapshot.topProfit.status !== "ok"
+      ? snapshot.topProfit.message
+      : null
+  const topProfitDatasetEmpty = uploadFlowActive && insights && insights.topProfit.length === 0
+  const topProfitSnapshotOkEmpty = !uploadFlowActive && snapshot !== null
+    && snapshot.topProfit.items.length === 0 && snapshot.topProfit.status === "ok"
+
+  const showSourceInsights = uploadFlowActive
+    ? Boolean(insights)
+    : Boolean(snapshot)
+
   return (
     <div className={embedded ? "space-y-6" : "min-w-0 flex-1 px-4 pb-6 pt-6 sm:px-6"}>
       <ZeroCreditModal state={zeroCredit.state} onOpenChange={(open) => { if (!open) zeroCredit.close() }} />
       <div className={embedded ? "space-y-6" : "mx-auto max-w-6xl space-y-6"}>
+        {/* Data source selector */}
+        {hasAnySource && (
+          <Card>
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Store className="h-4 w-4 text-primary" />
+                    Data source
+                  </div>
+                  <div className="relative w-full sm:w-96">
+                    <select
+                      aria-label="Retail data source"
+                      className="h-10 w-full appearance-none rounded-lg border border-input/80 bg-background/80 px-3 py-2 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:border-primary/35 focus:outline-none focus:ring-2 focus:ring-ring/35"
+                      value={selectedSource ?? ""}
+                      onChange={(e) => void handleSourceSelect(e.target.value)}
+                    >
+                      {!selectedSource && <option value="">Select a data source</option>}
+                      {(sources?.connections ?? []).map((connection) => (
+                        <option key={connection.id} value={sourceOptionValue(connection)}>
+                          {sourceOptionLabel(connection)}
+                        </option>
+                      ))}
+                      {(sources?.datasets ?? []).map((dataset) => (
+                        <option key={dataset.id} value={sourceOptionValue(dataset)}>
+                          {sourceOptionLabel(dataset)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+                  </div>
+                  {sourcesError && (
+                    <p className="text-xs text-destructive">{sourcesError}</p>
+                  )}
+                </div>
+
+                {snapshotIsSquare && snapshot && (
+                  <SquareSourceHeader
+                    snapshot={snapshot}
+                    syncing={syncing}
+                    onSync={() => void handleSyncNow()}
+                  />
+                )}
+              </div>
+              {snapshot && !uploadFlowActive && <SnapshotSummary snapshot={snapshot} />}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Upload Card */}
         <Card
           className={`relative border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${
@@ -741,7 +773,11 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                 {state === "idle" && (
                   <>
                     <h3 className="text-base font-semibold">Upload CSV/Excel</h3>
-                    <p className="text-xs text-muted-foreground">Drop a sales or inventory file, or click to browse</p>
+                    <p className="text-xs text-muted-foreground">
+                      {hasAnySource
+                        ? "Add another sales or inventory dataset, or analyze the selected source below"
+                        : "Drop a sales or inventory file, or click to browse"}
+                    </p>
                     <div className="mt-3 border-t border-border/40 pt-3">
                       <p className="text-xs text-muted-foreground/80">
                         <span className="font-medium text-foreground">CSV</span> and{" "}
@@ -825,6 +861,24 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
           </Card>
         )}
 
+        {/* Source loading / error states */}
+        {!uploadFlowActive && sourceView.loading && (
+          <Card>
+            <CardContent className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading retail analytics for the selected source...
+            </CardContent>
+          </Card>
+        )}
+        {!uploadFlowActive && !sourceView.loading && sourceView.error && (
+          <Card>
+            <CardContent className="flex items-start gap-3 p-5 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{sourceView.error}</span>
+            </CardContent>
+          </Card>
+        )}
+
         {/* AI Insights Summary */}
         <Card>
           <CardHeader className="pb-3">
@@ -839,21 +893,31 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Generating AI insights...
               </div>
-            ) : insights?.aiSummary ? (
+            ) : sourceView.loading && !uploadFlowActive ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading insights...
+              </div>
+            ) : aiSummary && showSourceInsights ? (
               <div className="space-y-3">
-                <p className="text-sm font-medium text-foreground">{insights.aiSummary}</p>
-                {insights.aiExplanation && (
-                  <p className="text-sm text-muted-foreground">{insights.aiExplanation}</p>
+                {showSquareSummaryTag && (
+                  <p className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    Deterministic summary from synchronized Square data
+                  </p>
                 )}
-                {insights.aiRecommendation && (
+                <p className="text-sm font-medium text-foreground">{aiSummary}</p>
+                {aiExplanation && (
+                  <p className="text-sm text-muted-foreground">{aiExplanation}</p>
+                )}
+                {aiRecommendation && (
                   <div className="rounded-lg bg-primary/5 p-3">
                     <p className="text-xs font-medium text-primary mb-0.5">Recommendation</p>
-                    <p className="text-sm text-muted-foreground">{insights.aiRecommendation}</p>
+                    <p className="text-sm text-muted-foreground">{aiRecommendation}</p>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Upload a file to see AI-powered inventory insights</p>
+              <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
             )}
           </CardContent>
         </Card>
@@ -872,11 +936,18 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Checking stock levels...
               </div>
-            ) : insights && insights.lowStock.length > 0 ? (
+            ) : sourceView.loading && !uploadFlowActive ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading stock levels...
+              </div>
+            ) : lowStockItems.length > 0 ? (
               <div className="space-y-3">
-                <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
-                  Reorder these items first so recent sellers do not run out before the next buying cycle.
-                </p>
+                {lowStockBanner && (
+                  <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+                    {lowStockBanner}
+                  </p>
+                )}
                 <div className="max-h-[32rem] overflow-auto rounded-lg border border-amber-500/20">
                   <table className="w-full min-w-[760px] text-left text-sm">
                     <thead className="sticky top-0 z-10 bg-amber-500/10 text-xs uppercase text-muted-foreground backdrop-blur">
@@ -893,7 +964,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {insights.lowStock.map((item, i) => (
+                      {lowStockItems.map((item, i) => (
                         <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
@@ -901,19 +972,21 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                           </td>
                           <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
                           <td className="px-3 py-2">
-                            <div className="font-semibold text-amber-600">{formatNumber(item.stock)}</div>
-                            <div className="text-xs text-muted-foreground">Reorder: {formatNumber(item.reorderPoint)}</div>
+                            <div className="font-semibold text-amber-600">{formatNumberOrDash(item.stock)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Reorder: {item.reorderPoint === null ? "not provided" : formatNumber(item.reorderPoint)}
+                            </div>
                           </td>
-                          <td className="px-3 py-2">{formatNumber(item.unitsSold)}</td>
-                          <td className="px-3 py-2">{formatCurrency(item.revenue)}</td>
-                          <td className="px-3 py-2">{formatCurrency(item.grossProfit)}</td>
-                          <td className="px-3 py-2">{formatPercent(item.margin)}</td>
+                          <td className="px-3 py-2">{formatNumberOrDash(item.unitsSold)}</td>
+                          <td className="px-3 py-2">{formatCurrencyOrDash(item.revenue)}</td>
+                          <td className="px-3 py-2">{formatCurrencyOrDash(item.grossProfit)}</td>
+                          <td className="px-3 py-2">{formatPercentOrDash(item.margin)}</td>
                           <td className="px-3 py-2 text-muted-foreground">{item.lastSaleDate}</td>
                           <td className="px-3 py-2">
                             <details className="group">
                               <summary className="cursor-pointer text-xs font-medium text-primary">View</summary>
                               <div className="mt-2 w-64 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                                <div>Cost: {formatCurrency(item.cost)}</div>
+                                <div>Cost: {formatCurrencyOrDash(item.cost)}</div>
                                 <div>Order: {item.orderId}</div>
                                 <div className="font-medium text-foreground">{item.recommendation}</div>
                               </div>
@@ -925,13 +998,15 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                   </table>
                 </div>
               </div>
-            ) : insights && insights.lowStock.length === 0 ? (
+            ) : lowStockStatus ? (
+              <StatusNote message={lowStockStatus} />
+            ) : lowStockDatasetEmpty || lowStockSnapshotOkEmpty ? (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4" />
-                No low stock items detected
+                {uploadFlowActive ? "No low stock items detected" : snapshot?.lowStock.message}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Upload a file to see stock alerts</p>
+              <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
             )}
           </CardContent>
         </Card>
@@ -950,11 +1025,18 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Identifying slow-moving products...
               </div>
-            ) : insights && insights.deadStock.length > 0 ? (
+            ) : sourceView.loading && !uploadFlowActive ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading movement analysis...
+              </div>
+            ) : deadStockItems.length > 0 ? (
               <div className="space-y-3">
-                <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-                  Free cash from items that sit on the shelf before reordering more of the same stock.
-                </p>
+                {deadStockBanner && (
+                  <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                    {deadStockBanner}
+                  </p>
+                )}
                 <div className="max-h-[32rem] overflow-auto rounded-lg border border-red-500/20">
                   <table className="w-full min-w-[820px] text-left text-sm">
                     <thead className="sticky top-0 z-10 bg-red-500/10 text-xs uppercase text-muted-foreground backdrop-blur">
@@ -970,7 +1052,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {insights.deadStock.map((item, i) => (
+                      {deadStockItems.map((item, i) => (
                         <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
@@ -978,23 +1060,25 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                           </td>
                           <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
                           <td className="px-3 py-2">
-                            <div className="font-semibold text-red-600">{formatNumber(item.stock)}</div>
-                            <div className="text-xs text-muted-foreground">Reorder: {formatNumber(item.reorderPoint)}</div>
+                            <div className="font-semibold text-red-600">{formatNumberOrDash(item.stock)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Reorder: {item.reorderPoint === null ? "not provided" : formatNumber(item.reorderPoint)}
+                            </div>
                           </td>
-                          <td className="px-3 py-2">{formatNumber(item.unitsSold)}</td>
+                          <td className="px-3 py-2">{formatNumberOrDash(item.unitsSold)}</td>
                           <td className="px-3 py-2">
                             {item.daysSinceLastSale === null ? "No sale date" : formatNumber(item.daysSinceLastSale)}
                           </td>
-                          <td className="px-3 py-2 font-medium">{formatCurrency(item.stockValue)}</td>
+                          <td className="px-3 py-2 font-medium">{formatCurrencyOrDash(item.stockValue)}</td>
                           <td className="px-3 py-2">{item.suggestedAction}</td>
                           <td className="px-3 py-2">
                             <details>
                               <summary className="cursor-pointer text-xs font-medium text-primary">View</summary>
                               <div className="mt-2 w-64 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                                <div>Revenue: {formatCurrency(item.revenue)}</div>
-                                <div>Cost: {formatCurrency(item.cost)}</div>
-                                <div>Gross profit: {formatCurrency(item.grossProfit)}</div>
-                                <div>Margin: {formatPercent(item.margin)}</div>
+                                <div>Revenue: {formatCurrencyOrDash(item.revenue)}</div>
+                                <div>Cost: {formatCurrencyOrDash(item.cost)}</div>
+                                <div>Gross profit: {formatCurrencyOrDash(item.grossProfit)}</div>
+                                <div>Margin: {formatPercentOrDash(item.margin)}</div>
                                 <div>Last sale: {item.lastSaleDate}</div>
                                 <div>Order: {item.orderId}</div>
                                 <div className="font-medium text-foreground">{item.recommendation}</div>
@@ -1007,13 +1091,15 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                   </table>
                 </div>
               </div>
-            ) : insights && insights.deadStock.length === 0 ? (
+            ) : deadStockStatus ? (
+              <StatusNote message={deadStockStatus} />
+            ) : deadStockDatasetEmpty || deadStockSnapshotOkEmpty ? (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4" />
-                No dead stock detected
+                {uploadFlowActive ? "No dead stock detected" : snapshot?.deadStock.message}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Upload a file to identify slow-moving stock</p>
+              <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
             )}
           </CardContent>
         </Card>
@@ -1032,11 +1118,18 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Computing profitability...
               </div>
-            ) : insights && insights.topProfit.length > 0 ? (
+            ) : sourceView.loading && !uploadFlowActive ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading profitability...
+              </div>
+            ) : topProfitItems.length > 0 ? (
               <div className="space-y-3">
-                <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-300">
-                  Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost.
-                </p>
+                {topProfitBanner && (
+                  <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+                    {topProfitBanner}
+                  </p>
+                )}
                 <div className="max-h-[32rem] overflow-auto rounded-lg border border-green-500/20">
                   <table className="w-full min-w-[820px] text-left text-sm">
                     <thead className="sticky top-0 z-10 bg-green-500/10 text-xs uppercase text-muted-foreground backdrop-blur">
@@ -1053,25 +1146,25 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {insights.topProfit.map((item, i) => (
+                      {topProfitItems.map((item, i) => (
                         <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
                             <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
                           </td>
                           <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
-                          <td className="px-3 py-2">{formatNumber(item.unitsSold)}</td>
-                          <td className="px-3 py-2">{formatCurrency(item.revenue)}</td>
-                          <td className="px-3 py-2">{formatCurrency(item.cost)}</td>
-                          <td className="px-3 py-2 font-semibold text-green-600">{formatCurrency(item.profit)}</td>
-                          <td className="px-3 py-2">{formatPercent(item.margin)}</td>
+                          <td className="px-3 py-2">{formatNumberOrDash(item.unitsSold)}</td>
+                          <td className="px-3 py-2">{formatCurrencyOrDash(item.revenue)}</td>
+                          <td className="px-3 py-2">{formatCurrencyOrDash(item.cost)}</td>
+                          <td className="px-3 py-2 font-semibold text-green-600">{formatCurrencyOrDash(item.profit)}</td>
+                          <td className="px-3 py-2">{formatPercentOrDash(item.margin)}</td>
                           <td className="px-3 py-2 text-muted-foreground">{item.reason}</td>
                           <td className="px-3 py-2">
                             <details>
                               <summary className="cursor-pointer text-xs font-medium text-primary">View</summary>
                               <div className="mt-2 w-64 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                                <div>Current stock: {formatNumber(item.stock)}</div>
-                                <div>Reorder point: {formatNumber(item.reorderPoint)}</div>
+                                <div>Current stock: {formatNumberOrDash(item.stock)}</div>
+                                <div>Reorder point: {item.reorderPoint === null ? "not provided" : formatNumber(item.reorderPoint)}</div>
                                 <div>Last sale: {item.lastSaleDate}</div>
                                 <div>Order: {item.orderId}</div>
                                 <div className="font-medium text-foreground">{item.recommendation}</div>
@@ -1084,10 +1177,12 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                   </table>
                 </div>
               </div>
-            ) : insights && insights.topProfit.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Add cost and revenue columns to see profit rankings</p>
+            ) : topProfitStatus ? (
+              <StatusNote message={topProfitStatus} />
+            ) : topProfitDatasetEmpty || topProfitSnapshotOkEmpty ? (
+              <p className="text-sm text-muted-foreground">{uploadFlowActive ? "Add cost and revenue columns to see profit rankings" : snapshot?.topProfit.message}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">Upload a file to see profit rankings</p>
+              <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
             )}
           </CardContent>
         </Card>
@@ -1118,6 +1213,178 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
       </div>
     </div>
   )
+}
+
+function SquareSourceHeader({
+  snapshot,
+  syncing,
+  onSync,
+}: {
+  snapshot: RetailAnalyticsSnapshot
+  syncing: boolean
+  onSync: () => void
+}) {
+  if (snapshot.source.type !== "square") return null
+  const source = snapshot.source
+  const connected = source.connectionStatus === "connected" || source.connectionStatus === "active" || source.connectionStatus === "syncing"
+  const counts = source.counts
+
+  return (
+    <div className="min-w-0 space-y-3 lg:max-w-md">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold">Square</span>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${
+            connected
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          {connected ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+          {source.syncStatus === "queued" || source.syncStatus === "running"
+            ? "Syncing"
+            : source.connectionStatus.replaceAll("_", " ") || "Connected"}
+        </span>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <div>
+          <dt className="inline">Last synced: </dt>
+          <dd className="inline font-medium text-foreground">{formatSyncDate(source.lastSuccessfulSyncAt)}</dd>
+        </div>
+        <div>
+          <dt className="inline">Locations: </dt>
+          <dd className="inline font-medium text-foreground">{counts.locations}</dd>
+        </div>
+        <div>
+          <dt className="inline">Products: </dt>
+          <dd className="inline font-medium text-foreground">{counts.products}</dd>
+        </div>
+        <div>
+          <dt className="inline">Variants: </dt>
+          <dd className="inline font-medium text-foreground">{counts.variants}</dd>
+        </div>
+        <div>
+          <dt className="inline">Orders: </dt>
+          <dd className="inline font-medium text-foreground">{counts.orders}</dd>
+        </div>
+      </dl>
+      {source.syncError && (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+          {source.syncError}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onSync}
+          disabled={syncing}
+          className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:border-primary/40 disabled:opacity-60"
+        >
+          {syncing ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
+          {syncing ? "Syncing..." : "Sync now"}
+        </button>
+        <a
+          href="/app/retail/integrations"
+          className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium transition hover:border-primary/40"
+        >
+          Manage connection
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function SnapshotSummary({ snapshot }: { snapshot: RetailAnalyticsSnapshot }) {
+  const kpis: Array<{ label: string; value: string }> = []
+  const source = snapshot.source
+  if (source.type === "dataset") {
+    kpis.push(
+      { label: "Rows", value: formatCount(source.rowCount) },
+      { label: "Columns", value: formatCount(source.columnCount) },
+      { label: "Products", value: snapshot.kpis.productCount === null ? "—" : formatCount(snapshot.kpis.productCount) },
+      { label: "Uploaded", value: formatSyncDate(source.createdAt) },
+    )
+  } else {
+    kpis.push(
+      { label: "Locations", value: formatCount(source.counts.locations) },
+      { label: "Products", value: formatCount(source.counts.products) },
+      { label: "Variants", value: formatCount(source.counts.variants) },
+      { label: "Orders", value: formatCount(source.counts.orders) },
+    )
+    if (snapshot.kpis.totalOnHand !== null) {
+      kpis.push({ label: "Stock on hand", value: formatCount(snapshot.kpis.totalOnHand) })
+    }
+    if (snapshot.kpis.netSales !== null) {
+      kpis.push({ label: "Net sales", value: formatMoney(snapshot.kpis.netSales, snapshot.currency) })
+    }
+  }
+
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border/40 pt-4 sm:grid-cols-4 lg:grid-cols-6">
+      {kpis.map((kpi) => (
+        <StatCard key={kpi.label} icon={BarChart3} label={kpi.label} value={kpi.value} />
+      ))}
+    </div>
+  )
+}
+
+function StatusNote({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-2 text-sm text-muted-foreground">
+      <Info className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{message}</span>
+    </div>
+  )
+}
+
+function formatCount(value: number): string {
+  return new Intl.NumberFormat().format(value)
+}
+
+function formatMoney(value: number, currency: string | null): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency || "USD",
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function formatSyncDate(value: string | null): string {
+  if (!value) return "Not available"
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value))
+}
+
+function generateFallbackSummary(
+  rows: Record<string, unknown>[],
+  columns: string[],
+  lowStock: RetailLowStockItem[],
+  deadStock: RetailDeadStockItem[],
+  topProfit: RetailTopProfitItem[],
+): { insight: string; explanation: string; recommendation: string } {
+  const total = new Intl.NumberFormat().format(rows.length)
+  const cols = columns.length
+  const low = lowStock.length
+  const dead = deadStock.length
+  const profit = topProfit.length > 0 ? topProfit[0].product : "N/A"
+  const maxProfit = topProfit.length > 0
+    ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(topProfit[0].profit ?? 0)
+    : "N/A"
+
+  return {
+    insight: `Analysis of ${total} products complete`,
+    explanation:
+      `Found ${total} inventory records across ${cols} columns. ` +
+      `${low} products have low stock (below 10 units). ` +
+      `${dead} products have no recorded sales. ` +
+      `Top profit product: ${profit} (${maxProfit}).`,
+    recommendation:
+      low > 0
+        ? `Restock ${low} low-inventory products to prevent stockouts. Focus on reordering top-selling items first.`
+        : "Review pricing strategy and consider promotions for slow-moving items.",
+  }
 }
 
 function convertToCSV(rows: Record<string, unknown>[], columns: string[]): string {

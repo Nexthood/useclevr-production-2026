@@ -14,6 +14,7 @@ import { ghostModeTraceMessage } from "@/lib/ai/ghost-mode";
 import { createTrace, getCurrentPromptVersion } from "@/lib/ai/ai-trace";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
+import { answerSquareRetailQuestion } from "@/integrations/retail/analytics/square-question.service";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,13 @@ const chatMessageSchema = z.object({
 const hybridChatSchema = z.object({
   message: z.string().optional(),
   messages: z.array(chatMessageSchema).optional(),
+  // Active connected retail source (Square) selected on the Retail page.
+  // Retail questions route to this source instead of generic chat or an
+  // unrelated uploaded dataset.
+  retailSource: z.object({
+    type: z.literal("square"),
+    connectionId: z.string().min(1),
+  }).optional(),
   ghostMode: z.boolean().optional().default(false),
 });
 
@@ -58,8 +66,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Send a message to chat with Hybrid AI." }, { status: 400 });
   }
 
-  const prompt = buildHybridChatPrompt(messages);
   const latestQuestion = latestUserMessage(messages);
+
+  // A connected Square retail source answers deterministic retail questions
+  // from synchronized data before any provider call. Catalog presence is
+  // never presented as sales performance.
+  if (parsed.retailSource?.type === "square") {
+    const squareAnswer = await answerSquareRetailQuestion({
+      userId,
+      connectionId: parsed.retailSource.connectionId,
+      question: latestQuestion,
+    });
+    if (squareAnswer) {
+      debugLog("[HYBRID_AI_CHAT] Square retail source answered deterministically", {
+        userId,
+        intent: squareAnswer.result.intent,
+      });
+      return NextResponse.json({
+        success: true,
+        answer: squareAnswer.answer,
+        content: squareAnswer.answer,
+        answerSource: "retail-square",
+        providerName: "Direct data analysis",
+        modelName: "deterministic-retail",
+        providerStatus: {
+          label: "Direct data analysis",
+          state: "connection_healthy",
+          message: "Answered from synchronized retail data",
+          fallbackActive: false,
+          route: "none",
+        } satisfies HybridProviderStatus,
+        ghostMode,
+      });
+    }
+  }
+
+  const prompt = buildHybridChatPrompt(messages);
   const [aiMode, allowUseclevrCloudFallback] = await Promise.all([
     getAiMode(userId),
     getUseClevrCloudFallbackAllowed(userId),

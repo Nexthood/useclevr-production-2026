@@ -7,6 +7,13 @@ export const chatRequestSchema = z.object({
     content: z.string(),
   })).min(1, "messages array is required"),
   datasetId: z.string().optional(),
+  // Active connected retail source (Square) selected on the Retail page.
+  // Retail questions must route to this source instead of silently falling
+  // back to an unrelated uploaded dataset.
+  retailSource: z.object({
+    type: z.literal("square"),
+    connectionId: z.string().min(1),
+  }).optional(),
   processedData: z.any().optional(),
   stream: z.boolean().optional().default(false),
   ghostMode: z.boolean().optional().default(false),

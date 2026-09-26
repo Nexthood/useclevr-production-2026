@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { AiAccuracyDisclaimer } from "@/components/chat/ai-accuracy-disclaimer"
 import { GHOST_MODE_STORAGE_KEY } from "@/lib/ai/ghost-mode"
+import { getActiveRetailSource } from "@/lib/retail/retail-source-bridge"
 import {
   AnalyticalResultView,
   normalizeAnalyticalResult,
@@ -139,6 +140,23 @@ function responseText(data: Record<string, unknown>) {
     return data.error.trim()
   }
   return "I could not generate an answer for that question."
+}
+
+function isRetailAssistantPath() {
+  if (typeof window === "undefined") return false
+  return window.location.pathname.startsWith("/app/retail")
+}
+
+function activeRetailSquareSourceContext(): { type: "square"; connectionId: string; label: string } | null {
+  // The URL param is the deterministic source of truth; the sessionStorage
+  // bridge covers selections not yet reflected in the URL.
+  if (typeof window !== "undefined") {
+    const sourceParam = new URLSearchParams(window.location.search).get("source")
+    if (sourceParam?.startsWith("square:") && sourceParam.length > "square:".length) {
+      return { type: "square", connectionId: sourceParam.slice("square:".length), label: "Square" }
+    }
+  }
+  return getActiveRetailSource()
 }
 
 async function readAssistantResponse(response: Response): Promise<Record<string, unknown>> {
@@ -307,6 +325,12 @@ export function AiAssistantWorkspace() {
           setSelectedDatasetId("")
           return
         }
+        // A connected Square source on the Retail page must not silently
+        // fall back to an arbitrary dataset; retail questions route to the
+        // connected source until the user explicitly selects a dataset.
+        if (!selectedDatasetId && isRetailAssistantPath() && activeRetailSquareSourceContext()) {
+          return
+        }
         setSelectedDatasetId((current) => {
           if (!current || nextDatasets.some((dataset: DatasetOption) => dataset.id === current)) return current
           const nextActiveDatasetId = nextDatasets[0]?.id || ""
@@ -386,12 +410,21 @@ export function AiAssistantWorkspace() {
     try {
       const controller = new AbortController()
       timeoutId = window.setTimeout(() => controller.abort(), 45_000)
+      // An active connected retail source (Square) on the Retail page routes
+      // retail questions to the synchronized source instead of an unrelated
+      // uploaded dataset.
+      const activeRetailSquareSource = !selectedDatasetId && isRetailAssistantPath()
+        ? activeRetailSquareSourceContext()
+        : null
       const response = await fetch(selectedDatasetId ? "/api/hybrid-ai/dataset-chat" : "/api/hybrid-ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
           datasetId: selectedDatasetId || undefined,
+          retailSource: activeRetailSquareSource
+            ? { type: activeRetailSquareSource.type, connectionId: activeRetailSquareSource.connectionId }
+            : undefined,
           ghostMode,
           messages: [...messages, userMessage]
             .filter((message) => message.role === "user" || message.role === "assistant")

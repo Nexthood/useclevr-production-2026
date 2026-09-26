@@ -24,7 +24,7 @@ type RetailInventoryInput = {
   rows: Record<string, unknown>[];
 };
 
-type RetailInventoryIntent =
+export type RetailInventoryIntent =
   | "top_selling_products"
   | "low_stock_items"
   | "dead_stock_products"
@@ -140,7 +140,7 @@ export function isRetailInventoryQuestion(question: string) {
   return resolveRetailInventoryIntent(question) !== null;
 }
 
-function resolveRetailInventoryIntent(question: string): RetailInventoryIntent | null {
+export function resolveRetailInventoryIntent(question: string): RetailInventoryIntent | null {
   const text = question.toLowerCase();
   if (/revenue.*trend|sales.*trend|revenue.*over time|sales.*over time|daily.*revenue|weekly.*revenue|monthly.*revenue/.test(text)) return "revenue_trends";
   if (/top\s+selling|best\s+selling|sell\s+best|top.*product|product.*perform|highest.*units|highest.*quantity/.test(text)) return "top_selling_products";

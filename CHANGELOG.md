@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Added
+
+- Add a data source selector to Retail so connected Square accounts and uploaded retail datasets are analyzed through the same dashboard, one selected source at a time.
+- Show synchronized Square catalog, stock levels, and sync context in Retail, with clear "no sales data yet" states for revenue, trends, top sellers, dead stock, and profit instead of inferred results.
+- Refresh Retail analytics after Square Sync now without a manual page reload.
+
 ### Removed
 
 - Remove the OneDrive and SharePoint ClevrSync connectors so ClevrSync offers Google Sheets only.
