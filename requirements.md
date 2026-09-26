@@ -192,6 +192,14 @@ Text rules for this file:
 - Store Square merchant, location, product, variant, inventory, order, order-item, sync-run, webhook-event, and AI-insight records as organization-scoped retail data.
 - Keep POS-connected retail data separate from standard, profitability, accountancy, and pre-bookkeeping datasets.
 - Preserve CSV and Excel retail uploads as a supported retail data source alongside Square-connected data.
+- Analyze connected Square accounts and uploaded retail datasets through one normalized retail analytics model with a Data source selector listing both source kinds.
+- Resolve the selected retail data source server-side and enforce ownership on every analytics request so dataset and connection IDs never access another account's retail data.
+- Represent the selected retail source in the Retail workspace URL so refreshes and deep links keep the same source, and fall back to the next available source when the selected source is deleted or disconnected.
+- Compute Square retail analytics from synchronized UseClevr database records only, with order and line aggregation performed server-side.
+- Show Square catalog counts, inventory quantities, and sync context in the Retail workspace without sales history, and report revenue, trends, top sellers, dead stock, slow movers, and profit as unavailable with an insufficient-sales explanation instead of inferring performance from catalog presence.
+- Distinguish known stock quantities from reorder thresholds: Square does not synchronize reorder thresholds, so low-stock views show current stock and state that no threshold is provided rather than assuming one.
+- Analyze exactly one selected retail source at a time without merging dataset rows and Square records into one analysis.
+- Answer retail questions in the AI assistant from the selected connected source deterministically, answering catalog and inventory questions from synchronized facts and refusing sales-dependent questions when no synchronized sales history exists instead of silently using another dataset.
 - Queue Square initial and manual sync runs without exposing provider tokens to the browser.
 - Build Square OAuth authorization and token-exchange requests from one canonical server-side callback URL at `/api/integrations/retail/square/callback`.
 - Resolve Railway test Square OAuth with `SQUARE_ENVIRONMENT=sandbox`, Square sandbox endpoints, and `https://test.useclevr.com/api/integrations/retail/square/callback`.

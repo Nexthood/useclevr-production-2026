@@ -30,6 +30,7 @@ import { handleRegularChat, handleRegularChatStream, type ChatProviderStatus } f
 import { checkChatLoop, logChatExecution } from '@/lib/chat/utils';
 import { requireHybridAiFeature } from '@/lib/hybrid-ai/feature-gate';
 import { ghostModeTraceMessage } from '@/lib/ai/ghost-mode';
+import { answerSquareRetailQuestion } from '@/integrations/retail/analytics/square-question.service';
 
 function streamResponse(readable: ReadableStream<string>): Response {
   const encoder = new TextEncoder()
@@ -294,7 +295,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { messages, datasetId, processedData, stream, ghostMode } = validation.data;
+    const { messages, datasetId, retailSource, processedData, stream, ghostMode } = validation.data;
     const session = await auth();
     const userId = session?.user?.id;
 
@@ -333,6 +334,24 @@ export async function POST(request: Request) {
     const isAnalyticalQuery = /\b(how many|how much|total|sum|count|average|avg|top|highest|lowest|minimum|maximum|revenue|profit|region|currency|list|distinct|group by|analyze)\b/i.test(lastMessage);
 
     if (isAnalyticalQuery && !datasetId) {
+      // A connected Square retail source answers deterministic retail
+      // questions from synchronized data without an uploaded dataset.
+      if (retailSource?.type === "square") {
+        const squareAnswer = await answerSquareRetailQuestion({
+          userId,
+          connectionId: retailSource.connectionId,
+          question: lastMessage,
+        });
+        if (squareAnswer) {
+          debugLog('[CHAT] Square retail source answered deterministically:', squareAnswer.result.intent);
+          return NextResponse.json({
+            success: true,
+            answer: squareAnswer.answer,
+            content: squareAnswer.answer,
+            result: squareAnswer.result,
+          });
+        }
+      }
       debugLog('[CHAT] REJECTED: Analytical query without datasetId');
       return NextResponse.json(
         {
