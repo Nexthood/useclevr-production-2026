@@ -152,7 +152,7 @@ export async function buildDatasetReportInput(dataset: DatasetRecord) {
     columns,
     rows,
   })
-  applyBusinessSemanticProfileToColumnMap(columnMap, businessSemanticProfile, reportModel)
+  applyBusinessSemanticProfileToColumnMap(columnMap, businessSemanticProfile, reportModel, columns)
   const saasSemanticProfile = reportModel === "saas" || reportModel === "startup"
     ? resolveSaasSemanticProfile({ rows, columns, fileName: dataset.fileName })
     : null
@@ -3285,7 +3285,7 @@ function reportModelLabel(model: ReportModel) {
   return "Business analytics"
 }
 
-function applyBusinessSemanticProfileToColumnMap(columns: ColumnMap, profile: SemanticProfile, reportModel: ReportModel) {
+function applyBusinessSemanticProfileToColumnMap(columns: ColumnMap, profile: SemanticProfile, reportModel: ReportModel, sourceColumns: string[] = []) {
   const semanticRevenue = conceptColumn(profile, "revenue") || conceptColumn(profile, "net_sales") || conceptColumn(profile, "gross_sales") || conceptColumn(profile, "subscription_revenue")
   if (semanticRevenue) {
     columns.revenue = semanticRevenue
@@ -3321,6 +3321,7 @@ function applyBusinessSemanticProfileToColumnMap(columns: ColumnMap, profile: Se
     columns.runway = conceptColumn(profile, "portfolio_company_runway") || columns.runway
     columns.growthRate = conceptColumn(profile, "portfolio_company_growth_rate") || columns.growthRate
   }
+  applyRetailProfitabilitySemantics(columns, sourceColumns, reportModel)
 }
 
 function isUnsafeFinancialFallback(column?: string) {
@@ -3430,6 +3431,42 @@ function detectColumns(columns: string[]): ColumnMap {
     leadCount: findColumn(columns, [/lead_count/]),
     conversionCount: findColumn(columns, [/conversion_count/]),
   }
+}
+
+function applyRetailProfitabilitySemantics(columns: ColumnMap, sourceColumns: string[], reportModel: ReportModel) {
+  if (reportModel !== "ecommerce" && reportModel !== "local_retail" && reportModel !== "generic") return
+
+  const directCost = findDirectCostColumn(sourceColumns, columns, reportModel)
+  if (!columns.cogs && directCost) columns.cogs = directCost
+
+  const explicitProfit = findExplicitGrossProfitColumn(sourceColumns, columns, reportModel)
+  if (!columns.grossProfit && explicitProfit) columns.grossProfit = explicitProfit
+  if (columns.netProfit && explicitProfit && normalizeColumnName(columns.netProfit) === normalizeColumnName(explicitProfit)) {
+    columns.netProfit = undefined
+  }
+}
+
+function findDirectCostColumn(sourceColumns: string[], columns: ColumnMap, reportModel: ReportModel) {
+  const explicitCogs = findByNormalizedColumnName(sourceColumns, [/^cogs$/, /^cost_of_goods_sold$/, /^product_cost$/, /^merchandise_cost$/])
+  if (explicitCogs) return explicitCogs
+
+  const exactCost = findByNormalizedColumnName(sourceColumns, [/^cost$/])
+  if (!exactCost || !hasDirectRetailCostContext(columns, reportModel)) return null
+  return exactCost
+}
+
+function findExplicitGrossProfitColumn(sourceColumns: string[], columns: ColumnMap, reportModel: ReportModel) {
+  const explicitGrossProfit = findByNormalizedColumnName(sourceColumns, [/^gross_profit$/, /^grossprofit$/])
+  if (explicitGrossProfit) return explicitGrossProfit
+
+  const exactProfit = findByNormalizedColumnName(sourceColumns, [/^profit$/])
+  if (!exactProfit || !hasDirectRetailCostContext(columns, reportModel)) return null
+  return exactProfit
+}
+
+function hasDirectRetailCostContext(columns: ColumnMap, reportModel: ReportModel) {
+  if (reportModel === "generic") return Boolean(columns.revenue && (columns.product || columns.category) && columns.quantity)
+  return Boolean(columns.revenue && columns.product && (columns.quantity || columns.pricePerUser))
 }
 
 function applySaasSemanticMappings(columns: ColumnMap, saas: SaasSemanticResolution | null) {
@@ -3724,6 +3761,9 @@ function buildKpis(model: ReportModel, rows: DataRow[], columns: ColumnMap, fina
   } else if (model === "ecommerce") {
     kpis.length = 0
     addKpi(kpis, "Revenue", revenue, "currency")
+    addKpi(kpis, "Cost", financials.cogs, "currency")
+    addKpi(kpis, "Profit", financials.grossProfit, "currency")
+    addKpi(kpis, "Profit Margin", financials.grossMargin, "percent")
     addKpi(kpis, "Orders", ecommerce?.orders ?? orders, "number")
     addKpi(kpis, "AOV", ecommerce?.averageOrderValue ?? null, "currency")
     addKpi(kpis, "Customers", ecommerce?.customers ?? customers, "number")

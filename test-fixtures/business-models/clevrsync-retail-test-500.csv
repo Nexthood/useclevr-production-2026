@@ -1,0 +1,501 @@
+Date,Order ID,Product,Category,Quantity,Unit Price,Revenue,Cost,Profit,Customer,Country,Inventory
+2026-06-12,ORD-00001,Backpack,Lifestyle,4,54,216,100,116,Customer 014,Belgium,37
+2026-02-23,ORD-00002,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 027,Germany,54
+2026-07-06,ORD-00003,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 040,United Kingdom,71
+2026-03-17,ORD-00004,Coffee Maker,Home,3,79,237,138,99,Customer 053,France,88
+2026-08-28,ORD-00005,Keyboard,Electronics,1,59,59,34,25,Customer 066,Netherlands,105
+2026-04-11,ORD-00006,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 079,Belgium,122
+2026-09-22,ORD-00007,Monitor Stand,Office,2,42,84,42,42,Customer 092,Germany,139
+2026-05-05,ORD-00008,Office Chair,Office,5,189,945,560,385,Customer 105,United Kingdom,156
+2026-01-16,ORD-00009,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 118,France,173
+2026-06-27,ORD-00010,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 131,Netherlands,190
+2026-02-10,ORD-00011,Backpack,Lifestyle,4,54,216,100,116,Customer 144,Belgium,27
+2026-07-21,ORD-00012,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 157,Germany,44
+2026-03-04,ORD-00013,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 170,United Kingdom,61
+2026-08-15,ORD-00014,Coffee Maker,Home,3,79,237,138,99,Customer 003,France,78
+2026-04-26,ORD-00015,Keyboard,Electronics,1,59,59,34,25,Customer 016,Netherlands,95
+2026-09-09,ORD-00016,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 029,Belgium,112
+2026-05-20,ORD-00017,Monitor Stand,Office,2,42,84,42,42,Customer 042,Germany,129
+2026-01-03,ORD-00018,Office Chair,Office,5,189,945,560,385,Customer 055,United Kingdom,146
+2026-06-14,ORD-00019,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 068,France,163
+2026-02-25,ORD-00020,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 081,Netherlands,180
+2026-07-08,ORD-00021,Backpack,Lifestyle,4,54,216,100,116,Customer 094,Belgium,197
+2026-03-19,ORD-00022,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 107,Germany,34
+2026-08-02,ORD-00023,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 120,United Kingdom,51
+2026-04-13,ORD-00024,Coffee Maker,Home,3,79,237,138,99,Customer 133,France,68
+2026-09-24,ORD-00025,Keyboard,Electronics,1,59,59,34,25,Customer 146,Netherlands,85
+2026-05-07,ORD-00026,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 159,Belgium,102
+2026-01-18,ORD-00027,Monitor Stand,Office,2,42,84,42,42,Customer 172,Germany,119
+2026-06-01,ORD-00028,Office Chair,Office,5,189,945,560,385,Customer 005,United Kingdom,136
+2026-02-12,ORD-00029,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 018,France,153
+2026-07-23,ORD-00030,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 031,Netherlands,170
+2026-03-06,ORD-00031,Backpack,Lifestyle,4,54,216,100,116,Customer 044,Belgium,187
+2026-08-17,ORD-00032,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 057,Germany,24
+2026-04-28,ORD-00033,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 070,United Kingdom,41
+2026-09-11,ORD-00034,Coffee Maker,Home,3,79,237,138,99,Customer 083,France,58
+2026-05-22,ORD-00035,Keyboard,Electronics,1,59,59,34,25,Customer 096,Netherlands,75
+2026-01-05,ORD-00036,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 109,Belgium,92
+2026-06-16,ORD-00037,Monitor Stand,Office,2,42,84,42,42,Customer 122,Germany,109
+2026-02-27,ORD-00038,Office Chair,Office,5,189,945,560,385,Customer 135,United Kingdom,126
+2026-07-10,ORD-00039,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 148,France,143
+2026-03-21,ORD-00040,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 161,Netherlands,160
+2026-08-04,ORD-00041,Backpack,Lifestyle,4,54,216,100,116,Customer 174,Belgium,177
+2026-04-15,ORD-00042,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 007,Germany,194
+2026-09-26,ORD-00043,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 020,United Kingdom,31
+2026-05-09,ORD-00044,Coffee Maker,Home,3,79,237,138,99,Customer 033,France,48
+2026-01-20,ORD-00045,Keyboard,Electronics,1,59,59,34,25,Customer 046,Netherlands,65
+2026-06-03,ORD-00046,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 059,Belgium,82
+2026-02-14,ORD-00047,Monitor Stand,Office,2,42,84,42,42,Customer 072,Germany,99
+2026-07-25,ORD-00048,Office Chair,Office,5,189,945,560,385,Customer 085,United Kingdom,116
+2026-03-08,ORD-00049,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 098,France,133
+2026-08-19,ORD-00050,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 111,Netherlands,150
+2026-04-02,ORD-00051,Backpack,Lifestyle,4,54,216,100,116,Customer 124,Belgium,167
+2026-09-13,ORD-00052,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 137,Germany,184
+2026-05-24,ORD-00053,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 150,United Kingdom,21
+2026-01-07,ORD-00054,Coffee Maker,Home,3,79,237,138,99,Customer 163,France,38
+2026-06-18,ORD-00055,Keyboard,Electronics,1,59,59,34,25,Customer 176,Netherlands,55
+2026-02-01,ORD-00056,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 009,Belgium,72
+2026-07-12,ORD-00057,Monitor Stand,Office,2,42,84,42,42,Customer 022,Germany,89
+2026-03-23,ORD-00058,Office Chair,Office,5,189,945,560,385,Customer 035,United Kingdom,106
+2026-08-06,ORD-00059,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 048,France,123
+2026-04-17,ORD-00060,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 061,Netherlands,140
+2026-09-28,ORD-00061,Backpack,Lifestyle,4,54,216,100,116,Customer 074,Belgium,157
+2026-05-11,ORD-00062,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 087,Germany,174
+2026-01-22,ORD-00063,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 100,United Kingdom,191
+2026-06-05,ORD-00064,Coffee Maker,Home,3,79,237,138,99,Customer 113,France,28
+2026-02-16,ORD-00065,Keyboard,Electronics,1,59,59,34,25,Customer 126,Netherlands,45
+2026-07-27,ORD-00066,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 139,Belgium,62
+2026-03-10,ORD-00067,Monitor Stand,Office,2,42,84,42,42,Customer 152,Germany,79
+2026-08-21,ORD-00068,Office Chair,Office,5,189,945,560,385,Customer 165,United Kingdom,96
+2026-04-04,ORD-00069,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 178,France,113
+2026-09-15,ORD-00070,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 011,Netherlands,130
+2026-05-26,ORD-00071,Backpack,Lifestyle,4,54,216,100,116,Customer 024,Belgium,147
+2026-01-09,ORD-00072,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 037,Germany,164
+2026-06-20,ORD-00073,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 050,United Kingdom,181
+2026-02-03,ORD-00074,Coffee Maker,Home,3,79,237,138,99,Customer 063,France,198
+2026-07-14,ORD-00075,Keyboard,Electronics,1,59,59,34,25,Customer 076,Netherlands,35
+2026-03-25,ORD-00076,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 089,Belgium,52
+2026-08-08,ORD-00077,Monitor Stand,Office,2,42,84,42,42,Customer 102,Germany,69
+2026-04-19,ORD-00078,Office Chair,Office,5,189,945,560,385,Customer 115,United Kingdom,86
+2026-09-02,ORD-00079,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 128,France,103
+2026-05-13,ORD-00080,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 141,Netherlands,120
+2026-01-24,ORD-00081,Backpack,Lifestyle,4,54,216,100,116,Customer 154,Belgium,137
+2026-06-07,ORD-00082,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 167,Germany,154
+2026-02-18,ORD-00083,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 180,United Kingdom,171
+2026-07-01,ORD-00084,Coffee Maker,Home,3,79,237,138,99,Customer 013,France,188
+2026-03-12,ORD-00085,Keyboard,Electronics,1,59,59,34,25,Customer 026,Netherlands,25
+2026-08-23,ORD-00086,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 039,Belgium,42
+2026-04-06,ORD-00087,Monitor Stand,Office,2,42,84,42,42,Customer 052,Germany,59
+2026-09-17,ORD-00088,Office Chair,Office,5,189,945,560,385,Customer 065,United Kingdom,76
+2026-05-28,ORD-00089,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 078,France,93
+2026-01-11,ORD-00090,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 091,Netherlands,110
+2026-06-22,ORD-00091,Backpack,Lifestyle,4,54,216,100,116,Customer 104,Belgium,127
+2026-02-05,ORD-00092,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 117,Germany,144
+2026-07-16,ORD-00093,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 130,United Kingdom,161
+2026-03-27,ORD-00094,Coffee Maker,Home,3,79,237,138,99,Customer 143,France,178
+2026-08-10,ORD-00095,Keyboard,Electronics,1,59,59,34,25,Customer 156,Netherlands,195
+2026-04-21,ORD-00096,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 169,Belgium,32
+2026-09-04,ORD-00097,Monitor Stand,Office,2,42,84,42,42,Customer 002,Germany,49
+2026-05-15,ORD-00098,Office Chair,Office,5,189,945,560,385,Customer 015,United Kingdom,66
+2026-01-26,ORD-00099,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 028,France,83
+2026-06-09,ORD-00100,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 041,Netherlands,100
+2026-02-20,ORD-00101,Backpack,Lifestyle,4,54,216,100,116,Customer 054,Belgium,117
+2026-07-03,ORD-00102,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 067,Germany,134
+2026-03-14,ORD-00103,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 080,United Kingdom,151
+2026-08-25,ORD-00104,Coffee Maker,Home,3,79,237,138,99,Customer 093,France,168
+2026-04-08,ORD-00105,Keyboard,Electronics,1,59,59,34,25,Customer 106,Netherlands,185
+2026-09-19,ORD-00106,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 119,Belgium,22
+2026-05-02,ORD-00107,Monitor Stand,Office,2,42,84,42,42,Customer 132,Germany,39
+2026-01-13,ORD-00108,Office Chair,Office,5,189,945,560,385,Customer 145,United Kingdom,56
+2026-06-24,ORD-00109,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 158,France,73
+2026-02-07,ORD-00110,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 171,Netherlands,90
+2026-07-18,ORD-00111,Backpack,Lifestyle,4,54,216,100,116,Customer 004,Belgium,107
+2026-03-01,ORD-00112,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 017,Germany,124
+2026-08-12,ORD-00113,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 030,United Kingdom,141
+2026-04-23,ORD-00114,Coffee Maker,Home,3,79,237,138,99,Customer 043,France,158
+2026-09-06,ORD-00115,Keyboard,Electronics,1,59,59,34,25,Customer 056,Netherlands,175
+2026-05-17,ORD-00116,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 069,Belgium,192
+2026-01-28,ORD-00117,Monitor Stand,Office,2,42,84,42,42,Customer 082,Germany,29
+2026-06-11,ORD-00118,Office Chair,Office,5,189,945,560,385,Customer 095,United Kingdom,46
+2026-02-22,ORD-00119,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 108,France,63
+2026-07-05,ORD-00120,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 121,Netherlands,80
+2026-03-16,ORD-00121,Backpack,Lifestyle,4,54,216,100,116,Customer 134,Belgium,97
+2026-08-27,ORD-00122,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 147,Germany,114
+2026-04-10,ORD-00123,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 160,United Kingdom,131
+2026-09-21,ORD-00124,Coffee Maker,Home,3,79,237,138,99,Customer 173,France,148
+2026-05-04,ORD-00125,Keyboard,Electronics,1,59,59,34,25,Customer 006,Netherlands,165
+2026-01-15,ORD-00126,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 019,Belgium,182
+2026-06-26,ORD-00127,Monitor Stand,Office,2,42,84,42,42,Customer 032,Germany,199
+2026-02-09,ORD-00128,Office Chair,Office,5,189,945,560,385,Customer 045,United Kingdom,36
+2026-07-20,ORD-00129,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 058,France,53
+2026-03-03,ORD-00130,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 071,Netherlands,70
+2026-08-14,ORD-00131,Backpack,Lifestyle,4,54,216,100,116,Customer 084,Belgium,87
+2026-04-25,ORD-00132,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 097,Germany,104
+2026-09-08,ORD-00133,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 110,United Kingdom,121
+2026-05-19,ORD-00134,Coffee Maker,Home,3,79,237,138,99,Customer 123,France,138
+2026-01-02,ORD-00135,Keyboard,Electronics,1,59,59,34,25,Customer 136,Netherlands,155
+2026-06-13,ORD-00136,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 149,Belgium,172
+2026-02-24,ORD-00137,Monitor Stand,Office,2,42,84,42,42,Customer 162,Germany,189
+2026-07-07,ORD-00138,Office Chair,Office,5,189,945,560,385,Customer 175,United Kingdom,26
+2026-03-18,ORD-00139,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 008,France,43
+2026-08-01,ORD-00140,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 021,Netherlands,60
+2026-04-12,ORD-00141,Backpack,Lifestyle,4,54,216,100,116,Customer 034,Belgium,77
+2026-09-23,ORD-00142,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 047,Germany,94
+2026-05-06,ORD-00143,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 060,United Kingdom,111
+2026-01-17,ORD-00144,Coffee Maker,Home,3,79,237,138,99,Customer 073,France,128
+2026-06-28,ORD-00145,Keyboard,Electronics,1,59,59,34,25,Customer 086,Netherlands,145
+2026-02-11,ORD-00146,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 099,Belgium,162
+2026-07-22,ORD-00147,Monitor Stand,Office,2,42,84,42,42,Customer 112,Germany,179
+2026-03-05,ORD-00148,Office Chair,Office,5,189,945,560,385,Customer 125,United Kingdom,196
+2026-08-16,ORD-00149,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 138,France,33
+2026-04-27,ORD-00150,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 151,Netherlands,50
+2026-09-10,ORD-00151,Backpack,Lifestyle,4,54,216,100,116,Customer 164,Belgium,67
+2026-05-21,ORD-00152,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 177,Germany,84
+2026-01-04,ORD-00153,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 010,United Kingdom,101
+2026-06-15,ORD-00154,Coffee Maker,Home,3,79,237,138,99,Customer 023,France,118
+2026-02-26,ORD-00155,Keyboard,Electronics,1,59,59,34,25,Customer 036,Netherlands,135
+2026-07-09,ORD-00156,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 049,Belgium,152
+2026-03-20,ORD-00157,Monitor Stand,Office,2,42,84,42,42,Customer 062,Germany,169
+2026-08-03,ORD-00158,Office Chair,Office,5,189,945,560,385,Customer 075,United Kingdom,186
+2026-04-14,ORD-00159,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 088,France,23
+2026-09-25,ORD-00160,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 101,Netherlands,40
+2026-05-08,ORD-00161,Backpack,Lifestyle,4,54,216,100,116,Customer 114,Belgium,57
+2026-01-19,ORD-00162,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 127,Germany,74
+2026-06-02,ORD-00163,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 140,United Kingdom,91
+2026-02-13,ORD-00164,Coffee Maker,Home,3,79,237,138,99,Customer 153,France,108
+2026-07-24,ORD-00165,Keyboard,Electronics,1,59,59,34,25,Customer 166,Netherlands,125
+2026-03-07,ORD-00166,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 179,Belgium,142
+2026-08-18,ORD-00167,Monitor Stand,Office,2,42,84,42,42,Customer 012,Germany,159
+2026-04-01,ORD-00168,Office Chair,Office,5,189,945,560,385,Customer 025,United Kingdom,176
+2026-09-12,ORD-00169,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 038,France,193
+2026-05-23,ORD-00170,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 051,Netherlands,30
+2026-01-06,ORD-00171,Backpack,Lifestyle,4,54,216,100,116,Customer 064,Belgium,47
+2026-06-17,ORD-00172,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 077,Germany,64
+2026-02-28,ORD-00173,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 090,United Kingdom,81
+2026-07-11,ORD-00174,Coffee Maker,Home,3,79,237,138,99,Customer 103,France,98
+2026-03-22,ORD-00175,Keyboard,Electronics,1,59,59,34,25,Customer 116,Netherlands,115
+2026-08-05,ORD-00176,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 129,Belgium,132
+2026-04-16,ORD-00177,Monitor Stand,Office,2,42,84,42,42,Customer 142,Germany,149
+2026-09-27,ORD-00178,Office Chair,Office,5,189,945,560,385,Customer 155,United Kingdom,166
+2026-05-10,ORD-00179,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 168,France,183
+2026-01-21,ORD-00180,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 001,Netherlands,20
+2026-06-04,ORD-00181,Backpack,Lifestyle,4,54,216,100,116,Customer 014,Belgium,37
+2026-02-15,ORD-00182,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 027,Germany,54
+2026-07-26,ORD-00183,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 040,United Kingdom,71
+2026-03-09,ORD-00184,Coffee Maker,Home,3,79,237,138,99,Customer 053,France,88
+2026-08-20,ORD-00185,Keyboard,Electronics,1,59,59,34,25,Customer 066,Netherlands,105
+2026-04-03,ORD-00186,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 079,Belgium,122
+2026-09-14,ORD-00187,Monitor Stand,Office,2,42,84,42,42,Customer 092,Germany,139
+2026-05-25,ORD-00188,Office Chair,Office,5,189,945,560,385,Customer 105,United Kingdom,156
+2026-01-08,ORD-00189,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 118,France,173
+2026-06-19,ORD-00190,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 131,Netherlands,190
+2026-02-02,ORD-00191,Backpack,Lifestyle,4,54,216,100,116,Customer 144,Belgium,27
+2026-07-13,ORD-00192,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 157,Germany,44
+2026-03-24,ORD-00193,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 170,United Kingdom,61
+2026-08-07,ORD-00194,Coffee Maker,Home,3,79,237,138,99,Customer 003,France,78
+2026-04-18,ORD-00195,Keyboard,Electronics,1,59,59,34,25,Customer 016,Netherlands,95
+2026-09-01,ORD-00196,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 029,Belgium,112
+2026-05-12,ORD-00197,Monitor Stand,Office,2,42,84,42,42,Customer 042,Germany,129
+2026-01-23,ORD-00198,Office Chair,Office,5,189,945,560,385,Customer 055,United Kingdom,146
+2026-06-06,ORD-00199,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 068,France,163
+2026-02-17,ORD-00200,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 081,Netherlands,180
+2026-07-28,ORD-00201,Backpack,Lifestyle,4,54,216,100,116,Customer 094,Belgium,197
+2026-03-11,ORD-00202,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 107,Germany,34
+2026-08-22,ORD-00203,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 120,United Kingdom,51
+2026-04-05,ORD-00204,Coffee Maker,Home,3,79,237,138,99,Customer 133,France,68
+2026-09-16,ORD-00205,Keyboard,Electronics,1,59,59,34,25,Customer 146,Netherlands,85
+2026-05-27,ORD-00206,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 159,Belgium,102
+2026-01-10,ORD-00207,Monitor Stand,Office,2,42,84,42,42,Customer 172,Germany,119
+2026-06-21,ORD-00208,Office Chair,Office,5,189,945,560,385,Customer 005,United Kingdom,136
+2026-02-04,ORD-00209,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 018,France,153
+2026-07-15,ORD-00210,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 031,Netherlands,170
+2026-03-26,ORD-00211,Backpack,Lifestyle,4,54,216,100,116,Customer 044,Belgium,187
+2026-08-09,ORD-00212,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 057,Germany,24
+2026-04-20,ORD-00213,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 070,United Kingdom,41
+2026-09-03,ORD-00214,Coffee Maker,Home,3,79,237,138,99,Customer 083,France,58
+2026-05-14,ORD-00215,Keyboard,Electronics,1,59,59,34,25,Customer 096,Netherlands,75
+2026-01-25,ORD-00216,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 109,Belgium,92
+2026-06-08,ORD-00217,Monitor Stand,Office,2,42,84,42,42,Customer 122,Germany,109
+2026-02-19,ORD-00218,Office Chair,Office,5,189,945,560,385,Customer 135,United Kingdom,126
+2026-07-02,ORD-00219,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 148,France,143
+2026-03-13,ORD-00220,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 161,Netherlands,160
+2026-08-24,ORD-00221,Backpack,Lifestyle,4,54,216,100,116,Customer 174,Belgium,177
+2026-04-07,ORD-00222,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 007,Germany,194
+2026-09-18,ORD-00223,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 020,United Kingdom,31
+2026-05-01,ORD-00224,Coffee Maker,Home,3,79,237,138,99,Customer 033,France,48
+2026-01-12,ORD-00225,Keyboard,Electronics,1,59,59,34,25,Customer 046,Netherlands,65
+2026-06-23,ORD-00226,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 059,Belgium,82
+2026-02-06,ORD-00227,Monitor Stand,Office,2,42,84,42,42,Customer 072,Germany,99
+2026-07-17,ORD-00228,Office Chair,Office,5,189,945,560,385,Customer 085,United Kingdom,116
+2026-03-28,ORD-00229,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 098,France,133
+2026-08-11,ORD-00230,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 111,Netherlands,150
+2026-04-22,ORD-00231,Backpack,Lifestyle,4,54,216,100,116,Customer 124,Belgium,167
+2026-09-05,ORD-00232,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 137,Germany,184
+2026-05-16,ORD-00233,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 150,United Kingdom,21
+2026-01-27,ORD-00234,Coffee Maker,Home,3,79,237,138,99,Customer 163,France,38
+2026-06-10,ORD-00235,Keyboard,Electronics,1,59,59,34,25,Customer 176,Netherlands,55
+2026-02-21,ORD-00236,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 009,Belgium,72
+2026-07-04,ORD-00237,Monitor Stand,Office,2,42,84,42,42,Customer 022,Germany,89
+2026-03-15,ORD-00238,Office Chair,Office,5,189,945,560,385,Customer 035,United Kingdom,106
+2026-08-26,ORD-00239,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 048,France,123
+2026-04-09,ORD-00240,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 061,Netherlands,140
+2026-09-20,ORD-00241,Backpack,Lifestyle,4,54,216,100,116,Customer 074,Belgium,157
+2026-05-03,ORD-00242,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 087,Germany,174
+2026-01-14,ORD-00243,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 100,United Kingdom,191
+2026-06-25,ORD-00244,Coffee Maker,Home,3,79,237,138,99,Customer 113,France,28
+2026-02-08,ORD-00245,Keyboard,Electronics,1,59,59,34,25,Customer 126,Netherlands,45
+2026-07-19,ORD-00246,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 139,Belgium,62
+2026-03-02,ORD-00247,Monitor Stand,Office,2,42,84,42,42,Customer 152,Germany,79
+2026-08-13,ORD-00248,Office Chair,Office,5,189,945,560,385,Customer 165,United Kingdom,96
+2026-04-24,ORD-00249,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 178,France,113
+2026-09-07,ORD-00250,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 011,Netherlands,130
+2026-05-18,ORD-00251,Backpack,Lifestyle,4,54,216,100,116,Customer 024,Belgium,147
+2026-01-01,ORD-00252,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 037,Germany,164
+2026-06-12,ORD-00253,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 050,United Kingdom,181
+2026-02-23,ORD-00254,Coffee Maker,Home,3,79,237,138,99,Customer 063,France,198
+2026-07-06,ORD-00255,Keyboard,Electronics,1,59,59,34,25,Customer 076,Netherlands,35
+2026-03-17,ORD-00256,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 089,Belgium,52
+2026-08-28,ORD-00257,Monitor Stand,Office,2,42,84,42,42,Customer 102,Germany,69
+2026-04-11,ORD-00258,Office Chair,Office,5,189,945,560,385,Customer 115,United Kingdom,86
+2026-09-22,ORD-00259,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 128,France,103
+2026-05-05,ORD-00260,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 141,Netherlands,120
+2026-01-16,ORD-00261,Backpack,Lifestyle,4,54,216,100,116,Customer 154,Belgium,137
+2026-06-27,ORD-00262,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 167,Germany,154
+2026-02-10,ORD-00263,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 180,United Kingdom,171
+2026-07-21,ORD-00264,Coffee Maker,Home,3,79,237,138,99,Customer 013,France,188
+2026-03-04,ORD-00265,Keyboard,Electronics,1,59,59,34,25,Customer 026,Netherlands,25
+2026-08-15,ORD-00266,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 039,Belgium,42
+2026-04-26,ORD-00267,Monitor Stand,Office,2,42,84,42,42,Customer 052,Germany,59
+2026-09-09,ORD-00268,Office Chair,Office,5,189,945,560,385,Customer 065,United Kingdom,76
+2026-05-20,ORD-00269,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 078,France,93
+2026-01-03,ORD-00270,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 091,Netherlands,110
+2026-06-14,ORD-00271,Backpack,Lifestyle,4,54,216,100,116,Customer 104,Belgium,127
+2026-02-25,ORD-00272,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 117,Germany,144
+2026-07-08,ORD-00273,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 130,United Kingdom,161
+2026-03-19,ORD-00274,Coffee Maker,Home,3,79,237,138,99,Customer 143,France,178
+2026-08-02,ORD-00275,Keyboard,Electronics,1,59,59,34,25,Customer 156,Netherlands,195
+2026-04-13,ORD-00276,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 169,Belgium,32
+2026-09-24,ORD-00277,Monitor Stand,Office,2,42,84,42,42,Customer 002,Germany,49
+2026-05-07,ORD-00278,Office Chair,Office,5,189,945,560,385,Customer 015,United Kingdom,66
+2026-01-18,ORD-00279,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 028,France,83
+2026-06-01,ORD-00280,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 041,Netherlands,100
+2026-02-12,ORD-00281,Backpack,Lifestyle,4,54,216,100,116,Customer 054,Belgium,117
+2026-07-23,ORD-00282,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 067,Germany,134
+2026-03-06,ORD-00283,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 080,United Kingdom,151
+2026-08-17,ORD-00284,Coffee Maker,Home,3,79,237,138,99,Customer 093,France,168
+2026-04-28,ORD-00285,Keyboard,Electronics,1,59,59,34,25,Customer 106,Netherlands,185
+2026-09-11,ORD-00286,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 119,Belgium,22
+2026-05-22,ORD-00287,Monitor Stand,Office,2,42,84,42,42,Customer 132,Germany,39
+2026-01-05,ORD-00288,Office Chair,Office,5,189,945,560,385,Customer 145,United Kingdom,56
+2026-06-16,ORD-00289,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 158,France,73
+2026-02-27,ORD-00290,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 171,Netherlands,90
+2026-07-10,ORD-00291,Backpack,Lifestyle,4,54,216,100,116,Customer 004,Belgium,107
+2026-03-21,ORD-00292,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 017,Germany,124
+2026-08-04,ORD-00293,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 030,United Kingdom,141
+2026-04-15,ORD-00294,Coffee Maker,Home,3,79,237,138,99,Customer 043,France,158
+2026-09-26,ORD-00295,Keyboard,Electronics,1,59,59,34,25,Customer 056,Netherlands,175
+2026-05-09,ORD-00296,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 069,Belgium,192
+2026-01-20,ORD-00297,Monitor Stand,Office,2,42,84,42,42,Customer 082,Germany,29
+2026-06-03,ORD-00298,Office Chair,Office,5,189,945,560,385,Customer 095,United Kingdom,46
+2026-02-14,ORD-00299,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 108,France,63
+2026-07-25,ORD-00300,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 121,Netherlands,80
+2026-03-08,ORD-00301,Backpack,Lifestyle,4,54,216,100,116,Customer 134,Belgium,97
+2026-08-19,ORD-00302,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 147,Germany,114
+2026-04-02,ORD-00303,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 160,United Kingdom,131
+2026-09-13,ORD-00304,Coffee Maker,Home,3,79,237,138,99,Customer 173,France,148
+2026-05-24,ORD-00305,Keyboard,Electronics,1,59,59,34,25,Customer 006,Netherlands,165
+2026-01-07,ORD-00306,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 019,Belgium,182
+2026-06-18,ORD-00307,Monitor Stand,Office,2,42,84,42,42,Customer 032,Germany,199
+2026-02-01,ORD-00308,Office Chair,Office,5,189,945,560,385,Customer 045,United Kingdom,36
+2026-07-12,ORD-00309,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 058,France,53
+2026-03-23,ORD-00310,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 071,Netherlands,70
+2026-08-06,ORD-00311,Backpack,Lifestyle,4,54,216,100,116,Customer 084,Belgium,87
+2026-04-17,ORD-00312,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 097,Germany,104
+2026-09-28,ORD-00313,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 110,United Kingdom,121
+2026-05-11,ORD-00314,Coffee Maker,Home,3,79,237,138,99,Customer 123,France,138
+2026-01-22,ORD-00315,Keyboard,Electronics,1,59,59,34,25,Customer 136,Netherlands,155
+2026-06-05,ORD-00316,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 149,Belgium,172
+2026-02-16,ORD-00317,Monitor Stand,Office,2,42,84,42,42,Customer 162,Germany,189
+2026-07-27,ORD-00318,Office Chair,Office,5,189,945,560,385,Customer 175,United Kingdom,26
+2026-03-10,ORD-00319,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 008,France,43
+2026-08-21,ORD-00320,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 021,Netherlands,60
+2026-04-04,ORD-00321,Backpack,Lifestyle,4,54,216,100,116,Customer 034,Belgium,77
+2026-09-15,ORD-00322,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 047,Germany,94
+2026-05-26,ORD-00323,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 060,United Kingdom,111
+2026-01-09,ORD-00324,Coffee Maker,Home,3,79,237,138,99,Customer 073,France,128
+2026-06-20,ORD-00325,Keyboard,Electronics,1,59,59,34,25,Customer 086,Netherlands,145
+2026-02-03,ORD-00326,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 099,Belgium,162
+2026-07-14,ORD-00327,Monitor Stand,Office,2,42,84,42,42,Customer 112,Germany,179
+2026-03-25,ORD-00328,Office Chair,Office,5,189,945,560,385,Customer 125,United Kingdom,196
+2026-08-08,ORD-00329,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 138,France,33
+2026-04-19,ORD-00330,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 151,Netherlands,50
+2026-09-02,ORD-00331,Backpack,Lifestyle,4,54,216,100,116,Customer 164,Belgium,67
+2026-05-13,ORD-00332,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 177,Germany,84
+2026-01-24,ORD-00333,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 010,United Kingdom,101
+2026-06-07,ORD-00334,Coffee Maker,Home,3,79,237,138,99,Customer 023,France,118
+2026-02-18,ORD-00335,Keyboard,Electronics,1,59,59,34,25,Customer 036,Netherlands,135
+2026-07-01,ORD-00336,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 049,Belgium,152
+2026-03-12,ORD-00337,Monitor Stand,Office,2,42,84,42,42,Customer 062,Germany,169
+2026-08-23,ORD-00338,Office Chair,Office,5,189,945,560,385,Customer 075,United Kingdom,186
+2026-04-06,ORD-00339,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 088,France,23
+2026-09-17,ORD-00340,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 101,Netherlands,40
+2026-05-28,ORD-00341,Backpack,Lifestyle,4,54,216,100,116,Customer 114,Belgium,57
+2026-01-11,ORD-00342,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 127,Germany,74
+2026-06-22,ORD-00343,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 140,United Kingdom,91
+2026-02-05,ORD-00344,Coffee Maker,Home,3,79,237,138,99,Customer 153,France,108
+2026-07-16,ORD-00345,Keyboard,Electronics,1,59,59,34,25,Customer 166,Netherlands,125
+2026-03-27,ORD-00346,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 179,Belgium,142
+2026-08-10,ORD-00347,Monitor Stand,Office,2,42,84,42,42,Customer 012,Germany,159
+2026-04-21,ORD-00348,Office Chair,Office,5,189,945,560,385,Customer 025,United Kingdom,176
+2026-09-04,ORD-00349,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 038,France,193
+2026-05-15,ORD-00350,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 051,Netherlands,30
+2026-01-26,ORD-00351,Backpack,Lifestyle,4,54,216,100,116,Customer 064,Belgium,47
+2026-06-09,ORD-00352,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 077,Germany,64
+2026-02-20,ORD-00353,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 090,United Kingdom,81
+2026-07-03,ORD-00354,Coffee Maker,Home,3,79,237,138,99,Customer 103,France,98
+2026-03-14,ORD-00355,Keyboard,Electronics,1,59,59,34,25,Customer 116,Netherlands,115
+2026-08-25,ORD-00356,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 129,Belgium,132
+2026-04-08,ORD-00357,Monitor Stand,Office,2,42,84,42,42,Customer 142,Germany,149
+2026-09-19,ORD-00358,Office Chair,Office,5,189,945,560,385,Customer 155,United Kingdom,166
+2026-05-02,ORD-00359,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 168,France,183
+2026-01-13,ORD-00360,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 001,Netherlands,20
+2026-06-24,ORD-00361,Backpack,Lifestyle,4,54,216,100,116,Customer 014,Belgium,37
+2026-02-07,ORD-00362,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 027,Germany,54
+2026-07-18,ORD-00363,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 040,United Kingdom,71
+2026-03-01,ORD-00364,Coffee Maker,Home,3,79,237,138,99,Customer 053,France,88
+2026-08-12,ORD-00365,Keyboard,Electronics,1,59,59,34,25,Customer 066,Netherlands,105
+2026-04-23,ORD-00366,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 079,Belgium,122
+2026-09-06,ORD-00367,Monitor Stand,Office,2,42,84,42,42,Customer 092,Germany,139
+2026-05-17,ORD-00368,Office Chair,Office,5,189,945,560,385,Customer 105,United Kingdom,156
+2026-01-28,ORD-00369,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 118,France,173
+2026-06-11,ORD-00370,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 131,Netherlands,190
+2026-02-22,ORD-00371,Backpack,Lifestyle,4,54,216,100,116,Customer 144,Belgium,27
+2026-07-05,ORD-00372,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 157,Germany,44
+2026-03-16,ORD-00373,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 170,United Kingdom,61
+2026-08-27,ORD-00374,Coffee Maker,Home,3,79,237,138,99,Customer 003,France,78
+2026-04-10,ORD-00375,Keyboard,Electronics,1,59,59,34,25,Customer 016,Netherlands,95
+2026-09-21,ORD-00376,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 029,Belgium,112
+2026-05-04,ORD-00377,Monitor Stand,Office,2,42,84,42,42,Customer 042,Germany,129
+2026-01-15,ORD-00378,Office Chair,Office,5,189,945,560,385,Customer 055,United Kingdom,146
+2026-06-26,ORD-00379,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 068,France,163
+2026-02-09,ORD-00380,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 081,Netherlands,180
+2026-07-20,ORD-00381,Backpack,Lifestyle,4,54,216,100,116,Customer 094,Belgium,197
+2026-03-03,ORD-00382,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 107,Germany,34
+2026-08-14,ORD-00383,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 120,United Kingdom,51
+2026-04-25,ORD-00384,Coffee Maker,Home,3,79,237,138,99,Customer 133,France,68
+2026-09-08,ORD-00385,Keyboard,Electronics,1,59,59,34,25,Customer 146,Netherlands,85
+2026-05-19,ORD-00386,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 159,Belgium,102
+2026-01-02,ORD-00387,Monitor Stand,Office,2,42,84,42,42,Customer 172,Germany,119
+2026-06-13,ORD-00388,Office Chair,Office,5,189,945,560,385,Customer 005,United Kingdom,136
+2026-02-24,ORD-00389,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 018,France,153
+2026-07-07,ORD-00390,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 031,Netherlands,170
+2026-03-18,ORD-00391,Backpack,Lifestyle,4,54,216,100,116,Customer 044,Belgium,187
+2026-08-01,ORD-00392,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 057,Germany,24
+2026-04-12,ORD-00393,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 070,United Kingdom,41
+2026-09-23,ORD-00394,Coffee Maker,Home,3,79,237,138,99,Customer 083,France,58
+2026-05-06,ORD-00395,Keyboard,Electronics,1,59,59,34,25,Customer 096,Netherlands,75
+2026-01-17,ORD-00396,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 109,Belgium,92
+2026-06-28,ORD-00397,Monitor Stand,Office,2,42,84,42,42,Customer 122,Germany,109
+2026-02-11,ORD-00398,Office Chair,Office,5,189,945,560,385,Customer 135,United Kingdom,126
+2026-07-22,ORD-00399,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 148,France,143
+2026-03-05,ORD-00400,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 161,Netherlands,160
+2026-08-16,ORD-00401,Backpack,Lifestyle,4,54,216,100,116,Customer 174,Belgium,177
+2026-04-27,ORD-00402,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 007,Germany,194
+2026-09-10,ORD-00403,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 020,United Kingdom,31
+2026-05-21,ORD-00404,Coffee Maker,Home,3,79,237,138,99,Customer 033,France,48
+2026-01-04,ORD-00405,Keyboard,Electronics,1,59,59,34,25,Customer 046,Netherlands,65
+2026-06-15,ORD-00406,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 059,Belgium,82
+2026-02-26,ORD-00407,Monitor Stand,Office,2,42,84,42,42,Customer 072,Germany,99
+2026-07-09,ORD-00408,Office Chair,Office,5,189,945,560,385,Customer 085,United Kingdom,116
+2026-03-20,ORD-00409,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 098,France,133
+2026-08-03,ORD-00410,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 111,Netherlands,150
+2026-04-14,ORD-00411,Backpack,Lifestyle,4,54,216,100,116,Customer 124,Belgium,167
+2026-09-25,ORD-00412,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 137,Germany,184
+2026-05-08,ORD-00413,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 150,United Kingdom,21
+2026-01-19,ORD-00414,Coffee Maker,Home,3,79,237,138,99,Customer 163,France,38
+2026-06-02,ORD-00415,Keyboard,Electronics,1,59,59,34,25,Customer 176,Netherlands,55
+2026-02-13,ORD-00416,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 009,Belgium,72
+2026-07-24,ORD-00417,Monitor Stand,Office,2,42,84,42,42,Customer 022,Germany,89
+2026-03-07,ORD-00418,Office Chair,Office,5,189,945,560,385,Customer 035,United Kingdom,106
+2026-08-18,ORD-00419,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 048,France,123
+2026-04-01,ORD-00420,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 061,Netherlands,140
+2026-09-12,ORD-00421,Backpack,Lifestyle,4,54,216,100,116,Customer 074,Belgium,157
+2026-05-23,ORD-00422,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 087,Germany,174
+2026-01-06,ORD-00423,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 100,United Kingdom,191
+2026-06-17,ORD-00424,Coffee Maker,Home,3,79,237,138,99,Customer 113,France,28
+2026-02-28,ORD-00425,Keyboard,Electronics,1,59,59,34,25,Customer 126,Netherlands,45
+2026-07-11,ORD-00426,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 139,Belgium,62
+2026-03-22,ORD-00427,Monitor Stand,Office,2,42,84,42,42,Customer 152,Germany,79
+2026-08-05,ORD-00428,Office Chair,Office,5,189,945,560,385,Customer 165,United Kingdom,96
+2026-04-16,ORD-00429,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 178,France,113
+2026-09-27,ORD-00430,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 011,Netherlands,130
+2026-05-10,ORD-00431,Backpack,Lifestyle,4,54,216,100,116,Customer 024,Belgium,147
+2026-01-21,ORD-00432,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 037,Germany,164
+2026-06-04,ORD-00433,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 050,United Kingdom,181
+2026-02-15,ORD-00434,Coffee Maker,Home,3,79,237,138,99,Customer 063,France,198
+2026-07-26,ORD-00435,Keyboard,Electronics,1,59,59,34,25,Customer 076,Netherlands,35
+2026-03-09,ORD-00436,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 089,Belgium,52
+2026-08-20,ORD-00437,Monitor Stand,Office,2,42,84,42,42,Customer 102,Germany,69
+2026-04-03,ORD-00438,Office Chair,Office,5,189,945,560,385,Customer 115,United Kingdom,86
+2026-09-14,ORD-00439,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 128,France,103
+2026-05-25,ORD-00440,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 141,Netherlands,120
+2026-01-08,ORD-00441,Backpack,Lifestyle,4,54,216,100,116,Customer 154,Belgium,137
+2026-06-19,ORD-00442,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 167,Germany,154
+2026-02-02,ORD-00443,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 180,United Kingdom,171
+2026-07-13,ORD-00444,Coffee Maker,Home,3,79,237,138,99,Customer 013,France,188
+2026-03-24,ORD-00445,Keyboard,Electronics,1,59,59,34,25,Customer 026,Netherlands,25
+2026-08-07,ORD-00446,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 039,Belgium,42
+2026-04-18,ORD-00447,Monitor Stand,Office,2,42,84,42,42,Customer 052,Germany,59
+2026-09-01,ORD-00448,Office Chair,Office,5,189,945,560,385,Customer 065,United Kingdom,76
+2026-05-12,ORD-00449,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 078,France,93
+2026-01-23,ORD-00450,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 091,Netherlands,110
+2026-06-06,ORD-00451,Backpack,Lifestyle,4,54,216,100,116,Customer 104,Belgium,127
+2026-02-17,ORD-00452,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 117,Germany,144
+2026-07-28,ORD-00453,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 130,United Kingdom,161
+2026-03-11,ORD-00454,Coffee Maker,Home,3,79,237,138,99,Customer 143,France,178
+2026-08-22,ORD-00455,Keyboard,Electronics,1,59,59,34,25,Customer 156,Netherlands,195
+2026-04-05,ORD-00456,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 169,Belgium,32
+2026-09-16,ORD-00457,Monitor Stand,Office,2,42,84,42,42,Customer 002,Germany,49
+2026-05-27,ORD-00458,Office Chair,Office,5,189,945,560,385,Customer 015,United Kingdom,66
+2026-01-10,ORD-00459,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 028,France,83
+2026-06-21,ORD-00460,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 041,Netherlands,100
+2026-02-04,ORD-00461,Backpack,Lifestyle,4,54,216,100,116,Customer 054,Belgium,117
+2026-07-15,ORD-00462,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 067,Germany,134
+2026-03-26,ORD-00463,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 080,United Kingdom,151
+2026-08-09,ORD-00464,Coffee Maker,Home,3,79,237,138,99,Customer 093,France,168
+2026-04-20,ORD-00465,Keyboard,Electronics,1,59,59,34,25,Customer 106,Netherlands,185
+2026-09-03,ORD-00466,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 119,Belgium,22
+2026-05-14,ORD-00467,Monitor Stand,Office,2,42,84,42,42,Customer 132,Germany,39
+2026-01-25,ORD-00468,Office Chair,Office,5,189,945,560,385,Customer 145,United Kingdom,56
+2026-06-08,ORD-00469,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 158,France,73
+2026-02-19,ORD-00470,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 171,Netherlands,90
+2026-07-02,ORD-00471,Backpack,Lifestyle,4,54,216,100,116,Customer 004,Belgium,107
+2026-03-13,ORD-00472,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 017,Germany,124
+2026-08-24,ORD-00473,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 030,United Kingdom,141
+2026-04-07,ORD-00474,Coffee Maker,Home,3,79,237,138,99,Customer 043,France,158
+2026-09-18,ORD-00475,Keyboard,Electronics,1,59,59,34,25,Customer 056,Netherlands,175
+2026-05-01,ORD-00476,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 069,Belgium,192
+2026-01-12,ORD-00477,Monitor Stand,Office,2,42,84,42,42,Customer 082,Germany,29
+2026-06-23,ORD-00478,Office Chair,Office,5,189,945,560,385,Customer 095,United Kingdom,46
+2026-02-06,ORD-00479,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 108,France,63
+2026-07-17,ORD-00480,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 121,Netherlands,80
+2026-03-28,ORD-00481,Backpack,Lifestyle,4,54,216,100,116,Customer 134,Belgium,97
+2026-08-11,ORD-00482,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 147,Germany,114
+2026-04-22,ORD-00483,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 160,United Kingdom,131
+2026-09-05,ORD-00484,Coffee Maker,Home,3,79,237,138,99,Customer 173,France,148
+2026-05-16,ORD-00485,Keyboard,Electronics,1,59,59,34,25,Customer 006,Netherlands,165
+2026-01-27,ORD-00486,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 019,Belgium,182
+2026-06-10,ORD-00487,Monitor Stand,Office,2,42,84,42,42,Customer 032,Germany,199
+2026-02-21,ORD-00488,Office Chair,Office,5,189,945,560,385,Customer 045,United Kingdom,36
+2026-07-04,ORD-00489,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 058,France,53
+2026-03-15,ORD-00490,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 071,Netherlands,70
+2026-08-26,ORD-00491,Backpack,Lifestyle,4,54,216,100,116,Customer 084,Belgium,87
+2026-04-09,ORD-00492,Water Bottle,Lifestyle,2,18.5,37,15.6,21.4,Customer 097,Germany,104
+2026-09-20,ORD-00493,USB-C Hub,Electronics,5,49.9,249.5,145,104.5,Customer 110,United Kingdom,121
+2026-05-03,ORD-00494,Coffee Maker,Home,3,79,237,138,99,Customer 123,France,138
+2026-01-14,ORD-00495,Keyboard,Electronics,1,59,59,34,25,Customer 136,Netherlands,155
+2026-06-25,ORD-00496,Notebook A5,Office,4,6.5,26,8.4,17.6,Customer 149,Belgium,172
+2026-02-08,ORD-00497,Monitor Stand,Office,2,42,84,42,42,Customer 162,Germany,189
+2026-07-19,ORD-00498,Office Chair,Office,5,189,945,560,385,Customer 175,United Kingdom,26
+2026-03-02,ORD-00499,Desk Lamp,Home,3,34.95,104.85,57,47.85,Customer 008,France,43
+2026-08-13,ORD-00500,Wireless Mouse,Electronics,1,24.99,24.99,13.5,11.49,Customer 021,Netherlands,60

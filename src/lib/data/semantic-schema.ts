@@ -58,6 +58,7 @@ type FieldRule = {
   contains?: string[];
   rejectContains?: string[];
   validator?: (rows: Record<string, unknown>[], column: string) => boolean;
+  contextValidator?: (columns: string[], column: string) => boolean;
 };
 
 const FIELD_RULES: FieldRule[] = [
@@ -70,10 +71,11 @@ const FIELD_RULES: FieldRule[] = [
   },
   {
     field: "cogs",
-    exact: ["cogs", "cost_of_goods_sold", "cost_of_goods", "cost_of_sales", "product_cost", "direct_cost", "purchase_cost", "unit_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
-    contains: ["cost_of_goods", "cost_of_sales", "product_cost", "direct_cost", "purchase_cost", "unit_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
+    exact: ["cost", "cogs", "cost_of_goods_sold", "cost_of_goods", "cost_of_sales", "product_cost", "merchandise_cost", "direct_cost", "purchase_cost", "unit_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
+    contains: ["cost_of_goods", "cost_of_sales", "product_cost", "merchandise_cost", "direct_cost", "purchase_cost", "unit_cost", "supplier_cost", "vendor_cost", "procurement_cost"],
     rejectContains: ["operating", "opex", "overhead", "admin", "marketing", "advertising", "shipping", "delivery", "general", "debit", "credit"],
     validator: isMostlyNumeric,
+    contextValidator: isDirectCostContext,
   },
   {
     field: "expenses",
@@ -84,10 +86,11 @@ const FIELD_RULES: FieldRule[] = [
   },
   {
     field: "gross_profit",
-    exact: ["gross_profit", "gross_profit_amount", "contribution_profit"],
-    contains: ["gross_profit", "contribution_profit"],
+    exact: ["profit", "gross_profit", "grossprofit", "gross_profit_amount", "contribution_profit"],
+    contains: ["gross_profit", "grossprofit", "contribution_profit"],
     rejectContains: ["debit", "credit"],
     validator: isMostlyNumeric,
+    contextValidator: isGrossProfitContext,
   },
   {
     field: "net_profit",
@@ -298,6 +301,7 @@ function findCandidates(rule: FieldRule, columns: string[], rows: Record<string,
     const contains = rule.contains?.some((term) => column.normalized.includes(term)) ?? false;
     if (!exact && !contains) continue;
     if (rule.validator && !rule.validator(rows, column.original)) continue;
+    if (rule.contextValidator && !rule.contextValidator(columns, column.original)) continue;
     candidates.push({
       field: rule.field,
       column: column.original,
@@ -307,6 +311,26 @@ function findCandidates(rule: FieldRule, columns: string[], rows: Record<string,
   }
 
   return candidates.sort((a, b) => confidenceRank(b.confidence) - confidenceRank(a.confidence));
+}
+
+function isDirectCostContext(columns: string[], column: string) {
+  const normalized = normalizeColumnName(column);
+  if (normalized !== "cost") return true;
+  return hasRetailSalesContext(columns);
+}
+
+function isGrossProfitContext(columns: string[], column: string) {
+  const normalized = normalizeColumnName(column);
+  if (normalized !== "profit") return true;
+  return hasRetailSalesContext(columns);
+}
+
+function hasRetailSalesContext(columns: string[]) {
+  const normalized = new Set(columns.map(normalizeColumnName));
+  const hasRevenue = ["revenue", "sales", "net_sales", "gross_sales", "total_sales", "sales_amount", "order_total"].some((column) => normalized.has(column));
+  const hasProduct = ["product", "product_name", "sku", "item", "item_name", "category"].some((column) => normalized.has(column));
+  const hasVolumeOrPrice = ["quantity", "qty", "units", "units_sold", "unit_price", "selling_price", "retail_price"].some((column) => normalized.has(column));
+  return hasRevenue && hasProduct && hasVolumeOrPrice;
 }
 
 function isMostlyNumeric(rows: Record<string, unknown>[], column: string) {
