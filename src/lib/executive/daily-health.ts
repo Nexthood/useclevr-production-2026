@@ -379,8 +379,6 @@ function hashDailyHealthSource(source: DailyHealthSource) {
       csv: 0,
       excel: 0,
       google_sheets: 0,
-      onedrive: 0,
-      sharepoint: 0,
       snowflake: 0,
       api: 0,
       clevrsync: 0,

@@ -27,8 +27,6 @@ const tests: TestCase[] = [
         "csv",
         "excel",
         "google_sheets",
-        "onedrive",
-        "sharepoint",
         "snowflake",
         "api",
         "clevrsync",

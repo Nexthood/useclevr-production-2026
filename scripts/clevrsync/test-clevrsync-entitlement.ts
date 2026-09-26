@@ -68,8 +68,6 @@ const tests: TestModule[] = [
       assert.equal(access.enabled, true)
       assert.equal(access.tier, "pro")
       assert.equal(access.connectors.googleSheets, true)
-      assert.equal(access.connectors.oneDrive, true)
-      assert.equal(access.connectors.sharePoint, true)
       assert.equal(access.upgradeRequired, false)
       await requireClevrSyncAccess(makeUser("user_pro", "user", "pro@example.com"))
     },
@@ -151,13 +149,6 @@ const tests: TestModule[] = [
         "src/app/api/clevrsync/google/worksheets/route.ts",
         "src/app/api/clevrsync/google/oauth/start/route.ts",
         "src/app/api/clevrsync/google/oauth/callback/route.ts",
-        "src/app/api/clevrsync/microsoft/onedrive/files/route.ts",
-        "src/app/api/clevrsync/microsoft/sharepoint/sites/route.ts",
-        "src/app/api/clevrsync/microsoft/sharepoint/drives/route.ts",
-        "src/app/api/clevrsync/microsoft/sharepoint/files/route.ts",
-        "src/app/api/clevrsync/microsoft/worksheets/route.ts",
-        "src/app/api/clevrsync/microsoft/oauth/start/route.ts",
-        "src/app/api/clevrsync/microsoft/oauth/callback/route.ts",
       ]
       for (const route of routes) {
         const source = readFileSync(route, "utf8")

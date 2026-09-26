@@ -20,11 +20,30 @@ function testExcelConnectorRemoved() {
   assert.doesNotMatch(
     page,
     /Excel ClevrSync|ClevrSync Excel connector/,
-    "the local Excel ClevrSync connector stays removed; Microsoft workbooks are connector sources",
+    "the local Excel ClevrSync connector stays removed",
   );
   assert.doesNotMatch(page, /ensureExcelConnector/);
   assert.doesNotMatch(syncRoute, /formData\.get\("file"\)/, "ClevrSync sync no longer accepts uploaded workbook files");
   assert.doesNotMatch(previewRoute, /formData\.get\("file"\)/, "ClevrSync preview no longer accepts uploaded workbook files");
+}
+
+function testMicrosoftConnectorRemoved() {
+  const connectorsDir = "src/services/clevrsync/connectors";
+  const indexSource = readFileSync("src/services/clevrsync/index.ts", "utf8");
+  const previewRoute = readFileSync("src/app/api/clevrsync/preview/route.ts", "utf8");
+  const syncRoute = readFileSync("src/app/api/clevrsync/sync/route.ts", "utf8");
+  const connectorRoute = readFileSync("src/app/api/clevrsync/connectors/route.ts", "utf8");
+  const page = readFileSync("src/app/(auth)/app/settings/data-connections/page.tsx", "utf8");
+
+  assert.equal(tryRead(`${connectorsDir}/microsoft-graph.ts`), null, "the Microsoft Graph connector service is removed");
+  assert.equal(tryRead("src/services/clevrsync/microsoft-auth-store.ts"), null, "the Microsoft token store is removed");
+  assert.equal(tryRead("src/services/clevrsync/microsoft-oauth-state.ts"), null, "the Microsoft OAuth state store is removed");
+  assert.equal(tryRead("src/app/api/clevrsync/microsoft"), null, "Microsoft API routes are removed");
+  assert.doesNotMatch(indexSource, /microsoft-graph|MicrosoftGraph|upsertMicrosoftConnector/);
+  assert.doesNotMatch(previewRoute, /Microsoft|microsoft/i);
+  assert.doesNotMatch(syncRoute, /Microsoft|microsoft/i);
+  assert.doesNotMatch(connectorRoute, /Microsoft|microsoft/i);
+  assert.doesNotMatch(page, /Microsoft|OneDrive|SharePoint/i, "no Microsoft connector cards remain");
 }
 
 function testConnectorTypeGuards() {
@@ -39,8 +58,8 @@ function testConnectorTypeGuards() {
   );
   assert.match(
     syncEngine,
-    /return type === "google_sheets" \|\| type === "onedrive" \|\| type === "sharepoint";/,
-    "Google Sheets, OneDrive, and SharePoint remain the available connector types",
+    /return type === "google_sheets";/,
+    "Google Sheets remains the available connector type",
   );
 }
 
@@ -75,18 +94,10 @@ function testClevrSyncEntitlements() {
 
   const business = getClevrSyncEntitlement({ subscriptionTier: "business", unlimited: false });
   assert.equal(business.enabled, true);
-  assert.equal(business.connectors.oneDrive, true);
-  assert.equal(business.connectors.sharePoint, true);
 
   const superadmin = getClevrSyncEntitlement({ subscriptionTier: "free", unlimited: true });
   assert.equal(superadmin.enabled, true);
   assert.equal(superadmin.connectors.googleSheets, true);
-  assert.equal(superadmin.connectors.oneDrive, true);
-  assert.equal(superadmin.connectors.sharePoint, true);
-
-  const freeEntitlement = getClevrSyncEntitlement({ subscriptionTier: "free", unlimited: false });
-  assert.equal(freeEntitlement.connectors.oneDrive, false);
-  assert.equal(freeEntitlement.connectors.sharePoint, false);
 }
 
 function testSidebarClevrSyncEntry() {
@@ -122,8 +133,6 @@ function testFinalConnectorArea() {
   const page = readFileSync("src/app/(auth)/app/settings/data-connections/page.tsx", "utf8");
   const labels = [
     /label: "Google Sheets", status: "Available"/,
-    /label: "OneDrive", status: "Available"/,
-    /label: "SharePoint", status: "Available"/,
   ];
   for (const pattern of labels) {
     assert.match(page, pattern);
@@ -291,6 +300,7 @@ function tryRead(path: string) {
 }
 
 testExcelConnectorRemoved();
+testMicrosoftConnectorRemoved();
 testConnectorTypeGuards();
 testPermissionChecks();
 testClevrSyncEntitlements();

@@ -301,6 +301,7 @@ Text rules for this file:
 - Show a compact Usy header badge that cycles through supported languages and explains that Usy replies in the language the user writes.
 - Give Usy UseClevr-aware fallback answers for uploads, datasets, AI credits, plan limits, Retail analysis, Accountancy analysis, invoice processing, receipt processing, reports, downloads, billing, subscriptions, Business Profile, troubleshooting, and upgrade flow when no live AI provider answers.
 - Keep Usy focused on UseClevr business-data workflows and answer unrelated general-chat topics with a polite same-language redirect to UseClevr uploads, credits, reports, billing, and analytics.
+- Keep Usy ClevrSync answers limited to the Google Sheets connector per plan entitlement, describe CSV and Excel as normal direct uploads, and state that OneDrive and SharePoint are not part of the product.
 - Show an AI Privacy Status panel in the AI Assistant with the latest provider, local or cloud route, offline mode state, and fallback status.
 - Store metadata-only AI request audit entries for chat, dataset analysis, report generation, and recommendation requests, including provider, model, request timestamp, mode, local or cloud execution location, routing reason, latency, token counts when available, fallback use, success state, dataset ID when available, and safe failure reason.
 - Keep AI privacy audit logs free of raw prompts, model responses, API keys, and sensitive dataset content by default.

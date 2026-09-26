@@ -793,8 +793,6 @@ function selectDashboardDataset(stats: DashboardStats, datasetId: string | null)
   if (selectedDataset.source === "csv") fileTypeCounts.csv = 1
   else if (selectedDataset.source === "excel") fileTypeCounts.excel = 1
   else if (selectedDataset.source === "google_sheets") fileTypeCounts.google_sheets = 1
-  else if (selectedDataset.source === "onedrive") fileTypeCounts.onedrive = 1
-  else if (selectedDataset.source === "sharepoint") fileTypeCounts.sharepoint = 1
   else if (selectedDataset.source === "snowflake") fileTypeCounts.snowflake = 1
   else if (selectedDataset.source === "api") fileTypeCounts.api = 1
   else if (selectedDataset.source === "clevrsync") fileTypeCounts.clevrsync = 1
@@ -853,8 +851,6 @@ function emptyFileTypeCounts(): NormalizedDashboardData["fileTypeCounts"] {
     csv: 0,
     excel: 0,
     google_sheets: 0,
-    onedrive: 0,
-    sharepoint: 0,
     snowflake: 0,
     api: 0,
     clevrsync: 0,
@@ -1696,8 +1692,6 @@ function SourceMix({ dashboardData }: { dashboardData: NormalizedDashboardData }
     { label: "CSV", value: counts.csv },
     { label: "Excel", value: counts.excel },
     { label: "Google Sheets", value: counts.google_sheets },
-    { label: "OneDrive", value: counts.onedrive },
-    { label: "SharePoint", value: counts.sharepoint },
     { label: "Snowflake", value: counts.snowflake },
     { label: "API", value: counts.api },
     { label: "ClevrSync", value: counts.clevrsync },

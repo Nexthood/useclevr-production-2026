@@ -60,13 +60,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (type === "onedrive" || type === "sharepoint") {
-      return NextResponse.json(
-        { error: "Microsoft connectors must be connected through OAuth" },
-        { status: 400 },
-      );
-    }
-
     if (type === "excel") {
       return NextResponse.json(
         { error: "Excel is not a ClevrSync connector. Upload local Excel files through the normal UseClevr upload." },
