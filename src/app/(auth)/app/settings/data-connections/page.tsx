@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  ChevronDown,
   Cloud,
   Database,
   FileSpreadsheet,
@@ -24,6 +25,20 @@ type Connector = {
   displayName: string;
   sourceMeta?: Record<string, unknown>;
   updatedAt?: string;
+};
+
+type SpreadsheetSummary = {
+  id: string;
+  name: string;
+  modifiedTime: string | null;
+  shared: boolean;
+  ownedByMe: boolean;
+};
+
+type WorksheetSummary = {
+  id: number | null;
+  title: string;
+  index: number;
 };
 
 type ClevrSyncAccess = {
@@ -77,6 +92,22 @@ export default function DataConnectionsPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isGooglePreviewing, setIsGooglePreviewing] = useState(false);
   const [isGoogleSyncing, setIsGoogleSyncing] = useState(false);
+  const [spreadsheets, setSpreadsheets] = useState<SpreadsheetSummary[]>([]);
+  const [spreadsheetSearch, setSpreadsheetSearch] = useState("");
+  const [isListingSpreadsheets, setIsListingSpreadsheets] = useState(false);
+  const [spreadsheetsError, setSpreadsheetsError] = useState<string | null>(null);
+  const [reconnectHint, setReconnectHint] = useState<string | null>(null);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [worksheets, setWorksheets] = useState<WorksheetSummary[]>([]);
+  const [isListingWorksheets, setIsListingWorksheets] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerActiveIndex, setPickerActiveIndex] = useState(0);
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
+  const [selectedSpreadsheetName, setSelectedSpreadsheetName] = useState<string | null>(null);
+  const loadAbortRef = useRef<AbortController | null>(null);
+  const worksheetAbortRef = useRef<AbortController | null>(null);
+  const manualUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initializedConnectorRef = useRef<string | null>(null);
 
   const canPreview = useMemo(
     () => Boolean(file && file.name.toLowerCase().endsWith(".xlsx")),
@@ -84,7 +115,12 @@ export default function DataConnectionsPage() {
   );
   const googleConnectors = connectors.filter((item) => item.type === "google_sheets");
   const selectedGoogleConnector = googleConnectors[0] ?? null;
+  const googleConnectorId = selectedGoogleConnector?.id ?? null;
   const canGooglePreview = Boolean(selectedGoogleConnector && googleSpreadsheet.trim());
+  const pickerLabel =
+    spreadsheets.find((sheet) => sheet.id === googleSpreadsheet)?.name ||
+    selectedSpreadsheetName ||
+    (googleSpreadsheet ? "Selected spreadsheet" : "Choose spreadsheet");
 
   useEffect(() => {
     loadConnectors();
@@ -99,6 +135,42 @@ export default function DataConnectionsPage() {
       setGoogleMessage("Google Sheets connection failed");
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!googleConnectorId) return;
+    if (initializedConnectorRef.current === googleConnectorId) return;
+    initializedConnectorRef.current = googleConnectorId;
+    setSpreadsheets([]);
+    setNextPageToken(null);
+    setSpreadsheetsError(null);
+    setReconnectHint(null);
+    setPickerOpen(false);
+    setPickerActiveIndex(0);
+    const linkedSpreadsheetId = readMetaString(selectedGoogleConnector?.sourceMeta?.spreadsheetId);
+    if (linkedSpreadsheetId) {
+      setGoogleSpreadsheet(linkedSpreadsheetId);
+      setSelectedSpreadsheetName(
+        readMetaString(selectedGoogleConnector?.sourceMeta?.spreadsheetName) || "Selected spreadsheet",
+      );
+      const linkedWorksheet = readMetaString(selectedGoogleConnector?.sourceMeta?.worksheetName);
+      setGoogleWorksheet(linkedWorksheet ?? "");
+      void fetchWorksheets(linkedSpreadsheetId, googleConnectorId);
+    } else {
+      setGoogleSpreadsheet("");
+      setGoogleWorksheet("");
+      setSelectedSpreadsheetName(null);
+      setWorksheets([]);
+    }
+    void loadSpreadsheets();
+  }, [googleConnectorId]);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handle = setTimeout(() => {
+      void loadSpreadsheets({ search: spreadsheetSearch.trim() || null });
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [spreadsheetSearch, pickerOpen]);
 
   async function loadConnectors() {
     const response = await fetch("/api/clevrsync/connectors");
@@ -130,6 +202,128 @@ export default function DataConnectionsPage() {
     if (!response.ok) throw new Error(payload.error || "Unable to create Excel connection");
     setConnector(payload.connector);
     return payload.connector as Connector;
+  }
+
+  async function loadSpreadsheets(options?: {
+    search?: string | null;
+    pageToken?: string | null;
+    append?: boolean;
+  }) {
+    if (!access?.enabled || !selectedGoogleConnector) return;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    if (!options?.append) {
+      setIsListingSpreadsheets(true);
+      setSpreadsheetsError(null);
+    }
+    setReconnectHint(null);
+
+    try {
+      const params = new URLSearchParams();
+      if (options?.search) params.set("search", options.search);
+      if (options?.pageToken) params.set("pageToken", options.pageToken);
+      const response = await fetch(`/api/clevrsync/google/spreadsheets?${params.toString()}`, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => null);
+      if (controller.signal.aborted) return;
+      if (!response.ok) {
+        if (response.status === 401) {
+          setReconnectHint(
+            payload?.error || "Reconnect Google Sheets to browse your spreadsheets.",
+          );
+          setSpreadsheets([]);
+          setNextPageToken(null);
+        } else {
+          setSpreadsheetsError(payload?.error || "Unable to list spreadsheets");
+        }
+        return;
+      }
+      const list = Array.isArray(payload?.spreadsheets) ? payload.spreadsheets : [];
+      setSpreadsheets((current) => (options?.append ? [...current, ...list] : list));
+      setNextPageToken(typeof payload?.nextPageToken === "string" ? payload.nextPageToken : null);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setSpreadsheetsError(error instanceof Error ? error.message : "Unable to list spreadsheets");
+    } finally {
+      if (!controller.signal.aborted) setIsListingSpreadsheets(false);
+    }
+  }
+
+  async function fetchWorksheets(spreadsheetValue: string, connectorIdOverride?: string) {
+    const connectorId = connectorIdOverride || selectedGoogleConnector?.id;
+    const trimmed = spreadsheetValue.trim();
+    if (!access?.enabled || !connectorId || !trimmed) return;
+    worksheetAbortRef.current?.abort();
+    const controller = new AbortController();
+    worksheetAbortRef.current = controller;
+    setIsListingWorksheets(true);
+
+    try {
+      const params = new URLSearchParams({ spreadsheetId: trimmed });
+      params.set("connectorId", connectorId);
+      const response = await fetch(`/api/clevrsync/google/worksheets?${params.toString()}`, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => null);
+      if (controller.signal.aborted) return;
+      if (!response.ok) {
+        setWorksheets([]);
+        if (response.status === 401) {
+          setReconnectHint(payload?.error || "Reconnect Google Sheets");
+        } else {
+          setGoogleMessage(payload?.error || "Unable to load worksheets");
+        }
+        return;
+      }
+      const list: WorksheetSummary[] = Array.isArray(payload?.worksheets)
+        ? payload.worksheets.map((item: { id?: unknown; title?: unknown; index?: unknown }, index: number) => ({
+            id: typeof item?.id === "number" ? item.id : null,
+            title: typeof item?.title === "string" && item.title ? item.title : `Sheet ${index + 1}`,
+            index: typeof item?.index === "number" ? item.index : index,
+          }))
+        : [];
+      setWorksheets(list);
+      if (typeof payload?.spreadsheetName === "string" && payload.spreadsheetName) {
+        setSelectedSpreadsheetName(payload.spreadsheetName);
+      }
+      const titles = list.map((item) => item.title);
+      setGoogleWorksheet((current) => (current && titles.includes(current) ? current : titles[0] || ""));
+      setGoogleMessage(null);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setGoogleMessage(error instanceof Error ? error.message : "Unable to load worksheets");
+      }
+    } finally {
+      if (!controller.signal.aborted) setIsListingWorksheets(false);
+    }
+  }
+
+  function selectSpreadsheet(sheet: SpreadsheetSummary) {
+    setPickerOpen(false);
+    setGoogleSpreadsheet(sheet.id);
+    setSelectedSpreadsheetName(sheet.name);
+    setGooglePreview(null);
+    setGoogleWorksheet("");
+    setWorksheets([]);
+    setGoogleMessage(null);
+    void fetchWorksheets(sheet.id);
+  }
+
+  function handleManualSpreadsheetChange(value: string) {
+    setGoogleSpreadsheet(value);
+    setGooglePreview(null);
+    setWorksheets([]);
+    setGoogleWorksheet("");
+    if (manualUrlTimerRef.current) clearTimeout(manualUrlTimerRef.current);
+    const trimmed = value.trim();
+    if (!looksLikeSpreadsheetValue(trimmed)) return;
+    manualUrlTimerRef.current = setTimeout(() => {
+      void fetchWorksheets(trimmed);
+    }, 500);
   }
 
   async function handlePreview() {
@@ -336,8 +530,8 @@ export default function DataConnectionsPage() {
             <div>
               <CardTitle>Google Sheets</CardTitle>
               <CardDescription>
-                Connect a Google account, select a spreadsheet, preview a worksheet, and sync it
-                into UseClevr datasets.
+                Choose one of your Google Sheets, preview a worksheet, and sync it into UseClevr
+                datasets.
               </CardDescription>
             </div>
             <ConnectionBadge connector={selectedGoogleConnector} />
@@ -355,71 +549,152 @@ export default function DataConnectionsPage() {
             )
           ) : (
             <>
-              <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_auto_auto] lg:items-center">
-                <input
-                  type="text"
-                  value={googleSpreadsheet}
-                  onChange={(event) => {
-                    setGoogleSpreadsheet(event.target.value);
-                    setGooglePreview(null);
-                  }}
-                  placeholder="Google Sheets URL or spreadsheet ID"
-                  className="h-11 min-w-0 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
-                />
-                <select
-                  value={googleWorksheet}
-                  onChange={(event) => {
-                    setGoogleWorksheet(event.target.value);
-                    setGooglePreview(null);
-                  }}
-                  className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">First worksheet</option>
-                  {googlePreview?.googleSheets?.worksheets.map((worksheet) => (
-                    <option key={worksheet.title} value={worksheet.title}>
-                      {worksheet.title}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGooglePreview}
-                  disabled={!access?.enabled || !canGooglePreview || isGooglePreviewing}
-                >
-                  {isGooglePreviewing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  )}
-                  Preview
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleGoogleSync}
-                  disabled={!access?.enabled || !canGooglePreview || isGoogleSyncing}
-                >
-                  {isGoogleSyncing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Database className="mr-2 h-4 w-4" />
-                  )}
-                  {selectedGoogleConnector.sourceMeta?.datasetId ? "Sync now" : "Connect & Analyze"}
-                </Button>
+              {reconnectHint ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">{reconnectHint}</p>
+                  <Button type="button" variant="outline" onClick={handleGoogleConnect}>
+                    Reconnect Google Sheets
+                  </Button>
+                </div>
+              ) : null}
+
+              <div className="space-y-4 rounded-md border border-border bg-background/70 p-4">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="clevrsync-spreadsheet-picker"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Spreadsheet
+                    </label>
+                    <SpreadsheetPicker
+                      id="clevrsync-spreadsheet-picker"
+                      spreadsheets={spreadsheets}
+                      isLoading={isListingSpreadsheets}
+                      error={spreadsheetsError}
+                      open={pickerOpen}
+                      activeIndex={pickerActiveIndex}
+                      hasMore={Boolean(nextPageToken)}
+                      search={spreadsheetSearch}
+                      selectedId={googleSpreadsheet}
+                      selectedLabel={pickerLabel}
+                      onOpenChange={(open) => {
+                        setPickerOpen(open);
+                        setPickerActiveIndex(0);
+                      }}
+                      onSearchChange={setSpreadsheetSearch}
+                      onSelect={selectSpreadsheet}
+                      onLoadMore={() => {
+                        void loadSpreadsheets({ pageToken: nextPageToken, append: true });
+                      }}
+                      onActiveIndexChange={setPickerActiveIndex}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="clevrsync-worksheet-select"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Worksheet
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="clevrsync-worksheet-select"
+                        value={googleWorksheet}
+                        onChange={(event) => {
+                          setGoogleWorksheet(event.target.value);
+                          setGooglePreview(null);
+                        }}
+                        className="h-11 w-full appearance-none rounded-md border border-input bg-background px-3 pr-9 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">
+                          {isListingWorksheets ? "Loading worksheets…" : "First worksheet"}
+                        </option>
+                        {worksheets.map((worksheet) => (
+                          <option key={worksheet.title} value={worksheet.title}>
+                            {worksheet.title}
+                          </option>
+                        ))}
+                      </select>
+                      {isListingWorksheets ? (
+                        <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGooglePreview}
+                    disabled={!access?.enabled || !canGooglePreview || isGooglePreviewing}
+                  >
+                    {isGooglePreviewing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    )}
+                    Preview
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleGoogleSync}
+                    disabled={!access?.enabled || !canGooglePreview || isGoogleSyncing}
+                  >
+                    {isGoogleSyncing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Database className="mr-2 h-4 w-4" />
+                    )}
+                    {selectedGoogleConnector.sourceMeta?.datasetId ? "Sync now" : "Connect & Analyze"}
+                  </Button>
+                </div>
+
+                <div className="space-y-2 border-t border-border pt-3">
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                    aria-expanded={manualEntryOpen}
+                    onClick={() => setManualEntryOpen((open) => !open)}
+                  >
+                    {manualEntryOpen ? "Hide manual URL entry" : "Paste Sheet URL manually"}
+                  </button>
+                  {manualEntryOpen ? (
+                    <input
+                      type="text"
+                      value={googleSpreadsheet}
+                      onChange={(event) => handleManualSpreadsheetChange(event.target.value)}
+                      placeholder="Google Sheets URL or spreadsheet ID"
+                      aria-label="Google Sheets URL or spreadsheet ID"
+                      className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  ) : null}
+                </div>
               </div>
               {access?.enabled === false ? <PremiumLock access={access} /> : null}
 
               {googleMessage ? (
                 <p className="text-sm text-muted-foreground">{googleMessage}</p>
               ) : null}
-              {selectedGoogleConnector.sourceMeta?.lastSuccessfulSync ? (
-                <p className="text-sm text-muted-foreground">
-                  Last synced{" "}
-                  {new Date(
-                    String(selectedGoogleConnector.sourceMeta.lastSuccessfulSync),
-                  ).toLocaleString()}
-                </p>
-              ) : null}
+              <div className="space-y-1 text-sm text-muted-foreground">
+                {selectedGoogleConnector.sourceMeta?.datasetId ? (
+                  <p>
+                    Linked sheet: {pickerLabel}
+                    {googleWorksheet ? ` · Worksheet: ${googleWorksheet}` : ""}
+                  </p>
+                ) : null}
+                {selectedGoogleConnector.sourceMeta?.lastSuccessfulSync ? (
+                  <p>
+                    Last synced{" "}
+                    {new Date(
+                      String(selectedGoogleConnector.sourceMeta.lastSuccessfulSync),
+                    ).toLocaleString()}
+                  </p>
+                ) : null}
+              </div>
 
               {googlePreview ? <PreviewTable preview={googlePreview} /> : null}
             </>
@@ -493,6 +768,25 @@ export default function DataConnectionsPage() {
   );
 }
 
+function looksLikeSpreadsheetValue(value: string) {
+  if (value.includes("/spreadsheets/d/")) return true;
+  return /^[a-zA-Z0-9-_]{20,}$/.test(value);
+}
+
+function readMetaString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function formatSpreadsheetMeta(sheet: SpreadsheetSummary) {
+  const parts: string[] = [];
+  if (sheet.modifiedTime) {
+    const date = new Date(sheet.modifiedTime);
+    if (!Number.isNaN(date.getTime())) parts.push(`Modified ${date.toLocaleDateString()}`);
+  }
+  if (sheet.shared) parts.push("Shared with me");
+  return parts.join(" · ");
+}
+
 function getClevrSyncDatasetHref(payload: ClevrSyncSyncPayload) {
   const directHref =
     readSyncString(payload.redirectTo) ||
@@ -552,6 +846,144 @@ function PremiumLock({ access }: { access: ClevrSyncAccess }) {
           <Button type="button">Upgrade to Pro</Button>
         </Link>
       </div>
+    </div>
+  );
+}
+
+function SpreadsheetPicker(props: {
+  id: string;
+  spreadsheets: SpreadsheetSummary[];
+  isLoading: boolean;
+  error: string | null;
+  open: boolean;
+  activeIndex: number;
+  hasMore: boolean;
+  search: string;
+  selectedId: string;
+  selectedLabel: string;
+  onOpenChange: (open: boolean) => void;
+  onSearchChange: (value: string) => void;
+  onSelect: (sheet: SpreadsheetSummary) => void;
+  onLoadMore: () => void;
+  onActiveIndexChange: (index: number) => void;
+}) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (props.open) searchInputRef.current?.focus();
+  }, [props.open]);
+
+  function handleKeyDown(event: React.KeyboardEvent) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      props.onActiveIndexChange(Math.min(props.activeIndex + 1, Math.max(props.spreadsheets.length - 1, 0)));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      props.onActiveIndexChange(Math.max(props.activeIndex - 1, 0));
+    } else if (event.key === "Enter") {
+      const sheet = props.spreadsheets[props.activeIndex];
+      if (sheet) {
+        event.preventDefault();
+        props.onSelect(sheet);
+      }
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      props.onOpenChange(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        id={props.id}
+        role="combobox"
+        aria-expanded={props.open}
+        aria-haspopup="listbox"
+        aria-controls={`${props.id}-listbox`}
+        onClick={() => props.onOpenChange(!props.open)}
+        onKeyDown={(event) => {
+          if (!props.open && (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+            props.onOpenChange(true);
+          }
+        }}
+        className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="truncate">{props.selectedLabel}</span>
+        {props.isLoading ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+      </button>
+
+      {props.open ? (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => props.onOpenChange(false)} aria-hidden="true" />
+          <div className="absolute z-30 mt-1 w-full rounded-md border border-border bg-background shadow-lg">
+            <div className="border-b border-border p-2">
+              <input
+                ref={searchInputRef}
+                type="text"
+                role="combobox"
+                aria-expanded={props.open}
+                aria-controls={`${props.id}-listbox`}
+                aria-autocomplete="list"
+                value={props.search}
+                onChange={(event) => props.onSearchChange(event.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search spreadsheets..."
+                aria-label="Search spreadsheets"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            <div
+              id={`${props.id}-listbox`}
+              role="listbox"
+              aria-label="Spreadsheets"
+              className="max-h-64 overflow-y-auto"
+            >
+              {props.isLoading && props.spreadsheets.length === 0 ? (
+                <p className="px-3 py-4 text-sm text-muted-foreground">Loading spreadsheets…</p>
+              ) : null}
+              {!props.isLoading && props.spreadsheets.length === 0 ? (
+                <p className="px-3 py-4 text-sm text-muted-foreground">
+                  No spreadsheets found. Try another search or paste a Sheet URL manually.
+                </p>
+              ) : null}
+              {props.spreadsheets.map((sheet, index) => (
+                <button
+                  key={sheet.id}
+                  type="button"
+                  role="option"
+                  aria-selected={sheet.id === props.selectedId}
+                  onMouseEnter={() => props.onActiveIndexChange(index)}
+                  onClick={() => props.onSelect(sheet)}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-muted ${index === props.activeIndex ? "bg-muted" : ""}`}
+                >
+                  <span className="block truncate font-medium text-foreground">{sheet.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {formatSpreadsheetMeta(sheet)}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {props.hasMore ? (
+              <div className="border-t border-border p-2">
+                <Button type="button" variant="outline" className="w-full" onClick={props.onLoadMore}>
+                  Load more
+                </Button>
+              </div>
+            ) : null}
+            {props.error ? (
+              <p className="border-t border-border px-3 py-2 text-sm text-red-600 dark:text-red-400">
+                {props.error}
+              </p>
+            ) : null}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

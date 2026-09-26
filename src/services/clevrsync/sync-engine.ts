@@ -95,6 +95,17 @@ export async function getOwnedClevrSyncConnector(userId: string, connectorId: st
   });
 }
 
+export async function getNewestOwnedGoogleSheetsConnector(userId: string) {
+  const db = getRequiredDb();
+  return db.query.clevrSyncConnectors.findFirst({
+    where: and(
+      eq(clevrSyncConnectors.userId, userId),
+      eq(clevrSyncConnectors.type, "google_sheets"),
+    ),
+    orderBy: [desc(clevrSyncConnectors.updatedAt)],
+  });
+}
+
 export async function getOwnedClevrSyncConnectorForApi(userId: string, connectorId: string) {
   const connector = await getOwnedClevrSyncConnector(userId, connectorId);
   return connector ? sanitizeConnector(connector) : null;
