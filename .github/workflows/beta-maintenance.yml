@@ -276,3 +276,127 @@ jobs:
           fi
           git update-ref refs/heads/new-dist-test "$commit_sha"
           git push origin new-dist-test:dist-test --force
+
+  ensure-beta-pr:
+    name: Ensure beta to main pull request
+    needs: publish-dist-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: write
+
+    steps:
+      - name: Guard beta or dispatch only
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/beta" ]; then
+            if [ "${{ inputs.confirm }}" != "yes" ]; then
+              echo "Beta PR automation requires a beta branch push or a confirmed dispatch."
+              exit 1
+            fi
+          fi
+
+      - name: Checkout beta history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: beta
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Create or update the exact beta to main pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          beta_subject="$(git log -1 --format=%s beta)"
+          clean_subject="$(printf '%s' "$beta_subject" | sed -E 's/^PR-[0-9]+:[[:space:]]*//; s/^PR:[[:space:]]*//' | tr '\n' ' ' | sed 's/[[:space:]]*$//' | cut -c1-70)"
+
+          pr_number="$(gh pr list --repo "$REPO" --base main --head beta --state open \
+            --json number,headRefName,baseRefName \
+            --jq '[.[] | select(.headRefName == "beta" and .baseRefName == "main") | .number] | first // empty')"
+
+          body_file="$(mktemp)"
+          {
+            echo "Automated release PR from \`beta\` to \`main\`, published to the dist-test environment after a successful build."
+            echo ""
+            echo "Head: beta @ $(git rev-parse --short beta)"
+            echo ""
+            echo "### Commits included"
+            echo ""
+            git log --format='- %s' origin/main..beta | grep -v -E '^Merge (branch|pull request)' || true
+          } > "$body_file"
+
+          if [ -n "$pr_number" ]; then
+            echo "Refreshing existing beta -> main PR #$pr_number"
+            gh pr edit "$pr_number" --repo "$REPO" --body-file "$body_file"
+          else
+            echo "Creating beta -> main PR"
+            gh pr create --repo "$REPO" --base main --head beta \
+              --title "$clean_subject" --body-file "$body_file" > /dev/null
+            pr_number="$(gh pr list --repo "$REPO" --base main --head beta --state open \
+              --json number,headRefName,baseRefName \
+              --jq '[.[] | select(.headRefName == "beta" and .baseRefName == "main") | .number] | first // empty')"
+            echo "Created PR #$pr_number"
+          fi
+
+          if [ -z "$pr_number" ]; then
+            echo "Unable to resolve the beta -> main pull request number."
+            exit 1
+          fi
+
+          echo "PR_NUMBER=$pr_number" >> "$GITHUB_ENV"
+
+      - name: Enable GitHub native auto-merge when available
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh pr merge "$PR_NUMBER" --repo "$REPO" --auto --merge 2>/dev/null; then
+            echo "Native auto-merge enabled for PR #$PR_NUMBER."
+          else
+            echo "Native auto-merge unavailable; the wait-and-merge step below handles the merge."
+          fi
+
+      - name: Wait for required checks, merge, and dispatch production deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Waiting for required checks on PR #$PR_NUMBER..."
+          for i in {1..60}; do
+            state=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state,merged --jq '{state, merged}' 2>/dev/null || echo '{"state":"OPEN","merged":false}')
+            merged=$(echo "$state" | jq -r '.merged // false')
+            pr_state=$(echo "$state" | jq -r '.state // "OPEN"')
+
+            if [ "$merged" = "true" ]; then
+              echo "PR already merged. Dispatching production build..."
+              gh workflow run branch-maintenance.yml --ref main --repo "$REPO"
+              exit 0
+            fi
+
+            if [ "$pr_state" = "CLOSED" ]; then
+              echo "PR closed without merge. Exiting."
+              exit 0
+            fi
+
+            mergeState=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeStateStatus --jq '.mergeStateStatus' 2>/dev/null || echo "UNKNOWN")
+
+            case "$mergeState" in
+              CLEAN|UNSTABLE|HAS_HOOKS)
+                echo "Checks passed (status: $mergeState). Merging PR..."
+                if gh pr merge "$PR_NUMBER" --repo "$REPO" --merge; then
+                  echo "PR merged! Dispatching production build..."
+                  gh workflow run branch-maintenance.yml --ref main --repo "$REPO"
+                  exit 0
+                fi
+                echo "Merge command failed, retrying..."
+                ;;
+            esac
+
+            echo "Status: $mergeState (attempt $i/60)"
+            sleep 20
+          done
+          echo "Timeout: required checks did not pass within 20 minutes"
+          exit 1

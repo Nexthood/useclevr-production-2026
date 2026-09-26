@@ -13,7 +13,8 @@
     "beta-maintenance.yml": {
       "workflowName": "Publish Dist-Test from Beta",
       "checkRuns": [
-        "Publish dist-test deployment folder"
+        "Publish dist-test deployment folder",
+        "Ensure beta to main pull request"
       ]
     },
     "branch-maintenance.yml": {

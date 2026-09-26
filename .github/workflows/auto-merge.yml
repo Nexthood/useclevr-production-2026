@@ -36,7 +36,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo "Waiting for required checks to pass..."
-          for i in {1..40}; do
+          for i in {1..80}; do
             state=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json state,merged --jq '{state, merged}' 2>/dev/null || echo '{"state":"OPEN","merged":false}')
             merged=$(echo "$state" | jq -r '.merged // false')
             pr_state=$(echo "$state" | jq -r '.state // "OPEN"')
@@ -66,8 +66,8 @@ jobs:
                 ;;
             esac
 
-            echo "Status: $mergeState (attempt $i/40)"
+            echo "Status: $mergeState (attempt $i/80)"
             sleep 15
           done
-          echo "Timeout: checks did not pass within 10 minutes"
+          echo "Timeout: checks did not pass within 20 minutes"
           exit 1
