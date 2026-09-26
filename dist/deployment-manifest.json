@@ -1,7 +1,7 @@
 {
-  "sourceCommit": "a7669af644288049a41807a965cda77bd0b0e1cb",
+  "sourceCommit": "0fa779746cb8acac003bdc1574ba09bea8c54f52",
   "sourceBranch": "beta",
-  "buildTimestamp": "2026-09-26T15:58:17.482Z",
+  "buildTimestamp": "2026-09-26T17:25:40.322Z",
   "nodeVersion": "v26.10.0",
   "healthcheckPath": "/api/health",
   "railwayRoot": "/dist",
