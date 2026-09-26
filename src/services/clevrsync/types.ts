@@ -27,7 +27,7 @@ export type ClevrSyncWorksheetPreview = {
 };
 
 export type ClevrSyncPreview = {
-  sourceType: "excel" | "google_sheets";
+  sourceType: "google_sheets";
   fileName: string;
   fileSize: number;
   mimeType: string;

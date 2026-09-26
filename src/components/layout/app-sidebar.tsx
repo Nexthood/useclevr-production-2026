@@ -89,6 +89,11 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const hasUnlimitedAdminAccess = user.role === "superadmin" || user.role === "admin";
+  // ClevrSync is a paid-plan feature (server-side APIs enforce the same rule).
+  // Free users never see the navigation entry; direct URL access is rejected
+  // server-side by the canonical entitlement helper.
+  const isClevrSyncEnabled =
+    hasUnlimitedAdminAccess || subscriptionTier === "pro" || subscriptionTier === "business";
 
   useEffect(() => {
     setIsMobileOpen(false);
@@ -122,7 +127,9 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
     return item
   })
   const dashboardItem = navigationWithStatus[0];
-  const workspaceNavigationItems = navigationWithStatus.slice(1);
+  const workspaceNavigationItems = navigationWithStatus
+    .slice(1)
+    .filter((item) => item.name !== "ClevrSync" || isClevrSyncEnabled);
   const aiNavigationItems = user.role === "superadmin" ? [...aiNavigation, ...adminAiNavigation] : aiNavigation;
 
   const sidebarContent = (

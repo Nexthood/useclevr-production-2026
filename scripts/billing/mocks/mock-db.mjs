@@ -232,14 +232,18 @@ function executeRawSql(sqlObject) {
 function findFirst(rows) {
   return async ({ where }) => {
     const pairs = wherePairs(where)
-    return rows.find((row) => matchesAll(row, pairs)) ?? null
+    const row = rows.find((row) => matchesAll(row, pairs)) ?? null
+    // Return a snapshot, like a real Postgres read: later UPDATEs must not
+    // mutate an object a caller already holds as its "previous state"
+    // (drizzle/Postgres never alias the stored row into query results).
+    return row ? { ...row } : null
   }
 }
 
 function findMany(rows) {
   return async ({ where }) => {
     const pairs = wherePairs(where)
-    return rows.filter((row) => matchesAll(row, pairs))
+    return rows.filter((row) => matchesAll(row, pairs)).map((row) => ({ ...row }))
   }
 }
 

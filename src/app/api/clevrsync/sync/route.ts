@@ -4,7 +4,6 @@ import { uploadCSV } from "@/app/actions/upload";
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { MAX_UPLOAD_ROWS } from "@/lib/upload/upload-security";
-import { uploadValidationErrorPayload } from "@/lib/upload/upload-security";
 import { debugError } from "@/lib/utils/debug";
 import {
   clevrSyncAccessErrorPayload,
@@ -15,7 +14,6 @@ import {
   GoogleSheetsProviderError,
   getOwnedClevrSyncConnector,
   googleSheetPreviewToCsvFile,
-  parseExcelWorkbook,
   parseGoogleSpreadsheetId,
   previewGoogleSheet,
   updateClevrSyncConnector,
@@ -60,96 +58,14 @@ export async function POST(request: Request) {
 
     await requireBuiltinUserRecord(session.user.id);
     await requireClevrSyncAccess(session.user);
-    if (request.headers.get("content-type")?.includes("application/json")) {
-      return syncGoogleSheets(request, session.user);
-    }
-
-    const formData = await request.formData();
-    const connectorId = String(formData.get("connectorId") || "").trim();
-    const file = formData.get("file");
-
-    if (!connectorId) {
-      return NextResponse.json({ error: "Connector is required" }, { status: 400 });
-    }
-
-    const connector = await getOwnedClevrSyncConnector(session.user.id, connectorId);
-    if (!connector) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "XLSX file is required" }, { status: 400 });
-    }
-
-    const preview = parseExcelWorkbook({
-      fileBuffer: await file.arrayBuffer(),
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
-    });
-
-    const connectorSourceMeta = connector.sourceMeta as Record<string, unknown>;
-    const existingDatasetId =
-      typeof connectorSourceMeta.datasetId === "string" ? connectorSourceMeta.datasetId : null;
-    const uploadFormData = new FormData();
-    uploadFormData.set("file", file);
-    uploadFormData.set("uploadMode", "standard");
-    uploadFormData.set("dataset_type", "standard");
-    uploadFormData.set("uploadSource", "clevrsync");
-    uploadFormData.set("clevrsync_connector_type", connector.type);
-    uploadFormData.set("business_model", "generic");
-    if (existingDatasetId) {
-      uploadFormData.set("clevrsync_dataset_id", existingDatasetId);
-    }
-
-    const uploadResult = await uploadCSV(uploadFormData, {
-      user: {
-        id: session.user.id,
-        email: session.user.email,
-        role: session.user.role,
-      },
-    });
-
-    const datasetId = uploadResult.datasetId ?? existingDatasetId;
-    await updateClevrSyncConnector({
-      userId: session.user.id,
-      connectorId: connector.id,
-      status: uploadResult.success ? "connected" : "error",
-      sourceMeta: {
-        ...connectorSourceMeta,
-        datasetId,
-        lastSuccessfulSync: uploadResult.success
-          ? new Date().toISOString()
-          : connectorSourceMeta.lastSuccessfulSync,
-        lastError: uploadResult.success ? null : uploadResult.error,
-      },
-    });
-
-    const run = await createClevrSyncRun({
-      userId: session.user.id,
-      connectorId: connector.id,
-      preview,
-      status: uploadResult.success ? "completed" : "failed",
-      datasetId,
-      error: uploadResult.error ?? null,
-    });
-
-    const status = uploadResult.success ? 200 : 422;
-    return NextResponse.json(
-      buildClevrSyncSyncResponse({ run, uploadResult, datasetId }),
-      { status },
-    );
+    return syncGoogleSheets(request, session.user);
   } catch (error) {
     const accessError = clevrSyncAccessErrorPayload(error);
     if (accessError) {
       return NextResponse.json(accessError, { status: accessError.status });
     }
     debugError("[ClevrSync] Sync failed:", error);
-    const payload = uploadValidationErrorPayload(error, "CLEVRSYNC_SYNC_FAILED");
-    return NextResponse.json(
-      { error: payload.message, code: payload.code },
-      { status: payload.status },
-    );
+    return NextResponse.json({ error: "Unable to sync Google Sheet" }, { status: 500 });
   }
 }
 

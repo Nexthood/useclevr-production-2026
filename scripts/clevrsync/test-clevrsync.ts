@@ -1,77 +1,43 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import * as XLSX from "xlsx";
-
-import {
-  isSupportedExcelFile,
-  parseExcelWorkbook,
-  toDatasetPayload,
-} from "@/services/clevrsync/connectors/excel";
 import { getClevrSyncEntitlement } from "@/services/clevrsync/entitlement";
 import { matrixToWorksheetPreview, normalizeRowsAsCsv } from "@/services/clevrsync/normalize";
 
-function makeWorkbookBuffer() {
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet([
-    ["Customer", "Revenue", "Paid", "Invoice Date"],
-    ["Acme", 1200, true, new Date("2026-01-15T00:00:00.000Z")],
-    ["Northwind", 950.5, false, new Date("2026-02-20T00:00:00.000Z")],
-  ]);
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Sales");
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Only Header"]]), "Notes");
-  return XLSX.write(workbook, { bookType: "xlsx", type: "buffer" }) as Buffer;
+function testExcelConnectorRemoved() {
+  const connectorsDir = "src/services/clevrsync/connectors";
+  const indexSource = readFileSync("src/services/clevrsync/index.ts", "utf8");
+  const previewRoute = readFileSync("src/app/api/clevrsync/preview/route.ts", "utf8");
+  const syncRoute = readFileSync("src/app/api/clevrsync/sync/route.ts", "utf8");
+  const page = readFileSync("src/app/(auth)/app/settings/data-connections/page.tsx", "utf8");
+
+  assert.equal(tryRead(`${connectorsDir}/excel.ts`), null, "the Excel connector service is removed");
+  assert.doesNotMatch(indexSource, /connectors\/excel/);
+  assert.doesNotMatch(indexSource, /parseExcelWorkbook|isSupportedExcelFile|toDatasetPayload/);
+  assert.doesNotMatch(previewRoute, /parseExcelWorkbook/);
+  assert.doesNotMatch(syncRoute, /parseExcelWorkbook/);
+  assert.doesNotMatch(page, /Excel Connector/);
+  assert.doesNotMatch(page, /Excel workbook/);
+  assert.doesNotMatch(page, /ensureExcelConnector/);
+  assert.doesNotMatch(syncRoute, /formData\.get\("file"\)/, "ClevrSync sync no longer accepts uploaded workbook files");
+  assert.doesNotMatch(previewRoute, /formData\.get\("file"\)/, "ClevrSync preview no longer accepts uploaded workbook files");
 }
 
-function testExcelParsing() {
-  const preview = parseExcelWorkbook({
-    fileBuffer: makeWorkbookBuffer(),
-    fileName: "sales.xlsx",
-    fileSize: 1024,
-    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
+function testConnectorTypeGuards() {
+  const connectorRoute = readFileSync("src/app/api/clevrsync/connectors/route.ts", "utf8");
+  const syncEngine = readFileSync("src/services/clevrsync/sync-engine.ts", "utf8");
 
-  assert.equal(preview.sourceType, "excel");
-  assert.equal(preview.activeWorksheet, "Sales");
-  assert.equal(preview.worksheets.length, 2);
-  assert.equal(preview.rowCount, 2);
-  assert.deepEqual(
-    preview.columns.map((column) => column.name),
-    ["Customer", "Revenue", "Paid", "Invoice Date"],
+  assert.match(connectorRoute, /type === "excel"/, "Excel connector creation is explicitly rejected");
+  assert.match(
+    connectorRoute,
+    /Excel is not a ClevrSync connector/,
+    "the rejection message points users to the normal upload",
   );
-  assert.equal(preview.columns.find((column) => column.name === "Customer")?.type, "string");
-  assert.equal(preview.columns.find((column) => column.name === "Revenue")?.type, "number");
-  assert.equal(preview.columns.find((column) => column.name === "Paid")?.type, "boolean");
-  assert.equal(preview.columns.find((column) => column.name === "Invoice Date")?.type, "date");
-  assert.equal(preview.rows[0]?.Customer, "Acme");
-}
-
-function testDatasetPayload() {
-  const preview = parseExcelWorkbook({
-    fileBuffer: makeWorkbookBuffer(),
-    fileName: "sales.xlsx",
-    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const dataset = toDatasetPayload(preview);
-
-  assert.equal(dataset.source, "clevrsync");
-  assert.equal(dataset.datasetType, "standard");
-  assert.equal(dataset.name, "sales");
-  assert.deepEqual(dataset.columns, ["Customer", "Revenue", "Paid", "Invoice Date"]);
-  assert.equal(dataset.rows.length, 2);
-  assert.equal(dataset.columnTypes.Revenue, "number");
-}
-
-function testConnectorValidation() {
-  assert.equal(
-    isSupportedExcelFile(
-      "book.xlsx",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    ),
-    true,
+  assert.match(
+    syncEngine,
+    /return type === "google_sheets";/,
+    "only Google Sheets remains an available connector type",
   );
-  assert.equal(isSupportedExcelFile("book.csv", "text/csv"), false);
-  assert.equal(isSupportedExcelFile("legacy.xls", "application/vnd.ms-excel"), false);
 }
 
 function testPermissionChecks() {
@@ -81,13 +47,12 @@ function testPermissionChecks() {
   const oauthStartRoute = readFileSync("src/app/api/clevrsync/google/oauth/start/route.ts", "utf8");
   const syncEngine = readFileSync("src/services/clevrsync/sync-engine.ts", "utf8");
 
-  assert.match(previewRoute, /getOwnedClevrSyncConnector\(session\.user\.id, connectorId\)/);
-  assert.match(syncRoute, /getOwnedClevrSyncConnector\(session\.user\.id, connectorId\)/);
+  assert.match(previewRoute, /getGoogleSheetsAccessToken\(\{ userId, connectorId \}\)/);
+  assert.match(syncRoute, /getOwnedClevrSyncConnector\(user\.id, connectorId\)/);
   assert.match(connectorRoute, /requireClevrSyncAccess\(session\.user\)/);
   assert.match(previewRoute, /requireClevrSyncAccess\(session\.user\)/);
   assert.match(syncRoute, /requireClevrSyncAccess\(session\.user\)/);
   assert.match(oauthStartRoute, /requireClevrSyncAccess\(session\.user\)/);
-  assert.match(previewRoute, /status: 403/);
   assert.match(syncRoute, /status: 403/);
   assert.match(syncEngine, /eq\(clevrSyncConnectors\.userId, userId\)/);
 }
@@ -95,14 +60,12 @@ function testPermissionChecks() {
 function testClevrSyncEntitlements() {
   const free = getClevrSyncEntitlement({ subscriptionTier: "free", unlimited: false });
   assert.equal(free.enabled, false);
-  assert.equal(free.connectors.excel, false);
   assert.equal(free.connectors.googleSheets, false);
   assert.equal(free.upgradeRequired, true);
   assert.match(free.upgradeHref, /pro_monthly/);
 
   const pro = getClevrSyncEntitlement({ subscriptionTier: "pro", unlimited: false });
   assert.equal(pro.enabled, true);
-  assert.equal(pro.connectors.excel, true);
   assert.equal(pro.connectors.googleSheets, true);
   assert.equal(pro.connectors.scheduledSync, false);
 
@@ -124,6 +87,16 @@ function testSidebarClevrSyncEntry() {
     sidebar.indexOf('name: "Datasets"') < sidebar.indexOf('name: "ClevrSync"'),
     "ClevrSync appears directly after Datasets in the sidebar source order",
   );
+  assert.match(
+    sidebar,
+    /isClevrSyncEnabled/,
+    "the sidebar resolves ClevrSync visibility through the plan entitlement",
+  );
+  assert.match(
+    sidebar,
+    /item\.name !== "ClevrSync" \|\| isClevrSyncEnabled/,
+    "Free users never see the ClevrSync navigation entry",
+  );
 }
 
 function testFreeUiPremiumLock() {
@@ -133,6 +106,21 @@ function testFreeUiPremiumLock() {
   assert.match(page, /ClevrSync requires Pro or Business/);
   assert.match(page, /upload CSV and XLSX files directly through the Datasets page/);
   assert.match(page, /disabled=\{!access\?\.enabled/);
+}
+
+function testFinalConnectorArea() {
+  const page = readFileSync("src/app/(auth)/app/settings/data-connections/page.tsx", "utf8");
+  const labels = [
+    /label: "Google Sheets", status: "Available"/,
+    /label: "OneDrive", status: "Coming Soon"/,
+    /label: "SharePoint", status: "Coming Soon"/,
+  ];
+  for (const pattern of labels) {
+    assert.match(page, pattern);
+  }
+  assert.doesNotMatch(page, /type: "excel"/, "Excel is not a ClevrSync connector option");
+  assert.doesNotMatch(page, /Excel Connector/, "the Excel Connector card is removed");
+  assert.doesNotMatch(page, /Excel workbook/, "the Excel workbook section is removed");
 }
 
 function testExistingUploadPathRemainsExcelAware() {
@@ -266,6 +254,7 @@ function testClevrSyncGoogleSourcePersistsCanonicalDatasetSource() {
 function testGoogleOAuthMinimumScope() {
   const source = readFileSync("src/services/clevrsync/connectors/google-sheets.ts", "utf8");
   assert.match(source, /spreadsheets\.readonly/);
+  assert.match(source, /drive\.metadata\.readonly/);
   assert.doesNotMatch(source, /drive\.readonly/);
   assert.doesNotMatch(source, /drive\.file/);
 }
@@ -278,13 +267,21 @@ function testDowngradeKeepsData() {
   assert.doesNotMatch(connectorRoute, /delete\(datasets\)/);
 }
 
-testExcelParsing();
-testDatasetPayload();
-testConnectorValidation();
+function tryRead(path: string) {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+testExcelConnectorRemoved();
+testConnectorTypeGuards();
 testPermissionChecks();
 testClevrSyncEntitlements();
 testSidebarClevrSyncEntry();
 testFreeUiPremiumLock();
+testFinalConnectorArea();
 testExistingUploadPathRemainsExcelAware();
 testMatrixToWorksheetPreview();
 testNormalizeRowsAsCsv();

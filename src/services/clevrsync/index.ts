@@ -1,9 +1,4 @@
 export {
-  isSupportedExcelFile,
-  parseExcelWorkbook,
-  toDatasetPayload,
-} from "@/services/clevrsync/connectors/excel";
-export {
   buildGoogleDriveListUrl,
   buildGoogleSheetsAuthorizationUrl,
   exchangeGoogleSheetsCode,

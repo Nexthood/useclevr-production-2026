@@ -24,9 +24,14 @@ export async function GET() {
     }
 
     await requireBuiltinUserRecord(session.user.id);
+    await requireClevrSyncAccess(session.user);
     const connectors = await listClevrSyncConnectors(session.user.id);
     return NextResponse.json({ connectors });
   } catch (error) {
+    const accessError = clevrSyncAccessErrorPayload(error);
+    if (accessError) {
+      return NextResponse.json(accessError, { status: accessError.status });
+    }
     debugError("[ClevrSync] Connector list failed:", error);
     return NextResponse.json({ error: "Unable to load data connections" }, { status: 500 });
   }
@@ -51,6 +56,13 @@ export async function POST(request: Request) {
     if (type === "google_sheets") {
       return NextResponse.json(
         { error: "Google Sheets must be connected through OAuth" },
+        { status: 400 },
+      );
+    }
+
+    if (type === "excel") {
+      return NextResponse.json(
+        { error: "Excel is not a ClevrSync connector. Upload local Excel files through the normal UseClevr upload." },
         { status: 400 },
       );
     }

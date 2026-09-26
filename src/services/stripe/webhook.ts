@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/index";
 import { recordActivity } from "@/lib/activity/activity-store";
 import { processPlanChange } from "@/lib/billing/credit-engine";
 import { getSubscriptionTierForStripePriceId, getSubscriptionIntervalForStripePriceId } from "@/lib/billing/launch-pricing";
+import { retrieveStripeSubscription } from "@/services/stripe/checkout";
 import { confirmReferralPaidConversion } from "@/lib/referrals/referral-lifecycle";
 import { profiles, users } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -397,6 +398,59 @@ async function syncSubscriptionInternal(
   const priceId = sub.items.data[0]?.price?.id ?? null;
   const mappedTier = priceId ? getSubscriptionTierForStripePriceId(priceId) : null;
   const metadataTier = getSubscriptionTierFromMetadata(sub.metadata);
+
+  // Out-of-order protection: Stripe redelivers events at-least-once and with
+  // no ordering guarantee. A stale activation event (created/updated with a
+  // non-terminal status) replayed AFTER a termination event would otherwise
+  // resurrect a refunded/cancelled subscription and re-grant paid included
+  // credits. Any event that would map this profile to a PAID tier while the
+  // profile currently sits on Free must therefore be verified against
+  // authoritative Stripe state first: if the subscription no longer exists or
+  // is terminal, the live state wins and the stale activation is dropped.
+  const eventResolvesPaid =
+    mappedTier === "pro" ||
+    mappedTier === "business" ||
+    (!priceId && (metadataTier === "pro" || metadataTier === "business"));
+  const eventResolvesTerminated =
+    eventType === "customer.subscription.deleted" ||
+    TERMINAL_SUBSCRIPTION_STATUSES.has(sub.status) ||
+    REVOKED_SUBSCRIPTION_STATUSES.has(sub.status);
+  const currentTierIsPaid = currentTier === "pro" || currentTier === "business";
+
+  if (eventResolvesPaid && !eventResolvesTerminated && !currentTierIsPaid) {
+    try {
+      const liveSub = await retrieveStripeSubscription(sub.id);
+      if (
+        liveSub.status !== sub.status ||
+        liveSub.cancel_at_period_end !== sub.cancel_at_period_end
+      ) {
+        console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] stale_event_reconciled", {
+          eventType,
+          eventId: options?.eventId ?? null,
+          subscriptionId: sub.id,
+          eventStatus: sub.status,
+          liveStatus: liveSub.status,
+        });
+      }
+      sub = liveSub;
+    } catch (stripeError) {
+      const message = stripeError instanceof Error ? stripeError.message : String(stripeError);
+      if (
+        message.includes("resource_missing") ||
+        message.includes("No such subscription") ||
+        message.includes("not found")
+      ) {
+        console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] stale_activation_dropped", {
+          eventType,
+          eventId: options?.eventId ?? null,
+          subscriptionId: sub.id,
+          reason: "subscription_missing_at_stripe",
+        });
+        return { synced: false, reason: "Subscription no longer exists at Stripe." };
+      }
+      throw stripeError;
+    }
+  }
 
   console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] profile_found", {
     profileId: (existing as Record<string, unknown>).id,

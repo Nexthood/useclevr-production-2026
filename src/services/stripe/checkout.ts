@@ -167,6 +167,17 @@ export async function retrieveStripeSubscription(subscriptionId: string): Promis
   return stripe.subscriptions.retrieve(subscriptionId);
 }
 
+/**
+ * Authoritative Stripe subscription list for a customer, newest first. Used by
+ * period-end reconciliation to decide whether a paid entitlement still exists
+ * after the locally stored period end has passed.
+ */
+export async function listStripeCustomerSubscriptions(customerId: string): Promise<Stripe.Subscription[]> {
+  const stripe = getStripe();
+  const subscriptions = await stripe.subscriptions.list({ customer: customerId, limit: 10 });
+  return subscriptions.data;
+}
+
 export async function retrieveStripeCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
   const stripe = getStripe();
   return stripe.checkout.sessions.retrieve(sessionId, {

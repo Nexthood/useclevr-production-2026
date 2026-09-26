@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   ChevronDown,
   Cloud,
   Database,
   FileSpreadsheet,
-  HardDrive,
   Loader2,
   Share2,
 } from "lucide-react";
@@ -47,7 +46,6 @@ type ClevrSyncAccess = {
   upgradeRequired: boolean;
   upgradeHref: string;
   connectors: {
-    excel: boolean;
     googleSheets: boolean;
     oneDrive: false;
     sharePoint: false;
@@ -69,7 +67,6 @@ type ClevrSyncSyncPayload = {
 };
 
 const connectorOptions = [
-  { type: "excel", label: "Excel Connector", status: "Available", description: "Connect Excel workbooks", icon: FileSpreadsheet },
   { type: "google_sheets", label: "Google Sheets", status: "Available", description: "Connect Google Sheets", icon: Database },
   { type: "onedrive", label: "OneDrive", status: "Coming Soon", description: "Connect OneDrive files", icon: Cloud },
   { type: "sharepoint", label: "SharePoint", status: "Coming Soon", description: "Connect SharePoint files", icon: Share2 },
@@ -78,18 +75,12 @@ const connectorOptions = [
 export default function DataConnectionsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [file, setFile] = useState<File | null>(null);
-  const [connector, setConnector] = useState<Connector | null>(null);
   const [connectors, setConnectors] = useState<Connector[]>([]);
-  const [preview, setPreview] = useState<ClevrSyncPreview | null>(null);
   const [googlePreview, setGooglePreview] = useState<ClevrSyncPreview | null>(null);
   const [googleSpreadsheet, setGoogleSpreadsheet] = useState("");
   const [googleWorksheet, setGoogleWorksheet] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [googleMessage, setGoogleMessage] = useState<string | null>(null);
   const [access, setAccess] = useState<ClevrSyncAccess | null>(null);
-  const [isPreviewing, setIsPreviewing] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [isGooglePreviewing, setIsGooglePreviewing] = useState(false);
   const [isGoogleSyncing, setIsGoogleSyncing] = useState(false);
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetSummary[]>([]);
@@ -109,12 +100,7 @@ export default function DataConnectionsPage() {
   const manualUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initializedConnectorRef = useRef<string | null>(null);
 
-  const canPreview = useMemo(
-    () => Boolean(file && file.name.toLowerCase().endsWith(".xlsx")),
-    [file],
-  );
-  const googleConnectors = connectors.filter((item) => item.type === "google_sheets");
-  const selectedGoogleConnector = googleConnectors[0] ?? null;
+  const selectedGoogleConnector = connectors.find((item) => item.type === "google_sheets") ?? null;
   const googleConnectorId = selectedGoogleConnector?.id ?? null;
   const canGooglePreview = Boolean(selectedGoogleConnector && googleSpreadsheet.trim());
   const pickerLabel =
@@ -184,24 +170,6 @@ export default function DataConnectionsPage() {
     if (!response.ok) return;
     const payload = await response.json();
     setAccess(payload.access);
-  }
-
-  async function ensureExcelConnector() {
-    if (!access?.enabled) throw new Error("ClevrSync requires Pro or Business.");
-    if (connector) return connector;
-    const response = await fetch("/api/clevrsync/connectors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "excel",
-        displayName: file?.name ? `Excel: ${file.name}` : "Excel workbook",
-        sourceMeta: { fileName: file?.name },
-      }),
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Unable to create Excel connection");
-    setConnector(payload.connector);
-    return payload.connector as Connector;
   }
 
   async function loadSpreadsheets(options?: {
@@ -326,62 +294,6 @@ export default function DataConnectionsPage() {
     }, 500);
   }
 
-  async function handlePreview() {
-    if (!access?.enabled) return;
-    if (!file || !canPreview) return;
-    setIsPreviewing(true);
-    setMessage(null);
-
-    try {
-      const activeConnector = await ensureExcelConnector();
-      const formData = new FormData();
-      formData.set("file", file);
-      formData.set("connectorId", activeConnector.id);
-
-      const response = await fetch("/api/clevrsync/preview", { method: "POST", body: formData });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Unable to preview workbook");
-
-      setPreview(payload.preview);
-      setMessage("Preview ready");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to preview workbook");
-    } finally {
-      setIsPreviewing(false);
-    }
-  }
-
-  async function handleSync() {
-    if (!access?.enabled) return;
-    if (!file || !connector) return;
-    setIsSyncing(true);
-    setMessage(null);
-
-    try {
-      const formData = new FormData();
-      formData.set("file", file);
-      formData.set("connectorId", connector.id);
-
-      const response = await fetch("/api/clevrsync/sync", { method: "POST", body: formData });
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(payload.upload?.error || payload.error || "Unable to sync workbook");
-
-      const nextHref = getClevrSyncDatasetHref(payload);
-      if (!nextHref) {
-        throw new Error("Dataset synced, but UseClevr did not return an analysis destination.");
-      }
-
-      setMessage("Dataset synced");
-      await loadConnectors();
-      router.push(nextHref);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to sync workbook");
-    } finally {
-      setIsSyncing(false);
-    }
-  }
-
   function handleGoogleConnect() {
     if (!access?.enabled) return;
     window.location.href =
@@ -461,25 +373,24 @@ export default function DataConnectionsPage() {
               Data Connections
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Connect business data sources that feed UseClevr datasets.
+              Connect business data sources that feed UseClevr datasets. Local Excel and CSV files
+              are uploaded through the normal UseClevr upload.
             </p>
           </div>
-          {connector ? (
+          {selectedGoogleConnector ? (
             <span className="inline-flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-300">
               <CheckCircle2 className="h-4 w-4" />
-              Excel connected
+              Google Sheets connected
             </span>
           ) : null}
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-3">
         {connectorOptions.map((option) => {
           const Icon = option.icon;
-          const available = option.type === "excel" || option.type === "google_sheets";
-          const locked =
-            access?.enabled === false &&
-            (option.type === "excel" || option.type === "google_sheets");
+          const available = option.type === "google_sheets";
+          const locked = access?.enabled === false && option.type === "google_sheets";
           return (
             <Card key={option.type} className="border-border bg-card">
               <CardHeader className="pb-3">
@@ -510,12 +421,8 @@ export default function DataConnectionsPage() {
                     disabled={!available}
                     onClick={option.type === "google_sheets" ? handleGoogleConnect : undefined}
                   >
-                    <HardDrive className="mr-2 h-4 w-4" />
-                    {option.type === "google_sheets"
-                      ? "Connect"
-                      : available
-                        ? "Use source"
-                        : "Coming soon"}
+                    <Database className="mr-2 h-4 w-4" />
+                    {option.type === "google_sheets" ? "Connect" : "Coming soon"}
                   </Button>
                 )}
               </CardContent>
@@ -701,69 +608,6 @@ export default function DataConnectionsPage() {
           )}
         </CardContent>
       </Card>
-
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle>Excel workbook</CardTitle>
-          <CardDescription>
-            Upload and sync XLSX files through ClevrSync. Requires Pro or Business.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {access?.enabled === false ? (
-            <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-4">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Excel workbook sync requires Pro or Business. You can still upload CSV and XLSX files directly through the Datasets page with your Free plan.
-              </p>
-            </div>
-          ) : null}
-          <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
-            <input
-              type="file"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              className="min-w-0 text-sm text-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
-              onChange={(event) => {
-                setFile(event.target.files?.[0] ?? null);
-                setPreview(null);
-                setMessage(null);
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handlePreview}
-              disabled={!access?.enabled || !canPreview || isPreviewing}
-            >
-              {isPreviewing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-              )}
-              Preview
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSync}
-              disabled={!access?.enabled || !preview || !connector || isSyncing}
-            >
-              {isSyncing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Database className="mr-2 h-4 w-4" />
-              )}
-              Sync
-            </Button>
-          </div>
-
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-
-          {preview ? (
-            <div className="space-y-4">
-              <PreviewTable preview={preview} />
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -826,7 +670,7 @@ function ConnectionBadge({ connector }: { connector: Connector | null }) {
             : connector.status;
 
   return (
-    <span className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground">
+    <span className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground">
       {label}
     </span>
   );
@@ -834,12 +678,13 @@ function ConnectionBadge({ connector }: { connector: Connector | null }) {
 
 function PremiumLock({ access }: { access: ClevrSyncAccess }) {
   return (
-    <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
+    <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">Google Sheets connector requires Pro or Business</p>
+          <p className="text-sm font-semibold text-foreground">ClevrSync requires Pro or Business</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Connect your Google account to sync spreadsheets into UseClevr datasets. Free users can upload CSV and XLSX files directly through the Datasets page.
+            Free users can upload CSV and XLSX files directly through the Datasets page. Upgrade to
+            sync cloud data sources like Google Sheets.
           </p>
         </div>
         <Link href={access.upgradeHref}>
