@@ -1,3 +1,83 @@
+## 2026-09-26 — Upload Security Hardening (double-extension phishing defense)
+
+1. Interaction title
+   Harden every UseClevr file-upload and document-ingestion path against disguised-file attacks (the real-world `Payment Slip.pdf.html` credential-phishing incident), with one central server-side validator, security logging, safe UX, and regression tests. No commit or push.
+
+2. What was the user goal
+   A real phishing email delivered `Payment Slip.pdf.html` — an HTML fake "Adobe Document Cloud / Secured PDF" login page with a double extension. No credentials were submitted. The user asked to use the incident as a security test case: audit all ingestion paths, centralize validation so filename/extension/MIME can never be trusted alone, block double-extension and MIME-spoofing attacks, verify content by magic bytes, protect previews/storage/exports, log rejections safely, keep the existing UX for ordinary unsupported files, and prove the fix with the incident fixture plus a full regression matrix.
+
+3. What changed
+   - `src/lib/upload/upload-security.ts` (rewritten as the single central security validator): `normalizeUploadFileName` (NFKC, control/zero-width stripping, single+double percent-decoding, trailing space/dot trimming), `analyzeUploadFileName` with a dangerous-extension registry (html, htm, xhtml, shtml, xht, svg, svgz, js, mjs, cjs, vbs, ps1, exe, msi, bat, cmd, com, pif, scr, hta, jar, php, asp, aspx, jsp, py, rb, pl, sh, dll, lnk, and more) applied to the whole chain so ordinary multi-dot names like `sales.report.september.xlsx` stay valid; `detectFileContentKind` (server-side sniffing: PDF within 1024 bytes, ZIP, OLE CFB, JPEG, PNG, WebP, GIF, HTML/SVG document markers, XML, NUL-byte binary detection); `inspectZipCentralDirectory` (reads the ZIP central directory without decompressing); `assertUploadFileContentMatchesExtension` (per-extension content verification: CSV must be plain text, XLSX must be a ZIP workbook with `[Content_Types].xml` + `xl/workbook.xml`, XLS must be OLE, PDF must carry `%PDF-`, images must match signatures, OFX/QIF/QFX must contain OFX markup or QIF records) with ZIP resource limits (512 MB decompressed cap, 200x compression-ratio cap, 255 worksheets, VBA macro project rejection); `assertStandardUploadFile(file, options)` runs name → size → declared-MIME → content → CSV-parseability in order; `logUploadSecurityRejection` emits an always-on structured `[UPLOAD-SECURITY]` record (timestamp, source, sanitized filename, claimed/detected type, code, reason, userId) that never logs contents or secrets; new codes `UNSAFE_FILE_TYPE` and `FILE_TYPE_MISMATCH` with professional fixed messages.
+   - `src/app/actions/upload.ts` (canonical uploadCSV used by `/api/upload`, ClevrSync sync, and the ChatGPT MCP base64 upload): passes security options through `assertStandardUploadFile` and `parseCSVStreaming`; ClevrSync-generated connector files keep `trustedFileName` (server-generated CSV content still fully content-verified); new codes flow to `/api/upload` unchanged via `uploadValidationErrorPayload`.
+   - `src/app/api/upload/route.ts`: maps `UNSAFE_FILE_TYPE` and `FILE_TYPE_MISMATCH` into the invalid-file 422 response group.
+   - `src/app/api/upload/simple/route.ts`: passes `{ source: "simple-upload" }` so rejections carry the route origin.
+   - `src/lib/accountancy/upload-processing.ts`: `validateAccountancyUpload` now runs the central filename analyzer (deceptive chains → `UNSAFE_FILE_TYPE` before any extension whitelist); new `assertAccountancyUploadFileContent(buffer, meta)` verifies magic bytes for csv/excel/bank/pdf/receipt uploads and converts `UploadValidationError` to `AccountancyUploadError`; called in both `processAccountancyUpload` (before checksum, database, and credit reservation) and `parseAccountancyUploadBuffer` (before any parser); Excel sheet profiling enforces the shared `assertWorksheetBounds` row/column limits per sheet.
+   - `src/lib/data/csvLoader.ts`: `parseCSVStreaming` accepts upload-validation options and forwards them to the shared validator.
+   - `src/lib/data/upload-handler.ts`: `processUploadedFile` verifies content before storing or parsing.
+   - `src/lib/data/csv-formula-injection.ts` (new): `neutralizeCsvFormulaInjection` prefixes `=`, `+`, `@`, tab, CR, and non-numeric `-` cell starts with a single quote in exports; wired into `src/lib/accountancy/package-csv.ts` (`escapeCsv`), `src/lib/accountancy/prebookkeeping-export.ts` (`csvCell`), and `src/app/api/reports/download/route.ts` (`escapeCSV` plus raw summary/findings/insights/alerts lines).
+   - `scripts/upload/test-upload-security.ts` (new, `test:upload-security`, wired into `test:all`): in-memory fixtures only (nothing executes) — the `Payment Slip.pdf.html` incident regression, 15 double-extension names, uppercase/mixed case, percent single/double encoding, trailing spaces/dots, Unicode fullwidth and zero-width tricks, null-byte chains, legitimate multi-dot XLSX, HTML renamed to pdf/xlsx/csv, PNG-renamed-PDF, PDF-renamed-CSV, generic-ZIP-renamed-XLSX, fake central-directory decompression bomb, macro workbook, valid PDF/XLSX/XLS/CSV paths, accountancy PDF and CSV ingestion, log-safety assertions (no contents, no `attacker.example`, no `password`), and route-wiring checks.
+   - Existing tests updated only where call signatures changed: `scripts/upload/test-standard-upload-resource-limits.ts` and `scripts/upload/test-temporary-upload-file-rejection.ts` now assert `await assertStandardUploadFile(uploadFile` (options-aware call shape) with the same behavioral intent.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `scripts/ai/test-usy-product-knowledge.ts`, `scripts/clevrsync/test-microsoft-discovery.ts`, and the Microsoft OneDrive/SharePoint route files carry pre-existing typecheck errors on the unmodified HEAD baseline (parallel connector workstream); untouched here.
+   - risk: stored originals are never served back through the app origin (no serving route; R2/S3 storage keys are not exposed), so preview/download active-content defense rests on upload-time rejection plus React-escaped previews — this stays true only while no raw file-serving route is added.
+   - observation: the previous session's in-flight type errors inside `src/lib/upload/upload-security.ts` are resolved by this rewrite.
+
+5. User learning
+   File-type trust must be earned server-side from bytes: one validator, applied at every ingestion door, beats per-route heuristics; and the same incident class motivates export-side formula-injection neutralization because the trust boundary for spreadsheet cells is the spreadsheet application the customer opens later.
+
+6. Verification
+   - `pnpm exec tsc --noEmit`: clean for all touched files; remaining errors are pre-existing in unrelated usy/clevrsync-microsoft files.
+   - New: `test:upload-security` passes.
+   - Regression: `test:standard-upload-resource-limits`, `test:temporary-upload-file-rejection`, `test:standard-upload-success-ui`, `test:accountancy-upload-system`, `test:accountancy-upload-entitlements`, `test:accountancy-ownership`, `test:accountancy-package-csv-export`, `test:prebookkeeping-upload-limit`, `test:csv-analyzer`, `test:csv-edge-cases`, `test:clevrsync` all pass.
+   - ESLint: 0 errors on changed files. `check-changelog`, `check-unreleased`, `check-todo-management` pass.
+
+
+## 2026-09-26 — Usy Product Knowledge Update (ClevrSync, plans, credits, refunds, reports, isolation)
+
+1. Interaction title
+   Updating Usy's product knowledge/intents/actions to reflect the latest UseClevr and ClevrSync behavior with regression tests, no commit or push.
+
+2. What was the user goal
+   Make Usy reflect ten authoritative behavior areas: ClevrSync access gating, connector status (Google Sheets available; OneDrive/SharePoint coming soon; Excel never a connector), the Google Sheets flow, dataset isolation, report knowledge, retail profitability semantics, subscription/invoice status separation, current plan facts, credit costs, and response behavior — by updating the existing Usy knowledge system, not a parallel one.
+
+3. What changed
+   - `src/lib/usy/knowledge-base.ts`: added `usyClevrSyncFacts` (access rules, connector statuses, Google Sheets flow steps, manual-URL fallback, discovery/preview credit rule), `usyDatasetIsolationFacts`, `usyReportFacts` (21 report sections, supported-metrics-only, missing-data disclosure with the Return Rate example), `usyRetailProfitabilityFacts` (Revenue→source revenue, Cost→COGS, Profit→Gross Profit, Gross Margin derived; no example values), `usyCreditCostFacts` (derived from `FEATURE_CREDIT_COSTS`: 10/1/3/3/15/0), and `normalizeUsyCurrency`; `getPlanSummary(currency)` now resolves market-aware price text through `resolvePlanPrice`/`proMarketByCurrency` and exposes `clevrSyncEnabled`/`topUpsEnabled` per plan plus a superadmin entry.
+   - `src/lib/usy/router.ts`: new tier-aware `buildClevrSyncAnswer` (Free never told ClevrSync is available and pointed to the normal upload flow; Pro/Business get connectors plus the Google Sheets flow; superadmin access regardless of subscription) with localized variants in DE/NL/ES/HU/RO; rewrote the clevrsync/file-formats/reports/dashboard/datasets/credits/retail/plans answers; added the `subscription-status` intent (separates subscription status, invoice/payment status, included credits, purchased credits) with localized copy; strengthened clevrsync keywords (`clevrsync included`, `clevrsync connector`, `connect excel`, `excel connector`, and more); plan answers derive every price from the market-aware price text.
+   - `src/lib/usy/billing-knowledge.ts`: added rules `subscriptionStatusIsSeparateFromInvoiceStatus`, `refundedInvoiceDoesNotCancelSubscription`, `refundedInvoiceKeepsPurchasedCredits`; refund copy in all six languages now states that a refunded subscription invoice does not cancel the subscription, an active subscription keeps Pro/Business until it actually terminates, and purchased credits are preserved; added `buildUsySubscriptionStatusAnswer`.
+   - `src/lib/usy/types.ts` and `src/app/api/usy/chat/route.ts`: optional `currency` on `UsyContext`, accepted (3-letter) in the chat schema, dropped at `buildUsyRequestContext` for guests.
+   - `scripts/ai/test-usy-product-knowledge.ts` (new, `test:usy-product-knowledge`, wired into `test:all`): 21 regression tests covering all ten areas plus localization and guest-currency dropping.
+   - Reconciled a concurrent worktree conflict: uncommitted in-flight ClevrSync connector work (microsoft-graph) had flipped Usy copy to "Available connectors: Google Sheets, OneDrive, and SharePoint"; restored the user-authoritative coming-soon status while keeping the flow facts, and restored all stash-time files except the newer `src/lib/upload/upload-security.ts` after a failed stash pop.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the parallel microsoft connector workstream contradicts the user's "coming soon" connector status; when OneDrive/SharePoint launch, `usyClevrSyncFacts.connectors`, `buildClevrSyncAnswer`, and its five localized blocks need the status flip; `pnpm validate:types` currently fails only inside the other workstream's in-flight `src/lib/upload/upload-security.ts` (missing `UPLOAD_SPREADSHEET_STRUCTURE_INVALID` in its own union at line 16, used at lines 549/587/641, plus possibly-null `inspection`).
+   - improvement: clevrsync keyword partials ("data" tokens) can outrank reports/datasets intents; tests avoid those collisions.
+   - observation: `stash@{0}` ("WIP on beta") still holds the stash-time snapshot as a safety net; the three older stashes belong to earlier sessions.
+
+5. User learning
+   Usy knowledge follows one authoritative chain — backend feature costs and plan catalog → Usy knowledge base → answers — and market pricing resolves per currency instead of hardcoding EUR.
+
+6. AI-agent learning
+   In this shared worktree, concurrent edits land mid-task: re-read files before editing, prefer surgical `git checkout stash@{n} -- <paths>` over `git stash pop` when another workstream advances a file, and never reverse another agent's newer file versions.
+
+7. Follow-up tasks
+   - Flip Usy connector copy when OneDrive/SharePoint actually launch.
+   - Fix the in-flight `upload-security.ts` type errors in the connector workstream (owned by that workstream).
+
+8. Instruction sources
+   - AGENTS.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
+---
+
 ## 2026-09-25 — Live Production Profitability Report Diagnosis
 
 1. Interaction title
@@ -8993,3 +9073,46 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - Production still needs commit/push/CI publication through the normal beta -> main -> dist path before users see this fix.
 - The generated local `dist/` is ignored output and was not committed.
 - Not committed or pushed per instruction.
+
+## 2026-09-26 — ClevrSync Microsoft OneDrive + SharePoint connectors
+
+1. Interaction title
+   Implement OneDrive and SharePoint as production-ready ClevrSync connectors using one shared Microsoft OAuth + Microsoft Graph infrastructure, reusing the Google Sheets architecture end to end. No commit or push.
+
+2. What was the user goal
+   Replace the OneDrive and SharePoint "Coming Soon" states with working connectors that feed the canonical UseClevr dataset pipeline (Microsoft Graph → discovery → worksheet selection → preview → Connect & Analyze → dataset → dashboard), with one shared Microsoft connection per user, least-privilege read-only Graph scopes, the existing ClevrSync entitlement helper, the central credit engine (exactly 10 credits for the first Connect & Analyze, free refreshes), `onedrive`/`sharepoint` dataset provenance, strict dataset isolation, Graph throttling handling, and regression coverage for OAuth, entitlements, discovery, credits, isolation, and security. A manual Microsoft Entra/Azure + Railway setup report was requested at the end.
+
+3. What changed
+   - `src/services/clevrsync/connectors/microsoft-graph.ts` (new): shared Graph layer for both connectors — v2 OAuth authorize/token/refresh with per-connector scopes (`onedrive`: `offline_access User.Read Files.Read.All`; `sharepoint`: adds `Sites.Read.All`; no write scopes anywhere), `graphFetchJson` with bounded retries honoring `Retry-After` (max 3 retries, 8s cap, deterministic `provider_throttled`/`provider_unavailable`/`not_found`/`insufficient_permission`/`reconnect_required` codes), URL/path safety checks, strict id guards (`isSafeGraphId` incl. `b!`-prefixed SharePoint drive ids, `isSafeGraphSiteId`, `isSafeWorksheetId`), OneDrive root/children + drive-scoped search with `.xlsx`-only filtering, SharePoint `/sites?search`, `/sites/{id}/drives`, drive search/children, `/workbook/worksheets` metadata, `usedRange(valuesOnly=true)` values, and preview assembly through the canonical `matrixToWorksheetPreview` with `microsoft` provenance + `microsoftPreviewToCsvFile`.
+   - `src/services/clevrsync/microsoft-oauth-state.ts` (new): HMAC-signed state (AUTH_SECRET) with per-session binding, 10-minute TTL, connector-type validation (excel can never pass), safe returnTo clamping, and a bounded nonce replay guard so a redeemed state cannot verify twice.
+   - `src/services/clevrsync/microsoft-auth-store.ts` (new): ownership-checked token access (`resolveOwnedMicrosoftConnector`, `getMicrosoftAccessToken`) using the existing AES-256-GCM token vault, refresh with rotation persistence and scope update, `reconnect_required` marking on failure, and `microsoftConnectorCoversScope` for sibling reuse checks.
+   - `src/services/clevrsync/sync-engine.ts`: `isConnectorTypeAvailable` now allows `onedrive`/`sharepoint`; `getNewestOwnedMicrosoftConnector`; `upsertMicrosoftConnector` keeps one connector per Microsoft type and preserves `sourceMeta.datasetId` across reconnects.
+   - OAuth routes `src/app/api/clevrsync/microsoft/oauth/{start,callback}/route.ts`: entitlement-gated start with sibling-token reuse (short-circuits back to the app when the other Microsoft connector already holds covering scopes, so users never authorize twice unnecessarily), incremental consent when scopes are missing, full Microsoft round trip otherwise; callback verifies state, distinguishes cancelled consent (`microsoft=cancelled`), exchanges the code, reads `/me` for the account label, encrypts tokens through the shared vault, and upserts the connector.
+   - Discovery routes `src/app/api/clevrsync/microsoft/onedrive/files`, `.../sharepoint/sites`, `.../sharepoint/drives`, `.../sharepoint/files`, `.../worksheets`: every route requires session + builtin user + `requireClevrSyncAccess`, resolves connector ownership server-side, checks granted scopes (`additional_permission_required` with `scopeUpgradeRequired` when SharePoint site scope is missing), and returns clean `reconnect_required`/`microsoft_not_connected` states; provider errors update connector status without leaking tokens.
+   - `src/app/api/clevrsync/preview/route.ts`: dispatches Google vs Microsoft by connector type; Microsoft preview requires `itemId` (+optional `driveId`, `worksheetId`, SharePoint site provenance), persists worksheet/workbook/folder/site metadata, and stays credit-free (no credit-engine import).
+   - `src/app/api/clevrsync/sync/route.ts`: Microsoft branch fetches the persisted site→library→item→worksheet identity (body values only refresh it), sets `syncing`, previews with `MAX_UPLOAD_ROWS`, converts through `microsoftPreviewToCsvFile`, and calls the canonical `uploadCSV` with `uploadSource=clevrsync` + `clevrsync_connector_type=onedrive|sharepoint` + `clevrsync_dataset_id` on refresh — so the single 10-credit standard operation, failed-import release, and free refresh bypass are inherited unchanged; run records and `lastSuccessfulSync`/`lastError` maintained.
+   - `src/services/clevrsync/entitlement.ts`: `connectors.oneDrive`/`connectors.sharePoint` → `enabled` (Pro/Business/Superadmin), still derived from the single authoritative helper.
+   - `src/services/clevrsync/types.ts` + `index.ts`: `ClevrSyncPreview.sourceType` union extended, `microsoft` provenance block added, new exports registered.
+   - `src/services/clevrsync/oauth-redirect.ts`: `resolveClevrSyncMicrosoftRedirectUri` with the same SSRF-safe origin rules.
+   - `src/app/api/clevrsync/connectors/route.ts`: Microsoft types rejected from direct POST creation (OAuth-only).
+   - `src/app/(auth)/app/settings/data-connections/page.tsx`: all three cards "Available"; clicking a card opens only that connector's configuration panel (no three simultaneous forms); new `MicrosoftConnectorPanel` handles connect/reconnect/permission banners, SharePoint site search → library select → workbook picker → worksheet select, OneDrive workbook picker → worksheet select, preview and Connect & Analyze/Sync now with `getClevrSyncDatasetHref` navigation, connected-state restore from `sourceMeta`, and the shared accessible `ResourcePicker`.
+   - Usy: `knowledge-base.ts` connectors all available + `oneDriveFlow`/`sharePointFlow` + credit note; `router.ts` six-language ClevrSync answers updated (localized flows, `buildLocalizedClevrSyncAnswer` typing fixed).
+   - Env examples: `MICROSOFT_CLEVRSYNC_CLIENT_ID/SECRET/REDIRECT_URI` (+ optional `MICROSOFT_CLEVRSYNC_TENANT_ID`) documented in `.env.local.example` and `.env.railway.example`.
+   - CHANGELOG: user-facing entries under `[Unreleased]` Added.
+   - Tests: new `scripts/clevrsync/test-microsoft-discovery.ts` (stubbed-fetch Graph behavior + route/UI/entitlement invariants), `test-microsoft-oauth-state.ts` (round trip, tampering, cross-user, expiry, replay, excel-type rejection, returnTo clamp, fail-closed secret), `test-microsoft-credits-isolation.ts` (credit-free discovery/preview, single central charge, fetch-before-reserve ordering, refresh reuse, provenance vocabulary, isolation invariants, id guards, no duplicate plan logic); updated `test-clevrsync.ts` (available types, entitlement flags, Available cards, Excel-connector-stays-removed), `test-clevrsync-entitlement.ts` (Pro/Business Microsoft flags + Microsoft routes gated), `scripts/ai/test-usy-product-knowledge.ts` (all three connectors available, localized), `scripts/billing/test-upload-credit-reservation.ts` (dataset_type set once per sync path).
+
+4. Verification
+   - `pnpm test:clevrsync-microsoft-discovery` / `...-oauth-state` / `...-credits-isolation`: pass (registered as `test:clevrsync-microsoft-*` in package.json and chained into `test:all`).
+   - `pnpm test:clevrsync`, `pnpm test:clevrsync-entitlement` (7/7), `pnpm test:clevrsync-sheets-discovery`, `pnpm test:clevrsync-google-oauth-redirect`, `pnpm test:clevrsync-retail-profitability`: pass (Google regressions intact).
+   - `pnpm test:usy-product-knowledge` 21/21, `pnpm test:usy-billing-knowledge`, `pnpm test:usy-guest-mode`, `pnpm test:ai-governance-consistency`: pass.
+   - `pnpm test:upload-credit-reservation` 8/8, `pnpm test:zero-credit-ux` 12/12, `pnpm test:credit-unified`, `pnpm test:dataset-source-history`, `pnpm test:accountancy-upload-entitlements`, `pnpm test:hybrid-ai-gates`: pass.
+   - `pnpm exec tsc --noEmit` exit 0; ESLint 0 errors on all changed production files (2 pre-existing unused-import warnings in `src/lib/usy/router.ts` exist at HEAD).
+   - `pnpm lint:todos` and `pnpm lint:changelog` pass; `pnpm lint:secrets` still fails only on pre-existing token-like UUIDs in project logs, a worktree copy, and `scripts/upload/test-upload-security.ts` from the parallel upload-security workstream.
+
+5. Remaining limitations
+   - Not committed or pushed per instruction.
+   - Manual setup required before first use: Microsoft Entra app registration (delegated `offline_access`, `User.Read`, `Files.Read.All`, `Sites.Read.All`; web redirect URIs for production and test callbacks; client secret) and Railway env vars `MICROSOFT_CLEVRSYNC_CLIENT_ID`, `MICROSOFT_CLEVRSYNC_CLIENT_SECRET`, `MICROSOFT_CLEVRSYNC_REDIRECT_URI`, optional `MICROSOFT_CLEVRSYNC_TENANT_ID`.
+   - Graph workbook API reads only Office Open XML workbooks, so discovery lists `.xlsx` only; legacy `.xls` files are intentionally not offered.
+   - SharePoint site discovery requires a search term (delegated Graph permissions have no "list all my sites" endpoint); the UI states this.
+   - OAuth state replay protection is single-process (module-level nonce store); multi-instance deployments would need a shared store (Google's state has no replay guard at all, so this is strictly stronger).
+   - The shared worktree had concurrent agents (upload-security, Usy billing); `src/lib/upload/upload-security.ts` was mid-edit at times and its final state is owned by that workstream.

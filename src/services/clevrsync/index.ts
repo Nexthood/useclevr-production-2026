@@ -15,11 +15,39 @@ export {
   GoogleSheetsProviderError,
 } from "@/services/clevrsync/connectors/google-sheets";
 export {
+  buildMicrosoftAuthorizationUrl,
+  exchangeMicrosoftCode,
+  getMicrosoftAccountProfile,
+  getMicrosoftScope,
+  getMicrosoftScopes,
+  getMicrosoftWorkbookMeta,
+  hasMicrosoftScope,
+  listOneDriveWorkbooks,
+  listSharePointDrives,
+  listSharePointWorkbooks,
+  microsoftPreviewToCsvFile,
+  previewMicrosoftWorksheet,
+  refreshMicrosoftAccessToken,
+  requiresMicrosoftFileScope,
+  requiresSharePointSitesScope,
+  searchSharePointSites,
+  MicrosoftGraphError,
+  parseMicrosoftConnectorType,
+} from "@/services/clevrsync/connectors/microsoft-graph";
+export type {
+  MicrosoftConnectorType,
+  MicrosoftDriveSummary,
+  MicrosoftSiteSummary,
+  MicrosoftWorkbookSummary,
+  MicrosoftWorksheetSummary,
+} from "@/services/clevrsync/connectors/microsoft-graph";
+export {
   buildColumnMapping,
   createClevrSyncConnector,
   createClevrSyncRun,
   createGoogleSheetsConnector,
   getNewestOwnedGoogleSheetsConnector,
+  getNewestOwnedMicrosoftConnector,
   getOwnedClevrSyncConnector,
   getOwnedClevrSyncConnectorForApi,
   isClevrSyncConnectorType,
@@ -27,6 +55,7 @@ export {
   listClevrSyncConnectors,
   sanitizeConnector,
   updateClevrSyncConnector,
+  upsertMicrosoftConnector,
 } from "@/services/clevrsync/sync-engine";
 export type {
   ClevrSyncColumn,

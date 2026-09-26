@@ -275,9 +275,10 @@ const PREVIEW_ROW_COUNT = 100
 export async function parseCSVStreaming(
   file: File,
   rowLimit: number,
-  onProgress?: (rowCount: number) => void
+  onProgress?: (rowCount: number) => void,
+  uploadValidationOptions?: Parameters<typeof assertStandardUploadFile>[1]
 ): Promise<StreamingParseResult> {
-  await assertStandardUploadFile(file)
+  await assertStandardUploadFile(file, uploadValidationOptions)
   const fileName = file.name.toLowerCase()
   if (isTemporaryUploadFileName(file.name)) {
     throw new Error(temporaryUploadFileMessage())

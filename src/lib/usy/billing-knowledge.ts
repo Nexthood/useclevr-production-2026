@@ -31,6 +31,12 @@ export const usyBillingKnowledgeRules = {
     "Normal cancellation keeps Pro/Business active until the end of the already-paid billing period.",
   cancellationIsNotRefund:
     "Cancellation and refund are different operations.",
+  subscriptionStatusIsSeparateFromInvoiceStatus:
+    "Subscription status, invoice/payment status, included plan credits, and purchased/top-up credits are separate billing concepts.",
+  refundedInvoiceDoesNotCancelSubscription:
+    "A refunded subscription invoice does not automatically cancel the subscription. If Stripe still reports the subscription as active, the user remains Pro/Business until the subscription actually terminates.",
+  refundedInvoiceKeepsPurchasedCredits:
+    "Purchased credits are preserved when a user later becomes Free; a refund does not automatically remove purchased credits.",
   refundsHandledCentrally:
     "Customers cannot self-issue refunds. Refund requests are handled/reviewed centrally by UseClevr.",
   topUpRefundsDifferFromSubscriptionRefunds:
@@ -101,7 +107,7 @@ const billingCopy: BillingCopy = {
     topUpPaid: "You can purchase additional credits any time from the billing settings via Add Credits.",
     topUpUnknown: "Credit top-ups are available on the Pro and Business plans. You can review your options in the billing settings.",
     refund:
-      "Refunds are not self-service. Refund requests are reviewed centrally by UseClevr. I can never promise any refund outcome, and I never confirm refund decisions. Cancellation and refund are different operations: canceling keeps your paid plan until the end of the already-paid billing period, while a refund reverses a payment. For a refund request, contact the Billing team via the support form.",
+      "Refunds are not self-service. Refund requests are reviewed centrally by UseClevr. I can never promise any refund outcome, and I never confirm refund decisions. Cancellation and refund are different operations: canceling keeps your paid plan until the end of the already-paid billing period, while a refund reverses a payment. Subscription status and invoice/payment status are separate: a refunded subscription invoice does not automatically cancel the subscription. If the subscription is still active, you remain Pro or Business until it actually terminates, and your purchased credits are preserved. For a refund request, contact the Billing team via the support form.",
     cancellation:
       "A normal cancellation keeps Pro or Business active until the end of the already-paid billing period. After that the account moves to Free: included credits reset to the Free allowance, while purchased credits are preserved, do not expire, and remain usable until exhausted. Cancellation and refund are different operations — a refund request is reviewed centrally by UseClevr.",
     downgrade:
@@ -124,7 +130,7 @@ const billingCopy: BillingCopy = {
     topUpPaid: "Du kannst jederzeit zusätzliche Credits über die Billing-Einstellungen erwerben (Add Credits).",
     topUpUnknown: "Credit-Top-ups sind in den Plänen Pro und Business verfügbar. Deine aktuellen Optionen siehst du in den Billing-Einstellungen.",
     refund:
-      "Rückerstattungen sind nicht als Selbstservice möglich. Refund-Anfragen werden zentral von UseClevr geprüft. Ich kann niemals einen Rückerstattungsausgang zusagen und bestätige keine Rückerstattungsentscheidungen. Kündigung und Rückerstattung sind unterschiedliche Vorgänge: Eine Kündigung hält Pro oder Business bis zum Ende der bereits bezahlten Abrechnungsperiode aktiv, während eine Rückerstattung eine Zahlung zurückbucht. Für eine Rückerstattungsanfrage kontaktiere das Billing-Team über den Support.",
+      "Rückerstattungen sind nicht als Selbstservice möglich. Refund-Anfragen werden zentral von UseClevr geprüft. Ich kann niemals einen Rückerstattungsausgang zusagen und bestätige keine Rückerstattungsentscheidungen. Kündigung und Rückerstattung sind unterschiedliche Vorgänge: Eine Kündigung hält Pro oder Business bis zum Ende der bereits bezahlten Abrechnungsperiode aktiv, während eine Rückerstattung eine Zahlung zurückbucht. Abostatus und Rechnungs-/Zahlungsstatus sind getrennt: Eine erstattete Aborechnung bedeutet nicht automatisch, dass das Abonnement gekündigt ist. Solange das Abonnement aktiv bleibt, bleibst du Pro oder Business, bis es tatsächlich endet, und deine gekauften Credits bleiben erhalten. Für eine Rückerstattungsanfrage kontaktiere das Billing-Team über den Support.",
     cancellation:
       "Eine normale Kündigung hält Pro oder Business bis zum Ende der bereits bezahlten Abrechnungsperiode aktiv. Danach wechselt das Konto auf Free: enthaltene Credits werden auf das Free-Kontingent zurückgesetzt, gekaufte Credits bleiben erhalten, verfallen nicht und bleiben nutzbar. Kündigung und Rückerstattung sind unterschiedliche Vorgänge — Refund-Anfragen werden zentral von UseClevr geprüft.",
     downgrade:
@@ -147,7 +153,7 @@ const billingCopy: BillingCopy = {
     topUpPaid: "Je kunt op elk moment extra credits kopen via de billing-instellingen (Add Credits).",
     topUpUnknown: "Credit-top-ups zijn beschikbaar in de Pro- en Business-plans. Je actuele opties zie je in de billing-instellingen.",
     refund:
-      "Terugbetalingen zijn geen selfservice. Refund-verzoeken worden centraal door UseClevr beoordeeld. Ik kan nooit een terugbetalingsuitkomst beloven en bevestig geen terugbetalingsbeslissingen. Opzeggen en terugbetalen zijn verschillende handelingen: opzeggen houdt Pro of Business actief tot het einde van de reeds betaalde factuurperiode, terwijl een terugbetaling een betaling ongedaan maakt. Voor een refund-verzoek neem je contact op met het Billing-team via support.",
+      "Terugbetalingen zijn geen selfservice. Refund-verzoeken worden centraal door UseClevr beoordeeld. Ik kan nooit een terugbetalingsuitkomst beloven en bevestig geen terugbetalingsbeslissingen. Opzeggen en terugbetalen zijn verschillende handelingen: opzeggen houdt Pro of Business actief tot het einde van de reeds betaalde factuurperiode, terwijl een terugbetaling een betaling ongedaan maakt. Abonnementsstatus en factuur-/betalingsstatus zijn gescheiden: een terugbetaalde abonnementsfactuur betekent niet automatisch dat het abonnement is opgezegd. Zolang het abonnement actief blijft, blijf je Pro of Business tot het daadwerkelijk eindigt, en je gekochte credits blijven bewaard. Voor een refund-verzoek neem je contact op met het Billing-team via support.",
     cancellation:
       "Een normale opzegging houdt Pro of Business actief tot het einde van de reeds betaalde factuurperiode. Daarna gaat het account naar Free: inbegrepen credits worden gereset naar de Free-toelage, terwijl gekochte credits bewaard blijven, niet vervallen en bruikbaar blijven. Opzeggen en terugbetalen zijn verschillende handelingen — refund-verzoeken worden centraal door UseClevr beoordeeld.",
     downgrade:
@@ -170,7 +176,7 @@ const billingCopy: BillingCopy = {
     topUpPaid: "Puedes comprar créditos adicionales en cualquier momento desde la facturación (Add Credits).",
     topUpUnknown: "Las recargas de créditos están disponibles en los planes Pro y Business. Revisa tus opciones en la facturación.",
     refund:
-      "Los reembolsos no son de autoservicio. Las solicitudes de reembolso las revisa centralmente UseClevr. Yo nunca puedo prometer el resultado de un reembolso ni confirmo decisiones de reembolso. La cancelación y el reembolso son operaciones distintas: cancelar mantiene Pro o Business activo hasta el final del periodo ya pagado, mientras que un reembolso revierte un pago. Para una solicitud de reembolso, contacta al equipo de Facturación vía soporte.",
+      "Los reembolsos no son de autoservicio. Las solicitudes de reembolso las revisa centralmente UseClevr. Yo nunca puedo prometer el resultado de un reembolso ni confirmo decisiones de reembolso. La cancelación y el reembolso son operaciones distintas: cancelar mantiene Pro o Business activo hasta el final del periodo ya pagado, mientras que un reembolso revierte un pago. El estado de la suscripción y el de la factura/pago son independientes: una factura de suscripción reembolsada no cancela automáticamente la suscripción. Mientras la suscripción siga activa, permaneces Pro o Business hasta que finalice de verdad, y tus créditos comprados se conservan. Para una solicitud de reembolso, contacta al equipo de Facturación vía soporte.",
     cancellation:
       "Una cancelación normal mantiene Pro o Business activo hasta el final del periodo ya pagado. Después la cuenta pasa a Free: los créditos incluidos se restablecen a la asignación Free, mientras que los créditos comprados se conservan, no expiran y siguen utilizables. Cancelar y reembolsar son operaciones distintas: las solicitudes de reembolso las revisa centralmente UseClevr.",
     downgrade:
@@ -193,7 +199,7 @@ const billingCopy: BillingCopy = {
     topUpPaid: "Bármikor vásárolhatsz további krediteket a számlázási beállításokban (Add Credits).",
     topUpUnknown: "A kreditfeltöltés a Pro és Business csomagokban érhető el. Aktuális lehetőségeidet a számlázási beállításokban látod.",
     refund:
-      "A visszatérítés nem önkiszolgáló. A refund-kérelmeket központilag a UseClevr bírálja el. Én soha nem ígérem meg a visszatérítés eredményét, és nem erősítek meg visszatérítési döntéseket. A lemondás és a visszatérítés különböző műveletek: a lemondás a már kifizetett számlázási időszak végéig aktívan tartja a Pro vagy Business csomagot, míg a visszatérítés egy fizetést von vissza. Refund-kérelmet a Billing csapatnak nyújthatsz be a supporton keresztül.",
+      "A visszatérítés nem önkiszolgáló. A refund-kérelmeket központilag a UseClevr bírálja el. Én soha nem ígérem meg a visszatérítés eredményét, és nem erősítek meg visszatérítési döntéseket. A lemondás és a visszatérítés különböző műveletek: a lemondás a már kifizetett számlázási időszak végéig aktívan tartja a Pro vagy Business csomagot, míg a visszatérítés egy fizetést von vissza. Az előfizetés állapota és a számla/fizetés állapota külön válik: egy visszatérített előfizetési számla nem jelenti automatikusan az előfizetés lemondását. Amíg az előfizetés aktív marad, Pro vagy Business maradsz, amíg tényleg le nem jár, és a megvásárolt krediteid megmaradnak. Refund-kérelmet a Billing csapatnak nyújthatsz be a supporton keresztül.",
     cancellation:
       "A normál lemondás a már kifizetett számlázási időszak végéig aktívan tartja a Pro vagy Business csomagot. Utána a fiók Free-re vált: az inkluzív kreditek a Free keretre állnak vissza, a megvásárolt kreditek megmaradnak, nem járnak le és használhatók maradnak. A lemondás és a visszatérítés különböző műveletek — a refund-kérelmeket központilag a UseClevr bírálja el.",
     downgrade:
@@ -216,7 +222,7 @@ const billingCopy: BillingCopy = {
     topUpPaid: "Poți cumpăra credite suplimentare oricând din facturare (Add Credits).",
     topUpUnknown: "Reîncărcările de credite sunt disponibile în planurile Pro și Business. Opțiunile tale actuale sunt vizibile în secțiunea de facturare.",
     refund:
-      "Rambursările nu sunt la liber. Solicitările de rambursare sunt analizate central de UseClevr. Eu nu pot niciodată promite rezultatul unei rambursări și nu confirm deciziile de rambursare. Anularea și rambursarea sunt operațiuni diferite: anularea menține Pro sau Business activ până la finalul perioadei deja plătite, în timp ce rambursarea anulează o plată. Pentru o solicitare de rambursare, contactează echipa de facturare prin suport.",
+      "Rambursările nu sunt la liber. Solicitările de rambursare sunt analizate central de UseClevr. Eu nu pot niciodată promite rezultatul unei rambursări și nu confirm deciziile de rambursare. Anularea și rambursarea sunt operațiuni diferite: anularea menține Pro sau Business activ până la finalul perioadei deja plătite, în timp ce rambursarea anulează o plată. Starea abonamentului și starea facturii/plății sunt separate: o factură de abonament rambursată nu anulează automat abonamentul. Cât timp abonamentul rămâne activ, rămâi Pro sau Business până când se încheie efectiv, iar creditele cumpărate se păstrează. Pentru o solicitare de rambursare, contactează echipa de facturare prin suport.",
     cancellation:
       "Anularea normală menține Pro sau Business activ până la finalul perioadei deja plătite. După aceea contul trece pe Free: creditele incluse se resetează la alocarea Free, iar creditele cumpărate se păstrează, nu expiră și rămân utilizabile. Anularea și rambursarea sunt operațiuni diferite — solicitările de rambursare sunt analizate central de UseClevr.",
     downgrade:
@@ -253,6 +259,25 @@ export function buildUsyTopUpAnswer(usage: UsyUsageContext | null | undefined, l
 
 export function buildUsyRefundAnswer(_usage: UsyUsageContext | null | undefined, language: SupportedUsyLanguage): string {
   return billingCopy[language].refund;
+}
+
+const subscriptionStatusCopy: Record<SupportedUsyLanguage, string> = {
+  english:
+    "Subscription status and invoice/payment status are separate: your subscription tier decides which plan features and included credits are active, while an invoice records a payment event such as paid or refunded. Included plan credits and purchased/top-up credits are tracked separately, with included credits consumed before purchased credits. A refunded subscription invoice does not automatically cancel the subscription: if the subscription is still active, you remain Pro or Business until it actually terminates. I state only the status visible in your account and never invent billing events.",
+  german:
+    "Abostatus und Rechnungs-/Zahlungsstatus sind getrennt: Deine Abostufe bestimmt, welche Planfunktionen und enthaltenen Credits aktiv sind, während eine Rechnung ein Zahlungsereignis wie bezahlt oder erstattet abbildet. Enthaltene Plan-Credits und gekaufte Top-up-Credits werden getrennt geführt, wobei enthaltene Credits vor gekauften verbraucht werden. Eine erstattete Aborechnung kündigt das Abonnement nicht automatisch: Solange das Abonnement aktiv ist, bleibst du Pro oder Business, bis es tatsächlich endet. Ich nenne nur den in deinem Konto sichtbaren Status und erfinde keine Billing-Ereignisse.",
+  dutch:
+    "Abonnementsstatus en factuur-/betalingsstatus zijn gescheiden: je abonnementsniveau bepaalt welke planfuncties en inbegrepen credits actief zijn, terwijl een factuur een betalingsgebeurtenis zoals betaald of terugbetaald vastlegt. Inbegrepen plancredits en gekochte top-up-credits worden apart bijgehouden, waarbij inbegrepen credits vóór gekochte credits worden verbruikt. Een terugbetaalde abonnementsfactuur zegt het abonnement niet automatisch op: zolang het abonnement actief is, blijf je Pro of Business tot het daadwerkelijk eindigt. Ik noem alleen de status die in je account zichtbaar is en verzin geen factuurgebeurtenissen.",
+  spanish:
+    "El estado de la suscripción y el de la factura/pago son independientes: tu nivel de suscripción determina qué funciones del plan y créditos incluidos están activos, mientras que una factura registra un evento de pago como pagada o reembolsada. Los créditos incluidos del plan y los créditos comprados/recarga se registran por separado, y los incluidos se consumen antes que los comprados. Una factura de suscripción reembolsada no cancela automáticamente la suscripción: mientras siga activa, permaneces Pro o Business hasta que finalice de verdad. Solo indico el estado visible en tu cuenta y nunca invento eventos de facturación.",
+  hungarian:
+    "Az előfizetés állapota és a számla/fizetés állapota különválik: az előfizetési szinted határozza meg, mely csomagfunkciók és inkluzív kreditek aktívak, míg a számla egy fizetési eseményt rögzít, például kifizetve vagy visszatérítve. Az inkluzív csomagkrediteket és a megvásárolt/feltöltött krediteket külön vezetjük, és az inkluzív kreditek fogyognak először. Egy visszatérített előfizetési számla nem mondja fel automatikusan az előfizetést: amíg az előfizetés aktív, Pro vagy Business maradsz, amíg tényleg le nem jár. Csak a fiókodban látható állapotot mondom meg, és nem találok ki számlázási eseményeket.",
+  romanian:
+    "Starea abonamentului și starea facturii/plății sunt separate: nivelul abonamentului tău decide ce funcții de plan și credite incluse sunt active, în timp ce o factură înregistrează un eveniment de plată, precum plătită sau rambursată. Creditele incluse în plan și creditele cumpărate/reîncărcabile se urmăresc separat, iar cele incluse se consumă înaintea celor cumpărate. O factură de abonament rambursată nu anulează automat abonamentul: cât timp abonamentul rămâne activ, rămâi Pro sau Business până când se încheie efectiv. Menționez doar starea vizibilă în contul tău și nu inventez evenimente de facturare.",
+};
+
+export function buildUsySubscriptionStatusAnswer(_usage: UsyUsageContext | null | undefined, language: SupportedUsyLanguage): string {
+  return subscriptionStatusCopy[language];
 }
 
 export function buildUsyCancellationAnswer(usage: UsyUsageContext | null | undefined, language: SupportedUsyLanguage): string {

@@ -4,6 +4,7 @@ import {
   type PrebookkeepingCategorization,
 } from "@/lib/accountancy/prebookkeeping-categorization";
 import * as XLSX from "xlsx";
+import { neutralizeCsvFormulaInjection } from "@/lib/data/csv-formula-injection";
 
 export const prebookkeepingExportFormats = ["csv", "excel", "datev", "quickbooks", "xero"] as const;
 export const supportedPrebookkeepingExportFormats = ["csv", "excel"] as const;
@@ -306,7 +307,7 @@ function toCsv(rows: Record<string, unknown>[], delimiter = ",") {
 }
 
 function csvCell(value: unknown, delimiter: string) {
-  const text = String(value ?? "");
+  const text = neutralizeCsvFormulaInjection(value);
   const delimiterPattern = delimiter === "\t" ? "\t" : delimiter;
   return text.includes('"') || text.includes("\n") || text.includes("\r") || text.includes(delimiterPattern)
     ? `"${text.replace(/"/g, '""')}"`

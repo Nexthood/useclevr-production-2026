@@ -1,5 +1,6 @@
 const PRODUCTION_APP_ORIGIN = "https://app.useclevr.com";
 const GOOGLE_CALLBACK_PATH = "/api/clevrsync/google/oauth/callback";
+const MICROSOFT_CALLBACK_PATH = "/api/clevrsync/microsoft/oauth/callback";
 
 const PUBLIC_APP_URL_CANDIDATES = ["NEXT_PUBLIC_APP_URL", "AUTH_URL", "NEXTAUTH_URL"] as const;
 
@@ -25,6 +26,15 @@ export function resolveClevrSyncGoogleRedirectUri(requestOrigin?: string | null)
   if (configured && isSafeBrowserUrl(configured)) return configured;
   return new URL(
     GOOGLE_CALLBACK_PATH,
+    resolveClevrSyncBrowserOrigin(requestOrigin),
+  ).toString();
+}
+
+export function resolveClevrSyncMicrosoftRedirectUri(requestOrigin?: string | null) {
+  const configured = process.env.MICROSOFT_CLEVRSYNC_REDIRECT_URI?.trim();
+  if (configured && isSafeBrowserUrl(configured)) return configured;
+  return new URL(
+    MICROSOFT_CALLBACK_PATH,
     resolveClevrSyncBrowserOrigin(requestOrigin),
   ).toString();
 }

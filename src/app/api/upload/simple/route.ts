@@ -277,7 +277,7 @@ export async function POST(request: Request) {
     });
 
     try {
-      await assertStandardUploadFile(uploadFile);
+      await assertStandardUploadFile(uploadFile, { source: "simple-upload" });
     } catch (error) {
       const payload = uploadValidationErrorPayload(error, "UPLOAD_FILE_TYPE_INVALID");
       return jsonError(

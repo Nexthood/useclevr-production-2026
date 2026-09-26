@@ -15,6 +15,7 @@ const chatSchema = z.object({
     audience: audienceSchema.default("public"),
     route: z.string().trim().max(300).default("/"),
     plan: z.string().trim().max(80).optional(),
+    currency: z.string().trim().length(3).optional(),
     usage: z
       .object({
         subscriptionTier: z.string().optional(),
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
     isAuthenticated,
     clientPlan: parsed.data.context.plan,
     clientUsage: parsed.data.context.usage ?? null,
+    clientCurrency: parsed.data.context.currency ?? null,
   });
   const response = buildUsyReply({
     question: parsed.data.question,

@@ -17,7 +17,11 @@ function testExcelConnectorRemoved() {
   assert.doesNotMatch(previewRoute, /parseExcelWorkbook/);
   assert.doesNotMatch(syncRoute, /parseExcelWorkbook/);
   assert.doesNotMatch(page, /Excel Connector/);
-  assert.doesNotMatch(page, /Excel workbook/);
+  assert.doesNotMatch(
+    page,
+    /Excel ClevrSync|ClevrSync Excel connector/,
+    "the local Excel ClevrSync connector stays removed; Microsoft workbooks are connector sources",
+  );
   assert.doesNotMatch(page, /ensureExcelConnector/);
   assert.doesNotMatch(syncRoute, /formData\.get\("file"\)/, "ClevrSync sync no longer accepts uploaded workbook files");
   assert.doesNotMatch(previewRoute, /formData\.get\("file"\)/, "ClevrSync preview no longer accepts uploaded workbook files");
@@ -35,8 +39,8 @@ function testConnectorTypeGuards() {
   );
   assert.match(
     syncEngine,
-    /return type === "google_sheets";/,
-    "only Google Sheets remains an available connector type",
+    /return type === "google_sheets" \|\| type === "onedrive" \|\| type === "sharepoint";/,
+    "Google Sheets, OneDrive, and SharePoint remain the available connector types",
   );
 }
 
@@ -71,12 +75,18 @@ function testClevrSyncEntitlements() {
 
   const business = getClevrSyncEntitlement({ subscriptionTier: "business", unlimited: false });
   assert.equal(business.enabled, true);
-  assert.equal(business.connectors.oneDrive, false);
-  assert.equal(business.connectors.sharePoint, false);
+  assert.equal(business.connectors.oneDrive, true);
+  assert.equal(business.connectors.sharePoint, true);
 
   const superadmin = getClevrSyncEntitlement({ subscriptionTier: "free", unlimited: true });
   assert.equal(superadmin.enabled, true);
   assert.equal(superadmin.connectors.googleSheets, true);
+  assert.equal(superadmin.connectors.oneDrive, true);
+  assert.equal(superadmin.connectors.sharePoint, true);
+
+  const freeEntitlement = getClevrSyncEntitlement({ subscriptionTier: "free", unlimited: false });
+  assert.equal(freeEntitlement.connectors.oneDrive, false);
+  assert.equal(freeEntitlement.connectors.sharePoint, false);
 }
 
 function testSidebarClevrSyncEntry() {
@@ -112,22 +122,27 @@ function testFinalConnectorArea() {
   const page = readFileSync("src/app/(auth)/app/settings/data-connections/page.tsx", "utf8");
   const labels = [
     /label: "Google Sheets", status: "Available"/,
-    /label: "OneDrive", status: "Coming Soon"/,
-    /label: "SharePoint", status: "Coming Soon"/,
+    /label: "OneDrive", status: "Available"/,
+    /label: "SharePoint", status: "Available"/,
   ];
   for (const pattern of labels) {
     assert.match(page, pattern);
   }
+  assert.doesNotMatch(page, /Coming Soon/, "no connector card may advertise Coming Soon");
   assert.doesNotMatch(page, /type: "excel"/, "Excel is not a ClevrSync connector option");
   assert.doesNotMatch(page, /Excel Connector/, "the Excel Connector card is removed");
-  assert.doesNotMatch(page, /Excel workbook/, "the Excel workbook section is removed");
+  assert.doesNotMatch(
+    page,
+    /Excel ClevrSync|ClevrSync Excel connector/,
+    "the removed local Excel ClevrSync connector must not reappear",
+  );
 }
 
 function testExistingUploadPathRemainsExcelAware() {
   const uploadAction = readFileSync("src/app/actions/upload.ts", "utf8");
   const csvLoader = readFileSync("src/lib/data/csvLoader.ts", "utf8");
 
-  assert.match(uploadAction, /parseCSVStreaming\(file, rowLimit\)/);
+  assert.match(uploadAction, /parseCSVStreaming\(file, rowLimit/);
   assert.match(csvLoader, /fileName\.endsWith\('\.xlsx'\)/);
   assert.match(csvLoader, /parseExcelStreaming\(file, acceptedRowLimit, onProgress\)/);
 }
