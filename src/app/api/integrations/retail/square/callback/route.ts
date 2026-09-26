@@ -6,7 +6,7 @@ import {
   consumeOauthState,
   saveRetailConnection,
 } from "@/integrations/retail/core/connection.service";
-import { queueRetailSync } from "@/integrations/retail/core/sync-engine";
+import { queueRetailSync, executeQueuedRetailSync } from "@/integrations/retail/core/sync-engine";
 import { requireSquareOAuthConfig } from "@/integrations/retail/providers/square/square.config";
 import {
   getSquareCallbackFailureReason,
@@ -59,7 +59,14 @@ export async function GET(request: NextRequest) {
       token,
       displayName: "Square",
     });
-    await queueRetailSync(connection, "initial");
+    const run = await queueRetailSync(connection, "initial");
+    void executeQueuedRetailSync(run.id).catch((error) => {
+      console.warn("[SQUARE_SYNC]", "execution_unhandled", {
+        stage: "execution_unhandled",
+        syncRunId: run.id,
+        reason: error instanceof Error ? error.message : "unknown",
+      });
+    });
     return NextResponse.redirect(getSquareIntegrationRedirectUrl({ requestUrl: request.url, status: "success" }));
   } catch (error) {
     const reason = getSquareCallbackFailureReason(error);

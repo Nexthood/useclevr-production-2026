@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -63,12 +63,19 @@ const comingSoonProviders = [
   { name: "Lightspeed", description: "Specialty retail sync for locations, inventory, and sales history." },
 ];
 
+const MAX_SYNC_POLL_ATTEMPTS = 40;
+const SYNC_POLL_INTERVAL_MS = 3000;
+
 export function RetailIntegrationsClient() {
   const [connections, setConnections] = useState<RetailConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [disconnectTarget, setDisconnectTarget] = useState<RetailConnection | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollAttemptsRef = useRef(0);
+  const mountedRef = useRef(true);
+  const loadRef = useRef<(() => Promise<void>) | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,11 +85,41 @@ export function RetailIntegrationsClient() {
       const payload = (await response.json()) as IntegrationsResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error || "Retail integrations failed to load.");
       setConnections(payload.connections || []);
+
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      const syncInFlight = (payload.connections || []).some((connection) => {
+        const latest = connection.recentSyncRuns?.[0]?.status;
+        return latest === "queued" || latest === "running";
+      });
+      if (syncInFlight && pollAttemptsRef.current < MAX_SYNC_POLL_ATTEMPTS) {
+        pollAttemptsRef.current += 1;
+        pollTimerRef.current = setTimeout(() => {
+          if (!mountedRef.current) return;
+          void loadRef.current?.();
+        }, SYNC_POLL_INTERVAL_MS);
+      } else if (!syncInFlight) {
+        pollAttemptsRef.current = 0;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Retail integrations failed to load.");
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {

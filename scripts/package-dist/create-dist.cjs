@@ -339,22 +339,129 @@ function findPnpmEntry(pnpmDir, bareName) {
 // Railway uses Alpine Linux (musl libc) but CI builds on Ubuntu (glibc).
 // pnpm skips musl platform packages on glibc, so they must be fetched from npm
 // and placed directly into the dist pnpm store so sharp can load at runtime.
+// Versions are derived from the installed sharp package so they always match;
+// hard-coded versions drift when sharp is upgraded and break module loading.
+function readDistSharpVersion(pnpmDir) {
+  let storeSharpPkgJson = null;
+  let storeSharpDir = null;
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith("sharp@")) {
+      storeSharpDir = path.join(pnpmDir, entry.name);
+      storeSharpPkgJson = path.join(storeSharpDir, "node_modules", "sharp", "package.json");
+      break;
+    }
+  }
+  if (!storeSharpPkgJson || !fs.existsSync(storeSharpPkgJson)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(storeSharpPkgJson, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function highestMatchingVersion(versions, range) {
+  const match = range.match(/^(\^|~)?(\d+)\.(\d+)\.(\d+)/);
+  if (!match) return null;
+  const [, , major, minor, patch] = match;
+  const prefix = `${major}.${minor}.`;
+  const candidates = versions
+    .filter((version) => version.startsWith(prefix))
+    .map((version) => Number(version.slice(prefix.length).split("-")[0].split(".")[0] || "0"))
+    .filter((value) => Number.isFinite(value));
+  if (!candidates.length) return null;
+  return `${prefix}${Math.max(...candidates)}`;
+}
+
+function highestMatchingVersion(versions, range) {
+  const match = String(range).match(/^(?:\^|~)?(\d+)\.(\d+)\.(\d+)/);
+  if (!match) return null;
+  const prefix = `${match[1]}.${match[2]}.`;
+  let best = null;
+  for (const version of versions) {
+    if (!version.startsWith(prefix)) continue;
+    const patchPart = version.slice(prefix.length).split("-")[0];
+    const patch = Number(patchPart.split(".")[0]);
+    if (!Number.isFinite(patch)) continue;
+    if (!best || patch > best.patch) best = { version, patch };
+  }
+  return best?.version ?? null;
+}
+
 function ensureSharpMuslPackages(distNmDir) {
   const pnpmDir = path.join(distNmDir, ".pnpm");
   if (!fs.existsSync(pnpmDir)) return;
 
+  const sharpPkg = readDistSharpVersion(pnpmDir);
+  const sharpMuslVersion = sharpPkg?.optionalDependencies?.["@img/sharp-linuxmusl-x64"];
+  if (!sharpPkg || !sharpMuslVersion) {
+    console.log("  Skipping sharp musl packages: installed sharp declares no musl platform package.");
+    return;
+  }
+
+  const muslSharpEntry = `@img+sharp-linuxmusl-x64@${sharpMuslVersion}`;
   const muslPackages = [
     {
-      entry: "@img+sharp-linuxmusl-x64@0.35.3",
+      entry: muslSharpEntry,
       npmName: "@img/sharp-linuxmusl-x64",
-      version: "0.35.3",
-    },
-    {
-      entry: "@img+sharp-libvips-linuxmusl-x64@1.3.2",
-      npmName: "@img/sharp-libvips-linuxmusl-x64",
-      version: "1.3.2",
+      version: sharpMuslVersion,
     },
   ];
+
+  let libvipsVersion = null;
+  for (const pkg of muslPackages) {
+    const destEntry = path.join(pnpmDir, pkg.entry);
+    if (fs.existsSync(destEntry)) continue;
+
+    const scope = pkg.npmName.split("/")[0];
+    const bareName = pkg.npmName.split("/")[1];
+    const tmpDir = fs.mkdtempSync(path.join(pnpmDir, ".tmp-sharp-musl-"));
+
+    try {
+      const tarball = path.join(tmpDir, "pkg.tgz");
+      const url = `https://registry.npmjs.org/${pkg.npmName}/-/${bareName}-${pkg.version}.tgz`;
+      execSync(`curl -sfL -o "${tarball}" "${url}"`, { stdio: "ignore" });
+      execSync(`tar xzf "${tarball}" -C "${tmpDir}"`, { stdio: "ignore" });
+
+      const pkgDir = path.join(tmpDir, "package");
+      const storePath = path.join(pnpmDir, pkg.entry, "node_modules", scope, bareName);
+      fs.mkdirSync(path.dirname(storePath), { recursive: true });
+      fs.renameSync(pkgDir, storePath);
+
+      console.log(`  Added missing platform package: ${pkg.npmName}@${pkg.version}`);
+
+      const packageJsonPath = path.join(storePath, "package.json");
+      const installedPkgJson = fs.existsSync(packageJsonPath)
+        ? JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+        : null;
+      const libvipsRange = installedPkgJson?.optionalDependencies?.["@img/sharp-libvips-linuxmusl-x64"] ||
+        installedPkgJson?.dependencies?.["@img/sharp-libvips-linuxmusl-x64"];
+      if (libvipsRange && !libvipsVersion) {
+        if (/^\d+\.\d+\.\d+$/.test(String(libvipsRange))) {
+          libvipsVersion = String(libvipsRange);
+        } else {
+          const registryRaw = execSync(
+            `curl -sfL "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64"`,
+            { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" },
+          );
+          const registry = JSON.parse(registryRaw);
+          libvipsVersion = highestMatchingVersion(Object.keys(registry.versions || {}), libvipsRange);
+        }
+      }
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  const libvipsNpmName = "@img/sharp-libvips-linuxmusl-x64";
+  if (libvipsVersion) {
+    muslPackages.push({
+      entry: `${libvipsNpmName.replace("/", "+")}@${libvipsVersion}`,
+      npmName: libvipsNpmName,
+      version: libvipsVersion,
+    });
+  } else {
+    console.log("  Could not resolve @img/sharp-libvips-linuxmusl-x64 version; skipping libvips fetch.");
+  }
 
   for (const pkg of muslPackages) {
     const destEntry = path.join(pnpmDir, pkg.entry);
@@ -385,21 +492,19 @@ function ensureSharpMuslPackages(distNmDir) {
   // RPATH ($ORIGIN/../../sharp-libvips-.../lib) can find the libvips shared library.
   // Without this, dlopen fails because the .node binary and libvips live in different
   // pnpm entries (different versions), but the RPATH expects them under a common @img/ parent.
-  const sharpMuslEntry = path.join(pnpmDir, "@img+sharp-linuxmusl-x64@0.35.3");
-  if (fs.existsSync(sharpMuslEntry)) {
-    const muslImgDir = path.join(sharpMuslEntry, "node_modules", "@img");
+  const sharpMuslEntryPath = path.join(pnpmDir, muslSharpEntry);
+  if (fs.existsSync(sharpMuslEntryPath)) {
+    const muslImgDir = path.join(sharpMuslEntryPath, "node_modules", "@img");
     if (!fs.existsSync(muslImgDir)) {
       fs.mkdirSync(muslImgDir, { recursive: true });
     }
     const libvipsSymlinkPath = path.join(muslImgDir, "sharp-libvips-linuxmusl-x64");
-    if (!fs.existsSync(libvipsSymlinkPath)) {
-      // From: @img+sharp-linuxmusl-x64@0.35.3/node_modules/@img/
-      // To:   ../../../@img+sharp-libvips-linuxmusl-x64@1.3.2/node_modules/@img/sharp-libvips-linuxmusl-x64
+    if (libvipsVersion && !fs.existsSync(libvipsSymlinkPath)) {
       const target = path.join(
         "..",
         "..",
         "..",
-        "@img+sharp-libvips-linuxmusl-x64@1.3.2",
+        `@img+sharp-libvips-linuxmusl-x64@${libvipsVersion}`,
         "node_modules",
         "@img",
         "sharp-libvips-linuxmusl-x64",
@@ -409,43 +514,25 @@ function ensureSharpMuslPackages(distNmDir) {
     }
   }
 
-  // Create symlinks inside sharp@0.35.3/node_modules/@img/ for Node.js require resolution
-  const sharpPnpmDir = path.join(pnpmDir, "sharp@0.35.3");
-  if (!fs.existsSync(sharpPnpmDir)) {
-    let foundSharpPnpmDir = null;
-    if (fs.existsSync(pnpmDir)) {
-      for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
-        if (entry.isDirectory() && entry.name.startsWith("sharp@0.35.3")) {
-          foundSharpPnpmDir = path.join(pnpmDir, entry.name);
-          break;
-        }
-      }
+  // Create symlinks inside sharp@<version>/node_modules/@img/ for Node.js require resolution
+  let sharpPnpmDir = null;
+  for (const entry of fs.readdirSync(pnpmDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith(`sharp@${sharpPkg.version}`)) {
+      sharpPnpmDir = path.join(pnpmDir, entry.name);
+      break;
     }
-    if (!foundSharpPnpmDir) return;
-    var sharpImgDir = path.join(foundSharpPnpmDir, "node_modules", "@img");
-    if (!fs.existsSync(sharpImgDir)) return;
+  }
+  if (!sharpPnpmDir) return;
 
-    for (const pkg of muslPackages) {
-      const symlinkPath = path.join(sharpImgDir, pkg.npmName.split("/")[1]);
-      if (fs.existsSync(symlinkPath)) continue;
-      const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
-      fs.symlinkSync(target, symlinkPath, "junction");
-      console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
-    }
-  } else {
-    const imgDir = path.join(sharpPnpmDir, "node_modules", "@img");
-    if (!fs.existsSync(imgDir)) return;
+  const sharpImgDir = path.join(sharpPnpmDir, "node_modules", "@img");
+  if (!fs.existsSync(sharpImgDir)) return;
 
-    for (const pkg of muslPackages) {
-      const symlinkPath = path.join(imgDir, pkg.npmName.split("/")[1]);
-      if (fs.existsSync(symlinkPath)) continue;
-      // Resolve back up to .pnpm/ then forward into the pnpm store entry
-      // From: sharp@0.35.3/node_modules/@img/
-      // To:   ../../../@img+sharp-linuxmusl-x64@0.35.3/node_modules/@img/sharp-linuxmusl-x64
-      const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
-      fs.symlinkSync(target, symlinkPath, "junction");
-      console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
-    }
+  for (const pkg of muslPackages) {
+    const symlinkPath = path.join(sharpImgDir, pkg.npmName.split("/")[1]);
+    if (fs.existsSync(symlinkPath)) continue;
+    const target = path.join("..", "..", "..", pkg.entry, "node_modules", pkg.npmName);
+    fs.symlinkSync(target, symlinkPath, "junction");
+    console.log(`  Created symlink sharp/node_modules/@img -> ${target}`);
   }
 }
 
