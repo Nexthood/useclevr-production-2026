@@ -41,8 +41,6 @@ export type NormalizedDashboardData = {
     csv: number
     excel: number
     google_sheets: number
-    onedrive: number
-    sharepoint: number
     snowflake: number
     api: number
     clevrsync: number
@@ -172,8 +170,6 @@ export async function loadDashboardDatasetAggregation(
         counts.excel += 1
         break
       case "google_sheets":
-      case "onedrive":
-      case "sharepoint":
         counts[dataset.source] += 1
         break
       case "snowflake":
@@ -304,8 +300,6 @@ function emptyFileTypeCounts(): NormalizedDashboardData["fileTypeCounts"] {
     csv: 0,
     excel: 0,
     google_sheets: 0,
-    onedrive: 0,
-    sharepoint: 0,
     snowflake: 0,
     api: 0,
     clevrsync: 0,

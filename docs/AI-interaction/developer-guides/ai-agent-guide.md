@@ -48,6 +48,7 @@ folder during the same task cycle.
 
 - Prefer current code patterns over copying old files directly from history.
 - Keep changes scoped to the requested behavior.
+- When a task names exact user questions or phrases to verify, run each exact phrase through the routing before declaring success — intent scoring can tie between intents and shared gates such as the contact-request verb check can intercept product questions before intent scoring.
 - Verify with typecheck, lint, docs checks, and build when routes or shared UI change.
 - Move completed tasks to `todo-done.md` only after the work is complete.
 - Add new dashboard UI work to `.TODO/todo-next.md` only when a concrete current behavior is missing — keep resolved audit notes as current-state references.

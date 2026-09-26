@@ -248,6 +248,8 @@ const productIntents: ProductIntentRule[] = [
       "start analysis",
       "sales analysis",
       "revenue analysis",
+      "can i upload",
+      "upload excel",
       "hochladen",
       "verkaufsanalyse",
       "umsatzanalyse",
@@ -682,12 +684,8 @@ const productIntents: ProductIntentRule[] = [
       "connect my spreadsheet",
       "connect google sheets",
       "connect excel",
-      "connect onedrive",
-      "connect sharepoint",
       "connect dropbox",
       "excel connector",
-      "onedrive connector",
-      "sharepoint connector",
       "data connection",
       "data connections",
       "sync data",
@@ -695,11 +693,15 @@ const productIntents: ProductIntentRule[] = [
       "is my data connected",
       "where are my connections",
       "connector",
+      "connectors",
+      "what connectors",
+      "which connectors",
+      "connectors do you support",
+      "supported connectors",
       "verbinden",
       "datenverbindung",
       "google sheets",
       "excel verbinden",
-      "onedrive",
       "verbind",
       "conectar datos",
       "conectar hoja de cálculo",
@@ -710,7 +712,6 @@ const productIntents: ProductIntentRule[] = [
       "adatkapcsolat",
       "google sheet",
       "excel összekötése",
-      "onedrive",
       "összekötés",
       "conectează date",
       "conectează google sheets",
@@ -831,7 +832,7 @@ export function buildUsyReply(input: {
     // If no product intent found, continue with contact flow but preserve draft
   }
 
-  if (existingContactDraft || isExplicitContactRequest) {
+  if (existingContactDraft || (isExplicitContactRequest && !isDataConnectionQuestion(normalized))) {
     const contactLanguage = existingContactDraft?.language ?? language;
 
     // A short cancel command stops the contact flow at any step before confirmation.
@@ -1127,6 +1128,25 @@ function scoreIntent(normalized: string, tokens: Set<string>, intent: ProductInt
   }, 0);
 }
 
+// "Can I connect Google Sheets?"-style questions name a data source, so they
+// are product questions about connectors, never contact-request inputs.
+function isDataConnectionQuestion(normalized: string) {
+  if (!/\bconnect/.test(normalized)) return false;
+  const dataSources = [
+    "google sheet",
+    "excel",
+    "csv",
+    "spreadsheet",
+    "worksheet",
+    "onedrive",
+    "sharepoint",
+    "dropbox",
+    "snowflake",
+    "data",
+  ];
+  return dataSources.some((source) => normalized.includes(source));
+}
+
 function requiresAiAssistant(normalized: string) {
   const analysisSignals = [
     "analyse my",
@@ -1366,89 +1386,92 @@ function buildUsyCreditCostsAnswer(language: SupportedUsyLanguage) {
  * flow, and superadmins keep access regardless of subscription.
  */
 function buildClevrSyncAnswer(context: UsyContext, language: SupportedUsyLanguage = "english"): string {
-  const connectors = `Available connectors: Google Sheets, OneDrive, and SharePoint.`;
+  const connectors = `Available connectors: ${usyClevrSyncFacts.connectors.map((connector) => connector.name).join(", ")}.`;
   const googleFlow = `The Google Sheets flow is: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}.`;
-  const oneDriveFlow = `The OneDrive flow is: ${usyClevrSyncFacts.oneDriveFlow.join(" → ")}.`;
-  const sharePointFlow = `The SharePoint flow is: ${usyClevrSyncFacts.sharePointFlow.join(" → ")}.`;
-  const flowText = `${googleFlow} ${oneDriveFlow} ${sharePointFlow} ${usyClevrSyncFacts.manualUrlEntryFallback} ${usyClevrSyncFacts.discoveryPreviewCredits}`;
+  const flowText = `${googleFlow} ${usyClevrSyncFacts.manualUrlEntryFallback} ${usyClevrSyncFacts.discoveryPreviewCredits}`;
 
   if (language !== "english") {
     return buildLocalizedClevrSyncAnswer(context, language);
   }
 
   if (context.role === "superadmin" || context.usage?.unlimited) {
-    return `${usyClevrSyncFacts.accessRules.superadmin} ${connectors} ${usyClevrSyncFacts.localFilesAreNotConnectors} ${flowText}`;
+    return `${usyClevrSyncFacts.accessRules.superadmin} ${connectors} ${usyClevrSyncFacts.oneDriveSharePointNotPartOfProduct} ${usyClevrSyncFacts.localFilesAreNotConnectors} ${flowText}`;
   }
 
   const state = resolveUsyBillingState(context.usage);
   if (state.tier === "free") {
-    return `${usyClevrSyncFacts.accessRules.free} Excel and CSV files can still be uploaded through the normal UseClevr upload flow. ${usyClevrSyncFacts.localFilesAreNotConnectors}`;
+    return `${usyClevrSyncFacts.accessRules.free} Excel and CSV files can still be uploaded through the normal UseClevr upload flow. ${usyClevrSyncFacts.oneDriveSharePointNotPartOfProduct} ${usyClevrSyncFacts.localFilesAreNotConnectors}`;
   }
 
   if (state.tier === "pro" || state.tier === "business") {
-    return `${state.tier === "pro" ? usyClevrSyncFacts.accessRules.pro : usyClevrSyncFacts.accessRules.business} ${connectors} ${usyClevrSyncFacts.localFilesAreNotConnectors} ${flowText}`;
+    return `${state.tier === "pro" ? usyClevrSyncFacts.accessRules.pro : usyClevrSyncFacts.accessRules.business} ${connectors} ${usyClevrSyncFacts.oneDriveSharePointNotPartOfProduct} ${usyClevrSyncFacts.localFilesAreNotConnectors} ${flowText}`;
   }
 
-  return `ClevrSync connects external data sources with UseClevr. ${connectors} ${usyClevrSyncFacts.localFilesAreNotConnectors} ClevrSync requires Pro or Business.`;
+  return `ClevrSync connects external data sources with UseClevr. ${connectors} ${usyClevrSyncFacts.oneDriveSharePointNotPartOfProduct} ${usyClevrSyncFacts.localFilesAreNotConnectors} ClevrSync requires Pro or Business.`;
 }
 
 function buildLocalizedClevrSyncAnswer(
   context: UsyContext,
   language: Exclude<SupportedUsyLanguage, "english">,
 ): string {
-  const localized: Record<Exclude<SupportedUsyLanguage, "english">, { free: string; paid: string; superadmin: string; unknown: string; connectors: string; flow: string }> = {
+  const localized: Record<Exclude<SupportedUsyLanguage, "english">, { free: string; paid: string; superadmin: string; unknown: string; connectors: string; removed: string; flow: string }> = {
     german: {
       free: "ClevrSync ist im Free-Plan nicht verfügbar. Excel- und CSV-Dateien kannst du weiterhin über den normalen UseClevr-Upload hochladen.",
       paid: "ClevrSync ist in deinem Plan aktiviert.",
       superadmin: "ClevrSync ist für Superadmins unabhängig vom Abonnement aktiviert.",
       unknown: "ClevrSync verbindet externe Datenquellen mit UseClevr.",
-      connectors: "Verfügbare Connectors: Google Sheets, OneDrive und SharePoint.",
-      flow: `Der Google-Sheets-Ablauf ist: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. Der OneDrive-Ablauf ist: ${usyClevrSyncFacts.oneDriveFlow.join(" → ")}. Der SharePoint-Ablauf ist: ${usyClevrSyncFacts.sharePointFlow.join(" → ")}. Manuelle Eingabe einer Google-Sheets-URL ist nur ein Fallback. Die ClevrSync-Erkennung und Vorschau verbrauchen keine Analyse-Credits.`,
+      connectors: "Verfügbare Connectors: Google Sheets.",
+      removed: "OneDrive und SharePoint sind nicht Teil des Produkts.",
+      flow: `Der Google-Sheets-Ablauf ist: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. Manuelle Eingabe einer Google-Sheets-URL ist nur ein Fallback. Die ClevrSync-Erkennung und Vorschau verbrauchen keine Analyse-Credits.`,
     },
     dutch: {
       free: "ClevrSync is niet beschikbaar op Free. Excel- en CSV-bestanden kun je nog steeds uploaden via de normale UseClevr-uploadflow.",
       paid: "ClevrSync is actief in jouw plan.",
       superadmin: "ClevrSync is voor superadmins beschikbaar, onafhankelijk van het abonnement.",
       unknown: "ClevrSync verbindt externe gegevensbronnen met UseClevr.",
-      connectors: "Beschikbare connectors: Google Sheets, OneDrive en SharePoint.",
-      flow: `De Google Sheets-flow is: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. De OneDrive-flow is: ${usyClevrSyncFacts.oneDriveFlow.join(" → ")}. De SharePoint-flow is: ${usyClevrSyncFacts.sharePointFlow.join(" → ")}. Handmatige invoer van een Google Sheets-URL is alleen een fallback. ClevrSync-detectie en voorbeeldweergave verbruiken geen analysecredits.`,
+      connectors: "Beschikbare connectors: Google Sheets.",
+      removed: "OneDrive en SharePoint maken geen deel uit van het product.",
+      flow: `De Google Sheets-flow is: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. Handmatige invoer van een Google Sheets-URL is alleen een fallback. ClevrSync-detectie en voorbeeldweergave verbruiken geen analysecredits.`,
     },
     spanish: {
       free: "ClevrSync no está disponible en Free. Los archivos Excel y CSV se pueden seguir subiendo mediante el flujo normal de carga de UseClevr.",
       paid: "ClevrSync está activado en tu plan.",
       superadmin: "ClevrSync está habilitado para superadmins independientemente de la suscripción.",
       unknown: "ClevrSync conecta fuentes de datos externas con UseClevr.",
-      connectors: "Conectores disponibles: Google Sheets, OneDrive y SharePoint.",
-      flow: `El flujo de Google Sheets es: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. El flujo de OneDrive es: ${usyClevrSyncFacts.oneDriveFlow.join(" → ")}. El flujo de SharePoint es: ${usyClevrSyncFacts.sharePointFlow.join(" → ")}. La entrada manual de una URL de Google Sheets es solo una alternativa. El descubrimiento y la vista previa de ClevrSync no consumen créditos de análisis.`,
+      connectors: "Conectores disponibles: Google Sheets.",
+      removed: "OneDrive y SharePoint no forman parte del producto.",
+      flow: `El flujo de Google Sheets es: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. La entrada manual de una URL de Google Sheets es solo una alternativa. El descubrimiento y la vista previa de ClevrSync no consumen créditos de análisis.`,
     },
     hungarian: {
       free: "A ClevrSync nem érhető el Free csomagban. Az Excel- és CSV-fájlokat továbbra is a normál UseClevr upload-folyamban töltheted fel.",
       paid: "A ClevrSync aktív a csomagodban.",
       superadmin: "A ClevrSync superadminoknak előfizetéstől függetlenül elérhető.",
       unknown: "A ClevrSync külső adatforrásokat kapcsol össze a UseClevr-rel.",
-      connectors: "Elérhető connectorek: Google Sheets, OneDrive és SharePoint.",
-      flow: `A Google Sheets folyamat: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. A OneDrive folyamat: ${usyClevrSyncFacts.oneDriveFlow.join(" → ")}. A SharePoint folyamat: ${usyClevrSyncFacts.sharePointFlow.join(" → ")}. A Google Sheets URL kézi megadása csak tartalék megoldás. A ClevrSync felderítés és előnézet nem fogyaszt elemzési kreditet.`,
+      connectors: "Elérhető connectorek: Google Sheets.",
+      removed: "A OneDrive és a SharePoint nem része a terméknek.",
+      flow: `A Google Sheets folyamat: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. A Google Sheets URL kézi megadása csak tartalék megoldás. A ClevrSync felderítés és előnézet nem fogyaszt elemzési kreditet.`,
     },
     romanian: {
       free: "ClevrSync nu este disponibil pe Free. Fișierele Excel și CSV pot fi încărcate în continuare prin fluxul normal de upload UseClevr.",
       paid: "ClevrSync este activat în planul tău.",
       superadmin: "ClevrSync este activat pentru superadmini independent de abonament.",
       unknown: "ClevrSync conectează surse de date externe cu UseClevr.",
-      connectors: "Conectoare disponibile: Google Sheets, OneDrive și SharePoint.",
-      flow: `Fluxul Google Sheets este: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. Fluxul OneDrive este: ${usyClevrSyncFacts.oneDriveFlow.join(" → ")}. Fluxul SharePoint este: ${usyClevrSyncFacts.sharePointFlow.join(" → ")}. Introducerea manuală a unui URL Google Sheets este doar o rezervă. Descoperirea și previzualizarea ClevrSync nu consumă credite de analiză.`,
+      connectors: "Conectoare disponibile: Google Sheets.",
+      removed: "OneDrive și SharePoint nu fac parte din produs.",
+      flow: `Fluxul Google Sheets este: ${usyClevrSyncFacts.googleSheetsFlow.join(" → ")}. Introducerea manuală a unui URL Google Sheets este doar o rezervă. Descoperirea și previzualizarea ClevrSync nu consumă credite de analiză.`,
     },
   };
 
   const copy = localized[language];
   if (context.role === "superadmin" || context.usage?.unlimited) {
-    return `${copy.superadmin} ${copy.connectors} ${copy.flow}`;
+    return `${copy.superadmin} ${copy.connectors} ${copy.removed} ${copy.flow}`;
   }
   const state = resolveUsyBillingState(context.usage);
-  if (state.tier === "free") return copy.free;
+  if (state.tier === "free") return `${copy.free} ${copy.removed}`;
   if (state.tier === "pro" || state.tier === "business") {
-    return `${copy.paid} ${copy.connectors} ${copy.flow}`;
+    return `${copy.paid} ${copy.connectors} ${copy.removed} ${copy.flow}`;
   }
-  return `${copy.unknown} ${copy.connectors}`;
+  return `${copy.unknown} ${copy.connectors} ${copy.removed}`;
 }
 
 function buildUploadLimitAnswer(context: UsyContext, language: SupportedUsyLanguage = "english") {  const available = Math.max(0, context.usage?.availableCredits ?? 0);

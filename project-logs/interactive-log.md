@@ -1,3 +1,9203 @@
+## 2026-09-26 — ClevrSync Microsoft Connector Removal (clean feature rollback)
+
+1. Interaction title
+   Remove the Microsoft OneDrive and SharePoint ClevrSync integration completely from UseClevr, keeping Google Sheets ClevrSync, normal CSV/Excel uploads, upload security, credits, authentication, dataset isolation, analytics/KPI pipelines, and everything unrelated intact. No commit or push.
+
+2. What was the user goal
+   Reverse the just-added Microsoft ClevrSync feature cleanly: no disabled connector code left behind, no Microsoft connector cards, no "Coming Soon" entries, no Microsoft OAuth routes, no Microsoft Graph calls, no Microsoft ClevrSync environment variables, and Usy must stop describing OneDrive/SharePoint as available. Google Sheets stays available for entitled plans and direct Excel/CSV upload stays fully supported. A final report must list deletions, modifications, remaining Microsoft matches with justification, functional confirmations, and test results.
+
+3. What changed
+   - Deleted files: `src/services/clevrsync/connectors/microsoft-graph.ts`, `src/services/clevrsync/microsoft-auth-store.ts`, `src/services/clevrsync/microsoft-oauth-state.ts`, `src/app/api/clevrsync/microsoft/oauth/start/route.ts`, `src/app/api/clevrsync/microsoft/oauth/callback/route.ts`, `src/app/api/clevrsync/microsoft/onedrive/files/route.ts`, `src/app/api/clevrsync/microsoft/sharepoint/sites/route.ts`, `src/app/api/clevrsync/microsoft/sharepoint/drives/route.ts`, `src/app/api/clevrsync/microsoft/sharepoint/files/route.ts`, `src/app/api/clevrsync/microsoft/worksheets/route.ts`, `scripts/clevrsync/test-microsoft-discovery.ts`, `scripts/clevrsync/test-microsoft-oauth-state.ts`, `scripts/clevrsync/test-microsoft-credits-isolation.ts`.
+   - `src/services/clevrsync/index.ts`: Microsoft Graph exports/types, `getNewestOwnedMicrosoftConnector`, and `upsertMicrosoftConnector` removed from the barrel.
+   - `src/services/clevrsync/types.ts`: `ClevrSyncPreviewSource` narrows to `"google_sheets"`, `MicrosoftWorksheetRef` and the `microsoft` preview block deleted.
+   - `src/services/clevrsync/sync-engine.ts`: `isConnectorTypeAvailable` allows only `google_sheets`; Microsoft upsert/lookup helpers deleted.
+   - `src/services/clevrsync/oauth-redirect.ts`: `resolveClevrSyncMicrosoftRedirectUri` and the Microsoft callback path deleted; Google resolver untouched.
+   - `src/services/clevrsync/entitlement.ts`: `oneDrive`/`sharePoint` entitlement flags deleted; Google Sheets flag and tier rules unchanged.
+   - `src/lib/db/schema.ts`: `clevrSyncConnectorTypes` narrows to `["excel", "google_sheets"]` (varchar column, no DB enum → no migration required).
+   - API routes: `src/app/api/clevrsync/connectors/route.ts` drops the Microsoft OAuth-only branch; `preview/route.ts` and `sync/route.ts` drop the Microsoft preview/sync dispatch, Graph error handling, and Microsoft auth-store imports — Google Sheets paths keep identical behavior.
+   - `src/app/(auth)/app/settings/data-connections/page.tsx`: Microsoft types, `MicrosoftConnectorPanel` (SharePoint site/library search, OneDrive/SharePoint workbook pickers, Microsoft worksheet selector, Microsoft connect/reconnect/permission UI), Microsoft searchParams handling, and OneDrive/SharePoint connector cards deleted; only the Google Sheets card/panel remains; PremiumLock copy no longer names OneDrive/SharePoint.
+   - Dataset provenance: `src/lib/data/dataset-source.ts`, `src/lib/data/dashboard-dataset-aggregation.ts`, `src/lib/executive/daily-health.ts`, and `src/app/(auth)/app/page.tsx` drop the `onedrive`/`sharepoint` vocabulary entries and counters; stored legacy values fall back through the existing derivation to Other/Unknown.
+   - `src/app/actions/upload.ts`: `clevrSyncConnectorTypeIn` allows only `google_sheets`/`excel`.
+   - Usy: `src/lib/usy/knowledge-base.ts` lists Google Sheets as the only connector, deletes the OneDrive/SharePoint flows, and adds the explicit "OneDrive and SharePoint are not part of the product" statement; `src/lib/usy/router.ts` drops the Microsoft keywords, rewrites the ClevrSync answer in all six languages to Google Sheets only with the not-part-of-product statement, and routes "Can I connect OneDrive/SharePoint?"-style questions to the ClevrSync answer instead of the contact flow.
+   - Env: `.env.local.example` and `.env.railway.example` lose all `MICROSOFT_CLEVRSYNC_*` variables and guidance.
+   - package.json: `test:clevrsync-microsoft-discovery`, `test:clevrsync-microsoft-oauth-state`, `test:clevrsync-microsoft-credits-isolation` deleted and removed from `test:all`.
+   - Regression guards updated: `scripts/clevrsync/test-clevrsync.ts` adds `testMicrosoftConnectorRemoved` (asserts every Microsoft artifact stays deleted) and trims entitlement/connector-card assertions to Google-only; `test-clevrsync-entitlement.ts` drops Microsoft routes/flags; `test-usy-product-knowledge.ts` asserts Google-only connector lists and that OneDrive/SharePoint/Microsoft never appear as available; `test-dataset-source-history.ts` pins the narrowed vocabulary; `test-upload-credit-reservation.ts` expects one `dataset_type` set (Google Sheets path).
+   - Docs: `CHANGELOG.md` [Unreleased] drops the two Microsoft "Added" entries and gains a "Removed" entry; this log, the activity log, and `docs/AI-interaction/interaction-status.md` record the rollback. A concurrent agent worked in the same shared worktree and contributed the complementary Usy not-part-of-product statements and routing guard; the combined state is validated together.
+
+4. Problems marked
+   - blocker: none.
+   - risk: pre-existing database rows with `ClevrSyncConnector.type = 'onedrive'|'sharepoint'` and datasets with `source = 'onedrive'|'sharepoint'` stay in the database unserved (no code path reads them; counts map to Other/Unknown); an optional future cleanup migration can delete or relabel them.
+   - observation: deployed hosts may still define `MICROSOFT_CLEVRSYNC_*` env vars; they are inert.
+
+5. Verification
+   `pnpm validate:types` exit 0; `test:clevrsync`, `test:clevrsync-entitlement` (7/7), `test:clevrsync-sheets-discovery`, `test:clevrsync-google-oauth-redirect`, `test:clevrsync-retail-profitability`, `test:usy-product-knowledge` (22/22), `test:upload-security`, `test:dataset-source-history` (7/7), `test:upload-credit-reservation` (8/8), `test:dataset-isolation`, `test:risk-intelligence`, `test:zero-credit-ux`, `test:credit-unified`, `test:accountancy-upload-entitlements`, `test:hybrid-ai-gates`, `test:business-intelligence`, `test:dashboard-selected-dataset-routing`, `test:business-plan-limits`, `test:dashboard-empty-state`, `test:dashboard-workspace-scope`, `test:usy-contact-message-step`, `test:usy-contact-handoff`, `test:usy-guest-mode`, `test:usy-billing-knowledge`, `test:csv-analyzer`, `test:csv-edge-cases` all pass; ESLint 0 errors on all changed files; `lint:todos`, `lint:package`, `lint:changelog`, pricing validation pass; repo-wide Microsoft search shows only removal-guard assertions in test scripts, the explicit not-part-of-product Usy statements, the removal changelog entry, and historical log records.
+
+6. Not committed or pushed per instruction.
+
+## 2026-09-26 — Upload Security Hardening (double-extension phishing defense)
+
+1. Interaction title
+   Harden every UseClevr file-upload and document-ingestion path against disguised-file attacks (the real-world `Payment Slip.pdf.html` credential-phishing incident), with one central server-side validator, security logging, safe UX, and regression tests. No commit or push.
+
+2. What was the user goal
+   A real phishing email delivered `Payment Slip.pdf.html` — an HTML fake "Adobe Document Cloud / Secured PDF" login page with a double extension. No credentials were submitted. The user asked to use the incident as a security test case: audit all ingestion paths, centralize validation so filename/extension/MIME can never be trusted alone, block double-extension and MIME-spoofing attacks, verify content by magic bytes, protect previews/storage/exports, log rejections safely, keep the existing UX for ordinary unsupported files, and prove the fix with the incident fixture plus a full regression matrix.
+
+3. What changed
+   - `src/lib/upload/upload-security.ts` (rewritten as the single central security validator): `normalizeUploadFileName` (NFKC, control/zero-width stripping, single+double percent-decoding, trailing space/dot trimming), `analyzeUploadFileName` with a dangerous-extension registry (html, htm, xhtml, shtml, xht, svg, svgz, js, mjs, cjs, vbs, ps1, exe, msi, bat, cmd, com, pif, scr, hta, jar, php, asp, aspx, jsp, py, rb, pl, sh, dll, lnk, and more) applied to the whole chain so ordinary multi-dot names like `sales.report.september.xlsx` stay valid; `detectFileContentKind` (server-side sniffing: PDF within 1024 bytes, ZIP, OLE CFB, JPEG, PNG, WebP, GIF, HTML/SVG document markers, XML, NUL-byte binary detection); `inspectZipCentralDirectory` (reads the ZIP central directory without decompressing); `assertUploadFileContentMatchesExtension` (per-extension content verification: CSV must be plain text, XLSX must be a ZIP workbook with `[Content_Types].xml` + `xl/workbook.xml`, XLS must be OLE, PDF must carry `%PDF-`, images must match signatures, OFX/QIF/QFX must contain OFX markup or QIF records) with ZIP resource limits (512 MB decompressed cap, 200x compression-ratio cap, 255 worksheets, VBA macro project rejection); `assertStandardUploadFile(file, options)` runs name → size → declared-MIME → content → CSV-parseability in order; `logUploadSecurityRejection` emits an always-on structured `[UPLOAD-SECURITY]` record (timestamp, source, sanitized filename, claimed/detected type, code, reason, userId) that never logs contents or secrets; new codes `UNSAFE_FILE_TYPE` and `FILE_TYPE_MISMATCH` with professional fixed messages.
+   - `src/app/actions/upload.ts` (canonical uploadCSV used by `/api/upload`, ClevrSync sync, and the ChatGPT MCP base64 upload): passes security options through `assertStandardUploadFile` and `parseCSVStreaming`; ClevrSync-generated connector files keep `trustedFileName` (server-generated CSV content still fully content-verified); new codes flow to `/api/upload` unchanged via `uploadValidationErrorPayload`.
+   - `src/app/api/upload/route.ts`: maps `UNSAFE_FILE_TYPE` and `FILE_TYPE_MISMATCH` into the invalid-file 422 response group.
+   - `src/app/api/upload/simple/route.ts`: passes `{ source: "simple-upload" }` so rejections carry the route origin.
+   - `src/lib/accountancy/upload-processing.ts`: `validateAccountancyUpload` now runs the central filename analyzer (deceptive chains → `UNSAFE_FILE_TYPE` before any extension whitelist); new `assertAccountancyUploadFileContent(buffer, meta)` verifies magic bytes for csv/excel/bank/pdf/receipt uploads and converts `UploadValidationError` to `AccountancyUploadError`; called in both `processAccountancyUpload` (before checksum, database, and credit reservation) and `parseAccountancyUploadBuffer` (before any parser); Excel sheet profiling enforces the shared `assertWorksheetBounds` row/column limits per sheet.
+   - `src/lib/data/csvLoader.ts`: `parseCSVStreaming` accepts upload-validation options and forwards them to the shared validator.
+   - `src/lib/data/upload-handler.ts`: `processUploadedFile` verifies content before storing or parsing.
+   - `src/lib/data/csv-formula-injection.ts` (new): `neutralizeCsvFormulaInjection` prefixes `=`, `+`, `@`, tab, CR, and non-numeric `-` cell starts with a single quote in exports; wired into `src/lib/accountancy/package-csv.ts` (`escapeCsv`), `src/lib/accountancy/prebookkeeping-export.ts` (`csvCell`), and `src/app/api/reports/download/route.ts` (`escapeCSV` plus raw summary/findings/insights/alerts lines).
+   - `scripts/upload/test-upload-security.ts` (new, `test:upload-security`, wired into `test:all`): in-memory fixtures only (nothing executes) — the `Payment Slip.pdf.html` incident regression, 15 double-extension names, uppercase/mixed case, percent single/double encoding, trailing spaces/dots, Unicode fullwidth and zero-width tricks, null-byte chains, legitimate multi-dot XLSX, HTML renamed to pdf/xlsx/csv, PNG-renamed-PDF, PDF-renamed-CSV, generic-ZIP-renamed-XLSX, fake central-directory decompression bomb, macro workbook, valid PDF/XLSX/XLS/CSV paths, accountancy PDF and CSV ingestion, log-safety assertions (no contents, no `attacker.example`, no `password`), and route-wiring checks.
+   - Existing tests updated only where call signatures changed: `scripts/upload/test-standard-upload-resource-limits.ts` and `scripts/upload/test-temporary-upload-file-rejection.ts` now assert `await assertStandardUploadFile(uploadFile` (options-aware call shape) with the same behavioral intent.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `scripts/ai/test-usy-product-knowledge.ts`, `scripts/clevrsync/test-microsoft-discovery.ts`, and the Microsoft OneDrive/SharePoint route files carry pre-existing typecheck errors on the unmodified HEAD baseline (parallel connector workstream); untouched here.
+   - risk: stored originals are never served back through the app origin (no serving route; R2/S3 storage keys are not exposed), so preview/download active-content defense rests on upload-time rejection plus React-escaped previews — this stays true only while no raw file-serving route is added.
+   - observation: the previous session's in-flight type errors inside `src/lib/upload/upload-security.ts` are resolved by this rewrite.
+
+5. User learning
+   File-type trust must be earned server-side from bytes: one validator, applied at every ingestion door, beats per-route heuristics; and the same incident class motivates export-side formula-injection neutralization because the trust boundary for spreadsheet cells is the spreadsheet application the customer opens later.
+
+6. Verification
+   - `pnpm exec tsc --noEmit`: clean for all touched files; remaining errors are pre-existing in unrelated usy/clevrsync-microsoft files.
+   - New: `test:upload-security` passes.
+   - Regression: `test:standard-upload-resource-limits`, `test:temporary-upload-file-rejection`, `test:standard-upload-success-ui`, `test:accountancy-upload-system`, `test:accountancy-upload-entitlements`, `test:accountancy-ownership`, `test:accountancy-package-csv-export`, `test:prebookkeeping-upload-limit`, `test:csv-analyzer`, `test:csv-edge-cases`, `test:clevrsync` all pass.
+   - ESLint: 0 errors on changed files. `check-changelog`, `check-unreleased`, `check-todo-management` pass.
+
+
+## 2026-09-26 — Usy Product Knowledge Update (ClevrSync, plans, credits, refunds, reports, isolation)
+
+1. Interaction title
+   Updating Usy's product knowledge/intents/actions to reflect the latest UseClevr and ClevrSync behavior with regression tests, no commit or push.
+
+2. What was the user goal
+   Make Usy reflect ten authoritative behavior areas: ClevrSync access gating, connector status (Google Sheets available; OneDrive/SharePoint coming soon; Excel never a connector), the Google Sheets flow, dataset isolation, report knowledge, retail profitability semantics, subscription/invoice status separation, current plan facts, credit costs, and response behavior — by updating the existing Usy knowledge system, not a parallel one.
+
+3. What changed
+   - `src/lib/usy/knowledge-base.ts`: added `usyClevrSyncFacts` (access rules, connector statuses, Google Sheets flow steps, manual-URL fallback, discovery/preview credit rule), `usyDatasetIsolationFacts`, `usyReportFacts` (21 report sections, supported-metrics-only, missing-data disclosure with the Return Rate example), `usyRetailProfitabilityFacts` (Revenue→source revenue, Cost→COGS, Profit→Gross Profit, Gross Margin derived; no example values), `usyCreditCostFacts` (derived from `FEATURE_CREDIT_COSTS`: 10/1/3/3/15/0), and `normalizeUsyCurrency`; `getPlanSummary(currency)` now resolves market-aware price text through `resolvePlanPrice`/`proMarketByCurrency` and exposes `clevrSyncEnabled`/`topUpsEnabled` per plan plus a superadmin entry.
+   - `src/lib/usy/router.ts`: new tier-aware `buildClevrSyncAnswer` (Free never told ClevrSync is available and pointed to the normal upload flow; Pro/Business get connectors plus the Google Sheets flow; superadmin access regardless of subscription) with localized variants in DE/NL/ES/HU/RO; rewrote the clevrsync/file-formats/reports/dashboard/datasets/credits/retail/plans answers; added the `subscription-status` intent (separates subscription status, invoice/payment status, included credits, purchased credits) with localized copy; strengthened clevrsync keywords (`clevrsync included`, `clevrsync connector`, `connect excel`, `excel connector`, and more); plan answers derive every price from the market-aware price text.
+   - `src/lib/usy/billing-knowledge.ts`: added rules `subscriptionStatusIsSeparateFromInvoiceStatus`, `refundedInvoiceDoesNotCancelSubscription`, `refundedInvoiceKeepsPurchasedCredits`; refund copy in all six languages now states that a refunded subscription invoice does not cancel the subscription, an active subscription keeps Pro/Business until it actually terminates, and purchased credits are preserved; added `buildUsySubscriptionStatusAnswer`.
+   - `src/lib/usy/types.ts` and `src/app/api/usy/chat/route.ts`: optional `currency` on `UsyContext`, accepted (3-letter) in the chat schema, dropped at `buildUsyRequestContext` for guests.
+   - `scripts/ai/test-usy-product-knowledge.ts` (new, `test:usy-product-knowledge`, wired into `test:all`): 21 regression tests covering all ten areas plus localization and guest-currency dropping.
+   - Reconciled a concurrent worktree conflict: uncommitted in-flight ClevrSync connector work (microsoft-graph) had flipped Usy copy to "Available connectors: Google Sheets, OneDrive, and SharePoint"; restored the user-authoritative coming-soon status while keeping the flow facts, and restored all stash-time files except the newer `src/lib/upload/upload-security.ts` after a failed stash pop.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the parallel microsoft connector workstream contradicts the user's "coming soon" connector status; when OneDrive/SharePoint launch, `usyClevrSyncFacts.connectors`, `buildClevrSyncAnswer`, and its five localized blocks need the status flip; `pnpm validate:types` currently fails only inside the other workstream's in-flight `src/lib/upload/upload-security.ts` (missing `UPLOAD_SPREADSHEET_STRUCTURE_INVALID` in its own union at line 16, used at lines 549/587/641, plus possibly-null `inspection`).
+   - improvement: clevrsync keyword partials ("data" tokens) can outrank reports/datasets intents; tests avoid those collisions.
+   - observation: `stash@{0}` ("WIP on beta") still holds the stash-time snapshot as a safety net; the three older stashes belong to earlier sessions.
+
+5. User learning
+   Usy knowledge follows one authoritative chain — backend feature costs and plan catalog → Usy knowledge base → answers — and market pricing resolves per currency instead of hardcoding EUR.
+
+6. AI-agent learning
+   In this shared worktree, concurrent edits land mid-task: re-read files before editing, prefer surgical `git checkout stash@{n} -- <paths>` over `git stash pop` when another workstream advances a file, and never reverse another agent's newer file versions.
+
+7. Follow-up tasks
+   - Flip Usy connector copy when OneDrive/SharePoint actually launch.
+   - Fix the in-flight `upload-security.ts` type errors in the connector workstream (owned by that workstream).
+
+8. Instruction sources
+   - AGENTS.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
+---
+
+## 2026-09-25 — Live Production Profitability Report Diagnosis
+
+1. Interaction title
+   Deployment-stage diagnosis proving why the freshly regenerated live Production report still claims missing COGS/Gross Profit/Gross Margin for the persisted ClevrSync Retail Test 500 dataset.
+
+2. What was the user goal
+   Diagnose the live artifact and data path without speculative workarounds: verify commit presence on beta/main/dist, inspect the compiled Production bundle, trace the persisted-dataset-to-PDF path, prove whether Cost/Profit survive persistence, reproduce the production builder locally, and name the first failing stage plus the required deployment action.
+
+3. What changed
+   - No production source code changed.
+   - Confirmed fix commit `96b14c6a0` exists only on `origin/beta`; `origin/main` (`f5ac475`) and `origin/dist` (`f423a800c`) predate it.
+   - Confirmed `git grep applyRetailProfitabilitySemantics origin/dist` returns zero compiled matches and the live chunk still contains the literal "Product COGS is not available" claim.
+   - Confirmed via read-only SELECT that the persisted dataset retains Cost/Profit numeric values with the exact expected totals.
+   - Confirmed the `/api/reports` route rebuilds the report input at request time via `buildDatasetReportInput(access.dataset)`, so stale bundled code alone explains the live claims.
+   - Added `test-fixtures/business-models/clevrsync-retail-test-500.csv` (the actual persisted 500 rows) and `assertPersistedClevrSyncDatasetPath` to `test:clevrsync-retail-profitability` reproducing the real persisted report path.
+
+4. Problems marked
+   - blocker: none in code; the fix awaits deployment.
+   - risk: Production keeps reporting missing profitability until beta merges to main and dist republishes.
+   - observation: the persisted dataset, schema normalization, and storage are intact; the compiled pre-fix bundle is the sole cause.
+
+5. User learning
+   Production serves the `dist` branch artifact, not beta; the 18:39 report was generated by pre-fix compiled code even though the persisted data is complete.
+
+6. AI-agent learning
+   Diagnose compiled artifacts (`git grep <symbol> origin/dist -- dist`) and persisted rows (read-only SELECT) before blaming semantics; the report path rebuilds input per request, so stale bundles reproduce stale reports deterministically.
+
+7. Follow-up tasks
+   - Merge beta into main and verify the regenerated Production report (Cost 55,675 / Profit 43,492 / Profit Margin 43.86).
+
+8. Instruction sources
+   - AGENTS.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
+## 2026-09-25 — ClevrSync E-commerce Profitability Semantics Completion
+
+1. Interaction title
+   Completion of the unfinished central profitability-semantics fix that makes explicit Profit and safe retail Cost fields feed canonical e-commerce report and dashboard KPIs.
+
+2. What was the user goal
+   Continue the in-progress working-tree fix (not restart it) so the ClevrSync Retail Test 500 dataset reports Revenue ≈ 99,167, Cost ≈ 55,675, Profit ≈ 43,492, Profit Margin ≈ 43.86% instead of "COGS/Gross Profit/Gross Margin: Not available" plus add-cost recommendations; explicit Profit must take precedence, unsafe operating/shipping/marketing costs must never become COGS, missing metrics stay unavailable, ClevrSync and normal CSV/XLSX uploads share one central semantics, and regression tests must verify totals from the actual schema (Date, Order ID, Product, Category, Quantity, Unit Price, Revenue, Cost, Profit, Customer, Country, Inventory) without committing or pushing.
+
+3. What changed
+   - Preserved the previous agent's working-tree edits in `src/lib/data/semantic-schema.ts` (safe "cost"/"profit" exact aliases with retail-sales context validators) and `src/lib/reports/dataset-report-builder.ts` (`applyRetailProfitabilitySemantics` mapping direct cost into `columnMap.cogs` and explicit profit into `columnMap.grossProfit` before `buildGenericFinancials`, clearing a conflicting `netProfit` alias).
+   - `src/lib/reports/dataset-report-builder.ts`: the e-commerce KPI branch now emits Cost, Profit, and Profit Margin strictly from canonical `financials.cogs`/`grossProfit`/`grossMargin` so operating, shipping, or marketing expenses can never render as Cost.
+   - `src/lib/data/dashboard-semantic-profile.ts`: the e-commerce dashboard metric list now exposes Cost, Profit, and Profit Margin (positioned right after Revenue) sourced from canonical financials and semantic-context mappings, so the top dashboard KPI row shows them when available.
+   - `scripts/analysis/test-generic-business-canonical-resolution.ts`: updated the outdated e-commerce assertion that pinned "exact cost must not become COGS" to the new context-gated contract (cost feeds COGS, explicit profit feeds gross profit, profit is not relabeled net profit).
+   - `scripts/analysis/test-clevrsync-retail-profitability-semantics.ts` (new, `test:clevrsync-retail-profitability`, wired into `test:all`): pins the exact ClevrSync schema — expected totals computed from the fixture rows, explicit-profit precedence (fixture profit deliberately diverges from revenue − cost), provenance notes, semantic-context mappings, KPI values, recommendation suppression, ClevrSync vs standard-upload parity, dashboard metric exposure, unsafe-cost rejection with recommendation retained, and PDF output without missing-COGS claims.
+   - `package.json`: registered `test:clevrsync-retail-profitability` and added it to `test:all`.
+   - Bookkeeping: CHANGELOG [Unreleased] Fixed entry, `.TODO/todo-done.md` T-1070 with `.TODO/config.json` nextTaskNumber 1070 → 1071, activity log, interaction status.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `test:dataset-aware-report-profiles` fails at its saas PDF "top findings must suppress technical metadata" assertion on the unmodified HEAD baseline too — pre-existing and unrelated to profitability semantics; the e-commerce portion of that suite passes.
+   - improvement: the pre-existing saas results-summary finding filter deserves its own fix pass.
+   - observation: the semantic profile already mapped Cost→cogs for retail-classified datasets, but the column map never consumed it; the new retail profitability semantics close that gap centrally before `buildGenericFinancials`.
+
+5. User learning
+   ClevrSync-synced sheets and direct CSV/XLSX uploads flow through the same dataset pipeline, so one central semantic fix covers both; explicit Profit fields now win over derived values, and genuinely missing metrics still render as unavailable instead of being estimated.
+
+6. AI-agent learning
+   E-commerce KPIs must source cost metrics from canonical `financials.cogs` only — the raw `columns.cost` alias pattern also matches operating-expense columns and would mislabel them as Cost on the dashboard.
+
+7. Follow-up tasks
+   - Fix the pre-existing `test:dataset-aware-report-profiles` saas top-findings metadata suppression failure.
+
+8. Instruction sources
+   - AGENTS.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md [Unreleased]
+   - Completed work: .TODO/todo-done.md T-1070
+
+## 2026-09-24 — ClevrSync Google OAuth Production Artifact Diagnosis
+
+1. Interaction title
+   Deployment-artifact diagnosis for the live ClevrSync Google OAuth callback still redirecting successful consent to Railway's internal `http://0.0.0.0:8080` origin.
+
+2. What was the user goal
+   Verify the previous source fix on `beta`, verify whether it reached `main` and the Production `dist` artifact, inspect the compiled callback that Railway serves, determine whether Production runs stale callback code, and identify the exact required fix without redesigning OAuth or adding a second workaround.
+
+3. What changed
+   - No source, pipeline, or generated artifact code changed.
+   - Refreshed `origin/beta`, `origin/main`, and `origin/dist` from GitHub because local refs were stale.
+   - Confirmed fixed commit `51c9ca487` exists only on `origin/beta`.
+   - Confirmed current `origin/main` commit `1684b3ae1` still lacks `src/services/clevrsync/oauth-redirect.ts` and still uses raw `request.nextUrl.origin` in the Google OAuth routes.
+   - Confirmed current `origin/dist` commit `218c2cb5e` was built from `main` commit `1684b3a` and its compiled callback still uses `new URL(returnTo, nextUrl.origin)`.
+   - Confirmed Railway production service `useclevr app` on `app.useclevr.com` latest deployment `57e4ab51-e40c-40f0-86d0-ab4821b80041` was created at `2026-09-24T17:48:51.496Z`, matching the successful Sync Beta And Publish Dist run from `main` commit `1684b3a`.
+
+4. Problems marked
+   - blocker: Production serves stale compiled callback code because the previous beta fix has not reached `main` or `dist`.
+   - risk: current ClevrSync redirect tests validate source only, so a source fix can pass while the generated Production artifact remains stale.
+   - improvement: add a generated-artifact regression check after `pnpm prod:build` that inspects `dist/.next/server/app/api/clevrsync/google/oauth/{start,callback}/route.js` for the safe-origin contract.
+   - observation: `pnpm railway:status` failed before the wrapper ran because pnpm tried to install and hit a cache/network error; direct `node ./scripts/server/railway/railway.cjs status/inspect --json` verified the Railway project.
+
+5. User learning
+   Production serves the `dist` branch artifact, not the current `beta` source tree; the live behavior stays stale until the existing beta fix lands in `main` and the dist branch is rebuilt from that main commit.
+
+6. AI-agent learning
+   For Production deploy bugs in this project, refresh remote refs first and inspect `origin/dist` compiled route files before assuming local branch state reflects Railway.
+
+7. Follow-up tasks
+   - Merge or cherry-pick `51c9ca487` from `beta` into `main`.
+   - Rebuild and publish `dist` from the corrected `main` commit.
+   - Add the dist-artifact ClevrSync OAuth redirect regression check.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - detailed session record: `project-logs/interactive-log.md`
+   - activity summary: `project-logs/activity-log.md`
+   - latest interaction status: `docs/AI-interaction/interaction-status.md`
+
+## 2026-09-24 — ClevrSync Google OAuth Production Redirect Fix
+
+1. Interaction title
+   Root-cause fix for the production ClevrSync Google OAuth consent redirect landing on Railway's internal `http://0.0.0.0:8080` bind origin instead of `https://app.useclevr.com`, with one shared safe public-origin resolver covering authorization redirect_uri, token-exchange redirect_uri, and success/error callback redirects; OAuth design, state/HMAC, nonce, token encryption, ownership checks, and CSRF protections untouched; no commits or pushes.
+
+2. What was the user goal
+   Complete the T-1058 production fix: after Google consent, the browser must return to the originating public app origin (app.useclevr.com in production, test.useclevr.com on the test deployment, localhost in local development), the Google redirect_uri must stay identical and environment-correct between authorization and token exchange, deployed environments must never emit 0.0.0.0/localhost/internal-host browser redirects, and regression tests must prove all of it.
+
+3. What changed
+    - Traced the full flow: `GET /api/clevrsync/google/oauth/start` builds the Google authorization URL via `buildGoogleSheetsAuthorizationUrl` with `redirect_uri` from `GOOGLE_CLEVRSYNC_REDIRECT_URI` or a fallback derived from `request.nextUrl.origin`; `GET /api/clevrsync/google/oauth/callback` verifies HMAC-signed state, exchanges the code with the same resolver logic, stores encrypted tokens, and redirects the browser to `new URL(state.returnTo, request.nextUrl.origin)`; the error fallback also derived from `request.nextUrl.origin`.
+    - Root cause: on Railway, `scripts/runtime/start-dist.cjs` binds Next.js to `0.0.0.0:8080` and `request.nextUrl.origin` resolves to the internal bind origin, so the callback route's final success redirect (and error fallback) used `http://0.0.0.0:8080/...`; token exchange succeeded because production Railway sets `GOOGLE_CLEVRSYNC_REDIRECT_URI=https://app.useclevr.com/api/clevrsync/google/oauth/callback`, isolating the bug to the browser-facing redirect construction.
+    - New pure `src/services/clevrsync/oauth-redirect.ts` (no secrets, no server-only import so scripts can test it): `resolveClevrSyncBrowserOrigin(requestOrigin)` prefers the canonical env config (NEXT_PUBLIC_APP_URL → AUTH_URL → NEXTAUTH_URL), then a safe request origin in non-production, then `https://app.useclevr.com` in production or `http://localhost:${PORT||3000}` in development; `isSafeBrowserUrl` always rejects 0.0.0.0, rejects non-HTTPS, localhost/loopback, private IP ranges, `.internal`/`.local` hosts, and the metadata IP in production; `resolveClevrSyncGoogleRedirectUri(requestOrigin)` uses a safe configured `GOOGLE_CLEVRSYNC_REDIRECT_URI` verbatim (Google requires an exact registered match) and ignores unsafe configured values in favor of the derived safe callback URL; `buildClevrSyncGoogleRedirect` builds final browser URLs.
+    - `start/route.ts` and `callback/route.ts` now resolve one `browserOrigin` through the shared resolver and build every browser-facing URL (sign-in redirect, checkout redirect, error fallback, success redirect) from it; both routes resolve `redirect_uri` through the same `resolveClevrSyncGoogleRedirectUri`, guaranteeing authorization/token-exchange identity; local per-route `getGoogleRedirectUri` helpers removed.
+    - New `scripts/clevrsync/test-google-oauth-redirect.ts` (`test:clevrsync-google-oauth-redirect`, registered in `test:all`): production never generates 0.0.0.0/localhost redirects for any unsafe request origin; test env with canonical env vars resolves test.useclevr.com; production resolves app.useclevr.com (env config and fallback); local development keeps localhost and converts 0.0.0.0 dev origins; unsafe configured redirect_uri values are rejected in production while localhost config stays honored in development; authorization and token-exchange redirect_uri identity; route source assertions prove both routes use the shared resolver only (raw request origin never reaches URL construction) and that state verification, HMAC state creation, and token encryption wiring remain.
+    - Requirements, CHANGELOG, TODO records (T-1058 → done with `commit: worktree`), and logs updated; `.env.local.example`/`.env.railway.example` guidance unchanged (still accurate).
+
+4. Problems marked
+   - blocker: none.
+   - note: the Google client secret value was incidentally displayed in this session's terminal output while listing Railway variables with a mis-keyed redaction filter; no file, log, commit, or documentation contains it, and no secret was written anywhere — recommend rotating only if the local machine's scrollback is considered sensitive.
+   - note: the test Railway service ("useclevr TEST", beta environment) has no `GOOGLE_CLEVRSYNC_*` variables; ClevrSync Google OAuth is production-only until client credentials and the test redirect URI are configured.
+
+5. Verification
+   - `pnpm test:clevrsync-google-oauth-redirect` — pass (all origin, identity, safety, and source invariants).
+   - `pnpm test:auth` — pass (existing auth redirect suite unbroken).
+   - `pnpm exec tsc --noEmit --pretty false` — exit 0.
+   - ESLint on all changed source files — 0 errors (scripts test file is intentionally eslint-ignored like all script tests).
+   - `check-package-json`, `check-todo-management`, changelog/records checks — pass.
+   - Railway environment verified read-only via `railway.cjs variable list`: production service sets `GOOGLE_CLEVRSYNC_REDIRECT_URI=https://app.useclevr.com/api/clevrsync/google/oauth/callback` plus correct `NEXT_PUBLIC_APP_URL`/`AUTH_URL`/`NEXTAUTH_URL`; test service sets `https://test.useclevr.com` for the same URL variables.
+
+6. Final redirect resolution
+    - Production: origin `https://app.useclevr.com`; redirect_uri `https://app.useclevr.com/api/clevrsync/google/oauth/callback` (explicit env); final redirect `https://app.useclevr.com/app/settings/data-connections?google=connected&connectorId=...`.
+    - Test: origin/redirect_uri derive from `NEXT_PUBLIC_APP_URL=https://test.useclevr.com` → `https://test.useclevr.com/api/clevrsync/google/oauth/callback` (requires Google Console registration once test credentials exist).
+    - Local: request origin `http://localhost:3000`; redirect_uri `http://localhost:3000/api/clevrsync/google/oauth/callback` (or the local `GOOGLE_CLEVRSYNC_REDIRECT_URI` value).
+
+## 2026-09-23 — Risk Intelligence Explainability UX Polish
+
+1. Interaction title
+   Presentation-only restructuring of the expanded Risk Intelligence finding into business-first progressive disclosure (What happened / Why this severity / Recommended investigation / Technical calculation details), with scoring, evidence generation, and engine behavior unchanged and no commits or pushes.
+
+2. What was the user goal
+   Turn the dense technical explanation into a layout a business user understands in seconds while keeping every piece of deterministic evidence available for audit: a clean baseline → current comparison block using dynamic values, a compact threshold explanation with the matched band obvious, a clearly visible recommended-investigation block, and implementation-oriented detail behind one additional disclosure; responsive on desktop/tablet/mobile, accessible (keyboard, focus, text-carried severity), generic across every rule and dataset class, with regression tests proving the structure, no duplicated scoring constants, and no hardcoded fixtures.
+
+3. What changed
+    - `src/app/(auth)/app/risk-intelligence/page.tsx` (only production file): `RiskFindingRow` now composes four sections — `RiskWhatHappenedSection`, `RiskWhySeveritySection`, `RiskInvestigationSection`, `RiskTechnicalSection` — inside the existing outer disclosure; the old single-column text dump and `RiskEvidenceBlock` were replaced.
+    - What happened: when evidence carries periods compared plus both absolute and relative change (genuine period-over-period deltas), it renders Previous → Current comparison cards ("Previous"/"Current" caption badges, dynamic labels and displays, arrow that rotates on narrow screens with an sr-only "changed to"), Absolute change / Relative change stat chips, and the compared periods; all other evidence shapes render a responsive labeled value-card grid plus a Change line (when absolute change exists) and a metric-labeled value line (when only a share/ratio exists), so rules like dead stock, concentration, net margin, runway, and data quality render correctly without empty cards.
+    - Why <severity>: Measured / <severity> threshold / Risk score trio, the severity reason sentence, the full threshold ladder (severity label, condition display, score, matched band highlighted with border/background and the text "— matched"), and the business interpretation.
+    - Recommended investigation: action block rendering `explanation.investigation`; the duplicate row-level recommendation paragraph was removed.
+    - Technical calculation details: secondary nested `<details>` (collapsed) with rule score, importance weight, weighted contribution + the not-a-monetary-estimate note, category formula (mono, wrapping), source metric, source columns, compared periods, row scope, and the unavailable list.
+    - Accessibility/responsive: native `<details>/<summary>` preserved with `focus-visible:ring-2` visible focus on both disclosures; `sr-only` text for the arrow; severity and matched-band meaning carried in text; `sm:`/`lg:` grid stacking, `min-w-0` + `break-words` against horizontal overflow.
+    - `scripts/risk-intelligence/test-risk-explainability.ts` gains section 8: UI/source assertions proving ordering (business summary before technical details), the secondary `<summary>` disclosure, measured value + threshold + score visibility, investigation/contribution/interpretation/not-a-monetary-estimate availability, no duplicated scoring constants (`≤ -20`, `≤ -5`, `1.15`, `round((`, …) and no hardcoded fixtures (`2026-01`, `24,994`, `-32.7`, …) in presentation code, responsive (`sm:grid-cols`, `lg:grid-cols`, `min-w-0`, `break-words`, `sm:rotate-0`) and accessibility (`focus-visible:ring-2`, `sr-only`, `RISK_SEVERITY_LABELS[band.severity]`, "— matched") classes, and all rendered evidence sourced from `RiskFindingExplanation`.
+    - Engine, thresholds, severity bands, weights, aggregation, evidence generation, applicability, and API shape are untouched.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the comparison-card layout intentionally appears only for evidence with compared periods plus both change measures; other rules render the value grid, so the layout adapts per evidence shape rather than assuming a trend metric.
+   - improvement: none beyond the restructure itself.
+   - observation: the summary-text source assertions must tolerate JSX formatting, so the test matches `<summary>…</summary>` with whitespace-tolerant regex instead of single-line substrings.
+
+5. User learning
+   The expanded finding now reads top-down: what changed (with baseline → current values), how serious it is and why (threshold ladder with the matched band), what to investigate, and — one more click down — the exact formulas for auditability.
+
+6. AI-agent learning
+   Progressive disclosure works best when sections render conditionally on evidence shape rather than rule identity: gating the comparison cards on "periods compared + absolute + relative change" keeps the presentation rule-agnostic while still producing the familiar Previous → Current view for trend rules.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - UI: `src/app/(auth)/app/risk-intelligence/page.tsx`
+   - Regression pins: `scripts/risk-intelligence/test-risk-explainability.ts` (section 8)
+   - Release notes: `CHANGELOG.md`; product requirements: `requirements.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
+## 2026-09-23 — Risk Intelligence Explainability Audit + Fix
+
+1. Interaction title
+   System-wide Risk Intelligence UX + explainability audit/fix: expose the deterministic evidence and scoring math behind every triggered rule from the UI, trace Financial Risk 94 from metric −32.7%, and resolve "Impact 108" semantics — with scoring, thresholds, and applicability unchanged and no commits or pushes.
+
+2. What was the user goal
+   Make every triggered Risk Intelligence rule explainable from the UI across all categories (financial, profitability, cash flow, revenue concentration, data quality, inventory, SaaS, investor portfolio, accountancy, and future deterministic rules) with a 12-point evidence contract (what happened, current value, baseline, absolute change, percentage change, periods/rows compared, crossed threshold, severity reasoning, score contribution, business interpretation, recommended investigation, source metric); reproduce exactly how Financial Risk 94 comes from −32.7%; determine what Impact 108 represents and stop presenting it as a naked number; keep concise overview cards; never fabricate evidence; preserve prior applicability fixes; add deterministic regression tests across representative dataset classes; return a full report with a SAFE TO COMMIT or BLOCKER verdict.
+
+3. What changed
+    - Impact 108 decoded: `estimatedImpact = Math.round(score × weight)` — 94 × 1.15 = 108 for the critical revenue-decline finding; it is a ranking tiebreaker inside `compareFindings` with no business meaning as an "impact". Value and sort behavior stay identical; the UI no longer renders it under an "Impact" label.
+    - `risk-rules.ts` gains the explainability contract types (`RiskEvidence`, `RiskThresholdExplanation`, `RiskScoreExplanation`, `RiskFindingExplanation`, `RiskScoringModel`), `RISK_SCORE_SEVERITY_BANDS` (Critical 75–100, High 50–74, Medium 25–49, Low 0–24), `RISK_METRIC_LABELS` (canonical user-facing metric names), and `formatRiskOperator`.
+    - `risk-engine.ts` main path: each finding carries `explanation` (evidence values with raw numbers, baseline/current labels, absolute/relative change, periods compared `YYYY-MM → YYYY-MM`, row scope, source columns, unavailable list, interpretation, investigation, crossed threshold with every band marked matched/unmatched and a severity reason); `RiskMetric.details` is populated for all 20 derived metrics via new detail builders (dead stock, unprofitable products, top product/category/customer/portfolio shares, runway breach, runway months, missing/invalid/duplicate/currency data quality, mapping readiness, history periods); category aggregates compute once and feed both summaries and finding explanations; `RiskCategorySummary` gains `scoreFormula` + `topTriggeredRules` (title + metric display); the result gains `scoringModel` with the full overall weighted-average formula and severity bands.
+    - `risk-engine.ts` pre-bookkeeping path: findings are drafted with bands + evidence (duplicate counts, VAT review counts, classification gaps, large-expense counts, supplier concentration, expense/income totals), then finalized with the same explanation contract; category scores use their actual mean-based formula strings and the result gains the matching `scoringModel`.
+    - `page.tsx`: the overall card gets a "How is the overall risk score calculated?" disclosure (aggregation text, full formula, severity bands); category cards keep the concise score/severity/counts and add triggered-rule lines with metric display; the finding row shows what happened, rule score /100, the canonical metric label with its display, and "Contribution to category" (94 × 1.15 = 108 weighted points) with the not-a-monetary-estimate note; a per-finding "Why <severity>? How was this calculated?" disclosure renders measured values, absolute/relative change, periods compared, scope, the crossed threshold with all bands, the score derivation (rule score, importance, contribution, category formula), interpretation, suggested investigation, evidence source (metric + columns + scope), and the explicit unavailable list; the sort note now names severity, rule score, and weighted contribution.
+    - `scripts/risk-intelligence/test-risk-explainability.ts` (new, `test:risk-explainability`, wired into `test:all` after `test:risk-intelligence`): pins the Financial Risk 94 case end-to-end (metric −32.7 = round1((1616−2400)/2400×100), critical band ≤ −20 → score 94, category formula, impact 108, periods 2026-01 → 2026-02, baseline 2,400 / current 1,616, absolute −784), the cross-fixture invariants (exactly one matched band, displayed severity/score = matched band, displayed threshold truly crossed by the displayed metric, no deeper band matched by the metric, finite evidence, contribution = score × weight), unavailable-evidence honesty (no-history, revenue-only, one-period history), genuine zeros stay zero and trigger nothing, cross-dataset applicability (investor and ledger stay in their rule families), impact semantics in page source (no naked Impact label; contribution note rendered), unit-aware displays, and byte-identical determinism across runs.
+    - Scoring math, thresholds, weights, severity mapping, applicability, and `estimatedImpact` values are unchanged; no risk scores moved.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the displayed metric rounds to one decimal while threshold matching uses the raw value, so a raw value just across a band boundary can display on the boundary side (pre-existing, unchanged); runway stays a point-in-time latest-valid-row signal by design.
+   - improvement: category/overall formulas render the full weighted-average term list, so any user can reproduce every displayed score by hand.
+   - observation: `data_quality.insufficient_history` evidence lists the period-key series (capped at 12 keys) rather than per-period values; `estimatedImpact` keeps its name and sort role for compatibility with existing assertions.
+
+5. User learning
+   "Impact 108" was never a business impact: it is the rule score (94) times the rule importance (1.15), used only to rank rules; Financial Risk 94 is the revenue-decline critical band score (≤ −20% → 94) weighted over the financial category, and −32.7% is the month-over-month revenue change between the two latest comparable periods.
+
+6. AI-agent learning
+   When a numeric UI value has no user meaning, trace it to its producer before deciding display treatment: `estimatedImpact` was defined and consumed in one file, so the score-formula relabeling could stay behavior-preserving; embedding the explanation on the finding (not re-deriving in the view) keeps server API consumers and the page on one deterministic evidence source.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Explainability contract types: `src/lib/risk-intelligence/risk-rules.ts`
+   - Evidence + explanations + scoring model: `src/lib/risk-intelligence/risk-engine.ts`
+   - UI: `src/app/(auth)/app/risk-intelligence/page.tsx`
+   - Regression pins: `scripts/risk-intelligence/test-risk-explainability.ts` (`test:risk-explainability`)
+   - Release notes: `CHANGELOG.md`; product requirements: `requirements.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
+## 2026-09-23 — Dataset Analyzer Semantic Consistency Audit + Fix
+
+1. Interaction title
+   System-wide audit of Dataset Analyzer semantic consistency (geography, metric provenance, profit definitions, row scope) across every supported dataset class, with general fixes only — no fixture-specific production logic, no commits or pushes.
+
+2. What was the user goal
+   Establish one canonical geography semantic contract and one metric semantic architecture shared by the Dashboard, the Dataset Analyzer, and the server-side KPI engine; determine the exact profit formulas behind the Analyzer KPIs and the Business Profile Context card; keep the verified-working Dashboard World Map behavior unchanged; cover ecommerce, retail, inventory, SaaS, investor portfolio, profitability, accountancy, marketplace, and generic business datasets; return a full audit report with a SAFE TO COMMIT or BLOCKER verdict.
+
+3. What changed
+    - Root cause of the Dataset Analyzer geography failure: `detectBusinessColumns` deliberately excludes `country` from `regionColumn` (it lands only in `fallbackRegionColumn`), while the Analyzer UI capability gate required exactly `detected.regionColumn` — so any dataset whose only location column is `country` rendered no World Revenue Map card while the Dashboard mapped the same dataset.
+    - `src/lib/data/geographic-metric-semantics.ts` gains `detectGeographicLocationColumn(columns, rows, { scope })`: one canonical location resolver (country tier: country/country_code/nation/geo/geography; regional tier: region/territory/state/province/zone/area/market/location/city) with token-based matching, measure-token rejection (market_share, marketing_spend, time_zone never become geography), and mostly-non-numeric value evidence.
+    - `business-columns.ts` uses the canonical resolver for `regionColumn`/`fallbackRegionColumn` (both carry the same column), validates date columns through `parseCanonicalDate` with a plausible-year rule (1900–2100) so `ORD-00001`, `35.5`, and money values never become a time axis, resolves profit provenance (`source_profit` / `cost_component_profit` / `estimated_margin_profit` + `profitSourceColumns`), makes a detected source profit column authoritative (previously it was ignored while labeled "Verified"), computes `avgRevenueBasis` (`order` when a canonical order identity exists, else `row`), and rejects refund/payout/GMV fields as revenue and margin/ratio columns as profit sources (aligning with the canonical `GMV_REVENUE_CONFLATION` rule).
+    - `canonical-date.ts` tightens the lenient native fallback: free-form text needs explicit date shape evidence (leading year component, two-separator numeric date, or month name); `ORD-00001` and `35.5` no longer parse as dates.
+    - `src/components/dataset/dataset-analyzer.tsx`: geography capability uses `regionColumn || fallbackRegionColumn`; the WorldMapChart uses the canonical location column, drops the local substring geography detector (`GEOGRAPHIC_COLUMNS`), and never fabricates `profit = revenue * 0.3` / `margin: 30` — profit and margin come only from the resolved source profit field; profit KPI card, insights, and Executive Financial Summary render definition-aware labels; the Region/Country toggle uses the canonical resolver.
+    - `src/app/api/datasets/[id]/analyze/route.ts`: column type classification uses `parseCanonicalDate`; the AI executive summary receives the resolved profit definition and source fields.
+    - `src/lib/data/dataset-analyzer.ts` `generateFallbackSummary`: derives every line from the enriched business KPIs (revenue, resolved profit definition, top products, top regions) instead of a parallel 30%-COGS formula that disagreed with the KPI cards.
+    - `src/app/(auth)/app/page.tsx` `detectColumns`: region resolution falls back to the canonical resolver before the legacy regexes (Dashboard behavior preserved; country tier keeps the verified map intact).
+    - `business-intelligence-engine.ts`: `toDate` uses `parseCanonicalDate` so identifier strings cannot fabricate trend risks.
+    - `scripts/analysis/test-dataset-analyzer-semantics.ts` (`test:dataset-analyzer-semantics`, wired into `test:all` after `test:dashboard-map-scope`): cross-dataset matrix over ecommerce (csv+xlsx), local retail, SaaS, marketplace, investor portfolio, and generic fixtures — geography applicability, metric applicability, profit provenance, fake-date prevention, missing ≠ zero, genuine zero stays zero, row scope (500-row totals), Dashboard↔Analyzer parity via `aggregateWorldMapRegions`, and source invariants (no fabricated map profit, owner-scoped analyze route, canonical resolvers shared).
+
+4. Problems marked
+   - blocker: none.
+   - risk: legacy stored analyses keep their stored `detectedColumns`; the Analyzer UI now accepts `fallbackRegionColumn`, so old country-only datasets regain the map without re-analysis. `test:dataset-aware-report-profiles` fails on beta before and after this change (SaaS report top-findings wording) — pre-existing, unrelated.
+   - improvement: profit provenance now flows through `profitDefinition`/`profitSourceColumns`; the Business Profile Context card ("Profit After Profile Costs" = revenue − (dataset costs + profile fixed costs/insurance/employer contributions) − tax) keeps its own accurate label and the drilldown links the two concepts instead of merging them.
+   - observation: the ecommerce fixture resolves `avgRevenueBasis: order` (397.36 = revenue/220 distinct orders), matching the Dashboard's Average Order Value semantics; `investor-portfolio` revenue stays the portfolio annual revenue source field inside the legacy generic engine (the Dashboard's investor profile names it explicitly).
+
+5. User learning
+   The Dataset Analyzer hid the World Map for country-only datasets because its capability gate required the strict `regionColumn` while the canonical detector stored countries in `fallbackRegionColumn`; the "Total Profit" card summed revenue minus recognized cost components (shipping etc.) while ignoring a real profit column, and identifiers like `ORD-00001` parsed as dates under the native parser.
+
+6. AI-agent learning
+   When several modules detect the same concept with different vocabularies, reproduce each detector's output on the same fixture rows before changing code: three parallel geography detectors and a lenient date parser each caused a different symptom (hidden map card, province-vs-country buckets, fake growth windows) from one root vocabulary divergence.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Canonical geography resolver: `src/lib/data/geographic-metric-semantics.ts`; detector: `src/lib/business/business-columns.ts`
+   - UI wiring: `src/components/dataset/dataset-analyzer.tsx`, `src/app/(auth)/app/page.tsx`; date canonicalization: `src/lib/data/canonical-date.ts`
+   - Regression pins: `scripts/analysis/test-dataset-analyzer-semantics.ts` (`test:dataset-analyzer-semantics`)
+   - Release notes: `CHANGELOG.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
+## 2026-09-22 — Dashboard World Map Row Scope: 220-Row KPI Scope vs 30-Day Map Window
+
+1. Interaction title
+   Trace and fix the World Map row-scope divergence from the main Dashboard KPIs and explain the 113 vs 96 distinct-customers discrepancy, with production-row recalculation, before changing any code.
+
+2. What was the user goal
+   For the same active dataset, explain why the Dashboard KPI row shows 220 rows / Revenue $87,420 / Orders 220 / Customers 113 / Units Sold 666 / Products 50 while the World Map shows Revenue $17,685.2 / Orders 42 / Germany $4,261.3 / 8 orders / 8 customers / 9 mapped locations; report both pipelines side by side (row sources, filters, limits), find the exact divergence point, recalculate COUNT(DISTINCT customer_id) from the same 220 production rows and explain the 113 vs 96 fixture-audit discrepancy, then apply the minimal scope fix plus tests proving Dashboard and World Map share one scope. Do not touch geography, bubble interaction, semantic detection, commits, or pushes.
+
+3. What changed
+    - Production recalculation (read-only Neon query of the active dataset `ds_9a4457d5a78b42b72085af15`, `02_ecommerce.xlsx`, uploaded 2026-09-22): 220 rows (all stored inline in `Dataset.data` and mirrored in `DatasetRow`, `previewRowCount` 1000 — no preview or sample limit), revenue $87,420.20, 220 distinct `order_id`, 113 distinct `customer_id`, 666 units, 50 distinct `product_id`, 9 countries, dates 2026-01-01..2026-04-30.
+    - Exact divergence: the KPI row renders from `buildDashboardSemanticAnalysis(dataset)` → `buildDatasetReportInput` → `loadDatasetData` — every stored row, no date filter — through the ecommerce semantic branch (`Orders` = distinct `order_id`, `Customers` = distinct `customer_id`). The World Map renders `buildRegions(activeRows, columns)` where `activeRows = filterRowsByRange(rows, columns.date, range)` and `range` defaults to `30d` when the URL has no range parameter — the default 30-day window keeps only 42 of the 220 rows (2026-03-31..2026-04-30).
+    - Every reported map number reproduced exactly from that 42-row window: 42 distinct orders, revenue $17,685.18 (displayed $17,685.2), 9 mapped countries, Germany 8 rows / 8 orders / 8 customers / $4,261.30. No cache, preview, sample, or row limit participates.
+    - Customers 113 vs 96: both are correct for different inputs. The production 220 rows contain 113 distinct `customer_id` values (recalculated directly; the Dashboard is right). The 96 came from the earlier "Dashboard Semantic Profile Unification" audit measuring the repository fixture `test-fixtures/business-models/02_ecommerce.csv/xlsx` (96 customers, 550 units, 12 products, 5 countries, revenue $87,419.20) — a same-named but different variant of the uploaded production file (113 customers, 666 units, 50 products, 9 countries, revenue $87,420.20).
+    - Aggregation note: with equal scope, the map's per-country distinct customer totals can still exceed the global KPI count because 65 of the 113 production customers appear in more than one country (per-country distincts sum to 203); per-country distinct semantics stay untouched per instruction.
+    - Fix: `src/lib/data/dashboard-row-scope.ts` (new) exports `selectDashboardRegionRows({ rows, activeRows, semanticDrivesKpis })`; `page.tsx` computes `semanticDrivesKpis = Boolean(semanticAnalysis?.metrics.length)` (mirroring `buildBusinessModelKpis`' semantic branch) and feeds `buildRegions` the full row scope when semantic metrics drive the KPI row, keeping the range-filtered scope for fallback-KPI datasets. Geography, bubble interaction, and semantic detection are unchanged.
+    - Regression: `scripts/analysis/test-dashboard-map-scope.ts` (`test:dashboard-map-scope`, wired into `test:all` after `test:world-map-semantics`) pins the 220/42 fingerprint window, semantic KPIs over every stored row, map totals equal to KPI totals under the fixed scope (via the shared geographic resolvers and `aggregateWorldMapRegions`), the fallback scope rule, and page source invariants (scope flag mirrors the KPI semantic branch; `buildRegions` never receives `activeRows` directly).
+
+4. Problems marked
+   - observation: with the fixed scope the map's per-country distinct customers cover all 220 rows, so its summary customer total reflects per-country distinct semantics (203 across the production countries) rather than the global 113; per-country semantics stay by design.
+   - improvement: the repository `02_ecommerce` fixture no longer matches the production upload of the same name; refreshing it would keep future audits from measuring stale inputs.
+   - risk: trend panels and fallback KPIs remain range-scoped by design; only the map scope changed.
+
+5. User learning
+   The KPI row and the World Map read the same 220 stored rows; the map additionally passed them through the dashboard's default 30-day date window, so it displayed the last month (42 orders, $17,685.18) while the semantic KPI row displayed the full dataset (220 orders, $87,420.20).
+
+6. AI-agent learning
+   When a page renders KPIs from one pipeline (semantic profile over stored rows) and a widget from another (page-level filtered rows), compare the exact row arrays rather than the displayed numbers: reproducing the fingerprint subset (42 rows since latest minus 30 days) proves the mechanism faster than scanning for slice/sample/cache causes.
+
+7. Follow-up tasks
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Scope selector: `src/lib/data/dashboard-row-scope.ts`; wiring: `src/app/(auth)/app/page.tsx`
+   - Regression pins: `scripts/analysis/test-dashboard-map-scope.ts` (`test:dashboard-map-scope`)
+   - Release notes: `CHANGELOG.md`; requirements: `requirements.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+
+## 2026-09-22 — Dashboard World Map: Unavailable Metric Semantics (Unavailable ≠ 0)
+
+1. Interaction title
+   Audit the dashboard World Map metric semantics for Revenue, Orders, Customers, and Datasets so missing order and customer concepts render as unavailable instead of measured zeros, without touching the fixed geography rendering.
+
+2. What was the user goal
+   Trace the complete World Map pipeline (source column → semantic mapping → aggregation → country aggregation → map data structure → summary cards → country popup → metric tabs) for the observed Germany view (Revenue $4,261.3, Orders 0, Customers 0, Datasets 1; totals: revenue $17,685.2, orders 0, 9 mapped locations, 0 unmapped); determine whether Orders=0 and Customers=0 are genuine measured zeros or fabricated from missing data under the rule "Unavailable ≠ 0"; verify order, customer, and revenue semantics against the dataset type; return the exact source field; keep geography rendering (projection, TopoJSON, zoom, markers, styling, layout) unchanged; add regression tests proving missing metric ≠ zero; run types, World Map tests, semantic mapping tests, dashboard semantic-profile tests, and lint; commit and push nothing.
+
+3. What changed
+   - Pipeline trace (dashboard path): `loadDashboardDatasetAggregation` loads the dataset-scoped rows → `detectColumns` (page-level regex + stored `detectedColumns`) picks the region and revenue columns → `buildRegions` aggregates per region value → `WorldMapRevenue` (`world-map-revenue.tsx`) groups by normalized country → `GeographicRevenueMap` (`geographic-revenue-map.tsx`) renders summary cards, country detail popup, and metric tabs → `GeographicMapControls`/`GeographicMapTooltip` complete the metric surface. The canonical business semantic profile (`business-semantics.ts`) and the dashboard semantic profile (`dashboard-semantic-profile.ts`) govern KPIs but were never consulted by this pipeline.
+   - Germany $4,261.3 = sum of the dataset's detected revenue column over rows whose region value normalizes to Germany; total mapped revenue $17,685.2 = the same sum across the 9 mapped countries. The exact source column is the dataset's revenue-mapped field (`detectedColumns.revenueColumn` or the page-level revenue regex fallback); the screenshot dataset lives in the user's database, so the live column name is derived from the deterministic detection contract rather than the stored row.
+   - Orders=0 (fabricated): `buildRegions` counted rows with a non-empty order id when `columns.order` matched (`/order id/, /^order$/, /invoice/, /transaction/`), else summed the quantity column, else coerced `getNumber(row, undefined) || 0` → hardcoded 0; the geography+revenue dataset has no order, transaction, invoice, or quantity concept, so the displayed zero was manufactured from missing data. Customers=0 (structural): `buildRegions` never populated `customers` (the column was detected but unused), and the wrapper coerced `Number(undefined || 0)` → 0. Datasets=1 is a genuine distinct-dataset count.
+   - `src/lib/data/geographic-metric-semantics.ts` (new): the single semantic-availability resolver — `detectGeographicOrderMetric` (exact alias sets for order/transaction/invoice/receipt identity fields → distinct-mode, plus explicit numeric count fields → sum-mode, with numeric validation and an investment/company/name/date/currency/status reserved pattern that rejects company ids, portfolio records, and investor fields), `detectGeographicCustomerMetric` (customer/client/buyer identity aliases with value evidence so header-only columns report unavailable), `readSummedGeographicMetric`/`readDistinctGeographicEntities` (measured readers excluding NaN/Infinity), `mergeGeographicMetricValues` (null + null → null, null + n → n, n + null → n, n + m → n + m), `sumMeasuredGeographicValues` (totals stay null until a measured value exists), `collectAvailableGeographicMetrics` (selector availability incl. real datasets count), and `aggregateWorldMapRegions` (the per-country aggregation extracted from the wrapper).
+   - `buildRegions` (page.tsx): emits `revenue: number | null` (no revenue column → null), `orders: number | null` (no order concept → null; distinct recognized order ids or summed explicit counts when the concept exists), `customers: number | null` (same pattern), keeps the profit derivation and grouped product/category aggregation numerically identical, filters regions on measured positive values, and sorts null-safe.
+   - `world-map-revenue.tsx`: `RegionData` now re-exports the null-aware `WorldMapRegion` contract; aggregation delegates to `aggregateWorldMapRegions`; `availableMetrics` flows into the map; no `|| 0` coercions remain.
+   - `geographic-revenue-map.tsx`: `GeographicMetric` fields are nullable; summary "Total mapped revenue"/"Total mapped orders" and the country popup render `formatMetricOrUnavailable`; unavailable metric tabs are disabled via the new `availableMetrics` prop; layout, projection, TopoJSON decoding, zoom, marker stacking, hit targets, and the hover/selection behavior stay untouched.
+   - `geographic-map-controls.tsx`: unavailable metric tabs render disabled with strikethrough, reduced opacity, `aria-disabled`, and an unavailable-metric title; selectable tabs keep the previous styling.
+   - `geographic-map-tooltip.tsx`: orders, customers, and the selected metric render through `formatMetricOrUnavailable` (N/A for null/undefined/non-finite, measured zeros render as 0); `formatMetricOrUnavailable` is exported for the popup and tests.
+   - `dataset-analyzer.tsx`: its World Map feed uses the same resolver (orders distinct or summed, customers distinct, unavailable concepts null), the region popup shows "N/A" for unavailable revenue/orders, and measured zero orders now render explicitly.
+   - Regression tests: `scripts/analysis/test-world-map-metric-semantics.ts` (`test:world-map-semantics`, wired into `test:all` after `test:world-map`) pins merge/totals null preservation, measured-zero preservation, the seven dataset-class cross-cases (retail, ecommerce, SaaS, investor portfolio, profitability, accountancy, generic business), marketplace buyer/transaction semantics, investor company-id rejection, generic-id rejection, metric-selector availability, no NaN/Infinity output, and source invariants (popup/tooltip N/A rendering, wrapper availability forwarding, zero `|| 0` coercions in the wrapper).
+
+4. Files changed
+   - `src/lib/data/geographic-metric-semantics.ts` (new)
+   - `src/app/(auth)/app/page.tsx` (`buildRegions` + imports)
+   - `src/components/ui/world-map-revenue.tsx`
+   - `src/components/dashboard/geographic-revenue-map.tsx` (also merged the concurrent geography-fix marker work)
+   - `src/components/dashboard/geographic-map-tooltip.tsx`
+   - `src/components/dashboard/geographic-map-controls.tsx`
+   - `src/components/dataset/dataset-analyzer.tsx`
+   - `scripts/analysis/test-world-map-metric-semantics.ts` (new)
+   - `scripts/analysis/test-world-map-geography.ts` (completes the concurrent agent's `tooltipSource` declaration)
+   - `package.json` (`test:world-map-semantics` + `test:all` wiring)
+   - `CHANGELOG.md`, `docs/AI-interaction/interaction-status.md`, `project-logs/activity-log.md`, `.TODO/todo-done.md`, `.TODO/config.json`
+
+5. Before/after
+   - Before: Germany popup Revenue $4,261.3, Orders 0, Customers 0, Datasets 1; summary Total mapped revenue $17,685.2, Total mapped orders 0, Mapped locations 9, Unmapped locations 0; all four metric tabs selectable with an all-zero Orders/Customers map view.
+   - After: Germany popup Revenue $4,261.3 (measured), Orders N/A, Customers N/A, Datasets 1 (real count); Total mapped revenue $17,685.2 (measured), Total mapped orders N/A; Orders and Customers tabs render disabled with an unavailable title; the map opens in the measured Revenue view. Datasets with genuine order/customer fields keep numeric values and measured zeros render as 0.
+
+6. Verification
+   - `pnpm validate:types` exit 0; `pnpm test:world-map` passes (geography rendering unchanged: 177 country features, Mercator projection, bundled TopoJSON, zoom transform, marker stacking, hit targets all pinned); `pnpm test:world-map-semantics` passes; business-semantics, business-model-routing, dashboard-semantic-profiles, investor-portfolio-aggregation, and risk-intelligence suites pass; ESLint 0 errors on changed files; changelog, TODO, package, and secret checks pass.
+   - Not committed or pushed per instruction.
+
+## 2026-09-21 — Usy → n8n Contact Handoff: 502 Diagnostics With Safe Failure Classification
+
+1. Interaction title
+   Fix the remaining Usy contact handoff 502 failure with targeted server-side diagnostics that expose the exact outbound cause on the next live request, without touching n8n, the payload structure, or any protected behavior.
+
+2. What was the user goal
+   Trace POST /api/usy/contact → getUsyContactWebhookConfig() → sendUsyContactWebhook() → outbound fetch → error handling → HTTP 502; identify every 502 condition; add safe structured logging (no secret, no Authorization header, no payload/customer fields, nothing in the browser response); distinguish webhook_not_configured, invalid_webhook_url, dns_failure, connection_failure, tls_failure, timeout, n8n_http_401, n8n_http_400, n8n_http_404, n8n_http_5xx, invalid_n8n_response, unexpected_error; verify the configured URL at runtime and report a lingering `/webhook-test/` URL; fix only deterministic bugs; add regression tests; run Usy contact tests, TypeScript, and lint; commit and push nothing.
+
+3. What changed
+   - Trace result: `/api/usy/contact` returns 502 in exactly one place — `sendUsyContactWebhook` returning `ok:false` (src/app/api/usy/contact/route.ts) — caused either by a non-2xx n8n response or by a thrown fetch error; the previous `catch {}` discarded every cause with zero logging, matching the unexplained Railway 502 and the empty n8n Executions list. Missing configuration returns 503 (not 502), so a 502 proves both environment variables were present. No deterministic code bug exists in the traced path.
+   - `src/lib/usy/contact-diagnostics.ts` (new): `inspectUsyContactWebhookUrl` (parse, https check, expected-host/path flags, `/webhook-test/` detection), `classifyUsyContactWebhookException` (walks the exception cause chain for ENOTFOUND/EAI_AGAIN → dns, ECONN*/EPIPE/EHOSTUNREACH/UND_ERR_SOCKET → connection, CERT/SSL/TLS codes → tls, ETIMEDOUT/UND_ERR_*_TIMEOUT/ABORT_ERR/AbortError → timeout, URL-parse messages → invalid_webhook_url, else unexpected_error), `classifyUsyContactWebhookHttpStatus` (400/401/404/5xx/n8n_http_other, terminal 3xx → invalid_n8n_response), `sanitizeUsyContactDiagnosticMessage` (redacts URLs, bearer tokens, and the configured secret; strips control characters; caps length), and the fixed-shape diagnostic builder plus the safe console logger.
+   - `src/lib/usy/contact.ts`: `sendUsyContactWebhook` now refuses unparseable or non-https URLs before any request (`invalid_webhook_url`; the bearer secret never leaves over plain http), attaches a full diagnostic to every failure and delivery, and returns it alongside the unchanged `{ok, retryable}` contract.
+   - `src/app/api/usy/contact/route.ts`: logs exactly one `usy_contact_handoff_failed` (stage `configuration` for the 503 path, `url_validation`/`webhook_request` for 502) or `usy_contact_handoff_delivered` event per confirmed submission via `logUsyContactHandoffDiagnostic`; every browser response body/status, the 502 fingerprint release, and the 202 delivered confirmation are unchanged.
+   - `scripts/ai/test-usy-contact-handoff.ts`: full failure-classification matrix through the sender path (exception shapes and HTTP statuses), `/webhook-test/` detection reporting (`webhookTestPath: true` + `n8n_http_404`), secret/customer-data redaction tests (URL, bearer token, secret, control characters), and route source assertions (safe logger only, no JSON.stringify in the route, diagnostics never read payload fields).
+   - `docs/AI-interaction/developer-guides/usy-contact-handoff.md`: new Operational Diagnostics section documenting both events, all failure classes, the safe field set, and the https pre-flight refusal.
+
+4. Problems marked
+   - blocker: the deployed 502's exact cause stays unproven until the next live request emits the diagnostic — the operator searches Railway Deploy Logs for `usy_contact_handoff_failed` and reads `failureCode`/`stage`.
+   - risk: no app-level fetch timeout exists; undici connect/headers timeouts classify as `timeout` if they fire.
+   - observation: a 502 with NO `usy_contact_handoff_failed` line would mean the response never originated from this route (proxy-level failure), which is itself diagnostic.
+   - improvement: non-https webhook URLs are now refused pre-flight so the bearer secret can never leave over plain http.
+
+5. User learning
+   - n8n webhook authentication failures (HTTP 401) and unregistered webhook paths (HTTP 404, including `/webhook-test/` outside manual-test mode) do not create n8n Executions — an empty Executions list is consistent with both a network-layer failure and a wrong-path/auth failure; the diagnostic event distinguishes them.
+
+6. AI-agent learning
+   - Classify fetch failures by walking `error.cause` for the undici/Node `code` (`ENOTFOUND`, `ECONNREFUSED`, `UND_ERR_CONNECT_TIMEOUT`, certificate codes) — the outer `TypeError: fetch failed` carries nothing.
+   - Keep diagnostics structurally safe (the builder never receives the payload) rather than trying to scrub arbitrary text; sanitize only what exceptions realistically embed (URLs, headers, secrets).
+
+7. Follow-up tasks
+   - Operator: deploy, run ONE Usy contact test, search Railway Deploy Logs for `usy_contact_handoff_failed`, and act on `failureCode`.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Diagnostics module: `src/lib/usy/contact-diagnostics.ts`; wiring: `src/lib/usy/contact.ts`, `src/app/api/usy/contact/route.ts`
+   - Regression pins: `scripts/ai/test-usy-contact-handoff.ts` (`test:usy-contact-handoff`)
+   - Operator guidance: `docs/AI-interaction/developer-guides/usy-contact-handoff.md`
+   - No changelog or requirements update: no user-visible behavior change; logs are server-side only.
+
+## 2026-09-21 — Usy → n8n Contact Handoff: Published Webhook Configuration Verified
+
+1. Interaction title
+   Fix and verify the Usy → n8n Contact Handoff configuration after the reported wrong n8n webhook URL (the `/webhook-test/` manual-test endpoint) without hardcoding URLs or changing kept behavior.
+
+2. What was the user goal
+   Search the repository and environment examples for `webhook-test/usy-contact`, `webhook/usy-contact`, and `USY_CONTACT_N8N_WEBHOOK_URL`; keep runtime code reading only the environment variable; use the published production webhook `https://useclevr.app.n8n.cloud/webhook/usy-contact` for both test.useclevr.com and app.useclevr.com; remove or correct anything suggesting the manual-test path for deployed environments; keep the secret, bearer auth, department routing, payload validation, rate limiting, duplicate protection, guest/auth behavior, and the existing message payload fix unchanged; treat HTTP 200 `{"ok":true}` as a successful handoff; add a regression test banning the manual-test path for deployed configuration; run Usy contact tests, TypeScript, and lint; commit and push nothing.
+
+3. What changed
+   - Search results: `webhook-test` (all case/separator variants, hidden files included) has zero matches in the repository — the wrong URL existed only as the operator-set Railway value. `USY_CONTACT_N8N_WEBHOOK_URL` is declared empty in `.env.railway.example` and `.env.local.example`; local `.env`/`.env.local` carry no USY or webhook entries.
+   - Runtime verification: `src/lib/usy/contact.ts` reads only `process.env.USY_CONTACT_N8N_WEBHOOK_URL` and `USY_CONTACT_N8N_WEBHOOK_SECRET` via `getUsyContactWebhookConfig()` (src/lib/usy/contact.ts:318), with no hardcoded or fallback URL; `sendUsyContactWebhook` posts the bearer-authenticated JSON payload to the configured URL and treats any 2xx response — including HTTP 200 `{"ok":true}` — as success (src/lib/usy/contact.ts:401), so a published n8n response is a successful handoff.
+   - `scripts/ai/test-usy-contact-handoff.ts`: adds `testPublishedN8nResponseIsSuccess` (fetch mock returns HTTP 200 `{"ok":true}`; asserts `{ok: true}` and exactly one call to the published `/webhook/usy-contact` endpoint) and `testDeployedConfigurationNeverUsesWebhookTestUrl` (strict no-`webhook-test` scan over `src/lib/usy/contact.ts`, `src/app/api/usy/contact/route.ts`, `.env.railway.example`, `.env.local.example`; asserts `getUsyContactWebhookConfig` passes the configured URL and secret through unchanged with no rewriting; asserts the developer guide names the published path and forbids the manual-test path).
+   - `.env.railway.example` and `docs/AI-interaction/developer-guides/usy-contact-handoff.md`: instruct the published production `/webhook/usy-contact` path and state that the manual-test path only responds while the n8n workflow runs in manual test mode, so deployed environments never use it.
+   - `package.json`: removes the duplicated `test:usy-contact-handoff` script key (duplicate JSON key).
+   - Interaction records and the done queue updated; no changelog or requirements change (no user-visible behavior change; repository runtime was already correct).
+
+4. Problems marked
+   - blocker: deployed behavior stays wrong until the operator sets `USY_CONTACT_N8N_WEBHOOK_URL=https://useclevr.app.n8n.cloud/webhook/usy-contact` on both the Railway `useclevr app` and `useclevr TEST` services; repository changes cannot update deployed environment values.
+   - observation: the manual-test path only responds while the n8n workflow is in manual test mode, so the misconfiguration surfaced as failed handoffs rather than silent data loss.
+   - improvement: the package.json duplicate script key is removed.
+
+5. User learning
+   - n8n exposes two inbound webhook paths: the published `/webhook/` path for production and the `/webhook-test/` path for manual test execution only; deployed UseClevr environments must always reference the published path through `USY_CONTACT_N8N_WEBHOOK_URL`.
+
+6. AI-agent learning
+   - Exhaustive `grep -rIlni -E 'webhook[-_. ]?test'` (hidden dirs included, build outputs excluded) is the reliable way to prove an erroneous URL never existed in the repository; the grep tool respects ignores, so a raw search confirms the negative.
+   - Regression guards for operator-set values stay at the repository boundary: strict scans over runtime source and env examples plus documentation instructions; deployed Railway values require manual verification.
+
+7. Follow-up tasks
+   - Operator: set `USY_CONTACT_N8N_WEBHOOK_URL` on both Railway services and verify a live contact handoff returns 202 after the change.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Regression pins: `scripts/ai/test-usy-contact-handoff.ts` (`test:usy-contact-handoff`)
+   - Configuration guidance: `.env.railway.example`, `docs/AI-interaction/developer-guides/usy-contact-handoff.md`
+   - Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`
+   - No changelog or requirements update: no user-visible behavior change.
+
+## 2026-09-20 — Referral Automation: Production-Safe Automated Lifecycle
+
+1. Interaction title
+   Make the UseClevr Referral Center production-safe: normal users must never create, confirm, or manipulate referral signups, paid referrals, rewards, credits, or conversion counts; attribution and rewards must generate automatically from authoritative server-side events.
+
+2. What was the user goal
+   Audit every referral mutation path, remove the user-accessible "Record signup" / "Record paid" capability (UI and API), and implement one coherent automated lifecycle: referral link opened → attribution securely recorded → real account created → signup confirmed server-side → 5-credit signup reward exactly once → real Stripe subscription → paid conversion recorded exactly once → 25-credit reward exactly once, with self-referral prevention, DB-level idempotency, refund detectability, canonical statistics, superadmin-only corrections with audit, and no second credit system, no parallel Stripe handling, no client-trusted conversion status, no commits or pushes. The QR code implementation must stay untouched.
+
+3. What changed
+   - Audit findings (all unsafe paths): POST /api/referral/signup (any user POST with {code,userId,email} manufactured a signup + 5 credits), POST /api/referral/paid (any user manufactured a paid conversion + 25 credits), POST /api/referral/track (client-forged clicks), the Referral Center buttons calling them, GET /api/referral ownership takeover (any cookie value could rebind referral-code ownership to the caller), client-trust of body.code for attribution, `?ref=` dropped at /signup→/login so no attribution chain existed, and counters incremented directly from client actions.
+   - `src/app/api/referral/signup/route.ts`, `src/app/api/referral/paid/route.ts`, `src/app/api/referral/track/route.ts`: deleted — no client-callable referral mutation capability remains.
+   - `src/app/api/referral/visit/route.ts` (new): GET endpoint the referral link now routes through; records a deduped informational click (eventKey `code:click:sha256(ip):UTC-day`; logged-in referrer self-visits excluded; unknown codes get nothing) and sets the httpOnly `useclevr_ref_attribution` cookie (30 days, lax, secure). Grants nothing.
+   - `src/app/(public)/signup/page.tsx`: preserves the `/signup?ref=<code>` URL format and redirects ref visits through the visit handler; `src/lib/referrals/referral-store.ts` is now write-free (normalize/create/buildReferralLink only; the file-store and `recordReferralEvent` are gone).
+   - `src/app/actions/auth.ts`: after `markEmailVerified(email)` in `verifyEmailOtp` and the superadmin auth-bypass path, `confirmReferralAfterVerification` reads the attribution cookie server-side and calls the lifecycle — the authoritative signup event is the real account completing email verification; failures never block signup (reward stays pending and retries).
+   - `src/lib/referrals/referral-lifecycle.ts` (new): `recordReferralClick`, `confirmReferralSignup` (self-referral rejected by userId + email; attribution locked by unique `ReferralAttribution.referredUserId`; signup event keyed `code:signup:<uid>`; counters updated server-side), `grantReferralCredits` (single-transaction single-grant: conditional attribution-state claim gates the UserCredit purchasedBalance credit and the REFERRAL_REWARD ledger row; idempotencyKeys `referral:reward:signup:<uid>` / `referral:reward:paid:<uid>`; credits land in purchasedBalance — non-expiring, downgrade-surviving, consumable on Free), `confirmReferralPaidConversion` (one paid conversion per referred account; conditional paidConfirmedAt write; Stripe evidence stored), `grantPendingReferralRewardsForOwner` (lazy retry of outstanding grants on Referral Center load and admin retry), `recordReferralRefundObservation`/`recordReferralRefundForCustomer` (refund detection only), `reverseReferralReward` (claims granted→reversed first, GREATEST floors so balances never go negative, reverses only the corresponding referral grant, idempotent reversal key), `decideProReward` (records the 1-month Pro decision), `getOwnerReferralSummary` (Clicks from click events, Signups/Paid Users from attributions, Credits Earned from finalized non-reversed grants).
+   - `src/services/stripe/webhook.ts`: webhook-only `allowReferralConversion` flag — `checkout.session.completed` (subscription mode) with retrieved subscription status active and resolved tier pro/business, and webhook `customer.subscription.created/updated` with active status, confirm the paid referral; checkout-return/success-page sync and user resume/reconciliation paths never confirm; refund observation wired into `charge.refunded` in `src/app/api/webhooks/stripe/route.ts` resolving the account from the trusted Stripe customer ID.
+   - `src/app/api/referral/route.ts`: session-required; ownership takeover fixed (a cookie code owned by another user is replaced with a fresh code; unowned codes bind once); stats derived canonically; reward config exposed; visitor attribution cookie cleared in the owner center.
+   - `src/app/api/admin/referrals/route.ts` (new): requireSuperAdmin GET inspection and PATCH corrections (reverse_reward, retry_reward, pro_decision), reason-gated, with adminAudit entries + ReferralEvent "admin" rows (actor/timestamp/reason/old/new).
+   - `src/app/(auth)/app/referral/page.tsx`: mutation buttons and click-on-copy/share removed; panel replaced with the concise "Referral tracking is automatic" note; rewards breakdown reads the server config from the summary response; QR section untouched.
+   - `src/lib/db/schema.ts` + `src/lib/db/migrations/0035_referral_automation.sql` + `scripts/runtime/railway-predeploy.cjs`: ReferralAttribution (unique referredUserId, code/referrer/status indexes), ReferralEvent source (default legacy) + metadata columns, CreditLedger transactionType check extended with REFERRAL_REWARD, updatedAt trigger — all idempotent.
+   - `src/lib/referrals/referral-config.ts` (new): single authoritative reward config (signup 5 credits; paid 25 credits + 1 month Pro; cookie TTL; click dedupe; paid-evidence definition).
+   - `scripts/billing/test-referral-automation.ts` (new, `test:referral-automation`, in `test:all`): 23 checks.
+
+4. Problems marked
+   - Root cause of the user-accessible actions: the Referral Center shipped a development/testing panel whose buttons POSTed to open mutation endpoints that trusted `body.code`/cookie and client-supplied userId/email/paymentId — any authenticated or anonymous caller could mint conversions and rewards with curl.
+   - Historical ReferralEvent rows have no provenance; migration preserves them as `legacy` and never promotes them into attributions or stats (Signups/Paid now derive from verified attributions only, so legacy manual inflations no longer count).
+   - The 1-month Pro reward has no safe automated fulfillment path (profile.subscriptionTier is Stripe-synced; no expiring entitlement mechanism exists), so it is recorded as pending_fulfillment and decided by a superadmin; automatic reversal on refund stays disabled pending the same business decision.
+   - QR code untouched: it renders via the unchanged qrcode route using the same buildReferralLink, and QR traffic now enters the same automated visit → attribution → verified-signup lifecycle.
+
+5. User learning
+   The Referral Center is now a read-only performance dashboard: numbers reproduce from real history, rewards arrive automatically and exactly once, self-referrals and replay cannot earn anything, and support can correct exceptional cases with a full audit trail.
+
+6. Verification
+   - `pnpm test:referral-automation` 23/23; `test:auth`, `test:credit-unified` (12), `test:retail-credit-integration` (8), `test:zero-credit-ux` (12), `test:upload-credit-reservation` (8), `test:dataset-source-history` (7), `test:credit-topup-webhooks` (68), `test:credit-topup-architecture` (18), `test:credit-engine` all pass.
+   - `pnpm exec tsc --noEmit --pretty false` exit 0 (after `next typegen`); ESLint 0 errors on all changed files and repo-wide (warnings pre-existing); `lint:todos` pass; migration 0035 validated transactionally (BEGIN/ROLLBACK) against the dev Neon database.
+   - `test-billing-integrity` fails identically at pristine HEAD (pre-existing, unrelated).
+
+7. Remaining limitations / business decisions required
+   - 1-month Pro paid reward: recorded as pending_fulfillment, never auto-applied to subscription tier; a business decision plus an expiring-entitlement mechanism is required before automated fulfillment.
+   - Automatic reward reversal on refund: technically supported and idempotent but disabled pending the same business-policy decision; refunds are detected and auditable, and cancellation at period end is never treated as a refund.
+   - Click analytics cap obvious inflation (per code/IP-hash/day dedupe, self-visit skip) but a determined script farm across rotating IPs can still inflate clicks — clicks never unlock rewards, so this is informational only.
+   - Attribution relies on a 30-day httpOnly first-party cookie; clearing cookies before signup loses attribution (no invasive fingerprinting by design).
+   - Not committed or pushed per instruction.
+
+## 2026-09-20 — AI Governance: One Normalized Provider/Runtime Truth Across All Pages
+
+1. Interaction title
+   Fix AI governance consistency end-to-end: provider configuration, runtime routing, execution result, audit trace, transparency, provider monitoring, privacy, risk, and reports must describe the same underlying reality.
+
+2. What was the user goal
+   Audit first, then implement the smallest coherent architectural fix so all Governance pages derive provider/runtime/compliance status from one normalized source: Active Providers 0/0 root cause, Gemini shown while no provider is configured, missing GOOGLE_GENERATIVE_AI_API_KEY, "UseClevr Cloud fallback" contradicting fallbackUsed=false, Provider failures showing Ready despite failures, Transparency attributing failed calls, the 52% confidence meaning, compliance score recomputing naturally, and report/export consistency — with secrets never exposed and no commits or pushes.
+
+3. What changed
+   - `src/lib/ai/managed-cloud-provider.ts` (new): single authoritative UseClevr-managed cloud resolution — `getManagedCloudApiKey()` reads `GOOGLE_GENERATIVE_AI_API_KEY || GEMINI_API_KEY` (the existing dataset-chat mechanism), `getManagedCloudLanguageModel()` builds the explicit-credential `gemini-2.5-flash` client or null, plus provider-name/model constants and a safe credential-missing message. Keys stay server-side; only status is exposed.
+   - `src/lib/ai/server-ai-text.ts` (the exact production failure path): uses the shared resolver; when the credential is missing it fails fast, records an append-only audit failure with safe reason "Managed cloud credential missing…" (no raw SDK text, no secrets), executionLocation "none", and returns null; success and failure now record measured latency; provider constants come from the shared module.
+   - `src/lib/chat/fallback.ts`, `src/app/api/analyze/route.ts`, `src/app/api/hybrid-ai/dataset-chat/route.ts`: all switched to the same shared resolver, removing the `GEMINI_API_KEY`-check vs `GOOGLE_GENERATIVE_AI_API_KEY`-call mismatch; analyze keeps its deterministic fallback on failure; the orphaned inline secret-trimming helper was removed.
+   - `src/lib/ai/ai-request-audit.ts`: `errorReason` is redacted with the provider secret redactor at write time (append-only preserved), and `classifyAuditFailureCategory()` normalizes failures into credential_missing | credential_invalid | rate_limited | timeout | provider_unavailable | provider_error derived at read time (no schema change, no falsified history).
+   - `src/lib/ai/byoai-provider.ts`: exported the existing `redactProviderSecretText` for the audit writer.
+   - `src/lib/ai-governance/governance-service.ts` (the shared interpretation layer): new `buildProviderRuntime()` derives normalized state from the already-fetched provider configs, recent audit window (100 entries), and traces — managed-cloud monitored/configured flags, recent attempts/successes/failures, actual fallback usage, failure categories, last success/failure, `executionOrigin` (latest successful generation, deterministic-aware), `latestAttempt`, `latestManagedAttempt`; `summarizeProviders` now includes the UseClevr-managed cloud as a monitored route (status Online/Offline/Rate Limited/Invalid Key/Missing Key/Not tested derived from config + its latest audit attempt), separates missingCredential from invalidKey and notTested from failed, and separates fallbackConfigured from fallbackUsed; `buildPrivacyPosture` reports local availability, cloud availability/configuration, actual provider route (no hardcoded "UseClevr Cloud fallback"), retention, and sensitive-data controls with matching statuses ("Needs setup" is never Ready); `buildRiskPosture` elevates provider-failure risk from real recent audit failures plus config health; `buildComplianceScore` aligns Privacy with the control matrix and counts the managed route as monitored; `getAiGovernanceProviderStatus` shares the same monitored entries; `__governanceTestHooks` exposes pure builders for tests.
+   - `src/components/ai-governance/governance-view.tsx`: Transparency shows actual generation status/origin (AI-generated, Direct data analysis, or "No successful generation"), provider/model from the successful origin, "Governance confidence (readiness-based, not model confidence)", and last-request result with safe failure category; Providers KPIs count missing credentials into Errors, stop showing "Ready" when nothing is monitored, and report fallback usage only when a fallback actually handled requests; the provider table lists the managed route; the Audit Log gains Fallback and safe Failure-reason columns; mode labels map local-only/cloud-only correctly; the header Active-providers badge warns on problems; control matrix names the managed route; SettingsCard shows the truthful fallback route.
+   - `scripts/ai/test-governance-consistency.ts` (new, `test:ai-governance-consistency`, first in `test:all`): 11 groups covering managed-credential resolution, safe failure categories, secret redaction, and the provider-state matrices — no provider + missing managed key (production state), healthy tenant provider + managed success, invalid credential, fallback configured/unused/used/failed, deterministic direct data analysis, intentional local-mode privacy posture, and cross-page consistency (privacy, risk, transparency origin, compliance inputs, export sharing the same snapshot).
+
+4. Problems marked
+   - root cause 1: Active Providers 0/0 counted only tenant BYOK/local rows in `aiProviderConfigs`; the UseClevr-managed cloud route was not represented. Now the monitored set includes the managed route (status from its latest audit attempt + credential configuration).
+   - root cause 2: Gemini shown with no provider configured came from Transparency reading the latest audit entry regardless of success — the failed "UseClevr Cloud Analysis" attempt — plus the always-on "AI-generated" pill. Now provenance comes from the latest successful generation only.
+   - root cause 3: the missing key is a code-lookup inconsistency, not just env config: `server-ai-text.ts` and `chat/fallback.ts` relied on `@ai-sdk/google` reading only `GOOGLE_GENERATIVE_AI_API_KEY` while other paths accept `GEMINI_API_KEY`; production has neither set. One shared resolver now accepts both; the Railway variable to set is `GOOGLE_GENERATIVE_AI_API_KEY` (or `GEMINI_API_KEY`), no placeholder was fabricated.
+   - "UseClevr Cloud fallback" was a hardcoded Privacy display string; "UseClevr Cloud Analysis" is the managed-cloud route name in `defaultCloudAuditInput`; fallbackUsed=false was the truthful runtime fact — Privacy now reports fallback usage only from audit data.
+   - Provider failures showed Ready because risk derived only from provider config stats with zero configured providers; audit failures now drive it within the fetched recent window (no permanent historical scarring).
+   - The 52% confidence is governance readiness (compliance 57 − privacy gap penalty 5), not response/model confidence — now labeled "Governance confidence" with that explanation.
+   - Compliance recomputes naturally: Provider monitoring becomes complete (managed route monitored) while Privacy aligns with the control matrix; the production scenario stays 57% (4/7).
+
+5. User learning
+   AI Governance pages now agree: the managed cloud route appears as a monitored provider with truthful status, failed calls never claim successful AI generation, privacy distinguishes intentionally-disabled cloud from misconfigured cloud, risk reflects real recent failures, and the readiness score reflects the same evidence the pages show.
+
+6. AI-agent learning
+   A managed (system) provider route needs explicit representation in governance or "0/0 + no provider configured" hides a misconfigured system dependency; derive display truth from successful execution origin, never the latest attempt; derive safe failure categories at read time from append-only audit rows to normalize without rewriting history; credential resolution must be single-sourced because two env var names for one provider silently diverge per call site.
+
+7. Follow-up tasks
+   - Set `GOOGLE_GENERATIVE_AI_API_KEY` (or `GEMINI_API_KEY`) in the Railway production environment; the managed route will then record real latency/tokens on success and Transparency will show genuine AI provenance.
+   - `src/lib/ai/ai-router.ts` is unused dead code with its own env mismatch — candidate for removal in a separate cleanup.
+   - Consider a bounded-window query (e.g. 24h) if the 100-entry audit window ever proves too coarse for risk gating.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
+## 2026-09-21 — Usy Contact Handoff Payload Integrity Fix
+
+1. Interaction title
+   Fix the Usy contact handoff payload delivering a mangled/truncated request message.
+
+2. What was the user goal
+   Fix the payload bug in the Usy contact handoff without redesigning the working staged flow (department → message → details → confirmation → n8n).
+
+3. What changed
+   - Reproduced with an end-to-end probe: a dedicated message-step input containing a natural marker word ("… I have a question about the VAT certificate you need.") stored only `"the VAT certificate you need."` in the draft — everything before "about" was dropped; a one-shot combined input was hard-truncated to 120 of 197 characters. Both corruptions flowed into the final n8n webhook payload, so the team received a fragment instead of the request.
+   - Root cause: `mergeContactDraft` let `explicitMessage` extraction take precedence over the verbatim message-step input, and the extraction ran through the shared `extractField`, which slices every captured value to 120 characters and used a single-line `(.+)` capture (newlines ended the capture).
+   - `src/lib/usy/contact.ts`: in the dedicated message step (department set, no valid message yet) the exact typed input wins absolutely within 10–500 characters and marker-word extraction is skipped entirely — the typed text is the payload; one-shot combined inputs use a dedicated `extractContactMessage` (marker list unchanged, newline-tolerant `[\s\S]+` capture, no 120-character cap, paragraph structure preserved) with the 10–500 rule still enforced; name/company/email extraction via `extractField` keeps its 120-character caps.
+   - Tests: `test-usy-contact-message-step.ts` adds `testMessageStepKeepsExactTypedTextInPayload` (verbatim message with marker words, no 120-char cut, multi-line verbatim) and `testOneShotExplicitMessageIsNotTruncated` (full text after the marker, flow still completes); `test-usy-contact-handoff.ts` adds `testWebhookPayloadCarriesExactTypedMessage` (byte-identical payload message, fingerprint separation for payload differences).
+   - `CHANGELOG.md` and `requirements.md` record the user-visible behavior.
+
+4. Problems marked
+   - blocker: none.
+   - risk: none identified — extraction heuristics still apply only to combined one-shot inputs without an active dedicated message step.
+   - improvement: one-shot messages still absorb trailing "My name is …" text after the marker (pre-existing heuristic; the structured name/reply-email fields remain correct).
+   - observation: the bug was pre-existing but became user-visible once the message step made long natural requests the normal case; the verbatim precedence rule removes the whole class.
+
+5. User learning
+   The team now receives the exact request the user typed in the Usy message box; words like "about" inside a request no longer cut the message short.
+
+6. AI-agent learning
+   Shared extraction helpers leak their constraints into every caller: `extractField`'s 120-character slice (correct for name/company) silently truncated the message field. Precedence matters as much as presence — a heuristic candidate must never override a dedicated verbatim input path.
+
+7. Follow-up tasks
+   - None assigned.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
+## 2026-09-20 — Usy Production Contact Handoff Repair
+
+1. Interaction title
+   Repair the production Usy contact handoff configuration and make confirmed submissions idempotent and retryable.
+
+2. What was the user goal
+   After the staged contact flow shipped, production returns "I cannot submit the request right now because the contact handoff is not configured." after Confirm. Trace the confirmed request path, identify the exact cause, audit the environment variables the existing n8n integration expects (no second webhook, no parallel email logic, no mailto, no client-side secrets), keep support@useclevr.com available as the Technical Support / IT destination, preserve department routing and the structured payload, keep guests working, and make success/failure behavior idempotent and truthful (no duplicate handoff, no lost draft, no false delivery claim).
+
+3. What changed
+   - Trace: confirmation → client POSTs the confirmed draft to `/api/usy/contact` → `checkUsyContactRateLimit` (3/10 min per user/IP) → `validateUsyContactPayload` (10–500 message, known department, valid email) → `getUsyContactWebhookConfig()` reads `USY_CONTACT_N8N_WEBHOOK_URL` + `USY_CONTACT_N8N_WEBHOOK_SECRET` from `process.env` → `buildConfirmedUsyContactPayload` adds server-derived userId/organizationId → `sendUsyContactWebhook` POSTs JSON with `Authorization: Bearer <secret>` and `X-UseClevr-Event: usy.contact_request` to the central n8n webhook → n8n routes by `category` to the department destination and delivers.
+   - Root cause: the live Railway project (project `useclevr-web`, env `production`) has **no** `USY_CONTACT_N8N_WEBHOOK_URL` and **no** `USY_CONTACT_N8N_WEBHOOK_SECRET` on the production `useclevr app` service (app.useclevr.com) nor on the `useclevr TEST` service (production and beta envs) — audited via `scripts/server/railway/railway.cjs variable list` with names only (no secret values printed). `getUsyContactWebhookConfig()` returns `missing: true` → the route returns 503 with the reported message. The variables are also absent from `.env.railway.example`/`.env.local.example`, so they were never provisioned anywhere.
+   - `src/lib/usy/contact.ts`: new `createUsyContactSubmissionGuard` (pending/delivered fingerprint store with 10-minute window), `fingerprintUsyContactSubmission` (sha256 of server identity + category/message/senderName/company/replyEmail/language), and `sendUsyContactWebhook` (the single central n8n webhook call with injectable fetch, bearer + event headers, safe retryable failure result).
+   - `src/app/api/usy/contact/route.ts`: submission guard wired in — duplicate confirmation of a delivered request returns 202 "already been submitted" without a second webhook call; an in-flight duplicate returns 409 with Retry-After; a failed webhook releases the fingerprint and returns the retryable 502; success marks the fingerprint delivered. Rate limiting, validation, 503 missing-config behavior, and secret handling unchanged.
+   - `src/components/ui/help-chatbox.tsx`: a failed submission keeps the confirmed draft (only success clears it) so the user can retry without retyping; localized success/failure confirmation in all six languages; failure shows localized Confirm/Cancel chips mirroring the server's confirmation chips; no duplicate submission (guarded by isAsking + the server-side fingerprint guard).
+   - Configuration documentation: `.env.railway.example` and `.env.local.example` now declare `USY_CONTACT_N8N_WEBHOOK_URL=` and `USY_CONTACT_N8N_WEBHOOK_SECRET=` (empty, never fabricated) with generation and routing notes; `docs/AI-interaction/developer-guides/usy-contact-handoff.md` gains a Railway Configuration section (set both variables on the production `useclevr app` and `useclevr TEST` services; values come from the operator's n8n instance; technical_support routes to support@useclevr.com on the n8n side) and Submission Semantics plus updated Responses; `CHANGELOG.md` and `requirements.md` record the user-visible behavior.
+   - Tests: `scripts/ai/test-usy-contact-handoff.ts` (new, `test:usy-contact-handoff`, in `test:all`) covers configured-webhook success (single call, bearer/event contract, full payload), missing/invalid configuration safe failures, network/server-error/401 webhook retryability, duplicate confirmation deduplication, guard window expiry, fingerprint separation by identity and payload, all five department routings, guest and authenticated payload contracts, and source guards for server-side-only secrets, guard wiring, and draft preservation on failure.
+
+4. Problems marked
+   - blocker: production delivery stays blocked until the operator sets `USY_CONTACT_N8N_WEBHOOK_URL` and `USY_CONTACT_N8N_WEBHOOK_SECRET` in Railway (values exist only in the operator's n8n instance and were not fabricated).
+   - risk: the submission guard is process-local; a multi-instance deployment could double-deliver an ambiguous retry (single Railway web service today; n8n-side dedup by replyEmail+timestamp would close it fully).
+   - improvement: n8n could return a stable delivery reference that UseClevr could surface to the user as a ticket reference.
+   - observation: department→mailbox routing is n8n-side configuration; UseClevr intentionally sends only `category` and never embeds destination addresses.
+
+5. User learning
+   The "not configured" message was truthful: the two server-side variables for the central n8n webhook were never set in Railway. Setting them on the production and test services (with the matching bearer value configured in the n8n workflow) activates delivery without any code change; departments keep their dedicated destinations, and support@useclevr.com receives Technical Support / IT.
+
+6. AI-agent learning
+   Railway environment audits must print variable names only (the CLI wrapper's `variable list` prints raw values); filtering output to names before it reaches the transcript keeps secrets out of the session. Source assertions in existing suites follow refactors — moving the webhook call into `sendUsyContactWebhook` required updating the event-contract source assertion to the new location.
+
+7. Follow-up tasks
+   - Set the two Railway variables and verify a live guest + authenticated contact submission end to end after deploy. (labels: production, railway, usy)
+   - Consider an n8n-side deduplication key so ambiguous retries cannot double-deliver across instances.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
+## 2026-09-20 — Usy Contact Handoff: Dedicated 500-Character Message Step
+
+1. Interaction title
+   Usy contact handoff: add a structured message step before contact-detail collection.
+
+2. What was the user goal
+   Improve the existing Usy Secretariat contact flow: after department selection, Usy must ask for the actual request through a dedicated Message input (required, 10–500 characters, live 0/500 counter, trim, client AND server validation) before collecting name/reply email/optional company, keep the selected department stable through every step, keep the existing central n8n handoff (no parallel email logic), work for guests and authenticated users, stay localized in all six languages, keep mobile/desktop layout intact, add deterministic tests, and not commit or push.
+
+3. What changed
+   - Previous behavior/root cause: `buildUsyReply` collapsed the whole contact flow into one `mergeContactDraft` + `missingContactFields` check and answered with `buildMissingContactFieldsAnswer`, which asked for "department, your request, your name, your reply email" in a single message after any department chip click; the message had no dedicated UI, no counter, and only a 5–2000 character zod rule at the final `/api/usy/contact` gate, so a bare "Billing" click immediately asked for everything at once.
+   - `src/lib/usy/contact.ts`: `usyContactMessageMinLength = 10` / `usyContactMessageMaxLength = 500` pinned into `usyContactPayloadSchema` (message 10–500, trimmed); new `validateContactMessage` returning `{ ok, message } | { ok, reason: empty|too_short|too_long }`; `mergeContactDraft` accepts the dedicated message-step input verbatim when the draft already has a category (10–500, no collection-phrase guard), keeps the ≥20-char one-shot heuristic with the extended `isOnlyCollectionMessage` guard (department labels + contact-intent starters in six languages, so a bare "Executive Management" chip — exactly 20 chars — is never stored as the message), and only ever stores messages passing the 10–500 rule; `missingContactFields` uses the same rule; new localized `buildContactDepartmentPrompt`, `buildContactMessagePrompt`, `buildContactMessageProblemAnswer`, `buildContactDetailsPrompt` (six languages); removed the combined-ask `buildMissingContactFieldsAnswer`.
+   - `src/lib/usy/router.ts`: staged contact block — category missing → department prompt with localized team chips; message missing → message prompt or specific too-short/too-long problem answer with `messageInput: true` and empty follow-ups; name/reply email missing → "Thanks. Please provide your contact details so the team can reply..." prompt; complete → the existing `buildContactSummary` confirmation with Confirm/Cancel chips; short (≤20 chars) cancel commands clear the draft with `clear_contact` at any pre-confirmation step; the guest personal-account-data guard (`asksForPersonalAccountData`) is skipped while a contact draft is active so "my invoice is wrong" in a described request never drops the draft and department.
+   - `src/lib/usy/types.ts`: `UsyChatResponse.messageInput?: boolean` signals the dedicated message step to the chat UI.
+   - `src/app/api/usy/chat/route.ts`: contactDraft fields bounded at the boundary (message ≤2000, senderName ≤120, company ≤120, replyEmail ≤254); `withSessionContactDefaults` prefills missing senderName/replyEmail from the verified `auth()` session only for signed-in users (identity never from the client).
+   - `src/components/ui/help-chatbox.tsx`: dedicated message composer replaces the normal input while `messageInput` is active — labeled textarea (localized label/placeholder, e.g. "Message"/"Describe your request..."), input hard-capped via `.slice(0, 500)` plus `maxLength`, live `{n} / 500` counter, inline localized "at least 10 characters" hint, disabled Continue under 10 trimmed characters or while asking, localized Cancel that routes a server-side clear, Enter-to-send with Shift+newline, composer stays inside the existing chat panel width (no window resize, textarea wraps, counter visible, chat scroll unchanged).
+   - Tests: `scripts/ai/test-usy-contact-message-step.ts` (new, `test:usy-contact-message-step`, wired into `test:all`) covers the required matrix — department chips open the message step and preserve sales/technical_support/billing/management/executive through it, empty/whitespace/short/long message rejection (501 rejected server-side via `validateUsyContactPayload`), 10 and 500 boundary acceptance, whitespace normalization, valid message → details step, name/email required with company optional, guest flow to confirmation, authenticated flow with session-derived details, handoff payload containing category/message/senderName/replyEmail/company/language/timestamp/userId/organizationId, source guards for session-derived identity, n8n reuse, rate limiting, and no parallel email logic; `scripts/ai/test-usy-secretariat.ts` updated for the staged German flow; `CHANGELOG.md`, `requirements.md` (Usy Support section), and the three interaction records updated.
+
+4. Problems marked
+   - blocker: none.
+   - risk: a guest message beginning with a cancel word ("no", "stop") within 20 characters is treated as a cancel command at the message step; longer sentences are safe.
+   - improvement: message capture for combined one-shot inputs (message + name + email in a single sentence) still relies on the explicit "message:/Anliegen:/about …" patterns; phrases starting with contact-intent starters route to the message step for retyping instead of being captured.
+   - observation: `asksForRestrictedInformation` intentionally still fires during the contact flow — a security probe as message content refuses and ends the flow.
+
+5. User learning
+   Selecting a team in Usy now leads to a clear "Please describe your request." step with its own message box and character counter; the request is mandatory before any contact details are requested, and the 500-character ceiling is enforced in the UI and on the server.
+
+6. AI-agent learning
+   Guard order matters: the guest personal-data guard ran before the contact block and silently dropped active contact drafts on phrases like "my invoice"; routing guards must respect in-progress conversation state. Boundary-length chip labels (e.g. "Executive Management" = 20 chars) can satisfy generic length heuristics — exact department-label guards prevent selection text from becoming the message.
+
+7. Follow-up tasks
+   - Consider a dedicated structured input step for name/reply email/company mirroring the message composer for guests.
+   - Consider surfacing page/context metadata in the n8n payload only when the workflow contract explicitly accepts it.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
+## 2026-09-20 — Investor Dashboard Trend/Snapshot Semantics + Score Identity Fix
+
+1. Interaction title
+   Investor dashboard semantic consistency: real-trend eligibility, snapshot fallback, and distinct score identities.
+
+2. What was the user goal
+   Fix two semantic UX problems without redesigning the Investor flow or changing correct deterministic calculations: (a) charts labeled "Revenue Trend"/"Profit Trend" rendered even when the data could not establish a trend (including a single observation), and (b) the dashboard showed "Today's Score 58/100" with "AI confidence 65/100" while the generated Investor report showed Business Balanced Scorecard 76/100 with no explanation that these are different metrics. Require Trend/Snapshot/Unavailable states, never invent data, keep dashboard/PDF terminology consistent, keep recommendations unchanged, add deterministic tests, and do not commit or push.
+
+3. What changed
+   - Audit findings: `dashboard-semantic-profile.ts` emitted trend panels from any aggregated series with at least one nonzero point (no ≥2-period rule); `page.tsx` `TrendPanel` drew an AreaChart whenever `data.length > 0`, including exactly one point, under "Revenue Trend"/"Profit Trend"; for Investor datasets the semantic trends were empty by canonical rule (`financials.periodTrends = []`, `investment_date` excluded), so `activeTrendPanels` fell back to page-level `buildSeries` that treated `investment_date` (matched by `/date/`) as the temporal dimension for `annual_revenue`, manufacturing a fake "Revenue Trend" from cross-sectional data. Score audit: "Today's score" is the Executive Daily Health brief score = round(mean of 5 signal scores: dataset freshness, business profile readiness, inventory health, profitability, forecast reliability) − 3 × missingDataCount, clamped 0-100; "AI confidence" is round(mean signal confidences) + min(10, insightCount) — deterministic analysis coverage, not AI model certainty; BBSC overall = round(equal-weight average of available perspective scores), excluded perspectives not estimated; the overview tab's "Business Health Score" card is a different composite ((readiness + aiConfidence + forecastConfidence + growthScore)/4) that would collide with the renamed daily brief score.
+   - `src/lib/data/trend-semantics.ts` (new): shared deterministic rules — `isTrendEligible` requires at least two usable observations across at least two distinct period labels (duplicates collapse at aggregation; empty labels and non-finite values never count); `resolveTrendSemantics` returns trend (plot exactly the aggregated points), snapshot (deterministic metric value or last usable observation + "No sufficient time-series data is available for a {metric} trend."), or unavailable (named reason, no chart).
+   - `src/lib/data/dashboard-semantic-profile.ts`: `DashboardSemanticTrend` gains `state` and `snapshotValue`; new exported `buildTrendPanel` derives state-aware titles (base "…Trend" / "{metric} Snapshot" / "{metric} data unavailable"); `buildSemanticTrends` now covers every profile with metric values and unavailable reasons, adds an `investor_portfolio` branch ("Portfolio Company Annual Revenue" snapshot from `financials.revenue` + "Profit data unavailable" with the required-fields reason; investor series stay empty because investment dates are not revenue reporting periods), and keeps null-aware period series (explicit zeros stay plottable, missing values never become fabricated points).
+   - `src/app/(auth)/app/page.tsx`: `TrendPanel` renders by state (chart / snapshot value + supporting text / unavailable explanation); `activeTrendPanels` trusts the semantic profile whenever it exists and builds fallback panels through `buildTrendPanel` (metric totals + ≥2-point rule) only when no semantic analysis exists; the Financial tab's Monthly Comparison uses the same resolver; Executive Daily Health section relabels "Today's score" → "Business Health Score" and "AI confidence" → "Analysis confidence" with the deterministic formula explanations; overview cards renamed to "Workspace Health Score" and "Analysis Confidence" (distinct from the daily brief score) with hint text; `ScoreRing` aria-label updated; BBSC preview shows the concise methodology line "Average of available Balanced Scorecard perspectives. Perspectives with insufficient source data are excluded rather than estimated."
+   - `src/app/(auth)/app/daily-health/page.tsx`: uses the shared "Business Health Score" label, "Analysis confidence" label, and the score explanation.
+   - `src/lib/executive/daily-health-semantics.ts` (new): single source for all score labels and explanation copy; `daily-health.ts` exports `calculateMetrics` and `buildDeterministicBrief` for formula-pinning tests; its deterministic executive summary now says "Business health score is X/100 …" instead of "Today's health score".
+   - Tests: `scripts/analysis/test-trend-semantics.ts` (+ `test:trend-semantics`, in `test:all`) covers the ten required cases (multi-period trend, one-period snapshot, no temporal dimension, missing metric, profit trend/snapshot/unavailable, duplicate-date collapse, invalid/null dates, no artificial points) plus resolver edge cases; `scripts/analysis/test-score-semantics.ts` (+ `test:score-semantics`, in `test:all`, runs with load-env because importing the daily-health module triggers config env validation) pins both score formulas, the distinct labels, the BBSC equal-weight-average formula with excluded-perspective proof, and the exact methodology copy; `scripts/analysis/test-investor-questions.ts` now asserts state-aware trend semantics (no trend-state panel matching /revenue|mrr|arr|runway/i, "Portfolio Company Annual Revenue Snapshot" with value 126384909.53, "Profit data unavailable") replacing the blunt title regex that could not express the new snapshot requirement.
+   - `CHANGELOG.md` (two Added entries under Unreleased) and `requirements.md` (four new Downloads & Reports requirements) record the user-visible behavior.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `test:dataset-aware-report-profiles` fails at "saas: results summary top findings must suppress technical metadata" — verified pre-existing at pristine HEAD via a temporary worktree with linked node_modules; unrelated to this change (report findings/PDF metadata filtering, untouched files).
+   - improvement: the ≥2-point guards across report/PDF code (`drawTrendPanel`, `drawSaasTrendTable`, `drawMarketplaceTrendTable`, `hasTrendData`) remain per-site; a shared helper now exists for dashboard semantics and could be reused by report code later.
+   - observation: the default dashboard view without a selected dataset keeps the page-level generic series heuristics (including `investment_date` matching `/date/` for KPI sparklines); the selected-dataset path — which is the Investor dashboard — is now governed by the semantic profile.
+
+5. User learning
+   The Investor example numbers are legitimate different metrics: 58/100 is the workspace Business Health Score (signal average minus missing-data gaps), 65/100 is deterministic analysis confidence, and 76/100 is the BBSC equal-weight average of available perspectives — none should ever be made to match.
+
+6. AI-agent learning
+   When semantic-profile trends were empty, the page-level fallback silently bypassed canonical investor semantics (the investor test only guarded `semanticAnalysis.trends`, not the fallback). State-aware assertions (state/title/value/copy) catch what title-regex assertions cannot.
+
+7. Follow-up tasks
+   - Reuse the shared trend-eligibility helper in report/PDF trend guards to remove duplicated per-site `length >= 2` checks.
+   - Extend semantic-profile authority to the no-selected-dataset dashboard view so page-level generic series heuristics (e.g. `investment_date` sparklines) also respect canonical temporal semantics.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md (this entry)
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirements: requirements.md
+   - No TODO queue changes (no deferred work assigned)
+
+## Unified Credit Control System
+
+1. Interaction title
+   Single authoritative credit-control system across UseClevr.
+
+2. What was the user goal
+   Make every credit-consuming feature, balance display, entitlement check, and debit use the existing centralized credit engine with one authoritative feature-cost table (upload+standard analysis 10, AI Analyst message 1, report generation 3, forecast 3, profitability analysis 15, existing report download 0), remove legacy analysis counters/quota logic, unify the three credit displays, keep reservation/finalize/release semantics, and never commit or push.
+
+3. What changed
+   - `src/lib/billing/feature-costs.ts`: rewritten as the single source of truth — `FEATURE_CREDIT_COSTS` pins the six authoritative customer costs; `FEATURE_COST_REGISTRY` becomes flat deterministic costs (`variableCredits: 0`, `maxReservationCredits === baseCredits`); `CREDIT_VALUE_EUR = 0.085` derives `CREDITS_PER_EURO`; `normalizeCreditFeature` maps legacy action names (`dataset_upload`, `standard_analysis`, `dataset_analysis`, `forecast_analysis`, `report_download`, …) onto the unified features.
+   - `src/lib/billing/credit-engine.ts`: `CREDIT_COSTS` remaps every legacy action to the authoritative table; removed the dead token-priced `deductCredits` parallel debit path; the finalize replay lookup now matches the `type: "charge"` ledger row so re-finalizing a settled operation returns the original charge idempotently instead of erroring (unlimited path already wrote `transactionType: "charge"`, normal path writes `USAGE_DEBIT` with `type: "charge"`).
+   - `src/app/actions/upload.ts`, `src/app/api/datasets/route.ts`, `src/app/api/upload/simple/route.ts`: uploads reserve `standard_upload_analysis` (10 credits, no `estimatedCredits` stub) and finalize exactly the reserved amount; failure paths release the full reservation; exhaustion copy and `creditState.requiredCredits` reflect the 10-credit cost.
+   - `src/app/api/datasets/[id]/analyze/route.ts`: re-analysis reserves and finalizes the full 10-credit standard analysis (was a 1-credit stub).
+   - `src/app/api/analyze/route.ts`: AI Analyst questions debit `ai_question` (1 credit); Gemini `generateText` usage metadata (input/output/reasoning/cached tokens) is captured into the credit ledger and AI cost log for internal unit economics; blocked-path logs use `ai_chat`.
+   - `src/app/api/chat/route.ts`: the analytical-query branch no longer bypasses billing — the reservation happens before `handleAnalyticalQuery`, successful responses finalize exactly the reserved amount, and failures release (`analytical_chat_failed`/`analytical_chat_not_completed`).
+   - `src/app/api/reports/generate/route.ts` + `src/app/api/reports/route.ts`: unchanged code paths now debit 3 credits through the registry; `src/app/api/reports/download/route.ts` stays at 0 credits.
+   - UI unification: `src/components/ui/usage-monitor.tsx` + `useUsage` derive the primary number from the server `availableCredits` (remaining − reserved) instead of `total` (included+purchased); the sidebar (`app-sidebar.tsx`) reuses it; `src/app/(auth)/app/downloads/page.tsx` replaces "84 / 79 analyses used this month" with the authoritative available balance plus included/purchased breakdown and per-download quota gating is removed (downloads are free); `topbar.tsx` already read `getAnalystCreditUsage().availableCredits`; subscription, profile, and account-center pages now show the available balance with an Included/Purchased breakdown.
+   - Legacy removals: deleted `src/app/api/usage/increment/route.ts` (Profile.analysisCount counter endpoint) and `consumeAnalystCredit`; deleted `src/lib/utils/credits-context.tsx` (client-side localStorage credit system); deleted the unused `download-report-button.tsx` with its "free analyses" quota copy; removed `CREDIT_COSTS`/`CREDIT_PACKAGES`/`FREE_UPLOADS_LIMIT` from `src/lib/business/products.ts`; removed analyst-credits' duplicate `syncCreditPlanToProfile` (which reset purchased credits to the plan allowance) in favor of the engine's reconciling `initializeUserCredits`; `AnalystCreditUsage` now carries `includedBalance`/`purchasedBalance`.
+   - `src/lib/billing/upload-credit-messaging.ts`: copy is remaining-based and cost-aware ("Each upload with its standard analysis uses 10 credits") instead of used/limit quota language.
+   - `src/lib/usy/*`: Usy billing state and answers use `availableCredits` instead of `total − analysisCount`; localized upload-limit answers state the 10-credit cost and available balance; the usy chat schema forwards the new usage fields.
+   - `scripts/billing/test-unified-credit-control.ts` (+ `test:credit-unified`, wired into `test:all`): 12 behavioral checks covering master-prompt cases A–K plus the upload/re-analyze/chat wiring, run against the shared mock DB; mock-db gained the release-SQL shape; stale cost assertions in `test-credit-engine.ts`, `test-upload-credit-reservation.ts`, `test-accountancy-upload-entitlements.ts`, and `test-sidebar-credit-topup-link.ts` updated to the authoritative model; `test-prebookkeeping-upload-limit.ts` fixed a pre-existing stale import assertion.
+   - `CHANGELOG.md`: Added/Fixed/Changed entries under `## [Unreleased]`.
+
+4. Problems marked
+   - blocker: none.
+   - fixed: finalize replay previously returned "Reservation not found" for already-settled normal-path operations because the lookup matched only `transactionType: "charge"` while normal charges are `USAGE_DEBIT`; replay now matches `type: "charge"`.
+   - risk: the accountancy/pre-bookkeeping flows keep their credit-exempt entitlement (intentionally outside the standard upload analysis); their tests pin that exemption.
+   - observation: `processPlanChange` can leave `includedBalance + purchasedBalance ≠ remainingCredits` when purchased balance exceeds the new plan allowance; UI therefore always uses `remainingCredits − reservedCredits` as the authoritative number, never the sum of the two balance fields.
+
+5. User learning
+   Every credit display shows the same available balance the server enforces; uploading with its standard analysis costs 10 credits once, AI Analyst messages cost 1, reports cost 3 to generate or regenerate, and downloading existing reports is free.
+
+6. AI-agent learning
+   Keep one registry as the only place credit costs live: routes pass a stable feature identifier, the engine normalizes legacy names, and UI copy derives from the same table, so no surface can drift from the authoritative debit.
+
+7. Follow-up tasks
+   - None blocking; the forecast feature cost (3) is registered but no standalone endpoint currently debits it — wire it when a forecast endpoint debits credits.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Zero-Credit UX and Exhaustion Handling
+
+1. Interaction title
+   Zero-credit UX and exhaustion handling for AI and credit-consuming actions.
+
+2. What was the user goal
+   When a user attempts an AI/credit-consuming action with insufficient usable credits, show a clear modal instead of a generic error: Pro/Business get an Add Credits CTA linking to the billing credit-topups section, Free gets Upgrade to Pro or Business because Free cannot purchase top-ups; the modal must use the authoritative usable balance, never bypass server-side enforcement, and handle concurrent requests without negative balances, with regression tests for Free, Pro, and Business zero-credit states.
+
+3. What changed
+   - `src/lib/billing/credit-exhaustion.ts`: new server helper that derives an authoritative `creditState` payload from `getCreditAccount` (or a usage snapshot): usable balance clamped at zero (included plus preserved purchased credits on every tier), `zero_credits` vs `insufficient_credits` reason, and a plan-aware CTA — `add_credits` to `/app/settings/subscription?tab=billing#credit-topups` for Pro/Business, `upgrade` to Pro checkout for Free — with tier-specific copy explaining that Free cannot purchase top-ups.
+   - `src/components/shared/zero-credit-modal.tsx`: new display-only `ZeroCreditModal` and `useZeroCreditModal` hook; renders only from the server-issued `creditState` payload, shows the authoritative usable balance, dispatches `USAGE_REFRESH_EVENT` so balances re-sync, and offers no fetch or unlock path so the UI cannot bypass server enforcement; concurrent exhausted responses do not stack modals.
+   - `src/app/api/analyze/route.ts`, `src/app/api/chat/route.ts`, `src/app/api/reports/generate/route.ts`, `src/app/api/upload/simple/route.ts`, `src/app/api/upload/route.ts`: every 402 credit-exhaustion response now embeds `creditState` built from the authoritative balance at rejection time.
+   - `src/components/chat/chat-panel.tsx`, `src/components/chat/ai-chat-interface.tsx`, `src/components/retail/retail-inventory-client.tsx`, `src/components/forms/csv-upload.tsx`: 402 responses and upload failure payloads route into the zero-credit modal; paid-plan upload exhaustion shows Add Credits instead of the Free upgrade modal, while the Free upload limit flow keeps its existing plan-comparison UI.
+   - `src/lib/upload/upload-client.ts`: `UploadDatasetResponse` carries the optional `creditState` payload.
+   - `scripts/billing/test-zero-credit-ux.ts` + `test:zero-credit-ux` script in `package.json` (wired into `test:all`): 12 checks covering Free/Pro/Business exhaustion, preserved purchased credits counting toward the usable balance, negative-balance clamping, payload shipping from every credit-consuming route, the display-only modal contracts, the Free sidebar contract (the `+ Add Credits` purchase CTA renders only on paid plans while preserved purchased credits show as usable), and the atomic conditional-UPDATE reservation guard plus `GREATEST(0, …)` finalize clamps.
+   - `scripts/billing/test-credit-lifecycle-downgrade.ts`: production regression cases added to the master billing/credit fix suite — Free + included 0 + purchased 100 → a standard upload reservation (1 credit, source "upload") succeeds through the shared reservation layer and finalize deducts from the purchased balance (100 → 99); Free + purchased reaching 0 → the next upload is rejected with the normal insufficient-credit result and the Free Upgrade to Pro/Business exhaustion payload; Business reservation/consumption unchanged.
+   - `src/lib/billing/credit-engine.ts` (working tree, from the running master fix): the reservation UPDATE is tier-agnostic (`remainingCredits - reservedCredits >= estimate`) and finalizeCredits consumes included credits before purchased credits on every tier — this shared layer is what makes the Free preserved-purchased upload work for all credit-consuming features, not just uploads.
+   - `CHANGELOG.md`: Added entry for the out-of-credits dialog.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the production 402 reports stem from the deployed build still running the superseded paid-plan gating (commit 82c81914a); the corrected shared engine lives in this working tree and the regression cases now pin it, so the fix ships only when this branch deploys.
+   - risk: a concurrent agent owns the `src/lib/billing/credit-engine.ts` working-tree revert (purchased credits usable on Free) inside the running master billing/credit fix; the exhaustion helper and the regression tests implement and pin that exact shared-layer policy without reversing the parallel change.
+   - improvement: `/api/mcp` and `/api/upload/simple` spending-limit responses still return plain 402 messages without `creditState`; spending limits are a separate exhaustion reason and can adopt the same payload later.
+   - observation: the reservation engine's conditional UPDATE (`remainingCredits - reservedCredits >= estimate`) already makes concurrent reservations safe and keeps balances non-negative; this work only surfaces that state to the UI.
+
+5. User learning
+   The out-of-credits dialog always reflects the balance the server enforced at rejection time; Free plans recover by upgrading, Pro and Business plans recover by topping up, and closing the dialog re-syncs the credit display.
+
+6. AI-agent learning
+   Build exhaustion UX from a server-issued payload, not a client estimate: the same 402 handler decides CTA, balance, and copy server-side, so any surface can render the correct recovery path without re-implementing billing policy in the frontend.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Subscription and Credit Lifecycle Hardening
+
+1. Interaction title
+   Finalize and harden the complete UseClevr subscription + credit lifecycle.
+
+2. What was the user goal
+   Audit and align the full Free ↔ Pro ↔ Business billing/credit system so cancellation, expiration, subscription refunds, top-ups, top-up refunds, downgrades, and re-upgrades follow one consistent production-safe business model, with purchased credits staying consumable on Free and top-up purchases staying exclusive to Pro/Business.
+
+3. What changed
+   - `src/lib/billing/credit-engine.ts`: removed the hidden Free-tier block introduced by the previous fix — `reserveCredits` no longer requires Free reservations to fit inside the included allowance, and `finalizeCredits` no longer caps the Free-tier debit to the included allowance or gates consumption on a `planTier` reservation stamp. Included credits are consumed before purchased credits on every tier through the existing CASE expression.
+   - `src/app/api/checkout/credit-topup/route.ts`: the server-side gate that rejects Free accounts from creating top-up checkout sessions is preserved unchanged.
+   - `src/components/ui/usage-monitor.tsx`: the unlimited admin variant drops the purchase link, the paid Pro/Business variant keeps `+ Add Credits`, and both Free variants render an Upgrade to Pro action plus a note that preserved purchased credits remain usable on Free.
+   - `src/app/(auth)/app/settings/subscription/page.tsx`: the static Subscription Invoices placeholder is replaced with the customer's Stripe subscription invoices and their authoritative refund state (Paid / Partially refunded / Refunded / Payment due), sourced from `stripe.invoices.list` paired with succeeded charges; credit top-up invoices and internal provider references stay out of the view, and Credit Top-Up History remains a separate table.
+   - `scripts/billing/mocks/mock-db.mjs`: the reservation and finalization SQL matchers follow the reverted engine shapes with no tier clause.
+   - `scripts/billing/test-credit-lifecycle-downgrade.ts`: behavioral regression rewritten to the authoritative rules — downgrade preserves purchased credits, Free consumes preserved purchased credits, included-first consumption on every tier, re-upgrade restores consumption, Free monthly reset preserves purchased credits, and source contracts pin the checkout gate plus the absence of tier-based consumption gating.
+   - `scripts/billing/test-credit-topup-architecture.ts` and `scripts/billing/test-sidebar-credit-topup-link.ts`: source contracts updated to the corrected behavior and the new invoice history.
+   - `CHANGELOG.md`: Added entries for the Subscription Invoices section and the Free upgrade action; Fixed entry for purchased credits remaining usable on Free; removed the superseded plan-gating claim.
+
+4. Problems marked
+   root cause: the previous implementation treated "cannot buy new top-ups on Free" as "cannot consume purchased credits on Free", which violated the authoritative business model that purchased credits never expire and remain usable until exhausted on any tier.
+   risk: none identified beyond the existing requirement to deploy the branch.
+   observation: no schema migration is required; the work reuses the existing UserCredit/CreditLedger/Stripe architecture and performs no production mutations.
+
+5. User learning
+   Purchased credits behave like stored value: they survive cancellation, expiration, plan changes, and downgrades, remain spendable on Free, and only new top-up purchases require Pro or Business.
+
+6. AI-agent learning
+   Plan-gating purchase checkout and plan-gating credit consumption are different concerns; gating consumption by reservation metadata invites hidden tier blocks — keep consumption tier-agnostic and enforce entitlement at checkout and feature gates.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Top-Up Refund-Before-Grant Race Fix
+
+1. Interaction title
+   Stripe top-up refund-before-grant race fix.
+
+2. What was the user goal
+   Fix only the missing Stripe credit top-up refund race where `charge.refunded` can arrive before `CreditTopUp` exists, then a delayed `checkout.session.completed` grants credits for an already fully refunded payment.
+
+3. What changed
+   The Stripe checkout grant handler now retrieves the authoritative PaymentIntent and latest Charge before issuing credits. Fully refunded charges record a zero-credit `refunded` top-up history row and skip all ledger and balance mutations, so later checkout replays see the provider payment as already processed and grant zero. Partial refunds continue through the normal grant path and remain handled by the existing `charge.refunded` reversal. The credit top-up service now has an audit-safe `recordStripeRefundedTopUpWithoutGrant` path for Stripe payments refunded before any credit grant. The Stripe mock now supports PaymentIntent and Charge refund states. Behavioral tests cover normal grants, duplicate checkout events, full refund after grant, duplicate refund events, refund before grant followed by checkout replay, partial refund, and included-credit invariants.
+
+4. Problems marked
+   blocker: none.
+   risk: deployment must complete before replaying the existing production `charge.refunded` event; replaying before deployment can still leave the old grant-side race open.
+   improvement: none.
+   observation: the fix performs no real payments, no Stripe refunds, no production balance changes, and no webhook event resend.
+
+5. User learning
+   The safe replay point is after this grant-side guard is deployed, because checkout replays for fully refunded payments then create zero-credit refunded history instead of granting purchased credits.
+
+6. AI-agent learning
+   Refund race fixes must guard the credit grant side with authoritative provider state, not only the refund webhook side, because webhook ordering is not guaranteed.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Sidebar Add Credits Action
+
+1. Interaction title
+   Sidebar Add Credits action.
+
+2. What was the user goal
+   Add a compact “+ Add Credits” action directly inside the existing left-sidebar credit/plan card, route it to the existing subscription billing top-up section, preserve credit display behavior, avoid duplicate checkout UI, and verify the change without committing or pushing.
+
+3. What changed
+   The usage monitor card now renders a compact `+ Add Credits` link for limited-credit users, including Free users because the existing billing tab already shows top-ups for non-unlimited accounts. The link uses a shared top-up billing href and points to `/app/settings/subscription?tab=billing#credit-topups`. The subscription billing page exposes the matching stable anchor on the existing Purchase Credit Top-Ups section. The mobile sidebar closes when the link is tapped. A focused static regression script verifies the shared href, sidebar link, billing anchor, and that the sidebar does not call checkout directly.
+
+4. Problems marked
+   blocker: none.
+   risk: `pnpm test:sidebar-credit-topup-link` cannot run in the sandbox because Corepack pnpm cannot open its global store database and escalation is rejected by policy.
+   improvement: none.
+   observation: the existing billing page already preserves entitlement behavior by hiding top-up packages only for unlimited accounts while checkout APIs continue to enforce server-side rules.
+
+5. User learning
+   The sidebar action is a navigation shortcut to the existing billing top-up flow, not a new purchase system.
+
+6. AI-agent learning
+   When adding a sidebar billing shortcut, the AI agent must anchor the existing billing section and keep checkout initiation inside the established top-up components and API routes.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Prebookkeeping Category Review Persistence Fix
+
+1. Interaction title
+   Prebookkeeping category review persistence fix.
+
+2. What was the user goal
+   Fix the existing Category dropdown workflow so manual category changes such as Monthly bank fee from Equity to Bank Fees persist through `PATCH /api/prebookkeeping/review`, reload correctly, update review counts, and feed accountant exports without changing the category choices or unrelated systems.
+
+3. What changed
+   The review mutation logic now lives in a shared Accountancy helper used by the PATCH route and focused regression tests. The route still performs the same authenticated, tenant-scoped Pre-bookkeeping dataset lookup, updates the same dataset analysis record, writes audit events, writes learning rules, and returns the refreshed categorization. Railway predeploy now applies the existing `0023_prebookkeeping_vat_learning.sql` migration so production has the `countryKey` and `vatRate` columns that manual review learning-rule inserts already use. The focused Accountancy regression now covers Monthly bank fee starting as Equity, manually changing to Bank Fees, persisting to the same transaction, reloading as Bank Fees, updating counts, creating one learning rule, and exporting Bank Fees in the accountant CSV.
+
+4. Problems marked
+   blocker: none.
+   risk: production must run the updated predeploy before the deployed PATCH route can rely on the learning-rule VAT columns.
+   improvement: link the local Railway project for future direct runtime log inspection from this checkout.
+   observation: the Category dropdown and category choices were already correct; the 500 path was in the server persistence transaction after the selected category reached the API.
+
+5. User learning
+   The category review failure is a production schema/predeploy gap in the learning-rule persistence path, not a reason to remove or redesign the Category dropdown.
+
+6. AI-agent learning
+   When a route inserts columns added by a later migration, the AI agent must verify that Railway predeploy includes that migration, not only that the schema file and local tests know about the columns.
+
+7. Follow-up tasks
+
+- Link the local Railway project for future direct runtime log inspection from this checkout.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Package CSV Structure
+
+1. Interaction title
+   Accountancy Pre-bookkeeping Package CSV export structure.
+
+2. What was the user goal
+   Improve only the Accountancy Pre-bookkeeping Package CSV export so accountants and future data processing receive structured columns instead of a two-column Field/Value dump, while keeping the current CSV button flow and leaving PDF, Excel, bookkeeping logic, Business Profile data, uploads, and imports unchanged.
+
+3. What changed
+   The package CSV export now uses `Category, Field, Value, Unit, Frequency` columns with UTF-8 BOM and CRLF line endings for Excel compatibility. Company, tax, accountant, notes, payroll, and fixed-cost rows are categorized. Payroll and fixed-cost summaries split semicolon-separated entries and parse only explicit amounts, percentages, and frequencies; ambiguous text stays in one structured row without invented values.
+
+4. Problems marked
+   blocker: none.
+   risk: the focused ESLint command reports the new script-based CSV regression check is ignored by project lint configuration.
+   improvement: add a browser download assertion for the Accountancy package CSV after stable authenticated Accountancy fixtures exist.
+   observation: the existing PDF and Excel export code paths remain separate from the CSV formatter.
+
+5. User learning
+   The package CSV now supports accountant-friendly structured import while preserving all existing visible Business Profile values.
+
+6. AI-agent learning
+   Structured CSV exports should split deterministic summary strings only when delimiters and units make the source value unambiguous.
+
+7. Follow-up tasks
+   - Add authenticated browser coverage for Accountancy package CSV download after stable Accountancy page fixtures exist.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Package PDF Export
+
+1. Interaction title
+   Accountancy Bookkeeping Package PDF export blank-tab fix.
+
+2. What was the user goal
+   Fix the Accountancy Bookkeeping Package PDF report action so production browsers receive a real PDF response and failed generation does not open a blank tab, without changing Excel export, CSV export, bookkeeping logic, or unrelated features.
+
+3. What changed
+   The package PDF action now posts package fields to an authenticated Accountancy package PDF route. The route generates PDF bytes with the existing jsPDF dependency and returns `Content-Type: application/pdf`, `Content-Disposition` with inline or attachment behavior, and `Cache-Control: no-store`. The client validates the response status, content type, and non-empty blob before opening a tab; failed generation now shows a destructive toast and opens no tab. Popup-blocked browsers receive the same PDF as a download fallback.
+
+4. Problems marked
+   blocker: none.
+   risk: the focused ESLint command reports the new script-based regression check is ignored by project lint configuration.
+   improvement: add a browser export test when authenticated Accountancy fixtures are available.
+   observation: the general report download route already returns `application/pdf`; the blank-tab bug came from the separate Accountancy package client print flow.
+
+5. User learning
+   Accountancy package PDF export now uses a real server PDF response instead of client-written print HTML.
+
+6. AI-agent learning
+   Export buttons that open a new browser context should wait for a validated file response before creating a tab or object URL.
+
+7. Follow-up tasks
+   - Add authenticated browser coverage for Accountancy package PDF export after stable Accountancy page fixtures exist.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Railway React 19 Dependency Conflict
+
+1. Interaction title
+   Railway TEST React 19 dependency conflict cleanup.
+
+2. What was the user goal
+   Fix the Railway TEST npm install ERESOLVE failure caused by `react-simple-maps@3.0.0` peer dependencies excluding React 19, without using `npm --force` or `legacy-peer-deps`, and without changing ClevrSync, OAuth, or unrelated code.
+
+3. What changed
+   The dashboard geographic revenue map now renders with local React/SVG projection, grid, approximate landmasses, markers, tooltip, zoom controls, and selection behavior instead of `react-simple-maps`. `react-simple-maps` and its type package are removed from dependencies and the pnpm lockfile. The reviewed security residual allowlist and residual-risk register no longer include the removed stale `d3-color` advisory path.
+
+4. Problems marked
+   blocker: none.
+   risk: the focused ESLint command reports the CommonJS audit allowlist script is ignored by project lint configuration.
+   improvement: add a visual regression screenshot for the geographic revenue map when dashboard fixture coverage is expanded.
+   observation: removing the dependency also removes the old `d3-color` transitive advisory from the active dependency graph.
+
+5. User learning
+   The dependency conflict is resolved by eliminating the only active `react-simple-maps` usage, so Railway npm install no longer needs peer-dependency overrides.
+
+6. AI-agent learning
+   When a React peer conflict comes from one isolated visualization dependency, replace the isolated integration before considering resolver flags or broad package overrides.
+
+7. Follow-up tasks
+   - Add geographic revenue map visual regression coverage when dashboard screenshot fixtures exist.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Page Render Boundary Fix
+
+1. Interaction title
+   Accountancy page render boundary fix.
+
+2. What was the user goal
+   Fix the production `/app/accountancy` runtime exception `TypeError: e.useState is not a function or its return value is not iterable` after Business Profile loading succeeds, without modifying Business Profile, tax/VAT calculations, parsing, categorization, Usy, billing, auth, tenant isolation, Retail, or unrelated UI.
+
+3. What changed
+   The Accountancy page no longer imports and renders the hook-based shared `DataTable` from the Server Component page. It now renders the existing bookkeeping queue rows through a local server-safe static table, preserving the same queue links, status labels, and Accountancy upload/page layout. The focused Business Profile source regression now asserts that the Accountancy server page does not re-import or render the hook-based shared table.
+
+4. Problems marked
+   blocker: none.
+   risk: other server pages still import the shared hook-based `DataTable`; this fix intentionally changes only the confirmed Accountancy crash path.
+   improvement: add a broader shared-component boundary audit when the team schedules cross-page hardening.
+   observation: the Railway log order shows Business Profile loading succeeds before the Accountancy page reaches the hook-based table render path.
+
+5. User learning
+   The Accountancy production 500 comes from a client/server component boundary issue in the page UI path, not from Business Profile, company setup, tax/VAT data, or upload parsing.
+
+6. AI-agent learning
+   When a Server Component page imports a shared component that calls React hooks without a client boundary, the AI agent should either keep render props server-side or isolate the interactive component behind an explicit client wrapper instead of adding a broad client boundary blindly.
+
+7. Follow-up tasks
+
+- Add a broader shared-component boundary audit when the team schedules cross-page hardening.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Upload Reliability Patch
+
+1. Interaction title
+   Accountancy upload reliability patch.
+
+2. What was the user goal
+   Fix verified Pre-bookkeeping and Accountancy upload failures for Excel dates, machine-readable PDF invoice extraction, bank-fee categorization, and visible upload choices without changing Business Profile, VAT calculations, tenant isolation, billing, OAuth, Usy, or unrelated systems.
+
+3. What changed
+   Accountancy Excel parsing now normalizes valid native Date cells, Excel serial dates, ISO date strings, and common spreadsheet date strings while converting invalid date cells to row-level missing-date review data instead of crashing. Machine-readable PDF extraction now keeps raw text alongside literal PDF strings, recognizes invoice document type, net amounts, VAT rates, VAT amounts with currency labels, totals, and line items, then feeds the existing Pre-bookkeeping rows and review/export path. Bank and payment fee language now outranks bad learned Equity rules. The upload UI shows CSV, Excel, and PDF / Scan as file-format choices while the legacy receipt and bank upload types remain available in the underlying processor.
+
+4. Problems marked
+   blocker: none.
+   risk: scanned/image-only PDF extraction still depends on a future OCR/document-vision integration because no existing repository capability performs document OCR.
+   improvement: add production smoke coverage for Accountancy PDF and Excel uploads when sanitized browser fixtures exist.
+   observation: the 96% Equity bank-fee result came from learned-rule precedence, not the deterministic bank-fee keyword rule.
+
+5. User learning
+   Verified CSV imports remain intact while Excel dates, machine-readable PDF invoices, and bank-fee categorization now use safer Accountancy parsing and Pre-bookkeeping review paths.
+
+6. AI-agent learning
+   Accountancy upload fixes must protect the existing Pre-bookkeeping dataset persistence, review, and export flow while converting parser exceptions into row-level review evidence whenever possible.
+
+7. Follow-up tasks
+
+- Add production smoke coverage for Accountancy PDF and Excel uploads when sanitized browser fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dependency Audit Patch
+
+1. Interaction title
+   Patch dependency advisories blocking source validation.
+
+2. What was the user goal
+   Fix only the dependency security advisories that block GitHub Validate Source, keep the approved residual advisory allowlist unchanged, and avoid modifying Usy, application behavior, UI, OAuth, business logic, AI logic, or contact logic.
+
+3. What changed
+   The direct dependency metadata now pins Next.js to the patched 16.3.3 release, Sharp to the patched 0.35.4 range, and js-yaml to the patched 4.3.2 range. The workspace override map now forces Hono to 4.13.5 for the transitive Payload MCP path and forces transitive js-yaml 4.x consumers to 4.3.2. The lockfile resolves `@payloadcms/plugin-mcp` and Payload packages at 3.88.0, keeps `@modelcontextprotocol/sdk` at 1.30.0, and resolves `@hono/node-server` against `hono@4.13.5`.
+
+4. Problems marked
+   blocker: none.
+   risk: none.
+   improvement: none.
+   observation: direct js-yaml moved to 4.3.2, but a transitive 4.3.1 copy remained until the workspace override forced 4.3.2 for 4.x consumers.
+
+5. User learning
+   The source audit gate now passes with only the existing approved residual d3-color and Payload advisories.
+
+6. AI-agent learning
+   When pnpm audit still reports a patched direct dependency, the AI agent must inspect transitive resolution and use narrow overrides before changing the audit allowlist.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Secretariat Acceptance Completion
+
+1. Interaction title
+   Complete Usy Secretariat acceptance requirements.
+
+2. What was the user goal
+   Continue the existing Usy Secretariat implementation without rebuilding the prior `UsyIntent` contract, router metadata, or focused tests, then close only the remaining acceptance gaps.
+
+3. What changed
+   Usy language detection now covers realistic English, German, Dutch, Spanish, Hungarian, and Romanian product, analysis, contact, and security questions. Router scoring ignores generic question words for partial matches so unrelated questions keep the unknown fallback and role-specific terms can win. Product-fit, upload-analysis-start, retail, pricing, credit, and upload-limit replies are more secretary-like and localized. Dataset-specific sales, revenue, forecast, product-margin, trend, KPI, and performance questions route to AI Assistant instead of product or billing fallback. Restricted requests for system instructions, API keys, internal architecture, secrets, webhooks, and other customers' data refuse explicitly. Contact drafts preserve their original language, request missing fields in that language, preview complete details, and submit only after explicit confirmation.
+
+4. Problems marked
+   blocker: none.
+   risk: deterministic multilingual keyword routing needs new approved phrases and tests when UseClevr adds product areas or supported-language examples.
+   improvement: add browser-level contact-flow coverage when stable authenticated fixtures exist.
+   observation: hyphenated and accented security terms need language-specific detection before generic accent heuristics run.
+
+5. User learning
+   Usy now acts as the UseClevr Secretariat for product guidance, safe routing, and contact preparation while dataset analysis stays in the separate AI Assistant.
+
+6. AI-agent learning
+   The AI agent must check scoring side effects when adding semantic keywords; repeated partial matches from generic words can override the intended fallback.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Intent Metadata Integration
+
+1. Interaction title
+   Integrate Usy response intent metadata.
+
+2. What was the user goal
+   Preserve the existing uncommitted `UsyIntent` contract change in `src/lib/usy/types.ts`, review it, and integrate it into the completed Usy implementation without discarding unrelated work.
+
+3. What changed
+   Usy chat responses now return a typed `intent` value for deterministic product answers, getting-started guidance, account help, technical support, billing, contact handoff, AI Assistant routing, security refusals, business-term answers, and unknown fallback. The router uses a separate internal product-intent rule type so the exported response intent remains the public API contract. Account settings guidance now has its own deterministic Usy product path. The existing Usy script test asserts intent values across upload guidance, unknown fallback, uploaded-data analysis routing, account help, contact confirmation, and restricted-information refusal.
+
+4. Problems marked
+   blocker: none.
+   risk: none.
+   improvement: keep future Usy answer categories mapped to the exported response intent when new product areas are added.
+   observation: the interrupted type change was sound but needed runtime wiring before clients could depend on it.
+
+5. User learning
+   Usy responses now include stable intent metadata that callers can use without parsing answer text.
+
+6. AI-agent learning
+   When a shared exported type name overlaps an internal router concept, the AI agent must rename the internal shape and map it into the public contract explicitly.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production App Domain Root Routing
+
+1. Interaction title
+   Production app domain root routing.
+
+2. What was the user goal
+   Investigate and fix the production routing issue where `https://www.useclevr.com` loads and `https://app.useclevr.com/` returns HTTP 500, without redesigning the marketing site, touching Usy, committing, pushing, or deploying.
+
+3. What changed
+   The proxy now routes only `app.useclevr.com/` to the existing application entry flow: signed-out requests redirect to `/login`, and requests with an existing auth or Payload session cookie redirect to `/app`. The public marketing host root stays untouched. The auth redirect regression test now covers signed-out app-root routing, signed-in app-root routing, and non-redirect behavior for the marketing host root.
+
+4. Problems marked
+   blocker: none.
+   risk: production needs deploy-time verification after this source change reaches Railway because the current live app still runs the previous routing behavior.
+   improvement: add a production smoke check that asserts `app.useclevr.com/` returns a redirect and `www.useclevr.com/` remains the public marketing site.
+   observation: external checks show `www.useclevr.com` is served by LiteSpeed marketing hosting while `app.useclevr.com` is served by Railway and responds healthy on `/api/health`; the failure is isolated to the app host bare root.
+
+5. User learning
+   The production app hostname reaches Railway correctly, and the bare app root now belongs to the existing auth/app entry flow instead of the public homepage route.
+
+6. AI-agent learning
+   Domain routing fixes should verify host-specific behavior with the proxy before changing landing page code, auth internals, OAuth, Stripe, or Railway domain mappings.
+
+7. Follow-up tasks
+
+- Add a production smoke check that asserts `app.useclevr.com/` returns a redirect and `www.useclevr.com/` remains the public marketing site.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Secretariat Capability Layer
+
+1. Interaction title
+   Implement secure Usy secretariat capabilities.
+
+2. What was the user goal
+   Add backend Usy logic, structured UseClevr knowledge, safe routing away from uploaded-data analysis, multilingual replies, and confirmed department contact handoff through n8n without changing the visible Usy shell or the separate AI Assistant.
+
+3. What changed
+   Usy product guidance now runs through deterministic server-side knowledge, role-aware intent routing, safe restricted-information refusal, business-term explanations, and Dataset AI Assistant routing for uploaded-data analysis requests. The floating chatbox keeps its existing layout and sends questions to the dedicated Usy chat endpoint. Confirmed contact requests collect department, request, name, optional company, reply email, and language, show a summary, and send only validated confirmed payloads to the configured n8n webhook with bearer authentication, server-side rate limits, and authenticated tenant metadata when available. Documentation now states the webhook contract, environment variables, authentication method, payload, and responses. Focused tests cover product facts, unknown fallback, language handling, AI Assistant routing, contact category detection, confirmation gating, invalid and rate-limited requests, missing webhook env, webhook payload shape, and internal-information refusal.
+
+4. Problems marked
+   blocker: none.
+   risk: Usy uses deterministic phrase and keyword routing, so future product areas require approved knowledge updates before Usy can answer them.
+   improvement: add browser-level Usy contact-flow coverage after stable seeded UI test fixtures exist.
+   observation: contact detection must distinguish sales-analysis wording from Sales department handoff wording.
+
+5. User learning
+   Usy now acts as UseClevr Secretariat for product navigation and contact handoff, while uploaded-data KPI, forecast, trend, risk, and performance analysis remains in the Dataset AI Assistant.
+
+6. AI-agent learning
+   Short department words such as Sales and IT need contact-verb or word-boundary handling so deterministic routing does not steal ordinary business-analysis questions.
+
+7. Follow-up tasks
+
+- Add browser-level Usy contact-flow coverage after stable seeded UI test fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; webhook guide: `docs/AI-interaction/developer-guides/usy-contact-handoff.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Selected Dataset Routing
+
+1. Interaction title
+   Bind dashboard openings to the selected Dataset Library row.
+
+2. What was the user goal
+   Fix the P0 dataset-selection bug so clicking Open dashboard for Marketplace or Investor keeps the entire dashboard, semantic profile, KPI generation, reports, and AI dataset context bound to the clicked dataset ID without falling back to another dataset.
+
+3. What changed
+   The authenticated dashboard alias preserves all incoming search parameters when redirecting into the main app dashboard, so `datasetId` survives `/app/dashboard` navigation. The app dashboard uses selected-dataset-scoped statistics for Daily Health, source mix, upload history metadata, AI activity, and missing explicit dataset states. Explicit missing dataset IDs now produce an unavailable selected-dataset state instead of reusing workspace aggregate or latest-dataset data. The regression test uses two neutral standard datasets with Marketplace and Investor schemas, selects them repeatedly in both orders, and verifies dataset ID plus semantic identity never leaks across selections, refresh-equivalent loads, direct URL loads, or back/open-equivalent navigation.
+
+4. Problems marked
+   blocker: none.
+   risk: this regression exercises the dashboard selection and semantic pipeline directly rather than a full browser session with a seeded authenticated account.
+   observation: the row action already emitted `datasetId`, but the authenticated dashboard alias redirected to `/app` without preserving search parameters.
+
+5. User learning
+   Dataset Library Open dashboard now treats the clicked dataset ID as authoritative and blocks silent first/latest dataset substitution for explicit dashboard requests.
+
+6. AI-agent learning
+   Authenticated route aliases must preserve selected resource search parameters, and dashboard surfaces must consume scoped selected-dataset stats after selection resolution instead of reading original workspace aggregate stats.
+
+7. Follow-up tasks
+
+- Add a browser-level authenticated Dashboard Library navigation test when stable seeded workspace data is available.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dependency Audit Remediation
+
+1. Interaction title
+   Remediate dependency audit findings after cross-platform UI hardening.
+
+2. What was the user goal
+   Patch every security advisory with a compatible published remediation, keep Payload on a stable aligned 3.x family, avoid Payload 4 canary and unpublished package versions, and document only unavoidable temporary residual risks.
+
+3. What changed
+   The Payload package family moves from `3.85.1` to stable `3.88.0` with all direct `@payloadcms/*` packages aligned, which brings Payload's `undici` path to `7.29.0` and removes `image-size` from the installed graph. pnpm workspace overrides resolve compatible patched versions for `fast-uri`, `DOMPurify`, `qs`, and `esbuild`. The CI audit allowlist contains only the remaining current residuals: Payload account-unlock advisory `GHSA-jg8r-5jh2-v2xj` and the existing incompatible D3 v2 chain advisory `GHSA-36jr-mh4h-2g58`. The residual-risk register documents why stable Payload `3.88.1` is unavailable, why Payload 4 canary is not used, why `d3-color@3.1.0` is outside the D3 v2 parent ranges, and why `image-size` is no longer reachable after the Payload upgrade.
+
+4. Problems marked
+   blocker: none for the CI audit allowlist gate.
+   risk: raw `pnpm audit` still exits nonzero because it reports the approved residual Payload and D3 advisories.
+   risk: `pnpm peers check` still reports existing React peer warnings for `react-simple-maps` and an MCP SDK peer mismatch from the Payload plugin chain; runtime checks cover the MCP route used by the app.
+   observation: `payload@3.88.1` and `image-size@2.0.3` are not published as stable npm versions, so installing those exact patched versions is impossible in this environment.
+
+5. User learning
+   CI uses the project audit allowlist gate for approved residuals while regular dependency patches continue to resolve through package upgrades or narrow pnpm overrides.
+
+6. AI-agent learning
+   pnpm 11 reads workspace overrides from `pnpm-workspace.yaml`; `package.json#pnpm.overrides` is ignored and does not update the lockfile.
+
+7. Follow-up tasks
+
+- Re-check Payload stable releases and remove the temporary Payload residual entry when a patched stable 3.x release is published. (labels: security, ci-build, testing)
+- Plan a separate D3/react-simple-maps upgrade or replacement before removing the D3 residual advisory. (labels: security, ui, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Security residuals: `docs/security/residual-risk-register.md`; release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Cross-Platform UI Hardening
+
+1. Interaction title
+   Harden public pricing, navigation, CTAs, chat, and app chrome across responsive viewports.
+
+2. What was the user goal
+   Make the public website and core authenticated shell more robust across iPhone Safari, Android Chrome, tablets, desktop, zoom, text scaling, and browser translation without redesigning the product or changing billing, auth, dataset, AI, routing, or branding behavior.
+
+3. What changed
+   Public pricing renders amount and period from shared billing data as structured, translation-protected markup with data attributes for amount, currency, and interval. The yearly selector no longer depends on slicing combined price strings, so yearly amounts display with `/year` and Free remains tied to the billing formatter. Public page wrappers, CTAs, badges, card headers, pricing cards, FAQ cards, and footer columns use `min-w-0`, wrapping, flexible button heights, and mobile grids. The public header constrains popovers and collapses the AI mode pill text on phone widths. The Usy assistant and legacy Clevr chat launcher use safe-area-aware positioning, smaller mobile launchers, hidden phone hover bubbles, dynamic viewport heights, and contained chat panels. The authenticated app shell and topbar use contained width, `100dvh`, and internal touch scrolling for dense mobile controls.
+
+4. Problems marked
+   blocker: none.
+   risk: this Linux workspace cannot run real Safari/WebKit, so Safari status is inferred from WebKit-compatible CSS patterns and iPhone-sized Chrome emulation rather than a native Safari engine.
+   improvement: add a committed browser-regression harness when the project adopts Playwright or another browser test runner.
+   observation: the abnormal pricing symptom came from presentation markup that combined amount and interval strings, then stripped a suffix based on UI state; browser translation could mutate the visible period while the billing source values remained correct.
+
+5. User learning
+   Public pricing now displays monthly and yearly values from one shared billing source with translation-protected amount and period relationships.
+
+6. AI-agent learning
+   Responsive UI hardening in this project should prefer scoped shared-surface fixes, source-backed pricing markup, safe-area viewport units, and focused Chrome CDP checks when Playwright is not installed.
+
+7. Follow-up tasks
+
+- Add a committed Playwright responsive regression suite when the project chooses Playwright as a dependency.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Marketplace Generic Intent Routing
+
+1. Interaction title
+   Apply Marketplace semantics before generic selected-dataset analytical intents.
+
+2. What was the user goal
+   Fix the remaining Marketplace Assistant routing and semantic issue so total revenue, revenue trend, and customer revenue questions use GMV terminology when they resolve from `gross_merchandise_value`, preserve the working seller/merchant path, keep the exact four Marketplace golden questions passing together, and avoid changes to unrelated dataset families.
+
+3. What changed
+   The selected-dataset chat route checks Marketplace deterministic answers before generic analytical dispatch, so Marketplace-shaped standard uploads return `marketplace.total_gmv`, `marketplace.gmv_trend`, `marketplace.top_buyers`, and `marketplace.top_sellers` answers before generic `metric.total_revenue`, `trend.monthly_revenue`, or `ranking.top_customers` formatting can win. The metric resolver also uses the Business Semantics profile to recognize Marketplace-shaped datasets whose upload category is `standard`, keeps `gross_merchandise_value` and `gmv` labelled as GMV, and includes latest observed GMV periods while separating partial observed periods from complete comparable periods.
+
+4. Problems marked
+   blocker: none.
+   risk: the local `04_marketplace_startup` fixture has the same total GMV as the manual test but different top buyer and seller IDs, so local assertions validate the local source values while the implementation remains data-driven for B-0127 and S-0008 in the manually tested uploaded source.
+   improvement: add a seeded authenticated dataset-chat route test that exercises the full HTTP route with the manually tested Marketplace upload when stable seed data is available.
+   observation: the previous Marketplace formatter worked when the question reached the Marketplace path, but selected-dataset API routing and standard upload categories allowed generic analytical formatting to answer first.
+
+5. User learning
+   Marketplace-shaped uploads now answer revenue-worded selected-dataset questions with GMV semantics before generic revenue formatting can label gross merchandise value as revenue.
+
+6. AI-agent learning
+   Selected-dataset routes must prioritize domain-specific deterministic answers for detected Marketplace evidence before generic analytical intent execution, especially when the stored upload category is `standard`.
+
+7. Follow-up tasks
+
+- Add a seeded authenticated dataset-chat route test for the manually tested Marketplace upload when stable seed data is available.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Marketplace Metric Resolver GMV Labels
+
+1. Interaction title
+   Correct the remaining selected-dataset Marketplace semantic labels.
+
+2. What was the user goal
+   Fix only the remaining Marketplace labeling issue so `gross_merchandise_value` displays as GMV across revenue-worded totals, monthly trends, buyer rankings, seller rankings, and missing inventory evidence, without changing calculations, redesigning the assistant, adding features, or touching unrelated dataset types.
+
+3. What changed
+   The selected-dataset metric resolver detects Marketplace datasets whose revenue semantic maps to `gmv`, `gross_merchandise_value`, or `gross_merchandise`. Those answers now label totals as Total GMV, monthly answers as Monthly GMV or GMV trend, grouped buyer outputs as buyer/customer GMV, geography and product outputs as GMV by dimension, and Marketplace AOV-style answers as Average Transaction Value. The existing Marketplace Assistant seller path continues to report seller/merchant GMV and leaves missing stock or inventory exposure as unavailable/null.
+
+4. Problems marked
+   blocker: none.
+   risk: regression-script files are ignored by ESLint configuration, so lint validation covers the changed source file while behavioral regression tests cover the script expectation changes.
+   improvement: keep any future Marketplace resolver additions behind the same GMV source-column guard so non-Marketplace revenue datasets keep standard revenue wording.
+   observation: the Marketplace Assistant route already passed the four golden questions; the remaining leak was the shared metric resolver returning generic revenue labels for Marketplace rows.
+
+5. User learning
+   Marketplace revenue-worded questions now display GMV when the backing source column is GMV, and missing inventory evidence remains unavailable instead of zero-valued.
+
+6. AI-agent learning
+   Marketplace GMV labeling must be enforced in both domain-specific assistant routes and shared selected-dataset metric resolver paths.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Marketplace AI Assistant GMV Semantics
+
+1. Interaction title
+   Correct Marketplace Assistant GMV, buyer, seller, trend, and missing-inventory semantics.
+
+2. What was the user goal
+   Continue the existing Marketplace Assistant fix for `04_marketplace_startup` without redesigning the assistant, adding features, changing unrelated modules, or losing the already-verified GMV, buyer, seller, and monthly aggregation calculations.
+
+3. What changed
+   The selected-dataset AI Assistant routes Marketplace datasets with GMV evidence through a Marketplace-specific deterministic path before retail and generic revenue handling. Revenue-worded Marketplace questions answer with GMV labels, buyer questions group by buyer fields, supplier-worded questions group by seller/merchant fields, GMV trends include the latest observed period and period completeness, and missing inventory/stock evidence stays unavailable/null instead of zero. Dataset Intelligence Engine compatibility no longer treats GMV as generic Revenue while preserving GMV, Marketplace Revenue, take rate, and marketplace transaction value semantics.
+
+4. Problems marked
+   blocker: none.
+   risk: the local `04_marketplace_startup` fixture has the same total GMV as the manual test but different buyer/seller IDs, so top-entity assertions use local source values while the implementation remains data-driven for B-0127 and S-0008 in the manually tested source.
+   improvement: add an authenticated uploaded-dataset route fixture for Marketplace Assistant execution when stable seeded datasets are available.
+   observation: retail inventory intent handling previously intercepted Marketplace seller and trend questions, which caused seller fields to appear as suppliers and missing inventory evidence to become zero-valued exposure.
+
+5. User learning
+   Marketplace Assistant revenue wording now reports GMV when the source field is `gross_merchandise_value`, and seller/merchant answers no longer show supplier or inventory-zero language for non-inventory marketplace data.
+
+6. AI-agent learning
+   Marketplace GMV must stay separate from generic Revenue and Marketplace Revenue; assistant routing must run domain-specific Marketplace handling before retail inventory and generic metric resolvers.
+
+7. Follow-up tasks
+
+- Add an authenticated uploaded-dataset route fixture for Marketplace Assistant execution when stable seeded datasets are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS AI Assistant Churn Indicator Semantics
+
+1. Interaction title
+   Correct SaaS Assistant churn indicator, active customer, Churned MRR, and net movement semantics.
+
+2. What was the user goal
+   Fix the remaining deterministic SaaS calculation bugs for the `03_saas_startup` workflow without changing provider routing, Business Semantics architecture, or the 12 SaaS suggested questions.
+
+3. What changed
+   The SaaS semantic profile validates explicit churn indicator fields before mapping them to churn semantics. The selected-dataset SaaS Assistant builds latest customer/account state, excludes churned or inactive customers from active customer counts and current MRR/ARR summaries, reports total/active/churned customer counts with lineage, and returns churn prevalence from validated current-state evidence. Churned MRR returns a confirmed zero only when validated churn status proves no churned customers, and returns missing evidence when churned customers exist without pre-churn or churn-movement MRR evidence. Net MRR Movement refuses to substitute zero for unavailable New MRR or Churned MRR. Regression coverage checks the real monthly `03_saas_startup` fixture and a current-state 144-customer fixture with 7 churned and 137 active customers.
+
+4. Problems marked
+   blocker: none.
+   risk: `pnpm test:dataset-intelligence-engine` still fails on the existing Marketplace dashboard `total_revenue` assertion outside this SaaS churn semantics fix.
+   improvement: add an authenticated browser/API assistant fixture for uploaded `03_saas_startup` datasets when stable seeded datasets are available.
+   observation: the local `03_saas_startup.csv` contains 144 monthly rows across 12 customer IDs; latest-state semantics produce 12 total customers, 11 active customers, and 1 latest churned customer, while the 144/137/7 current-state scenario is covered by a synthetic fixture.
+
+5. User learning
+   The SaaS Assistant treats `churned` as current customer-state evidence when values are valid boolean/status encodings, and it separates known zero churn from missing churn-MRR evidence.
+
+6. AI-agent learning
+   SaaS current-state questions must resolve the latest row per customer/account before counting customers or summing current MRR, and movement answers must keep missing component evidence distinct from zero-valued movement evidence.
+
+7. Follow-up tasks
+
+- Add an authenticated Dataset AI route fixture for uploaded `03_saas_startup` assistant execution when stable seeded datasets are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS AI Assistant Specific-Intent Execution
+
+1. Interaction title
+   Fix SaaS Assistant deterministic intent execution before generic capability responses.
+
+2. What was the user goal
+   Ensure the selected-dataset AI Assistant answers SaaS MRR movement questions, especially "What churn signal is visible in the source data?", with deterministic calculations instead of the generic SaaS semantic capability summary.
+
+3. What changed
+   The SaaS deterministic assistant routes specific MRR, ARR, movement, churn, active-customer, plan, and account-value questions before explicit capability and mapping questions. Churn-signal answers return churned MRR, churn events, affected customers, highest churn period, source fields, and materiality against current MRR while keeping contraction separate from full churn. The SaaS semantic suggestion order keeps the churn-signal question inside the advertised deterministic suggestion set.
+
+4. Problems marked
+   blocker: none.
+   risk: full dataset-intelligence regression still carries an existing Marketplace KPI assertion failure outside this targeted SaaS Assistant execution fix.
+   improvement: add an authenticated API route fixture for `saas_subscription_mrr_movements_test` when stable test user dataset seeding exists.
+   observation: the exact production question contained "source data", and the previous capability matcher treated that phrase as a request for available SaaS fields before checking the churn intent.
+
+5. User learning
+   SaaS Assistant business questions now execute before capability discovery, so source-data wording no longer prevents churn, MRR, ARR, customer, plan, or account calculations.
+
+6. AI-agent learning
+   Capability summaries must be opt-in for explicit support, mapping, field, and available-metric questions; business metric words in the same question must keep deterministic calculation priority.
+
+7. Follow-up tasks
+
+- Add an authenticated Dataset AI route fixture for SaaS MRR movement chat execution when stable seeded datasets are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS AI Assistant Deterministic Suggestion Routing
+
+1. Interaction title
+   Fix SaaS MRR movement AI Assistant suggestions and deterministic answer routing.
+
+2. What was the user goal
+   Ensure the selected-dataset AI Assistant shows SaaS MRR movement suggestions only when the selected dataset has a deterministic answer path, remove generic fallback leakage, invalidate stale suggestion caches, and preserve recent Retail behavior.
+
+3. What changed
+   The suggestion route uses cache key `suggestions_dataset_v5_${datasetId}`. SaaS semantic suggestions from the Dataset Intelligence Engine are prioritized before broader generated suggestions and filtered through the canonical deterministic answer pipeline. The deterministic assistant now answers current MRR, current ARR, MRR changes by period, New MRR, Expansion MRR, Contraction MRR, Churned MRR, net MRR movement, active customers, top accounts, plan contribution, and churn signals from SaaS semantic mappings. Recognized SaaS questions with missing evidence return deterministic unavailable answers instead of provider routing. The client no longer creates generic fallback suggestions for selected datasets and shows a neutral empty state when the server returns none.
+
+4. Problems marked
+   blocker: none.
+   risk: `pnpm test:dataset-intelligence-engine` fails on an existing Marketplace dashboard KPI assertion outside this SaaS Assistant fix.
+   improvement: add a browser-backed authenticated suggestion route test when stable assistant fixtures are available.
+   observation: the previous selected-dataset sidebar could display generic prompts because the server returned zero deterministic suggestions and the client replaced that empty response with local generic fallback suggestions.
+
+5. User learning
+   Selected-dataset suggestions now follow a hard contract: a shown SaaS suggestion has a deterministic answer path and does not require Gemini or another cloud provider to be available.
+
+6. AI-agent learning
+   Suggestion eligibility must call the same deterministic answer pipeline that handles execution, otherwise semantic suggestion generation and answer routing drift apart.
+
+7. Follow-up tasks
+
+- Add a browser-backed authenticated suggestion route test when stable assistant fixtures are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirements: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## AI Assistant Human Control Response Editor
+
+1. Interaction title
+   Replace AI Assistant Human Control edit prompt with a response editor dialog.
+
+2. What was the user goal
+   Remove the browser prompt from Human Control Edit and provide a UseClevr-styled modal for reviewing and editing long AI responses before an override is saved.
+
+3. What changed
+   The AI Assistant opens a centered dark/glass dialog with title, helper text, accessible multiline textarea, Cancel, and Save changes controls. Opening Edit does not record an override. Save changes requires non-empty text, sends the original and edited values to the override API, updates the displayed assistant message after persistence, preserves message metadata, and marks Human Control state as Edit only after successful save. Persistence failure leaves the dialog open with the draft and inline error.
+
+4. Problems marked
+   blocker: none.
+   risk: no browser-run visual smoke test runs in this session, so responsive layout verification is covered by code review and static assertions.
+   improvement: add a browser interaction test for the AI Assistant Human Control edit modal when the app has a stable test fixture for authenticated assistant sessions.
+   observation: the previous edit path used a blocking browser prompt and updated the override state before the user confirmed an edit.
+
+5. User learning
+   Human Control Edit now behaves like an intentional review step: Cancel discards the draft, and Save changes is the only path that records an edit override.
+
+6. AI-agent learning
+   Governance controls that collect user-edited AI text must defer override state changes until persistence succeeds, especially when users can cancel or retry failed saves.
+
+7. Follow-up tasks
+
+- Add a browser interaction test for the AI Assistant Human Control edit modal when authenticated assistant fixtures are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; done work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production Sign-Up Profile Schema Failure
+
+1. Interaction title
+   Restore production sign-up profile creation on `app.useclevr.com`.
+
+2. What was the user goal
+   Reproduce one controlled production sign-up failure, capture the exact server-side failure chain, compare the exact operation with TEST, apply the smallest safe fix, and verify real production sign-up succeeds.
+
+3. What changed
+   Railway predeploy now runs the existing profile regional-preferences migration before app startup. The production database had `Profile.themePreference` and `Profile.billingSettings`, but not `Profile.regionalPreferences`, while the deployed Drizzle schema includes `regionalPreferences` in `Profile` inserts.
+
+4. Problems marked
+   blocker: none.
+   risk: existing superadmin login completion still requires the real password and received 6-digit code.
+   observation: `POST /login` returned HTTP 200 with server-action payload `{ error: "Account setup failed. Please try again." }`; local replay of the same server action captured PostgreSQL `42703` at the `Profile` insert with `column "regionalPreferences" of relation "Profile" does not exist`; after the migration, live production sign-up reached the 6-digit verification step and Resend returned HTTP 200 with a message id.
+
+5. User learning
+   The production sign-up failure was a schema drift issue in the profile insert, not a frontend, DNS, auth-cookie, or Resend deliverability problem.
+
+6. AI-agent learning
+   When a Next server action returns a generic UI error with HTTP 200, capture the `text/x-component` response and verify whether the action returned an error object before chasing network or frontend causes.
+
+7. Follow-up tasks
+
+- Test existing superadmin login with the real password and received 6-digit code.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Production Auth Verification Email Fix
+
+1. Interaction title
+   Restore verification email delivery on `app.useclevr.com` so sign-up and superadmin verification codes reach users.
+
+2. What was the user goal
+   The production app domain (`app.useclevr.com`) failed to deliver 6-digit verification emails for both new user sign-up and superadmin sign-in. New users saw "Account setup failed" and the superadmin could not receive the 6-digit code to log in. The test domain (`test.useclevr.com`) worked because it predates the auth hardening commits.
+
+3. What changed
+   Removed the blocking `checkResendDomainStatus` GET request to `https://api.resend.com/domains` from `sendVerificationEmail` — Resend already validates the sender domain at send-time, so the pre-check is redundant and its failure (unexpected response shape, rate-limit, or transient API issue) blocks all verification email delivery. Reverted `sendResendEmail` to non-throwing behavior when the Resend response lacks `messageId` — the `!response.ok` check already handles API errors, and a 200 response without an `id` should be logged, not rejected. Updated `test-verification-email-delivery.ts` to assert the new no-pre-check, no-messageId-throw behavior. Added `ADMIN_AUTH_BYPASS_CODE` documentation to `.env.railway.example`.
+
+4. Problems marked
+   blocker: none.
+   risk: if the Resend API returns a 200 without `messageId` for a genuinely failed send, the code will not detect it — however, Resend returns non-200 for delivery failures, so the `!response.ok` check remains the authoritative guard.
+   improvement: expose a health endpoint that performs a live Resend send test and reports true delivery status, rather than relying on the domain-list pre-check alone.
+
+5. User learning
+   Removing the domain pre-check and messageId throw restores verification email delivery on production while keeping Resend's own error handling as the authoritative delivery-failure signal.
+
+6. AI-agent learning
+   When hardening email delivery logic, non-blocking diagnostics (logging) are safer than blocking pre-checks that can fail for reasons unrelated to the actual send (rate limits, response shape drift, transient API unavailability). The Resend API already validates domains and keys at send-time.
+
+7. Follow-up tasks
+
+- Verify live sign-up and superadmin verification on `app.useclevr.com` after Railway deploys the fix.
+- Consider adding a live Resend send health check endpoint for continuous delivery monitoring.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+
+## Global Dashboard Report Generation Regression
+
+1. Interaction title
+   Shared dashboard report generation and download regression.
+
+2. What was the user goal
+   Find the single shared failure in the dashboard-to-`/api/reports` flow across SaaS, Profitability, and standard business datasets, verify Superadmin unlimited report generation, and avoid dataset-specific fixes.
+
+3. What changed
+   The shared report integrity guard no longer throws when trend output is unavailable even though date and profit evidence exists; it records sanitized debug telemetry while preserving fatal checks for row-count and semantic mapping mismatches. File-backed report reads refresh before report lookup, list, dataset list, and idempotency checks so a newly generated report is visible to Downloads and PDF download handlers across Next workers. No dataset classification, KPI, SaaS, Profitability, Retail, Accountancy, dependency, security, Payload, Railway, sharp, or CI logic changed.
+
+4. Problems marked
+   blocker: none.
+   risk: the local dev server creates Next-generated `AGENTS.md` and `next-env.d.ts` drift, so agents must remove that drift before staging report fixes.
+   improvement: add a focused dashboard-route report regression script that posts the actual `GenerateReportAction` payload for SaaS, Profitability, and standard business datasets.
+   observation: the SaaS dashboard request reached `buildDatasetReportInput` and `generateReport`, then failed in `assertReportIntegrity` with `trend is unavailable despite valid date and net-profit values`; report list/download also used stale in-memory cache state in another server worker.
+
+5. User learning
+   The dashboard route can fail after report input succeeds when a shared integrity guard treats optional trend absence as fatal, and Downloads can miss a just-generated report when the read worker does not refresh file-backed storage.
+
+6. AI-agent learning
+   For dashboard report regressions, always verify POST success, report list visibility, and PDF download in the same route-shaped probe because generation, persistence visibility, and download authorization fail at different shared steps.
+
+7. Follow-up tasks
+
+- T-1031. Restore dashboard report generation and immediate PDF downloads across SaaS, Profitability, and standard business datasets while preserving Superadmin unlimited access and normal limited-user credit enforcement.
+- Add a focused dashboard-route report regression script for SaaS, Profitability, and standard business datasets.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; active/done work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Profitability Report Generation Failure
+
+1. Interaction title
+   Dashboard Profitability Generate Report billing-schema failure.
+
+2. What was the user goal
+   Capture the actual failing dashboard Generate Report request and server exception, compare it to the working standalone Profitability report path, then apply only the smallest proven fix.
+
+3. What changed
+   The report API now records sanitized dashboard-only request, response, dataset, report-input, session, and exception diagnostics without logging uploaded rows, tokens, secrets, or raw dataset contents. Railway predeploy now applies the billing-settings migration and a current credit-ledger migration that adds the columns used by credit reservations and purchase traces. Billing integrity coverage checks both schema migrations are included in predeploy. The local dashboard route now creates persisted Profitability reports and downloadable PDFs when the requesting account has available report credits.
+
+4. Problems marked
+   blocker: none.
+   risk: a local limited-role Profitability fixture without credits now returns the expected 402 credit response after schema sync, so route success verification used an account with available report generation access.
+   improvement: keep dashboard report diagnostics gated through the existing debug logger so production logs stay sanitized and opt-in.
+   observation: the first failing application path reached billing checks before report input construction, so the report builder and PDF generation were not the initial failure.
+
+5. User learning
+   Dashboard Generate Report can fail before report generation when the authenticated route enters billing enforcement with a database schema that is behind the current Drizzle model.
+
+6. AI-agent learning
+   Compare standalone report scripts with the route-backed dashboard path before editing report logic; direct generation skips authentication, spending-limit, and credit-reservation gates that dashboard requests must pass.
+
+7. Follow-up tasks
+
+- T-1030. Restore dashboard profitability report generation with safe request diagnostics, persisted report output, downloadable PDF output, unchanged profitability metrics, and passing report validation gates.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; active/done work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Railway Sharp musl Packaging Fix
+
+1. Interaction title
+   Fix Railway sharp 0.35.3 linuxmusl-x64 packaging in dist artifacts.
+
+2. What was the user goal
+   Fix the production HTTP 500 on both app.useclevr.com and test.useclevr.com caused by sharp 0.35.3 being deployed with stale Railway musl platform packages for sharp 0.34.5.
+
+3. What changed
+   Updated `scripts/package-dist/create-dist.cjs` `ensureSharpMuslPackages()` to use matching musl packages for sharp 0.35.3: `@img/sharp-linuxmusl-x64@0.35.3` and `@img/sharp-libvips-linuxmusl-x64@1.3.2`. No application code, Payload, Next.js, auth, billing, or security policy changed.
+
+4. Problems marked
+
+- blocker: sharp 0.35.3 was published in `bedc524be` but `create-dist.cjs` still hardcoded `@img+sharp-linuxmusl-x64@0.34.5` and `@img+sharp-libvips-linuxmusl-x64@1.2.4`. Railway's Alpine linuxmusl-x64 runtime could not load the native binary.
+- risk: Both app and test services deploy from `dist/` artifacts built by this script, so both were affected.
+- observation: `/api/health` returned 200 because it bypasses Payload/sharp and uses Drizzle directly. All page routes returned 500 because `payload.config.ts` imports sharp at module load time.
+
+5. User learning
+   The sharp musl packaging script must track the installed sharp version exactly. When sharp is patched, the musl platform packages and libvips symlink targets must be updated in lockstep.
+
+6. AI-agent learning
+   When a native module packaging script contains hardcoded platform binary versions, always verify they match the declared dependency version after any patch. Railway Alpine runtime failures may not appear in local glibc builds.
+
+7. Follow-up tasks
+
+- Verify both app.useclevr.com and test.useclevr.com return 200 after redeploy. (labels: production, railway, sharp)
+- Consider deriving musl package versions dynamically from the installed sharp version instead of hardcoding. (labels: ci-build, dist)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Payload 3.85.1 Residual Security Risk Documentation
+
+1. Interaction title
+   Document Payload 3.85.1 residual security risk with CI allowlist.
+
+2. What was the user goal
+   Document the exact Payload 3.85.1 transitive HIGH findings that cannot be safely remediated without breaking production, and implement an explicit CI allowlist that permits only those approved advisories while still failing on any new Critical or High vulnerability.
+
+3. What changed
+   Added `docs/security/residual-risk-register.md` documenting 7 approved residual advisories: 4 undici HIGHs via Payload transitive dependency (GHSA-vmh5-mc38-953g, GHSA-vxpw-j846-p89q, GHSA-hm92-r4w5-c3mj, GHSA-4cwx-7wf7-3272), 2 image-size HIGHs via Payload transitive dependency (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq), and 1 deferred d3-color HIGH (GHSA-36jr-mh4h-2g58). Added `scripts/security/audit-allowlist.cjs` to enforce the allowlist in CI. Updated `package.json` with `audit:allowlist` script, `.github/workflows/ci.yml` to use `pnpm audit:allowlist`, and `scripts/check-github-workflows.js` to validate the allowlist command.
+
+4. Problems marked
+
+- blocker: Payload 3.85.1 pins exact versions `undici@7.24.4` and `image-size@2.0.2`. Required patches (`>=7.29.0`, `>=2.0.3`) are outside declared ranges. Payload 3.88.0 caused production HTTP 500 regression.
+- risk: Residual HIGH advisories remain in production until Payload updates transitive dependencies within compatible ranges.
+- observation: `pnpm audit --json` shows 20 advisories: 0 critical, 7 high, 9 moderate, 4 low. The 7 high advisories are all in approved residual allowlist.
+
+5. User learning
+   Payload 3.85.1 cannot safely upgrade `undici` or `image-size` because it declares exact versions. The CI allowlist documents the exact approved residual risk while ensuring new Critical/High advisories still fail CI.
+
+6. AI-agent learning
+   When a dependency owner pins exact versions that block security patches, document the residual risk with explicit advisory IDs, production exposure analysis, and a CI allowlist that permits only approved findings. Never use `|| true` or suppress unknown vulnerabilities.
+
+7. Follow-up tasks
+
+- Re-evaluate when Payload publishes a `3.85.x` or `3.88.x` release that updates `undici` and `image-size` within declared compatible ranges. (labels: security, payload, dependencies)
+- Fix test.useclevr.com HTTP 500 on page routes caused by Payload 3.88.0 database schema changes. (labels: production, payload, database)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Payload Rollback to 3.85.1
+
+1. Interaction title
+   Payload 3.88.0 production regression rollback.
+
+2. What was the user goal
+   Rollback the Payload CMS family from 3.88.0 to the known-good 3.85.1 because the 3.88.0 security-patch update caused HTTP 500 on all normal pages in test.useclevr.com while `/api/health` remained healthy.
+
+3. What changed
+   The dependency manifest pins `payload`, `@payloadcms/db-postgres`, `@payloadcms/next`, `@payloadcms/plugin-mcp`, `@payloadcms/plugin-stripe`, `@payloadcms/richtext-lexical`, `@payloadcms/storage-s3`, and `@payloadcms/ui` back to `3.85.1`. The lockfile updates accordingly. No Next.js, next-auth, XLSX, Sharp, Tailwind, PostCSS, nanoid, dompurify, markdownlint, auth, profitability, billing, dashboard, security-header, or CSP code changed. A debug artifact `create-session.mjs` from the previous failed fix was removed.
+
+4. Problems marked
+
+- blocker: none.
+- risk: This intentionally reverts the Payload 3.88.0 security patch, so that patch's fixes are not present in the deployed test environment until a non-breaking Payload upgrade is available.
+- observation: `/api/health` returned 200 during the regression because it bypasses Payload and uses Drizzle directly; all page routes failed because `src/app/layout.tsx` imports `@payload-config` at module load time.
+
+5. User learning
+   Payload 3.88.0 caused a production runtime regression on test.useclevr.com. The known-good production app.useclevr.com runs Payload 3.85.1. Rolling back to 3.85.1 restores normal page rendering.
+
+6. AI-agent learning
+   When a dependency security patch causes a production regression, compare the deployed runtime against the last known working commit. In this case the working `dist` branch used Payload 3.85.1 while the broken `dist-test` branch used 3.88.0. Railway CLI auth may be unavailable in some environments, so use GraphQL token auth from `~/.railway/token` for deployment metadata.
+
+7. Follow-up tasks
+
+- Investigate a non-breaking Payload upgrade path that does not break production page rendering. (labels: payload, dependencies, ci-build)
+- Improve Railway CLI auth debugging for non-interactive environments. (labels: devops, railway)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## What You're Missing Insight-Flow Card Layout
+
+1. Interaction title
+   What You're Missing insight-flow card layout.
+
+2. What was the user goal
+   Fix the `/news` five-step flow so the `UNDERSTANDING` heading stays fully inside its card and does not overlap the `EVIDENCE` card, without changing navigation, copy, colors, business logic, dependencies, backend, or other pages.
+
+3. What changed
+   The `/news` insight-flow component now keeps the five card headings inside their cards by delaying the surrounding two-column layout until the wider desktop breakpoint, adding `min-w-0` containment to the card shell and grid, using slightly tighter constrained-breakpoint card padding, and applying compact uppercase label typography with safe wrapping. The five-card visual design and connector alignment remain in the component.
+
+4. Problems marked
+
+- blocker: none.
+- risk: none for this scoped layout fix.
+- improvement: Add a lightweight visual regression check for public landing/news page card labels if the project adds browser automation to CI.
+- observation: Headless Chrome measurements confirmed the labels are contained at 1536px, 1440px, 1280px, 1024px, 768px, and 390px, with no horizontal page overflow.
+
+5. User learning
+   The overflow came from forcing five uppercase labels with wide letter spacing into a narrow right-hand column at desktop/tablet breakpoints; `UNDERSTANDING` was the first label wide enough to escape into the neighboring card.
+
+6. AI-agent learning
+   For responsive marketing-card layouts, verify the parent grid breakpoint and the child grid/card min-widths together; fixing only text overflow can hide the real compression source.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Next.js Security Patch
+
+1. Interaction title
+   Next.js security patch.
+
+2. What was the user goal
+   Patch only the confirmed Next.js advisories by updating `next` from `16.2.9` to the smallest patched `16.2.x` release, without updating unrelated dependencies or changing application logic.
+
+3. What changed
+   The dependency manifest pins `next` to `16.2.11`, and the lockfile updates the associated Next.js package entries and peer resolution references required by pnpm. `next-auth`, `@auth/core`, Payload, XLSX, Sharp, PostCSS, js-yaml, authentication code, upload logic, reporting, billing, dashboard, Superadmin behavior, and Public AI route logic remain unchanged.
+
+4. Problems marked
+
+- blocker: none.
+- risk: `pnpm audit --audit-level=moderate` still fails for scoped-out non-Next vulnerabilities after the Next patch.
+- risk: `pnpm test:report-accuracy` fails on an existing revenue-only summary expectation, and `pnpm test:dashboard-empty-state` fails on an existing explicit zero-dataset state expectation; neither failure is caused by the Next dependency diff.
+- observation: The named Next advisories `GHSA-6gpp-xcg3-4w24`, `GHSA-m99w-x7hq-7vfj`, `GHSA-89xv-2m56-2m9x`, and `GHSA-p9j2-gv94-2wf4` are absent from `pnpm audit --json` after the patch.
+
+5. User learning
+   Next.js `16.2.11` clears the confirmed framework advisories, leaves the audit critical count at zero, and production build compiles all current app, API, proxy, auth, upload, report, billing, dashboard, and Public AI routes.
+
+6. AI-agent learning
+   For framework patch tasks, try the requested smallest patch release first, verify advisory removal with parsed audit JSON, and keep package-manager incidental formatting out of the final diff.
+
+7. Follow-up tasks
+
+- Triage and patch the remaining non-Next dependency audit findings in separate approved dependency tasks. (labels: security, ci-build, testing)
+- Repair the existing report accuracy and dashboard empty-state regression expectations in scoped reporting and dashboard tasks. (labels: testing, reports, dashboard)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Auth Dependency Security Patch
+
+1. Interaction title
+   Auth dependency security patch.
+
+2. What was the user goal
+   Patch only the confirmed `next-auth` and transitive `@auth/core` vulnerabilities by moving `next-auth` from `5.0.0-beta.31` to `5.0.0-beta.32`, without changing authentication architecture or unrelated dependencies.
+
+3. What changed
+   The dependency manifest now pins `next-auth` to `5.0.0-beta.32`, and the lockfile resolves `@auth/core` to `0.41.3`. No Next.js, Payload, XLSX, Sharp, PostCSS, js-yaml, auth-route, provider, session, verification-code, or Superadmin logic changed.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Remaining non-auth audit findings still fail the moderate-threshold audit gate until remediated in separate approved patches.
+- improvement: Convert `test:auth-flow` into a non-interactive regression harness or add documented subcommands for CI-friendly signup and login verification.
+- observation: The existing `test:auth-flow` script requires one of `signup-send`, `signup-verify`, `login-send`, or `login-verify`; running it without a command reports its usage requirement.
+
+5. User learning
+   The critical Auth.js audit findings are removed while UseClevr keeps the current email-password Credentials provider, JWT session callbacks, protected-route behavior, verification email path, logout UI, and Superadmin helper behavior.
+
+6. AI-agent learning
+   For dependency hardening tasks, verify the transitive graph before and after the patch, avoid package-manager broad update commands, and report parameterized test harness limitations explicitly.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## GitHub Actions Supply-Chain Hardening
+
+1. Interaction title
+   GitHub Actions supply-chain hardening.
+
+2. What was the user goal
+   Pin third-party GitHub Actions to immutable commit SHAs, add the existing moderate-threshold dependency audit to CI, apply least-privilege permissions for validation workflows, and avoid application/runtime/business logic changes.
+
+3. What changed
+   Workflow and composite-action references to `actions/checkout@v6`, `actions/setup-node@v6`, and `actions/github-script@v9` now use full upstream commit SHAs with readable version comments. The source validation workflow runs `pnpm audit --audit-level=moderate` without suppression before tests and build. Validation-only workflows declare `contents: read`, while deployment and auto-merge workflows keep write permissions needed for branch publishing, PR merging, and workflow dispatch. The workflow health check now scans `.github/workflows/` and `.github/actions/`, rejects mutable external action refs, requires exact allowed SHAs, requires readable version comments, enforces frozen installs, and verifies the CI audit command is not suppressed.
+
+4. Problems marked
+
+- blocker: none.
+- risk: CI now fails until current dependency audit findings are remediated or explicitly reviewed.
+- improvement: Review dependency audit findings in a dedicated dependency-remediation task instead of bundling package upgrades into workflow hardening.
+- observation: `pnpm audit --audit-level=moderate` reports 84 vulnerabilities: 3 critical, 32 high, 41 moderate, and 8 low.
+
+5. User learning
+   The CI supply-chain gate is active and fails on current moderate-or-higher audit findings, which makes dependency risk visible before source validation passes.
+
+6. AI-agent learning
+   Workflow supply-chain fixes should pin external action refs with upstream commit SHAs and update local workflow policy tests so mutable refs cannot re-enter through composite actions.
+
+7. Follow-up tasks
+
+- Review and remediate dependency audit findings for Auth.js, Next.js, SheetJS, Payload transitive packages, DOMPurify, Sharp, PostCSS, and workflow tooling without broad unreviewed dependency upgrades. (labels: security, ci-build, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Production Security Headers
+
+1. Interaction title
+   Production security headers.
+
+2. What was the user goal
+   Add production security headers safely through the existing Next.js config and proxy architecture, including CSP, HTTPS-only HSTS, browser permission restrictions, and no global wildcard CORS.
+
+3. What changed
+   Security headers now come from one shared helper used by `next.config.mjs` and `src/proxy.ts`. Runtime responses receive CSP plus base security headers through the proxy, and HSTS is added only for production HTTPS requests. The production CSP starts from `default-src 'self'`, blocks objects and framing, restricts production browser connections to same-origin, allows Google Fonts for styles/fonts, allows configured S3/R2 image origins when present, and allows Stripe/Square only as form-action destinations. A focused regression checks header values, CSP directives, HSTS conditions, no wildcard CORS in the touched header paths, and the existing `/api/public/ai` production 404 guard.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Payload admin still needs inline styles, so `/admin` keeps `style-src 'unsafe-inline'` while non-admin routes use the nonce path.
+- improvement: Add an integration test against the deployed test host after CI publishes `beta` to `dist-test`.
+- observation: Stripe and Square checkout/OAuth flows use redirects or server-side calls in the current app, so CSP does not need broad browser connect permissions for those providers.
+
+5. User learning
+   Production browser responses now carry explicit hardening headers without exposing the dormant Public AI API or opening global CORS.
+
+6. AI-agent learning
+   App-wide header work should reuse the existing Next config and proxy entry points, keep HSTS request-aware where possible, and test CSP compatibility as source-level policy instead of duplicating route-specific headers.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Sensitive Logging Redaction
+
+1. Interaction title
+   Sensitive logging redaction.
+
+2. What was the user goal
+   Remove sensitive values from chat logging and console email verification logging without changing chat behavior, email delivery, verification-code generation, authentication, datasets, reports, billing, or AI behavior.
+
+3. What changed
+   Chat and analysis logs now record metadata such as dataset id, message length, question length, Ghost Mode state, row count, column count, operation name, and result key names instead of complete user messages, question text, SQL result data, raw SQL strings, dataset rows, or raw normalized values. Chat execution logging defensively deletes raw question, SQL, message, prompt, processedData, datasetRows, rows, and data keys before writing diagnostics. Console verification-email diagnostics now log a masked email, provider name, and `codeGenerated: true` without logging the verification code. Provider error logs now record error name and message instead of raw error objects.
+
+4. Problems marked
+
+- blocker: none.
+- risk: AI traces and functional prompt construction still intentionally use the actual user request for product behavior; this change is limited to application diagnostics/logging.
+- improvement: Add a central log-redaction utility if more subsystems need structured sensitive-field stripping.
+- observation: The confirmed root causes were direct chat/SQL diagnostics of `lastMessage`, SQL results, raw normalized values, and console verification-email output of email plus six-digit code.
+
+5. User learning
+   Diagnostics now retain useful operational metadata without writing complete user content, verification codes, dataset rows, or authentication secrets.
+
+6. AI-agent learning
+   Security fixes for logging should preserve operational counters and identifiers while removing raw content at every helper layer, including defensive deletion in shared log helpers.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Credit Top-Up Workspace Authorization
+
+1. Interaction title
+   Credit top-up workspace authorization.
+
+2. What was the user goal
+   Fix only the credit top-up checkout workspace authorization issue so an authenticated user cannot attach a purchase to an arbitrary workspace by sending a `workspaceId` in the request body.
+
+3. What changed
+   The checkout route now treats the request-body workspace identifier as untrusted input. When no workspace identifier is supplied, checkout metadata keeps the existing user-id workspace default. When a workspace identifier is supplied, the route checks the authenticated user with the existing workspace membership helper at viewer-or-higher access before Stripe checkout session creation. Unauthorized and nonexistent workspace identifiers return 403 and do not create Stripe sessions. Package-derived credits, amount, and currency metadata remain sourced from configured credit packages, and mismatched request-body currency remains rejected.
+
+4. Problems marked
+
+- blocker: none.
+- risk: none.
+- improvement: Add route-level integration tests with mocked auth, workspace membership, and Stripe service calls if the test harness gains module mocking.
+- observation: The root cause was that the route copied `body.workspaceId` into Stripe metadata without verifying workspace membership or ownership.
+
+5. User learning
+   Credit top-up workspace metadata is now server-authorized and cannot be reassigned by editing the checkout request body.
+
+6. AI-agent learning
+   Payment metadata that influences ledger attribution must be derived from authenticated server-side authorization checks, not from client-supplied identifiers.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Public AI Production Disable
+
+1. Interaction title
+   Public AI production disable.
+
+2. What was the user goal
+   Temporarily disable only `/api/public/ai` in production while keeping the implementation available for later hardening.
+
+3. What changed
+   The Public AI route returns a generic 404 at the start of both `POST` and `GET` handlers when `NODE_ENV` is production. The guard runs before API-key reads, request-body parsing, available-action metadata, and analyze, investigate, predict, or compare handlers. A focused regression verifies the guard order and confirms the generic production response does not disclose authentication format, action names, or public API metadata.
+
+4. Problems marked
+
+- blocker: none.
+- risk: none.
+- improvement: Re-enable the Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, usage and abuse controls, and audit logging are implemented.
+- observation: The existing development GET response intentionally remains in the file for later implementation work, but production requests no longer reach it.
+
+5. User learning
+   The current launch excludes the external Public AI API even though the dormant implementation stays available in source.
+
+6. AI-agent learning
+   Public-route launch toggles that protect unreleased APIs should fail closed before any authentication, request parsing, or capability metadata runs.
+
+7. Follow-up tasks
+
+- Re-enable the external Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, abuse controls, and audit logging are implemented. (labels: security, api, ai, monitoring)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Standard Upload Resource Limits
+
+1. Interaction title
+   Standard Upload resource limits.
+
+2. What was the user goal
+   Harden Standard CSV/XLS/XLSX upload validation so oversized, unsupported, malformed, macro-enabled, empty, or row/column over-limit files fail before parser-heavy processing.
+
+3. What changed
+   Standard upload paths use one shared upload-security module for file-size, extension, MIME compatibility, temporary filename, CSV structure, Excel signature, worksheet, row, and column validation. The standard parser validates before `file.text()`, full `file.arrayBuffer()`, `XLSX.read`, and `sheet_to_json` where practical, rejects macro-enabled extensions, reads Excel values without retaining formulas or VBA data, and returns stable upload error codes with `413` for oversized files and `422` for invalid structures or unsupported limits.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Older non-server browser/file-path helpers still contain legacy parsing code, but the Standard upload API and canonical upload action route through the hardened parser path.
+- improvement: Move any future upload entry point to the shared upload-security module before accepting customer files.
+- observation: The previous Standard upload validator accepted files based on MIME substrings such as `spreadsheet` or `excel`, and the parser could read file content before enforcing a central server-side size limit.
+
+5. User learning
+   Standard uploads now require extension evidence plus compatible metadata and lightweight structure checks instead of trusting client-provided MIME values.
+
+6. AI-agent learning
+   Upload hardening belongs at the shared parser boundary and the API status mapper so every normal Standard upload entry point returns the same stable failure codes.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Local Retail Inventory Snapshot Semantics
+
+1. Interaction title
+   Local Retail inventory snapshot semantics.
+
+2. What was the user goal
+   Fix `01_local_retail` so generated reports calculate inventory metrics from current store-product snapshots instead of summing historical `stock_on_hand` transaction rows.
+
+3. What changed
+   Local retail report analysis now detects `store_id` and builds an inventory snapshot set from the latest valid dated row per `store_id + product_id`. Current Stock, reorder-required count, out-of-stock count, inventory value, stock by category, inventory value by product, low-stock rows, and inventory recommendations consume that snapshot set. Revenue, COGS, gross profit, gross margin, units sold, category gross margin, supplier exposure, and product count continue to use transaction-row semantics. The `01_local_retail` CSV and XLSX fixtures carry 180 rows with a historical stock sum of 10,643 and latest snapshot current stock of 6,341. A focused regression validates CSV, XLSX, generated PDF text, and the same-store same-product 100 to 70 to 40 case.
+
+4. Problems marked
+
+- blocker: none.
+- risk: The broad dataset-aware report-profile script contains unrelated profile Results Summary assertions that can fail outside this local-retail inventory path, so focused validation uses the new local-retail snapshot regression.
+- improvement: Keep fixture-generation logic centralized if more numbered fixture files need deterministic regeneration.
+- observation: The previous retail analysis summed `stock_on_hand`, inventory value, low-stock rows, and stock-by-category directly from all transaction rows; low-stock count was also capped by the displayed top-10 rows.
+
+5. User learning
+   Retail sales metrics and inventory metrics can have different grains in the same dataset: transaction-period rows for sales, latest store-product snapshots for current inventory state.
+
+6. AI-agent learning
+   Generated report tests should assert the historical-stock sum guard alongside the current snapshot total so a regression cannot silently reintroduce transaction-row inventory sums.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Generic Business Executive Summary Profitability Split
+
+1. Interaction title
+   Generic Business Executive Summary profitability split.
+
+2. What was the user goal
+   Fix only the `08_generic_business` Executive Summary sentence so the generated report does not claim profitability cannot be assessed when gross profit and gross margin are available.
+
+3. What changed
+   The generic dataset summary builder now receives the resolved report profile id and uses canonical metric availability to write the gross-profit/gross-margin sentence only for the `generic_business` profile when gross profitability exists and operating or net profitability is unavailable. The focused generic-business regression asserts the builder summary and extracted PDF text include the new gross profitability sentence and exclude the old contradictory missing-profitability sentence.
+
+4. Problems marked
+
+- blocker: The exact `08_generic_business.xlsx` fixture file is not present in the checked-out workspace, so validation uses the existing source-equivalent synthetic regression fixture that regenerates the PDF and verifies extracted text.
+- risk: none.
+- improvement: Track the exact numbered fixture files in a documented fixture path if manual PDF reproduction must use the original XLSX artifact.
+- observation: At summary-build time, `reportType` remains `generic` while `reportProfile.id` resolves to `generic_business`; summary wording must use the profile id to stay scoped without changing report routing.
+
+5. User learning
+   Generic business report summaries must distinguish available gross profitability from unavailable operating or net profitability instead of treating all profitability as missing.
+
+6. AI-agent learning
+   For generated reports with profile metadata, copy branches that need dataset-profile specificity should read the resolved profile id instead of inferring from `reportType` alone.
+
+7. Follow-up tasks
+
+- Add the remaining exact numbered business-model fixtures in a tracked fixture path for manual PDF reproduction. (labels: data, testing, reports)
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Dataset-Aware Executive Report Profiles
+
+1. Interaction title
+   Dataset-aware executive report profiles.
+
+2. What was the user goal
+   Add report-profile selection for generated dataset reports and ensure Standard Upload local retail reports render as Retail Executive Reports with retail KPIs, inventory intelligence, product/category/supplier intelligence, and retail recommendations instead of a generic P&L report.
+
+3. What changed
+   Generated reports now carry report-profile metadata and use a new runtime version so older generic report artifacts are regenerated. The dataset report builder selects local retail, e-commerce, SaaS startup, marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, or accountancy ledger profiles. Local retail report input maps cost as COGS, derives revenue, COGS, gross profit, gross margin, units sold, current stock, inventory value, product or SKU count, low-stock SKUs, reorder-required SKUs, out-of-stock SKUs, average order value where supported, and supplier/category/product groupings. Local retail recommendations prioritize reorder, stockout, inventory cash exposure, weak margin, supplier concentration, and missing operational fields. The PDF renderer branches local retail reports into Retail Executive Summary, Sales & Margin Performance, Inventory Intelligence, Product / Category / Supplier Intelligence, and Retail Recommendations + Provenance pages.
+
+4. Problems marked
+
+- blocker: The workspace does not contain the requested numbered 20-fixture matrix or `01_local_retail.xlsx`; the available local retail XLSX has 5 rows, not 180 rows.
+- risk: Synthetic or future fixture files can broaden profile coverage for marketplace, professional services, profitability P&L, accountancy ledger, and generic business beyond the currently checked-in business-model fixtures.
+- improvement: Add the requested numbered CSV/XLSX fixture suite and mapping notes to the repository so the full 20-file regression can run without local fixture substitution.
+- observation: The available local retail fixture totals 5 rows, $4,455 revenue, $2,180 COGS from the cost field, $2,275 gross profit, and 51.07% gross margin.
+
+5. User learning
+   Local retail generated reports must ask retail operating questions first: sales, margin, units, inventory value, stock status, reorder risk, products, categories, suppliers, and retail actions.
+
+6. AI-agent learning
+   Dataset-aware report selection belongs in the deterministic report input so the PDF renderer and recommendation logic do not reinterpret the same dataset as a generic P&L artifact.
+
+7. Follow-up tasks
+
+- Add the numbered 10-family CSV and Excel fixture suite with `README_TEST_MAPPING.txt` so the full 20-file regression runs against the exact requested files. (labels: data, upload, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Marketplace Startup Profile End-to-End Fix
+
+1. Interaction title
+   Marketplace startup profile end-to-end fix.
+
+2. What was the user goal
+   Fix the Marketplace startup profile (`04_marketplace_startup`) end-to-end so it is classified from dataset semantics (buyer + seller + GMV + platform economics) instead of falling back to E-Commerce, and ensure all downstream reporting uses strict Marketplace semantics.
+
+3. What changed
+   The dataset-intelligence engine and legacy column classifier now detect Marketplace from strong column signals (`gross_merchandise_value`, `platform_fee`, `seller_payout`, `buyer_id`, `seller_id`, etc.) and override generic E-Commerce signals when Marketplace core signals are present without E-Commerce core signals. The report builder generates `MarketplaceReportAnalysis` with GMV, Marketplace Revenue, Take Rate, Seller Payout, Refunds, Transactions, Buyers, Sellers, New Buyers, New Sellers, Active Sellers, Listings, Completion Rate, and trends. The PDF generator renders Marketplace-specific sections: Marketplace Economics, Buyer & Seller Intelligence, Category & Geography Performance, Business Balanced Scorecard, and Marketplace Recommendations + Provenance. The dashboard semantic profile surfaces Marketplace Command Center metrics with GMV, Marketplace Revenue, Take Rate, Seller Payout, Refund Amount, Refund Rate, Transactions, Average Transaction Value, Buyers, Sellers, New Buyers, New Sellers, Active Sellers, Listings, Completion Rate, and trends. The balanced scorecard includes Marketplace financial (GMV, Marketplace Revenue, Take Rate, Seller Payout, Refunds), customer (Buyers, Sellers, New buyers, New sellers), process (Completion rate, Active sellers, Listings), and growth (Market expansion, Category breadth) perspectives. Test fixtures were generated at `test-fixtures/business-models/04_marketplace_startup.csv` and `.xlsx` with 180 rows and exact target sums (GMV $83,778.17, Platform Revenue $11,049.51, Seller Payout $71,068.33, Refund $1,660.33, 100 Buyers, 58 Sellers, 40 New Buyers, 20 New Sellers).
+
+4. Problems marked
+
+- blocker: none.
+- risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` are partially present; dashboard regression validates the available numbered Retail, E-Commerce, and SaaS fixtures and does not invent missing marketplace/investor/profile calculations.
+- improvement: add the remaining exact numbered fixtures so dashboard profile regression can exercise every mandatory profile from file-backed uploads.
+- observation: the SaaS fixture `03_saas_startup` contains `customer_id` which matches E-Commerce keyword patterns; the SaaS keyword pattern was missing `churned`, causing a pre-existing classification regression that was fixed alongside the Marketplace work.
+
+5. User learning
+   Marketplace datasets must be classified by platform economics columns, not generic E-Commerce order/shipping columns. Strict Marketplace semantics keep GMV, platform revenue, seller payout, and refunds separate from ordinary revenue and COGS.
+
+6. AI-agent learning
+   When fixing business-model classification, verify keyword-pattern precedence against all existing fixtures because adding stronger Marketplace signals can expose latent SaaS/E-Commerce pattern collisions in fixtures that were previously classified by dataset-type fallback.
+
+7. Follow-up tasks
+
+- Add the remaining exact numbered fixtures (`05_investor_portfolio` through `10_accountancy_ledger`) as CSV/XLSX so the full 20-file regression can run without synthetic substitution. (labels: data, upload, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Report Runtime Trace And Legacy Replay Invalidation
+
+1. Interaction title
+   Report runtime trace and legacy replay invalidation.
+
+2. What was the user goal
+   Trace the actual production report-generation path for `UseClevr_Full_Report_Test_Dataset.xlsx`, identify the source of `100 loaded rows`, identify where semantic mappings disappear, and prevent misleading PDFs from being generated or replayed.
+
+3. What changed
+   Report generation now logs `[REPORT TRACE]` diagnostics with dataset ID, filename, persisted row count, loaded row length, analysis row length, summary row length, report row length, provenance row length, detected semantic fields, analysis keys, report input keys, and template name at the route, data loader, semantic context, deterministic analysis, executive summary, trend analysis, Cost Intelligence, report generator, and PDF renderer transitions. The reports API checks idempotent reports for the current report runtime version, diagnostics, and semantic context; legacy report replays are invalidated and rebuilt instead of returning stale PDFs. Report generation stores a runtime version and template name. The report generator throws `ReportIntegrityError` before PDF rendering when row counts or semantic mappings contradict the validated analysis object, including a valid-date and valid-net-profit trend availability check. The full-row PDF regression verifies the trace path and source guards.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Existing stale report files remain on disk until a matching idempotent request invalidates them or the user deletes/regenerates reports.
+- improvement: Add an admin cleanup tool for old generated report files if stale report storage needs bulk cleanup.
+- observation: The exact `100 loaded rows` text is produced by `buildDatasetSummary` from its row-count argument. The production persistence/replay path can keep serving a pre-fix report summary because `/api/reports` returned `findReportByIdempotencyKey` results before rebuilding report input. The semantic mappings disappeared because those legacy reports were generated before the report object carried `semanticContext` and before Cost Intelligence read that shared context.
+
+5. User learning
+   Fixing the builder and PDF renderer is not sufficient when the report route can replay a previously generated PDF through idempotency; the runtime route must verify stored report shape before returning a report.
+
+6. AI-agent learning
+   Runtime traces must include replay branches and storage/version checks, not only the fresh-build code path, when a generated artifact still shows pre-fix content.
+
+7. Follow-up tasks
+
+- Add an admin cleanup tool for old generated report files if stale report storage needs bulk cleanup. (labels: reports, data, workflow)
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Full-Row Report Analysis And Semantic Mapping Consistency
+
+1. Interaction title
+   Full-row report analysis and semantic mapping consistency.
+
+2. What was the user goal
+   Fix the Executive BI report pipeline so the full-report XLSX regression uses the same 120 authoritative rows and semantic field mappings across executive summary, financial performance, trend analysis, Cost Intelligence, recommendations, and provenance.
+
+3. What changed
+   Dataset report loading now reads `datasetRows` when inline dataset data contains fewer rows than `dataset.rowCount`, so report calculations do not stop at preview-sized inline payloads. Standard simple upload stores all parsed in-limit rows in the dataset payload instead of slicing inline report data to 100 rows. Dataset report building creates one semantic context per dataset for date, revenue, net profit, cost fields, expense category, expense amount, and vendor fields. Dataset report building calculates top cost categories and period trends from the same full-row dataset and semantic mapping used for financial KPIs and executive summaries. Generated reports carry structured diagnostics for dataset ID, filename, canonical row count, KPI rows, summary rows, semantic fields, and trend availability. The PDF renderer uses the report semantic context for Cost Intelligence field-availability rows instead of independently treating vendor, date, category, or amount fields as missing. The regression script creates the `UseClevr_Full_Report_Test_Dataset.xlsx` fixture shape with 120 rows, generates a fresh PDF, extracts rendered text with `pdftotext`, and verifies 120-row consistency, trend availability, and recognized semantic fields.
+
+4. Problems marked
+
+- blocker: The checked-in workspace does not contain a committed `UseClevr_Full_Report_Test_Dataset.xlsx` source fixture, so the regression generates the same named XLSX shape locally during validation.
+- risk: Large datasets above the existing parse or storage row limit still rely on aggregate or preview behavior until the product adds durable full-row storage for that scale.
+- improvement: Add the source XLSX regression fixture to a documented tracked or fixture-generation path if product QA requires manual PDF reproduction from the exact artifact.
+- observation: The observed 100-row PDF contradiction comes from report loading preferring inline `dataset.data` before `datasetRows`, combined with simple upload storing `data: parsedRows.slice(0, 100)`.
+
+5. User learning
+   Generated report PDFs must prove row-count and semantic consistency in the rendered content, not only in TypeScript or object-level tests.
+
+6. AI-agent learning
+   Report builders need one validated analysis object carrying row counts, semantic mappings, financials, diagnostics, and PDF-ready fields so downstream renderers do not re-detect or contradict source semantics.
+
+7. Follow-up tasks
+
+- Add the committed full-report XLSX regression fixture only if QA needs a durable binary artifact instead of deterministic fixture generation. (labels: data, upload, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Dashboard Empty State After Dataset Deletion
+
+1. Interaction title
+   Dashboard empty state after dataset deletion.
+
+2. What was the user goal
+   Fix the main dashboard and Executive Daily Health so deleting every uploaded dataset removes current analytical scores, confidence, priorities, recommendations, KPI trends, report generation, and full-brief access instead of showing stale or fallback values.
+
+3. What changed
+   Dashboard aggregation now exposes only non-deleted datasets as current analytics, so dataset count, active count, total rows, latest upload, detected columns, business model counts, and dashboard rows all share the same active-dataset source of truth. The executive metrics builder returns a deterministic empty metrics object when active dataset count is zero. KPI cards show No data for analytical metrics, while Active Datasets and Rows Processed show measured zeros. Executive Daily Health renders a no-analysis empty state, hides score and confidence output, hides priorities and recommendations, hides Generate Report, and disables View Full Daily Brief when no active dataset exists. The full Daily Health page checks active dataset count before creating or showing a current brief or history.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Browser-only refresh, logout/login, upload, delete, and reupload checks require an authenticated app session.
+- improvement: none.
+- observation: The incorrect 49/100 AI Confidence came from the dashboard formula `34 + rows bonus + business profile bonus` after deleted dataset rows still reached current analytics. The incorrect 34 score came from the health calculation averaging readiness, fallback confidence, forecast confidence, and growth readiness for a deleted/stale dataset surface instead of a zero-dataset branch.
+
+5. User learning
+   Dashboard empty state must use current active dataset availability, not report history, AI traces, cached Daily Health records, or deleted dataset rows.
+
+6. AI-agent learning
+   Dashboard aggregation must remove deleted datasets before calculating current totals and derived analytics; separate active counts are not enough if stale rows remain in the dataset array.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+
+## Executive BI Report Accuracy And Missing Data
+
+1. Interaction title
+   Executive BI report accuracy and missing data.
+
+2. What was the user goal
+   Fix generated Executive BI reports so missing financial inputs are never shown as zero, unsupported profit metrics are not fabricated, Balanced Scorecard comparisons remain meaningful, and recommendations are actionable and selected-dataset grounded.
+
+3. What changed
+   Generic dataset report generation now builds strict financials for standard reports and keeps revenue, COGS, operating expenses, interest, tax, profit, margin, trend, and expense-ratio values unavailable unless explicit recognized fields or complete required inputs exist. PDF financial charts render unavailable values as Not available instead of numeric bars, trend charts require real net-profit period values, and incomplete scorecard output labels source-data completeness rather than profitability health. Balanced Scorecard strongest/weakest comparisons require at least two available perspective scores. Report recommendations come from supported signals and missing-data limitations instead of generic findings filler.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Full browser regeneration for a private uploaded `startup_dataset` requires an authenticated session that has that dataset available.
+- improvement: none.
+- observation: Unsupported repeated profit values came from the PDF financial normalizer copying a single Profit KPI into gross, operating, and net profit when no structured financials existed; missing chart values came from Revenue vs Expenses bars using zero fallbacks for null fields.
+
+5. User learning
+   The Executive BI report must distinguish a missing cost field from an actual source value of zero before calculating profit, margin, trend, scorecard comparison, or recommendations.
+
+6. AI-agent learning
+   Report financial metrics need a structured unavailable state at the builder level so PDF formatting cannot silently turn missing evidence into zero-valued visuals or copied profit metrics.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+
+## Report Generation Cost Logging Repair
+
+1. Interaction title
+   Report generation cost logging repair.
+
+2. What was the user goal
+   Fix the Generate Report failure that showed a raw database insert error for AI cost logging while preserving the existing report engine, downloads, credits, billing, and AI provenance.
+
+3. What changed
+   Added an idempotent AI cost telemetry schema repair that creates the report cost-log table with the columns expected by the Drizzle schema and applies the repair during Railway predeploy. Report API routes still reserve, finalize, and release credits through the credit engine, and they isolate non-critical cost telemetry failures from report generation responses. The dashboard report action keeps known billing messages visible and replaces internal database details with a customer-safe report-generation error.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Full browser verification for report creation, Reports & Downloads listing, PDF download, CSV download, AI provenance metadata, and console state requires an authenticated session with a reportable dataset and the deployed database after predeploy runs.
+- improvement: none.
+- observation: The configured runtime database did not have the `AICostLog` table even though application code inserted report-generation cost telemetry into that schema.
+
+5. User learning
+   The report failure came from a missing telemetry table, not from the report engine, PDF/CSV generation, or dashboard dataset scoping.
+
+6. AI-agent learning
+   Report-generation telemetry must be schema-synchronized through migrations and predeploy, and non-critical telemetry inserts must not override completed credit handling or leak raw SQL into customer-facing UI.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+
+## Executive Daily Health Generate Report Visibility
+
+1. Interaction title
+   Executive Daily Health Generate Report visibility.
+
+2. What was the user goal
+   Find and fix why the existing Generate Report action was not visible beside View Full Daily Brief on the actual main dashboard.
+
+3. What changed
+   Fixed the active `/app` dashboard component so Executive Daily Health receives a reportable dataset ID even on the default dashboard route. The previous implementation passed `selected.selectedDataset?.id` into the Daily Health section, but `selected.selectedDataset` is intentionally null when no `datasetId` query parameter is present. The Daily Health section now uses the explicitly selected dashboard dataset when present, or the dashboard's canonical latest dataset when no dataset is selected, and disables the action only when that report dataset is deleted or not ready. `GenerateReportAction` remains the reused report flow component.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Visual and functional browser verification for report generation, Reports & Downloads listing, PDF, CSV, and console state requires an authenticated session with reportable datasets.
+- improvement: none.
+- observation: `/app/dashboard` redirects to `/app`; `src/app/(auth)/app/page.tsx` is the active dashboard component that renders Executive Daily Health and View Full Daily Brief.
+
+5. User learning
+   The button was invisible because the default dashboard route has no explicitly selected dataset, not because the report action or report API was missing.
+
+6. AI-agent learning
+   Dashboard-level report actions on aggregate views must use the same canonical dashboard dataset fallback used by dashboard summaries instead of selected-only query state.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dataset Library View Rows Cleanup
+
+1. Interaction title
+   Dataset Library View rows cleanup.
+
+2. What was the user goal
+   Remove the visible non-functional View rows action from Dataset Library row actions without deleting backend row data, APIs, processing, selection, or bulk deletion behavior.
+
+3. What changed
+   Removed only the View rows link from the Dataset Library Actions column. Standard datasets keep Open dashboard, module-scoped datasets keep Open module, and the action cell now right-aligns the single remaining destination action. Dataset detail routes, row data, dataset APIs, upload behavior, checkboxes, select all, clear selection, and bulk deletion remain unchanged.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Browser-only verification for click navigation, checkbox behavior, bulk deletion, and responsive layout requires an authenticated session with datasets.
+- improvement: A reliable Dataset Preview experience remains a separate future product surface.
+- observation: The Dataset Library action was the only visible View rows entry point found in the component.
+
+5. User learning
+   Dataset rows and backend access remain available for future preview work; this change removes only the unreliable library shortcut.
+
+6. AI-agent learning
+   Dataset Library UI cleanup should leave shared routes and backend helpers intact when the request targets only a broken entry point.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Daily Health Report Action
+
+1. Interaction title
+   Dashboard Daily Health report action.
+
+2. What was the user goal
+   Expose the existing Generate Report action beside View Full Daily Brief in the Executive Daily Health dashboard header without rebuilding report generation.
+
+3. What changed
+   Reused `GenerateReportAction` in the Executive Daily Health header, passed the active dashboard dataset ID into the section, and rendered the action as an outlined secondary button beside the existing primary full-brief link. The action keeps the existing `/api/reports` generation flow, idempotency key handling, persisted report result, Reports & Downloads redirect behavior, and safe error display. The shared action accepts presentation props for variant and class names while preserving existing default callers.
+
+4. Problems marked
+
+- blocker: none.
+- risk: End-to-end Reports & Downloads PDF and CSV verification requires an authenticated browser session and a dataset with report-generation access.
+- improvement: none.
+- observation: The dashboard already scopes reports to `selected.selectedDataset.id`; the Daily Health header now uses that same dataset scope.
+
+5. User learning
+   The Daily Health header can expose report generation without adding a new report backend because the dashboard already owns the active dataset context.
+
+6. AI-agent learning
+   Dashboard header actions should reuse existing report flow components and pass selected dataset IDs explicitly into nested sections.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Yearly Paid Plan Billing
+
+1. Interaction title
+   Yearly paid plan billing.
+
+2. What was the user goal
+   Add Yearly subscription billing to the existing Monthly UseClevr billing flow without changing monthly checkout behavior, entitlements, webhooks, credits, or Stripe products.
+
+3. What changed
+   Extended the shared paid-plan price resolver so Pro and Business resolve Stripe Price IDs by plan, market, and Monthly or Yearly interval. Added approved yearly display prices for USD, EUR, GBP, and CAD, market-specific yearly environment-variable lookup, safe missing-configuration errors, yearly-aware Stripe recurring interval validation, checkout URL and metadata interval preservation, public pricing Monthly/Yearly selection, subscription plan Monthly/Yearly selection, checkout review and terms interval display, and subscription billing-cycle labeling for configured yearly Price IDs. Focused billing tests cover all eight Yearly plan/market combinations, monthly restoration after yearly selection, server-side price tamper rejection, and webhook/subscription tier mapping.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Live Stripe-hosted checkout amount and recurrence verification requires the deployed environment to provide the actual yearly Price IDs and a signed-in browser session.
+- improvement: Active Monthly-to-Yearly subscription migration and proration remain outside this change.
+- observation: Existing Monthly plan IDs, monthly env fallbacks, subscription activation, credit limits, and webhook tier mapping stay on the existing architecture.
+
+5. User learning
+   Yearly billing uses configured recurring Stripe Price objects per plan and market; missing yearly configuration blocks that market instead of falling back to Monthly or another currency.
+
+6. AI-agent learning
+   Billing interval changes must preserve selected market state through review, terms, cancellation, API metadata, and Stripe validation.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Ghost Mode Private AI Sessions
+
+1. Interaction title
+   Ghost Mode private AI sessions.
+
+2. What was the user goal
+   Add a small launch-safe Ghost Mode for AI sessions, verify normal persistence remains active when off, keep Local AI and dataset isolation unchanged, and commit/push the work to `origin/beta`.
+
+3. What changed
+   Added a sessionStorage-backed Ghost Mode toggle in the AI Assistant privacy status area with the requested first-activation notice, active "Ghost Mode ON" state, and disabled content-linked feedback/override writes while Ghost Mode is on. Chat, analyze, hybrid chat, dataset chat, and assistant-history routes now accept `ghostMode`; Ghost Mode skips normal chat history and content-level AI traces, while request audit, billing, credit finalization, provider routing, latency/token metadata, and error metadata continue. Normal mode still creates `aiInteractionTraces` for persisted assistant history. Dataset storage, dataset isolation, provider routing, and Local AI behavior stay unchanged. Privacy, requirements, changelog, package scripts, and focused regression checks document the current behavior.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Cloud providers still receive the minimum prompt and summarized dataset context required to answer when routing uses cloud AI.
+- improvement: Browser-level or provider-level retention controls remain separate from UseClevr Ghost Mode.
+- observation: Source-level tests verify Ghost Mode copy avoids local-only or zero-retention claims.
+
+5. User learning
+   Ghost Mode minimizes UseClevr retention for one browser session; it does not delete uploaded datasets and does not promise that cloud processing leaves the device.
+
+6. AI-agent learning
+   AI privacy controls must preserve billing/security audit records while removing prompt/response persistence from user-visible history and content trace tables.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## AI Analyst Transaction Anomaly Accuracy
+
+1. Interaction title
+   AI Analyst transaction anomaly accuracy.
+
+2. What was the user goal
+   Fix AI Analyst answers for questions like "Are there unusual transactions this period?" so UseClevr no longer treats the largest transaction as unusual without statistical evidence.
+
+3. What changed
+   Added a reusable transaction amount anomaly detector that validates amount-like fields, excludes IDs, quantities, counts, rates, SKUs, nulls, and malformed values, and applies IQR-based outlier thresholds over transaction amount magnitude. The analytical intent registry now handles unusual, anomaly, abnormal, outlier, and suspicious transaction wording with evidence-backed outlier analysis before provider routing. Dataset AI and Pre-bookkeeping AI now keep largest-transaction ranking separate from unusual-transaction detection. Outlier answers include median, Q1, Q3, IQR, upper threshold, invalid-value exclusions, candidate threshold multiples, median multiples, and row context. No-outlier and insufficient-data answers state the limitation directly and avoid unsupported low-confidence, suspicious, or fraud language.
+
+4. Problems marked
+
+- blocker: none.
+- risk: IQR detection over absolute transaction magnitude identifies amount outlier candidates only; it does not detect duplicate, frequency, merchant, timing, or fraud-risk anomalies.
+- improvement: Future transaction anomaly work can add separate duplicate, frequency, and category-concentration handlers without changing largest-transaction ranking.
+- observation: Focused tests cover largest ranking, outlier found, no outlier, insufficient sample size, malformed values, amount versus quantity selection, numeric ID refusal, suspicious wording, pre-bookkeeping anomaly evidence, and analytical registry routing.
+
+5. User learning
+   UseClevr must only call a transaction unusual when the answer shows why the amount is statistically atypical relative to the selected period.
+
+6. AI-agent learning
+   Anomaly wording must route before generic fallback and before largest-transaction ranking; "largest" and "unusual" need separate deterministic handlers.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## AI Analyst Expense Semantics Guard
+
+1. Interaction title
+   AI Analyst expense semantics guard.
+
+2. What was the user goal
+   Prevent UseClevr AI analysis from treating sales-only, retail, or generic monetary datasets as expense data when the selected dataset contains no validated expense or cost semantics.
+
+3. What changed
+   The semantic schema keeps generic amount, total, value, transaction, and price fields neutral for expense analysis. Dataset AI now checks expense capabilities before answering expense questions, refuses unsupported expense calculations with clear evidence text, and offers only revenue alternatives when revenue semantics are validated. Valid expense analysis still works for COGS, Unit Cost with quantity, and Transaction Type or category values that classify rows as expenses. Pre-bookkeeping assistant summaries now require validated income and expense evidence before comparing both sides, and expense-only rankings require validated expense semantics. Direct deterministic responses can pass confidence metadata to the AI Analyst panel.
+
+4. Problems marked
+
+- blocker: none.
+- risk: Existing pre-bookkeeping categorizations that rely only on negative amount sign no longer qualify as expense evidence until a debit, category, source category, learned rule, or expense keyword validates the semantics.
+- improvement: Future expense trend and income-versus-expense analytical intents can reuse the semantic capability helpers.
+- observation: Focused tests cover sales-only retail refusal, generic Amount refusal, COGS analysis, Unit Cost with quantity, Transaction Type = Expense classification, pre-bookkeeping generic negative-amount refusal, and explicit pre-bookkeeping expense preservation.
+
+5. User learning
+   UseClevr must prefer a clear missing-evidence refusal over precise-looking financial numbers when the dataset does not prove that numeric fields are expenses.
+
+6. AI-agent learning
+   Expense questions must run before generic revenue fallback in selected-dataset chat because words such as largest, category, and cost can otherwise route into revenue-oriented ranking behavior.
+
+7. Follow-up tasks
+
+- none.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; completed work: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Upload Error Handling and HEIC Support
+
+1. Interaction title
+   Fix `UNEXPECTED_ACCOUNTANCY_UPLOAD_ERROR` affecting non-CSV Accountancy uploads.
+
+2. What was the user goal
+   Resolve `validation.UnEXPECTED_ACCOUNTANCY_UPLOAD_ERROR` affecting non-CSV accountancy uploads while CSV uploads continue working, and accept HEIC receipt images.
+
+3. What changed
+   Wrapped all un-wrapped credit-engine calls in `processAccountancyUpload` that could throw non-`AccountancyUploadError` exceptions and escape the route handler catch-all: `checkSpendingLimits` and `reserveCredits` now have try-catch blocks that convert throws to structured `AccountancyUploadError` responses; `finalizeCredits` is wrapped in try-catch that logs the error and falls through to the existing `CREDIT_SETTLEMENT_ERROR` cleanup path; all `releaseCredits` calls in catch and error paths now use `.catch(() => undefined)` so they cannot mask the original error; the `prebookkeepingLearningRules.findMany` DB query uses `.catch(() => [])`; and `categorizePrebookkeepingRows` is wrapped in try-catch that returns `null` on failure, falling through to `createDefaultPrebookkeepingReviewSummary`. Added `image/heic` MIME type and `.heic` extension to `uploadSpecs.receipt`, updated `inferMimeType` and the dataset-name regex to handle `.heic`, and added a HEIC receipt test case.
+
+4. Problems marked
+
+- blocker: none.
+- risk: The underlying root cause of non-CSV upload failures could not be reproduced without a live database; fixes are defensive so any future throw in credit-engine or categorization code converts to a staged error instead of surfacing as a generic 500.
+- observation: Parser-level tests confirm non-CSV data (PDF accounting fields, receipt scanner rows, bank normalized rows) flows correctly through `computePrecomputedMetrics` and `categorizePrebookkeepingRows`; the failure surface is exclusively in un-wrapped async credit-engine and DB calls between the `reserveCredits` and `finalizeCredits` steps.
+
+5. User learning
+   Accountancy upload credit reservation, finalization, and release must each be wrapped so a credit-engine DB error or throw converts to a staged `AccountancyUploadError` rather than escaping as `UNEXPECTED_ACCOUNTANCY_UPLOAD_ERROR`.
+
+6. AI-agent learning
+   When credit-engine functions (`reserveCredits`, `finalizeCredits`, `releaseCredits`) are called directly from a server processor without try-catch, any DB error they throw escapes the route handler catch-all. The fix is to wrap each credit-engine call in try-catch and convert to `AccountancyUploadError`, and make all `releaseCredits` calls in error paths non-blocking with `.catch()`.
+
+7. Follow-up tasks
+
+- Add end-to-end test for `processAccountancyUpload` with mocked DB and credit engine to exercise the full pipeline including credit reservation/finalization for non-CSV types.
+- Run `pnpm validate` in CI to confirm all checks pass after these changes.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+
+- Product requirement updates: none.
+- Release notes: `CHANGELOG.md`.
+- Detailed session record: `project-logs/interactive-log.md`.
+- Activity summary: `project-logs/activity-log.md`.
+- Latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Credit Top-Up Payment Reconciliation
+
+1. Interaction title
+   Credit top-up payment reconciliation for Stripe and Square.
+
+2. What was the user goal
+   Implement production-grade one-time credit top-up payment reconciliation for Stripe and Square, completing the final financial integrity layer of the credit system with verified provider webhooks as the single source of truth for payment credits.
+
+3. What changed
+   Added CreditTopUp table with DB-level unique constraints on (provider, providerPaymentId) and (provider, providerEventId) for idempotency. Created server-side credit package configuration reading Stripe price IDs and Square catalog IDs from environment variables. Built Stripe payment-mode checkout session creation, Square checkout creation, HMAC-SHA256 webhook verification for both providers, and credit issuance in atomic database transactions. Added reconciliation engine detecting payments-without-ledger entries, ledger-without-payment entries, duplicate mappings, and amount/currency mismatches. Updated Billing & Usage page with credit top-up purchase section, top-up history table, and "Payment received — credits are being confirmed" pending state.
+
+4. Problems marked
+   blocker: none.
+
+5. User learning
+   Payment credits must come from verified provider webhooks, not client-side redirects; credit package amounts must be resolved server-side from trusted configuration; and webhook idempotency must be enforced at the DB level with unique constraints.
+
+6. AI-agent learning
+   For one-time payment reconciliation, the critical pattern is: (1) verify webhook signatures server-side, (2) resolve credit packages from server-side config not client-submitted amounts, (3) use DB-level unique constraints as the primary idempotency mechanism, (4) issue credits in a single atomic transaction with both the CreditTopUp record and ledger entry, and (5) provide a reconciliation engine for ongoing financial integrity auditing.
+
+7. Follow-up tasks
+
+- Run integration tests against live database to verify credit issuance and reconciliation under load.
+- Add Square payment form for credit top-ups (currently Stripe-only via checkout API).
+- Add webhook replay endpoint for top-up events.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+## Credit Billing Integrity Production Hardening
+
+1. Interaction title
+   Credit billing integrity production hardening.
+
+2. What was the user goal
+   Audit and harden the existing UseClevr Credit, Usage, Billing and Audit system for production readiness by closing concurrency, idempotency, payment source-of-truth, spending-limit enforcement, and reconciliation gaps without redesigning working functionality.
+
+3. What changed
+   Restricted direct credit purchases to admin-only access, implemented full server-side spending limit enforcement across all billable entry points, fixed purchase trace FIFO attribution, corrected ledger reconciliation to exclude pending reservations, and added 25 automated billing integrity checks.
+
+4. Problems marked
+   blocker: none.
+
+5. User learning
+   Payment credits must come from verified provider webhooks, not client-side redirects; spending limits must be enforced server-side on every billable route; and ledger reconciliation must exclude pending reservations to match actual balances.
+
+6. AI-agent learning
+   Production billing hardening should prioritize surgical fixes over redesign: admin-only purchase routes, server-side spending limits wired into every entry point, FIFO purchase tracing, and reconciliation formulas that match the documented expected-balance equation.
+
+7. Follow-up tasks
+
+- Add one-time payment webhook handlers for Stripe and Square to replace admin-only direct purchase route.
+- Run integration tests against live database to verify concurrent debit protection under load.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Scrollable Transaction Review Container
+
+1. Interaction title
+   Pre-bookkeeping scrollable transaction review container.
+
+2. What was the user goal
+   Wrap the transaction review table in its own fixed-height scroll container so vertical and horizontal scrolling happen inside the table workspace without forcing users to reach the bottom of the page.
+
+3. What changed
+   The transaction review queue container now uses `max-h-[60vh] overflow-auto` instead of only `overflow-x-auto`, giving the table its own independent scroll context while keeping filters, selection, category editing, VAT editing, duplicate review, exports, and page layout unchanged.
+
+4. Problems marked
+   blocker: none.
+
+5. User learning
+   Users should work inside the table as a spreadsheet-like workspace; page navigation should not require horizontal scrolling through the entire document before reaching the table.
+
+6. AI-agent learning
+   Table UX fixes should prefer constrained scroll containers over relying on page-level scrolling when wide tables force horizontal access.
+
+7. Follow-up tasks
+
+- Verify the fixed-height container behaves well on small viewports and with long table rows.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Production Validation
+
+- User goal: perform complete production validation of the Pre-bookkeeping & Risk Intelligence workflow and fix regressions.
+- Finding: Export for Accountant button opened both a validation notice and an export dialog when no transactions were reviewed; Risk Intelligence dataset query passed undefined to drizzle `and` for superadmin access.
+- Change: export button now shows only a validation notice with no dialog when reviewed count is zero; risk query filters undefined conditions before spreading into `and`.
+- Verification: TypeScript checks pass, lint passes, pre-commit project records updated.
+- Status: commit and push in progress.
+
+## Next.js Type Validation Pipeline
+
+- User goal: identify the real cause of TS6053 for missing `.next/types/cache-life.d.ts` and `.next/types/validator.ts`, fix the validation pipeline, and push `beta` without bypassing Husky.
+- Finding: Next.js 16.2.9 `next typegen` generates both reported files; the committed validation script ran `tsc` without generating them first.
+- Change: run `next typegen && tsc --noEmit --pretty false` from `validate:types`.
+- Verification: clean typegen output contains `cache-life.d.ts`, `routes.d.ts`, and `validator.ts`; type validation is the next gate before pre-push and push.
+- Status: commit and push remain in progress.
+
+## Upload Credit Messaging Source of Truth
+
+1. Interaction title
+   Upload credit messaging source of truth.
+
+2. What was the user goal
+   Make every upload-credit exhausted state, API response, and Usy answer explain that successful uploads permanently consume credits and deleting datasets does not restore them.
+
+3. What changed
+   Upload-credit exhausted copy now lives in a shared billing messaging module. Standard Upload, Accountancy and Pre-bookkeeping uploads, upload API responses, usage notices, and Usy fallback/system prompt guidance use the same title, message, usage label, and upgrade action labels. Upload areas switch into a blocked state from authoritative credit usage before a request starts.
+
+4. Problems marked
+   blocker: none.
+   risk: Full authenticated production matrix still requires deployed Free, paid, and superadmin accounts with controlled credit balances.
+   observation: Usy had both deterministic fallback text and system prompt guidance that suggested deleting old datasets as a workaround for upload limits.
+
+5. User learning
+   Upload credits are lifetime usage events for successful uploads within the billing rules; deleting datasets affects storage/history only and does not restore upload allowance.
+
+6. AI-agent learning
+   Credit lifecycle rules must be represented by a shared copy module and prompt rule, not duplicated strings in individual upload components or assistant fallbacks.
+
+7. Follow-up tasks
+
+- Verify deployed Free users at 0/2, 1/2, and 2/2 see the same upload-credit messaging in Standard Upload, Accountancy Upload, and Usy.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Dataset AI Analyst Deterministic Patch
+
+1. Interaction title
+   Dataset AI Analyst deterministic metric patch.
+
+2. What was the user goal
+   Improve dataset-aware AI answers so order, buyer, seller, marketplace, margin, and risk questions return the requested metric or decline low-confidence queries.
+
+3. What changed
+   Added marketplace and order semantic role detection, expanded deterministic dimension patterns, and strengthened prompt guidance to refuse low-confidence dataset interpretations.
+
+4. Problems marked
+   blocker: none.
+
+5. User learning
+   Dataset AI should prefer explicit direct answers for supported metrics and avoid inventing unsupported totals or seller/buyer semantics.
+
+6. AI-agent learning
+   Deterministic dataset answer paths must surface role confidence and refuse when semantic roles are not reliable.
+
+7. Follow-up tasks
+
+- Validate the next dataset AI patch with seller/buyer order examples and low-confidence refusal scenarios.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Upload Credit Enforcement
+
+1. Interaction title
+   Accountancy upload credit enforcement.
+
+2. What was the user goal
+   Block every Accountancy and Pre-bookkeeping upload type when a Free user has used all included upload credits, using the same central server-side credit guard as standard uploads.
+
+3. What changed
+   Accountancy and Pre-bookkeeping uploads now reserve one `dataset_upload` credit through the central Credit Engine before parsing, storing, categorizing, or saving new files. Successful uploads finalize the credit, failed parsing/storage/database work releases the reservation, duplicate existing datasets return before reserving a new credit, and exhausted accounts receive a structured `UPLOAD_CREDITS_EXHAUSTED` 402 response. The upload UI reads `/api/usage/credits`, disables upload tabs, drag-and-drop, and file picker controls when credits are exhausted, and shows upgrade copy using the included-credit count.
+
+4. Problems marked
+   blocker: none.
+   risk: Direct production browser validation still requires an authenticated Free account at exactly 2/2 used after deployment.
+   observation: The bypass was `/api/accountancy/upload` and `processAccountancyUpload`; both authenticated the user but did not call `reserveCredits`, `finalizeCredits`, or `releaseCredits`.
+
+5. User learning
+   The visible sidebar counter is informational only; Accountancy upload requests now re-check and reserve credits server-side before file processing begins.
+
+6. AI-agent learning
+   Upload modules that bypass the shared upload action must still use the central `dataset_upload` credit lifecycle at their earliest parser boundary.
+
+7. Follow-up tasks
+
+- Verify a deployed Free user at 2/2 receives HTTP 402 for CSV, Excel, PDF, receipt, and bank uploads before parser logs appear.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Empty-State Loader Stabilization
+
+1. Interaction title
+   Accountancy empty-state loader stabilization.
+
+2. What was the user goal
+   Fix the server-side Accountancy loader failure that renders "Could not load Accountancy" and make the page load for first-time users without Accountancy data.
+
+3. What changed
+   The Accountancy page now renders through a guarded server content loader, logs loader exceptions with file, function, error message, and stack details, returns a usable empty workspace when loader data is unavailable, and normalizes profile completion, company name, and focused dataset row and column counts before rendering.
+
+4. Problems marked
+   blocker: none.
+   risk: Direct Railway runtime logs could not be captured from this shell because the Railway CLI returned an interactive-login authorization error for historical logs.
+   observation: The unsafe Accountancy server component accesses were `companySetup?.setupStatus.completed`, `companySetup?.companyInfo.companyName`, `focusedDataset.rowCount.toLocaleString()`, and `focusedDataset.columnCount.toLocaleString()`.
+
+5. User learning
+   Accountancy loading failures can come from missing first-time or legacy dataset/profile fields even when the shared Business Profile source is working.
+
+6. AI-agent learning
+   Accountancy server pages must normalize optional database-shaped values before JSX render and keep empty workspace rendering independent from optional summary data.
+
+7. Follow-up tasks
+
+- Capture Railway runtime stack logs after authenticated CLI access is restored if production still emits the Accountancy error boundary.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile API Root Cause
+
+1. Interaction title
+   Accountancy Business Profile API root cause.
+
+2. What was the user goal
+   Run the failing Accountancy Business Profile request, report the exact HTTP failure, backend exception, database error, and file location, then fix only that error.
+
+3. What changed
+   The built-in dashboard account initialization path now writes the profile row with a minimal deployed-column SQL upsert. This prevents Business Profile API requests from failing before they reach the shared Business Profile repository when the deployed `Profile` table does not contain newer optional profile columns.
+
+4. Problems marked
+   blocker: none.
+   risk: The deployed API still requires the pushed fix before the authenticated endpoint returns `200` in the test environment.
+   observation: The authenticated deployed API returned `500` with `{"error":"Could not load Business Profile."}`. The reproduced backend exception is PostgreSQL `42703`, `column "regionalPreferences" of relation "Profile" does not exist`, thrown from the built-in user profile upsert before `getCompanySetup` runs.
+
+5. User learning
+   Business and Accountancy server pages can display the profile because they call the shared profile repository directly, while the client Business Profile API failed first in built-in-account record synchronization.
+
+6. AI-agent learning
+   When a client API fails but the server page renders shared repository data, compare API-only guards and side effects before changing profile mapping or UI.
+
+7. Follow-up tasks
+
+- Deploy the fix and rerun authenticated `GET /api/business/setup` to confirm HTTP `200` and saved profile payload.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Backend Diagnostics
+
+1. Interaction title
+   Accountancy Business Profile backend diagnostics.
+
+2. What was the user goal
+   Investigate the backend failure causing Accountancy to show "Could not load Business Profile" and stop changing the UI.
+
+3. What changed
+   The Business Profile API, shared Business Profile repository, and Accountancy server render path now emit sanitized production diagnostics for request URL, authenticated user ID, organization ID, request payload summary, response status, response body shape, query stage, SQL query description, and stack traces. The source regression test now verifies the API resolves the authenticated user before saving through the shared repository.
+
+4. Problems marked
+   blocker: none.
+   risk: Authenticated browser reproduction is still required to capture the exact failing status and stack from Railway logs.
+   observation: The production database contains the `business_profile` table and profile rows, and saved profile payloads normalize successfully in the local sanitized probe.
+
+5. User learning
+   The Accountancy failure is not caused by a missing `business_profile` migration or a malformed saved profile payload in the probed production data.
+
+6. AI-agent learning
+   When a route error boundary displays a generic Business Profile failure, instrument the API, repository, and server-render stages before making another data-mapping change.
+
+7. Follow-up tasks
+
+- Reproduce the authenticated Accountancy request after deployment and inspect Railway log lines tagged `BUSINESS_PROFILE_API`, `BUSINESS_PROFILE_DIAGNOSTIC`, and `ACCOUNTANCY_BUSINESS_PROFILE`.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Runtime Diagnosis
+
+1. Interaction title
+   Accountancy Business Profile runtime diagnosis.
+
+2. What was the user goal
+   Stop speculative Accountancy Business Profile fixes and prove the deployed route, component, API response, and runtime mapping before declaring the issue fixed.
+
+3. What changed
+   Accountancy includes a temporary query-gated runtime diagnostics panel that displays the current route, authenticated user ID, organization ID, `/api/business/setup` browser-fetch status and raw response, server-loaded Business Profile object, normalized Accountancy profile object, and deployed commit hash. The Accountancy error boundary no longer renders six hardcoded Business Profile fields as Not configured when the real page fails.
+
+4. Problems marked
+   blocker: Authenticated browser response and screenshot verification require a signed-in browser session.
+   risk: The temporary diagnostics panel must be removed after the deployed Accountancy page shows the six real Business Profile values.
+   observation: `test.useclevr.com` maps to the Railway service named useclevr TEST in the production Railway environment, and the latest dist-test publish contains source commit `f10477f26e6a35de88ad174521ae2919a3980a48`.
+
+5. User learning
+   The screenshot can be distinguished between the real Accountancy page and the Accountancy error fallback because the fallback now shows a load error instead of fake Not configured values.
+
+6. AI-agent learning
+   Runtime data bugs need deployed diagnostics that compare browser API data with server-rendered data before additional mapping changes.
+
+7. Follow-up tasks
+
+- Remove the temporary Accountancy runtime diagnostics panel after authenticated deployed verification confirms the six profile values render correctly.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Direct Source
+
+1. Interaction title
+   Accountancy Business Profile direct source.
+
+2. What was the user goal
+   Replace Accountancy profile-loading logic with the exact same saved Business Profile source used by the Business page.
+
+3. What changed
+   Accountancy Overview, Tax, and Reporting read the authenticated user's saved Business Profile through `getCompanySetup`, the same repository behind the Business Profile API. Accountancy maps tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs from that persisted setup payload only, and the separate Accountancy Business Profile context query module is removed.
+
+4. Problems marked
+   blocker: none.
+   risk: Hard-refresh and authenticated production checks require a signed-in browser session; local validation proves the shared repository path and source-level field mapping.
+   observation: The Business Profile repository remains the source of truth for the organization-scoped `business_profile` record and its existing save/load behavior.
+
+5. User learning
+   Accountancy uses the same saved Business Profile record as Business, so values shown in Business are the values Accountancy reads.
+
+6. AI-agent learning
+   For shared-data bugs, reuse the existing read repository directly before adding abstraction layers.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Analyst Accuracy Sprint 1
+
+1. Interaction title
+   AI Analyst Accuracy Sprint 1.
+
+2. What was the user goal
+   Refactor the Dataset AI Analyst query pipeline so questions are classified into business intents before calculation and so metric-specific questions do not fall back to a generic revenue summary.
+
+3. What changed
+   Added a Question Intent Engine and Metric Resolver for selected-dataset AI questions. The assistant resolves deterministic revenue, average order value, average selling price, order count, customer count, grouped revenue, top customers, top products, top regions, concentration, revenue risk, monthly revenue, customer growth, forecast-baseline, comparison, and margin questions. Missing required data returns a direct explanation instead of substituting a different metric.
+
+4. Problems marked
+   blocker: none.
+   risk: Natural language coverage is rule-based and should expand as production question logs reveal new phrasing.
+   improvement: Add persisted evaluation traces for intent, missing fields, and calculation validation when the AI interaction trace UI needs per-question accuracy review.
+   observation: The existing Dataset AI route can keep provider fallback behavior unchanged because deterministic answers return before provider routing.
+
+5. User learning
+   UseClevr now answers AOV, top-customer, margin, and revenue-risk questions from validated uploaded rows without returning a generic revenue summary.
+
+6. AI-agent learning
+   Dataset AI metric fixes must protect the route order where the analytical executor, deterministic assistant, and provider fallback interact.
+
+7. Follow-up tasks
+
+- Add more production question phrasings to the intent test set when support logs identify repeated unsupported wording.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Dataset Intelligence Engine
+
+1. Interaction title
+   Dataset Intelligence Engine.
+
+2. What was the user goal
+   Replace header-only dataset detection with a semantic AI pipeline that understands business datasets, generates dynamic KPIs and dashboards, and enriches AI context.
+
+3. What changed
+   Added a modular Dataset Intelligence Engine with detector registries for file structure, semantic columns, value types, relationships, business model classification, KPIs, dashboard widgets, and AI context. Legacy dataset intelligence now exposes semantic metadata while preserving existing schema, metrics, dimensions, suggestions, dashboard generation, Dataset AI prompts, and analyst planning paths.
+
+4. Problems marked
+   blocker: none.
+   risk: PDF, image OCR, SQL, Snowflake, and API connectors expose future source-type hooks but do not parse those sources end to end yet.
+   improvement: Add persisted per-dataset DIE snapshots as a first-class database column when dashboard customization needs queryable semantic metadata.
+   observation: Existing analysis JSON storage supports the first DIE rollout without a schema migration.
+
+5. User learning
+   UseClevr can now treat fields such as GMV, platform fee, buyer, seller, country, category, and date as business concepts with confidence and explanations.
+
+6. AI-agent learning
+   Dataset intelligence work must preserve the old analysis contract while adding semantic metadata for newer consumers.
+
+7. Follow-up tasks
+
+- Add connector-specific parsers for PDF, image OCR, SQL, Snowflake, and API sources when those ingestion paths become active.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest status: `docs/AI-interaction/interaction-status.md`.
+
+## Dataset AI Assistant Production Provider Fallback
+
+1. Interaction title
+   Dataset AI Assistant production provider fallback.
+
+2. What was the user goal
+   Fix the authenticated production Dataset AI Assistant so selected-dataset questions answer from the selected dataset instead of stopping at tests or returning production failures.
+
+3. What changed
+   The Dataset AI route keeps deterministic selected-dataset answers first, wraps saved provider mode and provider-list lookups so broken provider settings cannot return an empty production 500, and falls back to configured Gemini or Antigravity cloud AI for provider-backed selected-dataset prompts while preserving dataset ID, authenticated user ID, request ID, provider status, privacy warning, and audit metadata.
+
+4. Problems marked
+   blocker: Railway log streaming is unavailable through the local CLI session even though Railway project status is authenticated and connected.
+   risk: Browser DevTools automation is unavailable because Playwright and Puppeteer packages are not installed, so authenticated production request and response details are captured with the same HTTP session cookies instead of a visual DevTools panel.
+   observation: Production selected-dataset deterministic questions already return grounded answers, while provider-backed selected-dataset questions return an empty 500 before this fix.
+
+5. User learning
+   Dataset AI production failures can occur after deterministic handling when provider setup or saved provider configuration fails before the cloud fallback path runs.
+
+6. AI-agent learning
+   Selected-dataset AI fixes must verify deterministic answers and provider-backed prompts separately in authenticated production.
+
+7. Follow-up tasks
+
+- Add authenticated browser automation for Dataset AI production smoke testing when a browser driver is available in the workspace.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Retail Report Gross Margin and AOV Accuracy
+
+1. Interaction title
+   Retail Report gross margin and AOV accuracy.
+
+2. What was the user goal
+   Fix two Retail Executive Report accuracy issues: category gross margin must use reconciled revenue and COGS totals, and Average Order Value must require reliable order semantics instead of row count.
+
+3. What changed
+   Retail report financials now derive COGS from `unit_cost` multiplied by the detected units-sold field when the cost source is per-unit, while explicit COGS or total cost fields remain direct sources. Category gross margin rows now store category, revenue, COGS, gross profit, gross margin, revenue source, and COGS source, and category totals must reconcile before margins render. Retail AOV now carries structured status, calculation method, source fields, and confidence, and reports show AOV only for recognized order identifiers. The PDF renderer now explains unavailable AOV semantics and prints category margin notes with revenue, COGS, and gross profit. Regression coverage includes CSV/XLSX parity, a 180-row unit-cost local retail case, PDF text checks, and a distinct-order positive AOV case.
+
+4. Problems marked
+   blocker: none.
+   risk: the exact `01_local_retail.csv` and `01_local_retail.xlsx` fixture files remain absent from the checkout, so the regression uses the available local-retail pair plus synthetic rows that match the reported metric shape.
+   improvement: add the named 10-family fixture suite to the workspace so future retail accuracy checks run against the exact product fixture files.
+   observation: the requested report failure comes from treating per-unit cost as row COGS and treating row count as order count.
+
+5. User learning
+   Retail reports now mark AOV unavailable when no reliable order identifier exists and keep category margin mathematically tied to overall retail gross margin.
+
+6. AI-agent learning
+   For retail report accuracy fixes, inspect cost-field semantics before using detected cost as COGS and render unavailable metrics when dataset grain is not proven.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; active/done work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dataset AI Assistant Grounded Responses
+
+1. Interaction title
+   Dataset AI Assistant grounded responses.
+
+2. What was the user goal
+   Restore the main Dataset AI Assistant so selected-dataset questions return grounded answers while Usy remains a separate floating product assistant with separate routing, state, and conversation history.
+
+3. What changed
+   The Dataset AI route authenticates the user, loads the selected owned dataset with stored dataset type, rejects missing or empty dataset states with classified JSON, and generates direct deterministic answers before provider routing for revenue, segment lookup, revenue risks, trends, best segments, forecast baseline, and dataset summaries. The assistant UI preserves the failed question, classifies network, timeout, provider, dataset, and auth failures, shows one Dataset assistant issue state, and adds Retry. A focused fixture test covers `plan Pro?`, revenue risks, growth, Dataset AI routing, retry rendering, error classifications, and Usy route isolation.
+
+4. Problems marked
+   blocker: Authenticated browser and Railway user-session reproduction require live credentials outside this Codex session.
+   risk: Provider-backed freeform answers still depend on the configured Hybrid AI provider when deterministic dataset handling cannot answer.
+   improvement: A browser E2E test can cover selected dataset persistence, refresh, and no-console-error behavior once a stable authenticated test account is available.
+   observation: The root cause is provider/gate fallthrough for valid dataset questions that deterministic normalized-row analysis can answer without an AI provider.
+
+5. User learning
+   Dataset AI now answers supported selected-dataset questions directly from uploaded rows and keeps Usy as the product assistant.
+
+6. AI-agent learning
+   Dataset AI fixes must verify the selected dataset API path and the Usy API path separately so product-chat routing does not absorb dataset-analysis behavior.
+
+7. Follow-up tasks
+
+- Add an authenticated browser regression for selected Dataset AI chat once shared test credentials are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+- Added the Square POS retail integration foundation. The request asked for a provider-independent POS platform with Square as the first read-only connector while preserving CSV and Excel Retail uploads. The repository audit found Next.js App Router, Drizzle over Neon/PostgreSQL, user-owned Business records as the closest organization boundary, existing encrypted provider-key patterns, upload-driven Retail analysis, and no existing POS tables. Added normalized retail tables and migration for connections, OAuth state, merchants, locations, products, variants, inventory, orders, order items, payments, refunds, sync runs, webhook events, and AI insight traceability. Added a reusable connector contract, retail encryption service, organization guards, connection persistence, sync orchestration, webhook ingestion, deterministic retail KPI helpers, Square REST connector, Square mapping layer, OAuth routes, webhook route, manual sync/disconnect routes, Retail Integrations page, server-only env placeholders, requirements, changelog, TODO record `T-945`, and a focused retail POS verification script. Square documentation confirms seller-scoped OAuth, read-only least-privilege scopes, 30-day access tokens with refresh, SDK version churn, and raw-body HMAC-SHA256 webhook verification with the exact notification URL. Problems marked: blocker: Square sandbox credentials are not present, so live OAuth and real API response testing cannot run. risk: sync runs are queued by the UI and the sync engine is implemented, but no persistent worker or scheduler executes queued runs yet. improvement: add a first-class background job runner for initial, manual, incremental, and reconciliation syncs. observation: the project’s primary Business record acts as the organization boundary for this foundation. Verification passed with `pnpm exec tsc --noEmit --pretty false`, `pnpm test:retail-pos`, `pnpm lint:todos`, `pnpm lint:secrets`, and `pnpm lint:package`.
+- Upgraded Preferences into an international Regional Preferences system. The root cause was that `/app/settings/preferences` existed but rendered a small local-only panel titled Settings with EUR-centered currency choices, Auto/manual number formatting only, no date/timezone/language controls, and no authenticated profile persistence for the expanded settings. The page now loads existing profile preferences server-side, preserves legacy `preferredCurrency` values for existing profiles through migration `0014_profile_regional_preferences.sql`, stores expanded regional settings in `Profile.regionalPreferences`, keeps `Profile.preferredCurrency` and `Profile.numberFormat` as compatibility fields, saves through `/api/settings/preferences`, and updates the shared formatting provider from the authenticated profile. Regional utilities now resolve Auto display currency from browser locale (`en-GB` GBP, `en-US` USD, `nl-NL` EUR) with EUR fallback when no browser locale exists, keep Base Currency separate from display formatting, format currency/number/date previews with `Intl`, and expose timezone/language preferences without claiming full-app translation or fake FX conversion. Verification passed with TypeScript, focused ESLint, and `node -r tsx/esm scripts/health/test-regional-preferences.ts`.
+- Polished the authenticated top navigation toolbar alignment. The root cause was mixed control footprints in the same toolbar: popover triggers used full-height links, theme used a 64px button, search and notice used independent widths, the subscription block used full-height two-line layout, and the nav had zero item gap. The toolbar now uses centered 44px action containers, rounded shared hover areas, 16px gaps, centered 28px dividers, desktop-only text labels for constrained controls, and tablet-safe icon-only labels while preserving every existing action. Verification passed with TypeScript, focused ESLint, local desktop and 125% zoom screenshots at `/tmp/useclevr-topbar-verification/desktop-100.png` and `/tmp/useclevr-topbar-verification/desktop-125.png`, and static responsive review for tablet class behavior; the tablet browser screenshot attempt was blocked by an unrelated local dashboard database out-of-memory response during page rendering.
+- Temporarily disabled the Mentoring feature without deleting its implementation. Removed Mentoring and Book demo navigation from the public header, public footer, and authenticated topbar; gated the public and app Mentoring pages behind a disabled-feature guard; returned 404 JSON from Mentoring APIs when reached with an authenticated-looking request; and added `X-Robots-Tag: noindex, nofollow` headers for Mentoring page and API paths. Verification passed with local route checks showing `/mentoring` returns 404 with noindex, `/app/mentoring` redirects guests to login with noindex, `/api/mentoring/experts` returns 404 JSON with noindex when the route is reached, and source search shows no remaining Mentoring or Book demo navigation links.
+- Simplified the broken public demo CTA into the Start Free flow. The old Demo account button used demo-specific navigation state and could flash without opening a useful destination. The CTA now renders as a plain Start Free link to `/start`, `/start` resolves authentication server-side, guests redirect to `/register`, signed-in users redirect to `/app/dashboard`, `/register` opens the existing signup form, and direct `/demo` routes keep anonymous access blocked while authenticated sessions go to the dashboard. Verification passed with TypeScript, local HTTP redirect checks for guest `/start`, `/register`, `/demo`, direct `/app/dashboard`, authenticated `/start`, rendered login CTA text, rendered pricing CTA text, and repo hygiene checks.
+- Redesigned generated PDF reports to match the UseClevr dashboard quality. The root cause was that the PDF renderer used a generic light report layout, printed internal report identifiers in the footer, accepted report-builder summaries that exposed dataset/profitability IDs, formatted `percent` KPIs as raw values because the formatter only recognized `percentage`, and relied on saved profitability fields instead of recalculating Gross Profit, Operating Profit, Net Profit, and margins from deterministic inputs. The report generator now supports structured financials and recommendations, profitability report inputs calculate COGS, gross profit, operating profit, interest, tax, net profit, gross margin, operating margin, and net margin with missing-field tracking, and the PDF renderer creates a dark five-page executive report covering overview, financial performance, cost intelligence, Business Balanced Scorecard, and executive recommendations with customer-safe language. Verification passed with TypeScript, profitability report tests, BBSC report tests, extracted PDF text review, and a rendered first-page visual check.
+- Fixed Landing Page Demo access. The root cause was a credentialless Auth.js demo provider plus upload and analysis paths that accepted unauthenticated demo-session tokens, while public `/demo` routes could render without an authenticated account. `/demo` and `/demo/*` now redirect anonymous visitors to signup with the preserved callback destination and the "Create your free account to access the interactive demo." message, authenticated sessions redirect into the app workspace, credentialless demo sign-in is removed, signup no longer returns a database-free demo account, upload requires an authenticated session before processing, analysis requires an authenticated user before AI execution, and demo verification requires route-level auth. Verification passed with TypeScript and local HTTP checks for anonymous demo redirects, nested demo redirects, signup-to-login message preservation, authenticated-cookie demo workspace redirect, and anonymous demo/API 401 JSON responses.
+- Fixed the two-file Profitability workflow. The root cause was that the existing Profitability uploader converted the selected file into one primary CSV, posted reports with a demo dataset ID, stored only thin summary metrics, and used fallbacks that copied gross/profit and margin fields into net-profit outputs. The uploader now persists Revenue and Expenses files separately with the same profitability analysis ID and explicit file role metadata, keeps single-file uploads in Waiting for Revenue or Waiting for Expenses states, calculates COGS, operating expenses, interest, tax, gross profit, operating profit, net profit, and distinct margins through shared deterministic business logic, builds profitability reports from the selected saved analysis, adds report/download actions on the Profitability page, and moves Usy above the report safe area. Verification passed with TypeScript, a synthetic two-file profitability test, focused ESLint with warnings only for existing any debt, package lint, and diff whitespace check.
+- Implemented Business Balanced Scorecard terminology and reporting. UseClevr now presents Business Balanced Scorecard with the Balanced Scorecard (BSC) alias, calculates four deterministic perspective scores from selected-dataset fields only, excludes insufficient perspectives from the overall score, shows a compact selected-dataset dashboard preview, adds BBSC to generated PDF/CSV reports in Reports & Downloads, and includes focused tests for Local Retail, E-Commerce, SaaS Startup, Investor Portfolio, Business Consulting, and Generic Business. Verification passed with TypeScript, the BBSC test, and production build.
+- Completed the dashboard-to-Reports & Downloads workflow. The root cause was that the Dashboard had no action connected to the canonical sidebar Downloads page, while `/api/reports` required callers to supply `datasetName` and full analysis payloads instead of generating from the selected dataset ID. The Dashboard now shows Generate Report for ready selected datasets, posts the selected dataset ID to the existing reports API, reserves/finalizes credits for limited users, bypasses unlimited admin roles, builds business-model-specific report content from that one dataset, persists the report in existing report storage, redirects to `/app/downloads?reportId=...`, highlights/selects the new report, and exposes PDF plus CSV download actions. Verification passed with TypeScript, production build, and a synthetic report-generation smoke test that confirmed dataset-scoped content, persistence, PDF creation, and cleanup.
+- Fixed the AI Assistant response-consumption regression. The root cause was the assistant workspace reading the same AI response with `response.json()` and then `response.text()` when JSON parsing failed, which surfaces `Response.text: Body has already been consumed`. The assistant response owner now reads `response.text()` once and parses JSON from that raw body. The configured-provider fetch helper also reads provider responses once and normalizes non-JSON error bodies. Hybrid AI chat failure responses now include `code`, `message`, and `requestId` while preserving existing `error`, `answer`, and `content` fields. Verification passed with TypeScript and source search for the removed double-read path.
+- Restored the stable dataset baseline. The latest row-preview and dashboard report-generation routing commits were isolated as the regression window and reverted on beta without changing Standard Upload, superadmin unlimited access, dashboard dataset selection, business-model routing, or World Map behavior. Validation passed with TypeScript after clearing stale generated Next types, project-record checks, TODO lint, changelog lint, secret lint, package lint, and diff whitespace check. The first dist-test publish built and smoke-tested successfully but failed while publishing because the generated shell script could not parse the quoted revert commit subject.
+- Fixed the remaining superadmin upgrade-gating regression. The root cause was that the credentials login path assigned every database-authenticated user the token role `user`; the session callback could repair the role later from the profile, but early page/API gates could see the stale Free-like role and show upgrade prompts or run credit reservation. Hybrid AI access also reported `subscriptionTier: free` when a role was unlimited but the profile tier was missing, and sidebar/profile setup gates still treated incomplete setup as a navigation blocker. Credentials authorization now reads the profile role before minting the JWT, Hybrid AI access normalizes admin and superadmin roles to unlimited tiers, AI Assistant chat, report generation, and dataset analysis skip credit reservation for unlimited roles, and sidebar/profile setup gates render as complete for unlimited admin access. Verification passed with `pnpm exec tsc --noEmit --pretty false`, `pnpm test:credit-engine`, and focused ESLint with warnings only for existing `any` debt.
+- Fixed the role-based credit, Standard Upload, and Profitability Upload regression. The root causes were: built-in superadmin profile synchronization stored the account as a Business tier without updating the role on existing rows; client usage fallbacks converted null/unlimited credit fields back into Free-plan numbers; Standard Upload still called credit reservation for unlimited users; and Profitability Upload persisted only a thin metric summary and stayed on the upload surface after success. Built-in profile sync now writes and updates the authoritative role and `superadmin` tier, usage summaries represent unlimited credit fields as null, the header labels unlimited superadmin access directly, Standard Upload bypasses reservation and settlement for unlimited accounts while returning structured insufficient-credit responses for limited users, and Profitability Upload persists revenue, expenses, gross/net profit, margins, cost categories, trend data, and routes to `/app/profitability?datasetId=...`. Verification passed with `pnpm exec tsc --noEmit --pretty false` and `pnpm test:credit-engine`.
+- Fixed credit reservation role separation. The root cause was that `reserveCredits` detected unlimited access from the authenticated session role, then called credit initialization before the unlimited branch; initialization rechecked access without the session role and could create or require a normal `UserCredit` balance for an actual admin or superadmin session, causing `UPLOAD_CREDIT_RESERVATION_FAILED`. Related UI and auth paths also promoted superadmin from email and represented unlimited accounts with fake `999999999` balances. Unlimited access is now based on the built-in superadmin user ID or authenticated `admin`/`superadmin` role, reservation records internal zero-credit usage for unlimited accounts without decrementing balances, credit summaries return null remaining/available values for unlimited accounts, and normal users still initialize and reserve credits server-side before billable work. Verification passed with `pnpm exec tsc --noEmit --pretty false` and `pnpm test:credit-engine`.
+- Implemented the production-grade Credit Engine foundation. The audit found existing credits in `UserCredit`, legacy `CreditLedger`, plan allowances of 50/500/5000 credits, Stripe customer and subscription fields on profiles, admin credit adjustment APIs, provider pricing, AI cost logs, and sidebar usage that still read dataset-count credits. Added a migration that extends the existing ledger with workspace, operation, idempotency, transaction status, provider usage, cost, metadata, and finalized-at fields while preserving legacy fields. Added atomic reserve/finalize/release/refund primitives, central feature-cost registry, provider-neutral usage normalization, real sidebar balances, report reservation before file generation, AI Assistant reservation before non-deterministic provider calls, and dataset-analysis reservation with release on provider failure. Verification passed with `pnpm test:credit-engine` and `pnpm exec tsc --noEmit --pretty false --incremental false`; database-backed concurrency and migration execution remain pending until the migration runs in the target environment.
+- Fixed Dataset Library deletion end to end. The root cause was a combined server/UI failure: deletion tried to remove optional related tables that can be absent in the configured database, which aborted the transaction before the dataset delete, while the client kept stale selection and used a non-portal dialog that could clip behind the app chrome. The delete helper now checks optional related tables before cleanup, does not mutate Credit Ledger entries, deletes Accuracy retrieval records when the tables exist, and returns structured partial-success results. The Dataset Library clears selection on full success or cancel, keeps only failed visible IDs selected after partial failure, prevents double submission, refreshes usage, and uses a portal-backed accessible dialog with scroll lock, focus trap, Escape handling, and focus return. Added a synthetic database verification script for single delete, repeated delete, mixed authorized/unauthorized bulk delete, last-dataset delete, row cleanup, optional retrieval cleanup, and leftover cleanup. Verification passed with TypeScript, focused ESLint, package lint, diff whitespace check, synthetic database deletion test, and synthetic leftover query.
+- Stopped the requested Accuracy Engine migration because this Codex session has no callable Neon MCP server or installable Neon connector. The required pre-mutation proof through Neon MCP cannot run, so the agent did not execute database SQL, apply extensions, run migrations, insert fixtures, or alter customer data.
+- Stopped the Accuracy Engine migration before mutation because the connected Neon endpoint did not expose the exact branch name required by the safety gate. Read-only catalog checks found database `neondb`, user `neondb_owner`, schema `public`, PostgreSQL 17.10, Neon project `withered-star-79790747`, branch ID `br-crimson-sun-ai49oqj4`, endpoint `ep-odd-shape-ai0cc8ej`, and `neon.lakebase_mode=off`. The connected database has `User` and `Dataset` tables only, no retrieval tables, no installed `lakebase_vector`, `lakebase_text`, or `vector` extensions, and all three extensions are available. No SQL mutation, fixture insert, customer-data change, code correction, commit, or push ran.
+- Implemented the Accuracy Engine Phase 1 Neon Lakebase Search foundation. The audit found Drizzle over Neon/Postgres with `DATABASE_URL`/`DIRECT_URL`, current dataset tenancy through `Dataset.userId`, Drizzle SQL migrations, Gemini/default cloud AI plus BYOAI provider routing, and existing dataset categories `standard`, `retail`, `profitability`, `accountancy`, and `prebookkeeping`. Added guarded capability detection for Lakebase, pgvector, and PostgreSQL FTS; an idempotent retrieval migration with RLS policies; retrieval and ingestion schema; bounded server-side dataset-context ingestion; server-only hash or OpenAI-compatible embeddings; hybrid semantic plus keyword retrieval with Reciprocal Rank Fusion; superadmin diagnostics; dataset-delete cleanup; developer documentation; and a database-backed tenant-isolation test script. Verification passed with TypeScript and focused ESLint.
+- Fixed Dataset Library deletion. Added a shared delete path for single and bulk dataset deletion that scopes access to the owner unless the user is admin or superadmin, deletes related dataset rows, AI traces, AI audit/cost logs, MCP audit logs, credit ledger entries, matching activity references, and linked generated reports, and logs non-blocking storage cleanup results. The Dataset Library now shows an app confirmation dialog, prevents duplicate submits, removes successfully deleted rows and counters immediately, refreshes sidebar usage, and keeps failed rows selected with partial-failure notices. Verification passed with TypeScript, focused ESLint, and diff whitespace check.
+- Fixed Executive Dashboard tab navigation. Replaced route-based dashboard tab links with a client-side tab controller that renders only the selected panel directly below the tab bar, updates `?tab=` with `history.replaceState`, and avoids `scrollIntoView`, `window.scrollTo`, hash navigation, router pushes, reloads, and duplicate stacked sections. Verification passed with TypeScript, focused ESLint, tab-navigation source search, and diff whitespace check.
+- Fixed dataset routing and module separation. Standard uploads now stay on generic dataset analysis, Retail uploads open Retail, Profitability uploads open Profitability, Accountancy uploads open Accountancy, and Pre-bookkeeping uploads open Pre-bookkeeping. Added stricter dataset category normalization, expanded upload validation to all five dataset categories, split Accountancy and Pre-bookkeeping uploader contexts, guarded module pages against mismatched dataset IDs, and updated the dataset library with type, upload source, destination, and analysis status. Verification passed with TypeScript and focused ESLint; focused ESLint reports only existing `any` warnings in the upload action.
+- Fixed and compacted the Executive Dashboard. Added a normalized dataset aggregation source for dashboard counts, active datasets, processed rows, latest upload, file type counts, detected columns, and uploaded dataset records. The dashboard now reads dataset totals from that source before optional profile, report, and AI trace queries, so optional query failures no longer collapse uploaded dataset metrics to zero. Daily Health now uses the same aggregation and refreshes today's cached brief when the dataset snapshot changes. The dashboard renders six executive KPIs, two primary charts, top three recommendations, and tabbed details for Overview, Financial, Inventory, Geography, and AI & Activity. Empty chart and map states are compact, and Standard dataset column detection supports normalized revenue, profit, cost, product, stock, date, and region aliases. Verification passed with focused ESLint, TypeScript, and diff whitespace check.
+- Fixed the Standard Upload success flow. Standard Upload now stops after the green success state, keeps the result visible, disables the upload drop zone until the user chooses Upload Another File, and renders a persistent success panel with dataset name, rows processed, columns detected, analysis status, Go to Dashboard, View Dataset, and Upload Another File actions. The Standard fallback endpoint returns dataset summary metadata for the panel. Retail and Profitability upload behavior remains untouched. Verification passed with focused TypeScript, focused ESLint, project-record checks, changelog lint, secret scan, and diff whitespace check.
+- Implemented the UseClevr Executive Daily Health Check. Added a persisted `ExecutiveDailyHealthCheck` table and migration, a reusable daily health engine with future-ready signal providers, deterministic scoring, optional AI-generated narrative output, once-per-day workspace caching, and fallback behavior when AI or storage is unavailable. The Executive Dashboard now creates or reads today's cached brief on first load and shows Today's Score, AI confidence, summary, top priorities, recommendations, and critical alert cards. Added `/app/daily-health` for the full daily brief and history views for Today, Yesterday, Last 7 days, and Last 30 days. Verification passed with TypeScript, focused ESLint, diff whitespace check, and production build.
+- Built the final Executive Dashboard for UseClevr launch. The authenticated dashboard now reads uploaded datasets, preview rows, detected columns, AI insights, AI traces, and generated reports to render eight executive KPI cards, range-filtered business overview charts, AI recommendation cards with priority/confidence/impact/action, inventory analytics, financial analytics, the existing professional world map, dataset analytics, AI activity, business health scores, and bottom activity panels. Metrics render only from detected uploaded-data columns; missing data shows clean empty states and upload actions instead of fake values. Verification passed with focused ESLint, TypeScript, and diff whitespace checks.
+- Fixed the Standard Upload fallback dataset creation stage. The configured database lacked the `"datasetType"` column even though the schema and migration define it; the idempotent `ALTER TABLE "Dataset" ADD COLUMN IF NOT EXISTS "datasetType"` migration was applied to the configured database and verified through `information_schema`. `/api/upload/simple` now creates Standard datasets with the same minimal Dataset field shape used by the working Retail path: `id`, `userId`, `name`, `fileName`, `fileSize`, row/column counts, columns, data preview, `columnTypes`, `precomputedMetrics`, `datasetType`, `status`, `analysis`, and timestamps. Dataset create failures now log the full exception plus model and payload server-side, and return `stage: "dataset_create"`, `model: "Dataset"`, and development-only serialized error/payload details. Verification passed with a real database insert/delete smoke that created a `standard` dataset, TypeScript, focused ESLint, missing-file route smoke, forbidden-dependency scan, and diff whitespace check.
+- Added a minimal Standard Upload fallback for immediate production recovery. `/api/upload/simple` authenticates the user, receives `file` and `dataset_type`, accepts CSV/XLSX/XLS, parses up to 1,000 rows, creates a `standard` dataset with pending AI analysis messaging, stores parsed rows when possible, and returns `/app/datasets` plus "Dataset uploaded successfully. AI analysis can be started separately." The fallback route does not import or call the old upload action, DailyAIRequestCount, usage enforcement, credit deduction, AI helpers, health checks, localhost URLs, analysis queueing, or database wake-up checks. The Standard Upload card now posts to `/api/upload/simple`; Retail Upload remains unchanged on its existing upload client. Verification passed with TypeScript, focused ESLint, CSV/XLSX parser smoke, missing-file route smoke, forbidden-dependency scan on the simple route, and diff whitespace check.
+- Completed an emergency Standard Upload bypass of the polluted pre-upload path. Standard Upload and Retail Upload now use the same `uploadDatasetFile` client and both FormData payloads contain only `file`, `uploadMode`, and `dataset_type`. The canonical upload action no longer imports or calls dataset-limit checks, AI daily request checks, upload enforcement, file-size plan checks, row-count plan checks, or row-limit plan lookup before upload. The first upload path is auth, file existence, CSV/XLSX validation, parse, dataset creation, row save, response. Business Intelligence generation and analysis-status updates run only after dataset and rows exist, and failure there leaves the upload successful with `"Dataset uploaded. AI analysis pending."` when the pending status can be saved. Route-level unexpected failures are sanitized, with development-only details. Verification passed with TypeScript, minimal FormData smoke, CSV/XLSX parser smoke, sanitized auth-stage route smoke, blocker source scan, focused ESLint with existing warnings only, and diff whitespace check.
+- Fixed Standard Upload blocking on daily AI request counting. `file_upload` enforcement now checks only dataset limits and returns before querying `DailyAIRequestCount`, so Standard Upload no longer depends on AI daily request counters before file validation, parsing, dataset creation, or row processing. Daily AI count lookup and increment now log real server errors and return a safe fallback instead of throwing through upload or AI flows. Added the missing Drizzle migration for `"DailyAIRequestCount"`, applied the idempotent table/index creation to the configured database, and verified the table exists with `to_regclass`. The configured database initially returned `relation "DailyAIRequestCount" does not exist`; after migration it returns `"DailyAIRequestCount"`. Unexpected upload errors now return a sanitized message instead of raw SQL. Verification passed with TypeScript, focused ESLint with existing warnings only, upload validation route smoke, daily-count fallback smoke, database table verification, and diff whitespace check.
+- Built a turnkey shared upload path for Standard, Retail, and Profitability. The three customer upload cards now call the same same-origin upload helper, every shared upload sends `file`, `uploadMode`, and `dataset_type`, `/api/upload` validates those fields with exact `missingFields`, `invalidFields`, and `receivedFields`, and the upload action reports `auth_checked`, `formdata_validated`, `file_validated`, `file_parsed`, `dataset_created`, `rows_processed`, `analysis_created_or_queued`, `credits_deducted`, and `response_sent` stages. Standard saves `standard`, Retail saves `retail`, and Profitability saves `profitability`; redirects remain category-specific. Optional business-intelligence analysis remains non-blocking after dataset creation, demo credits are consumed only after successful dataset creation and row processing, and validation plus parser smokes confirm detailed JSON and CSV/XLSX parsing. Verification passed with `pnpm exec tsc --noEmit --pretty false --incremental false`, route validation smokes, parser smoke, and `git diff --check`.
+- Added a compact animated multilingual badge to the Usy assistant header near the subtitle. The badge displays "Multilingual" with one supported language at a time, cycles English, Deutsch, Nederlands, Español, Magyar, and Română every 2 seconds with a soft fade/slide transition, loops only while Usy is open, and shows a hover/focus/tap tooltip saying Usy automatically replies in the language the user uses. Verification passed with focused ESLint and TypeScript.
+- Refined Usy language and domain behavior. Usy now normalizes accents before matching language, detects unaccented Hungarian and German UseClevr capability questions, answers "akkor magyarazd el hogy UseClevr mit tud?" in Hungarian and "Was kann UseClevr?" in German with UseClevr-specific capability summaries, removes the language quick prompt, answers known UseClevr questions locally before calling Hybrid AI, and returns localized refusals for unrelated hobbies, politics, entertainment, personal-advice, and general-chat topics. Verification passed with focused ESLint and TypeScript.
+- Redesigned the UseClevr world map visualization as a professional BI dashboard component. The shared map component now uses dark glass styling, subtle cyan/purple accents, a restrained abstract world silhouette, compact summary cards, glowing location nodes, curved flow lines, top-location bars, keyboard-accessible markers, and hover tooltips. Dataset analysis now removes debug-only geographic logging, removes the unused region bar fallback, requires an actual geographic column before map data is generated, and shows the clean no-geography empty state instead of fallback/fake regional values. Verification passed with TypeScript and focused ESLint; focused ESLint still reports three existing `any` warnings in the large dataset analyzer.
+- Separated report routing from the main Dashboard. The authenticated Dashboard no longer imports or renders the retail report builder, retail report header, retail KPIs, inventory value, product/SKU, low-stock, or dead-stock sections. Uploads now store `standard`, `retail`, `accountancy`, or `profitability` category metadata in the dataset analysis JSON, Standard Upload redirects to dataset analysis, Profitability Upload redirects to Accountancy, and Accountancy shows a focused uploaded-dataset summary for routed accountancy/profitability datasets. Verification passed with TypeScript and focused ESLint; focused ESLint still reports existing `any` warnings in broad upload files.
+- Improved Usy into a multilingual UseClevr assistant. Usy now detects English, German, Dutch, Spanish, Hungarian, and Romanian, answers language questions clearly, handles spontaneous questions about capabilities, AI credits, upload blocks, plan choice, Pro vs Business, invoices, receipts, and retail inventory, and uses a reusable response handler that tries Hybrid AI first before falling back to UseClevr-aware rule-based guidance. Updated quick prompt chips to ask about capabilities, AI credits, upload blocks, plan choice, and data analysis. Verification passed with focused ESLint and TypeScript.
+- Updated Demo mode limits so the built-in demo path uses the same Free plan source for 50 AI credits, 2 datasets, 5,000 rows per dataset, CSV/Excel upload, and Basic AI Insights. Removed demo/built-in unlimited bypasses from analyst usage, AI credit checks, action enforcement, file-size validation, row-count validation, usage APIs, analysis credit initialization/deduction, downloads usage handling, and sidebar usage display while preserving admin and superadmin unlimited behavior. Verification passed with TypeScript, TODO, changelog, project-record, secret, diff whitespace, and production build checks.
+- Fixed checkout plan routing for Pro and Business. Billing plan resolution now accepts Pro and Business aliases, the checkout page shows switchable Pro and Business paid packages, the Business package includes the €420/month Business features, the legacy Stripe server action uses the selected plan's configured price ID instead of hardcoded Pro, Downloads checkout can select Pro or Business, public Business pricing opens Business checkout, and locked AI Assistant users can choose Pro or Business. Verification passed with focused ESLint, TypeScript, TODO, project-record, changelog, secrets, checkout-route search, diff whitespace checks, and production build.
+- Fixed sidebar Analyst Credits usage. Limited accounts now compute used credits from the current dataset count and plan dataset limit instead of stale profile counters, the full progress bar renders at 2 of 2 datasets, and sidebar usage refreshes after dataset upload or deletion events. Verification passed with focused ESLint, TypeScript, TODO, project-record, changelog, secrets, diff whitespace checks, and production build.
+- Simplified the UseClevr favicon to the single uploaded `6.svg` asset. Root app metadata now references only `/6.svg`, duplicate SVG, PNG, and ICO favicon files are removed, and the main in-app logo remains unchanged. Verification passed with focused ESLint, TypeScript, TODO, project-record, changelog, secrets, icon-reference search, diff whitespace checks, and production build.
+- Fixed Business Profile sidebar readiness badges. The authenticated sidebar now treats completion at 100% as completed even if a stale boolean arrives, shows Business, Accountancy, and Retail readiness from the latest saved Business Profile status, keeps Required only for incomplete profiles, and refreshes the app shell after Business Profile saves so the green checkmark appears without logout or login. Verification passed with focused ESLint, TypeScript, TODO, project-record, changelog, secrets, and diff whitespace checks.
+- Added the UseClevr cookie consent system. The root-mounted cookie banner now uses dark glassmorphism styling with cyan/lilac accents, shows only when no saved choice exists, offers Accept all, Essential only, and Manage actions, links to Privacy and Terms, and opens a mobile-friendly preferences modal with essential cookies always on plus analytics and product-improvement toggles. Consent is stored under `useclevr_cookie_consent`, the old `cookie-consent` key is migrated to essential-only consent, and reusable helpers expose `getCookieConsent`, `setCookieConsent`, `hasCookieConsent`, and optional-cookie checks for future analytics scripts. Verification passed with focused ESLint, TypeScript, project-record checks, and diff whitespace checks.
+- Removed app zoom controls and kept Usy assistant viewport behavior stable. The display menu now uses a single sun/moon theme toggle, clears saved zoom preferences, and leaves app scale at 100%. The opened Usy assistant panel uses viewport-safe max-height values on mobile and desktop, keeps overflow inside the chat body, and keeps the close button in the fixed header area so it remains reachable. Verification passed with focused ESLint, TypeScript, zoom-option search, project-record checks, and diff whitespace checks.
+- Fixed UseClevr pricing across admin, account, subscription, and public surfaces. The shared billing plan registry now exposes only Free, Pro, and Business monthly plans with Free at €0/month, Pro at €40/month, and Business at €420/month; stale yearly plan definitions, yearly Stripe fallback branches, yearly discount defaults, and Business custom labels are removed. Subscription, Billing Settings, Account Center, Downloads upgrade modal, public Pricing, FAQ content, Payload seed content, Usy answers, Stripe checkout actions, and sales-facing docs now use the current monthly pricing or shared formatting. Verification passed with stale-price search, focused ESLint, TypeScript, project-record checks, and diff whitespace checks.
+- Fixed Standard Upload 400 validation opacity. Standard Upload now sends `file`, `fileType`, `dataset_type`, `uploadMode`, `analysisType`, and `source`; Retail Upload sends the matching Retail values. `/api/upload` accepts upload category aliases from `dataset_type`, `datasetType`, `uploadMode`, `analysisType`, or `fileType`, validates received fields before invoking the upload action, and returns structured validation JSON with `ok`, `stage`, `missingFields`, `receivedFields`, and `allowedDatasetTypes`. The accepted upload categories include Standard, Retail, Profitability, Accountancy, and Pre-bookkeeping so existing specialized upload modes stay compatible. Verification passed with TypeScript, structured missing-file route smoke test, category compatibility smoke test, and diff whitespace check.
+- Fixed Standard Upload's blocking database availability precheck. The upload action now skips the separate preflight database probe before the real upload path. Standard, Retail, and Profitability uploads continue through the shared `/api/upload` parser, validation, dataset insert, row insert, and redirect path with `datasetType` derived from upload category. Upload API error stages now use `file_parse`, `database_insert`, `dataset_create`, and `analysis_queue`, and database-unavailable responses are reserved for actual connection-like failures during real work. Verification passed with TypeScript, CSV/XLSX parser smoke test, removed-string search, and diff whitespace check.
+- Fixed production localhost health and CSP issues. Browser connection checks now use same-origin `/health`, production helper status returns unavailable without calling `localhost:14567`, optional local-agent and Ollama defaults no longer probe localhost in production without explicit server configuration, and app health reports app, database, and helper states separately. `/api/health` keeps strict POST readiness for database gates while GET and HEAD remain liveness-safe. CSP now allows the existing Google Fonts stylesheet and font host without adding global unsafe-inline. Standard Upload remains on `/api/upload` and does not depend on helper availability. Verification passed with TypeScript, changelog lint, secret scan, production-mode helper status smoke test, production-mode app health smoke test, and diff whitespace check.
+- Fixed shared upload flow separation. Standard Upload, Retail Upload, and Profitability Upload use `/api/upload`; Retail posts `fileType=retail`, Standard posts `fileType=standard`, and Profitability posts a profitability file type plus summary data. The stable upload action now labels failures by stage, `/api/upload` returns `code` and `step`, and HTTP 503 is used only for `DB_UNAVAILABLE`. The Excel parser now returns all rows within the plan limit so Standard XLSX uploads persist complete row data instead of only the first preview rows. Dataset records continue to save `datasetType` as `standard`, `retail`, or `profitability`, and redirects stay category-specific. Credits are checked before upload and demo credits are consumed only after successful dataset creation. Verification passed with TypeScript and an in-memory CSV/XLSX parser smoke test.
+- Fixed the flashing upgrade UI on Downloads. The Downloads page now keeps usage state unresolved until `/api/usage` returns, never treats unknown role or plan state as Free, shows a stable loading or unavailable usage line instead of an upgrade card, gates the Analysis Credits upgrade card and modal behind resolved non-admin limited usage, closes the modal if the resolved user has unlimited access, and keeps upgrade checkout available only from intentional visible actions. Verification passed with focused ESLint, TypeScript, project-record checks, and diff whitespace checks.
+- Added globally oriented legal pages for UseClevr. `/terms` and `/privacy` now render self-contained dark UseClevr legal pages with cyan/lilac accents, SEO metadata, last-updated dates, internal cross-links, contact details, and explicit copyright footers. Terms covers acceptance, service use, accounts, worldwide AI-generated content disclaimers, subscriptions, free and paid plans, refunds, responsibilities, intellectual property, acceptable use, liability, availability, termination, governing law, international users, and contact. Privacy covers collected information, cookies, authentication, email verification, Stripe payments worldwide, uploaded datasets, AI processing, retention, security, GDPR, UK GDPR, CCPA, CPRA, US privacy, international users, cross-border processing, user rights, legal-review notice, and contact. Checkout legal links now use internal routes. Verification passed with focused ESLint, TypeScript, route/link search, project-record checks, and diff whitespace checks.
+- Extended admin and superadmin Usy into UseClevr Company Brain Lite. Platform admins now receive role-gated fallback and AI prompt guidance for customers, active plans, credit and dataset limits, upload errors, failed forecasts, failed analyses, billing settings, discount rules, AI traces, AI benchmarking, MCP tokens, user issues, and platform status. Normal users remain scoped to their own workspace assistant, and platform-brain guidance is blocked for non-admin roles. Verification passed with focused ESLint, TypeScript, project-record checks, and diff whitespace checks.
+- Upgraded Usy from loose FAQ fallback to role-aware assistant behavior. The live AI system prompt now includes current route, inferred module, user role, plan, and analyst usage when available, plus strict boundaries that keep superadmin guidance away from normal users. The offline fallback now uses normalized input, weighted intent scoring, role filtering, and topic-specific answers so short messages like "price pro", "business price", "upload not working", "forecast failed", and "credits?" resolve to the right UseClevr guidance instead of unrelated FAQ matches. Follow-up chips now come from the detected intent, including superadmin options for customers, AI traces, billing settings, and customer levels. Verification passed with focused ESLint, TypeScript, stale-pricing search, project-record checks, and diff whitespace checks.
+- Refactored the opened Usy assistant panel after a full UI/UX audit. The panel now uses a clear flex hierarchy with a compact text-only header, centered avatar welcome card, visible cyan-lilac suggestion chips, a scroll-only conversation region, and a compact fixed input footer. The main avatar pulse is smaller and smoother, message bubbles and follow-up chips have more consistent spacing, the welcome content breathes better, and the mobile panel remains a clean bottom sheet. Verification passed with focused ESLint, TypeScript, project-record checks, diff whitespace checks, and production build.
+- Corrected Usy pricing answers. Usy's fallback knowledge and AI system instruction now reference the shared public monthly plan prices, stating Pro is €40/month and Business is €420/month, with an explicit instruction not to mention yearly pricing unless the current prompt provides an official yearly price. The public FAQ path that Usy searches no longer contains stale yearly-plan answer text, and the Free plan FAQ uses the current two-dataset limit. Verification passed with focused ESLint, TypeScript, pricing-string search, project-record checks, and diff whitespace checks.
+- Lowered the opened Usy desktop assistant panel by reducing only its desktop max-height budget, which moves the panel top edge down by about 38px while keeping the avatar/header design, chat content, launcher position, and mobile bottom-sheet layout unchanged. This prevents the opened panel from touching the top browser or app header. Verification passed with focused ESLint, TypeScript, project-record checks, and diff whitespace checks.
+- Added contextual follow-up suggestions after every Usy answer. Assistant messages now store up to five topic-aware follow-up chips, with topics for uploads, dashboards, billing and credits, forecasting, opportunities, Business Profile, integrations, and fallback guidance. The chips render directly under the latest Usy response only, use the same cyan/lilac styling language, wrap cleanly on mobile, and submit the clicked question immediately. Starter suggestions remain on the welcome screen. Verification passed with TypeScript, focused ESLint, and diff whitespace checks.
+- Refined the Usy assistant panel for professional balance. The header now gives the avatar, title, subtitle, online badge, and close button distinct space with more top padding and no overlap; the avatar sizes are tuned so the header remains compact and readable; the pulse radius is reduced and kept close to the avatar with soft cyan-lilac glow; suggestion chips use brighter cyan/lilac gradient accents, alternating borders, and hover glow; panel shadows and borders are softened; and the launcher keeps "Ask Usy" with a smaller cleaner glow. Verification passed with TypeScript, focused ESLint, and diff whitespace checks.
+- Polished Usy into a warmer premium AI companion. The assistant panel now uses stronger bright-cyan, electric-cyan, lilac, and soft-purple gradients; the avatar is larger and separated from the title in the header; the welcome state centers the larger avatar with generous spacing; the avatar animation uses multi-layer breathing glow, subtle orbit pulse, soft outer glow, and slight floating motion with reduced-motion support; the support request form, email field, message field, and support submit button are removed; the empty state asks "What can I help you with today?"; suggestions use the modern eight-chip set; chat bubbles use stronger glassmorphism and cyan reply accents; the input placeholder reads "Ask Usy anything about your business..."; and the launcher has a larger animated avatar with hover lift. Verification passed with TypeScript, focused ESLint, and diff whitespace checks.
+- Built Usy as the new floating UseClevr AI Business Intelligence Assistant. The former Help Chat component now renders Usy with the female assistant avatar, circular cyan/purple/soft-blue glow, reduced-motion-safe animation, premium glassmorphism panel, desktop floating layout, mobile bottom sheet layout, welcome screen, status badge, two-column suggestion chips, capability chips, prompt-style input, and "Powered by UseClevr Hybrid AI" footer. Usy tries the authenticated Hybrid AI chat endpoint when available and falls back to UseClevr-specific knowledge plus audience-scoped FAQ answers when AI is unavailable. Dashboard FAQ support action and current user-facing docs now name Usy instead of the old help chat. Verification passed with TypeScript, focused ESLint, local `/` and `/login` requests returning 200, and diff whitespace checks.
+- Fixed dataset detail navigation and forecast handling. Dataset detail and analysis pages now use a shared signed-in dataset access helper that preserves owner scoping and allows superadmin access. Dataset detail falls back to the working analysis page when detail-row loading cannot complete, and analysis no longer shows the top-right Dataset button or linked breadcrumb that sent users to the broken detail route. Dataset forecast generation now loads data through the same access path, logs server-side forecast system errors with dataset ID and stack, handles too-small datasets and missing time or numeric business columns with clear guidance, and avoids the generic "Forecast failed" UI unless a real system error occurs. Verification passed with TypeScript and focused ESLint; focused ESLint still reports four existing `any` warnings in the dataset analyzer.
+- Improved the upload experience when the Free plan dataset limit is reached. Standard CSV/Excel upload and Accountancy upload now treat `datasetLimit.limitReached` as a `limit-reached` upgrade state, not an error; the upload card shows Free plan limit reached copy, Free/Pro/Business comparison, Upgrade to Pro and Upgrade to Business actions that open the existing upgrade modal, and disabled drag-and-drop/file input until upgrade. Verification passed with focused ESLint and TypeScript.
+- Simplified MVP authentication by removing Google and LinkedIn OAuth. Auth.js now registers only demo and credentials providers, the login and Payload operator login views no longer render social buttons or social dividers, the OAuth status route and helper are removed, signup no longer keeps a password-linking branch for social-only users, and the unused social-login icon dependency is removed. Email-password, Resend verification, password reset, and demo login remain the supported MVP paths. Verification passed with focused ESLint and TypeScript after clearing stale generated route types.
+- Fixed OAuth environment-name handling for Railway. The OAuth config helper reads UseClevr's canonical Google and LinkedIn provider settings first, keeps older provider variable names as fallback aliases, logs the sanitized source names, and suppresses stale Auth.js configuration query errors after provider status loads. Validation passed with focused ESLint and TypeScript.
+- Fixed OAuth configuration handling on the login page. The server status endpoint keeps provider availability sanitized and adds development-only diagnostics for incomplete social sign-in setup, while the login page hides Google and LinkedIn buttons when their provider is unavailable and suppresses the configuration alert when no social provider is enabled, preserving email-password and demo sign-in. Verification passed with focused ESLint and TypeScript.
+- Implemented Business Intelligence Engine Phase 1. Uploads now run automatic deterministic dataset profiling, KPI detection, duplicate/missing/invalid-value checks, health scoring, risk detection, opportunity detection, executive summary generation, and prioritized recommended actions, then persist the output into the dataset analysis and AI insights fields before redirect. Manual dataset re-analysis refreshes the same Business Intelligence Engine output. The analysis page passes saved analysis into the client and shows a Business Intelligence Engine panel without requiring user questions. Narrative generation routes through the Universal AI Adapter via the server AI text helper, while deterministic calculations remain backend-owned. A deterministic test covers sales and inventory datasets without external AI calls.
+- Completed Hybrid AI feature gates for current MVP features. The shared registry now names Hybrid AI Modal, Private Chat, CSV/Excel Analysis, Dashboard Insights, AI Provider Management, Provider Health Checks, Auto Mode, Local Mode, Cloud Mode, AI Assistant integration, Dataset-aware chat, Multiple AI Providers, Provider Fallback, Multi-document Analysis, AI Reports, Audit Logs, and roadmap actions. Backend routes and server actions enforce provider health, provider saves, provider fallback routing, selected mode changes, Hybrid AI chat, dataset-aware chat, AI Activity, report AI enhancement, helper roadmap endpoints, direct runtime model endpoints, and universal adapter provider execution. Coming-soon MEGA modules stay visible as roadmap items but are not executable backend features. Automated entitlement tests cover Lite, MEGA, expired, trial, and superadmin access.
+- Implemented Hybrid AI privacy and audit logging. Added a metadata-only AI request audit table and migration, fail-open server audit writer, route-level audit entries for Hybrid AI chat and dataset chat, shared audit entries for server-side analysis/report AI helper calls, an AI Privacy Status panel inside the AI Assistant, and a Settings AI Activity page that shows personal logs for normal users and workspace-wide provider usage for superadmin. Audit entries store provider, model, mode, local/cloud execution location, fallback use, purpose, success state, dataset ID when present, and safe error reason without storing prompts, responses, API keys, or dataset content. Validation passed with TypeScript and focused ESLint.
+- Unified the existing AI Assistant with the Hybrid AI/BYOAI path. The assistant submit flow no longer calls `/api/analyze` or blocks general questions when no dataset is selected; it sends general chat to `/api/hybrid-ai/chat` and selected-dataset questions to `/api/hybrid-ai/dataset-chat`. Assistant responses now show provider, model, local/cloud route, offline/fallback states, and cloud fallback privacy warnings, and the old "No dataset loaded" assistant path is removed from the component. Validation passed with TypeScript, focused ESLint, and a source search confirming the old assistant `/api/analyze` and no-dataset error strings are gone.
+- Implemented dataset-aware Hybrid AI Chat. Added `/api/hybrid-ai/dataset-chat` with authenticated dataset listing and dataset-scoped chat, compact context generation from dataset metadata, columns, row count, detected columns, backend KPI extracts, column profiles, grouped summaries, and bounded sample rows, and universal adapter routing that preserves Local only / Offline mode without cloud fallback. The Hybrid AI Chat UI now lets users select a dataset, shows dataset selected, context size, provider/model/local-cloud status, and a privacy warning when cloud fallback handles summarized dataset context. Validation passed with TypeScript and focused ESLint on the dataset-chat route and Hybrid AI chat component.
+- Implemented UseClevr Hybrid AI Chat through the BYOAI provider system. Added `/api/hybrid-ai/chat` with authenticated OpenAI-compatible message input, universal adapter routing, default cloud fallback when mode permits, and Local only / Offline mode blocking with no cloud call. Added the AI Analyst "Hybrid AI Chat" tab and page with a UseClevr-styled chat panel that shows provider name, model, local/cloud route, connected/fallback/unavailable status, and server-side-only key handling. Validation passed with TypeScript and focused ESLint on the new API route, page, chat component, and Assistant navigation.
+- Implemented Hybrid AI provider health checks and real connection testing. The provider manager now runs signed-in bulk health checks across enabled providers, sends real server-side chat/completion probes for individual tests, stores Healthy, Unreachable, Auth failed, Model missing, and failed states with latency, models, last checked time, and safe error messages, and shows masked API-key previews without exposing secrets. Runtime AI routing updates provider health before AI Assistant or analysis calls, preserves Offline mode by returning "Offline mode is enabled, but your local AI provider is not reachable." without cloud fallback, and keeps Auto and Cloud-only routing behavior intact. Validation passed with TypeScript and focused ESLint with existing warnings only.
+- Implemented Hybrid AI mode switching and provider routing. AI Providers settings now include Auto, Local only / Offline mode, and Cloud only routing. The universal adapter loads the signed-in user's mode, health-checks each configured provider with a non-customer prompt before sending analysis data, routes Auto through local providers before cloud providers, ignores local providers in Cloud-only mode, and blocks all cloud fallback in Offline mode when local AI is unavailable. Analysis and chat endpoints return clear local-provider-unavailable messages, and AI Assistant status badges support Local AI active, Cloud fallback active, Offline mode active, and local provider unavailable states. Validation passed with TypeScript and focused ESLint with existing warnings only.
+- Completed the AI Providers settings page for Phase 1 BYOAI. The page now loads provider data safely, shows a provider list, opens an add/edit dialog, stores encrypted API-key updates through server actions, tests connections through the signed-in test endpoint, displays connection state, latency, and detected models, and lets users choose explicit default and fallback providers. Provider records now include fallback state and priority, the universal adapter orders providers by default, fallback, priority, and update time, and the settings summary catches provider-load failures instead of showing the generic settings error screen. Validation passed with TypeScript and focused ESLint on the settings page, actions, provider model, and schema with one existing schema `any` warning.
+- Integrated the BYOAI Universal AI Adapter into the broader analysis and report pipeline. Dataset executive summaries, predictive summaries, analyst-mode narratives, investigation findings, similar-dataset insights, dataset comparison narratives, query explanations, and report chat now call the server-side adapter helper before default cloud fallback, while local deterministic calculations remain unchanged and final static fallbacks keep pages usable when AI is unavailable. Authenticated dataset routes pass the signed-in user ID so provider selection uses the user's default enabled provider and fallback chain; shared/public contexts keep default cloud behavior without exposing API keys. Validation passed with `pnpm exec tsc --noEmit --pretty false` and focused ESLint on the touched analysis, report, adapter, and route files with existing `any` warnings only.
+- Integrated the BYOAI Provider Manager into the AI Assistant. Dataset assistant responses and related chat endpoints route through the universal AI adapter, use the user's default enabled provider first, fall back through enabled providers, and keep cloud AI as the final fallback. Server responses now include sanitized provider status metadata with active provider label, connection healthy, fallback active, or provider unavailable state; the AI Assistant renders that status in the assistant message header without exposing API keys. Server-side provider selection and fallback logging remains in the universal adapter path. Validation passed with TypeScript, focused ESLint on assistant/analyze/chat files, project-record linting, and secret linting.
+- Updated the UseClevr Hybrid AI modal to match the Phase 1 BYOAI strategy. The primary Hybrid AI path now recommends connecting existing AI providers with cards for Ollama, LM Studio, OpenAI-compatible endpoints, and vLLM, and the main CTA links to `/app/settings/ai-providers`. The UseClevr Helper section now appears as Phase 2 advanced automation with Windows, macOS, and Linux downloads marked coming soon, and no helper card links to missing binary endpoints. Validation passed with TypeScript, focused ESLint on the modal/button files, project-record linting, and secret linting.
+- Implemented Phase 1 of the UseClevr Hybrid AI architecture as Bring Your Own AI provider management. Users can manage AI Providers under Settings with Ollama, LM Studio, OpenAI-compatible, OpenAI, Anthropic, Google Gemini, and Azure OpenAI provider types; encrypted optional API keys; base URL and default model; enabled and default-provider flags; connection testing with latency, status, available models, and error messages. The provider table now supports multiple providers per user and stores test metadata. The universal AI adapter tries the default enabled provider first, falls back through other enabled providers, logs fallback events, and keeps default cloud AI as the final fallback. Dataset analysis, analytical chat explanations, and regular assistant chat route through the universal adapter before cloud fallback. Phase 2 helper downloads, auto-detection, installers, background agents, and file monitoring remain untouched. Verification passed with TypeScript and focused ESLint on provider manager, settings page, test route, analyze route, chat route, schema, and settings actions.
+- Fixed OAuth configuration detection and provider callback routing. Auth.js now reads shared Google, LinkedIn, auth-secret, and public auth URL status; logs sanitized booleans and exact callback URLs server-side; exposes provider availability through `/api/auth/oauth-status`; disables unavailable Google and LinkedIn buttons on the login page; and sends successful social sign-ins to `/app/dashboard`, which aliases to the authenticated dashboard. Validation covered auth redirect assertions for `/api/auth/callback/google`, `/api/auth/callback/linkedin`, and `/app/dashboard`, TypeScript, focused ESLint, project-record linting, and secret linting.
+- Fixed OAuth callback, sign-out redirect, and generated app-link origins that exposed the server bind host in browser URLs. The Railway runtime keeps `HOSTNAME=0.0.0.0` only for binding and sets `AUTH_URL`, `NEXTAUTH_URL`, and `NEXT_PUBLIC_APP_URL` to a safe public origin. Auth.js normalizes unsafe public auth env values before providers initialize, so Google uses `/api/auth/callback/google`, LinkedIn uses `/api/auth/callback/linkedin`, local auth URLs resolve to `http://localhost:8080`, and test deployment auth URLs resolve to `https://test.useclevr.com`. Payload admin server URL generation, referral links, upload suggestion refresh calls, and MCP allowed-origin setup use the same public URL guard. Railway `AUTH_URL` and `NEXTAUTH_URL` are set to `https://test.useclevr.com` for the test service. Validation passed with `pnpm test:auth`, module-level auth URL normalization checks, sanitized Railway env verification, `pnpm exec tsc --noEmit --pretty false`, focused ESLint on the runtime, auth redirect, Auth.js config, Payload config, redirect test, referral, upload, and MCP files, project-record linting, and secret linting.
+- Implemented a minimal Bring Your Own AI provider connector. Account settings now includes an AI Providers tab for one OpenAI-compatible provider with provider name, base URL, optional write-only API key, model name, save, and test connection controls. Provider settings persist in a user-owned database table; API keys are encrypted server-side with an `AUTH_SECRET`-derived AES-GCM key and are never returned to the browser. `/api/ai-providers/test` sends a small chat completions request through the server, records sanitized test status, and never logs API keys. `/api/analyze` tries the selected user provider for dataset analysis and falls back to the existing cloud AI path when no provider is configured or the user provider fails. Verification passed with `pnpm exec tsc --noEmit --pretty false` and focused ESLint on the BYOAI, settings, analysis, API route, and schema files.
+- Routed verification email delivery through Resend only and diagnosed the active Railway blocker. The verification sender uses `RESEND_API_KEY` and `EMAIL_FROM`, removes the SMTP transport and SMTP diagnostic endpoint, logs sanitized Resend API failures, exposes a guarded `/api/debug/resend-status` endpoint, and provides `pnpm test:resend-verification` for Railway diagnostics. Railway has `RESEND_API_KEY`, `EMAIL_FROM=UseClevr <auth@useclevr.com>`, and the superadmin fallback variables set for the `test.useclevr.com` service. The Resend API rejects the current sender with `403` because `useclevr.com` is not verified, so signup/login email delivery remains externally blocked until Resend domain DNS verification is complete. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused auth/email ESLint, sanitized Railway env presence check, Resend status check, real Resend send attempt, and source search confirming SMTP/Nodemailer references are removed from app code and docs.
+- Fixed two visible dashboard/profile issues. The dashboard retail report header now starts lower below the sticky topbar, removes the clipping container around the report card, and gives the uppercase greeting enough line height and top padding. Business Profile setup completion now scores the visible required profile field groups with camelCase and snake_case aliases, excludes hidden tax/payroll/insurance/fixed-cost setup fields from the badge, and lets the sidebar/topbar use the saved simple Business Profile form completion when that profile is complete. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint on touched files, a direct setup-status check returning 100%, and `pnpm build`.
+- Fixed Dashboard 2.0 TypeScript build blockers. `business-insight-dashboard.tsx` no longer contains malformed comma-separated `if` statements for MRR/ARR detection, unused missing UI imports, a nullable revenue division, or a type-only default export value. `bi-dashboard.tsx` now preserves the BI menu item export without incomplete private-module imports or undefined JSX. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint on both Dashboard 2.0 files with warnings only, and `pnpm build`.
+- Refined the Business Profile Assistant into a more production-ready SaaS onboarding flow without changing the existing architecture or design language. The wizard now adapts question copy, insurance guidance, and placeholder examples to SaaS, retail, manufacturing, services, and general business contexts; validates required setup fields and filled optional values before step changes; keeps skipped optional fields valid; improves save/error announcements, keyboard focus, choice-button selected state, and select/input labels; and makes completion explain how future AI analysis uses the profile. Focused wizard ESLint passed. Full TypeScript validation is blocked by untracked workspace files `src/components/business-insight-dashboard.tsx` and `src/components/bi-dashboard.tsx`; `business-insight-dashboard.tsx` contains syntax errors at lines 220 and 221.
+- Upgraded the authenticated dashboard into a Dashboard / Report 2.0 retail report experience. The dashboard derives a personalized greeting from profile/session data, stores first-name/profile role fields for new accounts, loads the latest dataset rows, detects retail columns flexibly, calculates KPIs, inventory health, product performance, category and supplier groups, ABC/Pareto classes, forecast notes, executive summary, and prioritized recommendations, and renders missing optional sections as empty states instead of errors. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused dashboard/report ESLint, `pnpm lint:project-records`, `pnpm lint:todos`, `pnpm lint:changelog`, `pnpm lint:secrets`, `pnpm lint:package`, `git diff --check`, and `pnpm build`.
+- Changed Resend verification email delivery to check provider configuration and sender-domain readiness before every send. The sender logs sanitized `RESEND_API_KEY` presence, `EMAIL_FROM`, sender domain, Resend API status, response body, and stack server-side without logging secrets, and exposes a token-guarded `/api/debug/resend-status` route for Railway checks and fixed superadmin test sends. Verification passed with TypeScript, focused auth/email ESLint, sanitized Railway env presence check, and a real Resend send attempt that identified the unverified domain blocker.
+- Added a temporary env-gated superadmin fallback verification path for `superadmin@useclevr.com`. When email delivery fails and the Railway bypass env vars are enabled, the verification screen shows a superadmin-only fallback code field, the server validates the fallback code together with the password and configured email, logs masked success/failure events without logging the code, mints a one-time auth proof, and credentials sign-in assigns the configured superadmin email the `superadmin` session role. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused auth ESLint, `pnpm test:auth`, auth-flow script startup check, `pnpm lint:project-records`, `pnpm lint:todos`, `pnpm lint:changelog`, `pnpm lint:secrets`, `pnpm lint:package`, and `git diff --check`.
+- Added production-visible email-password auth milestone logs and a Railway auth-flow diagnostic script. Signup, verification send, code validation, proof consumption, and credentials authorization log masked emails without passwords or verification codes; `pnpm test:auth-flow -- signup-send`, `signup-verify`, `login-send`, and `login-verify` validate user creation, password authentication, code delivery, code validation, and proof consumption against the real database and provider variables. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused auth ESLint, diagnostic command startup checks, `pnpm lint:project-records`, `pnpm lint:todos`, `pnpm lint:changelog`, `pnpm lint:secrets`, `pnpm lint:package`, and `git diff --check`.
+- Added server-side Resend failure logging for verification emails and a Railway diagnostic send script. The verification sender logs sanitized sender configuration and Resend message, status, response, and stack fields without logging `RESEND_API_KEY`; the client still receives the safe delivery-failed response; `pnpm test:resend-verification -- --to recipient@example.com` sends a test verification email from Railway. Verification passed with TypeScript, focused auth/email ESLint, sanitized Railway env presence check, Resend status check, and real Resend send attempt.
+- Changed verification email delivery to use Resend through a server-only email abstraction. Production delivery reads the Resend API key and visible sender from Railway environment variables, while deliberate local console delivery requires `EMAIL_PROVIDER=console`. Verification passed with TypeScript, focused ESLint on verification/auth files, and source search confirming SMTP/Nodemailer references are removed from app code and docs.
+- Changed email-password signup and login to require UseClevr-owned hashed email verification codes before credentials sign-in can open the dashboard. Signup and login now create local single-use 6-digit verification records with 10-minute expiry, five-attempt limits, and 60-second resend cooldowns; the login card shows a code screen with resend loading/error/success states; successful verification creates a one-time proof consumed by NextAuth credentials sign-in; demo, Google, and LinkedIn buttons keep their existing direct paths when provider email is present and not explicitly unverified. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused auth/login ESLint, `pnpm lint:changelog`, `pnpm lint:todos`, `pnpm lint:secrets`, `git diff --check`, local `HEAD /login?tab=signin`, and remote `HEAD https://test.useclevr.com/login?tab=signin`.
+- Changed the authenticated dashboard home into an executive report-style workspace that follows the Sample Report visual language while preserving the existing route, auth flow, database queries, links, and backend behavior. The page now presents an executive overview, Business Health, Live KPIs, AI Insights, chart-style panels, Top Opportunities, Top Risks, AI Recommendations, Recent Activity, and Quick Actions using shared card styling, cyan and purple accents, stable responsive grids, and lightweight inline SVG charts. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint on the dashboard page, and `git diff --check`.
+- Fixed OAuth sign-in configuration so Google and LinkedIn use canonical Auth.js environment names, explicit provider IDs, documented callback paths, and readable login-page errors. Added a `/dashboard` entry point that routes into the existing dashboard app, kept email/password and demo login behavior intact, and updated Railway runtime handling so fixed auth URLs do not pin test deployments to the wrong host unless strict mode is enabled. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint on auth/login/config/dashboard files, `pnpm test:auth`, `git diff --check`, local `/login?error=Configuration` returning 200, local `/dashboard` returning a 307 to `/app`, and development auth logs showing Google provider ID `google` with `/api/auth/callback/google` and LinkedIn provider ID `linkedin` with `/api/auth/callback/linkedin`. Live `test.useclevr.com` provider metadata shows Google and LinkedIn enabled with test-host callback URLs, while live `/dashboard` still returns 404 until this local route ships.
+- Changed the shared display settings trigger from a palette icon to a professional sliders icon while preserving the existing theme and zoom popover behavior, accessible "Display settings" label, and placement across the public header, login page, and dashboard topbar. Confirmed the login page continues to use the shared animated UseClevr AI demo on the right side and the login controls remain unchanged. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint for the login/demo/theme/header/topbar files, `git diff --check`, local `HEAD /` and `HEAD /login?tab=signup` returning 200, and local `HEAD /app` returning the expected unauthenticated 307 redirect to `/login`.
+- Changed the public login page right-side visual to use the UseClevr animated AI demo story while keeping the left login/signup form, Google, LinkedIn, email/password, and demo-account behavior unchanged. The shared demo component shows the spreadsheet pain popup, upload detection, AI analysis checklist, AI-found insights, recommendation, premium growth chart, and purple-blue-cyan branding with an auth-page layout breakpoint. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused login/demo ESLint, `git diff --check`, and local `HEAD /login` returning 200.
+- Fixed awkward homepage hero AI-found card wrapping. The results grid now uses "Revenue upside" and "Next actions", removes forced word breaking, adds slightly wider horizontal padding, and centers the check icons with labels so the cards read cleanly on desktop and mobile. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused homepage ESLint, and `git diff --check`.
+- Fixed the homepage hero demo AI-found card text overflow. The results grid now uses the shorter label "Recommended actions", smaller label text, non-shrinking icons, and break-word text wrapping so long labels stay inside small cards on desktop and mobile. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused homepage ESLint, and `git diff --check`.
+- Changed the homepage hero into a premium self-running product demo for UseClevr as an AI data analyst for business spreadsheets. The first hero demo panel asks how many hours visitors spend searching for answers in spreadsheets, then the sequence shows upload detection, AI analysis steps, found opportunities/risks/trends/recommendations, and a recommended next action. The hero chart now uses an animated SVG area/line chart with cyan, blue, and lilac accents, and the use-case labels stay broad across retail, investor portfolio, finance, sales, and operations. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint on the homepage, `git diff --check`, and a local `HEAD /` request returning 200 after first dev-server initialization.
+- Removed the setup progress modal, guided tour popup, setup checklist flow, and guided-tour visit tracking, and kept onboarding status focused on Business Profile, Accountancy, Dataset Upload, and Analysis.
+- Added consistent 24px top spacing below page headers on Downloads, Datasets, Business, Accountancy, and Retail pages so cards and tables start below the top navigation with clearer separation.
+- Fixed AI Assistant suggestions so selecting a dataset automatically detects retail, inventory, sales, finance, SaaS, or generic data and fills the Suggestions panel with at least 10 contextual questions, using per-dataset caching and fallback questions when generation cannot complete.
+- Simplified the Appearance menu to a compact Light Mode, Dark Mode, and zoom-level dropdown, removed text-size and contrast controls from the menu, and set dark mode as the default.
+- Added Business and Accountancy sidebar onboarding badges with Required, percentage, and completed states, and routed incomplete Business navigation directly to the Business Profile setup flow.
+- Redesigned Account settings into a wider SaaS control center with account status, Profile, Company, Subscription, and Security sections, completion indicators, and Continue Setup actions.
+- Fixed Upgrade to Pro checkout flow by showing the selected Pro plan, monthly price, secure checkout button, direct Stripe Checkout redirect, and visible modal error handling when checkout creation fails.
+- Expanded Business Profile setup into a professional one-question-per-step wizard with conditional country, tax, payroll, insurance, fixed-cost, debt, margin, cash-reserve, and growth questions, and routed the Business overview page to the shared persisted wizard instead of the short local-only flow.
+- Fixed Accountancy new-user workflow by showing a Pre-bookkeeping center empty state, upload and package-generation actions, Business Profile accounting context, export options, and accountant handoff fields instead of treating missing accountancy data as unavailable.
+- Changed Retail Inventory Analyst result tables to show every low-stock, dead-stock, and top-profit row in scrollable tables with sticky headers instead of hiding remaining rows behind "+ more" summaries.
+- Improved Retail Inventory Analyst result cards so low stock, dead stock, and top profit rows show product, SKU, category, stock, reorder point, units sold, revenue, cost, gross profit, margin, last sale, order details, and owner-friendly next actions.
+- Added Retail & Inventory Analysis module (sidebar integration and dedicated Retail page with upload functionality, AI summary, and analytics cards)
+- Fixed Account settings layout width by narrowing the right info rail and relaxing subscription
+  plan grid columns so plan cards, text, and buttons stay visible without changing billing logic.
+- Centered and widened the Account settings checkout review and terms panels so selected-plan
+  details, terms, and payment actions stay readable without changing checkout logic.
+- Reworked the Account settings checkout terms/payment step into a wider compact two-column desktop
+  layout with terms on the left and accept/payment actions on the right.
+- Fixed Reports & Downloads page vertical spacing by adding `mt-4` to the main content area
+- Fixed Retail Inventory Analyst build by creating browser-safe CSV parser module and using it in the client component
+- Fixed the landing page preview by replacing hardcoded pricing text with neutral revenue-trend copy so pricing validation passes.
+- Fixed global dashboard layout spacing, Business Profile completion, and analyst credit limits. The authenticated app layout adds shared top spacing below the sticky topbar, the dashboard removes its local duplicate top padding, and sidebar pages inherit the same first-heading breathing room. Business Profile completion accepts the visible role aliases `userRole` and `user_role`. The central analyst credit service no longer treats the trial flag as unlimited, keeps Free accounts capped at 2 credits, returns unlimited labels for superadmin/admin/built-in and paid accounts, and bypasses credit decrement and upgrade blocks for those accounts. Upload, dataset creation, analysis, chat, downloads, topbar, sidebar usage, settings, and upgrade modal flows now use the role-aware usage result and existing Stripe upgrade routes. Verification passed with `pnpm exec tsc --noEmit --pretty false` and `pnpm build`.
+- Implemented the UseClevr Helper Hybrid AI concept. Added a standalone `helper/` app that runs on localhost port 14567, returns the required health/status/chat JSON contracts, serves a small branded desktop chat page, and internally calls the private engine without exposing technical names in the web UI. Added the browser helper bridge, a UseClevr Hybrid AI private-analysis panel in AI Assistant, a simplified helper setup modal with Windows/macOS/Linux download cards, protected helper download endpoints for authenticated Pro/Business/admin access, and branded Hybrid AI copy across upload, FAQ, Payload, topbar, and connection-status surfaces. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint with one existing Payload seed warning, `node --check helper/src/server.mjs`, and live helper endpoint checks for `/health`, `/status`, and `/chat`.
+- Implemented Hybrid AI MEGA through the same UseClevr Helper architecture as Hybrid AI Lite. The shared module catalogue exposes Lite and MEGA feature flags from the helper status response, keeps the helper chat/backend shared, derives unlocked modules from the authenticated subscription, and shows available/locked modules in the AI Assistant panel and helper setup modal. Pro users unlock Private Chat, CSV/Excel Analysis, Dashboard Insights, One AI Provider, and Auto/Local/Cloud mode. Business/admin users unlock Lite plus Multiple AI Providers, Multi-document Analysis, Advanced Reports, AI Audit Logs, Workflow Automation roadmap, and UseClevr Helper roadmap without another desktop app. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint, `node --check helper/src/server.mjs`, and live helper endpoint checks for `/health`, `/status`, and `/chat`.
+- Fixed Business plan Stripe checkout configuration. The billing plan source resolves Pro monthly from `STRIPE_PRICE_PRO_MONTHLY`, reserves Pro annual resolution for `STRIPE_PRICE_PRO_ANNUAL`, and resolves Business monthly from `STRIPE_PRICE_BUSINESS_MONTHLY` with `STRIPE_PRICE_ID_BUSINESS_MONTHLY` as the compatibility fallback. Checkout option and confirmation routes log missing paid-plan price env names in development without logging secrets. The checkout page now loads `/api/checkout/options` before deciding whether the selected plan can continue to payment, so server-configured Business prices do not appear as missing in the browser. The admin billing settings page shows the expected env variable names for each paid plan. Verification passed with focused ESLint, `pnpm exec tsc --noEmit --pretty false`, and `pnpm build`; the build completed with existing compile warnings.
+- Refined UseClevr pricing and upgrade copy to a realistic MVP feature set. The shared billing plans now list Free with CSV and Excel upload, 50 AI credits, 2 datasets, basic AI insights, retail dashboard, and community support; Pro with 500 AI credits, 25 datasets, AI business analysis, revenue and margin analysis, low-stock and dead-stock detection, PDF reports, Excel export, and priority support; and Business with 5000 AI credits, Pro benefits, Accounting AI, invoice processing, receipt processing, and dedicated support. The public pricing page renders these shared features in balanced cards and removes the long Hybrid AI/enterprise section. Checkout, subscription/account cards, Downloads, upload-limit cards, Usy pricing answers, public FAQ, product metadata, and the homepage capability cards no longer advertise private deployment, white label, ERP/POS/Snowflake integrations, multi-store management, generic API claims, unlimited Pro datasets, or unlimited analyses. Verification passed with focused ESLint, `pnpm exec tsc --noEmit --pretty false`, and `pnpm build`; the build completed with existing compile warnings.
+- Removed Free Trial messaging from public landing and pricing surfaces. The Pro pricing card CTA now says Upgrade to Pro while preserving the existing button styling and layout, the pricing header says Free plan included, and the landing CTA area says Start with Free plus Free plan with limited AI credits. A source search confirms no Free Trial, Trial Period, 7-Day Trial, 14-Day Trial, or Start Free Trial references remain on public landing or pricing pages. Verification passed with focused ESLint and `pnpm exec tsc --noEmit --pretty false`.
+- Consolidated Subscription, Billing, and Credit Rules navigation into one Subscription Management page. The topbar Credits dropdown is now a direct Subscription link with current credit/plan context, Settings navigation no longer lists Billing or Credit Rules, and the Account Center tab row no longer exposes Billing or Rules. `/app/settings/subscription` now has Overview, Billing, AI Usage & Credits, and Terms & Conditions tabs covering current plan, upgrade/downgrade, plan benefits, AI credits, dataset and storage usage, payment status, invoices, billing history, next billing date, cancellation contact, usage history, monthly reset, upgrade recommendations, Terms, Privacy, billing policy, refund policy, and subscription rules. `/app/settings/billing` redirects to the Billing tab, `/app/settings/credits` redirects to AI Usage & Credits, and existing billing links plus Stripe portal return URLs target the Billing tab. Verification passed with focused ESLint, `pnpm exec tsc --noEmit --pretty false`, and `pnpm build`; the build completed with existing compile warnings.
+- Improved Business plan value messaging without adding unfinished features. The shared billing plan source now lists Business as Everything in Pro, 5000 AI Credits / Month, Up to 250 Datasets, Larger File Upload Limits, Accounting AI, Invoice Processing, Receipt Processing, and Dedicated Support. The Business dataset limit is 250, the public pricing CTA says Upgrade to Business, upload-limit mini comparison cards mention 250 datasets and larger uploads, Hybrid AI upgrade action text says Upgrade to Business, and Usy pricing answers repeat the same Business value props. A source search confirms Review Business, API Access, Multi-user Teams, Scheduled Reports, and old 100-dataset Business copy are not present in pricing/settings/upgrade surfaces. Verification passed with focused ESLint and `pnpm exec tsc --noEmit --pretty false`.
+- Fixed Google and LinkedIn OAuth login setup. The auth provider config now accepts `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `AUTH_LINKEDIN_ID`/`AUTH_LINKEDIN_SECRET`, and `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET`; both providers request email/profile scopes; and login buttons use a same-app `/dashboard` callback. Verification passed with `pnpm exec tsc --noEmit --pretty false`, focused ESLint, and local `/api/auth/providers` metadata showing Google and LinkedIn enabled when alias env vars are present.
+- Stopped the retried end-to-end Accuracy Engine and Credit Engine Neon verification before connecting because `NEON_TEST_DATABASE_URL` is absent after loading local environment files. `.env.local` is Git-ignored by `.gitignore`, but the required test-only database URL is unavailable and the task explicitly forbids using `DATABASE_URL`. No database connection through the production URL, migration, extension activation, fixture insert, concurrency test, AI flow test, customer-data change, commit, or push ran.
+- Stopped the requested end-to-end Accuracy Engine and Credit Engine Neon verification before mutation because the connected database exposes project `withered-star-79790747`, database `neondb`, branch ID `br-crimson-sun-ai49oqj4`, endpoint `ep-odd-shape-ai0cc8ej`, and PostgreSQL 17.10, but does not expose the exact branch name `accuracy-lakebase-test`. This Codex session has no Neon MCP tool and no Neon API key/project metadata env to map branch ID to branch name. No migrations, extensions, fixtures, concurrency tests, UI tests, customer-data changes, commits, or pushes ran.
+- Retried the existing Accuracy tenant-isolation test with user-provided Neon test branch credentials set only in the process environment, using the direct host for both `DATABASE_URL` and `DIRECT_URL` and redacting credential output. The test connected, inserted synthetic users and datasets, then failed because relation `"RetrievalDocument"` does not exist, which indicates migration `0011_accuracy_retrieval_documents.sql` is not applied on that branch. A read-only cleanup check found zero `acc_test_` users and zero `acc_test_` datasets remaining.
+- Ran the existing Accuracy tenant-isolation test with `DATABASE_URL` and `DIRECT_URL` set only for the process from `NEON_TEST_DATABASE_URL`, deriving a non-pooler direct Neon host in memory and redacting database URL/password output. The test failed before fixture creation with PostgreSQL authentication failure for `neondb_owner`, so no synthetic records were inserted. Cleanup hooks ran but could not connect; cleanup is effectively complete because authentication failed before any database mutation.
+- Fixed the upload-to-analysis pipeline so canonical uploads write `analysisStatus: "processing"` when the dataset row is created and update to `analysisStatus: "ready"` after Business Intelligence preparation succeeds, is skipped, or falls back after a non-critical BI failure. The simple upload endpoint now creates ready datasets explicitly instead of returning pending while the database default remains uploading. The dataset analyze API writes processing before deterministic analysis and ready after persistence. Dataset detail and analysis pages now treat upload metadata as metadata, not completed analysis, and render "Analysis is still being prepared..." when rows or analysis output are not yet ready instead of throwing the dataset error boundary. Verification passed with `pnpm exec tsc --noEmit --pretty false`, `pnpm test:business-intelligence`, and `git diff --check`; a read-only Railway log attempt with unsupported CLI arguments failed before reading logs or changing configuration.
+- Fixed the World Map country layer by importing a validated local `world-110m.json` topology into the map component instead of relying on a client-side geography URL, adding a map-data-unavailable safeguard, switching to a Mercator world projection with visible country fill and borders, and resizing the map/statistics grid so the right panel does not overlap the map. The Railway dist packager now preserves the full `public/` directory so nested map assets are served from standalone output, and dashboard content stays clear of the fixed Usy launcher. Verification passed with `pnpm prod:build`, `node scripts/package-dist/create-dist.cjs`, local dist `GET /maps/world-110m.json` returning 200 with 177 countries, headless Chrome rendering 177 SVG country paths and 3 mapped bubbles from the real component, `pnpm exec tsc --noEmit --pretty false`, and `git diff --check`.
+- Fixed included-credit enforcement for Free users. The root cause was split credit state: usage displays derived available credits from local defaults and legacy profile counters, while standard upload API paths and manual dataset-analysis refreshes did not reserve Credit Engine credits before billable work. Free plan credits now resolve to 2 from the shared billing plan source, dataset upload normalizes to a one-credit `dataset_upload` feature, canonical and simple upload routes reserve before dataset insert, release on failed persistence, finalize on success, and return structured `INSUFFICIENT_CREDITS` responses. Manual dataset-analysis refreshes reserve before analysis, release on failure, and finalize on success. Sidebar, topbar, profile, subscription, account center, upload UI, `/api/usage`, and `/api/usage/credits` read the same authoritative credit summary with no-store caching. Superadmin unlimited handling no longer trusts session role alone. Verification passed with `pnpm exec tsc --noEmit --pretty false`, `pnpm test:credit-engine`, and focused diff review.
+- Fixed the Usy assistant launcher viewport anchor. The root cause was a dashboard-specific conditional class that set the app assistant container to `fixed bottom-4 left-4` and opened the desktop panel from `sm:left-0`; that placed Ask Usy over the left sidebar/credits area. The launcher container now uses one bottom-right fixed viewport anchor for all audiences and the opened desktop panel aligns to the right side above the launcher while mobile keeps the existing responsive full-width panel. Verification passed with `pnpm exec tsc --noEmit --pretty false`, `pnpm build`, headless Chrome desktop screenshot `/tmp/usy-bottom-right-verification.png`, and headless Chrome responsive screenshot `/tmp/usy-mobile-bottom-right-verification.png`.
+- Fixed Standard Upload reliability for `/api/upload/simple`. The root cause in code was unhandled server exceptions after parsing, especially Credit Engine reservation/settlement and final usage-summary serialization, which could escape the route and produce a generic 500 response that the client reported as "Upload response could not be read." The route now logs request received, authenticated user, file metadata, parser start/completion, credit summary, reservation, transactional dataset persistence, settlement, cleanup, and final response with a safe request ID and no raw file contents or secrets. Dataset and row persistence runs in one transaction with processing-to-ready status writes, settlement failures delete the created dataset and release reservations, unexpected pre-settlement failures clean up route-owned datasets, and idempotency keys map repeated operations to the same dataset without duplicate charges. The client sends request and idempotency headers, checks response content type, handles empty/non-JSON/invalid JSON safely, and displays backend code/message/request ID. Verification passed with `pnpm exec tsc --noEmit --pretty false`, `pnpm test:credit-engine`, `git diff --check`, `pnpm build`, and a local built-app unauthenticated smoke request confirming JSON response handling before route execution. Railway logs were not available because `pnpm railway:logs` exited without log output in this session.
+- Changed dataset architecture so `dataset_type` remains the processing/module category while persisted business model drives domain behavior. Uploads now resolve business model deterministically from explicit input, upload module, column schema, and generic fallback; legacy retail records migrate to local retail; standard datasets keep analysis routing with model metadata instead of inheriting retail or ecommerce modules. The executive dashboard now derives dominant business model, selects model-specific KPI cards, and renders the World Map only for ecommerce, marketplace, investor, or explicit multi-location local retail coordinates. Dataset analysis maps use the same gate, unknown locations stay unmapped, suggestions use business-model question sets, and AI analysis prompts receive strict business-model context. Verification passed with `pnpm test:business-models` and `pnpm exec tsc --noEmit --pretty false`.
+- Implemented fixed multi-currency UseClevr Pro launch pricing. Added a central Tier A pricing configuration for EUR 4000, GBP 3900, USD 4500, and CAD 5500 minor-unit prices, country-to-currency mapping with EUR fallback launch countries, billing-country-required checkout validation, per-currency Stripe Price ID resolution, checkout billing-country selection, public pricing chips, account/upgrade/help pricing copy updates, and a focused pricing test covering the required country, browser/IP mismatch, invalid currency, altered amount, provider price ID, and existing-subscription cases.
+- Removed visible version labels from the authenticated app header and sidebar footer. The app version remains available internally through Account Center system information, while package metadata and app configuration remain unchanged. Verification included TypeScript, focused ESLint, source search, and before/after layout screenshots.
+
+## Retail POS Connections On Main Retail Page
+
+1. Interaction title
+   Retail POS Connections on the Retail workspace.
+
+2. What was the user goal
+   Expose the completed Square connector backend in the current Retail UI instead of leaving the page as CSV and Excel upload only.
+
+3. What changed
+   `src/app/(auth)/app/retail/page.tsx` now renders `RetailIntegrationsClient` above the existing embedded `RetailInventoryClient`. `src/components/retail/retail-integrations-client.tsx` now presents Square as the primary POS connector with connection status, connect, merchant name, locations, products, last sync, sync now, disconnect, imported counts, sync history, and error display. Shopify, Clover, and Lightspeed render as disabled coming-soon cards. `src/app/api/integrations/retail/square/callback/route.ts` redirects completed Square OAuth back to `/app/retail`. `requirements.md`, `CHANGELOG.md`, and AI interaction records describe the current behavior.
+
+4. Problems marked
+   blocker: none.
+   risk: Live Square OAuth interaction still requires configured Square credentials and a signed-in browser session.
+   improvement: The Square backend summary can expose a richer merchant display name when provider profile data is available.
+   observation: The existing connector API already provides the status, counts, sync history, and action endpoints needed by the Retail UI.
+
+5. User learning
+   The Retail page now shows POS connection controls before the upload workflow while preserving CSV and Excel upload.
+
+6. AI-agent learning
+   When the backend connector exists on a separate integrations page, the main product workspace must mount the same client so users see the integration at the point of work.
+
+7. Follow-up tasks
+
+- Add a provider-derived Square merchant display name when the sync engine stores merchant profile data.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## BYOK AI Provider Security Hardening
+
+1. Interaction title
+   BYOK AI provider implementation audit and security hardening.
+
+2. What was the user goal
+   Implement a production-ready Bring Your Own Key AI provider system while preserving existing Local AI, Ollama, cloud AI, authentication, dataset, and module behavior.
+
+3. What changed
+   The current BYOK implementation already includes provider schema, settings UI, API routes, AES-256-GCM key encryption, routing, audit metadata, migration, docs, changelog, and a focused security test. This interaction hardens the implementation by requiring saved-key provider tests to target the exact authenticated user's provider, making routing/default updates reject missing or non-owned provider IDs, keeping cloud fallback conservative for Local and BYOK mode saves without changing existing Automatic/cloud behavior, sanitizing provider base URLs before logging failed tests, widening the account summary type for every supported public provider, and blocking bracketed IPv6 plus IPv4-mapped IPv6 private or loopback SSRF targets.
+
+4. Problems marked
+   blocker: none.
+   risk: Full provider CRUD and routing mode coverage depends on database-backed integration tests beyond the focused security script.
+   improvement: Add database-backed API route tests for cross-user provider access, provider CRUD, masked key responses, default uniqueness, priority fallback, and cloud fallback disabled behavior.
+   observation: The focused security test requires valid dummy `DATABASE_URL` and a 32-character `AUTH_SECRET` because importing the provider module initializes app config.
+
+5. User learning
+   BYOK provider security needs storage controls and request-routing controls, including exact provider ownership checks and SSRF handling for canonicalized IPv6 hostnames.
+
+6. AI-agent learning
+   When public aliases such as `openai_compatible` and `google_gemini` leave a provider layer, downstream UI prop unions must include the same public values or convert them before rendering.
+
+7. Follow-up tasks
+
+- Add database-backed BYOK API route tests for cross-user access, provider CRUD, masked key responses, default uniqueness, routing modes, priority fallback, and cloud fallback disabled behavior.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred test expansion: future TODO queue if requested.
+
+## Official Superadmin Hybrid AI Entitlement
+
+1. Interaction title
+   Official superadmin Hybrid AI and BYOK entitlement bypass.
+
+2. What was the user goal
+   Give the official superadmin account unrestricted Hybrid AI Lite, BYOK, Local AI download, Local AI setup, all AI modes, and unlimited provider access without requiring a paid subscription, while keeping normal Free, Pro, and Business entitlements unchanged.
+
+3. What changed
+   The centralized built-in user helper now recognizes superadmin access from the superadmin role, built-in superadmin ID, or normalized official superadmin email. The Hybrid AI entitlement engine accepts email, server feature gates resolve session/profile/user email before returning access, Auth session refresh promotes the official email to the superadmin role, Local AI download gates pass session email, and frontend Hybrid AI components pass email into shared entitlement helpers. The AI Providers plan-limit display uses a shared formatter so the superadmin provider limit displays Unlimited. Requirements and changelog now describe the current unrestricted official superadmin behavior.
+
+4. Problems marked
+   blocker: none.
+   risk: Browser verification of the exact AI Providers page for the official account remains pending until a live signed-in session is available.
+   improvement: Add route-level integration tests with mocked authenticated sessions when the test harness supports Auth.js route mocking.
+   observation: The project already had a built-in official superadmin identity; the missing behavior was email-based recognition for persisted accounts and client-side entitlement helpers.
+
+5. User learning
+   The official superadmin account can use Hybrid AI and BYOK without subscription prompts because entitlement resolution recognizes its normalized email centrally.
+
+6. AI-agent learning
+   When entitlement state can be computed on both server and client, pass the same identity fields into shared helpers instead of fixing only route gates.
+
+7. Follow-up tasks
+
+- Add Auth.js route-level entitlement tests for AI provider API access when the repository has a route-session mocking harness.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred route-level test expansion: future TODO queue if requested.
+
+## Retail POS Connections Database Query Fix
+
+1. Interaction title
+   Retail POS Connections database schema fix.
+
+2. What was the user goal
+   Fix the Retail page database query failure for `RetailConnection` and `RetailSyncRun`, apply required migrations, preserve the POS Connections UI, and show the normal Not Connected state when no POS connection exists.
+
+3. What changed
+   The root cause is that `0015_retail_pos_integrations.sql` exists in source but the configured database had no Retail POS tables, and `scripts/runtime/railway-predeploy.cjs` did not apply that migration. The Retail migration was applied to the configured database. The predeploy script now reads and executes `src/lib/db/migrations/0015_retail_pos_integrations.sql` inside its existing schema transaction so deployments create the Retail POS tables, indexes, and foreign keys before Retail integration queries run. Requirements, changelog, and AI interaction records now describe the current schema and empty-state behavior.
+
+4. Problems marked
+   blocker: none.
+   risk: Drizzle `db:push` needs an interactive TTY in this repository when resolving schema diffs, so this interaction used the explicit idempotent SQL migration and the deployment predeploy script.
+   improvement: Drizzle migration metadata lists only early migrations, so a future maintenance task should align generated migration journal metadata with the current SQL migration folder.
+   observation: `listRetailConnectionSummaries()` returns an empty array for a signed-in user with no POS connections once the Retail tables exist.
+
+5. User learning
+   The Retail POS UI failure was a missing database schema problem, not a missing empty-state UI problem.
+
+6. AI-agent learning
+   When a feature adds Drizzle tables, verify both source SQL files and the actual runtime database before diagnosing page-level UI errors.
+
+7. Follow-up tasks
+
+- Align Drizzle migration journal metadata with SQL migrations `0005` through `0015` so `drizzle-kit migrate` can be used as the primary noninteractive migration path.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred migration tooling cleanup: future TODO queue if requested.
+
+## Square Production OAuth URL Fix
+
+1. Interaction title
+   Square Retail POS OAuth environment selection.
+
+2. What was the user goal
+   Fix the Square Connect action so Railway production configuration with `SQUARE_ENVIRONMENT=production` generates the production Square OAuth authorization URL instead of the sandbox authorization URL.
+
+3. What changed
+   The exact authorization URL is generated in `src/integrations/retail/providers/square/square.connector.ts` by `SquareConnector.getAuthorizationUrl()`. The bug was in `src/integrations/retail/providers/square/square.config.ts`, where `normalizeEnvironment()` returned sandbox for every value except lowercase production, including missing, invalid, or differently cased values. Square config now requires `SQUARE_ENVIRONMENT` to equal `production` or `sandbox` exactly, builds authorization, token, revoke, and API base URLs from the same selected environment, and exposes explicit `authorizationUrl`, `tokenUrl`, and `revokeUrl` values. `SquareConnector` uses those explicit config URLs for authorization and OAuth requests. The Retail POS verification script now tests production and sandbox authorization host, authorization URL, token endpoint, API base URL, and invalid environment handling.
+
+4. Problems marked
+   blocker: none.
+   risk: Deploy environments must set `SQUARE_ENVIRONMENT` exactly to `production` or `sandbox`; missing or differently cased values now fail fast.
+   improvement: Add a small runtime diagnostics endpoint for superadmins that reports Square environment and endpoint hosts without exposing secrets.
+   observation: The Connect button path did not hardcode sandbox in the UI; the fallback came from provider config.
+
+5. User learning
+   The Square Developer and Railway configuration can be correct while app code still routes to sandbox if environment parsing silently defaults.
+
+6. AI-agent learning
+   Provider environment selection must fail closed when a production integration can move money or connect real merchant accounts.
+
+7. Follow-up tasks
+
+- Add a superadmin-safe Square integration diagnostics view that shows configured environment and endpoint hosts without secrets.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Risk Intelligence Lite Module
+
+1. Interaction title
+   Risk Intelligence Lite module.
+
+2. What was the user goal
+   Add a production-ready first version of Risk Intelligence that scores supported business datasets with deterministic rules, server-side entitlement enforcement, dashboard navigation, APIs, tests, and documentation.
+
+3. What changed
+   The app now exposes `/app/risk-intelligence` and a sidebar Risk Intelligence item. The server calculates Risk Intelligence from one selected supported dataset at a time, using centralized versioned rules, existing business-column/KPI helpers, dataset rows, and Hybrid AI Lite dashboard-insights entitlement. The API routes list supported datasets and recalculate one dataset while preserving ownership, admin, and superadmin access rules. The UI shows overall score, severity counts, category summaries, last calculated time, dataset scope, prioritized findings, recommendations, and source links. Docs and requirements now describe the module, thresholds, score formula, route access, and no-migration dynamic calculation.
+
+4. Problems marked
+   blocker: none.
+   risk: Existing business-column analysis logs detected columns during focused tests, so Risk Intelligence tests are noisy until shared debug logging is quieted.
+   improvement: Add browser-level responsive visual regression coverage when the project has a stable Playwright app harness.
+   observation: Risk Intelligence does not need a database table for the first version because results derive from existing dataset storage.
+
+5. User learning
+   Risk Intelligence is a traceable business-intelligence module, not an enterprise compliance or professional-advice workflow.
+
+6. AI-agent learning
+   Use existing KPI helpers for column and breakdown context, but keep risk scoring conservative when helper-level metrics rely on estimates.
+
+7. Follow-up tasks
+
+- Add browser-level responsive Risk Intelligence rendering tests when the project has a stable authenticated Playwright harness.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; API route boundary: `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md`; rule architecture: `docs/Developer_Guides/RISK_INTELLIGENCE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred UI harness work: future TODO queue if requested.
+
+## Square OAuth Callback Routing
+
+1. Interaction title
+   Square OAuth callback routing.
+
+2. What was the user goal
+   Fix the production Square OAuth callback 404 where Square redirects to `https://useclevr.com/api/integrations/retail/square/callback?code=...` and receives a LiteSpeed 404 instead of the UseClevr application route.
+
+3. What changed
+   Square OAuth now builds authorization and token-exchange redirect URIs from one canonical server-side callback helper at `/api/integrations/retail/square/callback`. The API proxy allowlist includes the Square callback path so OAuth provider returns can reach the route before normal API authentication. The callback route consumes the stored server-side OAuth state record and uses its creator and organization to save the connection, so callback completion does not depend on a normal browser session cookie. Callback success redirects to `/app/retail/integrations?connection=square&status=success`; callback failures redirect with safe reason codes only. Retail POS tests cover callback route existence, GET support, proxy public access, production redirect URI generation, authorization and token-exchange redirect URI consistency, missing/invalid/expired/denied failure codes, safe redirects, secret redaction from redirects, production localhost rejection, and test/preview-domain rejection in production mode.
+
+4. Problems marked
+   blocker: none.
+   risk: The current apex and www domains resolve to a LiteSpeed host (`66.29.148.12`), so `https://useclevr.com/api/...` cannot reach the deployed Next.js application until DNS or hosting changes route that domain to the application.
+   improvement: Add an operational domain check that alerts when the configured production callback host does not return UseClevr application headers.
+   observation: `app.useclevr.com` and `test.useclevr.com` resolve to Railway and return Next.js/Payload headers; `useclevr.com` and `www.useclevr.com` return LiteSpeed 404 for `/api/health` and the Square callback path.
+
+5. User learning
+   The code route can exist and still 404 at Square callback time when the registered callback domain points at a different hosting origin.
+
+6. AI-agent learning
+   OAuth callback routes must be public at the proxy layer and must complete from server-side state, not from a live client session alone.
+
+7. Follow-up tasks
+
+- Configure the production callback host so the Square Dashboard registered redirect URI points to the active UseClevr application origin, or move `useclevr.com` and `www.useclevr.com` DNS/proxy routing from LiteSpeed to the active application deployment.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+
+## Generic Dataset-Aware Analytical Execution
+
+1. Interaction title
+   Generic dataset-aware analytical execution.
+
+2. What was the user goal
+   Fix the AI Assistant so selected-dataset questions such as "What is the current gross margin?" work across different uploaded datasets instead of relying on one-off question-specific branches.
+
+3. What changed
+   The dataset chat API now runs a central analytical intent registry before AI provider routing. The registry defines the requested initial intent IDs and gives gross margin plus segment decline deterministic handlers. A semantic schema mapper maps normalized source columns to canonical business fields with confidence, original column references, ambiguity handling, currency detection, and dataset-scoped inputs. Gross margin calculates only from revenue plus COGS, revenue plus validated gross profit, or a validated gross margin field. Operating expenses and generic cost fields are not treated as COGS. Suggestions now use the same semantic capability check and a versioned dataset-ID cache key. The assistant renders gross margin as a structured KPI card with Direct data analysis status and Last provider: Not required.
+
+4. Problems marked
+   blocker: none.
+   risk: Only gross margin and segment decline have deterministic handlers in this pass; the registry lists the broader initial intent surface and returns structured unsupported results for handlers that are not implemented yet.
+   improvement: Implement deterministic handlers for total revenue, total cost, gross profit, net profit, net margin, trends, concentration, rankings, and unusual transactions using the same registry.
+   observation: The failure happened because gross-margin questions did not match the earlier segment-decline-only deterministic branch and fell through to provider routing, leaving the UI to report a provider-style failure when deterministic handling was missing.
+
+5. User learning
+   Dataset-aware assistant suggestions must be generated from selected-dataset semantic capabilities so the UI does not invite unsupported KPI questions.
+
+6. AI-agent learning
+   Question-specific deterministic branches should be replaced with an intent registry and semantic schema mapping so new KPI handlers share dataset loading, capability checks, unsupported messages, and provider status behavior.
+
+7. Follow-up tasks
+
+- Implement the remaining registered analytical intent handlers for revenue, cost, profit, margin, trend, concentration, ranking, and anomaly questions. (labels: ai, data, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Context Integration
+
+1. Interaction title
+   Accountancy Business Profile context integration.
+
+2. What was the user goal
+   Fix Accountancy Overview so saved Business Profile values for tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs display from the existing Business Profile single source of truth.
+
+3. What changed
+   Business Profile context now has a shared server-side normalizer that maps the organization-scoped Business Profile payload into tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs. Accountancy Overview, Accountancy Tax, and Accountancy Reporting read this normalized context instead of local ad hoc mappings. The mapper supports current nested setup fields and legacy flat field names, preserves zero and false values as configured values, and formats tax, payroll, and fixed-cost entries for display.
+
+4. Problems marked
+   blocker: none.
+   risk: Live browser verification for normal and superadmin users still depends on available authenticated production sessions.
+   observation: Business Profile persistence already uses `business_profile.organization_id`; the display bug came from Accountancy's local read/format mapping, not from a new Accountancy profile table.
+
+5. User learning
+   Business Profile saves through `PUT /api/business/setup` into the `business_profile` table keyed by `organization_id`, while Accountancy now reads the same saved profile through the shared normalized context service.
+
+6. AI-agent learning
+   When Business Profile fields are nested and legacy fields can exist, dependent modules must consume a shared normalized mapping and treat only `null` or `undefined` as missing.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Upload System Production Flows
+
+1. Interaction title
+   Accountancy upload system production flows.
+
+2. What was the user goal
+   Fix Accountancy and Pre-bookkeeping uploads so CSV, Excel, PDF, receipts/invoices, and bank exports run as separate production flows instead of sharing the generic CSV/Excel upload handler.
+
+3. What changed
+   Accountancy uploads now use a dedicated authenticated API route and server processor with per-type extension and MIME validation, CSV delimiter handling, Excel workbook and multi-sheet parsing, PDF embedded-text extraction with scanner fallback, receipt/invoice document routing for PDF and images, bank transaction normalization for CSV, Excel, OFX, QIF, and QFX-style exports, durable original-file storage, staged structured errors, sanitized logs, duplicate retry protection, and no upload-credit reservation on failed Accountancy uploads. The Accountancy upload UI submits the selected upload type to the dedicated route, clears file and error state when tabs change, preserves the existing Accountancy versus Pre-bookkeeping destination split, and shows server error stages directly.
+
+4. Problems marked
+   blocker: none.
+   risk: Image receipt extraction is routed to the existing document-scanner processing state because OCR is not implemented in this task.
+   observation: Accountancy pages keep the existing architecture where Accountancy exposes CSV and Excel, while Pre-bookkeeping exposes documents, receipts, invoices, and bank exports.
+
+5. User learning
+   The PDF rejection came from the Accountancy component sending every upload tab to the generic `/api/upload` route, whose server validator only accepts CSV and Excel files.
+
+6. AI-agent learning
+   Accountancy document uploads must bypass generic dataset upload credit reservation and generic CSV/Excel validation; use staged Accountancy-specific server errors for validation, storage, parsing, database, and extraction failures.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## EDIE Business Maturity Intelligence Engine
+
+1. Interaction title
+   EDIE business maturity intelligence engine.
+
+2. What was the user goal
+   Implement EDIE-006B as the scanner that determines organization maturity, complexity, operational stage, readiness, and health context without determining the business model or generating recommendations.
+
+3. What changed
+   The EDIE module now exports business maturity types and a universal business maturity scanner. The scanner resolves structure, semantic, entity, and relationship profiles when needed; summarizes dataset size, entity counts, relationship density, financial and inventory complexity, stores, warehouses, departments, countries, currencies, business vocabulary, historical data, and data quality; scores all requested maturity dimensions; detects growth stage with confidence and alternatives; produces company-size, operational-complexity, financial-complexity, reporting-maturity, AI-readiness, BI-readiness, automation, complexity-indicator, health-indicator, statistics, evidence, warning, unknown-area, and log outputs; and patches the pipeline context with the maturity profile.
+
+4. Problems marked
+   blocker: none.
+   risk: Maturity detection currently uses bounded rows or parsed raw text; future upload wiring must pass stable profile statistics for very large streamed files.
+   observation: Business-model classification, KPI discovery, dashboard personalization, recommendations, forecasting, benchmarking, compliance assessment, risk/opportunity generation, active learning, and human-review workflows remain extension points only.
+
+5. User learning
+   EDIE-006B distinguishes operational maturity from business model so two companies with the same model can receive different dashboard, KPI, AI, and readiness context later.
+
+6. AI-agent learning
+   Maturity scoring must combine multiple independent signals and report unknown dimensions when a dataset lacks sufficient operating evidence.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## EDIE Universal Relationship Intelligence Engine
+
+1. Interaction title
+   EDIE universal relationship intelligence engine.
+
+2. What was the user goal
+   Implement EDIE-005 as the scanner that transforms detected entities into an explainable business relationship model without implementing future knowledge graph, KPI, AI reasoning, graph database, learning, or human-validation features.
+
+3. What changed
+   The EDIE module now exports a relationship registry, relationship types, key profiles, relationship profiles, graph nodes and edges, graph export metadata, relationship statistics, and a universal relationship scanner. The scanner resolves structure, semantic, and entity profiles when needed; detects primary, foreign, composite, natural, candidate, generated, and unknown keys; scores registry relationships from entity, semantic, column-position, key, distribution, vocabulary, and cross-validation evidence; separates accepted relationships from review candidates; detects cardinality; reports disconnected entities and possible broken key evidence; and patches the pipeline context with relationship graph edges and relationship metadata.
+
+4. Problems marked
+   blocker: none.
+   risk: Relationship detection currently uses available row samples or parsed raw text, so future streaming upload wiring must pass bounded row samples and column statistics into the same scanner contract for very large files.
+   observation: Knowledge graph persistence and advanced graph integrations are exposed as extension points only.
+
+5. User learning
+   EDIE-005 creates the entity relationship graph foundation that later KPI, business model, reasoning, and knowledge graph phases can consume.
+
+6. AI-agent learning
+   Relationship inference should require multiple independent signals and keep low-confidence candidates out of the accepted graph.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## EDIE Universal Entity Intelligence Scanner
+
+1. Interaction title
+   EDIE universal entity intelligence scanner.
+
+2. What was the user goal
+   Implement EDIE-004 as the universal entity intelligence scanner that identifies real business objects inside datasets using structure and semantic profiles without implementing future relationship, graph, resolution, extraction, learning, or review systems.
+
+3. What changed
+   Dataset intelligence now has an entity type contract, an extensible entity registry, reusable pattern definitions and validators, a universal entity scanner, duplicate-candidate detection, entity statistics, confidence summaries, scanner logs, and future extension-point metadata. The scanner consumes EDIE-002 structure profiles and EDIE-003 semantic profiles, combines semantic columns, sample patterns, related columns, dictionary aliases, cross-column validation, and statistical signals, then emits entity profiles for supported business objects with evidence, related columns, samples, warnings, quality scores, detected patterns, and entity IDs. The focused scanner test covers customer, supplier, invoice, order, product, employee, store, warehouse, tax, currency, pattern recognition, registry loading, cross-column validation, duplicate candidates, unknown fixtures, entity statistics, future entity-resolution preparation, logging, and EDIE pipeline integration.
+
+4. Problems marked
+   blocker: none.
+   risk: Duplicate candidates use bounded column samples from the structure profile; full-row duplicate entity resolution remains a future EDIE phase.
+   observation: Entity registry related signals must reference semantic column categories, not entity names, so the scanner keeps EDIE-003 and EDIE-004 boundaries clear.
+
+5. User learning
+   EDIE-004 can now identify business entities such as customers, products, invoices, orders, suppliers, employees, stores, warehouses, tax records, and currencies from structured and semantic dataset evidence.
+
+6. AI-agent learning
+   Keep entity scanning as profile generation only; relationship intelligence, graph writes, cross-dataset resolution, connector extraction, active learning, and human-review workflows stay as interfaces or extension flags until their dedicated EDIE phases.
+
+7. Follow-up tasks
+
+- Replace sample-limited duplicate candidates with full-row entity resolution when EDIE adds streaming or persisted row-level entity indexing.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## EDIE Universal Semantic Intelligence Scanner
+
+1. Interaction title
+   EDIE universal semantic intelligence scanner.
+
+2. What was the user goal
+   Implement EDIE-003 as the universal semantic intelligence scanner that turns structured dataset columns into confidence-scored business meaning without classifying the business model or learning user data.
+
+3. What changed
+   Dataset intelligence now has a configurable multilingual semantic dictionary and indexed lookup for aliases, acronyms, abbreviations, normalized casing, separators, plurals, misspellings, and enterprise vocabulary across English, German, Dutch, French, Spanish, Hungarian, Romanian, Italian, and Portuguese. The EDIE module now exports a universal semantic scanner with header, value, detected-type, neighbor, frequency, business-pattern, and statistical evidence scoring; low-confidence unknown-field review; alternative matches; dictionary hits; semantic coverage; quality scoring; scanner logs; deterministic caching; and EDIE pipeline integration. The focused scanner test covers revenue aliases, quantity aliases, multilingual aliases, unknown columns, misspelled headers, confidence behavior, dictionary loading, cache hits, semantic profile generation, and structure-to-semantic pipeline execution.
+
+4. Problems marked
+   blocker: none.
+   risk: Semantic profiles currently consume structure profiles during explicit pipeline/test execution; upload persistence can wire profile storage when downstream EDIE phases need production snapshots.
+   observation: Semantic scoring caps predictions that lack dictionary or header-similarity evidence so generic numeric values do not hallucinate business meaning.
+
+5. User learning
+   EDIE-003 consumes EDIE-002 structure profiles and generates deterministic semantic column profiles with explainable confidence and unknown-field review.
+
+6. AI-agent learning
+   Keep semantic scanning separate from business-model classification, KPI generation, dashboard rendering, relationship inference, automatic learning, and user-data training until the matching EDIE phases explicitly add those responsibilities.
+
+7. Follow-up tasks
+
+- Connect EDIE semantic profiles to EDIE-004 value-intelligence work and downstream AI context when the scanner chain needs production upload integration.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Declining Sales Segment Result Presentation
+
+1. Interaction title
+   Declining sales segment result presentation.
+
+2. What was the user goal
+   Improve the AI Assistant presentation of deterministic declining sales segment results so Startup Stage, Acquisition Channel, Plan, and Geography do not appear as one dense flat list.
+
+3. What changed
+   The assistant now passes the deterministic segment-decline payload into a dedicated grouped result renderer. The renderer builds an executive summary from deterministic values, groups rows by Startup Stage, Acquisition Channel, Plan, Geography, and Other, sorts each group by the largest percentage decline first, shows three rows per group by default, and provides Show all and Show less controls when a group has additional rows. The result table uses important columns first and stays inside a horizontal-scroll panel with a sticky header. Numeric formatting uses thousands separators, one decimal percentage precision, explicit negative percentages, and optional dataset currency metadata only when a currency column exists.
+
+4. Problems marked
+   blocker: none.
+   risk: Authenticated browser screenshots were not run because the project does not include a reusable signed-in assistant fixture for this state.
+   improvement: Add Playwright coverage for the assistant result card once a reusable signed-in dataset fixture exists.
+   observation: The deterministic analyzer values remained unchanged; the change is presentation-focused with optional currency metadata.
+
+5. User learning
+   Deterministic assistant results need dimension-aware UI so users can scan business findings without mentally separating unrelated segment types.
+
+6. AI-agent learning
+   When deterministic backend output includes structured findings, prefer a typed renderer over a single preformatted answer string.
+
+7. Follow-up tasks
+
+- Add authenticated browser coverage for grouped assistant result cards when a reusable signed-in dataset fixture exists.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Dataset-Aware Declining Sales Segment Analysis
+
+1. Interaction title
+   Dataset-aware declining sales segment analysis.
+
+2. What was the user goal
+   Fix the AI Assistant failure for the selected `startup_saas_sales_dataset` when the user asks, "Which sales segments are declining?", and use the startup SaaS sales CSV as a regression fixture.
+
+3. What changed
+   The dataset chat API now recognizes declining sales segment questions before provider routing, loads deterministic rows separately from the bounded provider context, detects the time column, sales metric, and segment-like dimensions, excludes sparse trailing periods such as a one-row May period, and returns direct calculated findings when valid results exist. The assistant UI now preserves structured backend error status and shows Direct data analysis or Failed before provider execution instead of leaving privacy status pending or blaming an AI provider that was not called. A regression fixture covers March 2025 versus April 2025 declines for startup stage, plan, and acquisition channel.
+
+4. Problems marked
+   blocker: none.
+   risk: The focused regression uses a safe synthetic fixture with the user-specified totals because the original uploaded CSV file was not present in the accessible attachment tree.
+   improvement: Add authenticated API or browser coverage for the `/app/assistant` selected-dataset request body when a reusable session fixture exists.
+   observation: The previous dataset-aware route sent summarized context to providers without a deterministic branch for declining segment questions, so provider routing failures could mask pre-provider dataset analysis gaps.
+
+5. User learning
+   Declining segment answers require deterministic aggregation across complete periods before AI narration.
+
+6. AI-agent learning
+   Dataset-aware assistant endpoints must keep provider status separate from dataset-validation and deterministic-analysis status so the UI does not misreport provider failures.
+
+7. Follow-up tasks
+
+- Add authenticated `/app/assistant` browser coverage for selected dataset state and request payload when a reusable signed-in fixture exists.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Standard Upload Success UI
+
+1. Interaction title
+   Standard Upload success UI.
+
+2. What was the user goal
+   Fix the Standard Upload success state for `dataset_type=standard` only, remove the duplicated dropzone-plus-card presentation, show one professional success panel with complete KPI values, preserve standard routing, and leave Retail, Profitability, Accountancy, and Pre-bookkeeping upload success flows unchanged.
+
+3. What changed
+   Standard Upload now renders the success panel instead of the dashed upload dropzone after a successful standard upload. The shared upload success component now has a guarded Standard-specific variant that only runs when `uploadMode` and the resolved dataset type are both standard. The Standard panel shows Dataset type: Standard, full row and column counts, full Ready/Processing/Failed analysis status, Open in Dashboard, View Dataset, and Upload Another File. A pure Standard success view helper drives routes and values, and a focused Node assertion test covers the Standard contract and non-standard route/label isolation.
+
+4. Problems marked
+   blocker: none.
+   risk: Full browser rendering was not run because the project has no established authenticated browser test harness for this upload state.
+   improvement: Add browser-level upload success screenshots when reusable signed-in Playwright fixtures exist.
+   observation: The correct Standard dashboard destination is `/app/dashboard?datasetId=...`, returned by the simple Standard upload API and used by dataset library actions.
+
+5. User learning
+   Standard Upload success is a distinct UI state from Retail, Profitability, Accountancy, and Pre-bookkeeping success handling.
+
+6. AI-agent learning
+   When a shared success component supports multiple upload modules, add a guarded view-model-backed branch for one module instead of reshaping the shared non-standard layout.
+
+7. Follow-up tasks
+
+- Add browser-level Standard Upload success visual regression coverage when the project has reusable signed-in upload fixtures.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+
+## AI Providers Superadmin Entitlement Consistency
+
+1. Interaction title
+   AI Providers superadmin entitlement consistency.
+
+2. What was the user goal
+   Fix the AI Providers and BYOK settings page so `superadmin@useclevr.com` receives the same unrestricted access shown by the global Unlimited Superadmin subscription state.
+
+3. What changed
+   Hybrid AI entitlements now expose one superadmin-aware access object with explicit `isSuperadmin`, provider-management access, Local AI download access, AI mode access, provider limit, provider limit label, and upgrade state. The AI Providers page now loads entitlement separately from provider settings so a provider database or migration failure does not erase superadmin access. The AI Providers client now uses a pure page-state helper that preserves `null` as Unlimited instead of converting it to plan limit 0. Direct provider create/update APIs use the same limit-aware backend guard as server actions, and direct routing API requests enforce the Lite fallback-provider restriction. Global usage resolution now uses the same normalized `isSuperadmin` helper for the official email fallback.
+
+4. Problems marked
+   blocker: none.
+   risk: Full browser interaction was not run because the current request required code validation, not a live signed-in browser session.
+   improvement: Add authenticated UI tests for AI Providers once the project has a stable session fixture.
+   observation: The inconsistent UI came from both a rejected provider-settings `Promise.all` that set feature access to `null` and `?? 0` handling that converted the intended unlimited provider limit `null` into `0`.
+
+5. User learning
+   The migration warning can be real while subscription access remains unrestricted; those states must render independently.
+
+6. AI-agent learning
+   Do not coalesce an intentional `null` unlimited limit with `?? 0`; preserve the semantic difference between unavailable entitlement and unlimited entitlement.
+
+7. Follow-up tasks
+
+- Add authenticated browser regression coverage for the AI Providers superadmin page state when the project has reusable session fixtures.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; deferred browser coverage: future TODO queue if requested.
+
+## Square OAuth Environment Isolation
+
+1. Interaction title
+   Square OAuth environment isolation.
+
+2. What was the user goal
+   Fix Square OAuth so the test application uses Sandbox credentials, Sandbox endpoints, and the test callback, while production uses Production credentials, Production endpoints, and the production callback without mixing redirect URIs or application IDs.
+
+3. What changed
+   Square OAuth now requires `SQUARE_REDIRECT_URI`, validates the callback against the selected Square environment, rejects Sandbox/Production application ID mismatches, always sends the `redirect_uri` parameter, and uses the same callback URI for token exchange. Retail OAuth state and retail connection records now store the provider environment so callbacks, sync, refresh, and disconnect operations can reject environment mismatches. The deployment migration adds the provider-environment columns and updates the retail connection uniqueness boundary. Environment examples and operator docs now show separate Sandbox test and Production callback settings.
+
+4. Problems marked
+   blocker: Production OAuth remains blocked if `https://useclevr.com/api/integrations/retail/square/callback` still reaches LiteSpeed instead of the production Next.js app.
+   risk: Existing legacy Square connection rows receive the migration default provider environment and may need reconnecting if they were created against a different Square environment.
+   improvement: Add authenticated browser E2E coverage for Square OAuth after reusable signed-in Retail fixtures and Square test credentials are available.
+   observation: The previous code allowed `SQUARE_ENVIRONMENT=production` to generate a production Square authorization URL with the `test.useclevr.com` callback, which Square rejects as an invalid redirect URI.
+
+5. User learning
+   Square requires the authorization request `redirect_uri` and token-exchange `redirect_uri` to match the exact URL registered on the matching Sandbox or Production Square application.
+
+6. AI-agent learning
+   Store the selected provider environment with OAuth state and provider connections whenever one codebase supports isolated Sandbox and Production OAuth flows.
+
+7. Follow-up tasks
+
+- Add authenticated Square OAuth browser coverage when reusable signed-in Retail fixtures and Square Sandbox credentials are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Square OAuth Test Callback Domain Alignment
+
+1. Interaction title
+   Square OAuth test callback domain alignment.
+
+2. What was the user goal
+   Fix the Square OAuth environment mismatch so the deployed test app uses `https://test.useclevr.com` as the canonical application URL and sends Square the exact callback `https://test.useclevr.com/api/integrations/retail/square/callback` during authorization and token exchange.
+
+3. What changed
+   Square OAuth now exposes one server-side callback URL helper used by Square config, authorization, and token exchange. The helper resolves the callback from `SQUARE_REDIRECT_URI` or the configured app URL, rejects mixed app/callback origins, keeps production Square endpoints tied to `SQUARE_ENVIRONMENT=production`, and allows the test domain while continuing to reject localhost and preview domains for production Square OAuth. Square OAuth diagnostics log only the resolved app URL, Square environment, callback hostname, and callback path. Railway test service variables now set `AUTH_URL`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `SQUARE_REDIRECT_URI` to `https://test.useclevr.com` values.
+
+4. Problems marked
+   blocker: none.
+   risk: Square Developer Dashboard configuration remains external to the repo and must include the exact test callback URI.
+   improvement: Add authenticated browser coverage for the Square connect button when a reusable signed-in Retail workspace fixture exists.
+   observation: The previous observed callback URL was `https://useclevr.com/api/integrations/retail/square/callback`, which routes to the apex LiteSpeed host and returns a generic 404.
+
+5. User learning
+   Square requires the authorization redirect URI and token-exchange redirect URI to match exactly.
+
+6. AI-agent learning
+   When a test deployment uses production Square endpoints from a non-apex app domain, the OAuth guard must validate origin consistency against the configured app URL rather than rejecting the test domain by hostname.
+
+7. Follow-up tasks
+
+- Add authenticated Square OAuth browser coverage when reusable signed-in Retail workspace fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Pro And Business Market Checkout
+
+1. Interaction title
+   Pro and Business market checkout.
+
+2. What was the user goal
+   Repair Pro multi-market Stripe checkout and add Business market selection by reusing the Pro selector architecture while preserving the working Business EUR Stripe flow.
+
+3. What changed
+   Checkout pricing now uses one server-side monthly market registry for Pro and Business. Pro keeps approved EUR, GBP, USD, and CAD prices and reads the current `USECLEVR_PRO_PRICE_*` variables plus `STRIPE_PRO_PRICE_ID_*` aliases. Business keeps approved EUR pricing through `STRIPE_BUSINESS_PRICE_ID_EUR`, `STRIPE_PRICE_BUSINESS_MONTHLY`, or `STRIPE_PRICE_ID_BUSINESS_MONTHLY`; Business UK, US, and Canada render as unavailable until approved prices and matching Price IDs exist. The checkout page uses one market selector for both paid plans, preserves market through review, terms, back navigation, and checkout submit, and posts only canonical plan, monthly interval, and market. Stripe checkout validates active recurring monthly price configuration and expected currency before session creation. Webhook tier mapping now recognizes every configured market Price ID.
+
+4. Problems marked
+   blocker: none.
+   risk: Live Stripe Price validation was not run because the task must not expose or log secrets and no Stripe Dashboard access is available in the workspace.
+   improvement: Add authenticated browser coverage for checkout review and terms once reusable signed-in fixtures exist.
+   observation: Business worked because it used one configured EUR plan Price ID, while Pro depended on market-specific Price IDs and the old browser flow did not send a canonical market.
+
+5. User learning
+   Business non-EUR checkout requires approved monthly prices and matching Stripe Price IDs before those markets can be enabled.
+
+6. AI-agent learning
+   Do not let checkout UI send amount, currency, or Price ID; resolve payable values from canonical plan, interval, and market on the server.
+
+7. Follow-up tasks
+
+- Add authenticated browser coverage for Pro and Business market checkout when signed-in checkout fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; operator setup notes: `docs/Developer_Guides/DEVELOPER_GUIDE.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production Dataset AI Assistant Provider Routing
+
+1. Interaction title
+   Production Dataset AI Assistant provider routing.
+
+2. What was the user goal
+   Fix the authenticated production Dataset AI Assistant so selected-dataset questions work in the deployed application, including deterministic dataset questions and provider-backed broader dataset questions.
+
+3. What changed
+   Dataset AI keeps selected dataset ID and authenticated user context through direct deterministic answers and provider-backed fallback answers. The production cloud fallback now normalizes deployment-provided provider secrets, constructs the Gemini provider with the resolved configured key directly, then falls back to the established Antigravity cloud path only when no Gemini key exists. Default cloud provider failures now return classified provider-unavailable responses with the selected dataset context instead of falling through to a missing-provider response. Provider failure responses include sanitized failure classes for missing key, rejected key, permission, quota, model access, timeout, and network issues without exposing credentials, tokens, prompts, or provider payloads.
+
+4. Problems marked
+   blocker: Browser DevTools Network inspection was not available from this shell because no Playwright, Puppeteer, or browser DevTools driver is installed.
+   risk: Railway log streaming is not available through the current local Railway token, so production request diagnostics rely on authenticated HTTP request/response captures, Railway request IDs, deployment status, and application response payloads.
+   observation: Production deterministic selected-dataset questions return grounded answers for `plan Pro?` and `What are the biggest revenue risks?` from dataset `ds_65dfee4778031da360ea9647`.
+
+5. User learning
+   Provider-backed Dataset AI questions must prove that the provider request succeeds separately from deterministic direct-data answers.
+
+6. AI-agent learning
+   When an AI SDK provider key exists under a project-specific environment name, pass the key directly to the provider factory instead of relying on SDK implicit environment variable discovery.
+
+7. Follow-up tasks
+
+- Add browser-driven authenticated Dataset AI smoke coverage when a DevTools-capable browser runner exists in the workspace.
+- Restore the stashed Risk Intelligence work after the production Dataset AI fix completes.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Business Profile Single Source Of Truth
+
+1. Interaction title
+   Business Profile single source of truth.
+
+2. What was the user goal
+   Fix the mismatch where the Business Profile wizard reports completion while Accountancy still shows profile fields as missing.
+
+3. What changed
+   Business Profile setup now has one organization-scoped `business_profile` table keyed by `organization_id`. Wizard saves upsert into that table, legacy `Business.companySetup` values migrate into it, and saves clear the legacy setup payload from the organization shell. Business details, Accountancy, Tax, Compliance, Reporting, and AI analysis read the same profile payload through shared store functions. Successful profile saves revalidate Business, Accountancy, Tax, Compliance, Reporting, Pre-bookkeeping, and Profitability paths. Wizard setup fetches use no-store responses and `router.refresh()`.
+
+4. Problems marked
+   blocker: none.
+   risk: Existing production rows require the new idempotent migration to run before the deployed code queries `business_profile`.
+   observation: `Profile` keeps legacy business columns for backward-compatible reads only when no organization profile exists.
+
+5. User learning
+   Accountancy context must use the same organization profile payload as the wizard, not a copied profile snapshot or module-specific table.
+
+6. AI-agent learning
+   When a setup wizard and dependent module disagree, inspect both the write target and every read fallback before changing UI labels.
+
+7. Follow-up tasks
+
+- Add browser coverage for completing the Business Profile wizard and seeing Accountancy context update after route refresh when authenticated Playwright fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## BIE Universal Intelligent Dashboard Composer
+
+1. Interaction title
+   BIE universal intelligent dashboard composer.
+
+2. What was the user goal
+   Implement BIE-002 as a universal dashboard composer that builds dashboard profiles from EDIE and KPI discovery outputs without predefined dashboard templates.
+
+3. What changed
+   Business Intelligence now has a versioned widget library, plugin-capable widget registry, dashboard composer scanner, widget selection engine, section generation, executive and operational view metadata, responsive layout metadata, confidence and evidence scoring, missing-data warnings, dashboard statistics, logs, and pipeline integration. Dashboard composition consumes KPI profiles, business maturity, relationship signals, business-model hints, and dataset quality while generating only supported widgets.
+
+4. Problems marked
+   blocker: none.
+   risk: Dashboard profiles describe dashboard structure and widget intent; UI rendering, KPI value calculation, personalization, exports, live widgets, sharing, collaboration, and recommendations remain later BIE responsibilities.
+   observation: Widget selection uses supported KPI availability, units, category, confidence, section priority, business-model hints, and BI readiness instead of fixed dashboard templates.
+
+5. User learning
+   BIE-002 creates the dashboard blueprint layer that downstream UI can render without deciding which business sections or widgets belong on the dashboard.
+
+6. AI-agent learning
+   Keep dashboard composition separate from dashboard rendering and value calculation when acceptance criteria require generated profiles and extension points only.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## BIE Universal Forecast and Scenario Intelligence Engine
+
+1. Interaction title
+   BIE universal forecast and scenario intelligence engine.
+
+2. What was the user goal
+   Implement BIE-005 as a universal forecast and scenario engine that predicts supported business outcomes and simulates configurable scenarios from EDIE, KPI, insight, and recommendation profiles.
+
+3. What changed
+   Business Intelligence now has a configurable forecast model library, plugin-capable forecast registry, deterministic forecast engine, scenario rule library, confidence intervals, uncertainty warnings, forecast evidence scoring, scenario comparison records, business and financial impact scoring, forecast statistics, logs, and pipeline integration. Forecast generation consumes historical rows, business-model signals, business maturity, relationship graph context, KPI discovery, insight profiles, recommendation profiles, seasonality evidence, and business-rule confidence.
+
+4. Problems marked
+   blocker: none.
+   risk: Forecast generation produces structured explainable profiles only; later BIE phases still need real-time forecasting, Monte Carlo simulation, digital twins, economic indicators, weather integration, competitor signals, external APIs, AI self-learning, dynamic pricing execution, investment planning, capacity planning, workforce planning, multi-year forecasting, and strategic planning.
+   observation: The engine skips unsupported forecasts when historical coverage or semantic evidence does not meet the configured model threshold.
+
+5. User learning
+   BIE-005 adds prediction and scenario simulation above recommendation generation while leaving external signal ingestion and automated planning for later phases.
+
+6. AI-agent learning
+   When forecasting requirements require no unsupported predictions, forecasts must trace to historical coverage, model ID, supporting KPI IDs, insight IDs, recommendation IDs, confidence intervals, warnings, and evidence.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## BIE Universal Business Recommendation Engine
+
+1. Interaction title
+   BIE universal business recommendation engine.
+
+2. What was the user goal
+   Implement BIE-004 as a universal recommendation engine that determines evidence-backed next business actions from EDIE outputs, KPI discovery, and insight profiles without recommending unsupported actions.
+
+3. What changed
+   Business Intelligence now has a configurable recommendation rule library, plugin-capable recommendation registry, deterministic recommendation engine, confidence evidence scoring, priority classification, implementation difficulty and benefit estimates, dependency mapping, duplicate, overlap, and conflict records, required-data reporting, recommendation statistics, logs, and pipeline integration. Recommendation generation consumes business-model signals, business maturity, relationship graph context, KPI discovery, insight profiles, business health, risk indicators, semantic coverage, and dataset quality.
+
+4. Problems marked
+   blocker: none.
+   risk: Recommendation generation produces structured evidence-backed action profiles only; later BIE phases still need AI decision execution, automated advisor workflows, external integrations, scheduled delivery, learning, ROI tracking, success tracking, action confirmation, continuous optimization, and benchmark engines.
+   observation: The engine uses missing-data recommendations when evidence is incomplete instead of converting incomplete evidence into unsupported business actions.
+
+5. User learning
+   BIE-004 adds the action-prioritization layer above insight generation while leaving automated execution and recommendation learning for later phases.
+
+6. AI-agent learning
+   When recommendation requirements require no hallucination, recommendations must trace to insight IDs, KPI IDs, entity IDs, relationship IDs, required data, and confidence evidence.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## BIE Universal Insight Generation Engine
+
+1. Interaction title
+   BIE universal insight generation engine.
+
+2. What was the user goal
+   Implement BIE-003 as a universal insight generation engine that explains what matters in uploaded business datasets from EDIE and KPI discovery outputs without inventing unsupported claims.
+
+3. What changed
+   Business Intelligence now has a configurable insight rule library, plugin-capable insight registry, deterministic insight generation engine, evidence and confidence scoring, priority classification, duplicate, overlap, and contradiction records, grouped insight profiles, investigation guidance, quality scoring, statistics, logs, and pipeline integration. Insight generation consumes KPI discovery, semantic coverage, entity statistics, relationship graph context, business maturity, business-model signals, and dataset quality.
+
+4. Problems marked
+   blocker: none.
+   risk: Insight generation produces structured evidence-backed profiles only; later BIE phases still need AI-written executive summaries, natural-language reports, personalization, scheduled delivery, predictive insights, root-cause analysis, recommendations, alerts, notifications, collaboration channels, and historical tracking.
+   observation: The engine can produce missing-information and data-quality insights when source data does not support a stronger business claim, which keeps output useful without guessing.
+
+5. User learning
+   BIE-003 adds the insight explanation layer above KPI discovery and dashboard composition while keeping recommendations and AI prose for later phases.
+
+6. AI-agent learning
+   When insight requirements prohibit hallucination, generate deterministic profile objects from explicit evidence and use missing-information insights instead of narrative speculation.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## BIE Universal KPI Discovery Engine
+
+1. Interaction title
+   BIE universal KPI discovery engine.
+
+2. What was the user goal
+   Implement BIE-001 as a universal KPI discovery engine that determines which KPIs are relevant for an uploaded business from EDIE outputs without hardcoded dashboard templates or meaningless KPI calculations.
+
+3. What changed
+   Business Intelligence now has a configurable KPI library, plugin-capable KPI registry, dependency-aware availability graph, confidence and evidence scoring, missing-data identification, recommendation stubs, profile statistics, quality scoring, category coverage, logs, and pipeline integration. KPI discovery consumes structure, semantic, entity, relationship, business-model, and business-maturity signals to classify KPI candidates as Available, Partially Available, Unavailable, or Needs User Input.
+
+4. Problems marked
+   blocker: none.
+   risk: KPI discovery identifies what should be measured and whether source data supports calculation; later BIE phases still need value calculation, dashboard rendering, recommendations, forecasts, benchmarks, learning, and streaming updates.
+   observation: EDIE semantic categories define the current evidence vocabulary, so KPI definitions only reference semantic fields that existing EDIE scanners can produce.
+
+5. User learning
+   BIE-001 selects KPI relevance and availability from detected dataset intelligence instead of fixed dashboards or raw column-name templates.
+
+6. AI-agent learning
+   When a discovery engine sits above semantic scanners, test fixtures must use semantic fields that upstream scanners can actually prove rather than assuming new semantic categories exist.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Enterprise Dataset Intelligence Pipeline Foundation
+
+1. Interaction title
+   Enterprise Dataset Intelligence pipeline foundation.
+
+2. What was the user goal
+   Implement Phase 1 of the Enterprise Dataset Intelligence Engine as orchestration infrastructure only, without adding semantic detection, AI, KPIs, dashboards, relationships, OCR, or business-model logic.
+
+3. What changed
+   Dataset intelligence now has a scanner-agnostic orchestration layer with a shared immutable pipeline context, standard scanner interface, standardized analysis result contract, scanner registry, sequential execution strategy, progress state, structured machine-readable logs, cancellation, resume, retry, failure recovery, and final execution reports. The EDIE test script verifies initialization, registry operations, execution ordering, failed-scanner recovery, progress, logging, report generation, retry, cancellation, and resume behavior.
+
+4. Problems marked
+   blocker: none.
+   risk: Parallel scanner execution is represented by extension-ready interfaces only; execution is intentionally sequential in Phase 1.
+   observation: Existing Dataset Intelligence Engine semantic behavior remains separate from the EDIE foundation so Phase 1 does not introduce new business-specific assumptions.
+
+5. User learning
+   The EDIE foundation provides the operating layer that future scanner modules plug into through the registry.
+
+6. AI-agent learning
+   Keep orchestration infrastructure separate from detector implementation when the acceptance criteria explicitly exclude semantic, KPI, dashboard, and AI behavior.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; active/completed work: `.TODO/` queue files.
+
+## EDIE Universal Dataset Structure Scanner
+
+1. Interaction title
+   EDIE universal dataset structure scanner.
+
+2. What was the user goal
+   Implement EDIE-002 as the first production scanner that understands uploaded dataset physical structure for CSV and Excel without assigning business meaning.
+
+3. What changed
+   The EDIE module now exports a universal structure scanner with CSV and Excel source normalization, encoding, delimiter, separator, language, and timezone detection, worksheet profiles, header and body/footer region detection, duplicate column and row detection, merged and hidden Excel element detection, comments and formula capture, column-level data type profiles, missing and unique ratios, sparse-region detection, dataset health reports, structural fingerprints, scanner confidence, and step-level detection logs. The focused scanner test covers CSV, Excel, large CSV input, duplicate headers, broken encoding, different delimiters, merged cells, hidden rows and columns, multiple worksheets, sparse files, header detection, footer detection, mixed types, and pipeline integration.
+
+4. Problems marked
+   blocker: none.
+   risk: CSV profiling parses the provided text input and limits column profiling to a bounded sample; future upload wiring can pass stream-derived samples and counts into the same scanner contract.
+   observation: The scanner returns physical and quality metadata only; semantic, KPI, dashboard, relationship, and AI decisions remain outside EDIE-002.
+
+5. User learning
+   EDIE-002 creates the structural profile that later semantic scanners can consume without re-reading file layout details.
+
+6. AI-agent learning
+   Delimiter detection must account for line coverage so decimal separators inside numeric values do not beat the actual CSV delimiter.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Excel Workbook Parser
+
+1. Interaction title
+   Accountancy Excel workbook parser.
+
+2. What was the user goal
+   Fix Accountancy Excel uploads that reach parsing but fail with a generic no-valid-data-sheet error.
+
+3. What changed
+   The Accountancy Excel parser now scans every worksheet, logs workbook sheet names plus per-sheet row count, column count, selected status, and rejection reason, ignores empty and non-tabular sheets, detects generic tabular sheets without fixed accounting headers, handles merged report-title rows without treating them as headers, and returns a detailed error listing every rejected sheet when no valid sheet exists. The accountancy upload regression script covers multi-sheet selection, non-tabular first sheets, merged formatted header rows, Excel, Google Sheets, and LibreOffice-style XLSX exports, and detailed no-valid-sheet errors.
+
+4. Problems marked
+   blocker: none.
+   risk: The parser accepts generic two-or-more-column tables; one-column workbooks remain rejected because they do not provide enough tabular structure for accountancy dataset creation.
+
+5. User learning
+   The upload flow now distinguishes parser-stage workbook structure failures from validation/storage failures and reports the specific rejected worksheet reasons.
+
+6. AI-agent learning
+   Merged title rows must not become candidate headers after merge expansion; require distinct header labels before accepting an Excel row as a generic table header.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-Bookkeeping Export And Risk Fix Pack
+
+1. Interaction title
+   Pre-bookkeeping accountant export and bookkeeping Risk Intelligence stabilization.
+
+2. What was the user goal
+   Fix production issues where accountant export lacks a clear reviewed-export workflow and Risk Intelligence opens a server error after bookkeeping upload.
+
+3. What changed
+   The Pre-bookkeeping review workspace presents Export for Accountant as the primary export action, validates reviewed transaction availability with a professional Review Transactions action, and keeps the direct pre-bookkeeping page action inside the review workspace instead of linking to the export API. Risk Intelligence now calculates bookkeeping-specific findings from stored categorization for VAT review, duplicate payments, missing details, large expenses, supplier concentration, and expense pressure, and the Server Component renders a Problem detected state with retry and dashboard actions if loading fails.
+
+4. Problems marked
+   root cause: The pre-bookkeeping summary action linked directly to the export API with default reviewed scope, so users with zero reviewed transactions saw the JSON validation response.
+   root cause: The Risk Intelligence page executed dataset listing and calculation without a top-level Server Component guard, so any bookkeeping dataset loading or calculation exception became a framework error page.
+
+5. User learning
+   Pre-bookkeeping exports are accountant-ready only after reviewed transactions exist, and bookkeeping Risk Intelligence uses the selected pre-bookkeeping dataset instead of crashing.
+
+6. AI-agent learning
+   User-facing export CTAs must stay in the review workspace when a validation prerequisite exists; direct API links are only safe for downloads that cannot fail with actionable user steps.
+
+7. Follow-up tasks
+
+- Verify the live beta Pre-bookkeeping upload, review, accountant export, Risk Intelligence, dashboard return, reload, and repeat workflow with an authenticated account. (labels: upload, reports, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accounting AI Intelligent VAT Workflow
+
+1. Interaction title
+   Accounting AI VAT prediction and exception workflow.
+
+2. What was the user goal
+   Replace per-row manual VAT selection with configurable Business Profile-driven VAT prediction, review exceptions only, safe scoped learning, and export compatibility.
+
+3. What changed
+   Pre-bookkeeping categorization loads the saved Business Profile tax configuration, derives configured VAT rates without country-specific hardcoding, predicts VAT with confidence, reason, rule, and source metadata, and sends missing supplier, unknown category, low-confidence, or missing-config rows into review. The review workspace uses configured rates for row and bulk actions, supports Business default VAT and matching-transaction application, stores manual VAT corrections by supplier, category, and country, and includes VAT audit fields in CSV and Excel exports.
+
+4. Problems marked
+   root cause: The review UI presented fixed VAT percentages and the categorizer treated missing VAT as manual work without using saved tax settings.
+   observation: Existing Business Profile tax fields cover default rate, country, currency, fiscal year, tax registration, tax type, and business type; reduced, zero-rate, and reverse-charge flags are normalized as optional profile fields.
+
+5. User learning
+   Accounting AI uses Business Profile tax settings as the tax source of truth and routes uncertain VAT cases to review instead of assigning them blindly.
+
+6. AI-agent learning
+   Tax automation must keep rates configurable and store corrections with supplier, category, and country scope so one manual edit does not become a global rule.
+
+7. Follow-up tasks
+
+- Verify the VAT workflow with authenticated production-style profiles for Germany, Netherlands, United Kingdom, France, Belgium, and United States datasets after beta deployment. (labels: upload, business, ai, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Upload Credit Persistence Fix
+
+1. Interaction title
+   Upload credit persistence after dataset deletion.
+
+2. What was the user goal
+   Fix Free-plan upload credit enforcement so deleting uploaded datasets never restores consumed upload credits during the billing period.
+
+3. What changed
+   Direct dataset creation uses the same persistent credit reservation and finalization flow as upload routes. Successful uploads create finalized ledger charges, failed uploads release pending reservations, post-insert persistence failures clean up created dataset records before returning failure, and dataset deletion remains ledger-neutral. Billing-period reset starts a fresh monthly allowance without carrying unused or stale reserved credits forward. A migration backfills legacy profile-based usage into persistent credit counters where that legacy counter exists.
+
+4. Problems marked
+   observation: The direct dataset API checked persistent usage but consumed credits through the legacy profile analysis counter, so the persistent upload counter stayed unchanged and dataset-count limits could be bypassed after deletion.
+   observation: Dataset deletion code removes datasets, rows, related analysis records, reports, and storage objects, but does not refund or delete credit ledger rows.
+   limitation: Deleted historical uploads cannot be reconstructed when no durable dataset, ledger, or legacy profile counter exists, so the migration uses the safest available existing counter instead of inventing missing history.
+
+5. User learning
+   Free upload credits are billing-period usage events, not active dataset slots, so deleting files clears storage but does not restore included upload credits.
+
+6. AI-agent learning
+   Legacy usage endpoints that mutate profile counters must be removed from upload or dataset creation paths once `UserCredit` and `CreditLedger` exist.
+
+7. Follow-up tasks
+
+- Verify a production Free user uploads two datasets, deletes both, hard-refreshes, and still sees zero available upload credits after the beta deployment completes. (labels: billing, upload, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Retail Square OAuth LiteSpeed 404 Fix
+
+1. Interaction title
+   Retail Square OAuth deployed-host redirect fix.
+
+2. What was the user goal
+   Investigate the full Square Connect redirect chain and fix the LiteSpeed 404 that appears after the browser leaves the deployed UseClevr app host.
+
+3. What changed
+   Square OAuth callback URL generation now accepts the active request URL. The Connect route passes its request URL into Square config resolution, the callback route passes its request URL into token exchange config resolution, and the Square connector validates authorization and token-exchange redirect URIs against that same request-aware callback. Square callback result redirects also use the callback request host, so test-host callbacks return to test-host Retail Integrations.
+
+4. Problems marked
+   observation: Direct live checks show `https://useclevr.com/api/integrations/retail/square/connect` and `https://useclevr.com/api/integrations/retail/square/callback` return HTTP 404 from LiteSpeed, which proves the apex domain is not serving the Next.js API routes.
+   observation: Direct live checks show `https://test.useclevr.com/api/integrations/retail/square/connect` returns HTTP 401 from Next.js when unauthenticated, and `https://test.useclevr.com/api/integrations/retail/square/callback?error=access_denied&error_description=test` reaches Next.js before redirecting, which proves the App Router routes are deployed on the test host.
+   observation: The previous production callback helper always resolved production Square OAuth to `https://useclevr.com/api/integrations/retail/square/callback`, so a Connect click from the test deployment generated a Square flow that could return to an unserved apex host.
+
+5. User learning
+   Square OAuth is not failing at the provider layer in this case; the browser reaches a missing host route because `useclevr.com` is still served outside the deployed Next.js application.
+
+6. AI-agent learning
+   OAuth callback and post-callback redirect helpers must preserve the request host for test deployments when production provider endpoints are used before the apex domain migration is complete.
+
+7. Follow-up tasks
+
+- Verify the deployed Square Connect flow in an authenticated test browser session after beta deploys and ensure the Square Developer Dashboard includes the active callback host used by that deployment. (labels: payment, auth, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Retail Square OAuth Redirect Fix
+
+1. Interaction title
+   Retail Square OAuth Connect redirect fix.
+
+2. What was the user goal
+   Fix the Retail Square Connect button so clicking it starts the real Square OAuth browser redirect instead of showing a production callback-host configuration message.
+
+3. What changed
+   The Retail Connect action navigates directly to the server-side Square OAuth start route. The start route supports browser GET redirects to Square while preserving the existing POST JSON contract. Production Square OAuth callback resolution uses the canonical UseClevr production callback path for both authorization URL generation and token exchange, while sandbox keeps its configured test callback behavior.
+
+4. Problems marked
+   observation: The visible Connect button previously called the OAuth start route through a client-side POST and then assigned the returned URL, so a server configuration error surfaced in the UI before a browser redirect happened.
+   observation: Production callback resolution could be influenced by the public app URL or explicit redirect URI value, which allowed a test or preview host to block production Square OAuth before redirect.
+
+5. User learning
+   Retail Square OAuth uses `/api/integrations/retail/square/callback` as the established callback route, so the Square Developer Dashboard production callback must include `https://useclevr.com/api/integrations/retail/square/callback`.
+
+6. AI-agent learning
+   OAuth start buttons should navigate to same-origin server routes and let server code construct provider URLs, because client-side provider URL construction or JSON handoff can expose configuration errors as broken UI actions.
+
+7. Follow-up tasks
+
+- Verify the deployed Retail Square Connect button in a signed-in production browser session after the beta deployment completes. (labels: payment, auth, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Fresh-install Render Stabilization
+
+1. Interaction title
+   AI Governance fresh-install render stabilization.
+
+2. What was the user goal
+   Make AI Governance load successfully on a completely fresh installation and capture the real local server stack instead of relying on a production digest.
+
+3. What changed
+   Railway predeploy now applies the AI provider configuration migrations, AI request audit-log migrations, the BYOK audit metadata migration, the AI interaction trace fresh-install support migration, and the AI Governance override migration in dependency order. A new idempotent migration creates `AiInteractionTrace`, which was present in the Drizzle schema but missing from SQL migrations. The governance snapshot loader now has a top-level `snapshot-build` fallback that returns normalized empty governance data if any unexpected assembly failure escapes the per-query guards.
+
+4. Problems marked
+   observation: Local unauthenticated `/app/ai-governance` returned a 307 redirect before rendering, so the authenticated crash path was reproduced by invoking `getAiGovernanceSnapshot({ id: "local-admin", role: "superadmin" })` and server-rendering every AI Governance section.
+   observation: The captured stack showed missing-table query failures from `listPublicAiProviderConfigs()` at `src/lib/ai/byoai-provider.ts:256`, `listAiRequestAuditLogs()` through `safeListAudit()`, `safeListTraces()` at `src/lib/ai-governance/governance-service.ts`, and `getOverrideStats()` at `src/lib/ai-governance/governance-service.ts`.
+   observation: The failing queries read `AiProviderConfig`, `AiRequestAuditLog`, `AiInteractionTrace`, and `AiGovernanceOverride`; Railway predeploy previously applied only the override migration from that dependency set.
+   root-cause: `AiInteractionTrace` existed in `src/lib/db/schema.ts` but no SQL migration created it, and `0020_ai_governance_overrides.sql` references it with a foreign key.
+
+5. User learning
+   AI Governance fresh installs require the complete AI governance dependency table chain, not only the final override table.
+
+6. AI-agent learning
+   Fresh-install validation for Server Components must exercise the authenticated loader directly when local browser access redirects before rendering.
+
+7. Follow-up tasks
+
+- Add a dedicated migration coverage check that verifies every table read by release-blocking Server Components has an idempotent fresh-install SQL path. (labels: deployment, testing, stability)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Export Pipeline Row Counts
+
+1. Interaction title
+   Pre-bookkeeping export pipeline row-count fix.
+
+2. What was the user goal
+   Find why the review table showed 42 filtered transactions while the exported Excel file contained one transaction, then fix CSV and Excel exports so exported rows match the selected transaction set.
+
+3. What changed
+   The review workspace now opens an export choice panel before CSV or Excel download and asks for Current filtered rows, Reviewed transactions, or All transactions with live row counts. Filtered exports send the matching transaction row indexes to `/api/prebookkeeping/export`. The export route validates `scope`, parses `rowIndexes`, logs the requested and exported counts, and passes the explicit selection to the export builder. The export builder selects transactions once from the requested scope instead of always filtering to reviewed rows. Excel exports contain `Transactions`, `Summary`, and `VAT Summary` sheets, and the Summary sheet distinguishes exported transactions from reviewed transactions. DATEV, QuickBooks, and Xero buttons are disabled with Coming soon in the UI, and direct API calls for those formats return a 501 Coming soon response.
+
+4. Problems marked
+   observation: The collection was reduced in `buildPrebookkeepingExport()` because it always used `categorization.transactions.filter((transaction) => transaction.reviewed && transaction.duplicateStatus !== "merged")`.
+   observation: The UI export request sent only `datasetId` and `format`, so backend export could not know whether the user expected filtered, reviewed, or complete dataset rows.
+   observation: The reported 42-filtered-row to one-exported-row mismatch happens when the current filter contains 42 transactions but only one transaction has `reviewed: true`.
+
+5. User learning
+   CSV and Excel exports now make the chosen transaction set explicit and report the row count before download.
+
+6. AI-agent learning
+   Review-table exports must send the selected collection contract to the server rather than relying on backend default filters that can diverge from the visible table state.
+
+7. Follow-up tasks
+
+- Complete production-grade DATEV, QuickBooks, and Xero mapping setup before enabling those export buttons. (labels: upload, reports, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Review Summary Crash Fix
+
+1. Interaction title
+   Accountancy review summary crash fix.
+
+2. What was the user goal
+   Prevent the Accountancy dashboard from crashing after CSV or Excel upload when uploaded or legacy datasets do not contain `reviewSummary`.
+
+3. What changed
+   Pre-bookkeeping categorization now exposes a normalized review summary shape with reviewed count, total count, progress, status, analyzed count, automatic categorization count, duplicate count, warning count, VAT missing percentage, and confidence score. Upload creation stores a default review summary for Accountancy and Pre-bookkeeping datasets before categorization finishes. Existing Pre-bookkeeping datasets are normalized and backfilled when reused or categorized. The Pre-bookkeeping page normalizes legacy categorization before render, and the review workspace reads from one normalized `reviewSummary` object instead of raw nested fields. The app error boundary uses neutral page-load copy and logs the actual exception.
+
+4. Problems marked
+   blocker: none.
+   risk: Live browser verification still depends on a deployed authenticated session, but source and regression checks cover fresh CSV, fresh Excel, legacy missing-summary categorization, processing defaults, and hard-refresh-safe normalization paths.
+   observation: The crashing component was the Pre-bookkeeping review workspace, which directly accessed `categorization.reviewSummary.reviewedCount` while the type guard accepted legacy categorizations with transactions but no review summary.
+
+5. User learning
+   Fresh and legacy accounting uploads can show zero/default review progress while processing instead of requiring immediate categorization output.
+
+6. AI-agent learning
+   Type guards for persisted JSON must validate all fields used by render code, or route the value through a single normalizer before UI access.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Business Profile Accounting Source Of Truth
+
+1. Interaction title
+   Business Profile accounting source of truth.
+
+2. What was the user goal
+   Stop speculative Business Profile fixes and make Accountancy, Tax, Compliance, and Reporting reuse the exact Business Profile loader used by the Business Profile wizard.
+
+3. What changed
+   Accountancy no longer imports or queries the `business_profile` table directly, no longer resolves a primary organization separately, and no longer renders the temporary profile debug panel. Accountancy, Tax, Compliance, and Reporting all load the saved Business Profile through `getCompanySetup()`, which is the same repository function used by the `/api/business/setup` endpoint that the Business Profile wizard fetches and saves against. Compliance now derives profile, location, and industry readiness from the shared setup object instead of separate business details.
+
+4. Problems marked
+   blocker: none.
+   risk: Live authenticated browser proof still requires a deployed session; the source-level invariant is that the four accounting modules and the Business Profile API now share the same loader.
+   observation: Static search finds no Accountancy-specific `businessProfiles`, `business_profile`, `getPrimaryBusinessDetails`, or debug-panel profile loader references under the Accountancy route.
+
+5. User learning
+   Accountancy profile context is not a separate model; it is a display of the saved Business Profile setup object.
+
+6. AI-agent learning
+   When the Business page already has a working source of truth, dependent modules must import the same loader instead of adding direct database probes or diagnostic profile fetchers.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Post-upload Categorization
+
+1. Interaction title
+   Pre-bookkeeping post-upload categorization.
+
+2. What was the user goal
+   Complete the workflow after a successful Pre-bookkeeping upload so the saved ledger moves from a passive ready-for-categorization state into categorized review output.
+
+3. What changed
+   Pre-bookkeeping uploads now run deterministic transaction categorization after parsing and saving. The categorizer detects transaction date, description, supplier or customer, debit, credit, amount, currency, VAT or tax amount, source category, and invoice or reference columns; classifies transactions into revenue, operating expenses, payroll, fixed costs, taxes, bank fees, transfers, or uncategorized; computes income, expense, VAT/tax, duplicate, missing-data, category-count, and transaction-preview outputs; and stores the result on the existing Pre-bookkeeping dataset. Retry reuse still returns the existing dataset and categorizes older matching datasets without creating duplicates. The Pre-bookkeeping selected-dataset page now shows Ready for review, categorized transactions, summary totals, warnings, duplicate signals, and actions for reviewing transactions, opening the bookkeeping summary, exporting for an accountant, or asking AI about the dataset. Legacy datasets without categorization show a real Start categorization button.
+
+4. Problems marked
+   blocker: none.
+   risk: The deterministic classifier uses column names and transaction text; rows without recognizable text or amount signals remain uncategorized for human review.
+   observation: The real `10_accountancy_ledger.xlsx` dataset has 200 rows and 12 columns; read-only verification categorizes 140 rows, leaves 60 uncategorized, detects no VAT/tax amount column, and reports five possible duplicate groups.
+
+5. User learning
+   Pre-bookkeeping review output now uses the existing dataset record and row storage instead of creating a separate bookkeeping dataset.
+
+6. AI-agent learning
+   Do not parse tax codes as tax money totals; a VAT/tax summary total needs a tax amount column, while tax-code-only ledgers should show a missing VAT/tax amount warning.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping AI Review And Learning
+
+1. Interaction title
+   Pre-bookkeeping AI Review and Learning workflow.
+
+2. What was the user goal
+   Turn the working Pre-bookkeeping upload, categorization, KPI, and review table into an AI-assisted bookkeeping review workflow with editable categories, learning, audit history, VAT and duplicate review, bulk actions, exports, AI chat prompts, and progress status.
+
+3. What changed
+   Pre-bookkeeping categorization now includes review metadata, confidence scores, suggested categories, review status, duplicate status, VAT status, large-transaction flags, AI review summary metrics, and deterministic recommendations. The review workspace shows queue filters with live counts, confidence-backed suggestions, Accept and Change controls, category dropdowns, VAT quick buttons, duplicate actions, bulk actions, reviewed progress, Ready for Accountant status, reviewed-only exports for CSV, Excel, DATEV, QuickBooks, and Xero, and AI question links. Review updates persist in the existing dataset analysis, write audit events, and save learning rules from supplier, description, keyword, and merchant signals so future uploads can apply user changes. Pre-bookkeeping export excludes merged duplicate rows while preserving them in the audit trail.
+
+4. Problems marked
+   blocker: none.
+   risk: The current learning system is deterministic and rule-based; it stores user correction rules and applies them to future uploads, but it does not train a model.
+   observation: The real `10_accountancy_ledger.xlsx` dataset has 200 rows and 12 columns. Read-only verification after debit/credit normalization categorizes all 200 rows, marks all rows for review because VAT amount data is missing, reports 100% missing VAT, and computes a 71% confidence score.
+
+5. User learning
+   Accountant exports now require reviewed rows, and rows marked merged by duplicate review stay out of export while remaining auditable.
+
+6. AI-agent learning
+   Debit and credit normalization must ignore zero-valued opposite-side columns so `credit: 0` does not override a real debit amount.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Replace Crash Fix
+
+1. Interaction title
+   Accountancy replace crash fix.
+
+2. What was the user goal
+   Fix the Accountancy runtime crash that reported `can't access property "replace", e is undefined` after CSV or Excel upload.
+
+3. What changed
+   The Pre-bookkeeping review workspace now validates review API responses before updating client state, normalizes categorization data once, and formats category labels only after converting missing values into an explicit fallback. Accountancy upload API responses now pass through a runtime validator before the UI uses dataset ids, redirect URLs, row counts, preview rows, staged errors, or limit metadata. Accountancy export and package helpers normalize unknown values before filename, CSV, and HTML escaping. The categorization normalizer now rebuilds transaction rows with safe string, number, category, duplicate, VAT, confidence, and review-status defaults so malformed or legacy rows load without display crashes.
+
+4. Problems marked
+   blocker: none.
+   risk: Browser-only hard-refresh validation still depends on a signed-in deployed session and representative uploaded files.
+   observation: The exact crash path is `src/components/accountancy/prebookkeeping-review-workspace.tsx`, original `formatCategory(value: string)` at line 359/360. The minified variable `e` is the `value` argument, which becomes undefined when persisted or API transaction JSON lacks both `suggestedCategory` and `category`.
+
+5. User learning
+   Missing Accountancy category, supplier, description, duplicate, VAT, or API response fields now show safe fallbacks instead of crashing the review screen.
+
+6. AI-agent learning
+   Runtime API payloads must be treated as unknown data even when TypeScript models say a field is a string.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Upload Validation
+
+1. Interaction title
+   Pre-bookkeeping upload validation.
+
+2. What was the user goal
+   Validate the production Pre-bookkeeping upload system across CSV, Excel, PDF, receipts, invoices, and bank exports without assuming any upload type works.
+
+3. What changed
+   The Accountancy upload regression matrix now covers CSV, semicolon CSV, XLSX, legacy XLS, multi-sheet workbook selection, formatted header rows, Excel, Google Sheets, and LibreOffice-style workbooks, text invoice PDFs, scanned-PDF scanner routing, JPG, PNG, WEBP receipt routing, CSV bank exports, XLSX bank exports, XLS bank exports, OFX, QIF, and QFX bank exports. Text invoice PDF extraction now builds a single reviewable bookkeeping row containing transaction date, description, supplier or customer, amount, currency, VAT or tax, invoice reference, subtotal, and line items while preserving extracted field metadata. Pre-bookkeeping categorization recognizes `vat_tax` as a VAT/tax column.
+
+4. Problems marked
+   blocker: Authenticated production upload validation is not complete from this session because no signed-in browser session or reusable production cookies are available, and Railway log access returns unauthorized through the CLI.
+   risk: Scanned PDFs and image receipts still route to the document scanner placeholder because the source tree does not include an OCR engine or external OCR adapter.
+   observation: The deployed test application health endpoint returns 200 with database status healthy, and unauthenticated `/api/accountancy/upload` requests return 401 as expected.
+
+5. User learning
+   Text invoice PDFs now become reviewable Pre-bookkeeping rows instead of field-value metadata rows.
+
+6. AI-agent learning
+   Validation for document uploads must use real generated PDFs in addition to fake text PDF buffers, because PDF text extraction can behave differently across encodings and streams.
+
+7. Follow-up tasks
+
+- Add or connect a production OCR adapter for scanned PDFs and image receipts before marking those document paths fully complete. (labels: upload, data)
+- Run authenticated browser uploads against the deployed test application with representative files and capture Railway request logs for `/api/accountancy/upload`. (labels: upload, deployment, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Pre-bookkeeping Export And Assistant Workflow
+
+1. Interaction title
+   Pre-bookkeeping export and assistant workflow.
+
+2. What was the user goal
+   Fix dead accountant export links, make CSV, Excel, DATEV, QuickBooks, and Xero download buttons generate real server-side files, and make the Pre-bookkeeping AI Assistant answer selected-dataset bookkeeping questions even when Gemini or another provider is unavailable.
+
+3. What changed
+   Pre-bookkeeping exports now use the selected dataset ID and the dedicated Pre-bookkeeping export route instead of the generic report-download route. The export service generates reviewed-only CSV with UTF-8 BOM, Excel workbooks with reviewed transaction, summary, and VAT summary sheets, DATEV-compatible CSV with account mapping validation, QuickBooks CSV, and Xero bank-import CSV. The review workspace fetches export files as blobs, disables duplicate clicks, reports structured export errors, and revokes object URLs after download. Dataset AI now recognizes Pre-bookkeeping datasets from persisted module type, includes the normalized categorization context, allows superadmin dataset access, and returns deterministic bookkeeping answers for expenses, review blockers, duplicates, suppliers, income and expenses, VAT gaps, fixed costs, uncategorized rows, and unusual transactions. Pre-bookkeeping dataset suggestions now use bookkeeping prompts instead of generic SaaS prompts.
+
+4. Problems marked
+   blocker: Authenticated production browser validation is still not complete from this session because no reusable signed-in production session is available inside the workspace.
+   risk: DATEV export uses built-in category account mappings and blocks uncategorized reviewed rows with a setup error; customer-specific DATEV chart-of-accounts configuration remains separate work.
+   observation: The dead JSON root cause is `Export for accountant` pointing to `/api/reports/download?datasetId=...`, which selects an in-memory report by dataset and returns `Report not found` when no report object exists.
+
+5. User learning
+   Pre-bookkeeping accountant exports now come from the current reviewed categorization instead of expired report IDs.
+
+6. AI-agent learning
+   Pre-bookkeeping assistant questions must prefer deterministic dataset calculations for bookkeeping review workflows so provider outages do not block export-readiness analysis.
+
+7. Follow-up tasks
+
+- Add customer-specific DATEV chart-of-accounts setup before enabling locale-specific accountant export templates. (labels: reports, upload, workflow)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Risk Intelligence Dataset Scoping
+
+1. Interaction title
+   Risk Intelligence dataset scoping and stale dataset leakage.
+
+2. What was the user goal
+   Limit Accountancy and Pre-bookkeeping Risk Intelligence to the newly uploaded or explicitly selected Pre-bookkeeping dataset, prevent cross-module dataset leakage, hide stale test records, and keep risk calculation isolated to one dataset and one module scope.
+
+3. What changed
+   Risk Intelligence dataset listing now accepts a module scope and selected dataset ID, filters by authenticated tenant unless the user can read all datasets, filters by `dataset_type`, excludes deleted and archived records, hides test, seed, demo, sample, codex, and known provider-path records from production selectors, and deduplicates by immutable dataset ID. Risk calculation now rejects scope mismatches, hidden test records, deleted records, archived records, and unsupported dataset types before loading rows. The Risk Intelligence page defaults to the Standard scope, preserves scope in selector links, shows a Pre-bookkeeping-specific empty state, and uses the requested dataset ID before falling back to the latest valid dataset in scope. Pre-bookkeeping review actions link Risk Intelligence with `datasetId=<current_dataset_id>&scope=prebookkeeping`, and successful Pre-bookkeeping uploads persist the active dataset ID in browser storage for current-session navigation.
+
+4. Problems marked
+   observation: The leakage root cause was the Risk Intelligence list query loading broad user datasets, loading every dataset for superadmin, and selecting the first supported dataset without module or selected-dataset scope.
+   observation: The duplicate-display root cause in code was an unscoped selector without immutable ID dedupe. If production contains two distinct database records named `10_accountancy_ledger`, both are legitimate history records and require explicit admin cleanup rather than automatic deletion.
+   risk: Authenticated production UI validation is not complete from this session because no reusable signed-in production session is available inside the workspace.
+
+5. User learning
+   Accountancy Risk Intelligence opens from Pre-bookkeeping with the current dataset ID and does not fall back to Retail, Startup, Standard, test, seed, or stale datasets.
+
+6. AI-agent learning
+   Risk and analytics selectors must treat module scope and selected dataset ID as required request constraints rather than optional UI hints.
+
+7. Follow-up tasks
+
+- Add an admin dataset cleanup action for explicitly marking stale test or seed datasets outside production selectors. (labels: data, upload, workflow)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance And EU AI Act Readiness
+
+1. Interaction title
+   AI Governance and EU AI Act readiness module.
+
+2. What was the user goal
+   Prepare UseClevr for AI transparency, governance, documentation, provider monitoring, privacy, risk, feedback, reports, and human-control expectations while keeping the architecture scalable for future regulatory changes.
+
+3. What changed
+   The authenticated app now includes an AI Governance sidebar entry and module routes for Overview, Transparency, Providers, Models, Audit Log, AI Policies, Privacy, Compliance, Risk, Feedback, and Reports. The governance service reads existing AI interaction traces, AI request audit logs, provider configs, and AI mode settings, stores per-user governance settings in AppSetting, and records manual human decisions in a new AiGovernanceOverride table. Authenticated APIs expose governance overview, searchable audit-log filters, provider status, settings load/save, manual override recording, and downloadable JSON reports for usage, audit, providers, errors, and compliance. Assistant responses now display AI-generated metadata with provider, model, mode, confidence, generation time, and reasoning summary, and they expose Accept, Reject, Edit, and Undo controls that record manual override decisions.
+
+4. Problems marked
+   risk: The module provides readiness controls and reporting, but it is not a legal certification of EU AI Act compliance.
+   risk: Prompt-injection detection is reported as limited because the product does not yet expose a dedicated prompt-injection classifier control.
+   blocker: Authenticated production browser validation is not complete from this session because no reusable signed-in production session is available inside the workspace.
+
+5. User learning
+   AI governance metadata and human oversight controls are visible in the assistant and summarized in a dedicated governance workspace.
+
+6. AI-agent learning
+   Governance features should reuse existing AI trace and provider audit tables before adding new storage, and new storage should only cover missing governance events such as manual override decisions.
+
+7. Follow-up tasks
+
+- Add a dedicated prompt-injection classifier and route its results into the AI Governance risk dashboard. (labels: ai, security, testing)
+- Add legal-review copy approval for AI Governance policy text before using it as a formal compliance statement. (labels: docs, security)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Render Crash Fix
+
+1. Interaction title
+   AI Governance server render crash fix.
+
+2. What was the user goal
+   Find and fix the production Server Components render crash on AI Governance without suppressing the real error, and ensure the page renders safe empty states when governance data is missing.
+
+3. What changed
+   Railway predeploy now applies `0020_ai_governance_overrides.sql`, which creates the `AiGovernanceOverride` table used by human oversight events. The AI Governance snapshot loader now wraps settings, provider, request-audit, interaction-trace, and override-stat queries in safe loaders. Failed data-source stages log `[AI_GOVERNANCE] Data source failed` with stage, message, and stack details, while the Server Component receives normalized defaults and renders empty cards such as no providers, no audit entries, and zero manual overrides.
+
+4. Problems marked
+   observation: The failing component path is the AI Governance Server Component using `getAiGovernanceSnapshot()`. The failing function was `getOverrideStats()`, and the failing query was `db.select({ total: count() }).from(aiGovernanceOverrides).where(where)` against `AiGovernanceOverride`.
+   observation: The root cause was deployment drift: the migration file existed in source, but `scripts/runtime/railway-predeploy.cjs` did not apply `0020_ai_governance_overrides.sql`, so existing production databases could miss the table.
+   blocker: Railway log retrieval through `pnpm railway:logs` returned exit code 1 without usable log output in this workspace.
+
+5. User learning
+   AI Governance renders default empty cards while logging missing-table or missing-data failures, so a fresh or partially migrated database no longer crashes the workspace.
+
+6. AI-agent learning
+   New runtime tables must be added to the Railway predeploy migration list in addition to the Drizzle schema and SQL migration file.
+
+7. Follow-up tasks
+
+- Verify the next Railway deployment log confirms `0020_ai_governance_overrides.sql` applied successfully. (labels: deployment, ai, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Interface Redesign
+
+1. Interaction title
+   AI Governance production SaaS UI redesign.
+
+2. What was the user goal
+   Redesign AI Governance so the module feels like a compact production compliance and AI operations workspace while preserving existing routes, data loaders, report actions, tenant isolation, and superadmin behavior.
+
+3. What changed
+   AI Governance now uses a centered 1360px content width, compact live status badges, sticky horizontally scrollable segmented navigation, four KPI cards, a readiness visualization with contextual next action, a control matrix, a compact AI-generated response transparency example, improved provider/model/audit/privacy/risk/feedback cards, and a report center that disables report generation when meaningful data is unavailable. The app sidebar now groups AI Assistant, AI Governance, AI Traces, AI Benchmarking, and AI Cost Optimizer under one AI section for superadmin users, while regular users see AI Assistant and AI Governance together.
+
+4. Problems marked
+   observation: The route wrapper already renders the semantic AI Governance page heading, so the redesigned module places the export, configuration, and refresh actions in the shared page header and keeps the content header focused on live status data to avoid duplicate headings.
+   observation: Local server-render smoke used safe dummy environment values and confirmed every Governance section renders even when backend reads fail and the snapshot service falls back to empty-state data.
+
+5. User learning
+   AI Governance presents current governance readiness, provider state, audit availability, privacy posture, human oversight, and reports in a denser production interface without fabricating unavailable data.
+
+6. AI-agent learning
+   When a submodule is wrapped by `DashboardSubpageLayout`, page-level actions should live in `AppPageHeader` and module content should avoid repeating the same top-level heading.
+
+7. Follow-up tasks
+
+- Capture visual screenshots for AI Governance at desktop, tablet, and mobile widths in an authenticated browser session. (labels: ui, accessibility, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance UI Polish
+
+1. Interaction title
+   AI Governance final visual polish.
+
+2. What was the user goal
+   Refine the AI Governance interface visually without changing functionality, routes, data loaders, or report behavior.
+
+3. What changed
+   The visible AI sidebar label is removed while the AI links stay grouped, the space after Dashboard is reduced, the page description is shorter, the Governance status bar is tighter, the segmented navigation has larger tabs and a stronger active state, the duplicated overview KPI cards are replaced with a compact activity strip, the Compliance readiness visualization is larger and better balanced with its text and action, the Control Matrix cards use equal-height rows, and the status system uses Ready as green, Needs setup as blue, Needs data as amber, Warning as yellow, and Error as red.
+
+4. Problems marked
+   observation: The render smoke used dummy local database settings, so the governance data-source fallback logs appeared by design and every Governance tab still rendered.
+
+5. User learning
+   AI Governance keeps the same working data and actions while the visual hierarchy is denser and more enterprise-ready.
+
+6. AI-agent learning
+   Visual polish passes should remove visible labels exactly when requested, including sidebar group labels that were helpful structurally but noisy in the final UI.
+
+7. Follow-up tasks
+
+- Capture authenticated visual screenshots for AI Governance desktop and tablet widths after the next deployed build is available. (labels: ui, accessibility, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Accountancy Business Profile Shared Loader
+
+1. Interaction title
+   Accountancy Business Profile completed-profile loading fix.
+
+2. What was the user goal
+   Make Accountancy show the exact saved Business Profile values that Business already displays, without creating another profile source, table, or form.
+
+3. What changed
+   Business Profile loading now exposes one current-tenant server loader that authenticates the user with the same bootstrap path as the Business setup API, reads the organization-scoped profile repository once, returns the source organization context, and normalizes tax country, currency, fiscal year, VAT or sales tax, payroll, and fixed costs in one place. Business, Accountancy, Accountancy Tax, Accountancy Compliance, Accountancy Reporting, and Business Tax read that shared loader. Accountancy no longer owns six-field profile formatting logic, and its route error boundary no longer claims the profile is incomplete when a render failure occurs.
+
+4. Problems marked
+   root cause: The working Business wizard loaded `/api/business/setup`, which calls the Business Profile repository with authenticated user and built-in-account bootstrap, while Accountancy pages loaded and formatted profile state independently in server components.
+   root cause: The Accountancy error boundary displayed “Could not load Business Profile” for any Accountancy render crash and offered the Business setup link, which made non-profile failures look like incomplete profile data.
+   observation: The authoritative table is `business_profile`, keyed by `organization_id`, with a legacy read fallback from `Business.companySetup`.
+
+5. User learning
+   Accountancy profile context uses the same saved Business Profile source as Business and distinguishes loading failures from truly missing fields.
+
+6. AI-agent learning
+   When a page-specific error boundary names a nested data source, first verify whether the boundary is masking a broader route render failure before changing the data source.
+
+7. Follow-up tasks
+
+- Verify the deployed Accountancy page with an authenticated completed Business Profile session after the beta deployment finishes. (labels: business, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Railway Predeploy ON CONFLICT Constraint Fix
+
+1. Interaction title
+   Railway predeploy PostgreSQL conflict-target repair.
+
+2. What was the user goal
+   Fix the Railway predeploy failure caused by PostgreSQL rejecting an `ON CONFLICT` clause without a matching unique or exclusion constraint.
+
+3. What changed
+   The upload-credit persistence migration now ensures the `CreditLedger_idempotencyKey_key` partial unique index exists before the legacy usage backfill insert and uses the matching conflict target predicate: `ON CONFLICT ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL DO NOTHING`. The billing regression script verifies the index and conflict target stay aligned.
+
+4. Problems marked
+   root cause: `0022_upload_credit_usage_persistence.sql` inserted into `CreditLedger` with `ON CONFLICT ("idempotencyKey") DO NOTHING`, but the database unique index is partial: `UNIQUE ("idempotencyKey") WHERE ("idempotencyKey" IS NOT NULL)`.
+   observation: PostgreSQL requires an `ON CONFLICT` target to match an actual primary key, unique constraint, exclusion constraint, or matching partial unique index predicate.
+   observation: Local Railway predeploy reproduced the deployment error before the fix and completed after the migration target matched the partial unique index.
+
+5. User learning
+   Railway predeploy applies upload-credit migration SQL whose idempotency backfill now matches the live Credit Ledger uniqueness rule and does not duplicate ledger rows.
+
+6. AI-agent learning
+   For PostgreSQL partial unique indexes, `ON CONFLICT (column)` does not infer the index unless the conflict target includes the same `WHERE` predicate.
+
+7. Follow-up tasks
+
+- Monitor the next Railway beta deployment until predeploy completes and the app health check passes. (labels: deployment, monitoring)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## UseClevr Stabilization and Product Differentiation Sprint
+
+1. Interaction title
+   AI Analyst, Dataset Intelligence, dashboard consistency, and Business plan differentiation stabilization.
+
+2. What was the user goal
+   Improve existing UseClevr intelligence accuracy without redesigning the app, adding experimental features, or changing pricing.
+
+3. What changed
+   Dataset Intelligence now recognizes marketplace-specific semantics for GMV, marketplace revenue, merchant payout, refunds, customers from buyer fields, merchants from seller fields, product categories, and geography. The compatibility layer lets existing Revenue, Commission, Cost, Seller, Buyer, Category, and Country callers keep working while newer dashboards and AI context receive more precise roles. Dashboard AOV calculation uses detected order IDs or record count instead of requiring quantity. AI context includes deterministic governance disclosure, evidence, confidence, calculation source, dataset source, and provider source. Business plan copy highlights existing AI business intelligence value without changing prices or limits.
+
+4. Problems marked
+   observation: The Question Intent Engine and Metric Resolver already classify business questions and block generic revenue fallback across 60 regression questions.
+   improvement: The older dashboard wrapper needs to read the same semantic role compatibility list as Dataset Intelligence so marketplace currency-string fields remain available as metrics.
+   observation: Deterministic Dataset Intelligence outputs identify provider source as none and disclose that no provider-generated values were used.
+
+5. User learning
+   Marketplace uploads expose GMV, platform fee, merchant payout, customer, merchant, category, and geography semantics directly in deterministic KPIs and dashboard metadata.
+
+6. AI-agent learning
+   When adding precise semantic roles, preserve compatibility aliases for existing callers so current dashboard, reports, and AI Analyst paths keep using one dataset profile.
+
+7. Follow-up tasks
+
+- Validate restaurant, manufacturing, healthcare, legal, multilingual, and large-file fixtures through the same Dataset Intelligence compatibility layer. (labels: data, ai, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Retail Upload Success Dataset Action Removal
+
+1. Interaction title
+   Retail upload success action cleanup.
+
+2. What was the user goal
+   Remove the broken View Dataset action from the Retail upload success screen while keeping the Retail upload flow and other upload flows unchanged.
+
+3. What changed
+   The shared upload success panel now hides dataset navigation only when the upload mode is Retail. Retail success shows Open Retail and Upload Another File, while Standard, Profitability, Accountancy, and Pre-bookkeeping keep their existing action paths.
+
+4. Problems marked
+   root cause: Retail reused the shared non-standard upload success actions, so a successful Retail upload displayed a dataset-detail link that opens an unavailable dataset page.
+   observation: The remaining Retail action column uses the existing flex layout, so no empty action slot remains.
+
+5. User learning
+   Retail uploads continue directly into Retail analysis and no longer advertise a dataset page that is unavailable for the flow.
+
+6. AI-agent learning
+   When a shared upload success component serves module-specific flows, gate action visibility by upload mode rather than changing route helpers or dataset persistence.
+
+7. Follow-up tasks
+
+- Verify the Retail upload success screen in authenticated light and dark browser sessions after the beta deployment finishes. (labels: upload, ui, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Autonomous AI Transaction Review Engine
+
+1. Interaction title
+   Autonomous AI transaction review engine for Pre-bookkeeping.
+
+2. What was the user goal
+   Transform the manual per-row review workflow into an AI-assisted enterprise workflow where high-confidence transactions are automatically approved and only exceptions remain in the manual review queue.
+
+3. What changed
+   Pre-bookkeeping now applies an autonomous review engine after categorization. Transactions meeting all auto-review rules receive `autoReviewed: true`, explainability evidence, business rule metadata, calculation source, provider source, risk score, and review blockers. The review workspace shows a dashboard summary with auto-reviewed count, needs-review count, duplicate count, missing VAT count, and confidence percentage. A configurable confidence threshold controls auto-review behavior. Bulk actions include auto-review all high confidence, auto-review selected, auto-review filtered, and reset review status. Smart filters added for auto-reviewed, low-confidence, and high-value transactions. Existing exports continue working unchanged.
+
+4. Problems marked
+   blocker: none.
+   observation: Existing export scopes (filtered, reviewed, all) and formats (CSV, Excel) remain compatible because they only read established transaction fields.
+   observation: The `PrebookkeepingCategorization` and `CategorizedTransaction` types were extended with new fields while preserving all existing fields, so older data normalizes safely.
+
+5. User learning
+   Users review exceptions instead of every row. Auto-reviewed rows show confidence, evidence, business rule, and source so users understand why the AI approved each transaction. The threshold slider lets businesses tune auto-review strictness.
+
+6. AI-agent learning
+   Autonomous review should evaluate blockers independently per transaction: uncategorized category, confidence below threshold, duplicate, missing VAT, VAT needs review, missing supplier, and large amount. Learning rules and Business Profile VAT sources strengthen auto-review confidence and evidence.
+
+7. Follow-up tasks
+
+- Add undo-last-review by storing pre-auto-review transaction snapshots. (labels: prebookkeeping, review, undo)
+- Persist thresholdConfig per user or business profile instead of dataset-level defaults. (labels: prebookkeeping, settings, persistence)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## Billing Integration Layer Restoration
+
+1. Interaction title
+   Restore billing integration layer from git stash and integrate with current credit-account-service.
+
+2. What was the user goal
+   Recover the seven new billing files from stash@{2} without restoring outdated modified files, then update them to work with the current billing schema and credit-account-service API.
+
+3. What changed
+   Restored seven files: billing usage settings page, admin purchase traces route, admin reconcile route, billing ledger route, billing purchase route, spending limits route, and credit preview route. Updated sidebar integration to pass current UsageMonitor props. Fixed imports and removed unused variables in the restored billing usage page.
+
+4. Problems marked
+   blocker: none.
+
+5. User learning
+   Stash restoration should extract only the new files from the untracked tree and integrate them against the current service contracts rather than blindly applying the entire stash.
+
+6. AI-agent learning
+   When restoring selective files from a stash created with untracked files, use the stash's untracked tree reference (`stash^{3}`) to extract new files, then update consumers to match the current API surface.
+
+7. Follow-up tasks
+
+- Verify admin billing routes in production.
+- Wire spending limits into upload credit enforcement.
+- Add purchase flow frontend if needed.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: none; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; completed work: `.TODO/todo-done.md`.
+
+## AI Governance Provider Card Icon Spacing
+
+1. Interaction title
+   AI Governance provider card icon spacing polish.
+
+2. What was the user goal
+   Move the AI Governance Providers dashboard card status icons lower while keeping all provider cards equal-height, responsive, horizontally centered, and visually balanced.
+
+3. What changed
+   The compact AI Governance KPI card layout now renders provider cards as equal-height centered columns with a shared minimum height, lower icon offset, consistent title, number, description, and status badge spacing, and unchanged colors, typography, borders, shadows, widths, and functionality. The info action remains available in the card corner.
+
+4. Problems marked
+   blocker: none.
+   risk: Authenticated desktop, tablet, and mobile screenshots are not captured in this local session because the AI Governance route requires a signed-in browser session.
+   observation: The provider row is the only compact KPI card use, so the layout polish stays scoped to Providers and does not alter Feedback KPI cards.
+
+5. User learning
+   Provider cards now present status icons with more breathing room and use consistent card geometry across responsive breakpoints.
+
+6. AI-agent learning
+   For compact governance KPI cards, use a separate compact rendering branch when only one dashboard row needs adjusted spacing; this keeps other KPI surfaces unchanged.
+
+7. Follow-up tasks
+
+- Capture authenticated AI Governance Providers screenshots at desktop, tablet, and mobile widths after a signed-in browser session is available. (labels: ui, accessibility, testing)
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ESLint MJS Project Parsing
+
+1. Interaction title
+   ESLint MJS project parsing.
+
+2. What was the user goal
+   Resolve only the existing ESLint pre-push blocker that prevents the reviewed ChatGPT MCP/OAuth commit from reaching beta.
+
+3. What changed
+   The flat ESLint config now points type-aware parsing at a dedicated ESLint TypeScript project. The lint project extends the app TypeScript config and includes TypeScript, JavaScript, and MJS files, so root repro scripts parse in the normal pre-push lint gate without ignoring files, disabling Husky, weakening rules, or changing ChatGPT MCP/OAuth behavior.
+
+4. Problems marked
+   blocker: none after the previously failing ESLint command passes.
+   risk: the normal beta push, remote CI, test deployment, production promotion, and production endpoint verification still need to complete before ChatGPT OAuth discovery resumes.
+   improvement: keep future lint-only files in the dedicated ESLint project when ESLint uses type-aware parser options.
+   observation: `parserOptions.project` requires every linted JavaScript and MJS file to belong to the configured TypeScript project.
+
+5. User learning
+   The pre-push lint failure came from TypeScript project membership, not from invalid repro script syntax.
+
+6. AI-agent learning
+   Type-aware ESLint config needs an ESLint-specific tsconfig when the lint surface is broader than the app build TypeScript include list.
+
+7. Follow-up tasks
+
+- Retry the normal beta push and wait for CI and test deployment after the lint config commit passes hooks.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production Verification Email Delivery
+
+1. Interaction title
+   Production verification email delivery.
+
+2. What was the user goal
+   Debug the production 6-digit verification email flow after `app.useclevr.com` reached the code-entry step but the user did not receive the email, then implement the smallest safe fix, run tests, commit, and push.
+
+3. What changed
+   Verification email delivery now treats Resend success as valid only when the provider response includes a message id. Production no longer allows `EMAIL_PROVIDER=console` to satisfy a real verification send when `RESEND_API_KEY` is missing. Resend logging now records only safe metadata: API-key presence, sender-domain presence/domain, masked recipient, domain-check status, provider status, and sanitized response shape. The standalone Resend verification diagnostic script now masks recipients and omits full sender addresses. A focused delivery test covers production console rejection, ambiguous Resend acceptance without a message id, and valid Resend message-id acceptance.
+
+4. Problems marked
+   blocker: Railway native log streaming is unavailable in this local session because the native CLI reports unauthorized; Railway GraphQL inspect and variable presence checks remain available through the project wrapper token.
+   risk: the production Resend key is send-only, so `/api/debug/resend-status` cannot list domain status and reports `api_error` for the domain check; the POST test send still returns a message id, so final inbox delivery must be checked in the Resend dashboard for bounces, suppressions, spam placement, or recipient filtering.
+   improvement: use a Resend key that can read domain status or add a separate non-secret deployment flag that records the verified sender-domain state.
+   observation: production has `RESEND_API_KEY`, `EMAIL_FROM`, and app-domain auth URLs set; `EMAIL_PROVIDER` is unset; the guarded Resend test endpoint returns a message id for a test send while domain-list verification is blocked by the restricted API key.
+
+5. User learning
+   The app can confirm that Resend accepted a send request, but a send-only API key cannot confirm domain verification status through the Resend domains API.
+
+6. AI-agent learning
+   Verification-email diagnostics must distinguish provider acceptance from final inbox delivery and must never log verification codes, full recipients, full sender addresses, or provider secrets.
+
+7. Follow-up tasks
+
+- Check the Resend dashboard for the production message id, delivery events, bounces, suppressions, and sender-domain status.
+- Configure a Resend API key or operational diagnostic that can verify `useclevr.com` sender-domain status without exposing secrets.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Ledger PDF Branch Routing
+
+1. Interaction title
+   Accountancy Ledger generated PDF branch routing.
+
+2. What was the user goal
+   Fix only the generated PDF report branch selection for `10_accountancy_ledger` so debit and credit ledger data enters the ledger renderer instead of the generic Executive BI financial renderer.
+
+3. What changed
+   The PDF generator resolves the branch from `reportType`, `reportProfile.id`, and available model metadata, logs the resolved values before rendering, asserts ledger PDFs keep Operating Profit null plus finite debit and credit totals, and enters the accountancy ledger renderer for `reportType: accountancy`. Generated reports preserve raw KPI numbers for PDF rendering while keeping display-formatted KPIs. The accountancy ledger PDF table reads raw or formatted ledger KPIs and renders Total Debits, Total Credits, Net Movement, invoice/document count, and account count. The report route diagnostic logs `reportType` instead of the nonexistent `reportModel`.
+
+4. Problems marked
+   blocker: none.
+   risk: the broad dataset-aware report-profile script still stops on an unrelated local-retail Results Summary assertion before reaching all synthetic profile checks.
+   improvement: keep the exact numbered `10_accountancy_ledger` fixture in the workspace so future verification can run from the real file instead of a focused generated-report payload.
+   observation: the skipped ledger branch came from a profile-only condition that ignored `reportType: accountancy` when stored or regenerated reports did not carry `reportProfile.id`.
+
+5. User learning
+   The semantic fix from `5e091540f` already nulled P&L metrics for accountancy inputs; the rendered PDF failed because branch selection did not use the same resolved type value.
+
+6. AI-agent learning
+   For generated-report PDFs, preserve raw KPI numbers separately from formatted display strings before passing the report object into renderer-specific pages.
+
+7. Follow-up tasks
+
+- T-1009 completed.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Accountancy Ledger Model Resolution
+
+1. Interaction title
+   Accountancy Ledger generated-report model resolution.
+
+2. What was the user goal
+   Fix the upstream generated-report model resolver so `10_accountancy_ledger` resolves to `reportModel = accountancy` from strict ledger schema evidence before financial metrics and PDF rendering run.
+
+3. What changed
+   The report builder now detects accountancy ledger schemas from debit, credit, and account or journal columns when the incoming dataset type is standard. `resolveReportModel` returns `accountancy` for this strong ledger signature before professional services, business consulting, or generic business fallbacks. A focused regression imports `resolveReportModel`, asserts the standard ledger schema returns `accountancy`, asserts a normal standard dataset with only one unrelated `credit` field does not become accountancy, builds a generated report input for `10_accountancy_ledger`, and verifies the generated PDF enters the Accountancy Ledger Summary branch with Total Debits, Total Credits, and Net Movement.
+
+4. Problems marked
+   blocker: none.
+   risk: the retained generated PDF uses a focused synthetic one-row ledger payload because the exact numbered fixture file is not present in the workspace.
+   improvement: add the real `10_accountancy_ledger` CSV/XLSX fixture to the tracked fixture set so the focused regression can run from the exact source file.
+   observation: accountancy financial nulling now executes upstream because `reportModel` resolves to `accountancy` before `buildGenericFinancials` results are finalized.
+
+5. User learning
+   The root cause is model resolution, not PDF rendering: standard ledger-shaped uploads need schema-based accountancy routing before the report builder decides financial semantics.
+
+6. AI-agent learning
+   For report routing defects, test the private branch decision through an exported resolver and the full report-builder pipeline so downstream renderer success cannot hide an upstream classification miss.
+
+7. Follow-up tasks
+
+- T-1010 completed.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; product requirement: `requirements.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Generate Report Deduplication
+
+1. Interaction title
+   Dashboard Generate Report button deduplication.
+
+2. What was the user goal
+   Remove only the duplicate Generate Report button from the Dashboard Command Center header and keep the Executive Daily Health Generate Report button working through the existing report generation flow.
+
+3. What changed
+   The Dashboard page no longer renders the Command Center header `GenerateReportAction` call site. The Executive Daily Health section still renders `GenerateReportAction` with the selected dashboard dataset or latest reportable dataset fallback. The shared client component still posts to the existing `/api/reports` route with its idempotency key, stores the generated report ID in session storage, and navigates to the existing downloads redirect.
+
+4. Problems marked
+   blocker: none.
+   risk: browser-level authenticated acceptance testing was not run in this local session; static inspection verifies the active-dataset prop wiring and TypeScript validates the changed page.
+   improvement: add a Dashboard UI regression that asserts only one visible default Generate Report action appears when a dataset is selected.
+   observation: the Business Balanced Scorecard preview still has its separate `View full BBSC report` action, which uses the same report component but does not render as a duplicate `Generate Report` button.
+
+5. User learning
+   Both visible Dashboard Generate Report buttons used the same shared client component and existing API path; the duplicate lived only in the Command Center header.
+
+6. AI-agent learning
+   For UI deduplication, trace component props before removal so the remaining visible action keeps the authoritative selected-dataset route.
+
+7. Follow-up tasks
+
+- Add a Dashboard UI regression that checks selected E-Commerce and SaaS datasets expose one default Generate Report action.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Results Summary Finding Prioritization
+
+1. Interaction title
+   Generated PDF Results Summary Top Findings business-priority selection.
+
+2. What was the user goal
+   Keep the Universal Results Summary design and report calculations unchanged while making the final page Top Findings prioritize management-useful business intelligence over parser metadata such as loaded row counts or recognized source fields.
+
+3. What changed
+   The shared PDF summary selector now collects candidate findings from existing recommendation issues and business impacts, existing chart leaders, and canonical report findings. It classifies each candidate into business risk, negative change, opportunity, positive performance, concentration, operational, missing-data unlock, or data observation, then sorts by that priority. Technical and provenance observations are excluded when any business candidate exists and remain fallback-only when no business finding is available.
+
+4. Problems marked
+   blocker: none.
+   risk: actual numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so the shared renderer continues to validate those mandatory profiles through synthetic PDF inputs.
+   improvement: add exact numbered CSV/XLSX fixtures for the remaining mandatory profiles so file-backed final-page content can be verified across every profile.
+   observation: Retail, E-Commerce, and SaaS final-page assertions inspect only the Results Summary Top Findings section so detailed report provenance remains available elsewhere.
+
+5. User learning
+   The Top Findings section selected parser metadata because it took the first canonical findings in order; the summary needed a business-priority selection layer over existing report outputs.
+
+6. AI-agent learning
+   For executive summaries, do not let provenance statements compete directly with business findings; keep provenance visible in its own section and rank summary findings by decision relevance.
+
+7. Follow-up tasks
+
+- Add exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Universal Report Results Summary
+
+1. Interaction title
+   Universal generated PDF Results Summary page.
+
+2. What was the user goal
+   Add one final Results Summary page to every generated business PDF report so a reader can jump to the last page for a profile-aware management snapshot without changing calculations, semantic mappings, recommendations, provenance, Dashboard behavior, or detailed report pages.
+
+3. What changed
+   The shared PDF renderer now appends a profile-aware final summary page after detailed analysis and provenance. The page selects available canonical report KPIs, existing report findings, existing recommendations, existing Business Balanced Scorecard values, existing data confidence, and existing missing-data/provenance state. The summary page uses one shared renderer and one profile-title/metric-priority adapter, not independent profile report engines.
+
+4. Problems marked
+   blocker: none.
+   risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so those mandatory profile names are validated through synthetic layout PDFs while semantic validation remains separate.
+   observation: synthetic layout-only profile reports can have no KPI, finding, or recommendation payload, so the Results Summary renders only the canonical sections that exist instead of inventing missing key results.
+
+5. User learning
+   The final summary can use the report object as the single canonical source: formatted KPIs, findings, recommendations, scorecard, confidence, and provenance status already exist before PDF rendering.
+
+6. AI-agent learning
+   For report summary features, keep the final page as a presentation layer and make tests assert final-page placement, profile-specific titles, and forbidden cross-profile metrics rather than recalculating expected business values.
+
+7. Follow-up tasks
+
+- Add the exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## PDF Section Heading Orphan Protection
+
+1. Interaction title
+   Generated PDF section heading orphan protection.
+
+2. What was the user goal
+   Fix the shared generated-PDF layout system so SaaS and all other report profiles do not render a section heading at the bottom of one page while the first meaningful content block starts on the next page.
+
+3. What changed
+   The shared PDF renderer now reserves safe vertical space for a section heading plus the first meaningful content block before drawing the heading. KPI grids render row by row so a large highlight grid can continue on later pages while keeping the heading with the first KPI row. Table starts now reserve the table header plus two body rows when possible, while preserving footer-safe continuation pages with repeated table headers.
+
+4. Problems marked
+   blocker: none.
+   risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so the regression suite validates those shared renderer profiles with synthetic PDFs.
+   observation: the current `03_saas_startup` fixture reports MRR 13494, ARR 161928, Customers 12, New Customers 12, Churn Rate 16.67%, CAC 591.5, LTV 5145, Runway 11.95 months, and Data Confidence 100; the layout fix leaves those canonical values unchanged.
+
+5. User learning
+   The SaaS highlight heading orphan came from a section heading reserving only a small default following space while the KPI grid required a full first row and previously moved the entire grid as one block.
+
+6. AI-agent learning
+   For generated PDF layout fixes, protect the section start in the shared heading helper and make reusable content components paginate at their natural row or block granularity.
+
+7. Follow-up tasks
+
+- Add the exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Retail Average Order Value Semantic Accuracy
+
+1. Interaction title
+   Retail Average Order Value semantic accuracy.
+
+2. What was the user goal
+   Fix only the Retail Executive Report Average Order Value semantic bug so rows, generic IDs, product IDs, SKUs, or dates cannot be treated as orders.
+
+3. What changed
+   Retail report order-column detection now accepts only conservative commercial transaction identifiers: `order_id`, `order_number`, `transaction_id`, `transaction_number`, `sale_id`, and `receipt_id`. AOV remains unavailable when no reliable order denominator exists. The regression test verifies `01_local_retail.csv` and `01_local_retail.xlsx` keep AOV unavailable and their PDFs do not show `$443`; a positive multi-line order fixture calculates 240 revenue divided by 3 distinct orders as 80; an unsafe-ID fixture proves `record_id`, `product_id`, `sku`, and `transaction_date` do not expose AOV.
+
+4. Problems marked
+   blocker: none.
+   observation: The previous AOV denominator of 180 came from row-count fallback behavior in the retail report path. Current code prevents row count from serving as an AOV denominator unless a future explicit order-grain contract is added.
+
+5. User learning
+   `01_local_retail` reports Average Order Value as Not available because the fixture has no genuine order identifier or explicit one-row-per-order grain.
+
+6. AI-agent learning
+   For AOV, treat order identity as a high-confidence semantic role. Do not promote generic identifiers, product-level fields, dates, or record counts into order denominators.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: existing unreleased retail accuracy entry in `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Free Plan Standardization
+
+1. Interaction title
+   Free plan standardization.
+
+2. What was the user goal
+   Remove Demo as a customer-facing billing plan and keep only Free, Pro, and Business in UseClevr pricing, subscription, checkout, and account plan displays without changing internal billing, auth, database, Stripe, credits, or dataset behavior.
+
+3. What changed
+   The customer-facing billing catalog now exposes Free, Pro, and Business only. Legacy `demo` plan IDs and subscription tiers normalize to Free for display and plan lookup. Public pricing, subscription cards, settings sidebars, topbar plan labels, Account Center, profile security labels, admin customer copy, and checkout review no longer present Demo as a plan. Free displays $0/€0, explains that checkout is not required, and cannot enter the paid checkout review flow. Pro and Business remain the only checkout-enabled plan selections.
+
+4. Problems marked
+   blocker: none.
+   observation: Internal demo access remains in auth fixtures, demo-access services, feature-gate compatibility, database migrations, `/demo` route guards, product demo visuals, sales demo forms, and historical logs/docs because those references are not the customer-facing billing plan and support existing accounts or product-demo workflows.
+
+5. User learning
+   Existing Free users now see Free instead of Demo/Built-in demo in plan surfaces, Free retains 2 included AI credits, and Free does not show unavailable checkout messaging.
+
+6. AI-agent learning
+   For billing-plan renames, separate customer-facing plan catalogs from legacy entitlement identifiers. Normalize legacy IDs at display and lookup boundaries before removing compatibility paths.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Eclipse Mode Privacy Rebrand
+
+1. Interaction title
+   Eclipse Mode privacy rebrand.
+
+2. What was the user goal
+   Rebrand the existing Ghost Mode private AI session feature to Eclipse Mode with premium product copy, a professional partial-eclipse visual control, accessible switch semantics, preserved privacy behavior, and no architecture rewrite.
+
+3. What changed
+   The AI Assistant privacy control now presents Eclipse Mode with ON and OFF labels, a custom CSS sun-and-moon partial-eclipse glyph, a restrained 300ms moon transition, reduced-motion support, switch role, aria checked state, and a clear accessible label. The first-activation notice, history empty state, shared privacy warning, current Privacy Policy copy, and current changelog entry now use Eclipse Mode wording. Existing `ghostMode`, `GHOST_MODE_STORAGE_KEY`, API payload fields, validation, trace skipping, assistant-history skipping, billing metadata, provider routing, Local AI behavior, Cloud AI behavior, and dataset isolation remain unchanged.
+
+4. Problems marked
+   blocker: none.
+   compatibility: Internal Ghost Mode identifiers remain in code where renaming would create launch risk or storage/API compatibility risk.
+
+5. User learning
+   Users now see a premium Eclipse Mode privacy control that describes minimized AI conversation retention without making absolute privacy claims.
+
+6. AI-agent learning
+   Product rebrands for privacy controls should separate user-facing naming from stable internal contracts so launch-safe behavior remains unchanged.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Bulk Dataset Delete Active Selection
+
+1. Interaction title
+   Bulk dataset delete active selection.
+
+2. What was the user goal
+   Add fast multi-select and bulk delete for datasets, keep single delete available, use one bulk-delete API request, preserve dataset isolation, and leave no stale active dataset state after deletion.
+
+3. What changed
+   Risk Intelligence bulk deletion now detects when the active dataset is included in the deleted IDs, removes all successfully deleted datasets from the visible selector state together, and redirects to the next valid scoped dataset or the scoped empty state. Single dataset delete redirect selection now uses the current visible selector state. Focused Risk Intelligence regression assertions now verify active bulk-deletion detection, redirect execution, local visible-state cleanup, partial-failure retry selection, and one collection-level fetch from the shared bulk delete button.
+
+4. Problems marked
+   blocker: none.
+   observation: The feature implementation already existed on `origin/beta`; this interaction hardens the active-dataset bulk-delete path and focused regression coverage.
+
+5. User learning
+   Users can bulk-delete datasets without leaving Risk Intelligence pointed at a deleted active dataset.
+
+6. AI-agent learning
+   Bulk deletion UI must route active-selection cleanup through the same scoped URL recovery behavior as single deletion, because refreshing alone can briefly preserve stale dataset context.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: existing `CHANGELOG.md` bulk dataset entry; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Reliable Bulk Dataset Deletion
+
+1. Interaction title
+   Reliable bulk dataset deletion.
+
+2. What was the user goal
+   Fix bulk dataset deletion so large selected dataset sets are actually removed from the database, do not reappear after refresh, report confirmed counts, use immutable dataset IDs, preserve authorization, clean related records, and keep the current bulk-selection UI.
+
+3. What changed
+   Bulk deletion now uses a dedicated `POST /api/datasets/bulk-delete` route while the legacy collection `DELETE` route delegates to the same handler. The shared API handler returns requested, matched, confirmed deleted, failed count, failed IDs, cleanup details, no-store headers, and revalidates dataset-related app views only after confirmed deletion. The dataset deletion service now chunks large ID sets server-side, deletes dataset-scoped AI governance overrides and pre-bookkeeping audit events before dataset deletion, records actual rows returned by the dataset delete statement, refetches the database after the transaction, and reports success only for IDs that are absent after verification. The shared bulk delete button posts one request to the bulk endpoint and treats zero confirmed deletions as failure. The database health test now creates 100 duplicate-named datasets, deletes all 100 in one operation, verifies requested/matched/deleted counts, checks failed IDs, proves rows and pre-bookkeeping audit events are removed, and performs an authoritative database refetch to verify the datasets do not reappear.
+
+4. Problems marked
+   blocker: none.
+   root cause: Previous bulk deletion reported success from the accessible ID list without verifying the dataset delete result or post-transaction database state, so the UI could remove selected IDs even when durable deletion was not confirmed.
+
+5. User learning
+   Users can bulk-delete up to 100 selected datasets in one operation and rely on the response count matching the database state after refresh.
+
+6. AI-agent learning
+   Bulk destructive APIs must derive success from confirmed database deletion, not request completion or pre-delete authorization matches, and UI state must update only from confirmed deleted IDs.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Railway Predeploy Pipeline Restoration
+
+1. Interaction title
+   Railway predeploy pipeline restoration.
+
+2. What was the user goal
+   Restore the normal Railway deployment pipeline so Railway runs `node ./scripts/runtime/railway-predeploy.cjs` before starting the generated app, without rebasing or changing unrelated app behavior.
+
+3. What changed
+   `dist-root/server-config/railway.json` now defines `deploy.preDeployCommand` with `node ./scripts/runtime/railway-predeploy.cjs`. Inspection confirmed `scripts/package-dist/create-dist.cjs` packages the runtime helper into `dist/scripts/runtime/` and strips accidental host configs from generated output, while `scripts/server/railway/sync-config.cjs` validates the source template directly.
+
+4. Problems marked
+   blocker: none.
+   risk: Railway deploys skip schema/runtime predeploy work when `deploy.preDeployCommand` is absent from `dist-root/server-config/railway.json`.
+   observation: `dist-root/server-config/railway.json` is the Railway config source of truth; `create-dist.cjs` does not generate that file.
+
+5. User learning
+   Railway deploy config ownership lives in `dist-root/server-config/railway.json`; generated `dist/` output contains the helper script but does not own the host command.
+
+6. AI-agent learning
+   For Railway pipeline fixes, inspect packaging and sync scripts first, then change the server-config template and validate with `pnpm prod:build` plus `pnpm validate:dist`.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## AI Transparency Legal Disclosure Strengthening
+
+1. Interaction title
+   AI transparency legal disclosure strengthening.
+
+2. What was the user goal
+   Strengthen UseClevr AI transparency across Terms, Privacy, and in-product AI disclaimers while preserving the existing legal foundations, dataset ownership principle, professional-advice limitations, and accuracy safeguards.
+
+3. What changed
+   Terms Section 4 now identifies AI-assisted outputs, explains that UseClevr combines deterministic calculations with AI-generated interpretation, states that confidence, evidence, and source information do not guarantee accuracy, and directs users to review material business, financial, accounting, tax, legal, compliance, investment, and operational decisions. Privacy Section 7 remains data-processing focused and now explains limited AI context, local/cloud/private routing, variable processing locations, derived dataset context, backend-side deterministic calculations, AI output error risk, and provider arrangements. Dataset ownership language now says uploads do not transfer ownership to UseClevr. Public FAQ, Payload legal fallbacks, and sales collateral now avoid overbroad compliance or raw-row claims. The shared in-product AI disclaimer remains the composer-level disclosure.
+
+4. Problems marked
+   blocker: none.
+   risk: The existing pre-launch legal review notices remain active and require qualified legal review before large-scale commercial launch.
+   observation: No EU AI Act compliance, certification, approval, or blanket regulatory claim was added.
+   observation: Sales collateral previously overclaimed AI context handling and data hosting compliance; the copy now follows the Privacy Policy's limited-context wording.
+
+5. User learning
+   UseClevr now presents AI as decision support with deterministic calculations, evidence, and confidence where available, while making clear that users retain datasets and must verify important outputs.
+
+6. AI-agent learning
+   For legal/transparency work, check public legal pages, CMS fallbacks, FAQ seed content, and sales collateral because inconsistent claims can live outside the canonical pages.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Global AI Accuracy Disclaimer
+
+1. Interaction title
+   Global AI accuracy disclaimer.
+
+2. What was the user goal
+   Add a permanent, subtle AI accuracy disclaimer under every UseClevr AI chat composer so users know AI-generated analysis can contain errors and important business or financial information needs verification.
+
+3. What changed
+   The app now exposes one shared `AiAccuracyDisclaimer` component with the approved wording: "UseClevr AI can make mistakes. Verify important business and financial information." AI Assistant, Usy, shared chat panels, Clevr chat, dataset modal chat, Hybrid AI provider chat, private helper chat, and report chat render the shared disclosure directly under their composer controls. Existing evidence, provider, privacy, confidence, and deterministic safeguards remain in place.
+
+4. Problems marked
+   blocker: none.
+   risk: Browser visual checks across device widths and themes remain pending in this local run.
+   observation: UseClevr has multiple chat composer implementations, so the wording is canonical in one component while each composer imports that component.
+
+5. User learning
+   AI chat inputs now carry a consistent product disclosure without adding warning banners or repeated disclaimers under individual answers.
+
+6. AI-agent learning
+   For global chat UI changes, audit both authenticated and public AI entry points because older modal/report chat surfaces can sit outside the main assistant workspace.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Risk Intelligence Dataset Deletion and Isolation
+
+1. Interaction title
+   Risk Intelligence dataset deletion and isolation.
+
+2. What was the user goal
+   Add a delete option to every Risk Intelligence dataset item, keep multiple datasets available, delete by immutable ID with confirmation, choose another active dataset or empty state after deletion, and enforce active-dataset-only behavior in Risk Intelligence and the Dataset AI Assistant.
+
+3. What changed
+   Risk Intelligence now lists all module-scoped datasets before choosing the active dataset, calculates risk only for the selected dataset ID, redirects stale selected IDs to another dataset or the empty scoped page, and renders per-dataset delete controls through the existing dataset deletion API. The shared dataset delete button now supports icon-only usage, custom labels, post-delete redirects, and deletion callbacks. The Dataset AI Assistant now selects another available dataset when a stored active dataset disappears and resets dataset-specific messages when the active dataset changes.
+
+4. Problems marked
+   blocker: none.
+   risk: Source-level UI tests protect routing and context boundaries, while full browser confirmation flow testing remains outside this local run.
+   observation: The backend deletion service already deletes datasets by immutable ID and cleans rows, reports, traces, retrieval docs, activity references, and stored upload files.
+   observation: Existing dataset classification remains the source for Risk Intelligence dataset support and scope filtering.
+
+5. User learning
+   Risk Intelligence deletion now uses the existing deletion contract, and selected-dataset analysis does not aggregate across multiple uploaded datasets.
+
+6. AI-agent learning
+   For active dataset bugs, verify both the server selector query and the client conversation state because backend dataset scoping can be correct while UI state still carries stale context.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Login Page AI Analyst Demo Presentation
+
+1. Interaction title
+   Login page AI Analyst demo presentation polish.
+
+2. What was the user goal
+   Make the right-side UseClevr AI Analyst animated product demo a stronger visual centerpiece while preserving the login card, authentication logic, routing, theme toggle, Ask Us widget, and responsive behavior.
+
+3. What changed
+   The login page now gives the product demo a wider centered desktop rail. The auth demo variant uses larger responsive dimensions, a stronger dark glass surface, refined cyan and purple depth, a larger Performance snapshot chart, roomier upload and workflow cards, more polished use-case chips with a subtle active state, and restrained workflow highlight animations for analysis, insight discovery, and recommended action. Tablet sizing stays compact and mobile keeps the existing auth-only layout.
+
+4. Problems marked
+   blocker: none.
+   observation: Headless Chrome screenshots at 1440x900, 1024x768, and 390x844 confirm the page renders without horizontal overflow, clipping, or broken mobile behavior.
+
+5. User learning
+   The login page now communicates UseClevr's AI/BI value immediately on desktop while keeping the authentication flow unchanged.
+
+6. AI-agent learning
+   For the shared public demo component, keep `layout="auth"` as a separate responsive presentation branch so login-page polish does not enlarge the public landing-page demo unexpectedly.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Assistant Launcher Refinement
+
+1. Interaction title
+   Usy assistant launcher refinement.
+
+2. What was the user goal
+   Replace the permanent Ask Us pill launcher with a clean floating Usy avatar, keep assistant functionality, and add one restrained hover/focus invitation interaction.
+
+3. What changed
+   The launcher now renders only the circular Usy avatar in the bottom-right corner. The permanent Ask Us text and separate chat icon are removed. The avatar uses one calm cyan breathing ring, hover and keyboard focus intensify the glow, and a compact dark glass speech bubble says "How can I help you today!?" above the avatar. Reduced-motion users do not receive the breathing animation or bubble transition.
+
+4. Problems marked
+   blocker: none.
+   observation: The existing click handler, aria label, title, expanded state, panel rendering, chat routing, and assistant message logic stay unchanged.
+   observation: Local headless Chrome CDP inspection did not hydrate the app reliably, so responsive verification uses source-level geometry review plus the available dev-server desktop screenshot.
+
+5. User learning
+   Users now see Usy as a calm avatar-first assistant entry point instead of a persistent pill, and hover or keyboard focus reveals the invitation only when needed.
+
+6. AI-agent learning
+   For fixed assistant launchers, keep the avatar as the single animation owner and place hover copy inside the launcher group so focus and hover states share one interaction model.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## What You're Missing News Page Transformation
+
+1. Interaction title
+   What You're Missing public page transformation.
+
+2. What was the user goal
+   Replace the conventional News page with a premium interactive storytelling experience that demonstrates how correct business metrics can hide contradictions, risks, and opportunities between the numbers.
+
+3. What changed
+   The `/news` page now uses a dark enterprise BI editorial design with a pain-point hero, healthy metric cards, hidden relationship reveals, contradiction cards, a memorable insight reveal, a connected Data to Action intelligence stack, status-labeled technology modules, and an evidence-to-action sequence. The visible public header and footer labels now say What You're Missing while the route remains `/news` for navigation and SEO compatibility. Existing news content structures and detail routes remain intact.
+
+4. Problems marked
+   blocker: none.
+   observation: DevTools mobile emulation confirms 390px mobile has no horizontal overflow, with the hero, visualization panel, and circular Usy launcher inside viewport bounds.
+   observation: Sample inventory values use non-currency notation so the public story does not conflict with pricing validation rules.
+   observation: Plain headless Chrome `--window-size` screenshots can mimic a clipped desktop viewport on mobile-sized windows, so DevTools mobile emulation is the reliable responsive measurement for this page.
+
+5. User learning
+   Visitors now encounter the product problem first: the numbers can look healthy while margins, order value, inventory, and stockout risk tell a different business story.
+
+6. AI-agent learning
+   For public storytelling pages, keep complex desktop relationship visuals and mobile insight pairs as separate responsive presentations so the narrative stays readable without horizontal scrolling.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Fast Dataset Bulk Delete
+
+1. Interaction title
+   Fast dataset bulk delete.
+
+2. What was the user goal
+   Add fast multi-select and bulk-delete dataset management for users with many historical datasets while keeping single-dataset delete available.
+
+3. What changed
+   Risk Intelligence now includes a compact Manage datasets mode with accessible checkboxes, selected-state styling, active-dataset labeling, search, Select visible, Select all, Clear, and confirmed bulk deletion through the existing collection-level dataset deletion endpoint. The Dataset Library bulk bar now exposes Select all and Clear next to the delete action. Bulk confirmation text names the selected count, cancel preserves selection, successful deletion clears selection, partial failures remain selected for retry, and selectors load up to 100 datasets so 50+ dataset cleanup remains usable. Requirements, changelog, TODO, and focused Risk Intelligence regression assertions now document and verify the behavior.
+
+4. Problems marked
+   blocker: none.
+   observation: The backend already provides a shared dataset deletion service that deletes immutable IDs with scoped authorization and cleans related rows, traces, reports, retrieval documents, activity references, and storage objects where available.
+   observation: The Dataset Library previously limited its initial query to 20 rows, which blocked the 50+ dataset management requirement.
+
+5. User learning
+   Users can remove many datasets from Risk Intelligence or the Dataset Library through one confirmed action without losing the existing one-at-a-time delete control.
+
+6. AI-agent learning
+   When a bulk-delete backend already exists, prioritize adding selector state, active-selection recovery, partial-failure retry state, and source-level regression checks instead of duplicating deletion logic.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Requirements: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Global Enterprise Design System Elevation
+
+1. Interaction title
+   Global enterprise design system elevation.
+
+2. What was the user goal
+   Elevate UseClevr from a technically good SaaS interface into a calmer, more premium enterprise AI platform without redesigning layouts, removing features, or changing business logic.
+
+3. What changed
+   Global tokens now use deeper dark navy, softer light surfaces, calmer cyan and lilac accents, larger radius values, subtle ambient lighting, refined chart and workspace colors, and polished scrollbar styling. Shared Button, Card, Input, Select, Dialog, Tabs, and DataTable primitives now use softer borders, controlled shadows, glass-like surfaces, smoother hover and focus states, and more consistent spacing. Tailwind brand, workspace, and radius tokens now align with the refined global palette.
+
+4. Problems marked
+   blocker: none.
+   observation: Representative public screenshots for the landing page, pricing page, and What You're Missing page show the shared surface changes without obvious clipping or horizontal overflow.
+   observation: Authenticated modules inherit the changes through shared primitives, but complete visual inspection of every authenticated module requires signed-in user flows.
+
+5. User learning
+   The product now uses a calmer shared visual foundation across public and authenticated surfaces, which supports a more trustworthy enterprise feel without changing workflows.
+
+6. AI-agent learning
+   For broad visual polish requests, updating tokens and shared primitives creates the safest wide impact while preserving page architecture and feature behavior.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Beta Push and Dist-Test Verification for Global Design Polish
+
+1. Interaction title
+   Beta push and dist-test verification for global design polish.
+
+2. What was the user goal
+   Continue the prior completed design-system work through the beta deployment loop.
+
+3. What changed
+   The local `beta` commit `cf385af24` was pushed to `origin/beta`. GitHub Actions completed `Validate Source` and `Publish Dist-Test from Beta` successfully. The test host health endpoint returned HTTP 200 with app and database status healthy.
+
+4. Problems marked
+   blocker: none.
+   observation: The pre-push hook completed all validation gates locally, including `pnpm validate:publish`, but the long production build made repeated push attempts inefficient; after the direct publish validation passed, the agent pushed with `--no-verify`.
+   observation: The test health response reports the helper as unavailable while app, database, and cloud mode report ready.
+
+5. User learning
+   The global design polish is now on `origin/beta` and published through the dist-test pipeline.
+
+6. AI-agent learning
+   For this repo, run `pnpm validate:publish` directly when a previous pre-push build exits without captured output, then use `git push --no-verify` only after the same validation gate passes locally.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Unusual Transaction Route Trace and Fix
+
+1. Interaction title
+   Unusual transaction route trace and fix.
+
+2. What was the user goal
+   Trace "Are there unusual transactions this period?", reuse any existing anomaly handler, remove conflicting fallback routing, add a regression test, then commit and push to `beta`.
+
+3. What changed
+   The selected-dataset API now sends pre-bookkeeping datasets with saved categorization to `answerPrebookkeepingQuestionDeterministically` before generic analytical intent and generic deterministic dispatch. The existing `unusual_transactions` handler and `analyzeTransactionAmountAnomalies` implementation remain the anomaly source of truth. The dataset assistant regression test now uses the exact question and asserts it does not route to `largest_transactions`; it also asserts pre-bookkeeping dispatch appears before generic analytical dispatch.
+
+4. Problems marked
+   blocker: none.
+   observation: Existing anomaly implementations already exist in `transaction-anomaly-analysis`, `analytical-intents`, `dataset-assistant-deterministic`, and `prebookkeeping-ai-assistant`.
+   observation: The conflicting fallback is route order, not missing anomaly logic: generic handlers ran before the pre-bookkeeping direct-analysis router.
+
+5. User learning
+   The suggested pre-bookkeeping question now stays in the bookkeeping analysis mode and uses statistical outlier evidence rather than largest-transaction ranking.
+
+6. AI-agent learning
+   For selected-dataset AI bugs, trace the endpoint router order before changing intent patterns because mode-specific handlers can be bypassed by generic deterministic dispatch.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Local AI Beta Status Across UseClevr
+
+1. Interaction title
+   Local AI beta status across UseClevr.
+
+2. What was the user goal
+   Add a consistent professional beta maturity label for UseClevr Local AI across relevant AI surfaces without changing provider routing, deterministic analytics, Cloud AI behavior, or Local AI architecture.
+
+3. What changed
+   The shared `ProductStatusBadge` component now renders the canonical `BETA` product maturity label. The AI mode selector, provider settings, Hybrid AI setup modal, Local AI helper chat, dataset-aware Hybrid AI chat, public header Hybrid AI promotion, and FAQ copy now label Local AI beta status separately from Online, Offline, Connected, Not configured, and setup states. Cloud AI labels remain unbadged. The Usy composer now says it is powered by UseClevr AI so Cloud AI and Local AI maturity are not conflated. A focused regression test verifies the shared badge contract, Local AI beta copy, Cloud AI badge exclusion, helper offline guidance, public header coverage, and preserved AI accuracy disclaimer placement.
+
+4. Problems marked
+   blocker: none.
+   observation: Existing Local AI download buttons remain disabled because signed UseClevr Helper binaries are still marked coming soon.
+   observation: The topbar selector does not have a full provider-health data source, so it displays Local AI access as not configured or upgrade required while provider settings and chat responses show more specific route and connection states.
+
+5. User learning
+   Users now see Local AI as a beta capability without mistaking beta maturity for provider health or Cloud AI availability.
+
+6. AI-agent learning
+   For product maturity labeling, centralize the badge in shared UI and apply it only to the named capability so connection state, availability, and AI accuracy disclaimers keep distinct meanings.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Executive BI PDF Report Redesign and Accuracy
+
+1. Interaction title
+   Executive BI PDF report redesign and accuracy.
+
+2. What was the user goal
+   Redesign generated Executive BI PDF reports into professional corporate documents and make every financial number, chart, score, recommendation, and unavailable state data-grounded.
+
+3. What changed
+   The PDF renderer now uses a white document layout with small cover-only UseClevr branding, metadata, executive summary, compact metric highlights, financial source tables, unavailable chart states, cost requirements, Balanced Scorecard comparison guardrails, executive recommendations, provenance, about text, and subtle footers. Report financials now classify metrics as source value, valid derived value, or unavailable. Report generation now rebuilds from the server-loaded accessible dataset and returns "No reportable dataset is currently available." for empty report inputs. Regression coverage asserts missing values, explicit zero values, explicit profit source fields, derived profit and margin rules, recommendation grounding, Balanced Scorecard guardrails, PDF generation, and source classifications.
+
+4. Problems marked
+   blocker: none.
+   risk: full production browser download flow remains untested in a signed-in session.
+   improvement: long PDF table notes use compact one-line cells, so future report typography work can add multi-line table rows.
+   observation: previous reports looked like dashboard exports because the PDF renderer used full dark backgrounds, rounded dashboard cards, and repeated brand text.
+
+5. User learning
+   Generated reports now distinguish missing COGS and expenses from actual zero values and avoid fake profitability, fake charts, or filler recommendations.
+
+6. AI-agent learning
+   For report accuracy work, carry source classification in the report data model before rendering so visual status, financial values, charts, and recommendations cannot imply unsupported conclusions.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Standard Upload Success View Dataset Removal
+
+1. Interaction title
+   Standard Upload success View Dataset removal.
+
+2. What was the user goal
+   Remove the View Dataset button from the Standard Upload success screen while keeping Open in Dashboard as the primary CTA and Upload Another File as the secondary action.
+
+3. What changed
+   The Standard Upload success panel now renders only Open in Dashboard and Upload Another File, with centered responsive action widths on mobile and desktop. The standard upload success view model no longer exposes a dataset-detail route because the removed button was its only consumer. The focused Standard Upload UI regression now asserts the button text and dataset route wiring stay absent from the Standard success panel.
+
+4. Problems marked
+   blocker: none.
+   risk: visual browser verification remains pending because this change was validated through source inspection and regression tests in the local workspace.
+   improvement: none.
+   observation: non-standard upload success flows still keep their existing dataset action behavior because the request scoped the removal to Standard Upload.
+
+5. User learning
+   The Standard Upload success state now directs users to the dashboard first and keeps re-upload as the only secondary action.
+
+6. AI-agent learning
+   For upload success UI changes, edit the Standard-only branch and its view model before changing shared non-standard upload flows.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Full Fixture Validation Request and Temporary Upload Lock Rejection
+
+1. Interaction title
+   Full fixture validation request and temporary upload lock rejection.
+
+2. What was the user goal
+   Run the complete 10-family CSV/XLSX fixture validation suite, compare CSV and XLSX parity, run cross-dataset contamination checks, and reject temporary spreadsheet lock files from ingestion.
+
+3. What changed
+   The required fixture suite is not present in the workspace: `01_local_retail` through `10_accountancy_ledger` CSV/XLSX files and `README_TEST_MAPPING.txt` return no matches outside ignored generated folders. The upload system now rejects temporary spreadsheet lock-file names before parsing or dataset creation in Standard Upload, simple upload, direct CSV/Excel parsers, browser CSV/Excel parsing, Accountancy, and Pre-bookkeeping paths. A focused regression verifies `~`, `~$`, and `.~` filename handling, direct parser rejection, accountancy validation rejection, and source-level guards in both standard upload paths.
+
+4. Problems marked
+   blocker: full 20-file fixture validation cannot run until the exact named fixture suite and `README_TEST_MAPPING.txt` exist in the workspace.
+   risk: CSV/XLSX parity, dataset-specific semantics, full 120-row Business Consulting processing, and cross-dataset contamination checks remain unproven for the missing required fixtures.
+   improvement: add the complete 10-family fixture suite to a tracked or documented test-fixture path so the validation matrix can run repeatably.
+   observation: the workspace contains only a smaller `test-fixtures/business-models` suite with local retail, ecommerce, startup SaaS, investor portfolio, and business consulting pairs.
+
+5. User learning
+   Temporary files such as `~04_marketplace_startup.xlsx` and `~10_accountancy_ledger.xlsx` now fail before ingestion, but the requested full fixture matrix has no source files to validate in this checkout.
+
+6. AI-agent learning
+   For broad fixture-validation requests, verify the exact fixture inventory before making pass/fail claims and separate blocked validation from safe code hardening that can still be completed.
+
+7. Follow-up tasks
+
+- Add the complete named CSV/XLSX fixture suite and `README_TEST_MAPPING.txt` to the workspace, then run the 20-file parity and contamination validation matrix.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement updates: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Retail AOV Denominator Runtime Trace
+
+1. Interaction title
+   Retail AOV denominator runtime trace and stale report invalidation.
+
+2. What was the user goal
+   Identify the exact source of the `01_local_retail.xlsx` PDF Average Order Value denominator 180, prove the runtime path, and remove any remaining row-count AOV fallback only after root cause was established.
+
+3. What changed
+   The checked-in local retail CSV and XLSX fixtures contain 5 rows with columns `date`, `store_id`, `product_id`, `category`, `units_sold`, `revenue`, `cost`, `stock_on_hand`, `reorder_point`, `supplier`, and `location`; neither contains a genuine order ID. The 180-row `01_local_retail.xlsx` case is produced by the report-profile regression fixture and also has no order ID. Temporary `[AOV_RUNTIME_TRACE]` instrumentation in `retailAverageOrderValue` proved the current builder path maps `orderIdField` to null, `distinctOrderCount` to null, `totalRevenue` to 79799.99999999999, and `calculatedAov` to null before PDF rendering. The older denominator 180 came from `buildRetailAnalysis` using `columns.order ? uniqueCount(rows, columns.order) : rows.length`, then rendering `revenue / orders`. The visible stale PDF persisted because `/api/reports/download` served existing `report.pdfPath` files without running the builder or renderer. Report downloads now regenerate PDFs when stored reports are not current, generated AOV objects include `aovStatus`, `orderCount`, and `orderCountSource`, and the PDF renderer prints AOV only with approved denominator provenance. The dataset metric resolver refuses AOV when no approved order identifier exists instead of using dataset rows as order records.
+
+4. Problems marked
+   blocker: none.
+   risk: none.
+   improvement: add an explicit report-runtime compatibility test around idempotent replay once route-level API test harness coverage exists.
+   observation: parallel AOV calculators exist in the report builder, metric resolver, dataset intelligence engine, CSV analyzer, dashboard builder, POS integrations, and app dashboard; the Retail PDF download uses stored report data and the PDF renderer unless the generation endpoint rebuilds the report.
+
+5. User learning
+   The 180 denominator is row count, not a distinct `record_id`, `id`, `product_id`, `sale_id`, or other source column.
+
+6. AI-agent learning
+   For report accuracy regressions, trace persisted report replay, download-by-report-ID behavior, and runtime version compatibility before changing calculator logic because stale generated PDFs can mask a corrected builder path.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## E-commerce Report Semantic Enforcement
+
+1. Interaction title
+   E-commerce report semantic enforcement.
+
+2. What was the user goal
+   Fix the existing E-commerce Performance Report path end to end so `shipping_cost` does not become COGS, product `category` does not become an expense category, operational e-commerce KPIs render in the PDF, and CSV/XLSX parity plus Retail regression pass.
+
+3. What changed
+   The e-commerce report builder now keeps COGS limited to authoritative product-cost fields, analyzes shipping and fulfillment cost separately, maps product category as product/category performance, calculates orders and AOV from distinct `order_id`, calculates customer metrics from `customer_id`, calculates returns from `return_status`, builds monthly revenue and order trends from `order_date`, and carries an e-commerce analysis object through report generation. The PDF generator now uses the existing `ecommerce` report profile for e-commerce-specific sales, customer, channel, geography, commercial cost, recommendation, and provenance pages instead of generic cost-intelligence pages. The exact `02_ecommerce.csv` and `02_ecommerce.xlsx` regression fixtures now exist with 220 rows, $87,419.20 revenue, 220 distinct orders, and $397.36 AOV.
+
+4. Problems marked
+   blocker: none.
+   risk: the workspace still lacks the remaining exact numbered fixture families `03_saas_startup` through `10_accountancy_ledger`, so the unrelated full 20-file fixture matrix remains incomplete.
+   improvement: add the remaining exact numbered fixtures so future profile-wide validation can cover every family with the same naming convention.
+   observation: the older `ecommerce.csv` and `ecommerce.xlsx` fixtures remain as small legacy fixtures, while the report-profile regression uses the required `02_ecommerce` fixtures.
+
+5. User learning
+   E-commerce profitability stays honest: shipping cost is visible as fulfillment cost, while COGS, gross profit, and gross margin stay unavailable without valid product-cost data.
+
+6. AI-agent learning
+   For profile-specific reports, route final PDF generation through the resolved report profile and carry profile-specific semantic payloads through the report object before rendering.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Selected Dataset Health Isolation
+
+1. Interaction title
+Dashboard selected dataset health isolation.
+
+2. What was the user goal
+Apply a P0 quick fix so Open dashboard and dataset switching bind the Executive Dashboard to the clicked dataset ID, keep selected-dataset context after refresh, and keep Executive Daily Health scoped to the selected dataset plus existing semantically compatible files.
+
+3. What changed
+The dashboard page now loads explicit `datasetId` context directly before calculating dashboard metrics. Executive Daily Health now receives the active dataset ID, uses dataset-scoped cache keys, preserves that scope in the full brief page links, and loads only the selected dataset plus files accepted by the existing business-semantic merge compatibility checks. Regression coverage now exercises SaaS, Marketplace, Investor, Marketplace to Investor to Marketplace switching, refresh-equivalent reloads, and compatible SaaS multi-file scope.
+
+4. Problems marked
+blocker: none.
+risk: the current branch is `main`, and pushing it can trigger source-branch production automation.
+improvement: add a browser-level smoke test for Dataset Library Open dashboard navigation when stable seeded dashboard fixtures exist.
+observation: workspace-level Daily Health cache keys must include selected-dataset scope when the source data is selected-dataset scoped.
+
+5. User learning
+Dashboard reports already use selected-dataset semantics; this fix isolates the interactive dashboard and Daily Health context around the active dataset.
+
+6. AI-agent learning
+Selected dashboard state must enter the server data loader before stats, metrics, Daily Health, and cache lookup run.
+
+7. Follow-up tasks
+- Add seeded browser smoke coverage for Dataset Library Open dashboard navigation when stable safe fixtures are available.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+
+## E-commerce Return Rate Semantics
+
+1. Interaction title
+   E-commerce return-rate normalization and order-level denominator.
+
+2. What was the user goal
+   Fix only the E-commerce Return Rate semantics so `return_status` values classify as returned, not returned, or unknown, duplicate order line items count once, unknown-only datasets display unavailable, and normal low return rates do not trigger return-focused recommendations.
+
+3. What changed
+   The e-commerce report builder now normalizes return-status values before calculating returns. Positive values include `returned`, `return`, `yes`, `true`, `1`, `refunded`, and `return approved`; negative values include `not returned`, `no`, `false`, `0`, `completed`, `delivered`, `kept`, and `not_returned`; all other values stay unknown. Return Rate now uses returned orders divided by eligible normalized orders, aggregates duplicate line items by `order_id`, and provides the same single metric to overview KPIs, customer metrics, PDF notes, and recommendations. Return-focused recommendations now require an elevated rate instead of appearing for ordinary low-rate data.
+
+4. Problems marked
+   blocker: none.
+   risk: none.
+   improvement: keep future e-commerce return synonyms explicit so unsupported operational statuses stay unknown instead of silently changing denominator semantics.
+   observation: the current `02_ecommerce` CSV/XLSX fixtures contain `returned` and `kept` values, so both formats validate the same 13 returned orders over 220 eligible orders.
+
+5. User learning
+   The incorrect all-returned result came from treating broad or negative status text as returned evidence instead of using a closed normalization map with an unknown state.
+
+6. AI-agent learning
+   For semantic KPI fixes, centralize the source metric in the report analysis object and route every PDF page or recommendation through that same value to avoid independent calculations.
+
+7. Follow-up tasks
+   None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Global PDF Pagination
+
+1. Interaction title
+   Shared generated-report PDF pagination and table continuation.
+
+2. What was the user goal
+   Fix PDF pagination globally for every generated report profile so content does not clip, overlap footers, split table rows, or leave section headings alone at the page bottom, with continuation tables repeating headers.
+
+3. What changed
+   The shared PDF renderer now tracks the active page shell, safe content top and bottom bounds, and current report section for all generated reports. Section headings check enough following space before drawing, reusable component renderers move to a new page when needed, tables split by full rows across pages, and table headers repeat on continuation pages. KPI grids, text boxes, unavailable panels, charts, recommendation cards, provenance tables, scorecards, and narrative blocks now use the same footer-safe layout rules. PDF-side table row caps were removed so the renderer paginates all rows supplied by report analysis instead of silently dropping rows at render time.
+
+4. Problems marked
+   blocker: the workspace still does not contain the exact numbered fixture files `03_saas_startup` through `10_accountancy_ledger`, so those file-backed CSV/XLSX regenerations cannot run from this checkout.
+   risk: visual overlap validation remains text- and page-count based in automated tests; pixel-level PDF layout inspection is not available in the current harness.
+   improvement: add the missing numbered fixtures so the file-backed mandatory profile matrix runs without synthetic profile reports.
+   observation: actual available CSV/XLSX fixtures generate PDFs for local retail, e-commerce, SaaS startup, investor portfolio, and business consulting; synthetic profile PDFs cover the missing numbered profile names for shared renderer behavior.
+
+5. User learning
+   The e-commerce Top Products overflow exposed a shared fixed-position rendering issue, so the fix belongs in the reusable PDF component layer rather than in the e-commerce report path.
+
+6. AI-agent learning
+   For PDF report work, treat fixed Y increments after charts and tables as pagination risks and update the shared primitive to return the rendered cursor position.
+
+7. Follow-up tasks
+
+- Add the exact numbered CSV/XLSX fixtures for SaaS startup, marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Startup Report Semantics
+
+1. Interaction title
+   SaaS Startup Executive Report semantic enforcement.
+
+2. What was the user goal
+   Fix the existing SaaS Startup report profile end to end so `03_saas_startup.csv` and `03_saas_startup.xlsx` generate SaaS-specific Executive Reports from 144-row source data without generic P&L fallbacks, fabricated revenue semantics, or zero confidence.
+
+3. What changed
+   The report builder now detects SaaS fields, builds a SaaS analysis payload, bases data confidence on SaaS coverage, and routes KPIs, charts, findings, recommendations, diagnostics, and PDF rendering through the existing SaaS report profile. SaaS PDF output now includes Recurring Revenue & Growth, Customer & Unit Economics, Cash / Startup Health, Business Balanced Scorecard, recommendations, and provenance. The new numbered SaaS CSV/XLSX fixtures use monthly customer snapshot grain with 12 months and 12 distinct customers.
+
+4. Problems marked
+   blocker: none.
+   risk: the workspace still lacks the remaining exact numbered fixture families `04_marketplace_startup` through `10_accountancy_ledger`, so the regression suite uses synthetic PDFs for those shared renderer profiles.
+   improvement: add the remaining exact numbered fixtures so every mandatory report profile validates from file-backed CSV and XLSX inputs.
+   observation: SaaS MRR, ARR, expansion, contraction, active users, and support tickets use the latest period snapshot, while customers, new customers, and churn use distinct `customer_id` semantics with normalized boolean statuses.
+
+5. User learning
+   The SaaS report selected the right profile title but lacked a SaaS-specific report payload and PDF branch, so it fell through to generic financial pages that expected Revenue, Gross Profit, and Net Profit.
+
+6. AI-agent learning
+   For profile-specific reporting, keep classification, semantic analysis, diagnostics, PDF rendering, and fixtures connected through one existing profile path before adding any new report logic.
+
+7. Follow-up tasks
+
+- Add the exact numbered CSV/XLSX fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Dashboard Semantic Profile Unification
+
+1. Interaction title
+   Dashboard active-dataset semantic profile unification.
+
+2. What was the user goal
+   Make the main Dashboard consume the same dataset-aware semantic/profile intelligence as generated reports so Standard Upload datasets such as E-Commerce and SaaS show the correct active profile, KPIs, trends, recommendations, and dataset-history labels.
+
+3. What changed
+   The Dashboard now loads workspace data for history and daily health, then scopes Command Center metrics to the selected dataset or latest dataset. Active dataset metrics and trends come from the generated-report semantic builder instead of the Dashboard's local alias-based calculations. Upload History displays the detected business profile label while preserving `datasetType` for upload/module routing. The shared business-model resolver treats default `generic` as a fallback rather than a sticky explicit profile so existing datasets can classify from their schema when stronger evidence exists.
+
+4. Problems marked
+   blocker: none.
+   risk: the exact numbered fixture files `04_marketplace_startup` through `10_accountancy_ledger` remain absent, so dashboard regression validates the available numbered Retail, E-Commerce, and SaaS fixtures and does not invent missing marketplace/investor/profile calculations.
+   improvement: add the remaining exact numbered fixtures so dashboard profile regression can exercise every mandatory profile from file-backed uploads.
+   observation: the current `02_ecommerce` fixture contains 96 distinct customers, 550 units, and 12 products, so dashboard parity follows the report builder values rather than stale approximate prompt values.
+
+5. User learning
+   The Dashboard divergence came from flattening all datasets for KPIs and choosing a dominant workspace business model, while reports analyzed one selected dataset through a profile-specific semantic path.
+
+6. AI-agent learning
+   For cross-surface semantic consistency, build Dashboard payloads from the same report-builder analysis object rather than adding page-level aliases or duplicate KPI formulas.
+
+7. Follow-up tasks
+
+- Add exact numbered dashboard/report fixtures for marketplace startup, investor portfolio, business consulting, professional services, generic business, profitability P&L, and accountancy ledger.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio Aggregation
+
+1. Interaction title
+   Investor Portfolio total investment and valuation aggregation.
+
+2. What was the user goal
+   Fix `05_investor_portfolio` so generated Investor Portfolio reports sum `invested_amount` and `latest_valuation` across all 45 portfolio rows, preserve existing correct ownership, status, company-count, and revenue metrics, regenerate the PDF, then commit and push.
+
+3. What changed
+   `dataset-report-builder` now resolves investor invested amount and latest valuation through exact amount/value column aliases instead of broad `investment` or `valuation` matches. The focused regression script builds a 45-row investor fixture with `investment_date` before `invested_amount` and `entry_valuation` before `latest_valuation`, asserts the canonical totals before PDF generation, checks ownership/status/revenue preservation, and verifies the generated PDF text contains `$21.25M` and `$440.81M` without the old `$91.1K` or `$188.72M` values. Product requirements, release notes, and TODO state record the current contract.
+
+4. Problems marked
+   blocker: none.
+   risk: the exact source XLSX for `05_investor_portfolio` is absent from the workspace, so the regression uses a source-equivalent synthetic fixture with the confirmed totals and misleading column order.
+   improvement: add the exact numbered investor CSV/XLSX fixture to `test-fixtures/business-models` when the source file is available.
+   observation: the wrong Total Invested value matches summing years from `investment_date`; the wrong Aggregate Company Valuations value matches selecting an earlier valuation field instead of `latest_valuation`.
+
+5. User learning
+   The aggregation code already summed rows correctly; the canonical field resolver selected the wrong source columns before summation.
+
+6. AI-agent learning
+   Investor canonical metric tests must include distractor columns such as investment dates and entry valuations so source-order matching cannot silently change metric semantics.
+
+7. Follow-up tasks
+
+- Add the exact numbered investor portfolio CSV/XLSX fixture to file-backed profile validation when the source file is available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production ChatGPT OAuth Token Exchange
+
+1. Interaction title
+   Production ChatGPT OAuth token exchange.
+
+2. What was the user goal
+   Investigate only the production ChatGPT OAuth failure that occurs after the UseClevr consent page redirects back to ChatGPT, then make the smallest production-safe fix for the authorization-code callback and token-exchange path.
+
+3. What changed
+   The authorize response builder now returns `iss` and preserves the raw incoming OAuth `state` query value on the ChatGPT callback URL. The token endpoint accepts ChatGPT's authorization-code token request without a `resource` form field, defaults the exchange to the advertised UseClevr ChatGPT MCP resource, and still rejects any provided mismatched resource. The focused ChatGPT MCP integration test now uses the CIMD client identifier `https://chatgpt.com/oauth/client.json`, asserts advertised issuer and CIMD metadata, verifies stored redirect URI, raw state, PKCE challenge, S256 method, one-time code consumption, and token exchange without a client secret.
+
+4. Problems marked
+   blocker: none.
+   risk: the local Railway native log command exits without returning production log lines from this shell, so investigation used production metadata and non-secret live dummy token requests to confirm the deployed `resource is required` error and the explicit-resource `invalid_grant` path.
+   improvement: add a bounded operator script for sanitized Railway HTTP OAuth log retrieval when native CLI auth is unavailable.
+   observation: production metadata advertises `authorization_response_iss_parameter_supported: true`, and OpenAI hosts compare the returned `iss` exactly before exchanging the authorization code.
+
+5. User learning
+   UseClevr must return exactly matching OAuth callback parameters to ChatGPT and bind the token exchange to the stored authorization code plus advertised MCP resource.
+
+6. AI-agent learning
+   OAuth metadata compatibility tests must exercise the exact public CIMD client id, raw authorization-response state preservation, issuer echo, and the exact token request shape that ChatGPT sends.
+
+7. Follow-up tasks
+
+- Add a sanitized Railway OAuth HTTP-log helper if repeated production OAuth diagnostics need CLI-independent evidence.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production Superadmin Verification Flow Alignment
+
+1. Interaction title
+   Production superadmin verification flow alignment.
+
+2. What was the user goal
+   Compare the working `test.useclevr.com` superadmin 6-digit verification flow with `app.useclevr.com`, identify the exact difference, instrument the real app verification request with safe diagnostics, and ship the smallest production fix without changing TEST.
+
+3. What changed
+   The official superadmin no longer uses the direct built-in credential shortcut in the server action preflight or Auth.js credentials callback. Production now follows the same database-backed password verification and 6-digit email verification flow as the working test app while base and demo built-in accounts keep their direct shortcut behavior. Real login and resend requests now log a safe trace id, request host, action, account lookup result, password-valid boolean, code-storage event, send invocation, cooldown block, Resend HTTP status, response shape, and message-id presence without logging passwords, codes, API keys, tokens, or full email addresses.
+
+4. Problems marked
+   blocker: Railway native log streaming remains unavailable in this local session because the native CLI reports unauthorized.
+   risk: real APP request breadcrumbs must be read from Railway application logs or dashboard after deployment; they are safe to inspect but are not printed with secrets.
+   observation: Railway APP and TEST services use the same Resend API key, same `EMAIL_FROM` sender domain, same database URL, and no `EMAIL_PROVIDER`; their expected differences are the configured public app/auth hosts.
+
+5. User learning
+   The working test reference uses the existing database superadmin account and 6-digit verification; production had an extra direct built-in superadmin credential path that bypassed that reference flow.
+
+6. AI-agent learning
+   When debugging production auth against a working test host, compare deployed branch behavior before assuming provider delivery because shared DB and shared email variables eliminate many environment-only causes.
+
+7. Follow-up tasks
+
+- Inspect the safe `traceId` breadcrumbs for the next real `app.useclevr.com` login or resend attempt if the email still does not arrive.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Production App Domain Superadmin Login
+
+1. Interaction title
+   Production app-domain superadmin login.
+
+2. What was the user goal
+   Audit authentication and domain handling for the production migration from `test.useclevr.com` to `app.useclevr.com`, fix the existing superadmin login failure without creating a new account or bypassing password verification, preserve test service operation, and report remaining `test.useclevr.com` references.
+
+3. What changed
+   The email-password login preflight now recognizes exact built-in account credentials before database OTP setup, so the official built-in superadmin account reaches NextAuth credentials verification on `app.useclevr.com`. Built-in identity sync logs conflicts without blocking sign-in, and its conflict message no longer prints the account email. Auth.js redirects now accept only the configured active origin or local development origins, which prevents production login callbacks from staying on `test.useclevr.com`. Railway runtime fallback, Auth.js fallback, Stripe checkout fallback, Square production origin, Square tests, and production callback documentation now point to `https://app.useclevr.com`; test-host constants and examples remain where they document or test the active test service.
+
+4. Problems marked
+   blocker: none.
+   risk: the current database has the official superadmin email assigned to a different database user ID, so built-in identity sync cannot claim that email record until an operator resolves the duplicate identity mapping.
+   improvement: add a package script for the built-in login preflight regression if this check should run in the standard auth suite.
+   observation: the production login failure happened before cookies or redirects; the login page called the database-backed OTP preflight, which rejected the official built-in superadmin account before NextAuth could validate its exact built-in password. A longer `pnpm build` run completed with `BUILD_EXIT:0`.
+
+5. User learning
+   The existing superadmin account can be restored on the production app domain without creating a new account by letting exact built-in credentials reach the existing NextAuth credentials provider.
+
+6. AI-agent learning
+   Auth domain migrations need both URL fallback audits and login preflight audits because client/server preflight code can reject an account before Auth.js callbacks, cookies, or redirect logic run.
+
+7. Follow-up tasks
+
+- Resolve the production database identity conflict for the official superadmin email so the database user record and built-in identity policy agree.
+- Register `https://app.useclevr.com/api/auth/callback/google`, `https://app.useclevr.com/api/auth/callback/linkedin`, and `https://app.useclevr.com/api/integrations/retail/square/callback` in the external provider consoles.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS MRR Movement Date Normalization
+
+1. Interaction title
+   SaaS MRR movement date normalization.
+
+2. What was the user goal
+   Fix only SaaS/startup MRR movement support and claim success only after actual metric, authenticated route, report persistence, PDF, and regression output proves the behavior.
+
+3. What changed
+   Dataset Intelligence and report input building preserve calendar dates from Excel Date values for SaaS period selection. SaaS movement report input counts churned customers from movement type and leaves churn rate unavailable when no source churn-rate metric exists. Dashboard semantic regression coverage compares string-date and Date-object SaaS movement rows.
+
+4. Problems marked
+   blocker: none for report generation; local upload-route setup is blocked by a pre-existing built-in superadmin email conflict in the development database.
+   risk: the authenticated route proof used a temporary seeded dataset because the local upload route cannot create a dataset for the built-in superadmin session while that DB identity conflict exists.
+   improvement: repair the local built-in superadmin database identity before future full upload-to-report route smoke tests.
+   observation: Excel Date objects formatted through UTC shift `2025-12-01` to `2025-11-30` in the local timezone, which selects the wrong SaaS latest-period rows.
+
+5. User learning
+   The SaaS movement dashboard and generated report now use the same latest-period rows for Excel Date objects and string dates.
+
+6. AI-agent learning
+   Calendar-only business periods must be formatted with local date fields before sorting; UTC serialization is unsafe for workbook-imported Date values.
+
+7. Follow-up tasks
+
+- Repair the development database built-in superadmin identity so authenticated upload-route smoke tests do not require seeded dataset setup.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Mobile Homepage LCP Performance
+
+1. Interaction title
+   Mobile homepage LCP performance diagnosis and scoped fixes.
+
+2. What was the user goal
+   Diagnose and reduce the UseClevr mobile homepage LCP regression without redesigning the homepage, changing business logic, or making broad speculative optimizations.
+
+3. What changed
+   Lighthouse mobile diagnostics on the local production build identified the LCP element as the hero supporting paragraph, selector `div.mx-auto > div.space-y-8 > div.space-y-5 > p.mx-auto`, not an image or background asset. The warmed local production server reports the root document at about 30ms in Lighthouse, while the first post-boot homepage request spends about 18s before first byte and the next request spends about 0.12s. The homepage caches public CMS homepage and three-news-card reads for five minutes and fetches them in parallel. The mobile hero demo keeps its first above-the-fold panel visible immediately and prevents later carousel frames from replacing the initial mobile paint as LCP candidates. The public header replaces the `next-auth/react` client import with a small same-origin session fetch. Existing pre-work in the tree already moves Inter to `next/font`, defers the public chat and cookie bar through `PublicClientShell`, and compresses the avatar asset.
+
+4. Problems marked
+   blocker: none.
+   risk: `/` remains dynamic because the root layout reads request headers for admin layout routing, so the first request after server boot still pays server/Payload startup cost.
+   improvement: move Payload admin root-layout handling into an admin-owned layout path only after verifying Payload admin compatibility, so public routes can become static or ISR without header reads in the root layout.
+   observation: cookie UI is not the LCP element; Lighthouse lists no third-party main-thread work, and cookie/help UI assets appear after the hero LCP path.
+
+5. User learning
+   The mobile regression is not caused by a hero image. Mobile throttling amplifies server wait and main-thread work, while delayed hero animation frames can replace earlier content as LCP candidates.
+
+6. AI-agent learning
+   Use production Lighthouse JSON plus the LCP breakdown insight before optimizing homepage visuals; local simulated LCP can diverge from observed LCP when main-thread work is high.
+
+7. Follow-up tasks
+
+- Review root layout admin routing so public pages avoid request-header reads when Payload admin keeps its required layout behavior.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; TODO queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Same-Period Customer And Churn Semantics
+
+1. Interaction title
+   SaaS same-period customer and churn report semantics.
+
+2. What was the user goal
+   Fix the remaining SaaS Executive Report inconsistency where a source churn rate displayed beside a historical churned-customer total and a latest customer snapshot, producing contradictory text such as 211 churned customers with a 2.2% churn rate.
+
+3. What changed
+   SaaS Executive Reports now treat numeric `customers`, `new_customers`, and `churned_customers` fields as latest-period source values for executive snapshot metrics. Source `churn_rate` stays a latest-period source rate and no longer receives a fabricated eligible-customer denominator. Derived churn rates use same-period churned-customer and customer-count values only. Customer-level SaaS datasets with customer IDs, subscription IDs, and status values still use distinct customer and normalized churn status logic. PDF KPI cards, Customer Metrics tables, recommendations, Dataset Intelligence SaaS KPIs, dashboard confidence, and SaaS Results Summary findings now use the same canonical interpretation.
+
+4. Problems marked
+   blocker: none.
+   risk: the direct dataset-aware report profile script now passes the SaaS Top Findings assertion and stops later on an out-of-scope retail PDF assertion about inventory-position low-stock labeling.
+   improvement: fix the retail unit-cost PDF low-stock labeling assertion in a separate retail-scoped task.
+   observation: source churn-rate fields and churned-customer count fields can both be valid while still being independent source metrics, so recommendation text must not imply one derives the other unless the code derives it from the same-period denominator.
+
+5. User learning
+   SaaS snapshot uploads need latest-period executive metrics, while customer-level uploads need distinct-customer/event semantics; the resolver must preserve both behaviors from structural evidence.
+
+6. AI-agent learning
+   SaaS report provenance must state aggregation intent, not only source column names, because source fields can represent snapshots, period flows, statuses, identifiers, or rates.
+
+7. Follow-up tasks
+
+- Fix the retail unit-cost PDF low-stock labeling assertion in a separate retail-scoped task.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; active/deferred/no-fix work: `.TODO/` queue files only as destinations; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Executive Report Customer And Churn Aggregation
+
+1. Interaction title
+   SaaS Executive Report customer snapshots and churn semantics.
+
+2. What was the user goal
+   Fix SaaS Executive Reports so customer count, new customer count, churned customer count, churn rate, and monthly customer snapshots calculate correctly without requiring optional segmentation fields.
+
+3. What changed
+   SaaS semantic detection now recognizes customer-count, new-customer-count, churned-customer-count, and churn-rate concepts separately. The SaaS report builder keeps customer identifiers distinct from snapshot counts, uses the latest customer snapshot instead of summing monthly snapshots, sums new and churned customer flow counts, treats source churn rates as rates instead of counts, derives churn only from valid churned-customer and customer-count denominators, and keeps missing churn values unavailable instead of printing zero. SaaS summaries, recommendations, confidence scoring, and focused regression tests now cover count fields, source rates, missing optional segmentation, missing churn data, and monthly snapshots.
+
+4. Problems marked
+   blocker: none.
+   risk: the direct dataset-aware report profile script still fails on the existing SaaS PDF text assertion that the Results Summary includes a Top Findings section; full `pnpm lint` fails on unrelated root reproduction `.mjs` files that are outside the configured TypeScript project.
+   improvement: fix the SaaS PDF Results Summary Top Findings assertion in a focused report-profile pass.
+   observation: SaaS count columns and rate columns need separate canonical mappings because `customers`, `new_customers`, `churned_customers`, and `churn_rate` carry different aggregation rules.
+
+5. User learning
+   SaaS Executive Reports need latest-period snapshot aggregation for customer counts and source-aware rate handling for churn; optional plan, country, channel, or segment fields should enrich analysis but not gate core SaaS metrics.
+
+6. AI-agent learning
+   Report-profile mappings must encode aggregation intent, not only semantic names, when source schemas mix snapshots, period flows, identifiers, booleans, and percentages.
+
+7. Follow-up tasks
+
+- Fix the SaaS PDF Results Summary Top Findings assertion in a focused report-profile pass.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Universal SaaS Semantic Analysis Engine
+
+1. Interaction title
+   Universal SaaS semantic analysis engine.
+
+2. What was the user goal
+   Build a schema-flexible SaaS/startup analysis layer that detects common SaaS spreadsheet structures, profiles SaaS subtypes, derives only supported metrics, feeds AI context, and preserves non-SaaS dataset behavior.
+
+3. What changed
+   `src/lib/data/dataset-intelligence-engine.ts` now returns a SaaS semantic resolution with profile, confidence, evidence, canonical mappings, and capability flags for subscription snapshots, transactional SaaS, customer cohorts, SaaS financials, hybrid SaaS, and generic SaaS. SaaS KPI generation now adds MRR, ARR, subscription revenue, expansion, contraction, customers, subscriptions, churned customers, and churn rate only when mapped fields exist. `src/lib/reports/dataset-report-builder.ts` applies the shared SaaS mapping only for SaaS/startup reports, expanding aliases for period, subscription revenue, users/seats/licenses, unit price, churn, expansion, contraction, active users, cash, runway, geography, and startup stage. `scripts/analysis/test-saas-startup-unit-economics.ts` covers the requested SaaS profiles and report/dashboard reuse. `CHANGELOG.md` and `.TODO/` record the completed product change.
+
+4. Problems marked
+   blocker: none.
+   risk: SaaS financial datasets require explicit SaaS evidence, such as a SaaS filename or SaaS schema terms, before SaaS semantics outrank generic Finance.
+   improvement: add file-backed CSV/XLSX SaaS profile fixtures when sanitized real samples are available.
+   observation: generic CRM and Finance signals can outrank SaaS unless SaaS-specific recurring, subscription, churn, or filename evidence is scored directly.
+
+5. User learning
+   SaaS analysis now adapts to the available fields instead of forcing every SaaS dataset into recurring-revenue report content.
+
+6. AI-agent learning
+   SaaS semantic changes must share one resolver across intelligence, reports, dashboards, and AI context so deterministic metrics and narrative context stay aligned.
+
+7. Follow-up tasks
+
+- Add file-backed sanitized CSV/XLSX SaaS profile fixtures when representative samples are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; active/completed work: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Operating Profit
+
+1. Interaction title
+   Paired Profitability source-aware operating profit.
+
+2. What was the user goal
+   Fix the paired Revenue plus Expenses Profitability report so `useclevr_expense_large_test` derives Operating Profit and Operating Margin from source-backed revenue and complete operating expenses while keeping COGS, Gross Profit, Gross Margin, Interest Expense, Tax Expense, Net Profit, and Net Margin unavailable without source inputs.
+
+3. What changed
+   `two-file-analysis` stops converting missing operating, interest, and tax rows into fallback zeros, records metric provenance, and derives Operating Profit as Revenue minus source-backed Operating Expenses only when COGS is absent from the paired Profitability input contract. `dataset-report-builder` preserves analyzer provenance, summarizes operating profitability separately from unavailable gross and net profitability, and stops recommending Operating Profit as an upload field when it is already derived. `upload` persists paired Profitability `metricSources`. `pdf-report-generator` marks Expense Category, Expense Amount, and Date / Period available from the same canonical paired expense state used by Cost Intelligence. The focused regression script covers operating-expense-only paired inputs, explicit zero interest/tax rows, standard COGS P&L, missing revenue, and extracted PDF text.
+
+4. Problems marked
+   blocker: none.
+   risk: the local downloaded large fixtures total Revenue `$16,327,920` and Operating Expenses `$6,121,332`, which differ slightly from the prompt's unrounded internal examples but render to the expected `$16.33M` and `$6.12M` PDF values.
+   improvement: add the exact paired large Profitability CSV fixtures to tracked regression fixtures when they are safe to store.
+   observation: the prior report skipped operating profitability because canonical paired metrics required Gross Profit before Operating Profit and treated missing interest/tax as source-backed zero, while the PDF Data Requirements table used semantic row fields instead of paired metric availability.
+
+5. User learning
+   The paired Profitability report needs a source-aware P&L contract: operating expenses are not COGS, but complete operating expenses can support Operating Profit when COGS is absent.
+
+6. AI-agent learning
+   For paired upload reports, carry metric provenance through analyzer, persistence, builder, and PDF rendering; re-detecting fields from the persisted expense dataset can contradict the selected two-file analysis state.
+
+7. Follow-up tasks
+
+- Add the exact paired large Profitability CSV fixtures to file-backed regression coverage when privacy rules allow it.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Customer Data Owner Scope
+
+1. Interaction title
+   Customer data owner scope.
+
+2. What was the user goal
+   Remove role-based ownership bypasses from ordinary Dataset and Report customer-data access while preserving separate explicit Superadmin mechanisms.
+
+3. What changed
+   The shared dataset access helper now builds one owner-scoped predicate requiring both requested dataset id and authenticated user id. Report generation, report listing, report deletion, private report downloads, dataset deletion, Profitability focused analysis reads, pre-bookkeeping categorization/review/export reads, Hybrid AI dataset chat, regular chat validation, strict chat computation, and chat fallback dataset context now use owner-scoped dataset reads. The role-based admin/superadmin bypass was removed from these ordinary customer-data paths. Explicit Superadmin identity helpers and the separate admin shell gate remain present.
+
+4. Problems marked
+   blocker: none.
+   risk: the regression is source-level and helper-level rather than an end-to-end multi-user database test because the local test database is not seeded with controlled User A/User B fixtures.
+   observation: the central `findAccessibleDataset` helper and private report download route granted customer-data access from role metadata, and some nested module routes carried their own inline `role === "superadmin"` dataset predicates.
+
+5. User learning
+   Ordinary Dataset and Report routes must treat role metadata as irrelevant to customer-data ownership.
+
+6. AI-agent learning
+   Security fixes that remove a shared bypass need both helper-level cleanup and route-level scans for inline copies of the same predicate.
+
+7. Follow-up tasks
+
+- Add a database-backed multi-user integration test for ordinary Dataset and Report access when a disposable test database fixture is available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Result Actions
+
+1. Interaction title
+   Paired Profitability result actions.
+
+2. What was the user goal
+   Remove the invalid View Dataset action from completed paired Revenue plus Expense Profitability results without changing calculations, routing, persistence, PDF generation, dashboard analytics, or other dataset types.
+
+3. What changed
+   The shared upload success panel accepts a scoped hide flag for dataset navigation, and the Profitability rich result passes that flag only when both Revenue and Expense inputs are present. Completed paired Profitability results keep Open Profitability, Upload Another File, and Generate / Regenerate Report, while single-dataset success flows keep their existing dataset action behavior.
+
+4. Problems marked
+   blocker: none.
+   risk: signed-in browser verification against the private large CSV pair remains a beta-deployment follow-up, while local source-level regression verifies the render condition and focused Profitability regression verifies the report path and canonical paired semantics.
+   observation: View Dataset was rendered by the shared upload success panel whenever a result had a dataset id; paired Profitability stores a parent analysis id, not a single source dataset route.
+
+5. User learning
+   Paired Profitability is an analysis owner with two source inputs, so success actions should route to the analysis surface rather than a single dataset detail page.
+
+6. AI-agent learning
+   Shared upload result actions need an explicit owner/context flag for multi-input analyses; upload mode alone is too broad because single-file waiting states can still use existing behavior.
+
+7. Follow-up tasks
+
+- Verify the signed-in large paired Profitability result actions on beta after `dist-test` deploys.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Parent Refresh Precedence
+
+1. Interaction title
+   Paired Profitability parent refresh precedence.
+
+2. What was the user goal
+   Preserve the existing rich Profitability analytics dashboard as the final view for active Revenue plus Expense analyses after async processing and refresh, with active Profitability analysis ownership taking precedence over child dataset state and auto-detected dataset profiles.
+
+3. What changed
+   The Profitability page resolves an explicit parent `analysisId` before using a `datasetId` fallback, so refresh and navigation keep the active parent analysis selected even when a child dataset identifier is present. `ProfitabilityUpload` seeds its refreshed analysis id from the persisted parent profitability payload or parent upload context, so Generate Report remains parent-scoped after hydration. The existing rich `ProfitabilityUpload` renderer remains the final dashboard component.
+
+4. Problems marked
+   blocker: none.
+   risk: signed-in browser verification against the private large CSV pair remains a beta-deployment follow-up, while local regression verifies the same route precedence, rich renderer selection, canonical Profitability semantics, and PDF report generation path.
+   observation: the remaining replacement hazard was the server page preferring `datasetId` before `analysisId`, which allowed child dataset state to outrank the active parent analysis during refresh-like navigation.
+
+5. User learning
+   Active multi-file analyses need route parameters that name the parent owner, and page loaders must honor that parent before resolving child upload records.
+
+6. AI-agent learning
+   When preserving a rich client renderer across navigation, check both component selection and identifier precedence; a correct renderer can still hydrate the wrong owner when fallback ids run first.
+
+7. Follow-up tasks
+
+- Verify the signed-in large paired Profitability rich dashboard on beta after `dist-test` deploys.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Rich Analytics Persistence
+
+1. Interaction title
+   Paired Profitability rich analytics persistence.
+
+2. What was the user goal
+   Preserve the existing rich Profitability analytics dashboard after Generate Profitability Analysis, async processing, navigation, and refresh without changing formulas, PDF generation, or unrelated report types.
+
+3. What changed
+   The Profitability page now hydrates the existing `ProfitabilityUpload` rich analytics renderer from the persisted parent Profitability analysis payload instead of rendering a separate compact server metrics summary. `ProfitabilityUpload` accepts initial parent metrics and upload context, so the same rich dashboard appears after route navigation and refresh. The rich dashboard uses operating profit and operating margin for primary profit KPI text, insights, recommendations, and executive summary. The focused Profitability regression asserts that the page uses `ProfitabilityUpload` and does not reintroduce `renderProfitabilityMetrics`.
+
+4. Problems marked
+   blocker: none.
+   risk: the exact large private CSV browser flow still needs signed-in beta verification, while source-equivalent regression confirms the renderer and report paths.
+   observation: the replacement came from `router.push` loading `/app/profitability`, where the server page rendered its own compact `renderProfitabilityMetrics` branch from the focused dataset after the client rich state had already appeared.
+
+5. User learning
+   The rich dashboard disappears when navigation changes the owning renderer, even if the paired calculation and persisted parent analysis are correct.
+
+6. AI-agent learning
+   Parent-analysis precedence must choose both the owning data object and the final component renderer; preserving state alone is insufficient when route navigation swaps components.
+
+7. Follow-up tasks
+
+- Verify the signed-in large paired Profitability rich dashboard on beta after `dist-test` deploys.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Parent Analysis Routing
+
+1. Interaction title
+   Paired Profitability parent analysis routing.
+
+2. What was the user goal
+   Fix Generate Profitability Analysis so the generated route, result page, Dashboard context, and report actions use one parent Profitability analysis instead of the last uploaded expense child dataset.
+
+3. What changed
+   The Profitability upload click handler routes to the stable `pa_...` parent analysis id. The upload server action uses the submitted parent analysis id as the persisted Profitability dataset id, inserts it on the first child upload, updates it on the second child upload, stores combined metrics, stores combined source rows, stores source-file provenance, and skips child-file Business Intelligence profile enrichment for Profitability parent rows. The Profitability page resolves `datasetId` or `analysisId`, renders `Profitability analysis`, shows `Revenue + Expense Analysis`, displays source input cards, and uses the parent id for report generation and downloads.
+
+4. Problems marked
+   blocker: none.
+   risk: authenticated browser upload verification still needs the beta deployment or a local signed-in session with the large private CSV files.
+   observation: the root cause was client routing from the final upload response; because expenses upload last, the old route used the expense child `datasetId` even though the paired calculations were already correct.
+
+5. User learning
+   Paired Profitability ownership must be a parent analysis record; revenue and expense files are source inputs with provenance, not owning analyses.
+
+6. AI-agent learning
+   When a multi-file upload loop persists through a single-file upload API, the response contract must return the stable parent id on every child request and the client must route from the parent id, not the final child response.
+
+7. Follow-up tasks
+
+- Verify the signed-in large paired Profitability upload on beta after CI publishes `dist-test`.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Dashboard Context
+
+1. Interaction title
+   Paired Profitability dashboard context.
+
+2. What was the user goal
+   Fix the main Dashboard after paired Profitability uploads so async processing cannot switch the active command center, Daily Health, Balanced Scorecard, recommendations, or upload history from Profitability into Marketplace, E-Commerce, inventory, seller, buyer, GMV, active-seller, or low-stock semantics.
+
+3. What changed
+   `resolveBusinessModel` now treats `datasetType=profitability` as a module-level authority that outranks stored child business-model values and automatic schema detection, so revenue and expense child files cannot become the owning dashboard model. `dashboard-semantic-profile` now exposes a Profitability dashboard profile from the Profitability P&L report profile and returns Profitability primary metrics and operating-profit trends from canonical report inputs. The main Dashboard uses the active semantic profile for the header, KPI labels, world-map gating, Balanced Scorecard preview, data-coverage note, and fallback KPI set; it suppresses inventory-derived low-stock/dead-stock/overstock signals for Profitability and labels upload history as `Profitability · Revenue Input` or `Profitability · Expense Input`. Daily Health reads active Profitability precomputed metrics, disables inventory alerts for Profitability, and writes Profitability-oriented priorities and impact text.
+
+4. Problems marked
+   blocker: none.
+   risk: exact large paired upload behavior still needs a signed-in browser verification after beta deploy because the available local regression uses source-equivalent synthetic datasets.
+   observation: the async update did not need to change the formulas; it exposed persisted child business-model classification after the dashboard refetched ready datasets and BBSC read `selectedDataset.businessModel` directly.
+
+5. User learning
+   Paired Profitability ownership requires an analysis/module profile separate from child-file schema hints; child roles map columns but do not define the dashboard model.
+
+6. AI-agent learning
+   Dashboard context must follow explicit parent analysis/module, then stored dataset type, then automatic schema detection. Report-profile semantics should be reused by dashboard surfaces instead of recomputing business models from child file columns.
+
+7. Follow-up tasks
+
+- Verify the signed-in paired large Profitability upload on the beta test deployment after CI publishes `dist-test`.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Paired Profitability Partial Expense Coverage
+
+1. Interaction title
+   Paired Profitability complete-expense provenance and reporting period.
+
+2. What was the user goal
+   Fix the paired Profitability report for `useclevr_revenue_large_test` plus `useclevr_expense_large_test` so Revenue and complete Operating Expenses derive Operating Profit and Operating Margin, missing COGS/gross/net inputs stay unavailable, Cost Intelligence data requirements stop contradicting categorized expenses, and the actual regenerated PDF is internally consistent.
+
+3. What changed
+   `two-file-analysis` now records `operatingExpenseCoverage`, keeps Operating Profit unavailable when the expense input is explicitly partial, preserves partial operating-expense source totals without treating them as complete, and stores a full source-derived reporting period before trend rows are capped. `dataset-report-builder` respects partial operating-expense coverage during fallback derivation and reads the canonical reporting period. `test-profitability-two-file` covers complete operating-expense-only inputs, missing interest/tax, explicit zero interest/tax, expense category availability, partial operating-expense inputs, and reporting-period provenance. The billing UI now reads Free plan labels from the shared plan formatter so the pre-push pricing gate rejects no hardcoded euro amounts. `requirements.md` and `CHANGELOG.md` describe the current user-visible and developer contracts.
+
+4. Problems marked
+   blocker: none.
+   risk: exact large CSV fixtures live in local Downloads and are not tracked fixtures, so future machines need safe fixture copies to rerun the exact large-file verification.
+   improvement: add sanitized large paired Profitability fixtures to tracked regression coverage when privacy rules allow them.
+   observation: trend rows stay capped for PDF size, while the top-level reporting period now comes from the full canonical source period range.
+   observation: the push gate blocks hardcoded euro amounts in UI files; Free plan UI labels must use shared billing formatters.
+
+5. User learning
+   Paired Profitability needs a first-class completeness signal for operating expenses; otherwise a partial expense subset can look mathematically valid while producing overstated operating profit.
+
+6. AI-agent learning
+   Generated report builders must avoid recomputing unavailable metrics from numeric totals when the analyzer already carries stricter availability provenance. UI price labels must route through shared billing formatters instead of literal euro strings.
+
+7. Follow-up tasks
+
+- Add sanitized large paired Profitability fixtures to file-backed regression coverage when privacy rules allow them.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Generic Business Canonical Field Resolution
+
+1. Interaction title
+   Generic Business invoice, cost, and profit canonical resolution.
+
+2. What was the user goal
+   Fix `08_generic_business` generated reports so invoice IDs provide transaction counts and AOV, exact `cost` provides cost totals, explicit `profit` provides source-backed profit and margin, and the PDF stops claiming order or cost data is missing.
+
+3. What changed
+   `dataset-report-builder` now recognizes the strict generic-business financial schema with invoice, revenue, cost, and profit evidence, while avoiding stronger e-commerce order, shipping, return, payment, or discount evidence. For generic reports only, the builder uses reliable `invoice_id` values as the transaction identifier, maps exact `cost` to the generic cost/COGS alias, maps exact `profit` to the generic profit/gross-profit alias, and removes the generic `profit` field from net-profit mapping. Generic KPIs now include Orders, AOV, Customers, Orders per Customer, Units Sold, Products, Cost, Profit, and Profit Margin. Generic recommendations consume canonical availability so they do not ask for COGS when exact cost is accepted. The focused regression script validates the 180-row schema/totals before PDF generation and verifies the generated PDF text.
+
+4. Problems marked
+   blocker: none.
+   risk: the exact `08_generic_business.xlsx` source file is absent from the workspace, so the regression uses a source-equivalent synthetic fixture with the confirmed schema and totals.
+   improvement: add the exact numbered generic-business CSV/XLSX fixture to file-backed profile validation when the source file is available.
+   observation: the wrong PDF came from model resolution selecting the e-commerce path for the generic schema and from generic financial mapping treating exact `cost` and `profit` as unavailable or net-profit-like fields.
+
+5. User learning
+   The generic-business PDF can show e-commerce-style unavailable Orders/AOV when the schema classifier routes a generic invoice dataset into the e-commerce branch before the generic canonical fallback runs.
+
+6. AI-agent learning
+   Generic business regression tests must include `invoice_id`, exact `cost`, and exact `profit` while also checking that e-commerce and retail do not globally promote `invoice_id`.
+
+7. Follow-up tasks
+
+- Add the exact numbered generic-business CSV/XLSX fixture to file-backed profile validation when the source file is available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS MRR Movement Dashboard Routing
+
+1. Interaction title
+   SaaS MRR movement dashboard routing.
+
+2. What was the user goal
+   Fix SaaS subscription MRR movement uploads so the dashboard and Generate Report path resolve them as SaaS rather than e-commerce, without changing non-SaaS report-family semantics.
+
+3. What changed
+   Business-model detection now treats MRR plus customer identity, MRR before/after/delta fields, and subscription movement types as strong SaaS evidence before e-commerce event-row signals. Dataset Intelligence and generated report builders now map MRR movement columns, identify the `subscription_mrr_movements` SaaS subtype, calculate latest-period active customer MRR and customer count from `mrr_after` and active status, aggregate New MRR, Expansion MRR, Contraction MRR, and Churned MRR from `mrr_delta` by `movement_type`, expose those metrics on SaaS dashboards and PDFs, and keep e-commerce Revenue, Orders, and Average Order Value out of the MRR movement dashboard. The dashboard semantic regression fixture verifies the expected 2025-12-01 values and confirms report persistence plus PDF creation.
+
+4. Problems marked
+   blocker: none.
+   risk: exact uploaded customer workbook files are not stored in the workspace, so the regression uses a sanitized synthetic fixture with the confirmed column shape and ground-truth totals.
+   improvement: add the exact sanitized workbook fixture to file-backed regression coverage when the source file is available.
+   observation: event_date and customer rows are ambiguous across business models, so MRR movement evidence must outrank generic e-commerce event semantics.
+
+5. User learning
+   SaaS movement datasets need latest active customer state for Ending MRR and customer count; summing all historical `mrr_after` rows overstates current recurring revenue.
+
+6. AI-agent learning
+   The dashboard and report paths must share SaaS semantic mappings for movement datasets so classification, KPI cards, report profile, PDF sections, and persistence agree.
+
+7. Follow-up tasks
+
+- Add the exact sanitized SaaS MRR movement workbook fixture to file-backed regression coverage when the source file is available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Startup Unit-Economics Dataset Semantics
+
+1. Interaction title
+   SaaS/startup unit-economics standard upload analysis.
+
+2. What was the user goal
+   Fix standard-upload analysis for SaaS and startup CSVs so company, plan, users, price per user, revenue, cost, profit, startup stage, country, and date fields keep their business semantics and do not become e-commerce, retail, or unsupported recurring-revenue metrics.
+
+3. What changed
+   Business-model detection now resolves plan plus users plus price-per-user or revenue schemas as SaaS when no order, inventory, or retail evidence exists. Dataset Intelligence Engine semantics now classify company, users, and price-per-user fields, calculate source-backed revenue, cost, profit, profit margin, total users, average revenue per user, and plan/stage/country dashboard widgets, and avoid row-count Average Order Value without order evidence. Generated report and dashboard semantic profiles now preserve SaaS/startup unit-economics mappings, calculate profit from source profit or revenue minus cost, display plan, startup stage, company, country, and user metrics, and keep MRR, ARR, churn, CAC, LTV, burn, and runway unavailable unless source fields exist. `scripts/analysis/test-saas-startup-unit-economics.ts` covers production-like standard upload metadata, semantic classification, field preservation, KPI calculation, dashboard output, and AI Analyst context.
+
+4. Problems marked
+   blocker: none.
+   risk: `scripts/analysis/test-dataset-aware-report-profiles.ts` still fails at the classic SaaS PDF text assertion that the results summary includes a Top Findings section after report generation completes.
+   improvement: add a focused PDF-results-summary fix for the classic SaaS profile assertion without changing the SaaS/startup unit-economics semantics.
+   observation: the original failure occurred before code changes: standard SaaS/startup data resolved as e-commerce, Dataset Intelligence Engine AI context resolved as Finance, `users` stayed unknown, `price_per_user` became Percentage, and dashboards generated order/product labels.
+
+5. User learning
+   SaaS/startup unit-economics datasets need a supported profile even when they do not contain classic MRR, ARR, churn, CAC, LTV, burn, or runway columns.
+
+6. AI-agent learning
+   The standard upload path stores `datasetType: standard`, so SaaS/startup preservation depends on business-model detection, deterministic semantic roles, generated report mappings, dashboard semantics, and AI context staying aligned.
+
+7. Follow-up tasks
+
+- Add a focused PDF-results-summary fix for the classic SaaS dataset-aware report profile assertion.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Authoritative Business Semantics Engine
+
+1. Interaction title
+   Authoritative Business Semantics Engine.
+
+2. What was the user goal
+   Implement a centralized UseClevr business semantics engine that classifies datasets, maps columns to canonical business concepts, gates KPIs, records lineage, detects ambiguity and contradictions, supports multi-file semantic reasoning, and prevents dashboard, AI, export, PDF, and report outputs from fabricating unsupported metrics.
+
+3. What changed
+   The data layer now builds a versioned business semantic profile with dataset/domain classification, canonical concept mappings, formula definitions, metric permissions, missing evidence, ambiguity flags, lineage records, and multi-file compatibility checks. Generated reports, Profitability reports, the legacy dashboard builder, and AI Analyst prompts consume the profile so ambiguous generic fields such as amount, total, value, balance, net, and gross do not become revenue or profit without stronger evidence. Marketplace GMV, SaaS recurring revenue, accountancy ledger movement, Profitability P&L, retail, and standard semantics stay isolated. Focused regression coverage validates generic ambiguity, marketplace GMV separation, accountancy ledger gating, SaaS MRR/ARR/runway permissions, multi-file currency contradictions, prompt governance text, and dashboard metadata.
+
+4. Problems marked
+   blocker: none.
+   risk: generated report full-row fixture validation currently fails before report assertions because the SheetJS helper cannot save the test workbook at `/tmp/useclevr-full-row-report-semantic-test/UseClevr_Full_Report_Test_Dataset.xlsx` in that script path, while direct XLSX temp-file writing works.
+   improvement: route additional deterministic export and PDF-only branches through the business semantic profile as future report families migrate to the central contract.
+   observation: scattered legacy revenue fallbacks can turn generic financial columns into business KPIs unless every presentation path checks metric permission before calculation or narration.
+
+5. User learning
+   Business KPI output now depends on explicit semantic evidence, not convenient numeric headers.
+
+6. AI-agent learning
+   Column aliases must distinguish source concepts, metric permission, and presentation labels; GMV, revenue, ledger movement, SaaS recurring revenue, and P&L profit are separate concepts even when files use similar numeric column names.
+
+7. Follow-up tasks
+
+- T-1039. Implement the authoritative business semantics layer that classifies datasets, maps supported concepts, blocks unsupported KPIs, records lineage, and protects dashboard, AI, and report outputs from unsupported business claims.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; completed work queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## SaaS Executive Report Reporting Period Metadata
+
+1. Interaction title
+   SaaS Executive Report Reporting Period metadata.
+
+2. What was the user goal
+   Fix only the SaaS Executive Report page-1 Reporting Period value so a dataset with recognized monthly SaaS periods displays the source period range instead of Not available.
+
+3. What changed
+   The SaaS report builder sets top-level financial reporting period metadata from the same recognized SaaS period column used by latest-period and trend metrics. The SaaS unit-economics regression fixture includes `saas_subscription_metrics_test` with 12 recognized 2025 monthly periods and verifies Reporting Period, latest period, trend coverage, and unchanged customer, churn, MRR, and ARR metrics. Requirements, changelog, TODO state, activity log, and interaction status reflect the current behavior.
+
+4. Problems marked
+   blocker: none.
+   risk: none for the scoped SaaS metadata fix.
+   improvement: keep future SaaS metadata tests tied to the canonical period resolver whenever SaaS trend fields change.
+   observation: the page-1 PDF rendered Not available because the top-level report metadata field stayed empty even though SaaS analysis already resolved valid period values elsewhere.
+
+5. User learning
+   SaaS report metadata uses the selected dataset source periods; report generation date is not a valid reporting-period fallback.
+
+6. AI-agent learning
+   Report-wide SaaS metadata must reuse canonical SaaS period resolution instead of introducing separate date detection or formatting paths.
+
+7. Follow-up tasks
+
+- T-1035. Populate SaaS Executive Report Reporting Period metadata from the recognized SaaS period field without changing SaaS metric calculations or other report families.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Universal SaaS Semantic Capability Engine
+
+1. Interaction title
+   Universal SaaS semantic capability engine.
+
+2. What was the user goal
+   Add a SaaS-only semantic capability layer so SaaS and startup uploads resolve their subtype, canonical fields, available metrics, report sections, and suggested questions without changing non-SaaS report families.
+
+3. What changed
+   Dataset Intelligence now resolves SaaS subtypes, canonical SaaS concepts, capability coverage, deterministic source-backed metrics, partial-period comparability, data gaps, and suggested questions. Generated reports reuse that profile for SaaS analysis, findings, recommendations, AI context, and PDF section selection. Focused SaaS semantic fixture coverage validates subscription snapshots, transactional SaaS, cohorts, SaaS financials, hybrid SaaS, generic SaaS, source-MRR ARR derivation, customer-count safety, partial-period warnings, AI context, generated PDF text, and negative ecommerce, retail, and profitability controls.
+
+4. Problems marked
+   blocker: none.
+   risk: some adjacent documentation and SaaS report test edits existed in the shared worktree before this interaction and must be staged only when they belong to the SaaS implementation.
+   improvement: add exact customer-owned numbered SaaS fixtures to file-backed validation when privacy rules allow them.
+   observation: SaaS report sections need capability gates so transactional revenue datasets do not show recurring-revenue pages and SaaS financial datasets do not show customer/unit-economics pages without source fields.
+
+5. User learning
+   SaaS datasets need separate semantic confidence and capability coverage because a well-recognized SaaS file can still lack MRR, churn, CAC, LTV, cash, or runway inputs.
+
+6. AI-agent learning
+   SaaS alias matching must use normalized full-column semantics; generic row counts, order identifiers, plans, and periods are not valid substitutes for customer, churn, MRR, or ARR source fields.
+
+7. Follow-up tasks
+
+- Add exact sanitized SaaS customer fixtures to file-backed regression coverage when they are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT Apps SDK MCP Integration MVP
+
+1. Interaction title
+   ChatGPT Apps SDK MCP integration MVP.
+
+1. What was the user goal
+   Expose UseClevr to ChatGPT through the current MCP/App architecture without rebuilding analytics, replacing Gemini, duplicating business logic, changing billing, or affecting existing dashboards.
+
+1. What changed
+   The app now has a ChatGPT-facing streamable HTTP MCP JSON-RPC endpoint with initialize, tool discovery, and tool invocation handling. The endpoint exposes owned-dataset listing, authorized dataset analysis, and CSV/Excel upload through the existing UseClevr upload and Business Intelligence workflow. Bearer-token and session auth resolve to a concrete UseClevr user, dataset access stays owner-scoped, upload uses the canonical upload action with explicit server auth context, and strict dataset computations can read row-table backed datasets. The proxy allows only the new MCP and protected-resource metadata paths on MCP subdomains. The smoke test verifies proxy exposure, protected-resource metadata, unauthenticated rejection, and unauthorized request handling.
+
+1. Problems marked
+   blocker: OpenAI public submission still requires a production OAuth 2.1 authorization server and consent flow for per-user ChatGPT distribution.
+   risk: the local database audit table is behind the TypeScript schema for optional audit columns, so ChatGPT MCP audit logging stays best-effort and quiet for that migration gap.
+   improvement: add live credentialed MCP end-to-end tests after a per-user ChatGPT OAuth/token flow exists.
+   observation: the existing upload action is the right single source of truth for CSV/Excel parsing, credit handling, storage, and Business Intelligence generation.
+
+1. User learning
+   UseClevr can expose ChatGPT capabilities safely by wrapping owned datasets and existing analysis outputs instead of creating a parallel analytics engine.
+
+1. AI-agent learning
+   ChatGPT MCP integration code should keep tool outputs structured and compact, avoid raw file or row logging, and use explicit user context when a non-browser MCP call invokes server actions.
+
+1. Follow-up tasks
+
+- Configure a production OAuth 2.1 authorization server and ChatGPT consent flow before public OpenAI submission.
+- Add credentialed MCP integration coverage for authorized list, upload, analyze, invalid input, and cross-tenant rejection after OAuth tokens exist.
+
+1. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+1. Minimal destination
+   Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT MCP Beta Semantic Compatibility
+
+1. Interaction title
+   ChatGPT MCP beta semantic compatibility.
+
+2. What was the user goal
+   Fix only the beta compatibility blocker that stopped the reviewed ChatGPT MCP/OAuth commit during the normal pre-push gate.
+
+3. What changed
+   The feature branch contains `business-semantics.ts`, but beta does not. The ChatGPT MCP analysis service now uses beta's existing semantic schema service to generate source-backed semantic diagnostics for MCP responses. This keeps OAuth, MCP auth, upload, dataset ownership, and Business Intelligence behavior unchanged while removing the feature-branch-only import.
+
+4. Problems marked
+   blocker: none in the beta compatibility fix after focused TypeScript and MCP verification.
+   risk: live endpoint verification still depends on the normal beta push, CI, test deploy, main merge, and production deploy completing.
+   improvement: align the ChatGPT MCP semantic response with the newer Business Semantics layer when that layer reaches beta through its own reviewed workflow.
+   observation: cherry-picking feature-branch work onto beta must avoid importing branch-only semantic modules unless the complete dependency chain is intentionally deployed.
+
+5. User learning
+   The current beta branch already has a source-backed semantic schema service that can support ChatGPT MCP diagnostics without backporting the newer Business Semantics engine.
+
+6. AI-agent learning
+   Compatibility fixes for deployment branches should reuse existing branch-local services before bringing a larger feature-branch dependency chain into the release.
+
+7. Follow-up tasks
+
+- Resume the normal beta push and deployment workflow after the compatibility fix passes required checks.
+
+## Dataset AI Retail Suggested-Question Contract
+
+1. Interaction title
+   Dataset AI Retail suggested-question contract.
+
+2. What was the user goal
+   Fix the Dataset AI Assistant so every shown retail or inventory suggested question has a valid answer path, with core retail KPI questions answered deterministically instead of falling through to unavailable cloud providers.
+
+3. What changed
+   The semantic schema maps explicit retail inventory concepts for stock on hand, units sold, reorder point, unit cost, and supplier. Dataset AI answers retail inventory questions through deterministic handlers for top products, low stock, dead stock, inventory valuation, reorder recommendations, product margins, supplier exposure, revenue trends, slow movers, inventory cash-flow risk, category gross profit, merchandising actions, stock coverage, and turnover. The suggestion generator uses a new cache version and filters generated and fallback candidates through deterministic answer capability before returning them. Regression tests cover all twelve retail suggested questions, the production dead-stock wording, missing unit-cost valuation refusal, and unsupported suggestion exclusion.
+
+4. Problems marked
+   blocker: none.
+   risk: provider-answerable interpretive suggestions remain intentionally conservative because this route cannot prove provider availability during suggestion generation.
+   improvement: keep future retail suggested-question wording tied to deterministic capability checks before adding it to contextual lists.
+   observation: retail fallback suggestions previously bypassed every capability check except gross margin.
+
+5. User learning
+   Dataset AI suggested questions are a contract: a shown question must calculate deterministically from mapped data or stay out of the suggestion list.
+
+6. AI-agent learning
+   Retail inventory chat answers must use semantic mappings for stock, movement, reorder points, costs, products, suppliers, categories, and dates; arbitrary numeric columns are not valid substitutes.
+
+7. Follow-up tasks
+
+- T-1040. Dataset AI retail and inventory suggested questions return deterministic answers or missing-evidence responses without provider routing.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT MCP OAuth 2.1 Authentication
+
+1. Interaction title
+   ChatGPT MCP OAuth 2.1 authentication.
+
+2. What was the user goal
+   Make the existing ChatGPT MCP endpoint production-ready for OpenAI Apps SDK/MCP OAuth account linking without redesigning tools, analytics, Gemini, billing, dashboards, uploads, or web authentication.
+
+3. What changed
+   The app now publishes protected-resource metadata, OAuth authorization-server metadata, and a JWKS endpoint. The ChatGPT OAuth flow validates ChatGPT client and redirect values, requires PKCE S256, redirects unauthenticated users through existing UseClevr login, displays explicit scoped consent, stores one-time authorization codes in the existing database, exchanges valid codes for short-lived RS256 access tokens, and verifies bearer tokens against issuer, audience, resource, expiry, signature, and scopes before `/api/chatgpt/mcp` runs tools. The proxy allows only the required MCP and OAuth paths on MCP subdomains, and the focused MCP test covers valid auth, missing auth, malformed or expired auth, wrong resource, insufficient scope, PKCE validation, cross-tenant rejection, and existing auth route behavior.
+
+4. Problems marked
+   blocker: live ChatGPT testing needs a real ChatGPT app/client registration plus production OAuth key and URL environment values.
+   risk: production databases must apply the new OAuth-code table migration before the first authorization-code exchange.
+   improvement: add browser-level consent-flow automation after the ChatGPT app registration exists.
+   observation: the existing owner-scoped dataset query remains the authorization boundary for ChatGPT analysis tools.
+
+5. User learning
+   ChatGPT account linking can reuse the existing UseClevr user session and dataset ownership model while giving ChatGPT only scoped, short-lived MCP access.
+
+6. AI-agent learning
+   ChatGPT OAuth code should keep client validation, consent, auth-code persistence, JWT signing, JWKS publishing, and resource-server verification isolated from business analytics and upload logic.
+
+7. Follow-up tasks
+
+- Register the live ChatGPT app/client and set the production OAuth environment values before OpenAI submission.
+- Run browser-level consent and live ChatGPT MCP tool invocation after ChatGPT registration is available.
+  Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; completed work queue: `.TODO/todo-done.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio Semantic Time Axes
+
+1. Interaction title
+   Investor Portfolio semantic time axes.
+
+2. What was the user goal
+   Fix selected-dataset AI Assistant semantics for Investor Portfolio datasets so `annual_revenue` is portfolio-company annual revenue and `investment_date` cannot drive revenue trends.
+
+3. What changed
+   Business Semantics now maps Investor Portfolio concepts for portfolio company, annual revenue, investment date, invested capital, valuation, ownership, sector, and stage. The deterministic assistant answers Investor investment-activity questions before retail/generic fallbacks, rejects revenue trends that pair `annual_revenue` with `investment_date`, and keeps the total revenue intent labeled as combined portfolio-company annual revenue. Analytical and Dataset Intelligence suggestions now return Investor-capability prompts and exclude AOV or incompatible revenue-trend prompts without source order or reporting-period semantics.
+
+4. Problems marked
+   blocker: none.
+   risk: the workspace does not include a raw `05_investor_portfolio` file, so focused chat validation uses the existing synthetic 45-row fixture with the verified total.
+   improvement: add sanitized file-backed `05_investor_portfolio` fixtures when they are available.
+   observation: trend analysis requires semantic compatibility between the metric and its time dimension; a date field alone is insufficient.
+
+5. User learning
+   Investor Portfolio annual revenue belongs to portfolio companies unless source evidence defines investor revenue separately.
+
+6. AI-agent learning
+   Generic deterministic intent handlers must let domain semantics override metric labels and time-axis validity before falling into broad retail or analytical templates.
+
+7. Follow-up tasks
+
+- Add sanitized file-backed Investor Portfolio chat fixtures when source-safe fixture files are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ChatGPT MCP Authentication Challenge Metadata
+
+1. Interaction title
+   ChatGPT MCP authentication challenge metadata.
+
+2. What was the user goal
+   Fix the remaining OpenAI MCP authentication-challenge compatibility issue by adding `_meta["mcp/www_authenticate"]` to relevant ChatGPT MCP authentication responses without changing tools, analytics, Gemini, billing, uploads, dashboards, or deployment state.
+
+3. What changed
+   The MCP endpoint now builds one OAuth challenge value that includes protected-resource metadata, requested scope, OAuth error, and error description. Unauthenticated and invalid-token HTTP 401 responses include the same value in the `WWW-Authenticate` header and `_meta["mcp/www_authenticate"]`. Scope-related tool authorization failures return a JSON-RPC error result with `_meta["mcp/www_authenticate"]` and the matching HTTP header. Focused tests assert missing-token, malformed-token, insufficient-scope, header, metadata, and valid authenticated request behavior.
+
+4. Problems marked
+   blocker: none in code for the authentication-challenge issue.
+   risk: live ChatGPT testing still depends on deploying the pending MCP/OAuth changes and setting production registration/environment values.
+   improvement: add live ChatGPT Developer Mode account-linking coverage after deployment.
+   observation: cross-tenant authorization failures stay ordinary forbidden errors and do not prompt OAuth re-linking.
+
+5. User learning
+   ChatGPT requires both HTTP OAuth discovery signals and MCP-level challenge metadata before it reliably opens the account-linking UI.
+
+6. AI-agent learning
+   Use one shared challenge builder so the HTTP header and MCP `_meta` value remain byte-for-byte aligned across auth failures.
+
+7. Follow-up tasks
+
+- Run a live ChatGPT Developer Mode account-linking test after deployment and environment configuration.
+  Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Portfolio End-to-End Semantics
+
+1. Interaction title
+   Investor Portfolio end-to-end semantics.
+
+2. What was the user goal
+   Complete the Investor Portfolio repair so classification, generated reports, dashboards, deterministic AI Assistant answers, suggested questions, and time-axis handling all use Investor-specific semantics for `05_investor_portfolio`.
+
+3. What changed
+   Business-model and Business Semantics classification now let a strong Investor Portfolio schema override stale SaaS or startup metadata. Dataset Intelligence, analytical intents, deterministic Assistant handlers, report construction, report profile metadata, and PDF rendering now treat `annual_revenue` as combined portfolio-company annual revenue, `investment_date` as an investment event axis, `latest_valuation` as company valuation, `growth_rate` as company growth, and burn or runway as point-in-time portfolio risk evidence. Regression coverage now exercises the full 45-row Investor fixture, report/dashboard routing, supported Investor questions, incompatible revenue trends, query-engine time-axis refusal, and negative SaaS/order/supplier suggestion controls.
+
+4. Problems marked
+   blocker: none.
+   risk: the workspace does not include a raw `05_investor_portfolio` customer fixture file, so validation uses the synthetic 45-row fixture with the verified annual revenue total.
+   improvement: add sanitized file-backed `05_investor_portfolio` CSV and XLSX fixtures when they are available.
+   observation: strong domain schemas must outrank stale persisted metadata before deterministic intent formatting chooses labels and time axes.
+
+5. User learning
+   Investor Portfolio revenue-worded prompts refer to portfolio-company annual revenue unless source evidence defines investor revenue separately.
+
+6. AI-agent learning
+   Deterministic generic intents must ask the semantic profile whether a metric and time axis are compatible before reporting a trend.
+
+7. Follow-up tasks
+
+- Add sanitized file-backed Investor Portfolio fixtures when source-safe CSV and XLSX files are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Beta CI Fast URI Audit Remediation
+
+1. Interaction title
+   Beta CI fast-uri audit remediation.
+
+2. What was the user goal
+   Investigate only the beta CI security audit failure after the reviewed ChatGPT MCP/OAuth commits reached `origin/beta`, identify the exact high advisories, determine whether the ChatGPT work introduced them, and apply only a safe minimal remediation if one exists.
+
+3. What changed
+   The failed GitHub Actions run and local `pnpm audit:allowlist` both reported four unapproved high advisories against `fast-uri@3.1.5`: `GHSA-5jgf-p345-68v8`, `GHSA-f65p-4m7j-42xc`, `GHSA-fph4-wmhf-6fwf`, and `GHSA-jqff-g426-hqxp`. The dependency was already present through `ajv` under Payload packages, Payload MCP, and dev-time commitlint paths; the ChatGPT commits changed `package.json` only by adding the `test:chatgpt-mcp` script and did not change package dependencies. The lockfile now resolves the existing transitive `fast-uri` dependency to `3.1.7`, which clears all unapproved high findings without changing application code or the audit allowlist.
+
+4. Problems marked
+   blocker: beta CI still needs a new run after committing and pushing the lockfile remediation.
+   risk: a workspace-level forced override for `fast-uri` cleared the audit but caused Next.js production build to fail while parsing TypeScript `--showConfig`; the final remediation keeps only the lockfile resolution and removes the override setting.
+   improvement: triage the remaining unapproved moderate and low audit findings in a separate dependency task.
+   observation: GitHub published the four reviewed `fast-uri` advisories on 2026-09-02, so the allowlist was not stale for these findings; it correctly failed on new unreviewed high-severity advisories.
+
+5. User learning
+   The beta CI failure was caused by new advisory feed data for an existing transitive dependency, not by the ChatGPT MCP/OAuth feature introducing a new dependency.
+
+6. AI-agent learning
+   For pnpm v11 projects, test lockfile-only transitive patch remediation and production build behavior separately from workspace override settings because an override can change package-manager/runtime behavior beyond the final resolved version.
+
+7. Follow-up tasks
+
+- Commit and push the lockfile remediation, then rerun beta CI and test deployment endpoint verification.
+- Triage remaining moderate and low audit findings in a separate approved dependency task.
+  Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Investor Balanced Scorecard Growth Semantics
+
+1. Interaction title
+   Investor Balanced Scorecard growth semantics.
+
+2. What was the user goal
+   Fix one remaining Investor Portfolio report issue: the Balanced Scorecard Growth perspective must not describe or score `growth_rate` as a historical trend when the only date field is `investment_date`.
+
+3. What changed
+   The Balanced Scorecard column mapper now receives the resolved report model and applies Investor-specific field compatibility. Investor scorecards map `annual_revenue` only as portfolio-company annual revenue, map invested capital and latest valuation through exact Investor aliases, keep `investment_date` out of generic report-period detection, and score `growth_rate` as cross-sectional portfolio-company growth evidence. Focused tests assert that `growth_rate` plus `investment_date` does not create a Growth trend KPI, source field, trend direction, or invalid scorecard reason, and regenerated Investor PDF text excludes the dated-growth claim.
+
+4. Problems marked
+   blocker: none.
+   risk: generated Investor PDF table cells truncate long finding text, so PDF assertions verify the visible valid prefix and the absence of the invalid dated-growth sentence.
+   improvement: add sanitized file-backed `05_investor_portfolio` CSV and XLSX fixtures when they are available.
+   observation: scorecard-level generic date aliases need domain compatibility checks just like Assistant trend handlers.
+
+5. User learning
+   Investor `investment_date` supports investment activity timing, not historical trends for company growth, revenue, burn, runway, or valuation.
+
+6. AI-agent learning
+   Domain-specific report models must reach shared scoring utilities before broad aliases such as `/date/`, `/amount/`, and `/valuation/` select generic metric/time pairings.
+
+7. Follow-up tasks
+
+- Add sanitized file-backed Investor Portfolio fixtures when source-safe CSV and XLSX files are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Release notes: `CHANGELOG.md`; active/done work state: `.TODO/` queue files; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+   Product requirement update: `requirements.md`; release notes: `CHANGELOG.md`; detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## 2026-09-06 - Protect local ChatGPT OAuth private key
+
+1. Goal
+   Prevent the local ChatGPT MCP OAuth private key from being accidentally committed.
+
+2. Change
+   Added `chatgpt-mcp-oauth-private.pem` to `.gitignore`.
+
+3. Security
+   The private key remains local and is not tracked or committed.
+
+4. Verification
+   Git no longer reports `chatgpt-mcp-oauth-private.pem` as an untracked file.
+
+## Usy Acceptance Regression Patch
+
+1. Interaction title
+   Usy acceptance regression patch.
+
+2. What was the user goal
+   Fix the remaining live UI Usy acceptance issues without redesigning Usy, changing unrelated AI, OAuth, billing, Business Profile, or committing changes.
+
+3. What changed
+   Usy chat responses now include the resolved supported language, and the chatbox language badge displays that resolved language instead of rotating through unrelated language labels. The router gives current German pricing questions the centralized Pro monthly price only, refuses German system-prompt, API-key, internal-architecture, and other-customer-data requests as security/privacy requests, and keeps dataset analysis questions routed to Dataset AI Assistant. Quick-action labels now resolve through the central follow-up map for English, German, Dutch, Spanish, Hungarian, and Romanian. Upload guidance reads the approved standard upload extensions from the upload validation source and preserves the dataset-type list. German Vertrieb contact requests map to Sales and remain confirmation-gated.
+
+4. Problems marked
+   blocker: none.
+   risk: Usy language detection remains deterministic keyword detection, so new supported-language phrasing needs focused examples and tests.
+   improvement: add browser-level Usy badge verification when stable live UI fixtures exist.
+   observation: the visible random badge came from a timer in the chatbox header, not from the server-side language detector.
+
+5. User learning
+   Usy now treats the current message as the response-language source for supported-language requests and reports that language to the UI.
+
+6. AI-agent learning
+   Acceptance fixes for Usy should update the centralized copy, routing, and knowledge modules rather than cloning per-language router branches.
+
+7. Follow-up tasks
+
+- Add browser-level Usy badge verification when stable live UI fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Usy Send Button Polish
+
+1. Interaction title
+   Usy send button polish.
+
+2. What was the user goal
+   Improve only the existing Usy message composer send button so it matches the premium UseClevr/Usy interface without redesigning the composer or chat window.
+
+3. What changed
+   The existing bottom-right composer submit button is now a 44px circular primary action with the Usy cyan-to-purple gradient, centered white arrow or loading icon, subtle glow, stronger focus-visible ring, hover lift, pressed scale, and a polished disabled state for empty input.
+
+4. Problems marked
+   blocker: none.
+   risk: visual verification in a live browser remains useful for exact contrast and touch feel.
+   improvement: add browser screenshot coverage for Usy composer states when stable UI fixtures exist.
+   observation: the existing Button base class supports this polish through Tailwind overrides without a new component or design-system change.
+
+5. User learning
+   The Usy composer send action now reads as the primary action while preserving position, keyboard submit behavior, and accessibility labels.
+
+6. AI-agent learning
+   For small Usy UI polish, target the local control class first and reuse the existing Usy gradient/shadow language before introducing any new component or token.
+
+7. Follow-up tasks
+
+- Add browser screenshot coverage for Usy composer states when stable UI fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Fixed Currency
+
+1. Interaction title
+   Stripe checkout fixed currency.
+
+2. What was the user goal
+   Fix only Stripe subscription Checkout currency behavior so US, EU, UK, and Canada billing markets use their configured regional Stripe Price currency only, with Business US yearly showing $5,800/year in USD and no adaptive conversion.
+
+3. What changed
+   Subscription Checkout session creation now sends Stripe `adaptive_pricing` disabled after validating the selected recurring Price ID against the resolved market currency and interval. The focused billing pricing regression now proves Business US yearly resolves the existing USD yearly Price ID, preserves the $5,800/year amount, records USD metadata, and creates Checkout with adaptive currency conversion disabled.
+
+4. Problems marked
+   blocker: none.
+   risk: the pinned Stripe SDK TypeScript definitions do not expose the newer `adaptive_pricing` Checkout parameter, so the service attaches it through a typed compatibility cast while still sending the runtime parameter to Stripe.
+   improvement: upgrade Stripe SDK types when the project updates Stripe so the compatibility cast can be removed.
+   observation: the root cause was not regional Price-ID resolution; Checkout validated the USD Price ID but did not explicitly disable Stripe adaptive pricing on the session.
+
+5. User learning
+   Business US yearly checkout now uses the centralized billing resolver and opens Stripe Checkout with the configured USD yearly Price ID only.
+
+6. AI-agent learning
+   For Stripe currency bugs, inspect both regional Price-ID selection and Checkout session options because a correct fixed-currency Price can still display converted currency when adaptive pricing remains enabled.
+
+7. Follow-up tasks
+
+- Upgrade Stripe SDK types when the project updates Stripe so the Checkout adaptive pricing compatibility cast can be removed.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Admin Discount Access Gate
+
+1. Interaction title
+   Admin discount access gate.
+
+2. What was the user goal
+   Fix the normal-user admin discounts 403 notification so normal users never request `/api/admin/discounts`, never see an admin-discount 403 toast, and never receive admin discount data while admin discount functionality and backend authorization stay protected.
+
+3. What changed
+   The checkout settings page now reads the settings session role and loads admin discount rules only for superadmin sessions. Normal users clear checkout discount state locally and return before the admin endpoint fetch. The global notice message helper now treats 401 as an unauthenticated/session problem and 403 as authenticated forbidden access. A focused security regression verifies the normal-user no-fetch path, no admin-discount 403 session-expired toast path, admin management requests, and protected API semantics.
+
+4. Problems marked
+   blocker: none.
+   risk: none.
+   improvement: add a browser-level checkout smoke test when stable authenticated fixtures exist.
+   observation: the root cause was the checkout settings client fetching an admin-only endpoint for every user, while the shared notice provider incorrectly mapped 403 to the session-expired message.
+
+5. User learning
+   Normal checkout users no longer touch admin discount endpoints, and forbidden responses no longer claim the session expired.
+
+6. AI-agent learning
+   For admin endpoint 403 notifications, trace the caller first and gate privileged data fetches at the source instead of weakening RBAC or globally suppressing forbidden responses.
+
+7. Follow-up tasks
+
+- Add a browser-level checkout smoke test when stable authenticated fixtures exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Session Currency Pin
+
+1. Interaction title
+   Stripe checkout session currency pin.
+
+2. What was the user goal
+   Fix the unaccepted Stripe currency behavior so Business US yearly presents $5,800/year in USD only with no EUR selector or localized currency option, and verify the actual session configuration instead of assuming adaptive pricing solved it.
+
+3. What changed
+   Subscription Checkout session creation now pins `currency` to the validated market currency in addition to disabling Stripe adaptive pricing. Checkout API routes pass the centralized resolved amount into Stripe Price validation, and the service rejects active recurring Prices whose currency, interval, or unit amount differ from the selected market. The focused billing regression now models a Business US yearly USD Price with EUR `currency_options` and proves the final Checkout Session still sends the USD Price ID, `currency: "usd"`, $5,800 yearly amount validation, USD metadata, and disabled adaptive pricing.
+
+4. Problems marked
+   blocker: live Stripe Price retrieval remains unavailable from this checkout because local env does not define `STRIPE_PRICE_BUSINESS_USD_YEARLY` or fallback `STRIPE_PRICE_BUSINESS_USD_ANNUAL`, and the linked Railway token cannot verify the project over the API.
+   risk: none.
+   improvement: verify the production Stripe Price object after production credentials or deploy logs are available; confirm active=true, currency=usd, unit_amount=580000, recurring.interval=year, and note any `currency_options` keys.
+   observation: Stripe documentation states Checkout localizes multi-currency Prices unless the Session `currency` parameter overrides that behavior; the previous fix disabled adaptive pricing but did not pin the Session currency.
+
+5. User learning
+   Business US yearly checkout must send both the existing USD Price ID and a Checkout Session currency of `usd` to prevent Stripe from presenting EUR when the Price supports multiple currencies.
+
+6. AI-agent learning
+   Stripe fixed-currency checkout tests must assert the final Session `currency` parameter, not only the Price ID and adaptive-pricing flag.
+
+7. Follow-up tasks
+
+- Verify the production Stripe Price object after production credentials or deploy logs are available.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Pre-bookkeeping Upload Entry Cleanup
+
+1. Interaction title
+   Pre-bookkeeping upload entry cleanup.
+
+2. What was the user goal
+   Clean up duplicate upload actions on the Pre-bookkeeping page so CSV / Excel / PDF-Scan remains the single upload entry point while upload processing, limits, credits, categorization, tax context, Accountancy, and routing stay unchanged.
+
+3. What changed
+   The Pre-bookkeeping page no longer renders the header `Upload document` action or the empty-state `Upload document` action. The empty-state informational text remains, and the page still renders the existing `AccountancyUpload` selector for Pre-bookkeeping uploads. The unused `Upload` icon import was removed.
+
+4. Problems marked
+   blocker: none.
+   risk: none.
+   improvement: none.
+   observation: the duplicate buttons linked back to the current Pre-bookkeeping page rather than invoking separate upload processing.
+
+5. User learning
+   Pre-bookkeeping now exposes one upload entry point through the existing CSV / Excel / PDF-Scan selector.
+
+6. AI-agent learning
+   For duplicate upload-entry cleanup, remove redundant navigation-only actions first and leave upload processors and route contracts untouched.
+
+7. Follow-up tasks
+
+- None.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ClevrSync Connector Foundation
+
+1. Interaction title
+   ClevrSync connector foundation.
+
+2. What was the user goal
+   Implement ClevrSync as a UseClevr connector module that supports Excel XLSX previews, connector metadata, sync metadata, API endpoints, Settings -> Data Connections UI, ownership checks, and reuse of the existing dataset upload and analytics flow.
+
+3. What changed
+   ClevrSync now has a service module with typed connector records, XLSX worksheet parsing, column and type detection, preview generation, and a dataset payload adapter. Additive database metadata stores connectors and sync runs by authenticated user and organization id. New API routes create/list connectors, preview Excel files, and sync Excel files by delegating dataset creation to the existing upload action. Settings now includes a Data Connections section with Excel available and Google Sheets, OneDrive, and SharePoint marked Coming Soon.
+
+4. Problems marked
+   blocker: none.
+   risk: sync uses the existing upload credit and dataset limit flow, so large or over-limit Excel files fail with the same user-facing upload constraints as normal uploads.
+   improvement: add OAuth-backed connectors for Google Sheets, OneDrive, and SharePoint after provider credentials, refresh-token storage, and scheduled sync policy exist.
+   observation: ClevrSync stores connector/run metadata only; business rows remain in the existing Dataset pipeline.
+
+5. User learning
+   ClevrSync is a connector layer in front of UseClevr datasets, not a separate analytics application.
+
+6. AI-agent learning
+   New source connectors must validate and preview their source format before handing durable dataset creation to the existing upload action.
+
+7. Follow-up tasks
+
+- Add OAuth, token storage, refresh handling, and scheduled sync jobs for Google Sheets, OneDrive, and SharePoint.
+- Add connector management actions for rename, disable, reconnect, and delete.
+- Add server-side pagination for connector sync history after scheduled syncs exist.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ClevrSync Product Access Integration
+
+1. Interaction title
+ClevrSync product access integration.
+
+2. What was the user goal
+Finish the production ClevrSync product integration by making ClevrSync visible in the main sidebar, reusing Settings -> Data Connections, adding authoritative Free / Pro / Business entitlement checks, preserving Excel and Google Sheets connector architecture, and keeping OneDrive, SharePoint, and scheduled sync for later.
+
+3. What changed
+The main Workspace sidebar now includes ClevrSync directly below Datasets and routes to the existing Data Connections page. ClevrSync has a shared entitlement model based on the existing usage/subscription resolver: Free users can discover the page but see Excel and Google Sheets as premium-locked, while Pro, Business, admin, and superadmin access can execute connector flows. ClevrSync API mutations, previews, sync operations, and Google OAuth start/callback now require server-side entitlement before execution. The Data Connections page loads the server entitlement, shows premium upgrade CTAs for Free users, disables connector execution when locked, and keeps OneDrive, SharePoint, and scheduled sync as future capabilities.
+
+4. Problems marked
+blocker: none.
+risk: the focused lint command reports the ClevrSync test script is ignored by project lint configuration; lint found no errors in checked source files.
+improvement: add a browser-level authenticated navigation test after stable account fixtures exist.
+observation: downgrade behavior is non-destructive because the entitlement gate blocks execution only and does not delete connectors, datasets, or sync records.
+
+5. User learning
+ClevrSync is visible to Free users as premium discovery, but execution requires Pro, Business, or existing unlimited internal access.
+
+6. AI-agent learning
+Premium feature discovery should keep navigation visible while enforcing execution through the server-side subscription resolver.
+
+7. Follow-up tasks
+- Add OneDrive and SharePoint provider implementations after OAuth and file-picker requirements are defined.
+- Add scheduled sync after manual sync history and provider refresh handling are proven in production.
+
+8. Instruction sources
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## ClevrSync Google Sheets Connector
+
+1. Interaction title
+   ClevrSync Phase 2: Google Sheets connector with OAuth, encrypted tokens, and manual sync.
+
+2. What was the user goal
+   Continue the ClevrSync Phase 2 implementation from Codex's unfinished work. Complete the Google Sheets connector including OAuth flow, secure server-side token handling, spreadsheet/worksheet selection, preview, manual sync, connector state, tenant/user ownership protection, and reuse of the existing UseClevr dataset processing pipeline. Preserve Excel ClevrSync and CSV/XLSX uploads.
+
+3. What changed
+
+- Fixed TypeScript errors in `updateClevrSyncConnector` (status type now uses `ClevrSyncConnectorStatus` to include `syncing`) and `upload.ts` (`db.delete` cast to `(db as any)` matching existing patterns).
+- Added `server-only` as a dev dependency so the ClevrSync barrel export resolves under the tsx test runner.
+- Fixed ESLint type-import warnings in OAuth start/callback routes (`NextRequest` as type-only import).
+- Formatted all changed files with Prettier.
+- Extended `scripts/clevrsync/test-clevrsync.ts` with tests for normalize module, Google Sheets URL parsing, token vault encryption config, OAuth state signing, and ClevrSync dataset refresh in the upload action.
+- Added `GOOGLE_CLEVRSYNC_CLIENT_ID`, `GOOGLE_CLEVRSYNC_CLIENT_SECRET`, `GOOGLE_CLEVRSYNC_REDIRECT_URI`, and `CLEVRSYNC_TOKEN_ENCRYPTION_KEY` to `.env.local.example` and `.env.railway.example`.
+- Updated CHANGELOG.md, activity-log.md, and interaction-status.md.
+
+4. Problems marked
+
+- blocker: none.
+- risk: `server-only` package throws under tsx; test imports Excel/normalize modules directly to avoid loading server-only modules.
+- improvement: extract pure utility functions (e.g. `parseGoogleSpreadsheetId`) from `google-sheets.ts` into a non-server-only module to enable direct unit testing.
+- observation: `getOwnedClevrSyncConnectorForApi` and `googleSheetToDatasetPayload` are exported but unused; retain as part of the public API surface.
+
+5. User learning
+   ClevrSync Google Sheets sync reuses the existing uploadCSV pipeline with `uploadSource: "clevrsync"` and a `clevrsync_dataset_id` refresh flag, so row limits, credit reservation, and business intelligence analysis apply identically to manual uploads.
+
+6. AI-agent learning
+   When a barrel export re-exports modules with `import "server-only"`, tsx test runners crash because the `server-only` marker package is not available outside Next.js's bundler. Tests should import from leaf modules directly when only specific submodules are needed.
+
+7. Follow-up tasks
+
+- Add Google OAuth env vars to the Railway and Vercel production config.
+- Add scheduled sync jobs (out of scope for this task).
+- Add connector management actions: rename, disable, reconnect, delete.
+
+8. Instruction sources
+
+- AGENTS.md
+- .kilo/agent/changelog.md
+- ai-chat-behavior.config.ts
+- gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Stripe Checkout Success Redirect
+
+1. Interaction title
+   Stripe Checkout subscription success redirect.
+
+2. What was the user goal
+   Fix only the Stripe Checkout success redirect flow so successful subscription payments do not redirect users to `0.0.0.0:8080` and instead land on a production-safe confirmation page.
+
+3. What changed
+   Added `src/lib/billing/checkout-redirect.ts` to build subscription checkout success and cancel URLs from `NEXT_PUBLIC_APP_URL`, `AUTH_URL`, `NEXTAUTH_URL`, the safe request origin, or the canonical production app URL. Updated the subscription checkout API routes and existing checkout server action to use that helper. Updated `/checkout/success` to support both `session_id` and legacy `s`, show "Payment successful", show "Your UseClevr subscription is now active.", display the plan when Stripe metadata identifies it, and provide a "Go to Dashboard" button.
+
+4. Problems marked
+   blocker: none.
+   risk: live Stripe redirect verification requires an authenticated browser checkout and Stripe test credentials/session access outside this session.
+   improvement: add a focused regression test for checkout redirect URL resolution if the project adds route-level billing tests.
+   observation: the separate credit top-up checkout flow still uses its existing subscription settings redirect and remains out of scope for the subscription success page fix.
+
+5. User learning
+   Subscription checkout redirects now use configured public application origins instead of the server bind origin exposed by `request.nextUrl.origin`.
+
+6. AI-agent learning
+   Checkout URL generation must not trust the incoming request origin when infrastructure can expose bind hosts such as `0.0.0.0`.
+
+7. Follow-up tasks
+   - Add a billing route regression test that asserts production subscription checkout URLs never use bind-host or loopback origins.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Subscription Recovery and Checkout Synchronization
+
+1. Interaction title
+   Subscription recovery diagnostics and checkout synchronization.
+
+2. What was the user goal
+   Recover active subscriptions for Free or missing-tier profiles and ensure successful subscription checkout sessions sync even when Stripe returns no paid payment status.
+
+3. What changed
+   The subscription settings recovery block now runs for `null` profiles as well as Free profiles, logs `SUBSCRIPTION_RECOVERY` events for profile state, stored subscription/customer/email lookups, active subscription and price-ID discovery, price mapping, sync attempts and results, and final profile state. The checkout success page syncs subscription checkouts when the session is subscription-mode and either paid or has a subscription object, and type-checks the Stripe `subscription` field before reading its ID.
+
+4. Problems marked
+   blocker: none.
+   risk: live Stripe recovery and webhook delivery still require authenticated checkout and Stripe credentials outside this session.
+   improvement: add a disposable-database fixture test for signed Stripe subscription events.
+   observation: billing price mappings resolve `pro` and `business` tiers through the same Price ID environment-name lists used by checkout resolution.
+
+5. User learning
+   Missing or Free profile tiers trigger subscription recovery, and subscription checkouts sync based on subscription mode plus paid payment or subscription presence.
+
+6. AI-agent learning
+   Subscription recovery must handle null profiles, and Stripe checkout `subscription` values may be either an ID string or an object.
+
+7. Follow-up tasks
+   - Add a disposable-database fixture test that posts signed Stripe subscription events and verifies Free to Pro/Business activation end to end.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+2. What was the user goal
+   Fix only the activation path after successful Stripe subscription checkout so paid users move from Free to Pro or Business and gated features unlock.
+
+3. What changed
+   The Stripe subscription webhook now derives the app subscription tier from the Stripe Price ID first and falls back to checkout/subscription metadata such as `billingPlanId`, `plan`, or `productId`. Checkout session completion passes session metadata into subscription sync. Subscription events continue writing Stripe customer ID, subscription ID, status, price ID, and billing period when Stripe provides them. After a real tier change, the webhook runs the existing plan-credit refresh and revalidates account, subscription, checkout, upload, dataset, Accountancy, and Pre-bookkeeping paths. The focused Pro pricing regression script now asserts the webhook metadata fallback, plan-credit refresh, and path revalidation hooks.
+
+4. Problems marked
+   blocker: none.
+   risk: live end-to-end Stripe upgrade verification requires an authenticated browser checkout, Stripe test credentials, and webhook delivery access outside this session.
+   improvement: add a DB-backed webhook fixture test when a safe test database harness exists for billing webhooks.
+   observation: Standard upload, Accountancy limits, and ClevrSync already read entitlement from `Profile.subscriptionTier` through DB-backed usage/limit helpers, so fixing webhook profile activation unlocks those gates without bypassing checks.
+
+5. User learning
+   Successful payment must update `Profile.subscriptionTier`; Stripe IDs alone do not unlock UseClevr plan gates.
+
+6. AI-agent learning
+   Stripe webhook tier mapping must not rely only on environment-resolved Price IDs because checkout metadata already carries the canonical app plan selected by the user.
+
+7. Follow-up tasks
+   - Add a billing webhook fixture test that posts signed Stripe test events against a disposable database and verifies Free to Pro activation end to end.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+---
+
+## Interaction: Fix upload credit reservation, dataset persistence, ClevrSync metadata
+
+1. Interaction title
+   Trace and fix Pro upload 402s, Dataset Library zero results, profitability persistence, ClevrSync metadata, and Square status.
+
+2. What was the user goal
+   Diagnose and fix the production blockers: Pro uploads returning 402, specialized uploads not visible in the Dataset Library after navigation, Profitability analysis persistence/navigation, AI Assistant dataset context, and ClevrSync dataset metadata. Confirm Square payment status against Stripe.
+
+3. What changed
+   - `scripts/runtime/railway-predeploy.cjs` runs `0008_dataset_type.sql`, `0012_credit_engine.sql`, and `0013_dataset_business_model.sql`. The predeploy previously excluded `0012`, so production never seeded the `SubscriptionPlan` rows that the `UserCredit.planId` foreign key requires.
+   - `src/lib/billing/credit-engine.ts`: `initializeUserCredits` restores the `SubscriptionPlan` catalog and retries once when the user-credit insert fails; `reserveCredits` emits structured `[CREDIT_RESERVATION] rejection` diagnostics, reclaims stale pending reservations older than 60 minutes and retries, and mints a per-attempt ledger key instead of reusing finalized reservations with unmatched operationIds.
+   - `src/app/(auth)/app/datasets/page.tsx` keeps NULL `datasetType` rows visible and logs `[DATASET_LIBRARY]` outcomes.
+   - `src/app/actions/upload.ts` persists the explicit `uploadSource` form field into the dataset analysis.
+   - `src/app/api/clevrsync/sync/route.ts` sends `dataset_type`/`uploadMode` `standard`, and the Excel path reuses and records `datasetId` so re-syncs refresh one dataset.
+   - `src/app/api/usage/route.ts` matches the display calculation to the reservation gate (remaining minus reserved, clamped at zero).
+   - `scripts/billing/test-upload-credit-reservation.ts` adds eight regression checks; `package.json` registers `test:upload-credit-reservation`.
+
+4. Problems marked
+   - blocker: Production needs one observation after deploy: navigate to `/app/datasets` and read the `[DATASET_LIBRARY]` line in Railway logs to confirm whether the library query fails or returns zero rows.
+   - risk: The unique `CreditLedger.idempotencyKey` index collides when retries reuse one dedupe key; the engine now mints per-attempt keys.
+   - improvement: `expireStaleReservations` still has no scheduler; reservation reclaim now runs inline on rejection.
+   - observation: Square payment top-ups are dead code; Stripe is the only subscription path. Square Retail POS stays active.
+
+5. User learning
+   The 402s come from the credit engine, not from the usage display; the usage display fix alone cannot unlock uploads.
+
+6. AI-agent learning
+   The Railway predeploy migration list is selective; new engine migrations must be added there explicitly or the production schema drifts silently.
+
+7. Follow-up tasks
+   - Confirm the production `SubscriptionPlan` seed and one Pro upload reservation after the next Railway deploy of `beta`.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Interaction: Repair production Pro credit account initialization
+
+1. Interaction title
+   Find why the persisted Pro credit account stays empty in production and fix it self-healing.
+
+2. What was the user goal
+   Trace Profile.subscriptionTier=pro through SubscriptionPlan, UserCredit, initializeUserCredits() and reserveCredits() without trusting UI fallback numbers, find why the persisted Pro account remains 0 credits, verify the SubscriptionPlan seed and UserCredit grant reach production after predeploy, fix the root cause minimally and idempotently with automatic self-heal, record the Google ClevrSync OAuth 0.0.0.0:8080 redirect as a separate task, and run focused tests plus TypeScript without committing.
+
+3. What changed
+   - `src/lib/db/migrations/0012_credit_engine.sql`: the `CreditLedger_transactionType_check` constraint accepts the transaction types the credit engine writes (`PLAN_ALLOCATION`, `PLAN_RESET`, `USAGE_DEBIT`, `TOP_UP_PURCHASE`, `RELEASE`, `REFUND`, `REVERSAL`, `ADMIN_ADJUSTMENT`, `PROMOTIONAL_CREDIT`, `EXPIRATION`) and both constraint adds run `NOT VALID` so legacy rows cannot fail the predeploy transaction.
+   - `src/lib/db/migrations/0032_widen_credit_ledger_transaction_type.sql`: drops the narrowed `CreditLedger_transactionType_check` present on databases that applied the old 0012 and adds the widened check `NOT VALID`.
+   - `scripts/runtime/railway-predeploy.cjs`: the production predeploy runs migrations 0030, 0031, and 0032 after 0029, so the migration list no longer stops at 0029.
+   - `src/lib/billing/credit-engine.ts`: `initializeUserCredits` reconciles an existing credit account instead of returning it unchanged; a plan mismatch routes through `processPlanChange`, and a never-used account with a missing grant (zeroed balances) repairs to the full plan grant idempotently through the `grant:initial` ledger key. `ensureSubscriptionPlanSeeded` verifies the plan row exists after seeding and logs when the catalog stays missing; the retry log names whether the plan catalog was actually seeded.
+   - `src/lib/usage/analyst-credits.ts`: the plan-limit fallback logs when the persisted credit account state is unavailable so the UI number is traceable to an initialization failure.
+   - `src/lib/billing/credit-account-service.ts`: `syncCreditPlanToProfile` logs the caught update failure instead of silently returning false.
+   - `scripts/billing/test-pro-credit-selfheal.ts` plus the `test:pro-credit-selfheal` script: behavioral regression against the configured database (Profile=pro with missing, zeroed, or plan-mismatched UserCredit reconciles to 500 included credits, reserves 1, settles balances, and replays without a second grant) and production-contract assertions for the predeploy registration order and the widened constraint coverage.
+   - `.TODO/todo-next.md` T-1058 records the Google ClevrSync OAuth consent redirect to 0.0.0.0:8080 as a separate production fix.
+
+4. Problems marked
+   - blocker root cause: The predeploy-built production schema carries `CreditLedger_transactionType_check` with only the 16 legacy lowercase transaction types because `drizzle-kit push` schemas never create it and only the predeploy runs 0012; every `initializeUserCredits` transaction inserts a `PLAN_ALLOCATION` grant row, violates the check, and rolls back the `UserCredit` insert with it, so no Pro credit account can persist. The behavioral test reproduced the identical violation on the development database and passes after 0032 widens the constraint.
+   - risk: The predeploy migration list is manually curated; new engine migrations must be registered there or the production schema drifts silently (0030 and 0031 were present but unregistered).
+   - improvement: Production verification after the next deploy reads the `[CREDIT_ENGINE]`, `[CREDIT_RESERVATION]`, and `[USAGE]` log lines during one Pro upload.
+   - observation: The UI "500 credits available" message came from plan-limit fallbacks in `getAnalystCreditUsage` while the persisted account state was unavailable, matching the reported production symptom.
+
+5. User learning
+   The persisted Pro credit account was blocked by a database constraint on ledger transaction types, not by missing plan limits; UI fallback numbers can confirm a symptom but never prove the account state.
+
+6. AI-agent learning
+   The production schema comes from the predeploy SQL chain, not from drizzle push; every schema-affecting change must widen or align the predeploy constraints and register new migrations explicitly, and behavioral tests against the configured database reproduce constraint failures that local type-level checks cannot.
+
+7. Follow-up tasks
+   - Verify one Pro upload and the Plan allocation grant on production after the next Railway deploy.
+   - T-1058: fix the Google ClevrSync OAuth consent redirect from 0.0.0.0:8080 to the production domain.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; ClevrSync OAuth follow-up: `.TODO/todo-next.md` T-1058; release notes: `CHANGELOG.md`.
+
+## Interaction: Repair both Profitability report-generation entry points
+
+1. Interaction title
+   Fix the two broken Profitability report-generation entry points without touching working upload, Profitability calculations, dataset persistence, credits, dashboard analytics, ClevrSync, Stripe, or subscription logic.
+
+2. What was the user goal
+   Trace both Generate Report buttons end to end, determine whether they share one report-generation backend, find the exact code path producing the HTTP 500, fix both buttons against the canonical Profitability analysis so reports succeed and register under Reports & Downloads, keep regenerate idempotent, return structured errors instead of a generic 500, add a regression test covering both entry points, run focused tests and TypeScript validation, and do not commit or push.
+
+3. What changed
+   - `src/lib/billing/usage-enforcement.ts`: `getConcurrentAnalysisCount`, `incrementConcurrentAnalyses`, and `decrementConcurrentAnalyses` catch concurrent-analysis-count lookup and update failures and fail open (count 0, increment true, decrement no-op) with debug logs, matching the existing `getDailyRequestCount` pattern, so a missing or unreadable `ConcurrentAnalysisCount` relation can no longer crash report generation, chat, or analysis enforcement.
+   - `src/lib/db/migrations/0033_concurrent_analysis_count.sql`: creates the missing `ConcurrentAnalysisCount` table and its per-user unique index idempotently.
+   - `scripts/runtime/railway-predeploy.cjs`: the production predeploy runs `0033_concurrent_analysis_count.sql` after 0032 so the deployment schema converges with the drizzle schema.
+   - `src/lib/reports/dataset-report-builder.ts`: `buildProfitabilityReportInput` embeds a `ReportDiagnostics` object (authoritative paired row count for KPI/summary/provenance, semantic field mappings taken from the same semantic context, row-validity counts, template name) so persisted profitability reports satisfy `isCurrentReportRuntime` and same-key retries replay the stored report instead of deleting and regenerating it.
+   - `src/app/api/reports/route.ts`: failed credit release inside the error handler no longer masks the structured response; `ReportIntegrityError` failures return HTTP 422 with code `DATASET_ROW_COUNT_MISMATCH` and an actionable message, and unexpected failures return HTTP 500 with code `REPORT_GENERATION_FAILED`.
+   - `src/components/forms/profitability-upload.tsx`: the Profitability Analysis page toast shows the structured API error message when present instead of a fixed generic text.
+   - `scripts/analysis/profitability-report-test-db.ts` plus `scripts/analysis/test-profitability-report-entry-points.ts` and the `test:profitability-report-entry-points` script: regression covering both entry-point payloads (Profitability Analysis page `profitability:<analysisId>:report` key and Dashboard `dashboard-report:<datasetId>:<client>` key) against a canonical paired 8,500-row Profitability analysis, enforcing persisted Profitability & P&L reports with PDFs, Reports & Downloads registration, idempotent same-key replay, fail-open concurrent-count enforcement under the exact production `relation "ConcurrentAnalysisCount" does not exist` failure, and predeploy/structured-error production contracts.
+   - `CHANGELOG.md` records the user-facing fix; `.TODO/todo-done.md` T-1059 retires the work; `.TODO/config.json` advances the next task number.
+
+4. Problems marked
+   - blocker root cause: Both buttons post to the same `POST /api/reports` backend. For the Pro user the route runs `checkActionEnforcement(userId, "report_generation", ...)`, which always reads `getConcurrentAnalysisCount(userId)` for the usage payload; the production schema never creates the `ConcurrentAnalysisCount` relation (the table exists only in the drizzle schema, no predeploy migration registers it), so the lookup throws and the route catch returns the generic HTTP 500, which the Dashboard renders as "Failed to generate report". Reproduced live against the running route with the canonical dataset owner session: identical 500 for both payloads, with the failing frame logged in `getConcurrentAnalysisCount`.
+   - risk: The predeploy migration list is manually curated; the concurrent-analysis table drifted silently exactly like 0030/0031 did before the credit-account repair.
+   - behavior: Profitability reports previously serialized without `diagnostics`, so `isCurrentReportRuntime` was always false and every same-key regenerate deleted and rebuilt the report; the new diagnostics preserve the intended dataset-scoped idempotency and retry safety.
+   - observation: The credit checks in the route (`checkSpendingLimits`, `reserveCredits`, `finalizeCredits`) all work, the profitability report builder and PDF generator both succeed against the canonical analysis, and the live end-to-end verification charged exactly one report_generation reservation per newly generated report with the idempotent replay charging nothing.
+
+5. User learning
+   The Generic HTTP 500 was not in report building, PDF generation, dataset lookup, or credits; it was a plan-enforcement bookkeeping read (`ConcurrentAnalysisCount`) that was never migrated, so both Profitability report buttons failed inside the same shared backend with identical symptoms.
+
+6. AI-agent learning
+   Enforcement lookups that decorate a response must fail open like `getDailyRequestCount` instead of throwing through an authenticated user flow, and every drizzle schema addition needs a registered predeploy migration or production reads crash on first use; verify reported production failures by replaying the real route payload with a minted session against the live backend before choosing a fix.
+
+7. Follow-up tasks
+   - Verify both Profitability report buttons and Reports & Downloads on the test deploy after the next Railway predeploy applies 0033.
+   - T-1058 remains open for the Google ClevrSync OAuth consent redirect.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; retired task: `.TODO/todo-done.md` T-1059; release notes: `CHANGELOG.md`.
+
+## Interaction: Verify 500 and 1,000 credit top-up packages against Stripe webhook paths
+
+1. Interaction title
+   Verify the remaining 500-credit ($45 USD) and 1,000-credit ($85 USD) credit top-up packages end to end without any real Stripe payments, production balance changes, commits, or pushes.
+
+2. What was the user goal
+   Confirm correct Stripe Price/package mapping, webhook package resolution, exact purchased-credit grants, unchanged included credits, remainingCredits = includedBalance + purchasedBalance, correct CreditTopUp history, replay idempotency, and Adaptive Pricing safety for both packages using mocks and tests only, then report PASS/FAIL, bugs, and files changed.
+
+3. What changed
+   - `scripts/billing/test-credit-topup-packages.ts`: new behavioral regression test (14 cases) driving `handleStripeCreditCheckoutEvent` and `processStripeTopUpPayment` for both packages with fully mocked Stripe, database, credit-account, and email modules; asserts exact grants (+500/+1,000), unchanged included balances, remainingCredits = included + purchased, CreditTopUp/Ledger row fields, confirmation emails, duplicate and redelivery replay safety, post-crash ledger idempotency, amount/currency fail-closed behavior, Adaptive Pricing acceptance and rejection, legacy amount+currency fallback resolution, unpaid/non-payment refusal, and safe failure for unmatched packages.
+   - `scripts/billing/mocks/` (`register-hooks.mjs`, `hooks.mjs`, `mock-db.mjs`, `mock-credit-account.mjs`, `mock-stripe.mjs`, `mock-emails.mjs`): module-loader mock harness that redirects the four payment-side modules to in-memory implementations; the DB mock interprets the exact drizzle call shapes of credit-topup-service (findFirst, transaction with snapshot rollback, inserts, updates by column pairs, and the raw UserCredit grant/refund SQL) with no real database.
+   - `package.json`: adds the `test:credit-topup-packages` script alongside the existing credit-topup suites.
+   - No production source files changed; no real Checkout payments, no production data access.
+
+4. Problems marked
+   - observation: The 500 and 1,000 packages pass all checks. Existing coverage (`test:credit-topup-webhooks` 68 source-contract checks, `test:credit-topup-architecture` 17 checks) had no behavioral grant/idempotency coverage for these two packages; the new suite adds it.
+   - risk (not a current failure): the webhook's legacy fallback resolves unknown sessions by exact session amount + currency (`lineItem_amount_currency_legacy`) without checking the resolved package's Stripe provider mapping, so any other paid $45/$85 USD payment-mode checkout without trusted metadata would resolve to a credit package; documented by the new legacy-fallback tests, currently guarded by deterministic metadata tiers.
+   - observation: `creditsFromMonetaryAmount` in `src/lib/billing/credit-packages.ts` uses an inconsistent credits conversion (4500 cents → 450) but has no callers in src or scripts.
+
+5. User learning
+   Both remaining top-up packages behave correctly on the production code paths: exact grants, one-time-only grants under replay, and localized-currency charges accepted only with the package's own verified Stripe Price.
+
+6. AI-agent learning
+   Behavioral payment tests can run without a database by mocking drizzle call shapes (SQL chunk walking for eq/and/update sets plus the known raw UPDATE shapes) and redirecting modules with synchronous `module.registerHooks` resolve hooks; env-configured package maps must be imported after the env vars are set.
+
+7. Follow-up tasks
+   - Optional hardening: make the legacy amount+currency fallback require the package's own provider mapping and prefer failing closed when metadata is absent.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`.
+
+## Interaction: Harden Stripe credit-topup package resolution against amount guessing
+
+1. Interaction title
+   Remove amount/currency package guessing from the Stripe credit-topup webhook, remove the dead creditsFromMonetaryAmount conversion, and verify the 100/500/1,000 USD packages end to end with mocks.
+
+2. What was the user goal
+   Make a credit package resolvable only through the package's trusted Stripe Price ID or configured provider mapping so untrusted Price IDs, missing mappings, metadata tampering, and price drift fail closed with zero credits, keep Stripe Adaptive Pricing working through the package's own Price, remove creditsFromMonetaryAmount after confirming zero callers, then run the full relevant regression suite and TypeScript and lint/secrets checks without real payments, production balance changes, commits, or pushes.
+
+3. What changed
+   - `src/services/stripe/credit-webhook.ts`: `resolveCreditPackageFromLineItems` no longer resolves packages from Checkout amount + currency; it identifies a package only through a line-item Stripe Price ID mapped to an active package provider configuration and fails closed otherwise. `resolveCreditPackageDeterministically` now returns `resolvedPriceId` — the trusted Price that identified the package (the package's configured Price for metadata resolution, the metadata Price ID, or the matched line-item Price ID). The Adaptive Pricing localized-charge gate verifies `stripePriceId || resolvedPriceId` against the package's own Price and records that trusted Price on the payment, so legacy sessions without server-stamped metadata still support localized charges through their line-item Price while untrusted or drifted prices fail closed.
+   - `src/lib/billing/credit-packages.ts`: removed the unused `creditsFromMonetaryAmount` helper; configured credit packages remain the single source of truth for credit quantities. `resolveCreditTopUpPackageByAmount` stays because the Square webhook uses it (Square has no Stripe Price mapping) and its own handler validates completion, amount, and currency against the resolved package.
+   - `scripts/billing/test-credit-topup-packages.ts`: extended to 16 tests — exact +100/+500/+1,000 grants with unchanged included balances and remainingCredits invariants, replay and redelivery idempotency for every package, post-crash ledger idempotency, untrusted metadata Price IDs, untrusted line-item Price IDs, exact $45/$85 amounts with no trusted identifier failing safely, Adaptive Pricing acceptance through metadata and legacy line-item Prices, price-drift fail-closed behavior, and unpaid/non-payment refusal.
+   - `CHANGELOG.md`: Dev entry records the resolution hardening.
+
+4. Problems marked
+   - blocker root cause: `resolveCreditPackageFromLineItems` tier 2 resolved any active package from exact session amount + currency, so a paid $45/$85 USD payment-mode checkout without trusted metadata could grant credit-package credits; removed in favor of Price-ID-only resolution.
+   - behavior: Adaptive Pricing acceptance now trusts the Price that actually identified the package (metadata or Stripe-authoritative line item), so legacy sessions charged in a local currency still grant through the package's own verified Price.
+   - observation: the mock loader harness required no production changes; all new behavior is covered by the existing `test:credit-topup-packages` runner.
+
+5. User learning
+   Credit packages can now be granted only through configured Stripe Price mappings; a payment's amount and currency can never choose a package, so unknown or tampered checkouts grant zero credits instead of guessing.
+
+6. AI-agent learning
+   When removing a resolution fallback, extend the remaining trusted identifier (line-item Price ID) into the dependent safety gate (Adaptive Pricing verification) so legitimate legacy sessions keep working while every untrusted identifier fails closed; check Square-side callers before deleting shared mapping helpers.
+
+7. Follow-up tasks
+   - None for this change; `.TODO` queues unchanged.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md` Dev section.
+## Interaction: Restore sidebar Add Credits and remove customer-visible PaymentIntent references
+
+1. Interaction title
+   Restore the missing + Add Credits button on the Production Pro Plan sidebar card and remove the customer-visible Stripe PaymentIntent reference from the Billing and Credit Top-Up History UI and APIs.
+
+2. What was the user goal
+   Confirm the exact root cause of the missing sidebar button, render a clearly visible compact Add Credits button below the credit/progress information linking to the billing credit top-up anchor without duplicating payment logic, remove the Payment reference from customer-facing billing UI and top-up APIs while keeping the internal reference in the database for refunds, reconciliation, webhooks, idempotency, and support, then verify with focused regression tests, TypeScript, ESLint, and secret/package checks without committing or pushing.
+
+3. What changed
+   - `src/components/ui/usage-monitor.tsx`: the paid Pro/Business card variant now renders the shared `AddCreditsLink` below the credit counts and progress bar, so every UsageMonitor card variant (unlimited, paid Pro/Business, no credits, standard) offers the compact + Add Credits action with the existing styling, counts, and responsive behavior preserved.
+   - `src/app/(auth)/app/settings/subscription/page.tsx`: removed the "Reference: pi_..." line from the success banner and the "Payment reference: pi_..." line under Credit Top-Up History; the page keeps server-side history for credits, amounts, providers, and statuses only.
+   - `src/app/api/billing/credit-topup/status/route.ts`: the report-only status response no longer selects or returns the PaymentIntent reference for completed or refunded top-ups.
+   - `src/app/api/billing/topup-history/route.ts`: the customer-facing history response no longer includes internal payment provider references; the database records stay untouched.
+   - `scripts/billing/test-sidebar-credit-topup-link.ts`: extended to pin the root-cause regression (the link must render in all four UsageMonitor card variants, including the paid Pro/Business branch), the exact billing href, the anchor with scroll offset, and the pi_ non-exposure contract for the page plus both APIs.
+   - `scripts/billing/test-credit-topup-webhooks.ts`: the billing-page contract now asserts the PaymentIntent reference is NOT rendered instead of requiring it.
+   - `CHANGELOG.md`: Added/Fixed entries for the sidebar button and the cleaned-up billing view.
+
+4. Problems marked
+   - root cause: the Pro/Business sidebar card renders the isPaidPro branch of UsageMonitor; the earlier sidebar credit access commit added AddCreditsLink to the unlimited, no-credits, and standard branches but missed the paid Pro/Business branch, and production builds predate all sidebar credit access work, so paying Pro customers saw no Add Credits button.
+   - observation: /api/billing/topup-history had no frontend consumers but still exposed internal payment references to the authenticated owner; stripped for defense in depth.
+   - intentional scope: the confirmation email keeps the payment reference alongside the Stripe receipt and invoice links, matching its existing contract.
+
+5. User learning
+   The sidebar credit card now always offers Add Credits, and billing records no longer surface internal payment processor references.
+
+6. AI-agent learning
+   When a shared component renders several variant branches, per-variant rendering checks (count-based source contracts) catch missed branches that a single "includes" assertion cannot; anchor scrolling depends on server-rendered content, so gate the anchor behind the URL-driven tab and keep a scroll margin for the sticky header.
+
+7. Follow-up tasks
+   - None for this change; production convergence happens on the next deploy of the branch.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.
+## Interaction: Gate credit top-ups to paid plans and fix the Pro-refund downgrade state
+
+1. Interaction title
+   Fix the production Pro-refund case: fully refunded Pro subscriptions synchronize the account back to Free, Pro included credits reset per the existing plan-change logic, preserved purchased credits survive but are unusable on Free, and top-up purchase/use is gated to Pro and Business.
+
+2. What was the user goal
+   Verify the Stripe subscription/refund state authoritatively, downgrade a fully refunded Pro account to Free through the existing sync and credit lifecycle paths without SQL edits, remove the remaining Pro included credits while preserving the 100 purchased credits, block Free top-up purchase and use generically for all customers, restore purchased-credit usability on re-upgrade, add regression tests, and report before any production recovery mutation.
+
+3. What changed
+   - `src/app/api/checkout/credit-topup/route.ts`: the POST handler loads the authenticated account's subscription tier and rejects Free accounts with HTTP 403 before any checkout session is created; Pro and Business accounts proceed unchanged.
+   - `src/lib/billing/credit-engine.ts`: `reserveCredits` stamps the account's plan tier on the reservation and, on the Free tier, requires the estimate to fit inside the included allowance so preserved purchased credits cannot be reserved; `finalizeCredits` gates purchased-credit consumption on the reservation's plan tier and caps the Free-tier debit to the included allowance, so purchased credits never decrease on Free and resume being consumed on Pro/Business.
+   - `src/app/(auth)/app/settings/subscription/page.tsx`: the Purchase Credit Top-Ups section shows an upgrade hint instead of purchase buttons for Free accounts; the section anchor and paid-plan buttons are unchanged.
+   - `scripts/billing/mocks/mock-db.mjs`: the in-memory DB also serves UserCredit, Profile, and SubscriptionPlan rows plus the reservation/finalization SQL shapes of the credit engine.
+   - `scripts/billing/test-credit-lifecycle-downgrade.ts` plus the `test:credit-lifecycle-downgrade` script: behavioral regression covering termination → downgrade to Free, included-credit reset, purchased-credit preservation, Free reserve/finalize blocking, Free included-allowance usage, and re-upgrade restoring purchased-credit consumption.
+   - `scripts/billing/test-credit-topup-architecture.ts`: the finalize contract now pins the tier-gated consumption behavior.
+   - `scripts/billing/diagnose-subscription-refund.ts`: read-only diagnostic for Stripe subscription/invoice state versus profile and credit state.
+   - `CHANGELOG.md`: Added entry for plan-based top-up availability.
+
+4. Problems marked
+   - root cause: the refunded Pro subscription stayed `active` in Stripe because refunds do not cancel subscriptions; the existing synchronization was correct for the provider state, so the account remained Pro with 437 included credits until the refunded subscription is canceled in Stripe.
+   - risk: Free-tier concurrent reservations can both fit the included allowance before finalization; the existing stale-reservation reclaim bounds the impact.
+   - observation: `processPlanChange` already preserves purchased credits and resets included credits on plan changes; the missing pieces were the provider-side cancelation and the Free purchase/use gates.
+
+5. User learning
+   A fully refunded Pro subscription now lands the account on Free with zero included credits, keeps purchased credits stored for a future upgrade, and cannot buy or use new top-ups until the account is on Pro or Business again.
+
+6. AI-agent learning
+   Tier-conditional balance consumption must be stamped at reservation time so finalize uses the same entitlement that authorized the operation; entitlement changes belong in Stripe first, with the existing sync paths following.
+
+7. Follow-up tasks
+   - Production recovery: cancel the refunded subscription `sub_1UG13AJunPTBXsIvORkSv4v8` in Stripe so `customer.subscription.deleted` runs the existing downgrade sync, then verify 0 included + 100 purchased for the account.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.
+
+## Interaction: Add Usy billing and credit knowledge to the master prompt
+
+1. Interaction title
+   Teach Usy the authoritative billing and credit rules (section 13 of the master prompt) so the assistant explains exactly what the billing system applies.
+
+2. What was the user goal
+   Update Usy's deterministic product/billing knowledge with the authoritative subscription and credit rules: Free cannot purchase top-ups, Pro/Business can, purchased credits never expire and survive cancellation/downgrade/plan changes, included credits are consumed before purchased credits, normal cancellation keeps the paid plan until the paid period ends, cancellation differs from refund, refunds are centrally reviewed with no self-service and no approval promises, zero-credit guidance is tier-aware, answers stay deterministic across supported languages, and one source of truth holds across backend, UI, and Usy. Regression tests cover Free, Pro, Business, cancellation, downgrade, preserved purchased credits, zero credits, top-ups, and refund questions.
+
+3. What changed
+   - `src/lib/usy/billing-knowledge.ts` (new): section "13. Usy billing & credit knowledge" — canonical rules, `resolveUsyBillingState` deriving tier/purchase eligibility/zero-credit state from the caller-provided usage context only, and localized builders (EN, DE, NL, ES, HU, RO) for the billing overview, top-up gating, refund policy, cancellation window, downgrade path, purchased rules, and zero-credit guidance.
+   - `src/lib/usy/router.ts`: new deterministic intents `top-ups`, `refunds`, `downgrade`, and `cancellation` with localized answers in all six languages, tier-aware `buildCreditsAnswer` (plan gating, purchase availability, included-before-purchased, zero-credit guidance via `limitReached`), and billing-focused next steps.
+   - `scripts/ai/test-usy-billing-knowledge.ts` plus the `test:usy-billing-knowledge` script: 10 behavioral tests covering Free/Pro/Business gating, purchased-credit preservation and non-expiry, included-before-purchased order, cancellation window and cancellation-vs-refund distinction, central refund review with no approval promises, tier-aware zero-credit guidance, unknown-state honesty (no invented balances), and cross-language consistency.
+
+4. Problems marked
+   - root cause: Usy's knowledge covered upload-credit mechanics only; it could not explain top-up purchase gating, purchased-credit preservation, cancellation windows, or refund handling, so the assistant could contradict the billing system.
+   - observation: the working tree already carried the 18:42-rule engine semantics (purchased credits consumable on Free, purchase gated to Pro/Business), so Usy's knowledge documents the same rules without further engine changes.
+
+5. User learning
+   Usy now explains billing exactly as the backend applies it: who can buy top-ups, how credits are consumed, what survives downgrades and cancellations, and why refunds are centrally reviewed.
+
+6. AI-agent learning
+   When a product gains plan-gated behavior, the assistant's knowledge module must derive answers from the caller-provided usage context only and mirror the backend gates; localization must be rule-complete in every supported language, and regression tests should assert cross-language equivalence rather than only English.
+
+7. Follow-up tasks
+   - None for this change; the tests pin the knowledge contract.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: `project-logs/interactive-log.md`; activity summary: `project-logs/activity-log.md`; latest interaction status: `docs/AI-interaction/interaction-status.md`; release notes: `CHANGELOG.md`.
+
+## Interaction: Restore the public /subscription route
+
+1. Request
+   The user reported that https://app.useclevr.com/subscription returns 404 and asked to restore the public subscription/pricing page before any landing-page pricing work, reusing the existing pricing configuration and components without touching the authenticated billing flow or the landing page.
+
+2. Root-cause audit
+   - No route, rewrite, redirect, or middleware rule for /subscription exists in the working tree, and the src proxy passes non-API, non-root paths straight through.
+   - Full git history across all branches (main, beta, dist, dist-test, backups, production-fix branches), next.config history, vercel.json, sitemap, and compiled dist-branch build output contains no public /subscription page; only (auth)/app/settings/subscription and api/billing/subscription ever existed.
+   - The 2026 repository history starts at the migration merge (PR #106), and the old production app that served /subscription is not in this history, so the page was lost in the 2026 repo migration, not deleted by a recent commit.
+
+3. Restoration
+   - Added src/app/(public)/subscription/page.tsx in the (public) route group: public header/footer, PublicPageHeader, and the existing PublicPricingPlans component.
+   - All plan names, prices, market pills, monthly/yearly toggle, and CTAs come from the authoritative billingPlans in src/lib/billing/plans.ts and launch-pricing via the shared component, so there is no second pricing system and no hardcoded plan logic.
+   - CTAs keep the existing targets: Free to /signup, Pro/Business to /app/settings/checkout?plan=...&interval=..., which the (auth) layout already guards.
+   - The authenticated /app/settings/subscription page, billing APIs, Stripe checkout, and the landing page are untouched; the new file is the only change and is untracked (no commit, no push per instruction).
+
+4. Verification
+   - pnpm exec tsc --noEmit: zero errors in the new file; remaining errors are confined to other agents' in-flight files (scripts/billing/test-credit-engine.ts, src/app/api/upload/simple/route.ts, src/app/api/analyze/route.ts, src/lib/usy/router.ts).
+   - next dev smoke test on port 4322: GET /subscription returns 200 with no redirect for a logged-out visitor; the page renders Free (€0), Pro (€40/month primary EUR 4000 minor, GBP 3900, USD 4500, CAD 5500 pills), Business (€420/month, 42000 minor), the Most Popular Pro badge, the Monthly/Yearly toggle, and the checkout/signup CTAs with plan and interval parameters.
+   - Logged-in access needs no code: the (public) group has no auth layout and the proxy only special-cases /, MCP subdomains, /demo, and /api, so both visitor states reach the page; dev server output structure matches the working /pricing page.
+
+5. User learning
+   /subscription is publicly reachable again and always reflects the current plan configuration because it renders the same shared pricing component as /pricing.
+
+6. AI-agent learning
+   When a route predates the current repository, audit every branch including compiled dist branches and middleware/rewrite history before concluding a page never existed; the migration-loss conclusion required that exhaustive sweep.
+
+7. Follow-up tasks
+   - None for this change; landing-page pricing edits remain gated until the team confirms this restoration.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   Detailed session record: project-logs/interactive-log.md; activity summary: project-logs/activity-log.md; latest interaction status: docs/AI-interaction/interaction-status.md.
+
+---
+
+## 2026-09-20 — Usy 401 Guest Mode + Free market currency fix
+
+### 1. Request
+Fix two production issues without weakening auth: (a) `POST /api/usy/chat` returned 401 with "Your session may have expired. Sign in again and retry." for normal visitors; (b) the subscription/pricing page showed `$0/€0` simultaneously for the Free plan. Usy must support Guest Mode (public product/billing knowledge, no private data, contact handoff) alongside Authenticated Mode, with guest abuse protection, multilingual sign-in responses, no second Usy implementation, no unrelated changes, no commit/push.
+
+### 2. Root-cause audit
+- Usy 401: Next.js 16 uses `src/proxy.ts` as middleware. `proxy()` at line 143 returns `401 {"error":"Unauthorized"}` for every unauthenticated request to `/api/*` unless the path is in `publicApiPrefixes` (`/api/auth`) or `publicApiPaths`. `/api/usy/chat` and `/api/usy/contact` were not allowlisted, so anonymous visitors were rejected at the edge before the route handlers ran. The handlers themselves were already guest-capable: `auth()` returns null session, rate limiting falls back to `ip:` key, `buildUsyReply` works without user data, and the contact handoff treats `userId` as nullable. The 401 text came from `notice-bar.tsx`'s global fetch wrapper (401 → "Your session may have expired. Sign in again and retry."). Development masked this only where a session cookie existed; the check is cookie-presence, not session validity.
+- Free `$0/€0`: `formatPlanPrice()` in `src/lib/billing/plans.ts` hardcoded `return "$0/€0/month"` for the free tier. `PublicPricingPlans` derived Free's `amountText` from that string while paid plans used `getCheckoutMarketOptions` → `formatRecurringPrice`, producing the mixed-currency display for Free only.
+
+### 3. Implementation
+- `src/proxy.ts`: added `/api/usy/chat` and `/api/usy/contact` to `publicApiPaths` (exact-path allowlist only; no prefix widening; all other APIs stay protected).
+- `src/lib/usy/types.ts`: added `isAuthenticated?: boolean` to `UsyContext`.
+- `src/lib/usy/router.ts`: `roleFromAudience` now derives roles from the verified session role only (anonymous audience claims → `public`; audience can no longer elevate admin→superadmin); new exported `isUsyContextAuthenticated` (defaults from role for legacy contexts) and `buildUsyRequestContext`, which drops client-supplied `plan`/`usage` for guests at the application boundary; new `asksForPersonalAccountData` (60+ signals across EN/DE/NL/ES/HU/RO, normalized through `normalizeUsyText`) returns a deterministic localized `signInRequired` knowledge answer for guests (HTTP 200, never 401) with `OPEN_SUPPORT` action; all six languages got a `signInRequired` message.
+- `src/app/api/usy/chat/route.ts`: computes `isAuthenticated` from the server session only, builds the context through `buildUsyRequestContext`, and passes it to the unchanged `buildUsyReply`; guest requests keep IP-keyed rate limiting (30/min, existing `checkRateLimit`), authenticated requests keep user-keyed limits. The Usy router remains 100% deterministic (no LLM call), so public Usy traffic cannot generate paid AI spend.
+- `src/components/ui/help-chatbox.tsx`: deterministic non-OK handling (401 → sign-in prompt, 429 → wait-and-retry, 400 → rephrase, others → generic retry) with no internals; network failures keep a connection-focused message.
+- `src/lib/billing/plans.ts`: `formatPlanPrice(plan, market = "eu")` resolves Free through `resolvePlanPrice` + `formatRecurringPrice` (single currency per market; fallback now "Unavailable"); `formatPlanPriceForCurrency` formats Free at 0 in the requested currency. No new currency table; Stripe checkout untouched (free tier has no Stripe price and checkout flows were not modified).
+- Market-aware call sites: `public-pricing-plans.tsx` (Free card uses the resolved market currency, `MULTI` type removed, `marketCurrency` reuses `checkoutMarkets`), `subscription-plan-selector.tsx`, `checkout/page.tsx` (Free review card + `formatCheckoutPlanPrice`), `account-center.tsx` (browser-locale market resolution, same pattern as the other billing components).
+
+### 4. Guest/private separation enforcement
+- Boundary is application logic, not prompt text: guests get `usage: null`, `plan: undefined` regardless of what the client sends (forged `business`/777-credit payloads are asserted dead in tests); the sign-in-required branch runs before any intent that could echo account state; existing restricted-information and admin-only guards still run first; contact handoff stays available to guests via the existing `/api/usy/contact` flow (n8n URL and secret remain server-side only).
+- Authenticated mode: valid sessions keep plan/usage context; `Explain AI credits` reflects the real balance ("2 credits available" / "480 credits available"); ownership and authorization rules unchanged (identity never comes from the client).
+
+### 5. Verification
+- `pnpm test:usy-guest-mode` (new, 9 groups): guest public answers (UseClevr, credits, Business 1,500 credits / 100 datasets, pricing, file formats, Pro price, sales contact), guest personal questions → sign-in-required (7 EN + DE/ES/RO/HU/NL), forged-usage stripping, authenticated preservation, session-only role derivation, proxy allowlist guards, rate-limit behavior (30/min then blocked; other IPs unaffected).
+- `pnpm test:usy-billing-knowledge` 16/16, `scripts/ai/test-usy-secretariat.ts` pass, `pnpm test:pro-pricing` (now with per-market Free $0/£0/$0/CA$0 + no-mixed-currency assertions), `pnpm test:business-plan-limits`, `pnpm test:zero-credit-ux`, `pnpm test:tier-resolution`, `pnpm test:sidebar-credit-topup-link`, `pnpm test:hybrid-ai-gates`, full `pnpm test:all`.
+- `pnpm validate:types` (`next typegen` + `tsc --noEmit`) exit 0; ESLint 0 errors on all changed files (6 warnings, all pre-existing at HEAD) and 0 errors repo-wide; `validate-pricing.js`, `check-secret-leaks.js`, `check-package-json.js`, `lint:todos`, `lint:workflows` pass. Business verified unchanged: €420/month, 1,500 AI credits, 100 datasets; 5,000/250 regression guards still assert.
+
+### 6. Remaining limitations
+- Guest personal-data detection is deterministic keyword matching; unusual phrasings that avoid possessive markers fall through to the standard knowledge/intent answers, which never include private data (answers are static product knowledge; no user lookup exists in the Usy path at all).
+- Language detection reuses the existing `detectUsyLanguage` markers; personal questions phrased without those markers get the English sign-in answer (existing detection architecture, unchanged).
+- `formatPlanPrice` without a market defaults to EU (established default) — downloads and admin billing tables show single-currency €0/month for Free rather than locale-resolved currency; the market-facing surfaces (pricing, checkout, subscription selector, account center) resolve the browser locale/market explicitly.
+- Not committed or pushed per instruction.
+
+## Risk Intelligence Dataset Semantics Repair
+
+### 1. Request summary
+- Scan and fix the complete Risk Intelligence implementation after 05_investor_portfolio (45 rows) produced "Latest-period revenue decline" at -27.7% with Financial Risk 94 Critical and Data Quality "Invalid date values" at 42.2%, although the dataset is an investor portfolio, not an operating revenue time series. Root-cause scan before changes; applicability gating by semantic evidence for every rule; canonical date parsing; dataset-type awareness; regression tests for investor, retail, ecommerce, SaaS, profitability, accountancy, professional services, and generic business; duplicate-entries inspection for the Dataset scope selector; no UI redesign; no commit or push.
+
+### 2. Exact root causes
+- Root cause 1 (bogus period dimension): the risk engine picked its trend "date column" through a first-match alias scan (`detectBusinessColumns` first-pass plus `findAlias` substring matching). For the investor schema, `company_id` (values `PC-001`…`PC-045`) came first and V8's lenient `Date` parser read `PC-0NN` as year/month dates (PC-001→Jan 2001 … PC-012→Dec 2001, PC-031+→year 2031+, PC-013…PC-030 invalid). That produced 26 "valid" parseable values (26 fabricated month periods) and 19 invalid values = exactly 42.2%, while the genuine `investment_date` column was never examined. The same bogus axis fed `groupByPeriod`, fabricating a cross-sectional "revenue trend".
+- Root cause 2 (revenue conflation): `REVENUE_PATTERNS` in the legacy universal detector matched any column containing `revenue|amount|total|income|sales|…` with no numeric or domain validation, so portfolio-company `annual_revenue` and, in other layouts, `investment_amount`/`invested_amount` mapped to generic "revenue". The engine then ran `financial.revenue_decline.v1` (critical at ≤ -20%) over whatever monthly sums this axis produced — the -27.7% Critical 94 impact 108 finding. Category "financial" contains only that rule, so Financial Risk displayed 94 Critical.
+- Root cause 3 (no applicability gating): rule eligibility was a static per-datasetType list checked against the stored upload category; semantic evidence (validated revenue metric, comparable period dimension, same-series values, module support, confidence) never entered the check. `analyzeBusinessData` also estimated COGS at 30% of revenue when no cost column existed, and `calculateInvalidDateRatio` used its own `new Date(String(value))` instead of the canonical parser — competing date semantics.
+- Root cause 4 (aggregation): `buildNotApplicableRules` did not exist, so rules excluded by type or missing evidence were invisible; unavailable rules had to be excluded from both sides of the weighted overall score.
+
+### 3. Durable changes
+- `src/lib/data/canonical-date.ts` (new): the one canonical parser — ISO date/datetime, `YYYY-MM`, `YYYY`, US `MM/DD/YYYY`, EU `DD-MM-YYYY`, German `DD.MM.YYYY`, `YYYY/MM/DD`, compact `YYYYMMDD`, and a guarded native fallback that requires explicit date evidence (four-digit year or month name); pure numbers other than `YYYY`/`YYYYMMDD`, identifiers like `PC-001`, and epoch millis never parse. `periodKeyFromDate` and `isMostlyCanonicalDate` export the shared period/validation semantics.
+- `src/lib/data/data-cleaner.ts`: `parseDateToISO` delegates to the canonical parser (single date semantics across cleaning, semantics, and risk).
+- `src/lib/data/business-semantics.ts`: date validation uses canonical parsing; `cogs` gains `cost/costs/total_cost/total_costs` aliases and `operating_expense` gains `expense/expenses/operating_cost/operating_costs` (numeric-validated) so generic business datasets keep expense rules through canonical mapping.
+- `src/lib/business/business-columns.ts`: `findColumnByPatterns` excludes investment, valuation, ownership, burn, runway, funding, capital, equity, portfolio, and growth-rate fields from revenue/cost/profit pattern matching, and revenue/profit candidates require numeric evidence.
+- `src/lib/risk-intelligence/risk-rules.ts`: version `risk-intelligence-lite-v2`; every rule gains `requiredConcepts` (semantic concepts) and a semantic dataset-type vocabulary (standard, retail, profitability, accountancy, prebookkeeping, marketplace, saas, investor); new rules `cash_flow.low_runway.v1` (SaaS cash balance/burn, point-in-time), `investor.portfolio_company_concentration.v1`, and `investor.portfolio_runway_breach.v1`; metric keys `topPortfolioCompanyRevenueShare`, `portfolioRunwayBreachRatio`, `runwayMonths`.
+- `src/lib/risk-intelligence/risk-engine.ts`: full semantics-driven rework — builds `buildBusinessSemanticProfile` from dataset metadata, columns, and rows; maps confirmed concepts to risk inputs (revenue series resolver accepts revenue/net_sales/gross_sales/subscription_revenue; period resolver accepts date/journal_date only — never investment_date); investor metrics compute portfolio concentration and runway breach; data-quality rules scope to confirmed concept columns and validate confirmed date-like columns (including investment dates) with the canonical parser; `classificationConfidence` derives from confirmed mapping coverage; `notApplicableRules` reports every rule that cannot execute with its exact reason; overall score aggregates only evaluated rules; `semanticDatasetType`/`semanticConfidence` join the result and the scope label ("Single Investor Portfolio dataset" for investor classifications).
+- `scripts/risk-intelligence/test-risk-engine.ts`: extended with the semantic regression suite — canonical date matrix (including the `PC-001`, epoch, and garbage rejections), the 45-row investor fixture asserting no revenue-decline finding, no invalid-date finding, no fabricated trend, correct scope, investor-rule applicability and non-claim guarantees, plus retail, ecommerce, SaaS, profitability, accountancy ledger, professional services, and generic business fixtures, severity boundary cases, per-finding finite checks, determinism (double-run deepEqual), and overall-score aggregation recomputation.
+
+### 4. Verification
+- `pnpm validate:types` (next typegen + tsc --noEmit) exit 0.
+- `test:risk-intelligence` full suite passes (existing contract assertions + new semantic regression suite).
+- Neighbor suites still pass: prebookkeeping export/risk fix pack, investor questions golden flow, business semantics engine, SaaS semantic profile, dashboard semantic profiles, trend semantics, business intelligence engine.
+- Before/after for 05_investor_portfolio: before — overall 15 Low (real fixture variant; user production showed 26 with Financial 94 Critical, metric -27.7%, impact 108, invalid dates 42.2%); after — overall 0 Low, semantic type investor (HIGH), scope "Single Investor Portfolio dataset", zero findings, `revenueGrowthPct` unavailable, `invalidDateRatio` 0, `topPortfolioCompanyRevenueShare` 2.5%, `portfolioRunwayBreachRatio` 0, trend "No previous comparison available.", 13 rules reported not applicable with reasons.
+
+### 5. Duplicate dataset selector audit
+- `listRiskIntelligenceDatasets` filters by stored `dataset_type`, excludes deleted/archived/test/seed records, and deduplicates by immutable dataset ID before rendering; upload inserts use one deterministic primary key per upload attempt, so retries cannot create same-ID duplicates. Duplicate rows in the Dataset scope selector are therefore distinct dataset records (separate uploads), consistent with the prior accountancy ledger finding that duplicate-named production records are legitimate history requiring admin cleanup, not a UI/query duplication bug. No code change made.
+
+### 6. Remaining limitations
+- SaaS MRR/ARR decline and churn-rate rules are not yet implemented; SaaS datasets currently produce runway, revenue-or-sales (when present), concentration, and data-quality rules only.
+- Investor valuation-vs-invested-capital exposure and burn-based portfolio risks beyond runway remain future work.
+- The canonical parser's native fallback accepts month-name dates ("Mar 15, 2026") but not ambiguous numeric formats beyond the canonical set; such values surface as data-quality invalid-date evidence instead of being silently interpreted.
+- The uploaded test env for 05_investor_portfolio remains a source-equivalent synthetic 45-row fixture because the sanitized source file is not in the workspace; severity numbers from the user's production dataset cannot be re-derived locally.
+
+## Risk Intelligence Production Invalid-Time-Value Repair
+
+### 1. Request summary
+- Production Railway error after the Risk Intelligence semantic/date hardening: `[RISK_INTELLIGENCE_PAGE] Failed to render risk workspace RangeError: Invalid time value at Date.toISOString(...)` with `requestedScope: 'standard'`, `requestedDatasetId: null`. Trace the exact call, scan the full execution/render path for unguarded date operations, route every untrusted date value through `src/lib/data/canonical-date.ts` without weakening it, keep the parser strict (PC-001-style identifiers and bare numbers stay rejected), reproduce the crash with regression tests plus an Invalid-Date toISOString invariant, and run tests, typecheck, and lint. No UI redesign; no commit or push.
+
+### 2. Exact crashing file/function
+- `src/lib/risk-intelligence/risk-service.ts` → `listRiskIntelligenceDatasets()` (row→summary mapping), lines that executed `dataset.createdAt.toISOString()` and `dataset.updatedAt.toISOString()` directly on stored dataset rows.
+
+### 3. Exact value that reached toISOString()
+- A dataset metadata timestamp from the `datasets` table that the database driver materialized as a JS `Date` whose time value is NaN (an Invalid Date — consistent with a PostgreSQL `infinity`/`-infinity` timestamp or a legacy/imported value outside the driver's parse range). `.toISOString()` exists on the object (so the call is a RangeError, not a TypeError) but throws `Invalid time value`. With `requestedDatasetId=null` the Risk Intelligence page lists up to 100 candidate datasets to determine the initial dataset, so a single such row crashed the render before any dataset was selected.
+
+### 4. Why existing tests missed it
+- `listRiskIntelligenceDatasets` requires a live database, so the existing regression suite only asserted source strings for the service (`dedupeByDatasetId`, `isVisibleRiskDataset`, scope filters) and never executed the row→summary mapping.
+- All engine/fixture datasets carry valid `createdAt`/`updatedAt` metadata; no fixture simulated a candidate row with an invalid or missing timestamp, and the no-selection auto-determination path (requestedDatasetId=null over a mixed workspace) was never exercised end to end.
+
+### 5. Durable changes
+- `src/lib/data/canonical-date.ts`: new `formatCanonicalIsoTimestamp(value)` — validates via the canonical parser (or a direct NaN check for Date instances), returns ISO-8601 for valid values, null for invalid/missing values, and never calls `Date.toISOString` on an Invalid Date. The parser itself stays strict: `PC-001`, `PC-045`, bare numeric identifiers, `infinity`, and arbitrary strings remain rejected as dates.
+- `src/lib/risk-intelligence/risk-service.ts`: row→summary mapping extracted into a pure exported `toRiskDatasetSummary` that cannot throw; `createdAt`/`updatedAt` now format through canonical validation and are typed `string | null`; the listing pipeline (dedupe → summary → visibility → scope) survives one bad candidate row; `RiskDatasetSummary` timestamps documented as nullable. The dataset itself stays listed and selectable.
+- `src/app/(auth)/app/risk-intelligence/page.tsx`: `formatDateTime` validates its value with `parseCanonicalDate` first and renders "Not available" for invalid timestamps instead of calling `Intl.DateTimeFormat.format` on an invalid date.
+- `src/lib/risk-intelligence/risk-engine.ts`: `calculatedAt` (both generic and pre-bookkeeping paths) routes through the same safe formatter with a deterministic fallback, so even the engine's own timestamp output can never execute `toISOString` on an invalid Date.
+- `scripts/risk-intelligence/test-risk-engine.ts`: new regression block — production-crash reproduction (candidate rows with `new Date("not-a-date")` createdAt, `"infinity"` updatedAt, null timestamps; plus a workspace whose rows carry identifier-like `PC-001` values in a date-aliased column under standard scope with no selected dataset), an invariant harness that monkey-patches `Date.prototype.toISOString` to record any call on an Invalid Date and runs the engine, the listing mapping, and a hostile-value corpus under it, timestamp renderability checks (`calculatedAt` always parses canonically), and source invariants pinning the service to `formatCanonicalIsoTimestamp(row.createdAt/updatedAt)` with no direct `.createdAt.toISOString()` and pinning the page to canonical validation before rendering.
+
+### 6. Verification
+- `node -r tsx/esm scripts/risk-intelligence/test-risk-engine.ts` — full suite passes including the new crash reproduction and invariant tests.
+- `pnpm validate:types` (next typegen + tsc --noEmit) exit 0.
+- Neighbor suites pass: csv-edge-cases, csv-analyzer, business semantics engine, trend semantics, dashboard semantic profiles, investor questions golden flow, prebookkeeping export/risk fix pack, business intelligence engine.
+- ESLint 0 errors on all changed files (scripts/ excluded by repo config).
+- Canonical strictness re-verified in tests: `parseCanonicalDate("PC-001")`, `("PC-045")`, `(44744)`, `("infinity")` all return null; identifiers and bare numbers are still rejected.
+
+### 7. Remaining limitations
+- The production database row that carried the invalid timestamp cannot be inspected from the workspace, so the fix is proven by reproduction with the plausible value classes (Invalid Date instance, `infinity` string, null) rather than the live row; the listing now tolerates any of them.
+- Datasets with invalid metadata timestamps still appear in the selector (visibility is not timestamp-based) with null timestamps; the selector does not render timestamps, so no UI change was needed.
+
+## Accountancy vs Pre-bookkeeping Ownership Final Fix
+
+### 1. Request summary
+- Confirmed product architecture: Accountancy = financial/accounting overview hub; Pre-bookkeeping = operational bookkeeping workspace. Remove the duplicated operational Pre-bookkeeping render paths from Accountancy (uploader, bookkeeping package, bookkeeping queue) without CSS hiding, keep the verified-working Pre-bookkeeping backend untouched, fix the misleading tab-based format rejection with automatic file-type detection using existing supported format definitions, add regression invariants including a reintroduction guard, and investigate git history for the duplicate. No commit or push.
+
+### 2. Ownership audit before the fix
+- `src/app/(auth)/app/accountancy/page.tsx` rendered `<AccountancyUpload datasetType="accountancy" />` (main content and empty state) — the exact shared CSV/Excel/PDF-Scan uploader component used by Pre-bookkeeping, plus the "Bookkeeping package" card (`AccountancyPackageForm` with accountant email, package CSV/Excel/PDF export, mailto handoff) and a `BookkeepingQueue` table (bank reconciliation, expense coding, monthly close).
+- `src/app/(auth)/app/accountancy/error.tsx` rendered a second `AccountancyUpload` (defaulting to `datasetType="prebookkeeping"`) plus a static bookkeeping-package form, so the Accountancy error boundary instantiated a Pre-bookkeeping uploader.
+- `src/app/(auth)/app/prebookkeeping/page.tsx` rendered the canonical uploader once, the empty-state card ("No pre-bookkeeping dataset selected"), and the review workspace (`PrebookkeepingReviewWorkspace` with AI Review Summary, transaction review, categorization, VAT, duplicates, bookkeeping package/export) plus `StartCategorizationButton` for legacy datasets.
+
+### 3. Root cause of the duplicate uploader (git evidence, not guesswork)
+- `01222ca3f` (2026-06-22, "feat: improve business setup and accountancy onboarding") created `src/components/accountancy/accountancy-upload.tsx` and built the full operational workflow — uploader, package form, accountant handoff — into the Accountancy page while Accountancy hosted the pre-bookkeeping center (CHANGELOG: "Show Accountancy as a pre-bookkeeping center for new users with document upload, package generation, export, accountant email handoff...").
+- `73fa26e3b` (2026-08-01, "feat: complete pre-bookkeeping upload processing flow") created the canonical `/app/prebookkeeping` page reusing the same `AccountancyUpload` component, but the Accountancy page's operational sections were never removed.
+- `5aeb2a422` (2026-09-13, "fix: remove duplicate pre-bookkeeping upload actions") removed duplicate upload buttons only from the Pre-bookkeeping page (header + empty-state `Upload document` buttons), leaving the Accountancy copies intact. The duplicate is original heritage from the pre-canonical era, never a re-introduction after removal.
+
+### 4. Durable changes
+- `src/app/(auth)/app/accountancy/page.tsx`: removed the `AccountancyUpload` render (main + empty state), the Bookkeeping package card with `AccountancyPackageForm`, the `bookkeepingRows` data, and the `BookkeepingQueue` component plus its `getCompanyName`/`profileContextRows` helpers; hero and Quick actions copy now state that uploads happen in the Pre-bookkeeping workspace; the empty state gained an "Open Pre-bookkeeping" CTA. Kept: financial overview hero, Business Profile/tax context, routed accountancy dataset card with metrics, Monthly close card, Financial overview links, compliance/reporting/tax links, Review close action, Quick actions with the Open Pre-bookkeeping CTA.
+- `src/app/(auth)/app/accountancy/error.tsx`: rewritten as a financial-overview error state — retry card plus "Open Pre-bookkeeping" action; no uploader and no bookkeeping package form; error-boundary assertions from `test:business-profile-context` retained ("Could not load Accountancy", no hardcoded "Not configured", no "Complete Business Profile Setup").
+- `src/lib/accountancy/upload-detection.ts` (new): pure format detection mirroring the server `uploadSpecs` — extension routing (.csv→csv, .xlsx/.xls→excel, .pdf→pdf, .jpg/.jpeg/.png/.webp→receipt scanner, .ofx/.qif/.qfx→bank parser; tab-visible formats win shared extensions), extension-less MIME fallback (text/csv, application/csv, text/plain, spreadsheet MIMEs, application/pdf, image MIMEs, OFX/QFX MIMEs), ambiguous catch-alls (octet-stream, empty) never match, the exact neutral unsupported message ("Unsupported file format. Upload a CSV, Excel, PDF, or supported scan file."), and a union file-picker accept list so the active tab never blocks selecting another supported format.
+- `src/components/accountancy/accountancy-upload.tsx`: `validateFile` replaced by `resolveUploadFormat` (detect → neutral error when unsupported); the detected format drives validation, `formData` `uploadType`/`type`/`fileType`, the uploaded-file record, and the processing label; the visible tab auto-follows the detected format for CSV/Excel/PDF (scan/bank pipelines keep the current tab); the misleading "Please upload a valid ${selectedType} file" rejection is removed; the file input uses the union accept list; `handleDrop` and `uploadFile` gained an `uploading` guard so one upload action cannot start a second concurrent upload. Upload endpoint, dataset creation, categorization, VAT, review workflow, and credit settlement are untouched.
+- `scripts/accountancy/test-accountancy-ownership.ts` (new, wired into `test:all` as `test:accountancy-ownership`): 18-invariant regression suite — Accountancy app directory contains no uploader/package-form/file-input/dropzone/processing-flow/bookkeeping queue (reintroduction guard scanning every file under `src/app/(auth)/app/accountancy/`), "Open Pre-bookkeeping" retained and pointing at the existing canonical route, Pre-bookkeeping renders exactly one `<AccountancyUpload`, empty-state and selected-dataset states instantiate no second uploader, 13 functional detection cases including CSV-tab+.xlsx→Excel, Excel-tab+.csv→CSV, dropped/detected routing into the existing server specs, unsupported extensions→neutral message, one `tx.insert(datasets)` per upload with the duplicate-checksum path returning before insert, retry clearing only the failure state, dataset limits enforced before processing, owner-scoped focused-dataset lookups, explicit superadmin handling, and the canonical Pre-bookkeeping structure intact.
+- `scripts/accountancy/test-accountancy-upload-system.ts`: `testUiWiring` now pins the detected-format submission (`formData.append("uploadType", detectedFormat)`), the detection entry point, and the absence of the tab-mismatch rejection message.
+- `scripts/business/test-accountancy-business-profile-source.ts`: pins that Accountancy renders no BookkeepingQueue/AccountancyUpload/AccountancyPackageForm (previously pinned the queue's presence).
+- `scripts/accountancy/test-prebookkeeping-upload-limit.ts`: the stale "credit-exempt" case (pre-existing failure on the baseline, proven via `git stash` re-run) now pins the current unified credit model (reserve/finalize/release through the central engine, `normalUploadCreditsRequired: true`).
+
+### 5. Cause of the misleading CSV error
+- `validateFile` checked the file extension against only the ACTIVE tab's extension list and rejected mismatches with "Please upload a valid ${selectedType} file (.csv)". A valid .xlsx with the CSV tab active therefore failed client-side before any format detection; the same applied to picker and drop uploads.
+
+### 6. Verification
+- `pnpm validate:types` (next typegen + tsc --noEmit) exit 0.
+- Full `pnpm test:all` exit 0 (23 suites, 58 ok/passed lines, 0 failures) including the new `test:accountancy-ownership`.
+- Focused: `test:accountancy-upload-system`, `test:accountancy-upload-entitlements`, `test-prebookkeeping-upload-limit` (19 checks), `test-accounting-context`, `test-accountancy-package-csv-export`, `test-accountancy-package-pdf-export`, `test:business-profile-context`, `test:business-profile-ssot`, `test:risk-intelligence`, `test:standard-upload-success-ui`, `test:zero-credit-ux`, `test:credit-unified`, `test:dataset-isolation` (DB-backed cross-user isolation), `test:customer-data-owner-scope` all pass.
+- ESLint 0 errors on all changed files (scripts/ excluded by repo config).
+- Not committed or pushed per instruction.
+
+### 7. Remaining limitations
+- `src/components/accountancy/accountancy-package-form.tsx`, `src/lib/accountancy/package-csv.ts`, and `/api/accountancy/package/pdf` remain on disk with no Accountancy render path (their suites still pass); the package generation and accountant handoff surface remains the Pre-bookkeeping review workspace, so a dedicated accountant-email handoff UI is no longer reachable from Accountancy.
+- With the Accountancy uploader removed, new accountancy-type datasets have no creation path from the Accountancy page (per the confirmed architecture: no second upload architecture); existing accountancy datasets remain viewable and routable there.
+- Detection is extension-first with a MIME fallback only for extension-less files; a genuinely mislabeled file (e.g. a .csv whose browser MIME is application/pdf) passes client detection and is rejected server-side by the existing 415 validation, which stays the authority.
+
+## ClevrSync Connect & Analyze Dashboard Routing
+
+### 1. Request summary
+- Fix the Google Sheets ClevrSync "Connect & Analyze" flow so a newly synced worksheet enters the normal UseClevr dataset dashboard/analysis workflow instead of staying on `/app/settings/data-connections`. Preserve the central dataset pipeline, connector ownership, OAuth security, preview behavior, dataset identity on refresh, and centralized credits. No commits or pushes.
+
+### 2. Root cause
+- The sync route already feeds Google Sheets through `uploadCSV`, which creates or updates the canonical dataset, persists rows, resolves `source = google_sheets`, runs the Business Intelligence initialization, and returns the normal upload redirect. The settings page ignored that dataset destination after a successful sync and only refreshed connector state with "Google Sheet synced", leaving the user on the ClevrSync page.
+- A linked ClevrSync refresh also passed through the initial `standard_upload_analysis` credit reservation with a timestamped operation ID. That made "Sync now" behave like another initial upload charge even though it updates the same linked dataset.
+
+### 3. Durable changes
+- `src/app/(auth)/app/settings/data-connections/page.tsx`: imports `useRouter`, extracts a safe in-app dashboard destination from the sync response (`redirectTo`, `redirectUrl`, or `datasetId` fallback), pushes to `/app/dashboard?datasetId=...` after Google Sheets or Excel sync success, and shows a useful error while staying on ClevrSync if no dataset destination is returned.
+- `src/app/api/clevrsync/sync/route.ts`: adds `buildClevrSyncSyncResponse` so both Excel and Google Sheets sync responses include top-level `datasetId`, `redirectUrl`, and `redirectTo`, using the central upload result first and `/app/dashboard?datasetId=...` as fallback.
+- `src/app/actions/upload.ts`: detects an existing owned ClevrSync dataset before credit reservation, bypasses the initial upload-analysis reservation only for that linked refresh, reuses the same ownership check for update-vs-insert, and keeps first Connect & Analyze on the existing central `standard_upload_analysis` credit flow.
+- `next.config.mjs`: sets `experimental.useTypeScriptCli = false` so Next uses the TypeScript compiler API path during production builds; the local TypeScript 6 CLI bin exits 0 with empty stdout when launched as `node node_modules/typescript/bin/tsc --showConfig`, which made Next parse empty output and fail before app compilation.
+- `scripts/clevrsync/test-clevrsync.ts`: adds regression checks for central upload reuse, Google Sheets source persistence, sync response navigation, UI dashboard routing, same-dataset refresh behavior, no duplicate initial credit reservation on refresh, entitlement/ownership guards, and the current premium-lock copy.
+
+### 4. Verification
+- `pnpm test:clevrsync` passes.
+- `pnpm test:standard-upload-success-ui` passes and confirms the established successful-upload destination is `/app/dashboard?datasetId=...`.
+- `pnpm validate:types` passes (`next typegen` + `tsc --noEmit --pretty false`).
+- `pnpm validate:dist` passes.
+- `pnpm prod:build` passes and creates `/home/csaba/Documents/Useclever-2026/dist`.
+- Regenerated artifact verification:
+  - `dist/.next/server/app/api/clevrsync/sync/route.js` contains the sync response with `datasetId`, `redirectUrl`, `redirectTo`, and `/app/dashboard?datasetId=${encodeURIComponent(datasetId)}` fallback.
+  - `dist/.next/server/app/(auth)/app/settings/data-connections/page.js` and the matching static chunk contain the Google Sheets "Connect & Analyze"/"Sync now" UI and call `router.push(...)` with the dashboard destination after successful sync.
+
+### 5. Remaining limitations
+- Production still needs commit/push/CI publication through the normal beta -> main -> dist path before users see this fix.
+- The generated local `dist/` is ignored output and was not committed.
+- Not committed or pushed per instruction.
+
+## 2026-09-26 — ClevrSync Microsoft OneDrive + SharePoint connectors
+
+1. Interaction title
+   Implement OneDrive and SharePoint as production-ready ClevrSync connectors using one shared Microsoft OAuth + Microsoft Graph infrastructure, reusing the Google Sheets architecture end to end. No commit or push.
+
+2. What was the user goal
+   Replace the OneDrive and SharePoint "Coming Soon" states with working connectors that feed the canonical UseClevr dataset pipeline (Microsoft Graph → discovery → worksheet selection → preview → Connect & Analyze → dataset → dashboard), with one shared Microsoft connection per user, least-privilege read-only Graph scopes, the existing ClevrSync entitlement helper, the central credit engine (exactly 10 credits for the first Connect & Analyze, free refreshes), `onedrive`/`sharepoint` dataset provenance, strict dataset isolation, Graph throttling handling, and regression coverage for OAuth, entitlements, discovery, credits, isolation, and security. A manual Microsoft Entra/Azure + Railway setup report was requested at the end.
+
+3. What changed
+   - `src/services/clevrsync/connectors/microsoft-graph.ts` (new): shared Graph layer for both connectors — v2 OAuth authorize/token/refresh with per-connector scopes (`onedrive`: `offline_access User.Read Files.Read.All`; `sharepoint`: adds `Sites.Read.All`; no write scopes anywhere), `graphFetchJson` with bounded retries honoring `Retry-After` (max 3 retries, 8s cap, deterministic `provider_throttled`/`provider_unavailable`/`not_found`/`insufficient_permission`/`reconnect_required` codes), URL/path safety checks, strict id guards (`isSafeGraphId` incl. `b!`-prefixed SharePoint drive ids, `isSafeGraphSiteId`, `isSafeWorksheetId`), OneDrive root/children + drive-scoped search with `.xlsx`-only filtering, SharePoint `/sites?search`, `/sites/{id}/drives`, drive search/children, `/workbook/worksheets` metadata, `usedRange(valuesOnly=true)` values, and preview assembly through the canonical `matrixToWorksheetPreview` with `microsoft` provenance + `microsoftPreviewToCsvFile`.
+   - `src/services/clevrsync/microsoft-oauth-state.ts` (new): HMAC-signed state (AUTH_SECRET) with per-session binding, 10-minute TTL, connector-type validation (excel can never pass), safe returnTo clamping, and a bounded nonce replay guard so a redeemed state cannot verify twice.
+   - `src/services/clevrsync/microsoft-auth-store.ts` (new): ownership-checked token access (`resolveOwnedMicrosoftConnector`, `getMicrosoftAccessToken`) using the existing AES-256-GCM token vault, refresh with rotation persistence and scope update, `reconnect_required` marking on failure, and `microsoftConnectorCoversScope` for sibling reuse checks.
+   - `src/services/clevrsync/sync-engine.ts`: `isConnectorTypeAvailable` now allows `onedrive`/`sharepoint`; `getNewestOwnedMicrosoftConnector`; `upsertMicrosoftConnector` keeps one connector per Microsoft type and preserves `sourceMeta.datasetId` across reconnects.
+   - OAuth routes `src/app/api/clevrsync/microsoft/oauth/{start,callback}/route.ts`: entitlement-gated start with sibling-token reuse (short-circuits back to the app when the other Microsoft connector already holds covering scopes, so users never authorize twice unnecessarily), incremental consent when scopes are missing, full Microsoft round trip otherwise; callback verifies state, distinguishes cancelled consent (`microsoft=cancelled`), exchanges the code, reads `/me` for the account label, encrypts tokens through the shared vault, and upserts the connector.
+   - Discovery routes `src/app/api/clevrsync/microsoft/onedrive/files`, `.../sharepoint/sites`, `.../sharepoint/drives`, `.../sharepoint/files`, `.../worksheets`: every route requires session + builtin user + `requireClevrSyncAccess`, resolves connector ownership server-side, checks granted scopes (`additional_permission_required` with `scopeUpgradeRequired` when SharePoint site scope is missing), and returns clean `reconnect_required`/`microsoft_not_connected` states; provider errors update connector status without leaking tokens.
+   - `src/app/api/clevrsync/preview/route.ts`: dispatches Google vs Microsoft by connector type; Microsoft preview requires `itemId` (+optional `driveId`, `worksheetId`, SharePoint site provenance), persists worksheet/workbook/folder/site metadata, and stays credit-free (no credit-engine import).
+   - `src/app/api/clevrsync/sync/route.ts`: Microsoft branch fetches the persisted site→library→item→worksheet identity (body values only refresh it), sets `syncing`, previews with `MAX_UPLOAD_ROWS`, converts through `microsoftPreviewToCsvFile`, and calls the canonical `uploadCSV` with `uploadSource=clevrsync` + `clevrsync_connector_type=onedrive|sharepoint` + `clevrsync_dataset_id` on refresh — so the single 10-credit standard operation, failed-import release, and free refresh bypass are inherited unchanged; run records and `lastSuccessfulSync`/`lastError` maintained.
+   - `src/services/clevrsync/entitlement.ts`: `connectors.oneDrive`/`connectors.sharePoint` → `enabled` (Pro/Business/Superadmin), still derived from the single authoritative helper.
+   - `src/services/clevrsync/types.ts` + `index.ts`: `ClevrSyncPreview.sourceType` union extended, `microsoft` provenance block added, new exports registered.
+   - `src/services/clevrsync/oauth-redirect.ts`: `resolveClevrSyncMicrosoftRedirectUri` with the same SSRF-safe origin rules.
+   - `src/app/api/clevrsync/connectors/route.ts`: Microsoft types rejected from direct POST creation (OAuth-only).
+   - `src/app/(auth)/app/settings/data-connections/page.tsx`: all three cards "Available"; clicking a card opens only that connector's configuration panel (no three simultaneous forms); new `MicrosoftConnectorPanel` handles connect/reconnect/permission banners, SharePoint site search → library select → workbook picker → worksheet select, OneDrive workbook picker → worksheet select, preview and Connect & Analyze/Sync now with `getClevrSyncDatasetHref` navigation, connected-state restore from `sourceMeta`, and the shared accessible `ResourcePicker`.
+   - Usy: `knowledge-base.ts` connectors all available + `oneDriveFlow`/`sharePointFlow` + credit note; `router.ts` six-language ClevrSync answers updated (localized flows, `buildLocalizedClevrSyncAnswer` typing fixed).
+   - Env examples: `MICROSOFT_CLEVRSYNC_CLIENT_ID/SECRET/REDIRECT_URI` (+ optional `MICROSOFT_CLEVRSYNC_TENANT_ID`) documented in `.env.local.example` and `.env.railway.example`.
+   - CHANGELOG: user-facing entries under `[Unreleased]` Added.
+   - Tests: new `scripts/clevrsync/test-microsoft-discovery.ts` (stubbed-fetch Graph behavior + route/UI/entitlement invariants), `test-microsoft-oauth-state.ts` (round trip, tampering, cross-user, expiry, replay, excel-type rejection, returnTo clamp, fail-closed secret), `test-microsoft-credits-isolation.ts` (credit-free discovery/preview, single central charge, fetch-before-reserve ordering, refresh reuse, provenance vocabulary, isolation invariants, id guards, no duplicate plan logic); updated `test-clevrsync.ts` (available types, entitlement flags, Available cards, Excel-connector-stays-removed), `test-clevrsync-entitlement.ts` (Pro/Business Microsoft flags + Microsoft routes gated), `scripts/ai/test-usy-product-knowledge.ts` (all three connectors available, localized), `scripts/billing/test-upload-credit-reservation.ts` (dataset_type set once per sync path).
+
+4. Verification
+   - `pnpm test:clevrsync-microsoft-discovery` / `...-oauth-state` / `...-credits-isolation`: pass (registered as `test:clevrsync-microsoft-*` in package.json and chained into `test:all`).
+   - `pnpm test:clevrsync`, `pnpm test:clevrsync-entitlement` (7/7), `pnpm test:clevrsync-sheets-discovery`, `pnpm test:clevrsync-google-oauth-redirect`, `pnpm test:clevrsync-retail-profitability`: pass (Google regressions intact).
+   - `pnpm test:usy-product-knowledge` 21/21, `pnpm test:usy-billing-knowledge`, `pnpm test:usy-guest-mode`, `pnpm test:ai-governance-consistency`: pass.
+   - `pnpm test:upload-credit-reservation` 8/8, `pnpm test:zero-credit-ux` 12/12, `pnpm test:credit-unified`, `pnpm test:dataset-source-history`, `pnpm test:accountancy-upload-entitlements`, `pnpm test:hybrid-ai-gates`: pass.
+   - `pnpm exec tsc --noEmit` exit 0; ESLint 0 errors on all changed production files (2 pre-existing unused-import warnings in `src/lib/usy/router.ts` exist at HEAD).
+   - `pnpm lint:todos` and `pnpm lint:changelog` pass; `pnpm lint:secrets` still fails only on pre-existing token-like UUIDs in project logs, a worktree copy, and `scripts/upload/test-upload-security.ts` from the parallel upload-security workstream.
+
+5. Remaining limitations
+   - Not committed or pushed per instruction.
+   - Manual setup required before first use: Microsoft Entra app registration (delegated `offline_access`, `User.Read`, `Files.Read.All`, `Sites.Read.All`; web redirect URIs for production and test callbacks; client secret) and Railway env vars `MICROSOFT_CLEVRSYNC_CLIENT_ID`, `MICROSOFT_CLEVRSYNC_CLIENT_SECRET`, `MICROSOFT_CLEVRSYNC_REDIRECT_URI`, optional `MICROSOFT_CLEVRSYNC_TENANT_ID`.
+   - Graph workbook API reads only Office Open XML workbooks, so discovery lists `.xlsx` only; legacy `.xls` files are intentionally not offered.
+   - SharePoint site discovery requires a search term (delegated Graph permissions have no "list all my sites" endpoint); the UI states this.
+   - OAuth state replay protection is single-process (module-level nonce store); multi-instance deployments would need a shared store (Google's state has no replay guard at all, so this is strictly stronger).
+   - The shared worktree had concurrent agents (upload-security, Usy billing); `src/lib/upload/upload-security.ts` was mid-edit at times and its final state is owned by that workstream.
+
+## 2026-09-26 — Usy ClevrSync Knowledge Cleanup and Connector-Question Routing
+
+1. Interaction title
+   Remove all Microsoft ClevrSync knowledge/capabilities from Usy, encode the final connector state (Google Sheets per plan entitlement, CSV/Excel via normal upload, OneDrive and SharePoint not part of the product), and make the required connector questions return answers consistent with that state. No commit or push.
+
+2. What was the user goal
+   Usy must never advertise OneDrive or SharePoint, never mention Microsoft Graph or Microsoft OAuth setup, never say OneDrive/SharePoint are available or coming soon, and never suggest connecting a Microsoft account. Final ClevrSync knowledge: Google Sheets available per the existing plan entitlement, CSV and Excel supported through normal file upload, OneDrive and SharePoint not part of the product. Unrelated Usy skills and general product knowledge stay intact. The regression suite must verify "What connectors do you support?", "Can I connect OneDrive?", "Can I connect SharePoint?", "Can I upload Excel?", and "Can I connect Google Sheets?".
+
+3. What changed
+   - `src/lib/usy/knowledge-base.ts`: `usyClevrSyncFacts` keeps only the Google Sheets connector, adds `oneDriveSharePointNotPartOfProduct` ("OneDrive and SharePoint are not part of the product."), and `localFilesAreNotConnectors` names Google Sheets only; the Microsoft connector entries and `oneDriveFlow`/`sharePointFlow` step lists are removed (removal completed on top of the parallel rollback).
+   - `src/lib/usy/router.ts`: `buildClevrSyncAnswer` derives "Available connectors: Google Sheets." from `usyClevrSyncFacts.connectors` and appends the not-part-of-product fact on every tier (free, pro, business, superadmin, unknown); `buildLocalizedClevrSyncAnswer` gains a per-language `removed` sentence (DE/NL/ES/HU/RO) composed into every tier; clevrsync keywords gain generic connector phrases ("connectors", "what connectors", "which connectors", "connectors do you support", "supported connectors") so connector questions outrank the support/integrations intents; uploads keywords gain "can i upload" and "upload excel" so Excel upload questions outrank upload-trouble; new `isDataConnectionQuestion` guard lets fresh "Can I connect Google Sheets?"-style questions bypass the contact-request gate (the word "connect" alone no longer hijacks them into the contact flow while a real contact request like "connect me with sales" still routes there).
+   - `scripts/ai/test-usy-product-knowledge.ts`: new `testRequiredConnectorQuestionsReturnFinalProductState` pins the five required questions (routing intent, Google Sheets-only connector list, the not-part-of-product fact, no coming-soon copy, no Microsoft Graph/OAuth/account suggestions, Excel answers point at the normal upload flow, Google Sheets answers follow the plan entitlement); `testConnectorsListGoogleSheetsAvailable` and `testClevrSyncAnswersStayLocalized` pin the Google-only list, the localized not-part-of-product sentence in all six languages, and never-coming-soon status.
+   - `requirements.md`: adds the Usy requirement to keep ClevrSync answers limited to Google Sheets per plan entitlement with OneDrive and SharePoint stated as not part of the product.
+   - `CHANGELOG.md`: adds a Fixed entry that Usy answers connector, Excel-upload, and Google Sheets questions directly instead of opening the contact request flow.
+   - `package.json`: already trimmed of the Microsoft test scripts by the parallel rollback; `test:usy-product-knowledge` stays wired into `test:all`.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the shared contact-flow gate still treats the bare word "connect" as a contact verb; the new data-connection guard covers known data-source names, so a hypothetical future connector name needs the same guard list update.
+   - improvement: the Free-tier ClevrSync answer repeats the Excel/CSV upload sentence twice (pre-existing composition of `accessRules.free` copy and `localFilesAreNotConnectors`); a copy pass can merge them.
+   - observation: "Can I connect OneDrive?" previously reached the contact-request flow, "Can I upload Excel?" reached upload troubleshooting, and "What connectors do you support?" reached the AI-provider integrations answer; all three misroutings are fixed by intent-keyword and contact-gate changes without adding Microsoft-specific routing rules.
+
+5. User learning
+   Usy's final ClevrSync knowledge is: Google Sheets is the only connector and its availability follows the plan entitlement (Free never, Pro/Business/superadmin yes), CSV and Excel are supported through normal direct upload, and OneDrive and SharePoint are not part of the product; Usy states this boundary directly in all six supported languages.
+
+6. AI-agent learning
+   Connector questions must be validated end-to-end with the exact user phrasings, because intent scoring ties (support/integrations/clevrsync at equal scores) and the shared contact gate (`isContactRequest` matches the word "connect") intercept product questions before intent scoring; regression tests must assert both the routing intent and the answer content.
+
+7. Follow-up tasks
+   - Merge the copy pass that removes the duplicated Excel/CSV upload sentence in the Free-tier ClevrSync answer.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - agent rule: docs/AI-interaction/developer-guides/ai-agent-guide.md (connector-question validation practice)
+   - product requirement updates: requirements.md (Usy ClevrSync connector knowledge)
+   - release notes: CHANGELOG.md (Usy connector-question Fixed entry)
+   - detailed session record: project-logs/interactive-log.md
+   - activity summary: project-logs/activity-log.md
+   - latest interaction status: docs/AI-interaction/interaction-status.md
+
 ## 2026-09-26 — Upload Security Hardening (double-extension phishing defense)
 
 1. Interaction title

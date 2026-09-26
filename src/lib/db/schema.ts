@@ -87,8 +87,6 @@ export type RetailSyncStatus = (typeof retailSyncStatuses)[number];
 export const clevrSyncConnectorTypes = [
   "excel",
   "google_sheets",
-  "onedrive",
-  "sharepoint",
 ] as const;
 export type ClevrSyncConnectorType = (typeof clevrSyncConnectorTypes)[number];
 

@@ -5,8 +5,6 @@ export type ClevrSyncEntitlement = {
   tier: string;
   connectors: {
     googleSheets: boolean;
-    oneDrive: boolean;
-    sharePoint: boolean;
     scheduledSync: false;
   };
   upgradeRequired: boolean;
@@ -27,8 +25,6 @@ export function getClevrSyncEntitlement(input: {
     tier,
     connectors: {
       googleSheets: enabled,
-      oneDrive: enabled,
-      sharePoint: enabled,
       scheduledSync: false,
     },
     upgradeRequired: !enabled,

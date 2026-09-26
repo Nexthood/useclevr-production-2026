@@ -184,9 +184,7 @@ function resolveUploadDatasetSource(
 }
 
 function clevrSyncConnectorTypeIn(value: string | null) {
-  return value === "google_sheets" || value === "onedrive" || value === "sharepoint" || value === "excel"
-    ? value
-    : null;
+  return value === "google_sheets" || value === "excel" ? value : null;
 }
 
 function sourceRowsFromProfitabilityData(profitabilityData: any) {

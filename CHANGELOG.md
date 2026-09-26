@@ -1,9 +1,12 @@
 ## [Unreleased]
 
-### Added
+### Removed
 
-- Add OneDrive and SharePoint connectors to ClevrSync: connect your Microsoft account once, then browse or search your OneDrive files or SharePoint sites and document libraries, pick an Excel workbook and worksheet, preview it, and analyze it like any other dataset.
-- Add a shared Microsoft connection for ClevrSync so connecting OneDrive and SharePoint uses one authorization, asks for SharePoint site access only when you connect SharePoint, and shows clear states for reconnects, missing permissions, and cancelled consent.
+- Remove the OneDrive and SharePoint ClevrSync connectors so ClevrSync offers Google Sheets only.
+
+### Fixed
+
+- Usy now answers questions about supported connectors, OneDrive, SharePoint, Excel uploads, and Google Sheets directly instead of opening the contact request flow.
 
 ### Changed
 
@@ -56,7 +59,7 @@
 - Fix Retail uploads so a completed Retail upload with its analysis consumes the same 10 credits as every other upload, a rejected upload can no longer continue as a free analysis, and the credit balance refreshes immediately.
 - Fix Accountancy and Pre-bookkeeping uploads so valid CSV and Excel files are accepted again instead of being rejected with "Please upload a valid csv file".
 - Fix Accountancy and Pre-bookkeeping uploads so both the structured CSV/Excel area and the document (PDF/receipt) area reserve, finalize, and release credits through the same central credit engine — each upload costs the standard 10 credits once, failed uploads release the reservation, and duplicate files stay free.
-- Fix the dashboard Upload History card so CSV, Excel, Google Sheets, OneDrive, SharePoint, Snowflake, API, ClevrSync, and document counts describe all datasets in the workspace with their real upload source, and the row total and dataset count share that same workspace scope.
+- Fix the dashboard Upload History card so CSV, Excel, Google Sheets, Snowflake, API, ClevrSync, and document counts describe all datasets in the workspace with their real upload source, and the row total and dataset count share that same workspace scope.
 - Fix dataset records so every new upload stores how it entered UseClevr, existing datasets keep a source derived only from provable stored metadata, and unprovable origins show as Other/Unknown instead of a guessed type.
 - Fix dataset classification so Accountancy and Pre-bookkeeping datasets keep their Accountancy labels on the dashboard instead of appearing as Generic.
 - Fix Forecast Confidence so datasets without a usable time axis show no value instead of implying forecast support, and the score requires genuine multi-observation time-series data rather than a date-named column alone.
