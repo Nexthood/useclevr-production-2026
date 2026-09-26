@@ -4,14 +4,19 @@ export {
   toDatasetPayload,
 } from "@/services/clevrsync/connectors/excel";
 export {
+  buildGoogleDriveListUrl,
   buildGoogleSheetsAuthorizationUrl,
   exchangeGoogleSheetsCode,
   getGoogleSheetsScope,
+  getGoogleSheetsScopes,
+  getGoogleSpreadsheetWorksheets,
   googleSheetPreviewToCsvFile,
   googleSheetToDatasetPayload,
+  listGoogleSpreadsheets,
   parseGoogleSpreadsheetId,
   previewGoogleSheet,
   refreshGoogleSheetsAccessToken,
+  requiresSpreadsheetListingScope,
   GoogleSheetsProviderError,
 } from "@/services/clevrsync/connectors/google-sheets";
 export {
@@ -19,6 +24,7 @@ export {
   createClevrSyncConnector,
   createClevrSyncRun,
   createGoogleSheetsConnector,
+  getNewestOwnedGoogleSheetsConnector,
   getOwnedClevrSyncConnector,
   getOwnedClevrSyncConnectorForApi,
   isClevrSyncConnectorType,
@@ -41,3 +47,4 @@ export type {
   ClevrSyncWorksheetPreview,
   CreateClevrSyncConnectorInput,
 } from "@/services/clevrsync/types";
+export type { GoogleSpreadsheetSummary } from "@/services/clevrsync/connectors/google-sheets";

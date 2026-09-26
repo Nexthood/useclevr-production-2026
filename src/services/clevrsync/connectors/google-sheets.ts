@@ -6,8 +6,13 @@ import type { ClevrSyncDatasetPayload, ClevrSyncPreview } from "@/services/clevr
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
+const GOOGLE_DRIVE_API = "https://www.googleapis.com/drive/v3/files";
 const GOOGLE_SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const GOOGLE_DRIVE_METADATA_SCOPE = "https://www.googleapis.com/auth/drive.metadata.readonly";
 const GOOGLE_SHEETS_MIME = "text/csv";
+const GOOGLE_SPREADSHEET_MIME = "application/vnd.google-apps.spreadsheet";
+const DEFAULT_LIST_PAGE_SIZE = 30;
+const MAX_LIST_PAGE_SIZE = 100;
 const DEFAULT_PREVIEW_ROW_LIMIT = 20;
 
 type GoogleTokenResponse = {
@@ -31,6 +36,20 @@ type GoogleValuesResponse = {
   error?: { message?: string; status?: string };
 };
 
+type GoogleDriveFile = {
+  id?: string;
+  name?: string;
+  modifiedTime?: string;
+  shared?: boolean;
+  ownedByMe?: boolean;
+};
+
+type GoogleDriveListResponse = {
+  nextPageToken?: string;
+  files?: GoogleDriveFile[];
+  error?: { message?: string; status?: string };
+};
+
 export type GoogleSheetsTokenSet = {
   accessToken: string;
   refreshToken?: string;
@@ -44,6 +63,14 @@ export type GoogleSheetsWorksheet = {
   index: number;
 };
 
+export type GoogleSpreadsheetSummary = {
+  id: string;
+  name: string;
+  modifiedTime: string | null;
+  shared: boolean;
+  ownedByMe: boolean;
+};
+
 export type GoogleSheetsSource = {
   spreadsheetId: string;
   spreadsheetName: string;
@@ -55,13 +82,21 @@ export function getGoogleSheetsScope() {
   return GOOGLE_SHEETS_SCOPE;
 }
 
+export function getGoogleSheetsScopes() {
+  return [GOOGLE_SHEETS_SCOPE, GOOGLE_DRIVE_METADATA_SCOPE];
+}
+
+export function requiresSpreadsheetListingScope(scope?: string | null) {
+  return !scope?.includes(GOOGLE_DRIVE_METADATA_SCOPE);
+}
+
 export function buildGoogleSheetsAuthorizationUrl(input: { state: string; redirectUri: string }) {
   const clientId = requiredEnv("GOOGLE_CLEVRSYNC_CLIENT_ID");
   const url = new URL(GOOGLE_AUTH_URL);
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", input.redirectUri);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", GOOGLE_SHEETS_SCOPE);
+  url.searchParams.set("scope", getGoogleSheetsScopes().join(" "));
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("include_granted_scopes", "true");
   url.searchParams.set("prompt", "consent");
@@ -111,13 +146,7 @@ export async function getGoogleSpreadsheetSource(input: {
   worksheetName?: string | null;
 }): Promise<GoogleSheetsSource> {
   const spreadsheet = await fetchGoogleSpreadsheet(input.accessToken, input.spreadsheetId);
-  const worksheets = (spreadsheet.sheets ?? [])
-    .map((sheet, index) => ({
-      id: sheet.properties?.sheetId ?? null,
-      title: sheet.properties?.title || `Sheet ${index + 1}`,
-      index: sheet.properties?.index ?? index,
-    }))
-    .sort((a, b) => a.index - b.index);
+  const worksheets = mapGoogleWorksheets(spreadsheet);
   const selectedWorksheet =
     input.worksheetName && worksheets.some((sheet) => sheet.title === input.worksheetName)
       ? input.worksheetName
@@ -132,6 +161,75 @@ export async function getGoogleSpreadsheetSource(input: {
     spreadsheetName: spreadsheet.properties?.title || "Google Sheet",
     worksheetName: selectedWorksheet,
     worksheets,
+  };
+}
+
+export async function getGoogleSpreadsheetWorksheets(input: {
+  accessToken: string;
+  spreadsheetId: string;
+}): Promise<{
+  spreadsheetId: string;
+  spreadsheetName: string;
+  worksheets: GoogleSheetsWorksheet[];
+}> {
+  const spreadsheet = await fetchGoogleSpreadsheet(input.accessToken, input.spreadsheetId);
+  return {
+    spreadsheetId: spreadsheet.spreadsheetId,
+    spreadsheetName: spreadsheet.properties?.title || "Google Sheet",
+    worksheets: mapGoogleWorksheets(spreadsheet),
+  };
+}
+
+export function buildGoogleDriveListUrl(input: {
+  search?: string | null;
+  pageSize?: number;
+  pageToken?: string | null;
+}) {
+  const url = new URL(GOOGLE_DRIVE_API);
+  const clauses = [`mimeType='${GOOGLE_SPREADSHEET_MIME}'`, "trashed=false"];
+  const search = input.search?.trim();
+  if (search) {
+    clauses.push(`name contains '${escapeDriveQueryValue(search)}'`);
+  }
+  url.searchParams.set("q", clauses.join(" and "));
+  url.searchParams.set("orderBy", "modifiedTime desc");
+  url.searchParams.set("pageSize", String(clampListPageSize(input.pageSize)));
+  url.searchParams.set(
+    "fields",
+    "nextPageToken,files(id,name,modifiedTime,shared,ownedByMe)",
+  );
+  if (input.pageToken) {
+    url.searchParams.set("pageToken", input.pageToken);
+  }
+  return url;
+}
+
+export async function listGoogleSpreadsheets(input: {
+  accessToken: string;
+  search?: string | null;
+  pageSize?: number;
+  pageToken?: string | null;
+}): Promise<{ spreadsheets: GoogleSpreadsheetSummary[]; nextPageToken: string | null }> {
+  const url = buildGoogleDriveListUrl(input);
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+  const payload = await readGoogleResponse<GoogleDriveListResponse>(
+    response,
+    "Unable to list Google Sheets.",
+  );
+  const spreadsheets = (payload.files ?? [])
+    .filter((file): file is GoogleDriveFile & { id: string } => typeof file.id === "string")
+    .map((file) => ({
+      id: file.id,
+      name: file.name?.trim() || "Untitled spreadsheet",
+      modifiedTime: typeof file.modifiedTime === "string" ? file.modifiedTime : null,
+      shared: file.shared === true,
+      ownedByMe: file.ownedByMe !== false,
+    }));
+  return {
+    spreadsheets,
+    nextPageToken: typeof payload.nextPageToken === "string" ? payload.nextPageToken : null,
   };
 }
 
@@ -212,6 +310,25 @@ async function fetchGoogleSpreadsheet(
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return readGoogleResponse<GoogleSpreadsheet>(response, "Unable to access this Google Sheet.");
+}
+
+function mapGoogleWorksheets(spreadsheet: GoogleSpreadsheet): GoogleSheetsWorksheet[] {
+  return (spreadsheet.sheets ?? [])
+    .map((sheet, index) => ({
+      id: sheet.properties?.sheetId ?? null,
+      title: sheet.properties?.title || `Sheet ${index + 1}`,
+      index: sheet.properties?.index ?? index,
+    }))
+    .sort((a, b) => a.index - b.index);
+}
+
+function clampListPageSize(pageSize?: number) {
+  if (!Number.isFinite(pageSize) || !pageSize || pageSize < 1) return DEFAULT_LIST_PAGE_SIZE;
+  return Math.min(Math.floor(pageSize), MAX_LIST_PAGE_SIZE);
+}
+
+function escapeDriveQueryValue(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
 async function fetchGoogleSheetValues(

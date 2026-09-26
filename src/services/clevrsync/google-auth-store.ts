@@ -4,9 +4,18 @@ import type { ClevrSyncConnectorStatus } from "@/lib/db/schema";
 import { refreshGoogleSheetsAccessToken } from "@/services/clevrsync/connectors/google-sheets";
 import { decryptClevrSyncToken, encryptClevrSyncToken } from "@/services/clevrsync/token-vault";
 import {
+  getNewestOwnedGoogleSheetsConnector,
   getOwnedClevrSyncConnector,
   updateClevrSyncConnector,
 } from "@/services/clevrsync/sync-engine";
+
+export async function resolveOwnedGoogleSheetsConnector(userId: string, connectorId?: string | null) {
+  if (connectorId) {
+    const connector = await getOwnedClevrSyncConnector(userId, connectorId);
+    return connector && connector.type === "google_sheets" ? connector : null;
+  }
+  return getNewestOwnedGoogleSheetsConnector(userId);
+}
 
 export async function getGoogleSheetsAccessToken(input: { userId: string; connectorId: string }) {
   const connector = await getOwnedClevrSyncConnector(input.userId, input.connectorId);

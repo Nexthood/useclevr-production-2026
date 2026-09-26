@@ -7,6 +7,7 @@
 
 ### Added
 
+- Add a native Google Sheets picker to ClevrSync: after connecting, your accessible spreadsheets load automatically with search and pagination so you choose a sheet, pick a worksheet, and analyze without copying a URL, while manual URL entry stays available as a fallback.
 - Add a "Why is this Critical? How was this calculated?" breakdown to every triggered Risk Intelligence rule so each finding explains what happened, the measured value against its baseline, the compared periods, the crossed threshold with all severity bands, how the score and category score were produced, and the suggested investigation.
 - Add score transparency to Risk Intelligence so each category card and the overall score show their exact weighted-average formula and severity bands.
 - Add automatic referral tracking: referral links record clicks on their own, signups are confirmed automatically when a new account verifies its email, and paid referrals are confirmed automatically from the completed subscription payment — no manual recording anywhere.
