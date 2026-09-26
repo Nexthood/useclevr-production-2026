@@ -276,8 +276,17 @@ export async function uploadCSV(
       return fail(UPLOAD_STAGES.FILE_VALIDATED, "No file provided");
     }
 
+    const uploadSource = String(formData.get("uploadSource") || "").trim()
+    const isClevrSyncGeneratedFile =
+      uploadSource === "clevrsync" &&
+      typeof formData.get("clevrsync_connector_type") === "string" &&
+      Boolean(String(formData.get("clevrsync_connector_type") || "").trim())
+    const uploadValidationOptions = isClevrSyncGeneratedFile
+      ? { source: "clevrsync", trustedFileName: true }
+      : { source: "standard-upload" }
+
     try {
-      await assertStandardUploadFile(uploadFile);
+      await assertStandardUploadFile(uploadFile, uploadValidationOptions)
     } catch (error) {
       const payload = uploadValidationErrorPayload(error, "UPLOAD_FILE_TYPE_INVALID");
       return fail(UPLOAD_STAGES.FILE_VALIDATED, `${payload.code}|${payload.message}`);
@@ -403,7 +412,7 @@ export async function uploadCSV(
     // For files exceeding limit, we get preview rows + aggregated metrics
     let parseResult;
     try {
-      parseResult = await parseCSVStreaming(file, rowLimit);
+      parseResult = await parseCSVStreaming(file, rowLimit, undefined, uploadValidationOptions);
     } catch (parseError) {
       debugError("[UPLOAD] File parsing failed:", parseError);
       const payload = uploadValidationErrorPayload(parseError, "FILE_PROCESSING_ERROR");

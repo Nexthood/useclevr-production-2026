@@ -140,7 +140,9 @@ export async function POST(request: Request) {
         errorCode === "UPLOAD_SPREADSHEET_STRUCTURE_INVALID" ||
         errorCode === "UPLOAD_ROW_LIMIT_EXCEEDED" ||
         errorCode === "UPLOAD_COLUMN_LIMIT_EXCEEDED" ||
-        errorCode === "UPLOAD_TEMPORARY_FILE_REJECTED"
+        errorCode === "UPLOAD_TEMPORARY_FILE_REJECTED" ||
+        errorCode === "UNSAFE_FILE_TYPE" ||
+        errorCode === "FILE_TYPE_MISMATCH"
       const insufficientCredits = errorCode === "INSUFFICIENT_CREDITS" || errorCode === "UPLOAD_CREDITS_EXHAUSTED"
       const usageLimitReached = errorCode === "USAGE_LIMIT_REACHED"
       const fileProcessingError = errorCode === "FILE_PROCESSING_ERROR"

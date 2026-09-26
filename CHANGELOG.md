@@ -1,9 +1,16 @@
 ## [Unreleased]
 
+### Added
+
+- Add OneDrive and SharePoint connectors to ClevrSync: connect your Microsoft account once, then browse or search your OneDrive files or SharePoint sites and document libraries, pick an Excel workbook and worksheet, preview it, and analyze it like any other dataset.
+- Add a shared Microsoft connection for ClevrSync so connecting OneDrive and SharePoint uses one authorization, asks for SharePoint site access only when you connect SharePoint, and shows clear states for reconnects, missing permissions, and cancelled consent.
+
 ### Changed
 
 - Make Accountancy the financial overview hub: financial overview, tax context, reporting, and compliance tools stay here while uploads, the bookkeeping package, and the review workflow live in Pre-bookkeeping.
 - Detect the upload format from the file you select or drop so valid CSV, Excel, PDF, and scan files upload correctly from any format tab.
+- Check what every uploaded file really is before opening it: files whose contents do not match the document format in their filename are blocked with a clear message, so disguised HTML phishing files cannot enter uploads, Accountancy, Pre-bookkeeping, ClevrSync, or AI analysis.
+- Protect exported spreadsheet and report files from formula injection so data copied from your uploads cannot execute formulas when you open the export in Excel.
 
 ### Added
 

@@ -19,6 +19,15 @@ import { computePrecomputedMetrics } from "@/lib/data/csvLoader";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets, prebookkeepingLearningRules, type DatasetBusinessModel } from "@/lib/db/schema";
 import { getCompanySetup } from "@/lib/business/company-setup-store";
+import {
+  analyzeUploadFileName,
+  assertUploadFileContentMatchesExtension,
+  assertWorksheetBounds,
+  logUploadSecurityRejection,
+  UNSAFE_FILE_TYPE_MESSAGE,
+  UploadValidationError,
+  type UploadFileNameAnalysis,
+} from "@/lib/upload/upload-security";
 import { isTemporaryUploadFileName, temporaryUploadFileMessage } from "@/lib/upload/temporary-files";
 import { deleteFile, uploadFile as storeUploadedFile } from "@/lib/data/upload-handler";
 import { debugError, debugLog } from "@/lib/utils/debug";
@@ -219,10 +228,37 @@ export function getFileExtension(fileName: string) {
   return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : "";
 }
 
+/**
+ * Normalizes the upload filename (Unicode, percent-encoding, trailing
+ * spaces/dots, null bytes) and reports deceptive executable/renderable
+ * extension chains such as `invoice.pdf.html`.
+ */
+export function analyzeAccountancyUploadFileName(fileName: string): UploadFileNameAnalysis {
+  return analyzeUploadFileName(fileName);
+}
+
 export function validateAccountancyUpload(meta: AccountancyUploadMeta) {
   const spec = uploadSpecs[meta.uploadType];
   const extension = getFileExtension(meta.fileName);
   const mimeType = meta.mimeType.toLowerCase();
+
+  const filenameAnalysis = analyzeAccountancyUploadFileName(meta.fileName);
+  if (filenameAnalysis.dangerous) {
+    logUploadSecurityRejection({
+      source: "accountancy-upload",
+      fileName: meta.fileName,
+      claimedMimeType: meta.mimeType,
+      code: "UNSAFE_FILE_TYPE",
+      reason: `deceptive filename extension chain: ${filenameAnalysis.dangerousExtensions.join(", ")}`,
+    });
+    throw new AccountancyUploadError(
+      "validation",
+      "UNSAFE_FILE_TYPE",
+      UNSAFE_FILE_TYPE_MESSAGE,
+      422,
+      false,
+    );
+  }
 
   if (isTemporaryUploadFileName(meta.fileName)) {
     throw new AccountancyUploadError(
@@ -274,12 +310,34 @@ export async function parseAccountancyUploadBuffer(
   meta: AccountancyUploadMeta,
 ): Promise<AccountancyParsedUpload> {
   validateAccountancyUpload(meta);
+  assertAccountancyUploadFileContent(buffer, meta);
 
   if (meta.uploadType === "csv") return parseCsvUpload(buffer, meta);
   if (meta.uploadType === "excel") return parseExcelUpload(buffer, meta);
   if (meta.uploadType === "bank") return parseBankUpload(buffer, meta);
   if (meta.uploadType === "pdf") return parsePdfUpload(buffer, meta);
   return parseReceiptUpload(buffer, meta);
+}
+
+/**
+ * Server-side content verification for Accountancy and Pre-bookkeeping
+ * uploads. Verifies magic bytes against the extension claimed by the
+ * filename before any document parser receives the buffer. Rejects HTML/SVG
+ * active content, spoofed PDF/images, non-workbook ZIP archives, and
+ * resource-abusive XLSX archives.
+ */
+export function assertAccountancyUploadFileContent(buffer: Buffer, meta: AccountancyUploadMeta) {
+  try {
+    assertUploadFileContentMatchesExtension(buffer, meta.fileName, {
+      source: "accountancy-upload",
+      claimedMimeType: meta.mimeType,
+    });
+  } catch (error) {
+    if (error instanceof UploadValidationError) {
+      throw new AccountancyUploadError("validation", error.code, error.message, error.status, false);
+    }
+    throw error;
+  }
 }
 
 export async function processAccountancyUpload(input: {
@@ -312,6 +370,7 @@ export async function processAccountancyUpload(input: {
   });
 
   validateAccountancyUpload(requestMeta);
+  assertAccountancyUploadFileContent(input.buffer, requestMeta);
   const checksum = createHash("sha256").update(input.buffer).digest("hex");
 
   const db = getDb();
@@ -872,6 +931,17 @@ function profileExcelSheet(sheetName: string, sheet: XLSX.WorkSheet | undefined)
   const nonEmptyRows = rows.filter(isNonEmptyRow);
   const rowCount = rows.length;
   const columnCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
+
+  if (rowCount > 0 && columnCount > 0) {
+    try {
+      assertWorksheetBounds(rowCount, columnCount);
+    } catch (error) {
+      if (error instanceof UploadValidationError) {
+        return rejectedExcelSheet(sheetName, rows, error.message);
+      }
+      throw error;
+    }
+  }
 
   if (nonEmptyRows.length === 0) {
     return rejectedExcelSheet(sheetName, rows, "Sheet is empty.");

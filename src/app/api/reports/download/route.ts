@@ -15,6 +15,7 @@ import type { Report } from '@/lib/reports/report-generator'
 import { getReport, isCurrentReportRuntime, listReports } from '@/lib/reports/report-generator'
 import { generatePdfReport } from '@/lib/reports/pdf-report-generator'
 import { and, eq } from 'drizzle-orm'
+import { neutralizeCsvFormulaInjection } from '@/lib/data/csv-formula-injection'
 import * as fs from 'fs'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
@@ -197,7 +198,7 @@ function generateReportCSV(report: Report): string {
   
   // Summary section
   lines.push('# EXECUTIVE SUMMARY')
-  lines.push(report.summary || 'No summary available.')
+  lines.push(neutralizeCsvFormulaInjection(report.summary || 'No summary available.'))
   lines.push('')
   
   // KPIs section
@@ -242,7 +243,7 @@ function generateReportCSV(report: Report): string {
   if (report.findings && report.findings.length > 0) {
     lines.push('# KEY FINDINGS & RECOMMENDATIONS')
     for (let i = 0; i < report.findings.length; i++) {
-      lines.push(`${i + 1}. ${report.findings[i]}`)
+      lines.push(`${i + 1}. ${neutralizeCsvFormulaInjection(report.findings[i])}`)
     }
     lines.push('')
   }
@@ -251,7 +252,7 @@ function generateReportCSV(report: Report): string {
   if (report.aiInsights && report.aiInsights.length > 0) {
     lines.push('# AI INSIGHTS')
     for (const insight of report.aiInsights) {
-      lines.push(`- ${insight}`)
+      lines.push(`- ${neutralizeCsvFormulaInjection(insight)}`)
     }
     lines.push('')
   }
@@ -260,7 +261,7 @@ function generateReportCSV(report: Report): string {
   if (report.alerts && report.alerts.length > 0) {
     lines.push('# ALERTS & NOTIFICATIONS')
     for (const alert of report.alerts) {
-      lines.push(`[${alert.severity.toUpperCase()}] ${alert.type}: ${alert.message}`)
+      lines.push(`[${alert.severity.toUpperCase()}] ${alert.type}: ${neutralizeCsvFormulaInjection(alert.message)}`)
     }
     lines.push('')
   }
@@ -291,7 +292,7 @@ function generateReportCSV(report: Report): string {
  * Escape a value for CSV format
  */
 function escapeCSV(value: string | number): string {
-  const str = String(value)
+  const str = neutralizeCsvFormulaInjection(value)
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return `"${str.replace(/"/g, '""')}"`
   }

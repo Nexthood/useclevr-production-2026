@@ -161,7 +161,7 @@ async function main() {
   assert.ok(parserSource.includes("bookVBA: false"), "Excel parsing does not retain VBA project data")
 
   const simpleRoute = readProjectFile("src/app/api/upload/simple/route.ts")
-  assert.ok(simpleRoute.includes("await assertStandardUploadFile(uploadFile)"), "standard simple route validates file before parsing")
+  assert.ok(simpleRoute.includes("await assertStandardUploadFile(uploadFile, { source: \"simple-upload\" })"), "standard simple route validates file before parsing")
   assert.ok(simpleRoute.includes("payload.status"), "standard simple route preserves upload validation status")
   assert.ok(simpleRoute.includes("isSaasMrrMovementUpload(businessModel, parsed.columns)"), "simple upload detects SaaS MRR movement datasets before row persistence")
   assert.ok(simpleRoute.includes("storeFullRowsForSaasMrrMovement ? parsed.previewRows.length : SIMPLE_ROW_INSERT_LIMIT"), "simple upload stores full rows only for SaaS MRR movement datasets")
@@ -171,8 +171,11 @@ async function main() {
   assert.ok(uploadRoute.includes("? 413"), "canonical upload API returns HTTP 413 for oversized files")
 
   const uploadAction = readProjectFile("src/app/actions/upload.ts")
-  assert.ok(uploadAction.includes("await assertStandardUploadFile(uploadFile)"), "authenticated normal upload flow uses shared pre-parse validation")
-  assert.ok(uploadAction.includes("parseCSVStreaming(file, rowLimit)"), "authenticated normal upload flow still reaches the standard parser")
+  assert.ok(uploadAction.includes("await assertStandardUploadFile(uploadFile"), "authenticated normal upload flow uses shared pre-parse validation")
+  assert.ok(
+    uploadAction.includes("parseCSVStreaming(file, rowLimit, undefined, uploadValidationOptions)"),
+    "authenticated normal upload flow still reaches the standard parser with upload validation options",
+  )
 
   const standardUploadUi = readProjectFile("src/components/forms/csv-upload.tsx")
   assert.ok(standardUploadUi.includes("MAX_UPLOAD_BYTES"), "Standard upload UI uses the shared upload byte limit")

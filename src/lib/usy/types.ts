@@ -37,6 +37,8 @@ export type UsyContext = {
   plan?: string;
   usage?: UsyUsageContext | null;
   isAuthenticated?: boolean;
+  /** ISO currency for market-aware plan pricing; honored only when authenticated. */
+  currency?: string;
 };
 
 export type UsyContactDraft = {

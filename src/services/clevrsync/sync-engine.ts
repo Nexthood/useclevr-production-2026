@@ -19,7 +19,7 @@ export function isClevrSyncConnectorType(value: unknown): value is ClevrSyncConn
 }
 
 export function isConnectorTypeAvailable(type: ClevrSyncConnectorType) {
-  return type === "google_sheets";
+  return type === "google_sheets" || type === "onedrive" || type === "sharepoint";
 }
 
 export function buildColumnMapping(preview: Pick<ClevrSyncPreview, "columns">) {
@@ -104,6 +104,87 @@ export async function getNewestOwnedGoogleSheetsConnector(userId: string) {
     ),
     orderBy: [desc(clevrSyncConnectors.updatedAt)],
   });
+}
+
+export async function getNewestOwnedMicrosoftConnector(
+  userId: string,
+  type: "onedrive" | "sharepoint",
+) {
+  const db = getRequiredDb();
+  return db.query.clevrSyncConnectors.findFirst({
+    where: and(eq(clevrSyncConnectors.userId, userId), eq(clevrSyncConnectors.type, type)),
+    orderBy: [desc(clevrSyncConnectors.updatedAt)],
+  });
+}
+
+/**
+ * Upserts the Microsoft connector of the given type. Reconnecting updates the
+ * existing connector so its persisted source identity (including the linked
+ * dataset) survives a fresh authorization.
+ */
+export async function upsertMicrosoftConnector(
+  input: CreateClevrSyncConnectorInput & {
+    type: "onedrive" | "sharepoint";
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string | null;
+    tokenExpiresAt?: Date | null;
+    providerAccountLabel?: string | null;
+  },
+) {
+  const db = getRequiredDb();
+  const now = new Date();
+  const defaultName = input.type === "onedrive" ? "OneDrive" : "SharePoint";
+  const existing = await getNewestOwnedMicrosoftConnector(input.userId, input.type);
+
+  if (existing) {
+    const previousMeta = (existing.sourceMeta ?? {}) as Record<string, unknown>;
+    const [updated] = await db
+      .update(clevrSyncConnectors)
+      .set({
+        status: "connected",
+        displayName: input.displayName?.trim() || existing.displayName,
+        accessTokenEncrypted: input.accessTokenEncrypted,
+        refreshTokenEncrypted: input.refreshTokenEncrypted ?? existing.refreshTokenEncrypted,
+        tokenExpiresAt: input.tokenExpiresAt ?? existing.tokenExpiresAt,
+        providerAccountLabel: input.providerAccountLabel ?? existing.providerAccountLabel,
+        sourceMeta: {
+          ...previousMeta,
+          ...(input.sourceMeta ?? {}),
+          datasetId:
+            (input.sourceMeta?.datasetId as string | undefined) ??
+            previousMeta.datasetId ??
+            null,
+          lastError: null,
+        },
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(clevrSyncConnectors.id, existing.id),
+          eq(clevrSyncConnectors.userId, input.userId),
+        ),
+      )
+      .returning();
+    return updated ? sanitizeConnector(updated) : null;
+  }
+
+  const connector = {
+    id: `cs_conn_${uuidv4()}`,
+    userId: input.userId,
+    organizationId: input.organizationId?.trim() || input.userId,
+    type: input.type,
+    status: "connected" as const,
+    displayName: input.displayName?.trim() || defaultName,
+    sourceMeta: input.sourceMeta ?? {},
+    accessTokenEncrypted: input.accessTokenEncrypted,
+    refreshTokenEncrypted: input.refreshTokenEncrypted ?? null,
+    tokenExpiresAt: input.tokenExpiresAt ?? null,
+    providerAccountLabel: input.providerAccountLabel ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.insert(clevrSyncConnectors).values(connector);
+  return sanitizeConnector(connector);
 }
 
 export async function getOwnedClevrSyncConnectorForApi(userId: string, connectorId: string) {

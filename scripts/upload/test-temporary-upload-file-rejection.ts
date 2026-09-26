@@ -45,11 +45,11 @@ async function main() {
   )
 
   const simpleUploadRoute = readProjectFile("src/app/api/upload/simple/route.ts")
-  assert.ok(simpleUploadRoute.includes("await assertStandardUploadFile(uploadFile)"), "simple upload checks the selected file name through shared validation before parsing")
+  assert.ok(simpleUploadRoute.includes("await assertStandardUploadFile(uploadFile"), "simple upload checks the selected file name through shared validation before parsing")
 
   const canonicalUploadAction = readProjectFile("src/app/actions/upload.ts")
   assert.ok(canonicalUploadAction.includes("TEMPORARY_FILE_REJECTED"), "canonical upload action returns a temporary-file rejection code")
-  assert.ok(canonicalUploadAction.includes("await assertStandardUploadFile(uploadFile)"), "canonical upload action checks the selected file before demo or parsing branches")
+  assert.ok(canonicalUploadAction.includes("await assertStandardUploadFile(uploadFile"), "canonical upload action checks the selected file before demo or parsing branches")
 }
 
 main().catch((error) => {

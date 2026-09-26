@@ -26,8 +26,16 @@ export type ClevrSyncWorksheetPreview = {
   columnCount: number;
 };
 
+export type ClevrSyncPreviewSource = "google_sheets" | "onedrive" | "sharepoint";
+
+export type MicrosoftWorksheetRef = {
+  id: string;
+  name: string;
+  position: number;
+};
+
 export type ClevrSyncPreview = {
-  sourceType: "google_sheets";
+  sourceType: ClevrSyncPreviewSource;
   fileName: string;
   fileSize: number;
   mimeType: string;
@@ -42,6 +50,16 @@ export type ClevrSyncPreview = {
       title: string;
       index: number;
     }>;
+  };
+  microsoft?: {
+    connectorType: "onedrive" | "sharepoint";
+    driveId: string | null;
+    itemId: string;
+    workbookName: string;
+    folderPath: string | null;
+    worksheetId: string;
+    worksheetName: string;
+    worksheets: MicrosoftWorksheetRef[];
   };
   columns: ClevrSyncColumn[];
   rows: ClevrSyncRow[];

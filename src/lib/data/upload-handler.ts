@@ -8,6 +8,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 // ============================================================================
 
 import { parseCSVString } from "./csvLoader";
+import { assertUploadFileContentMatchesExtension } from "@/lib/upload/upload-security";
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================
@@ -377,7 +378,13 @@ export async function processUploadedFile(
   filename: string
 ): Promise<DatasetMetadata> {
   const mimeType = detectMimeType(filename);
-  
+
+  // Server-side content verification: the file must actually be the format
+  // its filename claims (or plain text) before it is stored or parsed.
+  assertUploadFileContentMatchesExtension(buffer, filename, {
+    source: "dataset-file-ingestion",
+  });
+
   // Upload to storage
   const uploadResult = await uploadFile(buffer, filename, mimeType);
   

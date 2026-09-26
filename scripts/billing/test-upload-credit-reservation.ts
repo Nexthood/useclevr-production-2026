@@ -152,8 +152,8 @@ const tests: TestCase[] = [
       )
       assert.equal(
         syncRoute.split('uploadFormData.set("dataset_type", "standard")').length - 1,
-        1,
-        "the Google Sheets sync path must set dataset_type",
+        2,
+        "each clevrsync sync path (Google Sheets + Microsoft) must set dataset_type exactly once",
       )
       assert.ok(
         syncRoute.includes('uploadFormData.set("uploadSource", "clevrsync")'),

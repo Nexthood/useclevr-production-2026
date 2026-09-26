@@ -28,6 +28,11 @@ Text rules for this file:
 ## Upload & Analysis
 
 - Upload CSV files for AI analysis.
+- Validate every uploaded and ingested file server-side through the central upload security validator before parsing, previewing, storing, or analyzing it: verify the normalized filename, the complete extension chain, the real content signature, and the declared MIME type, and never trust the filename, the extension alone, or the browser-declared type.
+- Reject files whose extension chain hides an executable or renderable format (for example `invoice.pdf.html` or `report.xlsx.exe`) with a structured `UNSAFE_FILE_TYPE` error, and reject files whose contents do not match the format their filename claims with a structured `FILE_TYPE_MISMATCH` error; show a clear professional message and never expose filesystem paths, parser details, or detection internals.
+- Enforce upload resource limits on XLSX ingestion: bound the decompressed archive size, the compression ratio, the worksheet count, and reject workbook archives that carry VBA macro projects before any parser decompresses them.
+- Log upload security rejections with a timestamp, upload source, sanitized filename, claimed type, detected type, and rejection category, and never log file contents, credentials, tokens, or headers.
+- Neutralize formula injection in CSV and spreadsheet exports of user-controlled values so exported cells cannot execute formulas when opened in spreadsheet software.
 - Show Free plan dataset-limit responses as an informational upgrade state, not as an upload failure.
 - Disable upload drag-and-drop after the Free plan dataset limit is reached until the user upgrades.
 - Show Pro and Business upgrade actions from the Free plan dataset-limit upload state.

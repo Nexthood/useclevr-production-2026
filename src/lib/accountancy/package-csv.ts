@@ -1,3 +1,5 @@
+import { neutralizeCsvFormulaInjection } from "@/lib/data/csv-formula-injection";
+
 export type AccountancyPackageCsvField = {
   label: string;
   value: string;
@@ -154,6 +156,6 @@ function cleanText(value: unknown) {
 }
 
 function escapeCsv(value: unknown) {
-  const safeValue = String(value ?? "");
+  const safeValue = neutralizeCsvFormulaInjection(value);
   return `"${safeValue.replace(/"/g, '""')}"`;
 }
