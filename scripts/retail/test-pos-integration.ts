@@ -28,6 +28,11 @@ import {
   mapSquareOrder,
   mapSquareWebhookEvent,
 } from "@/integrations/retail/providers/square/square.mapper";
+import {
+  buildOrderLocationBatches,
+  isSyncRunStalled,
+  needsTokenRefresh,
+} from "@/integrations/retail/core/sync-engine";
 
 type TestCase = {
   name: string;
@@ -457,10 +462,199 @@ const tests: TestCase[] = [
       assert.equal(event.sanitizedPayload.object_id, "ORDER-1");
     },
   },
+  {
+    name: "Queued Square syncs execute after connect and manual sync",
+    run() {
+      const callbackRouteSource = readProjectFile("src/app/api/integrations/retail/square/callback/route.ts");
+      const syncRouteSource = readProjectFile("src/app/api/integrations/retail/[connectionId]/sync/route.ts");
+      const syncEngineSource = readProjectFile("src/integrations/retail/core/sync-engine.ts");
+      const connectionServiceSource = readProjectFile("src/integrations/retail/core/connection.service.ts");
+
+      assert.ok(
+        callbackRouteSource.includes("executeQueuedRetailSync(run.id)"),
+        "callback route executes the queued initial sync",
+      );
+      assert.ok(
+        syncRouteSource.includes("executeQueuedRetailSync(run.id)"),
+        "manual sync route executes the queued sync",
+      );
+      assert.ok(syncEngineSource.includes("export async function executeQueuedRetailSync"), "sync engine exposes queued execution");
+      assert.ok(
+        syncEngineSource.includes("run.status !== \"queued\"") || syncEngineSource.includes('run.status !== "queued"'),
+        "queued execution only runs a run once",
+      );
+      assert.ok(
+        syncEngineSource.includes("getRetailConnectionById(run.connectionId)"),
+        "queued execution resolves the owning connection",
+      );
+      assert.ok(
+        connectionServiceSource.includes("export async function getRetailConnectionById"),
+        "connection service exposes internal lookup for background execution",
+      );
+    },
+  },
+  {
+    name: "Square orders sync batches location IDs and SearchOrders always receives location_ids",
+    async run() {
+      assert.deepEqual(buildOrderLocationBatches([]), []);
+      assert.deepEqual(buildOrderLocationBatches(["L1"]), [["L1"]]);
+      assert.deepEqual(
+        buildOrderLocationBatches(["L1", "L2", "L3"], 2),
+        [["L1", "L2"], ["L3"]],
+      );
+      assert.equal(buildOrderLocationBatches(Array.from({ length: 23 }, (_, index) => `L${index}`)).length, 3);
+
+      const seenRequests: Array<{ endpoint: string; body: Record<string, unknown> }> = [];
+      await withSquareEnv("sandbox", async () => {
+        const previousFetch = globalThis.fetch;
+        globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+          seenRequests.push({
+            endpoint: String(input),
+            body: JSON.parse(String(init?.body || "{}")) as Record<string, unknown>,
+          });
+          return new Response(JSON.stringify({ orders: [], cursor: null }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }) as typeof fetch;
+
+        try {
+          await new SquareConnector().getOrders(
+            makeTestConnection(),
+            { locationIds: ["LOC-1", "LOC-2"], createdAfter: new Date("2026-07-01T00:00:00Z") },
+          );
+          await new SquareConnector().getOrders(
+            makeTestConnection(),
+            { cursor: "cursor-page-2", createdAfter: new Date("2026-07-01T00:00:00Z") },
+          );
+        } finally {
+          globalThis.fetch = previousFetch;
+        }
+      });
+
+      assert.equal(seenRequests.length, 2);
+      assert.equal(seenRequests[0]?.endpoint, `https://${squareSandboxHost}/v2/orders/search`);
+      assert.deepEqual(seenRequests[0]?.body.location_ids, ["LOC-1", "LOC-2"]);
+      assert.equal(seenRequests[1]?.body.cursor, "cursor-page-2");    },
+  },
+  {
+    name: "Square sync refreshes expired access tokens before provider calls",
+    run() {
+      const now = Date.now();
+      assert.equal(needsTokenRefresh(null, now), false, "missing expiry does not trigger refresh");
+      assert.equal(needsTokenRefresh(new Date(now + 60 * 60 * 1000), now), false, "fresh token does not trigger refresh");
+      assert.equal(needsTokenRefresh(new Date(now + 60 * 1000), now), true, "token inside the refresh margin triggers refresh");
+      assert.equal(needsTokenRefresh(new Date(now - 1000), now), true, "expired token triggers refresh");
+      assert.equal(needsTokenRefresh(new Date(now + 6 * 60 * 1000), now), false, "token just outside the margin does not trigger refresh");
+    },
+  },
+  {
+    name: "Square sync engine bounds pagination and refreshes tokens server-side",
+    run() {
+      const syncEngineSource = readProjectFile("src/integrations/retail/core/sync-engine.ts");
+      assert.ok(syncEngineSource.includes("MAX_PAGES_PER_RESOURCE"), "pagination page cap exists");
+      assert.ok(syncEngineSource.includes("assertPaginationLimit("), "catalog, inventory, and order pages are capped");
+      assert.ok(syncEngineSource.includes("ensureFreshConnectionToken"), "sync refreshes expiring tokens before provider calls");
+      assert.ok(syncEngineSource.includes("locationIds: locationBatch"), "orders search receives explicit location batches");
+    },
+  },
+  {
+    name: "Square sync emits always-on stage logs without secrets",
+    run() {
+      const syncEngineSource = readProjectFile("src/integrations/retail/core/sync-engine.ts");
+      assert.ok(syncEngineSource.includes('"[SQUARE_SYNC]"'), "sync stage logger uses the [SQUARE_SYNC] prefix");
+      assert.ok(syncEngineSource.includes("console.warn(\"[SQUARE_SYNC]\""), "stage logs are always-on, not debug-gated");
+      for (const stage of [
+        "started",
+        "token_resolved",
+        "merchant_resolved",
+        "locations_fetched",
+        "catalog_fetched",
+        "inventory_fetched",
+        "orders_fetched",
+        "completed",
+        "failed",
+      ]) {
+        assert.ok(
+          syncEngineSource.includes(`logSyncStage("${stage}")`) || syncEngineSource.includes(`"${stage}"`),
+          `stage ${stage} is logged`,
+        );
+      }
+      const failedLog = syncEngineSource.slice(syncEngineSource.indexOf('logSyncStage("failed"'));
+      assert.ok(failedLog.includes("errorCode"), "failure log includes the safe error code");
+      assert.ok(failedLog.includes("httpStatus"), "failure log includes the HTTP status");
+      const logFields = syncEngineSource.slice(
+        syncEngineSource.indexOf("logSyncStage("),
+        syncEngineSource.indexOf("export async function runRetailSync"),
+      );
+      assert.equal(
+        /accessToken|refreshToken|applicationSecret|Bearer\s/.test(logFields),
+        false,
+        "sync logs never reference token or secret values",
+      );
+    },
+  },
+  {
+    name: "Stalled Square sync runs are released so Sync now can never be permanently blocked",
+    run() {
+      const now = Date.now();
+      assert.equal(isSyncRunStalled(new Date(now - 1000), now), false, "fresh run is not stalled");
+      assert.equal(isSyncRunStalled(new Date(now - 11 * 60 * 1000), now), true, "run older than the stall window is stalled");
+      assert.equal(isSyncRunStalled(null, now), false, "missing creation date is not treated as stalled");
+
+      const syncEngineSource = readProjectFile("src/integrations/retail/core/sync-engine.ts");
+      assert.ok(
+        syncEngineSource.includes("status: \"failed\"") && syncEngineSource.includes('"SYNC_STALLED"'),
+        "stalled runs are marked failed with a SYNC_STALLED code",
+      );
+      assert.ok(
+        syncEngineSource.includes("isSyncRunStalled(row.createdAt)"),
+        "active-sync detection excludes stalled runs",
+      );
+      assert.ok(
+        syncEngineSource.includes("SYNC_RUN_STALL_MS"),
+        "stall window is an explicit constant",
+      );
+    },
+  },
+  {
+    name: "Minimal Square product imports as one product with at least one variant",
+    run() {
+      const products = mapSquareCatalogItems([
+        {
+          id: "ITEM-USECLEVR-TEST",
+          type: "ITEM",
+          created_at: "2026-09-26T10:00:00Z",
+          updated_at: "2026-09-26T10:00:00Z",
+          item_data: {
+            name: "Useclevr Test",
+            variations: [
+              {
+                id: "VAR-USECLEVR-TEST",
+                type: "ITEM_VARIATION",
+                item_variation_data: {
+                  item_id: "ITEM-USECLEVR-TEST",
+                  name: "Regular",
+                  price_money: { amount: 100, currency: "EUR" },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+
+      assert.equal(products.length, 1);
+      assert.equal(products[0]?.name, "Useclevr Test");
+      assert.equal(products[0]?.externalProductId, "ITEM-USECLEVR-TEST");
+      assert.ok(products[0] && products[0].variants.length >= 1, "variant is imported without SKU or category");
+      assert.equal(products[0]?.variants[0]?.retailPrice, "1.00");
+      assert.equal(products[0]?.variants[0]?.currency, "EUR");
+      assert.equal(products[0]?.variants[0]?.sku, null);
+    },
+  },
 ];
 
-function withSquareEnv<T>(environment: string | undefined, run: () => T): T {
-  const previous = {
+function withSquareEnv<T>(environment: string | undefined, run: () => T): T {  const previous = {
     environment: process.env.SQUARE_ENVIRONMENT,
     applicationId: process.env.SQUARE_APPLICATION_ID,
     applicationSecret: process.env.SQUARE_APPLICATION_SECRET,
@@ -509,6 +703,22 @@ function withSquareEnv<T>(environment: string | undefined, run: () => T): T {
 
 function readProjectFile(path: string) {
   return readFileSync(resolve(repoRoot, path), "utf8");
+}
+
+function makeTestConnection() {
+  return {
+    id: "retconn_test",
+    organizationId: "biz_test",
+    provider: "square" as const,
+    providerEnvironment: "sandbox" as const,
+    externalMerchantId: "MERCHANT-1",
+    displayName: "Square",
+    connectionStatus: "active" as const,
+    accessTokenEncrypted: encryptRetailSecret("test-access-token"),
+    refreshTokenEncrypted: null,
+    tokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    grantedScopes: ["MERCHANT_PROFILE_READ", "ITEMS_READ", "INVENTORY_READ", "ORDERS_READ"],
+  };
 }
 
 function restoreEnv(name: string, value: string | undefined) {

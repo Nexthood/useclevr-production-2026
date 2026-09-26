@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth/auth";
 import { getOwnedRetailConnection } from "@/integrations/retail/core/connection.service";
-import { hasActiveRetailSync, queueRetailSync } from "@/integrations/retail/core/sync-engine";
+import { executeQueuedRetailSync, hasActiveRetailSync, queueRetailSync } from "@/integrations/retail/core/sync-engine";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,5 +24,12 @@ export async function POST(
     return NextResponse.json({ status: "queued", message: "A sync is already queued or running." });
   }
   const run = await queueRetailSync(connection, "manual");
+  void executeQueuedRetailSync(run.id).catch((error) => {
+    console.warn("[SQUARE_SYNC]", "execution_unhandled", {
+      stage: "execution_unhandled",
+      syncRunId: run.id,
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+  });
   return NextResponse.json({ status: run.status, syncRunId: run.id });
 }

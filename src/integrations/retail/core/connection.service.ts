@@ -164,6 +164,16 @@ export async function saveRetailConnection(input: {
   return toConnectionRecord(created);
 }
 
+export async function getRetailConnectionById(connectionId: string) {
+  const db = getRequiredDb();
+  const [row] = await db
+    .select()
+    .from(retailConnections)
+    .where(eq(retailConnections.id, connectionId))
+    .limit(1);
+  return row ? toConnectionRecord(row) : null;
+}
+
 export async function getOwnedRetailConnection(input: { userId: string; connectionId: string }) {
   const db = getRequiredDb();
   const [row] = await db
