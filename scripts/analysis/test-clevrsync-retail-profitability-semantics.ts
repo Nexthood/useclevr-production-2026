@@ -1,8 +1,10 @@
-import { execFileSync } from "node:child_process"
 import * as fs from "node:fs"
+import * as path from "node:path"
+import { parseCSVStreaming } from "../../src/lib/data/csvLoader"
 import { buildDatasetReportInput } from "../../src/lib/reports/dataset-report-builder"
 import { buildDashboardSemanticAnalysis } from "../../src/lib/data/dashboard-semantic-profile"
 import { deleteReport, generateReport } from "../../src/lib/reports/report-generator"
+import { extractPdfText } from "../lib/pdf-text"
 
 type TestDataset = Parameters<typeof buildDatasetReportInput>[0]
 
@@ -286,7 +288,7 @@ async function assertReportPdfNoLongerClaimsMissingFields(rows: Record<string, u
     })),
   )
   assert(Boolean(report.pdfPath && fs.existsSync(report.pdfPath)), "ClevrSync retail PDF must generate")
-  const text = execFileSync("pdftotext", [report.pdfPath!, "-"], { encoding: "utf8" })
+  const text = extractPdfText(report.pdfPath!)
   const compactText = text.replace(/\s+/g, " ")
   const costLabel = `$${(expected.cost / 1000).toFixed(1)}K`
   const profitLabel = `$${(expected.profit / 1000).toFixed(1)}K`
@@ -300,6 +302,73 @@ async function assertReportPdfNoLongerClaimsMissingFields(rows: Record<string, u
   console.log(JSON.stringify({ pdfPath: report.pdfPath, costLabel, profitLabel }, null, 2))
 }
 
+// Reproduces the ACTUAL persisted production dataset: the real ClevrSync Retail Test 500 rows
+// exported from the production Dataset record, parsed through the central CSV loader and rebuilt
+// through buildDatasetReportInput exactly as the /api/reports route does at request time.
+async function assertPersistedClevrSyncDatasetPath() {
+  const fixturePath = path.join(process.cwd(), "test-fixtures", "business-models", "clevrsync-retail-test-500.csv")
+  assert(fs.existsSync(fixturePath), `persisted ClevrSync fixture must exist at ${fixturePath}`)
+  const file = new File([fs.readFileSync(fixturePath)], "clevrsync-retail-test-500.csv", { type: "text/csv" })
+  const parsed = await parseCSVStreaming(file, 1000)
+  const rows = parsed.previewRows
+  const columns = parsed.columns
+  assert(rows.length === 500, `persisted fixture must contain the 500 uploaded rows, received ${rows.length}`)
+  assert(columns.includes("Cost") && columns.includes("Profit"), "persisted fixture must retain the Cost and Profit columns")
+
+  const sum = (column: string) => rows.reduce((total, row) => {
+    const value = typeof row[column] === "number" ? row[column] as number : Number.parseFloat(String(row[column] ?? "").replace(/[^0-9.-]/g, ""))
+    return Number.isFinite(value) ? total + value : total
+  }, 0)
+  const revenue = round2(sum("Revenue"))
+  const cost = round2(sum("Cost"))
+  const profit = round2(sum("Profit"))
+  const profitMargin = round2((profit / revenue) * 100)
+  assert(revenue > 0 && cost > 0 && profit > 0, "persisted fixture must carry numeric revenue, cost, and profit values")
+
+  const persistedInput = await buildDatasetReportInput(dataset({
+    id: "synthetic_clevrsync_persisted_retail_test_500",
+    name: "UseClevr ClevrSync Retail Test 500 - Retail Sales 2026",
+    rows,
+    columns,
+    uploadSource: "clevrsync",
+  }))
+  assert(persistedInput.reportType === "ecommerce", `persisted ClevrSync dataset must resolve the e-commerce report, received ${persistedInput.reportType}`)
+  nearlyEqual(persistedInput.financials?.revenue ?? null, revenue, "persisted dataset revenue must sum the source Revenue field")
+  nearlyEqual(persistedInput.financials?.cogs ?? null, cost, "persisted dataset Cost field must feed canonical COGS")
+  nearlyEqual(persistedInput.financials?.grossProfit ?? null, profit, "persisted dataset explicit Profit field must feed canonical gross profit")
+  nearlyEqual(persistedInput.financials?.grossMargin ?? null, profitMargin, "persisted dataset gross margin must be profit divided by revenue", 0.03)
+  assert(persistedInput.financials?.netProfit === null, "persisted dataset explicit Profit must not be relabeled as net profit")
+  assert(persistedInput.semanticContext?.mappings.cogs === "Cost", "persisted dataset semantic context must map cogs to Cost")
+  assert(persistedInput.semanticContext?.mappings.grossProfit === "Profit", "persisted dataset semantic context must map gross profit to Profit")
+  nearlyEqual(kpiValue(persistedInput, "Cost") ?? null, cost, "persisted dataset Cost KPI must match the persisted Cost total")
+  nearlyEqual(kpiValue(persistedInput, "Profit") ?? null, profit, "persisted dataset Profit KPI must match the persisted Profit total")
+  nearlyEqual(kpiValue(persistedInput, "Profit Margin") ?? null, profitMargin, "persisted dataset Profit Margin KPI must match the persisted margin", 0.03)
+  const persistedRecommendationText = (persistedInput.recommendations ?? []).map((item) => `${item.issue} ${item.recommendedAction}`).join(" ")
+  assert(!/COGS is not available|Product COGS is not available|Add cogs/i.test(persistedRecommendationText), "persisted dataset recommendations must not claim cost fields are missing")
+  assert(!persistedInput.summary.includes("Gross profit and gross margin are not available"), "persisted dataset summary must not claim gross profitability is missing")
+
+  const persistedDashboard = await buildDashboardSemanticAnalysis(dashboardDataset({
+    id: "synthetic_clevrsync_persisted_retail_test_500",
+    name: "UseClevr ClevrSync Retail Test 500 - Retail Sales 2026",
+    rows,
+    columns,
+  }))
+  assert(persistedDashboard.businessProfile === "ecommerce", "persisted dataset dashboard must classify as ecommerce")
+  assert(persistedDashboard.metrics.some((item) => item.label === "Cost" && item.available), "persisted dataset dashboard must expose the Cost metric")
+  assert(persistedDashboard.metrics.some((item) => item.label === "Profit" && item.available), "persisted dataset dashboard must expose the Profit metric")
+  assert(persistedDashboard.metrics.some((item) => item.label === "Profit Margin" && item.available), "persisted dataset dashboard must expose the Profit Margin metric")
+
+  console.log(JSON.stringify({
+    fixture: "persisted_clevrsync_retail_test_500",
+    resolvedReportType: persistedInput.reportType,
+    revenue: persistedInput.financials?.revenue,
+    cost: persistedInput.financials?.cogs,
+    grossProfit: persistedInput.financials?.grossProfit,
+    grossMargin: persistedInput.financials?.grossMargin,
+    profitMarginKpi: kpiValue(persistedInput, "Profit Margin"),
+  }, null, 2))
+}
+
 async function main() {
   process.env.TEMP_DIR = "/tmp/useclevr-clevrsync-retail-profitability-test"
   fs.rmSync(process.env.TEMP_DIR, { recursive: true, force: true })
@@ -308,6 +377,7 @@ async function main() {
   const { rows, columns, expected } = await assertClevrSyncProfitabilitySemantics()
   await assertDashboardProfitabilityMetrics(rows, columns, expected)
   await assertUnsafeCostsAreNotCogs()
+  await assertPersistedClevrSyncDatasetPath()
   await assertReportPdfNoLongerClaimsMissingFields(rows, expected)
 }
 
