@@ -18,11 +18,26 @@ export async function GET() {
     const userId = session.user.id
 
     const db = getDb()
-    const profile = db ? await db.query.profiles.findFirst({
+    let profile = db ? await db.query.profiles.findFirst({
       where: eq(profiles.userId, userId),
       columns: { subscriptionTier: true },
     }) : null
-    const subscriptionTier = profile?.subscriptionTier || "free"
+    let subscriptionTier = profile?.subscriptionTier || "free"
+
+    if (subscriptionTier === "pro" || subscriptionTier === "business") {
+      // Heal a missed Stripe downgrade before any credit allocation runs: a
+      // paid tier whose stored Stripe period end has passed is reconciled
+      // against authoritative Stripe state (downgrade or renewal) first.
+      const { reconcileExpiredSubscriptionPeriod } = await import(
+        "@/lib/billing/subscription-period-sync"
+      )
+      await reconcileExpiredSubscriptionPeriod(userId)
+      profile = db ? await db.query.profiles.findFirst({
+        where: eq(profiles.userId, userId),
+        columns: { subscriptionTier: true },
+      }) : null
+      subscriptionTier = profile?.subscriptionTier || "free"
+    }
 
     await initializeUserCredits(userId, subscriptionTier) || await getUserCreditInfo(userId)
     const account = await getCreditAccount(userId)

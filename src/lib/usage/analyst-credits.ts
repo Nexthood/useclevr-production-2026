@@ -152,16 +152,36 @@ export async function getAnalystCreditUsage(
         },
       })
 
-      const profileTier = profile?.subscriptionTier || "free"
-      const profileRole = profile?.role || null
+      let profileTier = profile?.subscriptionTier || "free"
+      let profileRole = profile?.role || null
       const profileEmail = profile?.email || null
       const hasUnlimitedAccess =
         isSuperadmin({ id: userId, role: profileRole, email: email || profileEmail }) ||
         isUnlimitedCreditRole(profileRole) ||
         isUnlimitedCreditRole(profileTier)
-      const subscriptionTier = hasUnlimitedAccess
+      let subscriptionTier = hasUnlimitedAccess
         ? profileRole === "admin" ? "admin" : "superadmin"
         : profileTier
+      // Heal a missed Stripe downgrade before any credit allocation runs: a
+      // paid tier whose stored Stripe period end has passed is reconciled
+      // against authoritative Stripe state (downgrade or renewal) first.
+      if (!hasUnlimitedAccess && (profileTier === "pro" || profileTier === "business")) {
+        const { reconcileExpiredSubscriptionPeriod } = await import(
+          "@/lib/billing/subscription-period-sync"
+        )
+        await reconcileExpiredSubscriptionPeriod(userId)
+        // Reconciliation applies the authoritative Stripe tier (downgrade or
+        // renewal) — re-read the profile so credits resolve against the live tier.
+        const refreshedProfile = await db.query.profiles.findFirst({
+          where: eq(profiles.userId, userId),
+          columns: { subscriptionTier: true, role: true },
+        })
+        if (refreshedProfile) {
+          profileTier = refreshedProfile.subscriptionTier || "free"
+          if (!profileRole) profileRole = refreshedProfile.role || null
+        }
+        subscriptionTier = profileTier
+      }
       const trial = getTrialStatus(profile?.createdAt, subscriptionTier)
       const unlimitedLabel = hasUnlimitedAccess ? getUnlimitedLabel(subscriptionTier, profileRole, userId, email || profileEmail) : null
       const datasetCount = await getActiveDatasetCount(userId)

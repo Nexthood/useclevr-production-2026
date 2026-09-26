@@ -19,7 +19,7 @@ export function isClevrSyncConnectorType(value: unknown): value is ClevrSyncConn
 }
 
 export function isConnectorTypeAvailable(type: ClevrSyncConnectorType) {
-  return type === "excel" || type === "google_sheets";
+  return type === "google_sheets";
 }
 
 export function buildColumnMapping(preview: Pick<ClevrSyncPreview, "columns">) {
@@ -199,7 +199,6 @@ export function sanitizeConnector<
 }
 
 function defaultDisplayName(type: ClevrSyncConnectorType) {
-  if (type === "excel") return "Excel workbook";
   return type
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

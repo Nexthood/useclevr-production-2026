@@ -74,7 +74,7 @@ const tests: TestCase[] = [
 
       const syncRoute = readProjectFile("src/app/api/clevrsync/sync/route.ts")
       const connectorTypeCount = syncRoute.split('uploadFormData.set("clevrsync_connector_type", connector.type)').length - 1
-      assert.equal(connectorTypeCount, 2, "both Google Sheets and Excel connector sync paths persist the connector type")
+      assert.equal(connectorTypeCount, 1, "the Google Sheets connector sync path persists the connector type")
 
       const simpleUpload = readProjectFile("src/app/api/upload/simple/route.ts")
       assert.ok(simpleUpload.includes("deriveDatasetSource"), "standard uploads persist the normalized source")

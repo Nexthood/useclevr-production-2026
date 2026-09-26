@@ -579,7 +579,9 @@ const subs = await stripe.subscriptions.list({
                   Subscription Invoices
                 </CardTitle>
                 <CardDescription>
-                  Stripe subscription payments and their refund state. Credit top-ups are listed separately below.
+                  Stripe subscription payments and their refund state. A refunded invoice is a
+                  payment-level record and does not by itself change your plan: plan access follows
+                  the subscription status shown above until the period ends.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
-import { uploadValidationErrorPayload } from "@/lib/upload/upload-security";
 import { debugError } from "@/lib/utils/debug";
 import {
   clevrSyncAccessErrorPayload,
@@ -10,11 +9,8 @@ import {
 } from "@/services/clevrsync/access";
 import {
   GoogleSheetsProviderError,
-  getOwnedClevrSyncConnector,
-  parseExcelWorkbook,
   parseGoogleSpreadsheetId,
   previewGoogleSheet,
-  toDatasetPayload,
   updateClevrSyncConnector,
 } from "@/services/clevrsync";
 import { getGoogleSheetsAccessToken } from "@/services/clevrsync/google-auth-store";
@@ -30,56 +26,14 @@ export async function POST(request: Request) {
 
     await requireBuiltinUserRecord(session.user.id);
     await requireClevrSyncAccess(session.user);
-    if (request.headers.get("content-type")?.includes("application/json")) {
-      return previewGoogleSheets(request, session.user.id);
-    }
-
-    const formData = await request.formData();
-    const connectorId = String(formData.get("connectorId") || "").trim();
-    const file = formData.get("file");
-
-    if (connectorId) {
-      const connector = await getOwnedClevrSyncConnector(session.user.id, connectorId);
-      if (!connector) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
-    }
-
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "XLSX file is required" }, { status: 400 });
-    }
-
-    const preview = parseExcelWorkbook({
-      fileBuffer: await file.arrayBuffer(),
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
-    });
-    const dataset = toDatasetPayload(preview);
-
-    return NextResponse.json({
-      preview,
-      dataset: {
-        name: dataset.name,
-        fileName: dataset.fileName,
-        columns: dataset.columns,
-        rowCount: preview.rowCount,
-        columnTypes: dataset.columnTypes,
-        datasetType: dataset.datasetType,
-        source: dataset.source,
-      },
-    });
+    return previewGoogleSheets(request, session.user.id);
   } catch (error) {
     const accessError = clevrSyncAccessErrorPayload(error);
     if (accessError) {
       return NextResponse.json(accessError, { status: accessError.status });
     }
     debugError("[ClevrSync] Preview failed:", error);
-    const payload = uploadValidationErrorPayload(error, "CLEVRSYNC_PREVIEW_FAILED");
-    return NextResponse.json(
-      { error: payload.message, code: payload.code },
-      { status: payload.status },
-    );
+    return NextResponse.json({ error: "Unable to preview Google Sheet" }, { status: 500 });
   }
 }
 
