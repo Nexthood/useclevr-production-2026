@@ -1160,3 +1160,11 @@
 - added: mocked-Stripe Business Monthly validation regressions — all four markets accepted at the exact live amounts and UK/US/CA rejecting the retired amounts with `invalid_business_price_mapping` and the exact production message; display/matrix expectations updated in `test-pro-launch-pricing.ts` and `test-business-plan-limits.ts`; requirements.md and CHANGELOG updated
 - verified: `pnpm test:pro-pricing`, `pnpm test:business-plan-limits`, `pnpm test:tier-resolution` pass; `pnpm exec tsc --noEmit --pretty false` exit 0
 - not committed or pushed per instruction
+
+## 2026-09-27 — Referral signup flow: Unauthorized fix and reward-grant repair
+
+- fixed: referral links (`/signup?ref=<code>`) no longer return `{"error":"Unauthorized"}` for logged-out visitors — the visit-tracking route `/api/referral/visit` is now in the proxy's public API allowlist, so links open the signup page; attribution flows through the existing httpOnly cookie into `confirmReferralSignup` unchanged
+- fixed: referral reward credits now grant reliably — ledger inserts use the bare `onConflictDoNothing()` guard because the live `CreditLedger_idempotencyKey_key` index is partial and cannot be targeted explicitly (every grant previously failed with an ON CONFLICT inference error), and `grantReferralCredits` bootstraps a missing `UserCredit` row through the engine's idempotent `initializeUserCredits` before applying the balance (at least one live referrer lacked the row)
+- updated: `test-referral-automation.ts` idempotency assertion to pin the working bare conflict guard; `requirements.md` documents public referral-link access and cookie-preserved attribution; `CHANGELOG.md` gained two Fixed entries under `[Unreleased]`
+- verified: new 11-check proxy suite against the real middleware (protected `/api/referral`, `/api/datasets`, `/api/analyze` still 401 anonymous; `/app/*` still layout-guarded; CSP intact), new 24-check live-DB lifecycle E2E with full cleanup (click dedupe, one-time attribution, idempotent rewards, self-referral block, unknown-code tolerance), `pnpm test:referral-automation` 23/23, `pnpm test:auth` pass, `pnpm exec tsc --noEmit` exit 0
+- not committed or pushed per instruction

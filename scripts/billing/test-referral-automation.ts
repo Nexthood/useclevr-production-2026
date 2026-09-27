@@ -170,8 +170,9 @@ const tests: TestCase[] = [
         "referral credits use the central credit account (purchased/reward-compatible pool), not counters",
       )
       assert.ok(
-        lifecycle.includes("onConflictDoNothing({ target: creditLedger.idempotencyKey })"),
-        "ledger inserts are idempotency-key guarded",
+        lifecycle.includes("onConflictDoNothing()") &&
+          !lifecycle.includes("onConflictDoNothing({ target: creditLedger.idempotencyKey })"),
+        "ledger inserts are idempotency-key guarded through the DB unique index (bare conflict guard: the partial idempotencyKey index cannot be targeted explicitly)",
       )
     },
   },

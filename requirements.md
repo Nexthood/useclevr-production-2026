@@ -669,6 +669,8 @@ Text rules for this file:
 
 ## Credit Rules & Referrals
 
+- Open referral links (`/signup?ref=<code>`) to logged-out visitors with no authentication requirement; the visit-tracking route is a public endpoint that only records the click, sets the httpOnly attribution cookie, and redirects to signup.
+- Preserve the referral attribution through the full signup flow with an httpOnly cookie so redirects and email verification never lose the referrer.
 - Configure referrals needed for one analyst credit.
 - Toggle referral credits on or off.
 - Prevent self-referral rewards.
