@@ -297,8 +297,9 @@ Text rules for this file:
 - Use Automatic mode to apply privacy, task complexity, local availability, BYOK priority, and the user's UseClevr Cloud fallback setting.
 - Use Local mode to route through Ollama/local AI and show a clear local-runtime-unavailable error when the local runtime cannot answer.
 - Use BYOK mode to try the default enabled user provider first, then other enabled BYOK providers by priority.
+- Require at least one added and enabled AI provider before BYOK activates: block BYOK mode saves without one, mark the BYOK mode card "Provider required" with Add-provider guidance, and return the specific BYOK provider-required error from analysis, assistant, and report routes instead of a generic background failure.
 - Use UseClevr Cloud mode to route directly to managed UseClevr Cloud AI.
-- Use the user's UseClevr Cloud fallback setting before default cloud AI handles a failed or missing BYOK route.
+- Use the user's UseClevr Cloud fallback setting before default cloud AI handles a failed or missing BYOK route, and never fall back to cloud for a missing BYOK provider unless that setting is explicitly enabled.
 - Let users choose default provider status and priority from the AI Providers settings page.
 - Check provider health with a non-customer prompt before sending analysis data to a configured provider.
 - Classify provider connection tests as connected, invalid key, model unavailable, endpoint unreachable, rate limited, provider error, or configuration error.
@@ -355,6 +356,7 @@ Text rules for this file:
 ## Subscriptions & Billing
 
 - Show Free at $0/€0, Pro at €40/month or €480/year, and Business at €420/month or €5,040/year on EUR-default billing surfaces.
+- Show Pro market prices as €40/month for the EU, £35/month for the UK, $45/month for the US, and CA$65/month for Canada, with UK Pro yearly at £410/year on the matching billing surfaces.
 - Use the Free plan with limited AI credits as the only free UseClevr entry point, and do not advertise separate trial periods on public landing or pricing surfaces.
 - Use shared monthly and yearly paid-plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
 - Render public pricing amounts and billing intervals from shared billing data with translation-protected markup so browser translation cannot change the visible number, currency, or period relationship.

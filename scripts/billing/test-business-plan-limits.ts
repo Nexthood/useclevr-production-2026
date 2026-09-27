@@ -104,9 +104,9 @@ assert.equal(getMarketForCountry("ES"), "eu", "Unsupported countries fall back t
 // The resolved market must be the single displayed price per plan.
 const marketDisplayCases = [
   { market: "eu", displayPrice: "€40/month" },
-  { market: "uk", displayPrice: "£39/month" },
+  { market: "uk", displayPrice: "£35/month" },
   { market: "us", displayPrice: "$45/month" },
-  { market: "ca", displayPrice: "CA$55/month" },
+  { market: "ca", displayPrice: "CA$65/month" },
 ] as const
 for (const expected of marketDisplayCases) {
   const option = getCheckoutMarketOptions("pro", "monthly").find((candidate) => candidate.market === expected.market)!

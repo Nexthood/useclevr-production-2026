@@ -19,8 +19,10 @@
 
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import {
+  BYOK_PROVIDER_REQUIRED_MESSAGE,
   generateWithUniversalAiAdapter,
   getUseClevrCloudFallbackAllowed,
+  isByokProviderUnavailableError,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -828,6 +830,30 @@ try {
                 chartType,
                 providerStatus,
               });
+            }
+            if (isByokProviderUnavailableError(byoAiError) && !allowUseclevrCloudFallback) {
+              if (creditOperationId) {
+                await releaseCredits(creditOperationId, "byok_provider_required")
+              }
+              providerStatus = {
+                label: "BYOK",
+                state: "provider_unavailable",
+                message: "Provider required",
+                fallbackActive: false,
+              };
+              traceError = BYOK_PROVIDER_REQUIRED_MESSAGE;
+              return Response.json({
+                success: false,
+                code: "BYOK_PROVIDER_REQUIRED",
+                error: BYOK_PROVIDER_REQUIRED_MESSAGE,
+                answer: BYOK_PROVIDER_REQUIRED_MESSAGE,
+                insight: "BYOK provider required",
+                explanation: "UseClevr did not route this analysis through BYOK because no enabled BYOK provider is available.",
+                recommendation: "Add and enable an AI provider, or switch to UseClevr Cloud.",
+                data: result,
+                chartType,
+                providerStatus,
+              }, { status: 503 });
             }
             providerStatus = {
               label: "Cloud fallback",

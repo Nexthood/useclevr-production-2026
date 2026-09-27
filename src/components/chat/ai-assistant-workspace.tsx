@@ -184,6 +184,10 @@ function datasetAssistantErrorMessage(body: Record<string, unknown>, fallback: s
   if (code === "PROVIDER_TIMEOUT") return "The request timed out. Please retry."
   if (code === "INVALID_PROVIDER_RESPONSE") return "The AI provider returned an invalid response. Please retry."
   if (code === "PROVIDER_MISSING") return "The AI assistant is not configured for provider-backed answers."
+  if (code === "BYOK_PROVIDER_REQUIRED") {
+    const byokMessage = String(body.message || body.error || "").trim()
+    return byokMessage || "No BYOK provider available. Add and enable an AI provider, or switch to UseClevr Cloud."
+  }
   if (code === "PROVIDER_UNAVAILABLE" || code === "AI_PROVIDER_ERROR") return "The AI assistant is temporarily unavailable. Please try again shortly."
   const message = String(body.message || body.error || fallback).trim()
   if (!message || /could not answer that question/i.test(message)) return fallback

@@ -12,9 +12,11 @@ import { generateAntigravityCompletion } from "@/lib/ai/antigravity-client";
 import { getManagedCloudLanguageModel } from "@/lib/ai/managed-cloud-provider";
 import { isCloudProvider, listPrivateAiProviderConfigs } from "@/lib/ai/byoai-provider";
 import {
+  BYOK_PROVIDER_REQUIRED_MESSAGE,
   generateWithUniversalAiAdapter,
   getAiMode,
   getUseClevrCloudFallbackAllowed,
+  isByokProviderUnavailableError,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -662,6 +664,51 @@ export async function POST(request: Request) {
           label: "Offline mode",
           state: "local_unavailable",
           message: "Local provider unavailable",
+          fallbackActive: false,
+          route: "none",
+        } satisfies HybridProviderStatus,
+      }, { status: 503 });
+    }
+
+    if (isByokProviderUnavailableError(error) && !allowUseclevrCloudFallback) {
+      const message = BYOK_PROVIDER_REQUIRED_MESSAGE;
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "BYOK",
+        providerType: "byok",
+        modelName: "none",
+        mode: aiMode,
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: false,
+        errorReason: message,
+      });
+      debugWarn("[HYBRID_AI_DATASET_CHAT] BYOK mode has no enabled provider", {
+        userId,
+        datasetId: parsed.datasetId,
+        mode: aiMode,
+      });
+      return NextResponse.json({
+        success: false,
+        code: "BYOK_PROVIDER_REQUIRED",
+        message,
+        requestId,
+        error: message,
+        answer: message,
+        content: message,
+        providerName: "BYOK",
+        modelName: "",
+        mode: aiMode,
+        route: "none",
+        datasetContext: contextForClient(context),
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
+        providerStatus: {
+          label: "BYOK",
+          state: "provider_unavailable",
+          message: "Provider required",
           fallbackActive: false,
           route: "none",
         } satisfies HybridProviderStatus,

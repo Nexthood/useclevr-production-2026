@@ -2,8 +2,10 @@ import { db } from '@/lib/db';
 import { datasets } from '@/lib/db/schema';
 import { debugError } from '@/lib/utils/debug';
 import {
+  BYOK_PROVIDER_REQUIRED_MESSAGE,
   generateWithUniversalAiAdapter,
   getUseClevrCloudFallbackAllowed,
+  isByokProviderUnavailableError,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -281,6 +283,18 @@ export async function handleRegularChat(
           },
         };
       }
+      if (isByokProviderUnavailableError(error) && !allowUseclevrCloudFallback) {
+        return {
+          success: false,
+          content: BYOK_PROVIDER_REQUIRED_MESSAGE,
+          providerStatus: {
+            label: "BYOK",
+            state: "provider_unavailable",
+            message: "Provider required",
+            fallbackActive: false,
+          },
+        };
+      }
       logDefaultCloudFallback(userId, error);
       userProviderFailed = true;
     }
@@ -386,6 +400,9 @@ export async function handleRegularChatStream(
     } catch (error) {
       if (isLocalAiUnavailableError(error)) {
         return textToStream("Offline mode is enabled, but your local AI provider is not reachable.");
+      }
+      if (isByokProviderUnavailableError(error) && !allowUseclevrCloudFallback) {
+        return textToStream(BYOK_PROVIDER_REQUIRED_MESSAGE);
       }
       logDefaultCloudFallback(userId, error);
       userProviderFailed = true;

@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+### Fixed
+
+- BYOK stays unavailable until an AI provider is added and enabled, shows "Provider required" on the AI mode card, and returns a clear provider-required message instead of a generic background failure; UseClevr Cloud only takes over after explicitly enabling cloud fallback.
+
+### Changed
+
+- Show UK Pro at £35/month and Canada Pro at CA$65/month across pricing, checkout, and assistant answers so the displayed prices match the approved Stripe prices.
+
+### Dev
+
+- Add Stripe market-price checkout regression tests that reproduce and block the UK GBP price-mismatch checkout failure and pin Pro UK Monthly to £35.
+- Add a Stripe market price audit script that compares configured market Price IDs against the approved currency, amount, and billing interval matrix.
+
 ### Added
 
 - Add a data source selector to Retail so connected Square accounts and uploaded retail datasets are analyzed through the same dashboard, one selected source at a time.

@@ -1,7 +1,11 @@
 export {
+  BYOK_PROVIDER_REQUIRED_MESSAGE,
+  ByokProviderUnavailableError,
+  assertByokProviderAvailable,
   getAiMode,
   getUseClevrCloudFallbackAllowed,
   generateWithUniversalAiAdapter,
+  isByokProviderUnavailableError,
   isCloudProvider,
   isLocalAiUnavailableError,
   isLocalProvider,

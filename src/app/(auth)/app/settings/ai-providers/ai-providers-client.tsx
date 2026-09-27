@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useNotice } from "@/components/ui/notice-bar";
 import { ProductStatusBadge } from "@/components/ui/product-status-badge";
 import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
+import { BYOK_PROVIDER_REQUIRED_MESSAGE } from "@/lib/ai/byok-messages";
 import type { HybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import { getAiProvidersPageState } from "@/lib/hybrid-ai/provider-page-state";
 import {
@@ -121,6 +122,8 @@ export function AiProvidersClient({
   const canUseModeRouting = pageState.canUseModeRouting;
   const providerLimit = pageState.providerLimit;
   const canAddProvider = pageState.canAddProvider;
+  const byokReady = providers.some((provider) => provider.enabled && isByokProviderType(provider.providerType));
+  const byokSetupRequired = !byokReady;
 
   function updateForm(patch: Partial<FormState>) {
     setForm((current) => ({ ...current, ...patch }));
@@ -204,12 +207,17 @@ export function AiProvidersClient({
       openUpgradeDialog("lite", "Hybrid AI modes require Hybrid AI Lite.", "Upgrade to Pro or Business to use Auto, Local only, and Cloud only modes.");
       return;
     }
+    const formData = new FormData(event.currentTarget);
+    if (String(formData.get("aiMode") || "") === "byok" && byokSetupRequired) {
+      showNotice({ type: "error", title: "BYOK needs a provider.", message: BYOK_PROVIDER_REQUIRED_MESSAGE });
+      return;
+    }
     setIsSavingMode(true);
-    const result = await updateAiMode(new FormData(event.currentTarget));
+    const result = await updateAiMode(formData);
     if (!result.success) {
       showNotice({ type: "error", title: "AI mode was not saved.", message: result.error });
     } else {
-      showNotice({ type: "success", title: "AI mode saved.", message: modeNoticeMessage(String(new FormData(event.currentTarget).get("aiMode") || "auto") as AiMode) });
+      showNotice({ type: "success", title: "AI mode saved.", message: modeNoticeMessage(String(formData.get("aiMode") || "auto") as AiMode) });
       router.refresh();
     }
     setIsSavingMode(false);
@@ -497,7 +505,10 @@ export function AiProvidersClient({
                   value="byok"
                   current={aiMode}
                   title="BYOK"
-                  description="Use your own provider account and API billing."
+                  setupRequired={byokSetupRequired}
+                  blocked={byokSetupRequired}
+                  onBlockedSelect={() => showNotice({ type: "error", title: "BYOK needs a provider.", message: BYOK_PROVIDER_REQUIRED_MESSAGE })}
+                  description={byokSetupRequired ? "Setup required. Add and enable an AI provider first, or switch to UseClevr Cloud." : "Use your own provider account and API billing."}
                 />
                 <ModeOption
                   value="useclevr_cloud"
@@ -506,6 +517,18 @@ export function AiProvidersClient({
                   description="Managed AI provided by UseClevr."
                 />
               </div>
+
+              {byokSetupRequired ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+                  <span className="flex items-center gap-2">
+                    <TriangleAlert className="h-4 w-4 shrink-0" />
+                    <span>Provider required. BYOK stays unavailable until an AI provider is added and enabled.</span>
+                  </span>
+                  <Button type="button" variant="outline" size="sm" onClick={openNewDialog} className="bg-transparent">
+                    Add provider
+                  </Button>
+                </div>
+              ) : null}
 
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 p-3">
                 <input
@@ -931,12 +954,18 @@ function ModeOption({
   title,
   badge,
   description,
+  setupRequired,
+  blocked,
+  onBlockedSelect,
 }: {
   value: AiMode;
   current: AiMode;
   title: string;
   badge?: React.ReactNode;
   description: string;
+  setupRequired?: boolean;
+  blocked?: boolean;
+  onBlockedSelect?: () => void;
 }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 p-3">
@@ -945,11 +974,24 @@ function ModeOption({
         name="aiMode"
         value={value}
         defaultChecked={current === value}
+        onChange={
+          blocked
+            ? (event) => {
+                event.target.checked = current === value;
+                onBlockedSelect?.();
+              }
+            : undefined
+        }
         className="mt-1 h-4 w-4 border-border"
       />
       <span>
         <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
           {title}
+          {setupRequired ? (
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              Provider required
+            </span>
+          ) : null}
           {badge}
         </span>
         <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
@@ -1077,6 +1119,11 @@ function labelForType(type: string) {
 
 function isLocalProviderType(type: string) {
   return type === "ollama";
+}
+
+function isByokProviderType(type: string) {
+  const normalized = normalizeProviderTypeForForm(type);
+  return normalized === "openai" || normalized === "anthropic" || normalized === "google_gemini" || normalized === "openai_compatible";
 }
 
 function isHealthyStatus(status: string | null | undefined) {

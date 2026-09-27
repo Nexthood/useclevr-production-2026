@@ -102,6 +102,11 @@ Yearly checkout uses existing recurring Stripe prices by market:
 The backend also accepts the matching `*_ANNUAL` aliases. The backend selects Stripe prices from
 the canonical plan, selected interval, and market and rejects browser-supplied amounts or Price IDs.
 
+Audit the configured market Stripe prices against the app pricing matrix with
+`node -r tsx/esm scripts/billing/verify-stripe-market-prices.ts` and `STRIPE_SECRET_KEY` set. The
+script reports each market's expected currency, amount, and interval against the live Stripe Price
+and exits nonzero on mismatched or missing configuration.
+
 Local-only tools:
 
 - Git

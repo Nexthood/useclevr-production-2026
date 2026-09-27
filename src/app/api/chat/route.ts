@@ -14,7 +14,10 @@ import { checkActionEnforcement, incrementDailyRequestCount } from '@/lib/billin
 import { chatRequestSchema, validateOrError } from '@/lib/validation';
 import { generateAntigravityCompletion, generateAntigravityStream } from '@/lib/ai/antigravity-client';
 import {
+  BYOK_PROVIDER_REQUIRED_MESSAGE,
   generateWithUniversalAiAdapter,
+  getUseClevrCloudFallbackAllowed,
+  isByokProviderUnavailableError,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -112,6 +115,7 @@ async function handleAnalyticalQuery(
   }, lastMessage);
 
   const fullExplanationPrompt = `${EXPLANATION_SYSTEM_PROMPT}\n\n${explanationPrompt}`;
+  const allowUseclevrCloudFallback = await getUseClevrCloudFallbackAllowed(userId);
   let providerStatus: ChatProviderStatus = {
     label: "Cloud fallback",
     state: "connection_healthy",
@@ -161,6 +165,59 @@ async function handleAnalyticalQuery(
         fallbackActive: false,
       };
       const message = "Offline mode is enabled, but your local AI provider is not reachable.";
+      if (stream) {
+        return streamResponse(textToReadableStream(message));
+      }
+      return NextResponse.json({
+        success: false,
+        content: message,
+        role: "assistant",
+        verified: true,
+        providerStatus,
+        ghostMode,
+        privacyWarning: ghostMode ? ghostModeTraceMessage() : undefined,
+        computation: {
+          operation: sqlResult.result.operation,
+          sql: sqlResult.sql,
+          result: sqlResult.result,
+        },
+      });
+    }
+    if (isByokProviderUnavailableError(adapterError) && !allowUseclevrCloudFallback) {
+      providerStatus = {
+        label: "BYOK",
+        state: "provider_unavailable",
+        message: "Provider required",
+        fallbackActive: false,
+      };
+      const message = BYOK_PROVIDER_REQUIRED_MESSAGE;
+      if (stream) {
+        return streamResponse(textToReadableStream(message));
+      }
+      return NextResponse.json({
+        success: false,
+        code: "BYOK_PROVIDER_REQUIRED",
+        content: message,
+        role: "assistant",
+        verified: true,
+        providerStatus,
+        ghostMode,
+        privacyWarning: ghostMode ? ghostModeTraceMessage() : undefined,
+        computation: {
+          operation: sqlResult.result.operation,
+          sql: sqlResult.sql,
+          result: sqlResult.result,
+        },
+      });
+    }
+    if (!allowUseclevrCloudFallback) {
+      providerStatus = {
+        label: "Hybrid AI",
+        state: "provider_unavailable",
+        message: "Cloud fallback disabled",
+        fallbackActive: false,
+      };
+      const message = "UseClevr Cloud fallback is disabled. Please check AI provider settings.";
       if (stream) {
         return streamResponse(textToReadableStream(message));
       }

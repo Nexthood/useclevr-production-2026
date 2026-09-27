@@ -30,6 +30,7 @@ import {
   normalizeSubscriptionTier,
 } from "@/lib/billing/plans"
 import {
+  StripeCheckoutConfigurationError,
   __stripeCheckoutTestHooks,
   createStripeCheckoutSession,
 } from "@/services/stripe/checkout"
@@ -47,9 +48,9 @@ type ExpectedCase = {
 const expectedCases: ExpectedCase[] = [
   { label: "Germany", country: "DE", currency: "EUR", amountMinor: 4000, labelText: "€40/month" },
   { label: "Netherlands", country: "NL", currency: "EUR", amountMinor: 4000, labelText: "€40/month" },
-  { label: "United Kingdom", country: "GB", currency: "GBP", amountMinor: 3900, labelText: "£39/month" },
+  { label: "United Kingdom", country: "GB", currency: "GBP", amountMinor: 3500, labelText: "£35/month" },
   { label: "United States", country: "US", currency: "USD", amountMinor: 4500, labelText: "$45/month" },
-  { label: "Canada", country: "CA", currency: "CAD", amountMinor: 5500, labelText: "CA$55/month" },
+  { label: "Canada", country: "CA", currency: "CAD", amountMinor: 6500, labelText: "CA$65/month" },
   { label: "Switzerland", country: "CH", currency: "EUR", amountMinor: 4000, labelText: "€40/month" },
   { label: "Denmark", country: "DK", currency: "EUR", amountMinor: 4000, labelText: "€40/month" },
   { label: "Unsupported country", country: "ES", currency: "EUR", amountMinor: 4000, labelText: "€40/month" },
@@ -97,7 +98,7 @@ const providerDiffers = resolveCheckoutProPrice({
   browserCountry: "US",
 })
 assert.equal(providerDiffers.currency, "GBP", "billing country overrides payment-provider country when supplied")
-assert.equal(providerDiffers.amountMinor, 3900, "GB billing country keeps fixed GBP amount")
+assert.equal(providerDiffers.amountMinor, 3500, "GB billing country keeps fixed GBP amount")
 
 assert.throws(
   () => resolveCheckoutProPrice({ billingCountry: "US", requestedCurrency: "EUR" }),
@@ -126,9 +127,19 @@ const previousEnv = {
   STRIPE_PRO_PRICE_ID_GBP: process.env.STRIPE_PRO_PRICE_ID_GBP,
   STRIPE_PRO_PRICE_ID_USD: process.env.STRIPE_PRO_PRICE_ID_USD,
   STRIPE_PRO_PRICE_ID_CAD: process.env.STRIPE_PRO_PRICE_ID_CAD,
+  STRIPE_PRICE_PRO_MONTHLY: process.env.STRIPE_PRICE_PRO_MONTHLY,
+  STRIPE_PRICE_ID_PRO_MONTHLY: process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
+  STRIPE_PRICE_PRO_EUR_MONTHLY: process.env.STRIPE_PRICE_PRO_EUR_MONTHLY,
+  STRIPE_PRICE_PRO_GBP_MONTHLY: process.env.STRIPE_PRICE_PRO_GBP_MONTHLY,
+  STRIPE_PRICE_PRO_USD_MONTHLY: process.env.STRIPE_PRICE_PRO_USD_MONTHLY,
+  STRIPE_PRICE_PRO_CAD_MONTHLY: process.env.STRIPE_PRICE_PRO_CAD_MONTHLY,
   STRIPE_BUSINESS_PRICE_ID_EUR: process.env.STRIPE_BUSINESS_PRICE_ID_EUR,
   STRIPE_PRICE_BUSINESS_MONTHLY: process.env.STRIPE_PRICE_BUSINESS_MONTHLY,
   STRIPE_PRICE_ID_BUSINESS_MONTHLY: process.env.STRIPE_PRICE_ID_BUSINESS_MONTHLY,
+  STRIPE_PRICE_BUSINESS_EUR_MONTHLY: process.env.STRIPE_PRICE_BUSINESS_EUR_MONTHLY,
+  STRIPE_PRICE_BUSINESS_GBP_MONTHLY: process.env.STRIPE_PRICE_BUSINESS_GBP_MONTHLY,
+  STRIPE_PRICE_BUSINESS_USD_MONTHLY: process.env.STRIPE_PRICE_BUSINESS_USD_MONTHLY,
+  STRIPE_PRICE_BUSINESS_CAD_MONTHLY: process.env.STRIPE_PRICE_BUSINESS_CAD_MONTHLY,
   STRIPE_BUSINESS_PRICE_ID_GBP: process.env.STRIPE_BUSINESS_PRICE_ID_GBP,
   STRIPE_BUSINESS_PRICE_ID_USD: process.env.STRIPE_BUSINESS_PRICE_ID_USD,
   STRIPE_BUSINESS_PRICE_ID_CAD: process.env.STRIPE_BUSINESS_PRICE_ID_CAD,
@@ -146,11 +157,21 @@ process.env.USECLEVR_PRO_PRICE_EUR = "price_pro_eur_test"
 process.env.USECLEVR_PRO_PRICE_GBP = "price_pro_gbp_test"
 process.env.USECLEVR_PRO_PRICE_USD = "price_pro_usd_test"
 process.env.USECLEVR_PRO_PRICE_CAD = "price_pro_cad_test"
+delete process.env.STRIPE_PRICE_PRO_MONTHLY
+delete process.env.STRIPE_PRICE_ID_PRO_MONTHLY
+delete process.env.STRIPE_PRICE_PRO_EUR_MONTHLY
+delete process.env.STRIPE_PRICE_PRO_GBP_MONTHLY
+delete process.env.STRIPE_PRICE_PRO_USD_MONTHLY
+delete process.env.STRIPE_PRICE_PRO_CAD_MONTHLY
 delete process.env.STRIPE_PRO_PRICE_ID_EUR
 delete process.env.STRIPE_PRO_PRICE_ID_GBP
 delete process.env.STRIPE_PRO_PRICE_ID_USD
 delete process.env.STRIPE_PRO_PRICE_ID_CAD
 process.env.STRIPE_BUSINESS_PRICE_ID_EUR = "price_business_eur_test"
+delete process.env.STRIPE_PRICE_BUSINESS_EUR_MONTHLY
+delete process.env.STRIPE_PRICE_BUSINESS_GBP_MONTHLY
+delete process.env.STRIPE_PRICE_BUSINESS_USD_MONTHLY
+delete process.env.STRIPE_PRICE_BUSINESS_CAD_MONTHLY
 delete process.env.STRIPE_PRICE_BUSINESS_MONTHLY
 delete process.env.STRIPE_PRICE_ID_BUSINESS_MONTHLY
 process.env.STRIPE_BUSINESS_PRICE_ID_GBP = "price_business_gbp_test"
@@ -172,9 +193,9 @@ assert.equal(getProStripePriceId("CAD"), "price_pro_cad_test", "CAD checkout use
 
 const proMarketCases = [
   { market: "eu", currency: "EUR", amountMinor: 4000, priceId: "price_pro_eur_test" },
-  { market: "uk", currency: "GBP", amountMinor: 3900, priceId: "price_pro_gbp_test" },
+  { market: "uk", currency: "GBP", amountMinor: 3500, priceId: "price_pro_gbp_test" },
   { market: "us", currency: "USD", amountMinor: 4500, priceId: "price_pro_usd_test" },
-  { market: "ca", currency: "CAD", amountMinor: 5500, priceId: "price_pro_cad_test" },
+  { market: "ca", currency: "CAD", amountMinor: 6500, priceId: "price_pro_cad_test" },
 ] as const
 
 for (const expected of proMarketCases) {
@@ -188,6 +209,30 @@ for (const expected of proMarketCases) {
   assert.equal(resolved.stripePriceId, expected.priceId, `Pro ${expected.market} Stripe price`)
   assert.equal(resolved.enabled, true, `Pro ${expected.market} opens Stripe`)
 }
+
+const proMonthlyMarketResolutions = (["uk", "eu", "us", "ca"] as CheckoutMarket[]).map(
+  (market) => resolveCheckoutMarketPrice({ plan: "pro", billingInterval: "monthly", market }),
+)
+const ukMonthlyPriceId = proMonthlyMarketResolutions.find((entry) => entry.market === "uk")!.stripePriceId!
+assert.equal(ukMonthlyPriceId, "price_pro_gbp_test", "UK Pro Monthly selects the GBP Stripe Price ID")
+for (const otherMarket of ["eu", "us", "ca"] as CheckoutMarket[]) {
+  const otherPriceId = proMonthlyMarketResolutions.find((entry) => entry.market === otherMarket)!.stripePriceId
+  assert.notEqual(
+    ukMonthlyPriceId,
+    otherPriceId,
+    `UK Pro Monthly never resolves to the ${otherMarket} market Stripe Price ID`,
+  )
+}
+const ukMonthlyYearlyPriceId = resolveCheckoutMarketPrice({
+  plan: "pro",
+  billingInterval: "yearly",
+  market: "uk",
+}).stripePriceId
+assert.notEqual(
+  ukMonthlyPriceId,
+  ukMonthlyYearlyPriceId,
+  "UK Pro monthly billing never selects the GBP yearly Stripe Price ID",
+)
 
 assert.throws(
   () => resolveCheckoutMarketPrice({ plan: "pro", billingInterval: "monthly" }),
@@ -365,6 +410,209 @@ const stripeCheckoutRegression = createStripeCheckoutSession({
   __stripeCheckoutTestHooks.setStripeClientForTest(null)
 })
 
+const ukMonthlyResolution = proMonthlyMarketResolutions.find((entry) => entry.market === "uk")!
+const euMonthlyResolution = proMonthlyMarketResolutions.find((entry) => entry.market === "eu")!
+const usMonthlyResolution = proMonthlyMarketResolutions.find((entry) => entry.market === "us")!
+const caMonthlyResolution = proMonthlyMarketResolutions.find((entry) => entry.market === "ca")!
+
+async function runStripePriceValidationRegressions() {
+  await expectProCheckoutAccepted({
+    label: "UK Pro Monthly accepts the £35 GBP monthly Stripe Price",
+    resolved: ukMonthlyResolution,
+    stripePrice: {
+      id: ukMonthlyPriceId,
+      currency: "gbp",
+      unit_amount: 3500,
+      recurring: { interval: "month" },
+    },
+    expectedSession: {
+      priceId: ukMonthlyPriceId,
+      currency: "gbp",
+      market: "uk",
+    },
+  })
+
+  await expectProCheckoutRejection({
+    label: "UK Pro Monthly rejects a GBP Stripe Price with a wrong amount",
+    resolved: ukMonthlyResolution,
+    stripePrice: {
+      id: ukMonthlyPriceId,
+      currency: "gbp",
+      unit_amount: 3900,
+      recurring: { interval: "month" },
+    },
+    expectedCode: "invalid_pro_price_mapping",
+    expectedMessage: "The selected Stripe price amount does not match the selected market.",
+    blockedLabel: "UK Pro Monthly amount mismatch never creates a Stripe Checkout Session",
+  })
+
+  await expectProCheckoutRejection({
+    label: "UK Pro Monthly rejects a GBP Stripe Price with a yearly interval",
+    resolved: ukMonthlyResolution,
+    stripePrice: {
+      id: ukMonthlyPriceId,
+      currency: "gbp",
+      unit_amount: 3500,
+      recurring: { interval: "year" },
+    },
+    expectedCode: "stripe_mode_mismatch",
+    expectedMessage: "The selected Stripe price must be a recurring monthly subscription price.",
+    blockedLabel: "UK Pro Monthly interval mismatch never creates a Stripe Checkout Session",
+  })
+
+  await expectProCheckoutRejection({
+    label: "UK Pro Monthly rejects a Stripe Price configured with the EUR market price",
+    resolved: ukMonthlyResolution,
+    stripePrice: {
+      id: ukMonthlyPriceId,
+      currency: "eur",
+      unit_amount: 4000,
+      recurring: { interval: "month" },
+    },
+    expectedCode: "invalid_pro_price_mapping",
+    expectedMessage: "The selected Stripe price currency does not match the selected market.",
+    blockedLabel: "UK Pro Monthly currency mismatch never creates a Stripe Checkout Session",
+  })
+
+  await expectProCheckoutAccepted({
+    label: "EU Pro Monthly accepts the €40 EUR monthly Stripe Price",
+    resolved: euMonthlyResolution,
+    stripePrice: {
+      id: euMonthlyResolution.stripePriceId!,
+      currency: "eur",
+      unit_amount: 4000,
+      recurring: { interval: "month" },
+    },
+    expectedSession: {
+      priceId: euMonthlyResolution.stripePriceId!,
+      currency: "eur",
+      market: "eu",
+    },
+  })
+
+  await expectProCheckoutAccepted({
+    label: "US Pro Monthly accepts the $45 USD monthly Stripe Price",
+    resolved: usMonthlyResolution,
+    stripePrice: {
+      id: usMonthlyResolution.stripePriceId!,
+      currency: "usd",
+      unit_amount: 4500,
+      recurring: { interval: "month" },
+    },
+    expectedSession: {
+      priceId: usMonthlyResolution.stripePriceId!,
+      currency: "usd",
+      market: "us",
+    },
+  })
+
+  await expectProCheckoutAccepted({
+    label: "Canada Pro Monthly accepts the CA$65 CAD monthly Stripe Price",
+    resolved: caMonthlyResolution,
+    stripePrice: {
+      id: caMonthlyResolution.stripePriceId!,
+      currency: "cad",
+      unit_amount: 6500,
+      recurring: { interval: "month" },
+    },
+    expectedSession: {
+      priceId: caMonthlyResolution.stripePriceId!,
+      currency: "cad",
+      market: "ca",
+    },
+  })
+}
+
+async function expectProCheckoutAccepted(input: {
+  label: string
+  resolved: ReturnType<typeof resolveCheckoutMarketPrice>
+  stripePrice: StripeValidationMockPrice
+  expectedSession: { priceId: string; currency: string; market: CheckoutMarket }
+}) {
+  const mock = createStripeValidationMock(input.stripePrice)
+  __stripeCheckoutTestHooks.setStripeClientForTest(mock.stripeMock as never)
+  try {
+    const session = await createStripeCheckoutSession({
+      userId: "user_pricing_regression",
+      userEmail: "pricing-regression@example.com",
+      priceId: input.resolved.stripePriceId!,
+      expectedCurrency: input.resolved.currency,
+      expectedAmountMinor: input.resolved.amountMinor,
+      expectedInterval: input.resolved.billingInterval === "yearly" ? "year" : "month",
+      plan: input.resolved.plan,
+      successUrl: "https://useclevr.test/checkout/success",
+      cancelUrl: "https://useclevr.test/app/settings/checkout",
+      metadata: {
+        market: input.resolved.market,
+        billingInterval: input.resolved.billingInterval,
+        resolvedCurrency: input.resolved.currency,
+        resolvedAmountMinor: String(input.resolved.amountMinor),
+      },
+    })
+    assert.ok(session.url, `${input.label} returns a checkout URL`)
+    mock.assertSessionCreatedOnce(`${input.label} creates exactly one Stripe Checkout Session`)
+    const params = mock.lastCreateParams as {
+      mode?: string
+      currency?: string
+      line_items?: Array<{ price?: string; quantity?: number }>
+      adaptive_pricing?: { enabled?: boolean }
+      subscription_data?: { metadata?: Record<string, string> }
+    }
+    assert.equal(mock.validatedPriceId, input.expectedSession.priceId, `${input.label} validates the configured Stripe Price ID`)
+    assert.deepEqual(params.line_items, [{ price: input.expectedSession.priceId, quantity: 1 }], `${input.label} line items use the validated Stripe Price ID`)
+    assert.equal(params.mode, "subscription", `${input.label} opens a subscription Checkout Session`)
+    assert.equal(params.currency, input.expectedSession.currency, `${input.label} pins the Checkout Session to the market currency`)
+    assert.deepEqual(params.adaptive_pricing, { enabled: false }, `${input.label} disables Stripe adaptive currency conversion`)
+    assert.equal(params.subscription_data?.metadata?.resolvedCurrency, input.resolved.currency, `${input.label} records the resolved currency`)
+    assert.equal(params.subscription_data?.metadata?.resolvedAmountMinor, String(input.resolved.amountMinor), `${input.label} records the resolved amount`)
+  } finally {
+    __stripeCheckoutTestHooks.setStripeClientForTest(null)
+  }
+}
+
+async function expectProCheckoutRejection(input: {
+  label: string
+  resolved: ReturnType<typeof resolveCheckoutMarketPrice>
+  stripePrice: StripeValidationMockPrice
+  expectedCode: string
+  expectedMessage: string
+  blockedLabel: string
+}) {
+  const mock = createStripeValidationMock(input.stripePrice)
+  __stripeCheckoutTestHooks.setStripeClientForTest(mock.stripeMock as never)
+  try {
+    await assert.rejects(
+      createStripeCheckoutSession({
+        userId: "user_pricing_regression",
+        userEmail: "pricing-regression@example.com",
+        priceId: input.resolved.stripePriceId!,
+        expectedCurrency: input.resolved.currency,
+        expectedAmountMinor: input.resolved.amountMinor,
+        expectedInterval: input.resolved.billingInterval === "yearly" ? "year" : "month",
+        plan: input.resolved.plan,
+        successUrl: "https://useclevr.test/checkout/success",
+        cancelUrl: "https://useclevr.test/app/settings/checkout",
+        metadata: {
+          market: input.resolved.market,
+          billingInterval: input.resolved.billingInterval,
+          resolvedCurrency: input.resolved.currency,
+          resolvedAmountMinor: String(input.resolved.amountMinor),
+        },
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof StripeCheckoutConfigurationError, `${input.label} raises StripeCheckoutConfigurationError`)
+        assert.equal(error.code, input.expectedCode, `${input.label} error code`)
+        assert.equal(error.message, input.expectedMessage, `${input.label} error message`)
+        return true
+      },
+      input.label,
+    )
+  } finally {
+    __stripeCheckoutTestHooks.setStripeClientForTest(null)
+  }
+  mock.assertNoSessionCreated(input.blockedLabel)
+}
+
 assert.equal(
   resolveCheckoutMarketPrice({ plan: "pro", billingInterval: "monthly", market: "eu" }).stripePriceId,
   "price_pro_eur_test",
@@ -434,15 +682,15 @@ assert.deepEqual(
 )
 
 assert.equal(getFixedProPrice("EUR").label, "€40/month")
-assert.equal(getFixedProPrice("GBP").label, "£39/month")
+assert.equal(getFixedProPrice("GBP").label, "£35/month")
 assert.equal(getFixedProPrice("USD").label, "$45/month")
-assert.equal(getFixedProPrice("CAD").label, "CA$55/month")
+assert.equal(getFixedProPrice("CAD").label, "CA$65/month")
 
 const markets: CheckoutMarket[] = ["eu", "uk", "us", "ca"]
 const intervals: BillingInterval[] = ["monthly", "yearly"]
 
 const expectedMonthlyAmounts: Record<string, Record<string, number>> = {
-  pro: { eu: 4000, uk: 3900, us: 4500, ca: 5500 },
+  pro: { eu: 4000, uk: 3500, us: 4500, ca: 6500 },
   business: { eu: 42000, uk: 40950, us: 47250, ca: 57750 },
 }
 const expectedYearlyAmounts: Record<string, Record<string, number>> = {
@@ -493,9 +741,9 @@ for (const planSlug of ["pro", "business"] as const) {
 }
 
 assert.equal(resolvePlanPrice("pro_monthly", "eu", "monthly")?.displayPrice, "€40/month", "Pro EU monthly display price")
-assert.equal(resolvePlanPrice("pro_monthly", "uk", "monthly")?.displayPrice, "£39/month", "Pro UK monthly display price")
+assert.equal(resolvePlanPrice("pro_monthly", "uk", "monthly")?.displayPrice, "£35/month", "Pro UK monthly display price")
 assert.equal(resolvePlanPrice("pro_monthly", "us", "monthly")?.displayPrice, "$45/month", "Pro US monthly display price")
-assert.equal(resolvePlanPrice("pro_monthly", "ca", "monthly")?.displayPrice, "CA$55/month", "Pro CA monthly display price")
+assert.equal(resolvePlanPrice("pro_monthly", "ca", "monthly")?.displayPrice, "CA$65/month", "Pro CA monthly display price")
 
 assert.equal(resolvePlanPrice("pro_annual", "eu", "yearly")?.displayPrice, "€480/year", "Pro EU yearly display price")
 assert.equal(resolvePlanPrice("pro_annual", "uk", "yearly")?.displayPrice, "£410/year", "Pro UK yearly display price")
@@ -599,6 +847,7 @@ for (const [name, value] of Object.entries(previousEnv)) {
 }
 
 stripeCheckoutRegression
+  .then(runStripePriceValidationRegressions)
   .then(() => {
     console.warn("Pro launch pricing tests passed")
   })
@@ -609,4 +858,59 @@ stripeCheckoutRegression
 
 function readProjectFile(path: string) {
   return readFileSync(resolve(repoRoot, path), "utf8")
+}
+
+type StripeValidationMockPrice = {
+  id: string
+  currency: string
+  unit_amount: number
+  recurring?: { interval: "month" | "year" }
+}
+
+function createStripeValidationMock(price: StripeValidationMockPrice) {
+  let sessionCreateCalls = 0
+  let validatedPriceId: string | null = null
+  let lastCreateParams: unknown = null
+  const stripeMock = {
+    prices: {
+      retrieve(priceId: string) {
+        validatedPriceId = priceId
+        assert.equal(priceId, price.id, "checkout retrieves the configured Stripe Price ID")
+        return Promise.resolve({
+          id: price.id,
+          active: true,
+          currency: price.currency,
+          unit_amount: price.unit_amount,
+          recurring: price.recurring,
+        })
+      },
+    },
+    checkout: {
+      sessions: {
+        create(params: unknown) {
+          sessionCreateCalls += 1
+          lastCreateParams = params
+          return Promise.resolve({
+            id: "cs_pricing_regression",
+            url: "https://checkout.stripe.com/test/pricing-regression",
+          })
+        },
+      },
+    },
+  }
+  return {
+    stripeMock,
+    get validatedPriceId() {
+      return validatedPriceId
+    },
+    get lastCreateParams() {
+      return lastCreateParams
+    },
+    assertNoSessionCreated(label: string) {
+      assert.equal(sessionCreateCalls, 0, label)
+    },
+    assertSessionCreatedOnce(label: string) {
+      assert.equal(sessionCreateCalls, 1, label)
+    },
+  }
 }

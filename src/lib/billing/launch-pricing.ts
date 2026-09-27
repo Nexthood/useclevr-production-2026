@@ -45,9 +45,9 @@ export const pricingConfig: Record<PricingTier, { enabled: boolean; prices: Part
     enabled: true,
     prices: {
       EUR: 4000,
-      GBP: 3900,
+      GBP: 3500,
       USD: 4500,
-      CAD: 5500,
+      CAD: 6500,
     },
   },
   TIER_B: {
