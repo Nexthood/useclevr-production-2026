@@ -340,7 +340,10 @@ assert.ok(deleteDatasetsServiceSource.includes("isSuperadmin({ id: userId, role,
 assert.ok(deleteDatasetsServiceSource.includes("? inArray(datasets.id, requestedIds)"), "superadmin bulk delete matches selected datasets regardless of owner on the shared path")
 assert.ok(deleteDatasetsServiceSource.includes("and(eq(datasets.userId, userId), inArray(datasets.id, requestedIds))"), "normal users can never delete datasets they do not own")
 
-assert.ok(dashboardAggregationSource.includes("eq(datasets.userId, userId),\n          or(isNull(datasets.datasetType), ne(datasets.datasetType, \"prebookkeeping\"))"), "dashboard aggregation keeps workspace owner scoping together with the pre-bookkeeping exclusion")
+assert.ok(dashboardAggregationSource.includes("where: datasetId ? and(eq(datasets.userId, userId), eq(datasets.id, datasetId)) : eq(datasets.userId, userId)"), "dashboard aggregation keeps owner scoping for explicit and default dashboard datasets")
+assert.ok(dashboardAggregationSource.includes("selectDashboardScopeDatasets(await loadDashboardDatasetRows(userId), null)"), "dashboard aggregation defaults through the single-active-dataset resolver")
+assert.ok(dashboardAggregationSource.includes(".filter(isDashboardEligibleDataset)"), "dashboard aggregation filters candidate datasets through the shared eligibility rule")
+assert.ok(dashboardAggregationSource.includes('source === "accountancy_document"') && dashboardAggregationSource.includes('datasetType === "prebookkeeping"'), "dashboard eligibility excludes accountancy documents and pre-bookkeeping datasets")
 
 console.log("Risk Intelligence engine tests passed.")
 
@@ -878,4 +881,3 @@ assert.ok(
   riskPageSource.includes("parseCanonicalDate(value)") && riskPageSource.includes("if (!date) return \"Not available\""),
   "risk page validates timestamps before rendering them",
 )
-
