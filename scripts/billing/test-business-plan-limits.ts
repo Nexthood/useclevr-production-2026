@@ -115,11 +115,11 @@ for (const expected of marketDisplayCases) {
   assert.equal(resolved?.displayPrice, expected.displayPrice, `Pro ${expected.market} canonical display price`)
 }
 
-// Business keeps its approved market prices — no invented prices.
+// Business monthly prices match the live Stripe market Prices (EU unchanged).
 assert.equal(resolvePlanPrice("business_monthly", "eu", "monthly")?.displayPrice, "€420/month", "Business EU display price unchanged")
-assert.equal(resolvePlanPrice("business_monthly", "uk", "monthly")?.displayPrice, "£410/month", "Business UK display price unchanged")
-assert.equal(resolvePlanPrice("business_monthly", "us", "monthly")?.displayPrice, "$473/month", "Business US display price unchanged")
-assert.equal(resolvePlanPrice("business_monthly", "ca", "monthly")?.displayPrice, "CA$578/month", "Business CA display price unchanged")
+assert.equal(resolvePlanPrice("business_monthly", "uk", "monthly")?.displayPrice, "£360/month", "Business UK display price matches the live GBP Stripe Price")
+assert.equal(resolvePlanPrice("business_monthly", "us", "monthly")?.displayPrice, "$485/month", "Business US display price matches the live USD Stripe Price")
+assert.equal(resolvePlanPrice("business_monthly", "ca", "monthly")?.displayPrice, "CA$680/month", "Business CA display price matches the live CAD Stripe Price")
 
 // ---------------------------------------------------------------------------
 // 4. Dataset enforcement derives from the authoritative plan limit

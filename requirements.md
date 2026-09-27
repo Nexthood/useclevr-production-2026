@@ -357,6 +357,7 @@ Text rules for this file:
 
 - Show Free at $0/€0, Pro at €40/month or €480/year, and Business at €420/month or €5,040/year on EUR-default billing surfaces.
 - Show Pro market prices as €40/month for the EU, £35/month for the UK, $45/month for the US, and CA$65/month for Canada, with UK Pro yearly at £410/year on the matching billing surfaces.
+- Show Business monthly prices as €420/month for the EU, £360/month for the UK, $485/month for the US, and CA$680/month for Canada, matching the live Stripe market prices on all matching billing surfaces.
 - Use the Free plan with limited AI credits as the only free UseClevr entry point, and do not advertise separate trial periods on public landing or pricing surfaces.
 - Use shared monthly and yearly paid-plan pricing as the canonical source for subscription cards, billing settings, checkout, upgrade prompts, public pricing, FAQ answers, assistant answers, Stripe checkout labels, and sales-facing product copy.
 - Render public pricing amounts and billing intervals from shared billing data with translation-protected markup so browser translation cannot change the visible number, currency, or period relationship.

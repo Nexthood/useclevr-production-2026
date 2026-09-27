@@ -1147,3 +1147,11 @@
 - flagged: Canada Pro yearly (77500) was sized against the old CA$55 monthly and may not match Stripe; only live Stripe data resolves this — do not guess
 - verified: `pnpm test:pro-pricing`, `pnpm test:tier-resolution`, `pnpm test:business-plan-limits`, `pnpm test:usy-product-knowledge` (exit 0), `pnpm test:usy-billing-knowledge` 16/16, `pnpm test:billing-refund-lifecycle` 12/12, `pnpm test:zero-credit-ux` 12/12, `pnpm test:accountancy-upload-entitlements` pass; `pnpm exec tsc --noEmit` exit 0; ESLint 0 errors on changed files; `pnpm lint:changelog` and `pnpm lint:secrets` pass
 - not committed or pushed per instruction
+
+## 2026-09-27 — Business Monthly price correction to live Stripe amounts
+
+- fixed: Business Monthly checkout for UK, US, and Canada no longer fails with "The selected Stripe price amount does not match the selected market." — `approvedBusinessAmountByMarket` now matches the live Stripe Prices exactly: UK 40950 → 36000 (£360/month), US 47250 → 48500 ($485/month), CA 57750 → 68000 (CA$680/month); EU stays 42000 (€420/month)
+- traced: production env resolution (EU falls back to `STRIPE_PRICE_BUSINESS_MONTHLY`) and live Stripe catalog for the four configured Business monthly Price IDs (eur 42000, gbp 36000, usd 48500, cad 68000, all active monthly); mismatch isolated to the UseClevr expected amounts, no Stripe or Price ID changes
+- added: mocked-Stripe Business Monthly validation regressions — all four markets accepted at the exact live amounts and UK/US/CA rejecting the retired amounts with `invalid_business_price_mapping` and the exact production message; display/matrix expectations updated in `test-pro-launch-pricing.ts` and `test-business-plan-limits.ts`; requirements.md and CHANGELOG updated
+- verified: `pnpm test:pro-pricing`, `pnpm test:business-plan-limits`, `pnpm test:tier-resolution` pass; `pnpm exec tsc --noEmit --pretty false` exit 0
+- not committed or pushed per instruction
