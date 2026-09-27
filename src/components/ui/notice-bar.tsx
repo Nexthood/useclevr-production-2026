@@ -161,11 +161,26 @@ export function NoticeProvider({ children }: { children: React.ReactNode }) {
       });
     };
 
-    const handleRejection = () => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const detailMessage =
+        reason instanceof Error && reason.message.trim()
+          ? reason.message.trim()
+          : typeof reason === "string" && reason.trim()
+            ? reason.trim()
+            : null;
+      // Known configuration errors carry their own user-facing message; keep
+      // unknown failures on the generic notice instead of leaking internals.
+      const knownConfigurationMessage =
+        detailMessage === "No BYOK provider available. Add and enable an AI provider, or switch to UseClevr Cloud."
+          ? detailMessage
+          : null;
       showNotice({
         type: "error",
-        title: "Background request failed.",
-        message: "The app could not finish an automatic request. Retry the action or refresh the page.",
+        title: knownConfigurationMessage ?? "Background request failed.",
+        message: knownConfigurationMessage
+          ? "Retry after adding and enabling an AI provider, or switch to UseClevr Cloud in AI settings."
+          : "The app could not finish an automatic request. Retry the action or refresh the page.",
       });
     };
 

@@ -1,9 +1,11 @@
 import { generateText } from "ai";
 
 import {
+  BYOK_PROVIDER_REQUIRED_MESSAGE,
   generateWithUniversalAiAdapter,
   getAiMode,
   getUseClevrCloudFallbackAllowed,
+  isByokProviderUnavailableError,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
   logUniversalAiResponse,
@@ -116,11 +118,37 @@ export async function generateServerAiText(
         });
         return null;
       }
-      logDefaultCloudFallback(options.userId, error);
-      userProviderFailed = true;
-      debugWarn(`[${options.context}] User AI provider failed; using default cloud AI`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      if (isByokProviderUnavailableError(error)) {
+        recordAiRequestAudit({
+          userId: options.userId,
+          datasetId: options.datasetId,
+          providerName: "BYOK",
+          providerType: "byok",
+          modelName: "none",
+          mode: aiMode,
+          executionLocation: "none",
+          fallbackUsed: false,
+          purpose,
+          success: false,
+          errorReason: BYOK_PROVIDER_REQUIRED_MESSAGE,
+        });
+        if (!allowUseclevrCloudFallback) {
+          debugWarn(`[${options.context}] BYOK mode has no enabled provider; cloud fallback disabled`, {
+            mode: aiMode,
+          });
+          return null;
+        }
+        debugWarn(`[${options.context}] BYOK mode has no enabled provider; explicit cloud fallback applies`, {
+          mode: aiMode,
+        });
+        userProviderFailed = true;
+      } else {
+        logDefaultCloudFallback(options.userId, error);
+        userProviderFailed = true;
+        debugWarn(`[${options.context}] User AI provider failed; using default cloud AI`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
     }
   }

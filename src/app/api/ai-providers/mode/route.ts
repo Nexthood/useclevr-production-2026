@@ -1,4 +1,12 @@
-import { getAiMode, getUseClevrCloudFallbackAllowed, setAiMode, toPublicAiMode, type AiMode } from "@/lib/ai/byoai-provider";
+import {
+  BYOK_PROVIDER_REQUIRED_MESSAGE,
+  ByokProviderUnavailableError,
+  getAiMode,
+  getUseClevrCloudFallbackAllowed,
+  setAiMode,
+  toPublicAiMode,
+  type AiMode,
+} from "@/lib/ai/byoai-provider";
 import { requireHybridAiFeature } from "@/lib/hybrid-ai/feature-gate";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
@@ -42,8 +50,18 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: false, code: "VALIDATION_ERROR", error: message }, { status: 400 });
   }
 
-  await setAiMode(userId, parsed.mode as AiMode, {
-    allowUseclevrCloudFallback: parsed.allow_useclevr_cloud_fallback,
-  });
+  try {
+    await setAiMode(userId, parsed.mode as AiMode, {
+      allowUseclevrCloudFallback: parsed.allow_useclevr_cloud_fallback,
+    });
+  } catch (error) {
+    if (error instanceof ByokProviderUnavailableError) {
+      return NextResponse.json(
+        { success: false, code: "BYOK_PROVIDER_REQUIRED", error: BYOK_PROVIDER_REQUIRED_MESSAGE },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
   return NextResponse.json({ success: true });
 }

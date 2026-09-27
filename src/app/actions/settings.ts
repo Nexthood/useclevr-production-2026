@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
-import { deleteAiProviderConfig, saveAiProviderConfig, setAiMode, setAiProviderRouting, type AiMode, type AiProviderType } from "@/lib/ai/byoai-provider"
+import { BYOK_PROVIDER_REQUIRED_MESSAGE, deleteAiProviderConfig, isByokProviderUnavailableError, saveAiProviderConfig, setAiMode, setAiProviderRouting, type AiMode, type AiProviderType } from "@/lib/ai/byoai-provider"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
@@ -237,6 +237,7 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
     }
     await setAiMode(userId, mode, { allowUseclevrCloudFallback })
   } catch (error) {
+    if (isByokProviderUnavailableError(error)) return failure(BYOK_PROVIDER_REQUIRED_MESSAGE)
     const message = error instanceof Error ? error.message : "AI mode was not saved."
     return failure(message)
   }

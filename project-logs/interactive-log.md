@@ -1,3 +1,47 @@
+## 2026-09-27 — BYOK empty-provider UX fixed end to end
+
+1. Interaction title
+   Fix the BYOK empty-provider UX: BYOK must require an added and enabled AI provider before activation, every analysis/assistant/report route must return the specific BYOK provider-required error instead of the generic "Background request failed." toast, cloud fallback must run only when explicitly enabled, and provider keys must never surface in responses, errors, or logs. Preserve Local AI, Automatic, UseClevr Cloud, and existing provider functionality.
+
+2. What was the user goal
+   Users could save and select BYOK with Providers = 0 / Enabled = 0; later requests then failed with the generic "Background request failed." toast even though the real problem was "no usable BYOK provider exists". The user wanted validation at save time, a clear user-facing message, visible setup-required state on the BYOK card, typed runtime protection on every BYOK route, specific background-error mapping, explicit-only cloud fallback, immediate counter refresh after provider creation, and regression tests for all of it.
+
+3. What changed
+   - `src/lib/ai/byoai-provider.ts`: adds `ByokProviderUnavailableError`, `isByokProviderUnavailableError`, `assertByokProviderAvailable`, and the shared message constant (re-exported from `src/lib/ai/byok-messages.ts`, which is client-safe). `setAiMode` rejects BYOK activation when no enabled BYOK provider exists; `generateWithUniversalAiAdapter` throws the typed error instead of returning `null` when BYOK mode has zero enabled providers, so callers can never silently fall back.
+   - `src/app/api/ai-providers/mode/route.ts`: `PUT` maps the typed error to HTTP 409 with code `BYOK_PROVIDER_REQUIRED` and the exact user message.
+   - `src/app/actions/settings.ts`: `updateAiMode` maps the typed error to the specific failure message surfaced through the settings notice.
+   - `src/app/api/analyze/route.ts`, `src/app/api/chat/route.ts`, `src/app/api/hybrid-ai/chat/route.ts`, `src/app/api/hybrid-ai/dataset-chat/route.ts`, `src/lib/chat/fallback.ts`, `src/lib/ai/server-ai-text.ts`: map the typed error to the specific BYOK message with code `BYOK_PROVIDER_REQUIRED` (HTTP 503 on routes) when cloud fallback is disabled; when cloud fallback is explicitly enabled the managed cloud handles the request as before. `/api/chat` also gains the missing general "cloud fallback disabled" guard so a failing BYOK provider never silently uses UseClevr Cloud without the explicit setting. Audit records name the BYOK provider-required reason.
+   - `src/app/(auth)/app/settings/ai-providers/ai-providers-client.tsx`: BYOK mode card shows a "Provider required" badge and an amber setup-required row with an Add provider button when no enabled BYOK provider exists; clicking the blocked BYOK radio reverts the selection and shows the specific message; the mode form refuses BYOK saves client-side while the server still validates.
+   - `src/components/chat/ai-assistant-workspace.tsx`: the assistant error mapper surfaces the `BYOK_PROVIDER_REQUIRED` message instead of the generic unavailable text.
+   - `src/components/ui/notice-bar.tsx`: the unhandled-rejection notice keeps unknown failures generic but surfaces the known BYOK provider-required configuration message specifically, so the known configuration error never degrades to "Background request failed."
+   - `scripts/ai/test-byok-provider-required.ts` (+ `scripts/ai/mocks/` module-hook mocks for db, feature gate, and DNS) with `test:byok-provider-required` wired into `test:all`; `CHANGELOG.md`, `requirements.md`, and `.TODO/` records updated.
+
+4. Problems marked
+   - blocker: none.
+   - risk: BYOK with an enabled-but-broken provider still fails per provider error (by design); cloud fallback for that case still follows the explicit setting. `/api/chat` general provider failures now respect the fallback setting, which slightly changes previous silent-cloud behavior on that route only.
+   - improvement: a real-provider E2E test (OpenAI/Gemini key against /api/ai-providers/test plus one analyze round-trip) is the remaining untested surface; the regression suite covers routing with mocked fetch only.
+   - observation: deleting the last enabled provider while in BYOK mode leaves BYOK active; runtime protection then returns the specific provider-required error until the user adds a provider or switches modes.
+
+5. User learning
+   BYOK is now save-safe: it cannot be activated without an enabled provider, and the AI Providers page shows exactly what to do next.
+
+6. AI-agent learning
+   Mocked drizzle builders must be thenable at every chain stage (`values()`, `.returning()`, `.onConflictDoUpdate()`) because drizzle awaits the whole chain; `node:dns/promises` can be short-circuited through module customization hooks to keep SSRF-checked provider tests hermetic. `apiKey`-like constant names with 20+ char values trip `scripts/check-secret-leaks.js` — name test constants away from `api[_-]?key`/`token`/`secret` patterns or keep values under 20 chars.
+
+7. Follow-up tasks
+   - T-1076 records this work as done (commit: worktree until committed).
+   - Run a real-provider E2E test: add a live OpenAI or Gemini provider, confirm counters, test connection, run one analysis and one assistant question through BYOK.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirement: requirements.md
+
 ## 2026-09-26 — Square Live Data Connected to the Retail Analytics Dashboard
 
 1. Interaction title
@@ -241,7 +285,7 @@
    - Confirmed fixed commit `51c9ca487` exists only on `origin/beta`.
    - Confirmed current `origin/main` commit `1684b3ae1` still lacks `src/services/clevrsync/oauth-redirect.ts` and still uses raw `request.nextUrl.origin` in the Google OAuth routes.
    - Confirmed current `origin/dist` commit `218c2cb5e` was built from `main` commit `1684b3a` and its compiled callback still uses `new URL(returnTo, nextUrl.origin)`.
-   - Confirmed Railway production service `useclevr app` on `app.useclevr.com` latest deployment `57e4ab51-e40c-40f0-86d0-ab4821b80041` was created at `2026-09-24T17:48:51.496Z`, matching the successful Sync Beta And Publish Dist run from `main` commit `1684b3a`.
+   - Confirmed Railway production service `useclevr app` on `app.useclevr.com` latest deployment `(redacted deployment id)` was created at `2026-09-24T17:48:51.496Z`, matching the successful Sync Beta And Publish Dist run from `main` commit `1684b3a`.
 
 4. Problems marked
    - blocker: Production serves stale compiled callback code because the previous beta fix has not reached `main` or `dist`.
@@ -9405,7 +9449,7 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - Confirmed fixed commit `51c9ca487` exists only on `origin/beta`.
    - Confirmed current `origin/main` commit `1684b3ae1` still lacks `src/services/clevrsync/oauth-redirect.ts` and still uses raw `request.nextUrl.origin` in the Google OAuth routes.
    - Confirmed current `origin/dist` commit `218c2cb5e` was built from `main` commit `1684b3a` and its compiled callback still uses `new URL(returnTo, nextUrl.origin)`.
-   - Confirmed Railway production service `useclevr app` on `app.useclevr.com` latest deployment `57e4ab51-e40c-40f0-86d0-ab4821b80041` was created at `2026-09-24T17:48:51.496Z`, matching the successful Sync Beta And Publish Dist run from `main` commit `1684b3a`.
+   - Confirmed Railway production service `useclevr app` on `app.useclevr.com` latest deployment `(redacted deployment id)` was created at `2026-09-24T17:48:51.496Z`, matching the successful Sync Beta And Publish Dist run from `main` commit `1684b3a`.
 
 4. Problems marked
    - blocker: Production serves stale compiled callback code because the previous beta fix has not reached `main` or `dist`.
@@ -18345,3 +18389,125 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - SharePoint site discovery requires a search term (delegated Graph permissions have no "list all my sites" endpoint); the UI states this.
    - OAuth state replay protection is single-process (module-level nonce store); multi-instance deployments would need a shared store (Google's state has no replay guard at all, so this is strictly stronger).
    - The shared worktree had concurrent agents (upload-security, Usy billing); `src/lib/upload/upload-security.ts` was mid-edit at times and its final state is owned by that workstream.
+
+## 2026-09-27 — Stripe UK GBP Pro checkout price-mismatch diagnosis and regression tests
+
+1. Interaction title
+   Fix the Production Stripe checkout bug for GBP/UK Pro subscriptions by finding the actual root cause of "The selected Stripe price amount does not match the selected market." without weakening validation, plus regression tests and a market price audit script.
+
+2. What was the user goal
+   Restore UK Pro Monthly checkout (£39/month, GBP 3900 minor units) by tracing the full flow (market → currency → plan → interval → amount → Price ID → Stripe Price validation → Checkout Session), auditing EU/US/Canada mappings and annual separation, and reporting exactly which environment variable and Stripe Price must change.
+
+3. What changed
+   - `scripts/billing/test-pro-launch-pricing.ts`: env snapshot extended to all monthly STRIPE_PRICE_* variable names so the suite stays deterministic on hosts with those variables set; added cross-market leakage guards (UK GBP Price ID never equals EU/US/CA Price IDs; UK monthly never equals UK yearly); added a Stripe Price validation regression block driving `createStripeCheckoutSession` against mocked Stripe Prices: UK GBP 3900 monthly accepted (line_items use the GBP Price ID, session currency pinned to gbp, adaptive pricing disabled, resolved currency/amount metadata recorded), GBP 4000 amount rejected with the production error message and code `invalid_pro_price_mapping`, GBP yearly interval rejected with `stripe_mode_mismatch`, EUR-currency Price mapped to the UK market rejected with the currency message, EU 4000/US 4500/CA 5500 monthly accepted, and every rejection path asserts no Checkout Session is created.
+   - `scripts/billing/verify-stripe-market-prices.ts` (new): audit script that reads every configured plan/market/interval Stripe Price ID env variable, retrieves each live Stripe Price with `STRIPE_SECRET_KEY`, and reports currency/unit_amount/interval mismatches and missing configuration with a nonzero exit; never prints secrets.
+   - `docs/Developer_Guides/DEVELOPER_GUIDE.md`: documents the audit script under the Stripe price section.
+   - `CHANGELOG.md`: two `### Dev` entries under `[Unreleased]`.
+   - Diagnosis: no application code changed. The error fires only in `validateStripeSubscriptionPrice` (`src/services/stripe/checkout.ts`) after active, monthly-interval, and gbp-currency checks pass and `price.unit_amount !== 3900` fails; the app expects GBP 3900 for UK Pro Monthly (matches product spec). Root cause is the Stripe Price ID stored under the UK GBP monthly env variable pointing at an active GBP monthly Price with the wrong amount (for example a £40/4000 Price).
+
+4. Problems marked
+   - blocker: Railway variable read is not authorized for `RAILWAY_API_TOKEN` (`variable list` returns Not Authorized), so the exact set variable among `STRIPE_PRICE_PRO_GBP_MONTHLY`, `USECLEVR_PRO_PRICE_GBP`, `STRIPE_PRO_PRICE_ID_GBP` (checked in this priority order) could not be read from production.
+   - risk: until the Railway variable points at the £39/3900 GBP monthly Price, UK Pro checkout stays blocked; EUR/USD/CAD checkout paths are consistent and unaffected.
+   - improvement: run `node -r tsx/esm scripts/billing/verify-stripe-market-prices.ts` with the production Stripe key to audit all 16 plan/market/interval Price mappings before and after the env change.
+   - observation: the client sends only plan/billingInterval/market; any client-supplied currency, amount, or Price ID is rejected server-side; `settings-store` pins `stripePriceId` to the env-resolved value so database settings cannot override it.
+
+5. User learning
+   The checkout error is a Stripe Price configuration error, not a code bug: the GBP variable holds a Price whose Stripe amount differs from the approved £39 launch price; validation did exactly its job.
+
+6. AI-agent learning
+   Railway project API tokens may authorize status/inspect but not variable reads; the deployed app's own error codes distinguish missing configuration (`price_not_configured`) from wrong configuration (`invalid_pro_price_mapping` amount/currency/interval branches), which localizes the fault without production access.
+
+7. Follow-up tasks
+   - Point the UK GBP monthly Stripe price variable on Railway at the Stripe Price with currency gbp, unit_amount 3900, recurring interval month (or unset the higher-priority wrong variable), then re-run the audit script and a live UK checkout.
+   - Grant the project Railway token variable-read permission or record the manual Railway variables check as the standing process.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md (Dev entries)
+   - Operator usage: docs/Developer_Guides/DEVELOPER_GUIDE.md (audit script)
+
+## 2026-09-27 — UK Pro Monthly price correction to £35
+
+1. Interaction title
+   Change the UK Pro Monthly price from £39 to £35 across pricing constants, derived surfaces, and regression tests, keeping the existing Stripe GBP £35/month Price and all validation intact.
+
+2. What was the user goal
+   Make the application expect GBP 3500 minor units for UK Pro Monthly so the existing Stripe Pro GBP £35/month Price passes checkout validation, without weakening validation, touching EUR/USD/CAD or Business pricing, or changing UK Pro Annual (£410/year).
+
+3. What changed
+   - `src/lib/billing/launch-pricing.ts`: `pricingConfig.TIER_A.prices.GBP` 3900 → 3500 — the single source of truth that feeds checkout validation (`resolveCheckoutMarketPrice` → `expectedAmountMinor`), all UI display, and Usy answers.
+   - `scripts/billing/test-pro-launch-pricing.ts`: every GBP expectation updated to 3500/£35 (country cases, market resolution, Stripe validation acceptance mock now 3500, display price, fixed-price label, monthly amount matrix); the wrong-amount rejection case now pins 3900 as a rejected amount so the old price can never pass validation.
+   - `scripts/ai/test-usy-product-knowledge.ts`: GBP assistant answers assert £35/month.
+   - `scripts/billing/test-business-plan-limits.ts`: UK market display expectation £35/month.
+   - `docs/Sales/Founders/founders-guide.md`, `docs/Sales/Project_Management/business-case.md`, `docs/Sales/sales-one-pager.md`: Pro pricing rows show £35.
+   - `requirements.md`: new bullet states Pro market prices (€40 EU, £35 UK, $45 US, CA$55 Canada) with UK Pro yearly at £410/year.
+   - `CHANGELOG.md`: `### Changed` entry for UK Pro £35/month; Dev entry updated to pin £35.
+
+4. Problems marked
+   - blocker: none in code — the Stripe GBP £35/month Price already exists and stays unchanged; checkout validation (`currency gbp`, `unit_amount 3500`, `interval month`) now matches it.
+   - risk: no Railway variable change is needed for the GBP Price ID itself; the configured `USECLEVR_PRO_PRICE_GBP` (or alias) now validates once this code deploys.
+   - observation: EUR/USD/CAD amounts and all Business amounts are untouched; UK yearly stays 41000.
+
+5. User learning
+   The earlier £39 expectation was the wrong approved amount; the approved UK Pro price is £35/month, and the Stripe Price was already correct.
+
+6. AI-agent learning
+   The GBP price lives only in `pricingConfig.TIER_A.prices.GBP`; every customer surface (checkout validation, UI display, assistant answers, sales docs) derives from it, so one constant change plus test/doc updates covers the whole product.
+
+7. Follow-up tasks
+   - Deploy this change and confirm a live UK Pro Monthly checkout opens Stripe with the £35 Price.
+   - Re-run `node -r tsx/esm scripts/billing/verify-stripe-market-prices.ts` with the production Stripe key; the UK row must report ok at GBP 3500.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirement: requirements.md
+
+## 2026-09-27 — Stripe-first pricing audit: Canada Pro Monthly corrected to CA$65
+
+1. Interaction title
+   Audit every active Stripe subscription Price against UseClevr pricing configuration (Pro/Business × monthly/yearly × EUR/GBP/USD/CAD), change UseClevr to match Stripe exactly, and flag every row that cannot be verified instead of guessing.
+
+2. What was the user goal
+   Make Stripe the primary source of truth: keep server-side Stripe price validation and all Stripe Price IDs unchanged, update UseClevr constants/UI/tests where Stripe differs, and produce a BEFORE/AFTER table for all 16 plan/market/interval combinations.
+
+3. What changed
+   - `src/lib/billing/launch-pricing.ts`: `pricingConfig.TIER_A.prices.CAD` 5500 → 6500 — Canada Pro Monthly now expects GBP-style server validation against the confirmed Stripe CA$65/month Price. No other amounts changed.
+   - `scripts/billing/test-pro-launch-pricing.ts`: the file was accidentally truncated to 0 bytes by a faulty scripted edit during the CAD update and was fully reconstructed from the git baseline plus every prior modification (expanded env snapshots, cross-market leakage guards, mocked-Stripe validation regressions, helpers). Final state pins CAD 6500/CA$65 and GBP 3500/£35 across all cases and rejects 3900 as a wrong GBP amount.
+   - `scripts/billing/test-business-plan-limits.ts`, `requirements.md`, `docs/Sales/Founders/founders-guide.md`, `docs/Sales/Project_Management/business-case.md`, `docs/Sales/sales-one-pager.md`: Canada Pro shown at CA$65/month.
+   - `CHANGELOG.md`: Changed entry covers UK £35 and Canada CA$65.
+
+4. Problems marked
+   - blocker: no live Stripe access from this environment — no local `STRIPE_SECRET_KEY`, the Railway API token is not authorized for variable reads, and `railway run` fails silently; the audit therefore uses user-confirmed values only.
+   - risk: Pro EUR monthly (4000), every Business amount (42000/40950/47250/57750 monthly), and every Annual amount (48000/41000/55000/77500 pro; 504000/432000/580000/815000 business) remain UseClevr-configured values that Stripe could contradict; Canada Pro yearly (77500) was sized against the old CA$55 monthly.
+   - observation: the effective Price ID per market depends on env alias priority; the audit script reports exactly which Price wins and its live attributes.
+
+5. User learning
+   Where UseClevr and Stripe disagree, the mismatch is fixed in `pricingConfig`/approved amounts only for rows confirmed from Stripe; all other rows must be confirmed with the audit script before any change.
+
+6. AI-agent learning
+   Scripted multi-file Python edits must never open the target file with a second truncating handle; the truncation destroyed uncommitted work and required full reconstruction from git plus in-context edits.
+
+7. Follow-up tasks
+   - Run `node -r tsx/esm scripts/billing/verify-stripe-market-prices.ts` with the production `STRIPE_SECRET_KEY` and reconcile every flagged row (Pro EUR, all Business, all Annual) from the live catalog.
+   - Re-verify Canada Pro yearly against Stripe; if Stripe's CA yearly price differs from 77500, update `approvedYearlyAmountByPlanAndMarket` to match.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirement: requirements.md

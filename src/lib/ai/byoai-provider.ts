@@ -7,7 +7,10 @@ import { aiProviderConfigs, appSettings } from "@/lib/db/schema";
 import { getHybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
 import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import { normalizeProviderUsage, type ProviderUsage } from "@/lib/billing/provider-usage";
+import { BYOK_PROVIDER_REQUIRED_MESSAGE } from "@/lib/ai/byok-messages";
 import { and, asc, desc, eq, ne } from "drizzle-orm";
+
+export { BYOK_PROVIDER_REQUIRED_MESSAGE } from "@/lib/ai/byok-messages";
 
 export type AiProviderType =
   | "ollama"
@@ -159,6 +162,33 @@ export class LocalAiUnavailableError extends Error {
   }
 }
 
+export const BYOK_PROVIDER_REQUIRED_CODE = "BYOK_PROVIDER_REQUIRED";
+
+export class ByokProviderUnavailableError extends Error {
+  constructor(message = BYOK_PROVIDER_REQUIRED_MESSAGE) {
+    super(message);
+    this.name = "ByokProviderUnavailableError";
+  }
+}
+
+export function isByokProviderUnavailableError(error: unknown) {
+  return (
+    error instanceof ByokProviderUnavailableError ||
+    (error instanceof Error && error.name === "ByokProviderUnavailableError")
+  );
+}
+
+export function assertByokProviderAvailable(
+  providers: Array<Pick<PublicAiProviderConfig, "providerType" | "enabled">>,
+) {
+  const hasEnabledByokProvider = providers.some(
+    (provider) => provider.enabled && isByokProvider(provider.providerType),
+  );
+  if (!hasEnabledByokProvider) {
+    throw new ByokProviderUnavailableError();
+  }
+}
+
 const TEST_PROMPT = "Reply with exactly: UseClevr BYOAI OK";
 const REQUEST_TIMEOUT_MS = 25_000;
 const DEFAULT_BASE_URLS: Record<AiProviderType, string> = {
@@ -215,6 +245,10 @@ export function toPublicAiMode(mode: AiMode): "automatic" | "local" | "byok" | "
 
 export async function setAiMode(userId: string, mode: AiMode, options: { allowUseclevrCloudFallback?: boolean } = {}) {
   const normalized = normalizeAiMode(mode);
+  if (normalized === "byok") {
+    const providers = await listPublicAiProviderConfigs(userId);
+    assertByokProviderAvailable(providers);
+  }
   const allowUseclevrCloudFallback =
     options.allowUseclevrCloudFallback ??
     (normalized === "local-only" || normalized === "byok" ? false : await getUseClevrCloudFallbackAllowed(userId));
@@ -564,6 +598,10 @@ export async function generateWithUniversalAiAdapter(userId: string, prompt: str
     if (mode === "local-only") {
       debugWarn("[AI_PROVIDER] Offline mode has no enabled local providers", { userId, mode });
       throw new LocalAiUnavailableError("Offline mode is enabled, but your local AI provider is not reachable.");
+    }
+    if (mode === "byok") {
+      debugWarn("[AI_PROVIDER] BYOK mode has no enabled BYOK provider", { userId, mode });
+      throw new ByokProviderUnavailableError();
     }
     debugLog("[AI_PROVIDER] No configured providers for selected AI mode", { userId, mode });
     return null;
