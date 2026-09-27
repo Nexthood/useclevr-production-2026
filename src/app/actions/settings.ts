@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth/auth"
 import { isBuiltinUserId } from "@/lib/auth/builtin-users"
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store"
 import { recordActivity } from "@/lib/activity/activity-store"
-import { BYOK_PROVIDER_REQUIRED_MESSAGE, deleteAiProviderConfig, isByokProviderUnavailableError, saveAiProviderConfig, setAiMode, setAiProviderRouting, type AiMode, type AiProviderType } from "@/lib/ai/byoai-provider"
+import { BYOK_PROVIDER_REQUIRED_MESSAGE, deleteAiProviderConfig, isByokProviderUnavailableError, saveAiProviderConfig, setAiMode, setAiProviderRouting, toPublicAiMode, type AiMode, type AiProviderType } from "@/lib/ai/byoai-provider"
 import { upsertBusinessDetails, upsertPrimaryBusinessDetails } from "@/lib/business/business-store"
 import { getDb } from "@/lib/db"
 import { profiles, users } from "@/lib/db/schema"
@@ -14,7 +14,10 @@ import { failure, type Result, success } from "@/lib/result"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
-type ProfileData = { message: string }
+type ProfileData = {
+  message: string
+  savedAiMode?: "automatic" | "local" | "byok" | "useclevr_cloud"
+}
 
 export async function updateProfile(formData: FormData): Promise<Result<ProfileData>> {
   const session = await auth()
@@ -242,6 +245,8 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
     return failure(message)
   }
 
+  const savedAiMode = toPublicAiMode(mode)
+
   await recordActivity({
     userId,
     userEmail: session.user.email,
@@ -254,7 +259,7 @@ export async function updateAiMode(formData: FormData): Promise<Result<ProfileDa
   revalidatePath("/app/settings")
   revalidatePath("/app/settings/ai-providers")
 
-  return success({ message: "AI mode saved." })
+  return success({ message: "AI mode saved.", savedAiMode })
 }
 
 export async function deleteAiProvider(formData: FormData): Promise<Result<ProfileData>> {

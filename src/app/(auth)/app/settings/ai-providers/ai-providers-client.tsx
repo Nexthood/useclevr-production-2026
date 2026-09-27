@@ -10,6 +10,12 @@ import { ProductStatusBadge } from "@/components/ui/product-status-badge";
 import type { AiMode, PublicAiProviderConfig } from "@/lib/ai/byoai-provider";
 import { BYOK_PROVIDER_REQUIRED_MESSAGE } from "@/lib/ai/byok-messages";
 import type { HybridAiFeatureAccess } from "@/lib/hybrid-ai/feature-gate";
+import {
+  initialAiModeUiState,
+  resolveByokActiveProvider,
+  resolveAiModeSaveState,
+  type PublicAiMode,
+} from "@/lib/hybrid-ai/ai-mode-save-state";
 import { getAiProvidersPageState } from "@/lib/hybrid-ai/provider-page-state";
 import {
   CheckCircle2,
@@ -102,6 +108,9 @@ export function AiProvidersClient({
   const [isDeletingProvider, setIsDeletingProvider] = React.useState(false);
   const [isTesting, setIsTesting] = React.useState(false);
   const [isCheckingHealth, setIsCheckingHealth] = React.useState(false);
+  const modeUi = initialAiModeUiState(aiMode);
+  const [activeMode, setActiveMode] = React.useState<PublicAiMode>(modeUi.activeMode);
+  const [selectedMode, setSelectedMode] = React.useState<PublicAiMode>(modeUi.selectedMode);
   const [testResult, setTestResult] = React.useState<{
     success: boolean;
     status?: string;
@@ -203,21 +212,34 @@ export function AiProvidersClient({
 
   async function handleModeSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSavingMode) return;
     if (!canUseModeRouting) {
       openUpgradeDialog("lite", "Hybrid AI modes require Hybrid AI Lite.", "Upgrade to Pro or Business to use Auto, Local only, and Cloud only modes.");
       return;
     }
-    const formData = new FormData(event.currentTarget);
-    if (String(formData.get("aiMode") || "") === "byok" && byokSetupRequired) {
+    if (selectedMode === "byok" && byokSetupRequired) {
       showNotice({ type: "error", title: "BYOK needs a provider.", message: BYOK_PROVIDER_REQUIRED_MESSAGE });
       return;
     }
     setIsSavingMode(true);
+    const formData = new FormData(event.currentTarget);
+    formData.set("aiMode", selectedMode);
     const result = await updateAiMode(formData);
     if (!result.success) {
       showNotice({ type: "error", title: "AI mode was not saved.", message: result.error });
+      setSelectedMode(activeMode);
     } else {
-      showNotice({ type: "success", title: "AI mode saved.", message: modeNoticeMessage(String(formData.get("aiMode") || "auto") as AiMode) });
+      const nextState = resolveAiModeSaveState({
+        activeMode,
+        selectedMode,
+        outcome: { success: true, savedMode: result.data.savedAiMode || selectedMode },
+        activeProvider: resolveByokActiveProvider(providers),
+      });
+      setActiveMode(nextState.activeMode);
+      setSelectedMode(nextState.selectedMode);
+      if (nextState.feedback) {
+        showNotice({ type: "success", title: nextState.feedback.title, message: nextState.feedback.message });
+      }
       router.refresh();
     }
     setIsSavingMode(false);
@@ -490,20 +512,26 @@ export function AiProvidersClient({
               <div className="grid gap-3">
                 <ModeOption
                   value="automatic"
-                  current={aiMode}
+                  selected={selectedMode}
+                  active={activeMode === "automatic"}
+                  onSelect={setSelectedMode}
                   title="Automatic"
                   description="Uses privacy, task complexity, local availability, provider priority, and cloud fallback settings."
                 />
                 <ModeOption
                   value="local"
-                  current={aiMode}
+                  selected={selectedMode}
+                  active={activeMode === "local"}
+                  onSelect={setSelectedMode}
                   title="Local AI"
                   badge={<ProductStatusBadge status="beta" />}
                   description="Runs supported analysis through local providers on compatible hardware. Performance and compatibility depend on your system configuration."
                 />
                 <ModeOption
                   value="byok"
-                  current={aiMode}
+                  selected={selectedMode}
+                  active={activeMode === "byok"}
+                  onSelect={setSelectedMode}
                   title="BYOK"
                   setupRequired={byokSetupRequired}
                   blocked={byokSetupRequired}
@@ -512,7 +540,9 @@ export function AiProvidersClient({
                 />
                 <ModeOption
                   value="useclevr_cloud"
-                  current={aiMode}
+                  selected={selectedMode}
+                  active={activeMode === "useclevr_cloud"}
+                  onSelect={setSelectedMode}
                   title="UseClevr Cloud"
                   description="Managed AI provided by UseClevr."
                 />
@@ -543,14 +573,14 @@ export function AiProvidersClient({
                 </span>
               </label>
 
-              {aiMode === "local" || aiMode === "local-only" ? (
+              {activeMode === "local" ? (
                 <div className="flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-800 dark:text-sky-200">
                   <ShieldCheck className="h-4 w-4" />
                   <span>Local AI <ProductStatusBadge status="beta" className="mx-1 align-middle" /> • {localProviderCount > 0 ? "Connected" : "Not configured"}</span>
                 </div>
               ) : null}
 
-              {(aiMode === "local" || aiMode === "local-only") && localProviderCount === 0 ? (
+              {activeMode === "local" && localProviderCount === 0 ? (
                 <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-800 dark:text-cyan-200">
                   Start the UseClevr Helper or connect a supported local AI provider to use private local analysis.
                 </div>
@@ -950,7 +980,9 @@ function CheckboxRow({
 
 function ModeOption({
   value,
-  current,
+  selected,
+  active,
+  onSelect,
   title,
   badge,
   description,
@@ -958,8 +990,10 @@ function ModeOption({
   blocked,
   onBlockedSelect,
 }: {
-  value: AiMode;
-  current: AiMode;
+  value: PublicAiMode;
+  selected: PublicAiMode;
+  active: boolean;
+  onSelect: (mode: PublicAiMode) => void;
   title: string;
   badge?: React.ReactNode;
   description: string;
@@ -973,20 +1007,25 @@ function ModeOption({
         type="radio"
         name="aiMode"
         value={value}
-        defaultChecked={current === value}
-        onChange={
-          blocked
-            ? (event) => {
-                event.target.checked = current === value;
-                onBlockedSelect?.();
-              }
-            : undefined
-        }
+        checked={selected === value}
+        onChange={() => {
+          if (blocked) {
+            onBlockedSelect?.();
+            return;
+          }
+          onSelect(value);
+        }}
         className="mt-1 h-4 w-4 border-border"
       />
       <span>
         <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
           {title}
+          {active ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-3 w-3" />
+              Active
+            </span>
+          ) : null}
           {setupRequired ? (
             <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
               Provider required
@@ -1185,11 +1224,4 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-}
-
-function modeNoticeMessage(mode: AiMode) {
-  if (mode === "local" || mode === "local-only") return "Local mode is active. Cloud fallback follows your setting.";
-  if (mode === "byok") return "BYOK mode is active. Enabled providers run by default and priority.";
-  if (mode === "useclevr_cloud" || mode === "cloud-only") return "UseClevr Cloud mode is active.";
-  return "Automatic mode is active.";
 }
