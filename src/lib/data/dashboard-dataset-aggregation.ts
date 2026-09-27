@@ -1,12 +1,11 @@
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
-import { combineBusinessSemanticProfiles, type MultiFileSemanticInput } from "@/lib/data/business-semantics"
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import {
   deriveDatasetSource,
   type DatasetSource,
 } from "@/lib/data/dataset-source"
-import { and, desc, eq, or, isNull, ne } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 
 export type DashboardDataRow = Record<string, unknown>
 
@@ -74,88 +73,16 @@ const COLUMN_ALIASES = {
 
 export async function loadDashboardDatasetAggregation(
   userId: string | null,
-  options: { datasetId?: string | null; includeCompatibleDatasets?: boolean } = {},
+  options: { datasetId?: string | null } = {},
 ): Promise<NormalizedDashboardData> {
   if (!userId) return emptyDashboardData()
 
-  const loadCompatibleScope = Boolean(options.datasetId && options.includeCompatibleDatasets)
-  // The dashboard is workspace-scoped: always filter by owner, and exclude
-  // pre-bookkeeping datasets from dashboard aggregation (they have their own module).
-  const rows = await db.query.datasets.findMany({
-    where: options.datasetId && !loadCompatibleScope
-      ? and(eq(datasets.userId, userId), eq(datasets.id, options.datasetId))
-      : and(
-          eq(datasets.userId, userId),
-          or(isNull(datasets.datasetType), ne(datasets.datasetType, "prebookkeeping")),
-        ),
-    orderBy: [desc(datasets.createdAt)],
-    limit: options.datasetId && !loadCompatibleScope ? 1 : 500,
-    columns: {
-      id: true,
-      name: true,
-      fileName: true,
-      fileSize: true,
-      rowCount: true,
-      columnCount: true,
-      columns: true,
-      data: true,
-      datasetType: true,
-      businessModel: true,
-      source: true,
-      mimeType: true,
-      analysisStatus: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-      analysis: true,
-      aiInsights: true,
-      precomputedMetrics: true,
-      detectedColumns: true,
-    },
-  })
-
-  const normalizedDatasets = rows.map((dataset) => {
-    const columns = Array.isArray(dataset.columns) ? dataset.columns : []
-    const analysis = dataset.analysis
-    return {
-      id: dataset.id,
-      name: dataset.name,
-      fileName: dataset.fileName,
-      fileSize: dataset.fileSize,
-      rowCount: dataset.rowCount || 0,
-      columnCount: dataset.columnCount || 0,
-      columns,
-      data: Array.isArray(dataset.data) ? (dataset.data as DashboardDataRow[]).filter(isRecord) : [],
-      datasetType: dataset.datasetType || "standard",
-      businessModel: resolveBusinessModel({
-        explicit: dataset.businessModel,
-        uploadSource: isRecord(analysis) ? String(analysis.uploadSource || "") : "",
-        datasetType: dataset.datasetType,
-        columns,
-        datasetName: dataset.name,
-        analysis,
-      }),
-      source: deriveDatasetSource({
-        source: dataset.source,
-        uploadSource: isRecord(analysis) ? String(analysis.uploadSource || "") : null,
-        datasetType: dataset.datasetType,
-        fileName: dataset.fileName,
-        mimeType: dataset.mimeType,
-      }),
-      analysisStatus: dataset.analysisStatus,
-      status: dataset.status || "ready",
-      createdAt: dataset.createdAt || new Date(),
-      updatedAt: dataset.updatedAt || dataset.createdAt || new Date(),
-      analysis,
-      aiInsights: dataset.aiInsights,
-      precomputedMetrics: dataset.precomputedMetrics,
-      detectedColumns: dataset.detectedColumns,
-    }
-  })
-
-  const activeDatasets = options.datasetId && options.includeCompatibleDatasets
-    ? filterDashboardDatasetsBySemanticCompatibility(normalizedDatasets, options.datasetId)
-    : normalizedDatasets.filter((dataset) => dataset.status !== "deleted")
+  const requestedDatasets = options.datasetId
+    ? selectDashboardScopeDatasets(await loadDashboardDatasetRows(userId, options.datasetId), options.datasetId)
+    : []
+  const activeDatasets = requestedDatasets.length > 0
+    ? requestedDatasets
+    : selectDashboardScopeDatasets(await loadDashboardDatasetRows(userId), null)
 
   const allColumns = unique([
     ...activeDatasets.flatMap((dataset) => dataset.columns),
@@ -204,27 +131,6 @@ export async function loadDashboardDatasetAggregation(
   }
 }
 
-export function filterDashboardDatasetsBySemanticCompatibility(
-  datasetList: DashboardAggregatedDataset[],
-  selectedDatasetId: string,
-): DashboardAggregatedDataset[] {
-  const activeDatasets = datasetList.filter((dataset) => dataset.status !== "deleted")
-  const selectedDataset = activeDatasets.find((dataset) => dataset.id === selectedDatasetId)
-  if (!selectedDataset) return []
-
-  const selectedInput = toSemanticInput(selectedDataset)
-  const compatibleDatasets = activeDatasets.filter((dataset) => {
-    if (dataset.id === selectedDataset.id) return true
-    const combined = combineBusinessSemanticProfiles([selectedInput, toSemanticInput(dataset)])
-    return !combined.contradictions.some((issue) => issue.severity === "BLOCKING")
-  })
-
-  return [
-    selectedDataset,
-    ...compatibleDatasets.filter((dataset) => dataset.id !== selectedDataset.id),
-  ]
-}
-
 export function getDashboardDataFingerprint(data: NormalizedDashboardData) {
   return [
     data.datasetCount,
@@ -240,18 +146,6 @@ export function normalizeDashboardColumnName(column: string) {
   return column.toLowerCase().trim().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "")
 }
 
-function toSemanticInput(dataset: DashboardAggregatedDataset): MultiFileSemanticInput {
-  return {
-    datasetId: dataset.id,
-    datasetType: dataset.datasetType,
-    businessModel: dataset.businessModel,
-    fileName: dataset.fileName,
-    datasetName: dataset.name,
-    columns: dataset.columns,
-    rows: dataset.data,
-  }
-}
-
 function detectColumnAliases(columns: string[]): NormalizedDashboardData["detectedColumns"] {
   return {
     revenue: findAlias(columns, COLUMN_ALIASES.revenue),
@@ -262,6 +156,116 @@ function detectColumnAliases(columns: string[]): NormalizedDashboardData["detect
     date: findAlias(columns, COLUMN_ALIASES.date),
     region: findAlias(columns, COLUMN_ALIASES.region),
   }
+}
+
+async function loadDashboardDatasetRows(userId: string, datasetId?: string | null): Promise<DashboardAggregatedDataset[]> {
+  const rows = await db.query.datasets.findMany({
+    where: datasetId ? and(eq(datasets.userId, userId), eq(datasets.id, datasetId)) : eq(datasets.userId, userId),
+    orderBy: [desc(datasets.createdAt)],
+    limit: datasetId ? 1 : 500,
+    columns: {
+      id: true,
+      name: true,
+      fileName: true,
+      fileSize: true,
+      rowCount: true,
+      columnCount: true,
+      columns: true,
+      data: true,
+      datasetType: true,
+      businessModel: true,
+      source: true,
+      mimeType: true,
+      analysisStatus: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      analysis: true,
+      aiInsights: true,
+      precomputedMetrics: true,
+      detectedColumns: true,
+    },
+  })
+
+  return rows.map((dataset) => {
+    const columns = Array.isArray(dataset.columns) ? dataset.columns : []
+    const analysis = dataset.analysis
+    return {
+      id: dataset.id,
+      name: dataset.name,
+      fileName: dataset.fileName,
+      fileSize: dataset.fileSize,
+      rowCount: dataset.rowCount || 0,
+      columnCount: dataset.columnCount || 0,
+      columns,
+      data: Array.isArray(dataset.data) ? (dataset.data as DashboardDataRow[]).filter(isRecord) : [],
+      datasetType: dataset.datasetType || "standard",
+      businessModel: resolveBusinessModel({
+        explicit: dataset.businessModel,
+        uploadSource: isRecord(analysis) ? String(analysis.uploadSource || "") : "",
+        datasetType: dataset.datasetType,
+        columns,
+        datasetName: dataset.name,
+        analysis,
+      }),
+      source: deriveDatasetSource({
+        source: dataset.source,
+        uploadSource: isRecord(analysis) ? String(analysis.uploadSource || "") : null,
+        datasetType: dataset.datasetType,
+        fileName: dataset.fileName,
+        mimeType: dataset.mimeType,
+      }),
+      analysisStatus: dataset.analysisStatus,
+      status: dataset.status || "ready",
+      createdAt: dataset.createdAt || new Date(),
+      updatedAt: dataset.updatedAt || dataset.createdAt || new Date(),
+      analysis,
+      aiInsights: dataset.aiInsights,
+      precomputedMetrics: dataset.precomputedMetrics,
+      detectedColumns: dataset.detectedColumns,
+    }
+  })
+}
+
+export function selectDashboardScopeDatasets(
+  datasetList: DashboardAggregatedDataset[],
+  selectedDatasetId: string | null | undefined,
+): DashboardAggregatedDataset[] {
+  const eligibleDatasets = datasetList
+    .filter(isDashboardEligibleDataset)
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+
+  if (selectedDatasetId) {
+    const selectedDataset = eligibleDatasets.find((dataset) => dataset.id === selectedDatasetId)
+    if (selectedDataset) return [selectedDataset]
+  }
+
+  return eligibleDatasets[0] ? [eligibleDatasets[0]] : []
+}
+
+export function isDashboardEligibleDataset(dataset: {
+  datasetType?: string | null
+  source?: string | null
+  status?: string | null
+  analysisStatus?: string | null
+}) {
+  const status = normalizeDashboardScopeValue(dataset.status)
+  const analysisStatus = normalizeDashboardScopeValue(dataset.analysisStatus)
+  if (status === "deleted" || status === "failed" || status === "processing" || status === "uploading") return false
+  if (analysisStatus === "failed") return false
+
+  const source = normalizeDashboardScopeValue(dataset.source)
+  if (source === "accountancy_document") return false
+
+  const datasetType = normalizeDashboardScopeValue(dataset.datasetType) || "standard"
+  if (datasetType === "accountancy" || datasetType === "accounting" || datasetType === "prebookkeeping" || datasetType === "pre_bookkeeping") return false
+  if (datasetType === "standard" || datasetType === "retail" || datasetType === "profitability") return true
+
+  return source === "google_sheets" || source === "clevrsync"
+}
+
+function normalizeDashboardScopeValue(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim().toLowerCase() : ""
 }
 
 function findAlias(columns: string[], aliases: string[]) {

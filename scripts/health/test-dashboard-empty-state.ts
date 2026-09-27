@@ -10,9 +10,12 @@ const dailyHealth = fs.readFileSync("src/lib/executive/daily-health.ts", "utf8")
 const dailyHealthPage = fs.readFileSync("src/app/(auth)/app/daily-health/page.tsx", "utf8")
 
 assert(
-  aggregation.includes('normalizedDatasets.filter((dataset) => dataset.status !== "deleted")') &&
-    aggregation.includes('const activeDatasets = datasetList.filter((dataset) => dataset.status !== "deleted")'),
-  "Dashboard aggregation must filter deleted datasets out of current analytics.",
+  aggregation.includes(".filter(isDashboardEligibleDataset)") &&
+    aggregation.includes('status === "deleted"') &&
+    aggregation.includes('status === "failed"') &&
+    aggregation.includes('status === "processing"') &&
+    aggregation.includes('status === "uploading"'),
+  "Dashboard aggregation must filter deleted, failed, and in-flight datasets out of current analytics.",
 )
 assert(
   aggregation.includes("datasetCount: activeDatasets.length") &&

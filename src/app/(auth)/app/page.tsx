@@ -44,7 +44,7 @@ import { aiInteractionTraces, profiles } from "@/lib/db/schema"
 import { getOrCreateDailyHealthBrief, type ExecutiveDailyBrief } from "@/lib/executive/daily-health"
 import { listAllReports } from "@/lib/reports/report-generator"
 import { isTrendEligible } from "@/lib/data/trend-semantics"
-import { count, desc, eq } from "drizzle-orm"
+import { and, count, desc, eq } from "drizzle-orm"
 import {
   Activity,
   AlertTriangle,
@@ -181,26 +181,29 @@ const RANGE_LABELS: Record<RangeKey, string> = {
 async function getStats(userId: string | null, selectedDatasetId?: string | null): Promise<DashboardStats> {
   if (!userId) return emptyStats()
 
-  // Workspace scope powers the Upload History card; the selected-dataset scope
-  // powers the interactive dashboard analytics. The two scopes stay separate.
   const [dashboardData, workspaceData] = await Promise.all([
     loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId }),
     loadDashboardDatasetAggregation(userId),
   ])
+  const activeTraceDatasetId = dashboardData.latestUpload?.id ?? null
 
   try {
     const [aiTraceCount, profile, latestAiTraces] = await Promise.all([
-      db.select({ value: count() }).from(aiInteractionTraces).where(eq(aiInteractionTraces.userId, userId)).catch(() => [{ value: 0 }]),
+      activeTraceDatasetId
+        ? db.select({ value: count() }).from(aiInteractionTraces).where(and(eq(aiInteractionTraces.userId, userId), eq(aiInteractionTraces.datasetId, activeTraceDatasetId))).catch(() => [{ value: 0 }])
+        : Promise.resolve([{ value: 0 }]),
       db.query.profiles.findFirst({
         where: eq(profiles.userId, userId),
         columns: { id: true, firstName: true, fullName: true, email: true, businessName: true, companyName: true },
       }).catch(() => null),
-      db.query.aiInteractionTraces.findMany({
-        where: eq(aiInteractionTraces.userId, userId),
-        orderBy: [desc(aiInteractionTraces.createdAt)],
-        limit: 6,
-        columns: { id: true, prompt: true, response: true, providerName: true, createdAt: true },
-      }).catch(() => []),
+      activeTraceDatasetId
+        ? db.query.aiInteractionTraces.findMany({
+            where: and(eq(aiInteractionTraces.userId, userId), eq(aiInteractionTraces.datasetId, activeTraceDatasetId)),
+            orderBy: [desc(aiInteractionTraces.createdAt)],
+            limit: 6,
+            columns: { id: true, prompt: true, response: true, providerName: true, createdAt: true },
+          }).catch(() => [])
+        : Promise.resolve([]),
     ])
 
     const allDatasets = dashboardData.datasets
@@ -887,7 +890,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
   const session = await auth()
   const userId = session?.user?.id ?? null
   const stats = await getStats(userId, selectedDatasetId)
-  const activeDatasetId = selectedDatasetId ?? stats.latestDataset?.id ?? null
+  const activeDatasetId = stats.latestDataset?.id ?? null
   const selected = selectDashboardDataset(stats, activeDatasetId)
   const dashboardStats = selected.stats
   const dailyBrief = userId && activeDatasetId
@@ -944,7 +947,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
                 {isProfitabilityDashboard
-                  ? "Combined revenue and expense profitability analysis."
+                  ? "Revenue and expense profitability analysis for the active dataset."
                   : selected.selectedDataset
                   ? `Live ${dashboardProfileLabel.toLowerCase()} analytics for ${selected.selectedDataset.name}.`
                   : "Live " + dashboardProfileLabel.toLowerCase() + " analytics, dataset activity, and AI outputs from uploaded business data."}
@@ -1023,10 +1026,10 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
               <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
                 <DashboardSection icon={FileSpreadsheet} title="Dataset Analytics" compact>
                   <Card className="p-5">
-                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.workspaceData.totalRows)} rows processed across ${formatNumber(dashboardStats.workspaceData.datasetCount)} dataset${dashboardStats.workspaceData.datasetCount === 1 ? "" : "s"} in this workspace.`} />
+                    <PanelHeader title="Upload History" detail={`${formatNumber(dashboardStats.dashboardData.totalRows)} rows processed across ${formatNumber(dashboardStats.dashboardData.datasetCount)} selected dataset${dashboardStats.dashboardData.datasetCount === 1 ? "" : "s"}.`} />
                     <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                      <SourceMix dashboardData={dashboardStats.workspaceData} />
-                      <LatestDatasets datasets={selected.missing ? [] : stats.allDatasets.slice(0, 6)} activeDatasetId={selected.selectedDataset?.id ?? null} />
+                      <SourceMix dashboardData={dashboardStats.dashboardData} />
+                      <LatestDatasets datasets={selected.missing ? [] : dashboardStats.allDatasets.slice(0, 6)} activeDatasetId={selected.selectedDataset?.id ?? null} />
                     </div>
                   </Card>
                 </DashboardSection>

@@ -192,7 +192,7 @@ async function loadDailyHealthSource(
       where: eq(profiles.userId, userId),
       columns: { firstName: true, businessName: true, companyName: true, industry: true, location: true },
     }),
-    loadDashboardDatasetAggregation(userId, datasetId ? { datasetId, includeCompatibleDatasets: true } : {}),
+    loadDashboardDatasetAggregation(userId, datasetId ? { datasetId } : {}),
   ])
 
   return {

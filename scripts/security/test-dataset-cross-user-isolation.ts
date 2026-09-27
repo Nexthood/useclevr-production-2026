@@ -30,7 +30,7 @@ async function main() {
       { id: userB, email: `${userB}@example.test`, name: "Isolation B", createdAt: now },
     ])
     await db.insert(datasets).values([
-      buildDataset(datasetA1, userA, "Isolation Retail A1", now, 30),
+      buildDataset(datasetA1, userA, "Isolation Retail A1", new Date(now.getTime() - 1000), 30),
       buildDataset(datasetA2, userA, "Isolation Standard A2", now, 45),
       buildDataset(datasetB1, userB, "Isolation Retail B1", now, 60),
     ])
@@ -65,24 +65,24 @@ async function main() {
     // ─── Dashboard aggregation isolation ─────────────────────────────
     const dashboardA = await loadDashboardDatasetAggregation(userA)
     const dashboardIdsA = new Set(dashboardA.datasets.map((dataset) => dataset.id))
-    assert.ok(dashboardIdsA.has(datasetA1) && dashboardIdsA.has(datasetA2), "dashboard aggregation contains User A's datasets")
+    assert.ok(dashboardIdsA.has(datasetA2), "dashboard aggregation contains User A's newest eligible dashboard dataset")
+    assert.ok(!dashboardIdsA.has(datasetA1), "dashboard aggregation does not combine User A's same-workspace datasets")
     assert.ok(!dashboardIdsA.has(datasetB1), "dashboard aggregation never contains User B's dataset")
-    assert.equal(dashboardA.datasetCount, 2, "dashboard dataset count covers only the caller's datasets")
-    assert.equal(dashboardA.totalRows, 75, "dashboard processed rows aggregate only the caller's datasets")
+    assert.equal(dashboardA.datasetCount, 1, "dashboard dataset count covers only the selected dashboard dataset")
+    assert.equal(dashboardA.totalRows, 45, "dashboard processed rows come only from the selected dashboard dataset")
 
     const dashboardB = await loadDashboardDatasetAggregation(userB)
     const dashboardIdsB = new Set(dashboardB.datasets.map((dataset) => dataset.id))
     assert.ok(dashboardIdsB.has(datasetB1), "dashboard aggregation contains User B's own dataset")
     assert.ok(!dashboardIdsB.has(datasetA1) && !dashboardIdsB.has(datasetA2), "dashboard aggregation never contains User A's datasets for User B")
 
-    const foreignSelected = await loadDashboardDatasetAggregation(userA, {
-      datasetId: datasetB1,
-      includeCompatibleDatasets: true,
-    })
-    assert.equal(foreignSelected.datasetCount, 0, "submitting a foreign dataset ID yields an empty selected-dataset scope")
+    const foreignSelected = await loadDashboardDatasetAggregation(userA, { datasetId: datasetB1 })
+    assert.equal(foreignSelected.datasetCount, 1, "submitting a foreign dataset ID falls back to User A's default dashboard dataset")
+    assert.deepEqual(foreignSelected.datasets.map((dataset) => dataset.id), [datasetA2], "foreign dataset IDs never influence User A dashboard analytics")
 
     const foreignWorkspaceScope = await loadDashboardDatasetAggregation(userA, { datasetId: datasetB1 })
-    assert.equal(foreignWorkspaceScope.datasetCount, 0, "direct dataset-scoped aggregation denies a foreign dataset ID")
+    assert.equal(foreignWorkspaceScope.datasetCount, 1, "direct dataset-scoped aggregation ignores a foreign dataset ID")
+    assert.deepEqual(foreignWorkspaceScope.datasets.map((dataset) => dataset.id), [datasetA2], "direct dataset-scoped aggregation falls back to an owned dashboard dataset")
 
     // ─── Mutation isolation: delete ──────────────────────────────────
     const foreignSingleDelete = await deleteDatasetsForUser({
