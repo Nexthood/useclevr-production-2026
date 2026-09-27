@@ -696,3 +696,7 @@ moving work between states.
 ## Label: retail
 
 - T-1075. Connect Square live data to the existing Retail analytics dashboard through one normalized retail analytics model: add a Retail data source selector over uploaded retail datasets and connected Square connections with URL-persisted owner-validated selection, serve Square analytics from synchronized UseClevr records with server-side order aggregation and tenant-scoped resolution, render Square catalog/inventory/sync context with source-aware empty states and no-sales explanations instead of fabricated revenue, profit, or reorder thresholds, refresh Retail analytics after manual Square sync, keep the CSV/Excel upload flow on the same shared record engine unchanged, route Usy retail questions to the selected connected source deterministically without dataset fallback, and add the retail-source-analytics regression suite. (labels: retail, data, ui, ai, security; commit: worktree)
+
+## Label: billing
+
+- T-1077. Fix the Business Monthly Stripe checkout amount mismatch for UK, US, and Canada by matching `approvedBusinessAmountByMarket` to the live Stripe Prices (UK 40950 → 36000 £360/month, US 47250 → 48500 $485/month, CA 57750 → 68000 CA$680/month, EU unchanged 42000 €420/month), add mocked Business Monthly validation regressions accepting the exact live amounts and rejecting the retired amounts with `invalid_business_price_mapping` and the exact production message, and update the canonical display, requirements, and changelog records. (labels: billing, payment; commit: worktree)

@@ -7,6 +7,7 @@
 ### Changed
 
 - Show UK Pro at £35/month and Canada Pro at CA$65/month across pricing, checkout, and assistant answers so the displayed prices match the approved Stripe prices.
+- Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
 

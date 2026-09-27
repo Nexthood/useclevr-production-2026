@@ -148,9 +148,9 @@ const businessYearlyPriceEnvNamesByMarket: Record<CheckoutMarket, string[]> = {
 
 const approvedBusinessAmountByMarket: Partial<Record<CheckoutMarket, number>> = {
   eu: 42000,
-  uk: 40950,
-  us: 47250,
-  ca: 57750,
+  uk: 36000,
+  us: 48500,
+  ca: 68000,
 }
 
 const approvedYearlyAmountByPlanAndMarket: Record<CheckoutPlanSlug, Record<CheckoutMarket, number>> = {

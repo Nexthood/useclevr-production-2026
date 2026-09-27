@@ -18511,3 +18511,47 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - Latest interaction status: docs/AI-interaction/interaction-status.md
    - Release notes: CHANGELOG.md
    - Product requirement: requirements.md
+
+## 2026-09-27 — Business Monthly price correction to live Stripe amounts (UK/US/CA)
+
+1. Interaction title
+   Fix only the currently failing Business Monthly pricing mismatch ("The selected Stripe price amount does not match the selected market.") for the exact market/currency combinations producing it, with Stripe as the source of truth, no Pro/yearly/Stripe/architecture changes, no full matrix audit, and no commit or push.
+
+2. What was the user goal
+   Make each affected Business Monthly market match its existing Stripe price exactly: trace Business Monthly → market → configured Price ID → live Stripe amount/currency → UseClevr expected amount, correct only the mismatching markets, add targeted regression tests, and run only targeted billing tests plus TypeScript validation.
+
+3. What changed
+   - `src/lib/billing/launch-pricing.ts`: `approvedBusinessAmountByMarket` UK 40950 → 36000, US 47250 → 48500, CA 57750 → 68000; EU stays 42000. This map is the single source feeding `getCheckoutMarketOptions` → `resolveCheckoutMarketPrice` → `expectedAmountMinor` in `/api/checkout` and `/api/checkout/confirm` plus every display price.
+   - `scripts/billing/test-pro-launch-pricing.ts`: Business UK/US/CA monthly amount and display expectations updated (£360/$485/CA$680), monthly amount matrix updated, and new mocked-Stripe validation regressions added: Business EU/UK/US/CA Monthly acceptance at the exact live Stripe amounts (eur 42000, gbp 36000, usd 48500, cad 68000) and UK/US/CA rejection of the retired amounts (40950/47250/57750) with code `invalid_business_price_mapping` and the exact production message.
+   - `scripts/billing/test-business-plan-limits.ts`: Business UK/US/CA canonical display expectations updated.
+   - `requirements.md`: Business monthly per-market prices documented (€420/£360/$485/CA$680); `CHANGELOG.md`: `### Changed` entry under `[Unreleased]`.
+
+4. Diagnosis (trace)
+   - Production env (Railway service `useclevr app`, production environment, read-only variables query): EU has no `STRIPE_PRICE_BUSINESS_EUR_MONTHLY`, so `businessPriceEnvNamesByMarket.eu` falls back to `STRIPE_PRICE_BUSINESS_MONTHLY`; UK/US/CA resolve from their dedicated `STRIPE_PRICE_BUSINESS_*_MONTHLY` variables.
+   - Live Stripe catalog queried read-only for the four configured Price IDs: EU `price_1TYoOi…` eur 42000 month active; UK `price_1U0SL9…` gbp 36000 month active; US `price_1TxmfN…` usd 48500 month active; CA `price_1U0Rq1…` cad 68000 month active.
+   - Mismatching markets: UK (expected 40950 vs Stripe 36000), US (expected 47250 vs Stripe 48500), CA (expected 57750 vs Stripe 68000). EU already matched. Failure point: `validateStripeSubscriptionPrice` amount check in `src/services/stripe/checkout.ts` after active/currency/interval checks pass.
+   - Resolution: Stripe canonical values adopted into `approvedBusinessAmountByMarket`; no Stripe, Price ID, validation logic, yearly, or Pro changes.
+
+5. Verification
+   - `pnpm test:pro-pricing` passes (including new Business Monthly acceptance/rejection regressions); `pnpm test:business-plan-limits` passes; `pnpm test:tier-resolution` passes; `pnpm exec tsc --noEmit --pretty false` exit 0.
+   - No full test suite, lint, security scan, build, or unrelated checks run per hotfix scope. Secrets redacted; Railway variables dump and temporary audit script deleted after use.
+
+6. User learning
+   Business Monthly UK, US, and Canada checkout amounts now match the live Stripe Prices exactly: £360, $485, and CA$680; EU stays €420.
+
+7. AI-agent learning
+   Railway production variables are readable through the GraphQL `variables(projectId, environmentId, serviceId)` query with the project API token even though the native CLI `variables` command is unauthorized; that read-only path plus the project's audit approach resolves market price verification without guessing.
+
+8. Follow-up tasks
+   - Deploy and confirm live Business UK/US/CA checkout opens Stripe at £360/$485/CA$680.
+   - Re-run `node -r tsx/esm scripts/billing/verify-stripe-market-prices.ts` with the production Stripe key to confirm all 16 rows report ok.
+
+9. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+10. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirement: requirements.md

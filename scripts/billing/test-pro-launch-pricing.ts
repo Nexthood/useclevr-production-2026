@@ -274,8 +274,8 @@ const businessUk = resolveCheckoutMarketPrice({
   market: "uk",
 })
 assert.equal(businessUk.currency, "GBP", "Business UK currency")
-assert.equal(businessUk.amountMinor, 40950, "Business UK amount is preserved")
-assert.equal(businessUk.displayPrice, "£410/month", "Business UK display price")
+assert.equal(businessUk.amountMinor, 36000, "Business UK amount matches the live GBP 36000 Stripe Price")
+assert.equal(businessUk.displayPrice, "£360/month", "Business UK display price")
 assert.equal(businessUk.stripePriceId, "price_business_gbp_test", "Business UK uses configured Stripe price")
 
 const businessUs = resolveCheckoutMarketPrice({
@@ -284,8 +284,8 @@ const businessUs = resolveCheckoutMarketPrice({
   market: "us",
 })
 assert.equal(businessUs.currency, "USD", "Business US currency")
-assert.equal(businessUs.amountMinor, 47250, "Business US amount is preserved")
-assert.equal(businessUs.displayPrice, "$473/month", "Business US display price")
+assert.equal(businessUs.amountMinor, 48500, "Business US amount matches the live USD 48500 Stripe Price")
+assert.equal(businessUs.displayPrice, "$485/month", "Business US display price")
 assert.equal(businessUs.stripePriceId, "price_business_usd_test", "Business US uses configured Stripe price")
 
 const businessCa = resolveCheckoutMarketPrice({
@@ -294,8 +294,8 @@ const businessCa = resolveCheckoutMarketPrice({
   market: "ca",
 })
 assert.equal(businessCa.currency, "CAD", "Business CA currency")
-assert.equal(businessCa.amountMinor, 57750, "Business CA amount is preserved")
-assert.equal(businessCa.displayPrice, "CA$578/month", "Business CA display price")
+assert.equal(businessCa.amountMinor, 68000, "Business CA amount matches the live CAD 68000 Stripe Price")
+assert.equal(businessCa.displayPrice, "CA$680/month", "Business CA display price")
 assert.equal(businessCa.stripePriceId, "price_business_cad_test", "Business CA uses configured Stripe price")
 
 const yearlyCases = [
@@ -415,6 +415,14 @@ const euMonthlyResolution = proMonthlyMarketResolutions.find((entry) => entry.ma
 const usMonthlyResolution = proMonthlyMarketResolutions.find((entry) => entry.market === "us")!
 const caMonthlyResolution = proMonthlyMarketResolutions.find((entry) => entry.market === "ca")!
 
+const businessMonthlyMarketResolutions = (["eu", "uk", "us", "ca"] as CheckoutMarket[]).map(
+  (market) => resolveCheckoutMarketPrice({ plan: "business", billingInterval: "monthly", market }),
+)
+const businessEuMonthlyResolution = businessMonthlyMarketResolutions.find((entry) => entry.market === "eu")!
+const businessUkMonthlyResolution = businessMonthlyMarketResolutions.find((entry) => entry.market === "uk")!
+const businessUsMonthlyResolution = businessMonthlyMarketResolutions.find((entry) => entry.market === "us")!
+const businessCaMonthlyResolution = businessMonthlyMarketResolutions.find((entry) => entry.market === "ca")!
+
 async function runStripePriceValidationRegressions() {
   await expectProCheckoutAccepted({
     label: "UK Pro Monthly accepts the £35 GBP monthly Stripe Price",
@@ -521,6 +529,51 @@ async function runStripePriceValidationRegressions() {
       market: "ca",
     },
   })
+
+  const businessMonthlyStripeAmounts = [
+    { resolution: businessEuMonthlyResolution, currency: "eur", unitAmount: 42000 },
+    { resolution: businessUkMonthlyResolution, currency: "gbp", unitAmount: 36000 },
+    { resolution: businessUsMonthlyResolution, currency: "usd", unitAmount: 48500 },
+    { resolution: businessCaMonthlyResolution, currency: "cad", unitAmount: 68000 },
+  ] as const
+  for (const entry of businessMonthlyStripeAmounts) {
+    await expectProCheckoutAccepted({
+      label: `Business ${entry.resolution.market} Monthly accepts the live ${entry.currency.toUpperCase()} ${entry.unitAmount} monthly Stripe Price`,
+      resolved: entry.resolution,
+      stripePrice: {
+        id: entry.resolution.stripePriceId!,
+        currency: entry.currency,
+        unit_amount: entry.unitAmount,
+        recurring: { interval: "month" },
+      },
+      expectedSession: {
+        priceId: entry.resolution.stripePriceId!,
+        currency: entry.currency,
+        market: entry.resolution.market,
+      },
+    })
+  }
+
+  const businessMonthlyWrongAmountCases = [
+    { resolution: businessUkMonthlyResolution, currency: "gbp", wrongAmount: 40950 },
+    { resolution: businessUsMonthlyResolution, currency: "usd", wrongAmount: 47250 },
+    { resolution: businessCaMonthlyResolution, currency: "cad", wrongAmount: 57750 },
+  ] as const
+  for (const entry of businessMonthlyWrongAmountCases) {
+    await expectProCheckoutRejection({
+      label: `Business ${entry.resolution.market} Monthly rejects the retired ${entry.currency.toUpperCase()} ${entry.wrongAmount} amount`,
+      resolved: entry.resolution,
+      stripePrice: {
+        id: entry.resolution.stripePriceId!,
+        currency: entry.currency,
+        unit_amount: entry.wrongAmount,
+        recurring: { interval: "month" },
+      },
+      expectedCode: "invalid_business_price_mapping",
+      expectedMessage: "The selected Stripe price amount does not match the selected market.",
+      blockedLabel: `Business ${entry.resolution.market} Monthly amount mismatch never creates a Stripe Checkout Session`,
+    })
+  }
 }
 
 async function expectProCheckoutAccepted(input: {
@@ -691,7 +744,7 @@ const intervals: BillingInterval[] = ["monthly", "yearly"]
 
 const expectedMonthlyAmounts: Record<string, Record<string, number>> = {
   pro: { eu: 4000, uk: 3500, us: 4500, ca: 6500 },
-  business: { eu: 42000, uk: 40950, us: 47250, ca: 57750 },
+  business: { eu: 42000, uk: 36000, us: 48500, ca: 68000 },
 }
 const expectedYearlyAmounts: Record<string, Record<string, number>> = {
   pro: { eu: 48000, uk: 41000, us: 55000, ca: 77500 },
@@ -751,9 +804,9 @@ assert.equal(resolvePlanPrice("pro_annual", "us", "yearly")?.displayPrice, "$550
 assert.equal(resolvePlanPrice("pro_annual", "ca", "yearly")?.displayPrice, "CA$775/year", "Pro CA yearly display price")
 
 assert.equal(resolvePlanPrice("business_monthly", "eu", "monthly")?.displayPrice, "€420/month", "Business EU monthly display price")
-assert.equal(resolvePlanPrice("business_monthly", "uk", "monthly")?.displayPrice, "£410/month", "Business UK monthly display price")
-assert.equal(resolvePlanPrice("business_monthly", "us", "monthly")?.displayPrice, "$473/month", "Business US monthly display price")
-assert.equal(resolvePlanPrice("business_monthly", "ca", "monthly")?.displayPrice, "CA$578/month", "Business CA monthly display price")
+assert.equal(resolvePlanPrice("business_monthly", "uk", "monthly")?.displayPrice, "£360/month", "Business UK monthly display price")
+assert.equal(resolvePlanPrice("business_monthly", "us", "monthly")?.displayPrice, "$485/month", "Business US monthly display price")
+assert.equal(resolvePlanPrice("business_monthly", "ca", "monthly")?.displayPrice, "CA$680/month", "Business CA monthly display price")
 
 assert.equal(resolvePlanPrice("business_annual", "eu", "yearly")?.displayPrice, "€5,040/year", "Business EU yearly display price")
 assert.equal(resolvePlanPrice("business_annual", "uk", "yearly")?.displayPrice, "£4,320/year", "Business UK yearly display price")
