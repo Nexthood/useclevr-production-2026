@@ -33,27 +33,25 @@ async function main() {
       buildDataset(datasetD1, userD, "Standard Workspace D", new Date(base - 3 * DAY_MS)),
     ])
 
-    // Workspace scope: the dashboard aggregation counts only the caller's own
-    // non-prebookkeeping datasets. Another user's dataset must never inflate
-    // the workspace dataset count or processed rows.
+    // Default dashboard scope: the dashboard uses the caller's newest eligible
+    // dataset only. Pre-bookkeeping and other-user datasets never inflate rows.
     const userCScope = await loadDashboardDatasetAggregation(userC)
-    assert.equal(userCScope.datasetCount, 2, "dashboard aggregation counts only the caller's datasets")
-    assert.equal(userCScope.activeDatasetCount, 2, "dashboard active count matches the caller's datasets")
-    assert.equal(userCScope.totalRows, 90, "dashboard processed rows aggregate only the caller's datasets")
+    assert.equal(userCScope.datasetCount, 1, "dashboard aggregation selects one default dataset")
+    assert.equal(userCScope.activeDatasetCount, 1, "dashboard active count matches the default dataset")
+    assert.equal(userCScope.totalRows, 45, "dashboard processed rows come only from the default dataset")
     const userCIds = new Set(userCScope.datasets.map((dataset) => dataset.id))
-    assert.ok(userCIds.has(datasetC1) && userCIds.has(datasetC2), "dashboard aggregation includes the caller's standard and retail datasets")
+    assert.ok(userCIds.has(datasetC2), "dashboard aggregation uses the newest eligible dataset")
+    assert.ok(!userCIds.has(datasetC1), "dashboard aggregation excludes older eligible datasets by default")
     assert.ok(!userCIds.has(datasetC3), "dashboard aggregation excludes pre-bookkeeping datasets")
     assert.ok(!userCIds.has(datasetD1), "dashboard aggregation excludes another user's datasets")
 
     const userDScope = await loadDashboardDatasetAggregation(userD)
     assert.equal(userDScope.datasetCount, 1, "a workspace with one dataset reports one dataset")
 
-    const selectedScope = await loadDashboardDatasetAggregation(userC, {
-      datasetId: datasetC1,
-      includeCompatibleDatasets: true,
-    })
+    const selectedScope = await loadDashboardDatasetAggregation(userC, { datasetId: datasetC1 })
     const selectedIds = new Set(selectedScope.datasets.map((dataset) => dataset.id))
     assert.ok(selectedIds.has(datasetC1), "selected-dataset scope keeps the selected dataset")
+    assert.ok(!selectedIds.has(datasetC2), "selected-dataset scope excludes another same-workspace dataset")
     assert.ok(!selectedIds.has(datasetD1), "selected-dataset scope never includes another user's dataset")
 
     // Deletion semantics: after deleting the workspace datasets, the current

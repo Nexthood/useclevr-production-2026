@@ -25,9 +25,9 @@ export default async function DailyHealthPage({ searchParams }: DailyHealthPageP
   const window = parseWindow(params.window)
   const selectedDatasetId = parseDatasetId(params.datasetId)
   const initialDashboardData = await loadDashboardDatasetAggregation(userId, { datasetId: selectedDatasetId })
-  const activeDatasetId = selectedDatasetId ?? initialDashboardData.latestUpload?.id ?? null
+  const activeDatasetId = initialDashboardData.latestUpload?.id ?? null
   const dashboardData = activeDatasetId
-    ? await loadDashboardDatasetAggregation(userId, { datasetId: activeDatasetId, includeCompatibleDatasets: true })
+    ? await loadDashboardDatasetAggregation(userId, { datasetId: activeDatasetId })
     : initialDashboardData
   const hasActiveDatasets = dashboardData.activeDatasetCount > 0
   const [today, history] = await Promise.all([

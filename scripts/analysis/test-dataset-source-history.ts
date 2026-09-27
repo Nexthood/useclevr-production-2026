@@ -97,14 +97,15 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "upload history statistics stay at workspace scope with a consistent label",
+    name: "upload history statistics stay at selected dataset scope with a consistent label",
     run() {
       const page = readProjectFile("src/app/(auth)/app/page.tsx")
-      assert.ok(page.includes("loadDashboardDatasetAggregation(userId)"), "the dashboard loads a workspace-scope aggregation")
-      assert.ok(page.includes("workspaceData"), "Upload History reads workspace-level statistics")
-      assert.ok(page.includes("rows processed across"), "the label keeps its workspace meaning")
-      assert.ok(page.includes("in this workspace."), "the workspace scope is explicit in the upload history label")
-      assert.ok(page.includes("workspaceData.totalRows") && page.includes("workspaceData.datasetCount"), "row totals and dataset counts share the same workspace scope")      },
+      assert.ok(page.includes("loadDashboardDatasetAggregation(userId)"), "the dashboard loads the default dashboard dataset scope")
+      assert.ok(page.includes("workspaceData"), "legacy dashboard stats shape keeps workspaceData populated from the shared resolver")
+      assert.ok(page.includes("rows processed across"), "the label keeps its processed-row meaning")
+      assert.ok(page.includes("selected dataset"), "the selected dataset scope is explicit in the upload history label")
+      assert.ok(page.includes("dashboardStats.dashboardData.totalRows") && page.includes("dashboardStats.dashboardData.datasetCount"), "row totals and dataset counts share the same selected dataset scope")
+    },
   },
   {
     name: "the dataset library surfaces the persisted source",

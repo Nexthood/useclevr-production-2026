@@ -18512,6 +18512,42 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - Release notes: CHANGELOG.md
    - Product requirement: requirements.md
 
+## 2026-09-27 — Dashboard active-dataset resolver cleanup
+
+1. Interaction title
+   Remove the overcomplicated dataset-isolation attempt and implement the final one-dataset dashboard resolver rule.
+
+2. What was the user goal
+   Preserve unrelated worktree changes, do not commit or push, remove unnecessary compatibility/workspace aggregation complexity, and keep only the minimum dashboard behavior: valid explicit `datasetId` selects exactly one owned eligible dataset; otherwise the newest eligible Standard, Retail, Profitability, ClevrSync, or Google Sheets dataset becomes active; Accountancy and Pre-bookkeeping never feed dashboard analytics.
+
+3. What changed
+   - `src/lib/data/dashboard-dataset-aggregation.ts`: the shared resolver now selects exactly one dashboard dataset, keeps `userId` ownership in the database query, rejects deleted/failed/in-flight rows, excludes Accountancy/accountancy document/Pre-bookkeeping, accepts Standard/Retail/Profitability and ClevrSync/Google Sheets sources, and falls back to the newest eligible owned dataset only when the explicit dataset ID is invalid or ineligible.
+   - `src/app/(auth)/app/page.tsx`: the active dashboard ID comes from the resolved dataset, Upload History/source counts/listing and AI activity use the active dashboard scope, and the profitability hero copy no longer says "Combined".
+   - `src/app/(auth)/app/daily-health/page.tsx` and `src/lib/executive/daily-health.ts`: Daily Health follows the resolved active dashboard dataset and no longer asks for compatible workspace expansion.
+   - Deterministic tests now assert newest eligible defaulting, exact explicit selection, Retail A/Retail B same-type isolation, Standard/Retail/Profitability/ClevrSync eligibility, and Accountancy/Pre-bookkeeping/accountancy-document exclusion.
+   - Removed the previous DB-backed `test-dashboard-dataset-source-isolation` script and package entry.
+
+4. Problems marked
+   - observation: the previous attempt added a semantically compatible multi-dataset expansion and a DB-backed regression hook, both contradicting the final one-dataset rule.
+   - observation: deterministic resolver tests cover the final rule without Neon/network access; DB-backed isolation scripts were updated for consistency but intentionally not run.
+
+5. User learning
+   Dashboard analytics now use one resolved active dataset. Workspace datasets remain stored and selectable elsewhere, but they do not automatically combine into the dashboard.
+
+6. AI-agent learning
+   Keep dashboard scoping in one resolver. Do not solve selected-dataset isolation by adding page-by-page filters or compatibility expansion.
+
+7. Follow-up tasks
+   - None.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
 ## 2026-09-27 — Business Monthly price correction to live Stripe amounts (UK/US/CA)
 
 1. Interaction title
