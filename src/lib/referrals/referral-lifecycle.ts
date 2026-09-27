@@ -11,6 +11,7 @@ import {
   referralStats,
   userCredits,
 } from "@/lib/db/schema"
+import { initializeUserCredits } from "@/lib/billing/credit-engine"
 import { REFERRAL_REWARD_CONFIG } from "@/lib/referrals/referral-config"
 
 type ReferralTx = Parameters<Parameters<Database["transaction"]>[0]>[0]
@@ -305,15 +306,29 @@ async function grantReferralCredits(input: {
   const isSignup = input.kind === "signup"
 
   try {
-    await db.transaction(async (tx) => {
-      const profile = await tx.query.profiles.findFirst({
-        where: eq(profiles.userId, input.referrerUserId),
-        columns: { role: true },
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.userId, input.referrerUserId),
+      columns: { role: true, subscriptionTier: true },
+    })
+
+    // Admin/superadmin accounts have unlimited credits and no UserCredit row.
+    const unlimited = profile?.role === "admin" || profile?.role === "superadmin"
+
+    // Regular referrers need a UserCredit row before the grant transaction can
+    // apply the balance. Referrers who never triggered credit initialization
+    // get the engine's standard idempotent bootstrap first, so the reward
+    // credits are never written to a missing row.
+    if (!unlimited) {
+      const existingAccount = await db.query.userCredits.findFirst({
+        where: eq(userCredits.userId, input.referrerUserId),
+        columns: { userId: true },
       })
+      if (!existingAccount) {
+        await initializeUserCredits(input.referrerUserId, profile?.subscriptionTier || "free")
+      }
+    }
 
-      // Admin/superadmin accounts have unlimited credits and no UserCredit row.
-      const unlimited = profile?.role === "admin" || profile?.role === "superadmin"
-
+    await db.transaction(async (tx) => {
       // Single-grant guard: only the writer that flips the attribution reward
       // state out of its pre-grant value may credit the balance. Concurrent
       // retries lose this conditional update entirely and change nothing.
@@ -421,7 +436,7 @@ async function grantReferralCredits(input: {
         },
         createdAt: now,
         finalizedAt: now,
-      }).onConflictDoNothing({ target: creditLedger.idempotencyKey })
+      }).onConflictDoNothing()
 
       await tx
         .update(referralAttributions)
@@ -861,7 +876,7 @@ export async function reverseReferralReward(input: {
           reviewFlagged: flaggedForReview,
         },
         finalizedAt: now,
-      }).onConflictDoNothing({ target: creditLedger.idempotencyKey })
+      }).onConflictDoNothing()
 
       await recomputeCreditsEarned(tx, attribution.code)
     })

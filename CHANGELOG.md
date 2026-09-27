@@ -2,6 +2,9 @@
 
 ### Fixed
 
+- Referral links now open the signup page for logged-out visitors instead of returning an error, so shared referral links work again.
+- Referrers now receive their signup reward credits reliably, including accounts that have not used credits yet.
+
 - BYOK stays unavailable until an AI provider is added and enabled, shows "Provider required" on the AI mode card, and returns a clear provider-required message instead of a generic background failure; UseClevr Cloud only takes over after explicitly enabling cloud fallback.
 
 ### Changed

@@ -18591,3 +18591,49 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - Latest interaction status: docs/AI-interaction/interaction-status.md
    - Release notes: CHANGELOG.md
    - Product requirement: requirements.md
+
+## 2026-09-27 — Referral signup flow: logged-out Unauthorized fix and reward-grant repair
+
+1. Interaction title
+   Fix the UseClevr referral signup flow: `/signup?ref=<code>` returned `{"error":"Unauthorized"}` for logged-out visitors, making referral links unusable; report the exact root cause first, apply the smallest correct fix, preserve the ref parameter through the flow, keep attribution/tracking intact, and leave protected routes and the Referral Center untouched.
+
+2. What was the user goal
+   Make referral links work end to end: public signup with a referral code, attribution recorded exactly once for new users, invalid codes never break signup, existing users cannot fake attribution, Clicks/Signups/Paid Users/Credits Earned keep working, and `/app/*` plus private APIs stay protected. Test the production-equivalent flow, not only unit calls.
+
+3. What changed
+   - `src/proxy.ts`: added `/api/referral/visit` to `publicApiPaths`. This is the entire auth/public-route change: the visit endpoint is designed for anonymous visitors (session optional, redirect-only responses, no data exposure) and the proxy's blanket `/api/*` 401 was blocking it.
+   - `src/lib/referrals/referral-lifecycle.ts` (reward-grant repair found by testing): `grantReferralCredits` and `reverseReferralReward` replaced `onConflictDoNothing({ target: creditLedger.idempotencyKey })` with bare `onConflictDoNothing()` — the live `CreditLedger_idempotencyKey_key` index is partial (`WHERE "idempotencyKey" IS NOT NULL`), and Postgres cannot infer a partial unique index from a bare column target, so every referral reward insert failed with "no unique or exclusion constraint matching the ON CONFLICT specification" and rewards never granted.
+   - `src/lib/referrals/referral-lifecycle.ts` (missing-balance bootstrap): `grantReferralCredits` now runs the engine's idempotent `initializeUserCredits(referrerUserId, profile.subscriptionTier || "free")` when a regular (non-admin) referrer has no `UserCredit` row; live data contained at least one code owner without a credit row, and the balance `UPDATE` would otherwise have applied to zero rows and silently dropped the reward credits.
+   - `scripts/billing/test-referral-automation.ts`: the idempotency assertion now requires the bare `onConflictDoNothing()` guard (DB-level partial unique index enforcement) and rejects the retired explicit-target form that could never match the index.
+   - `requirements.md`: documented public referral-link accessibility and cookie-preserved attribution under "Credit Rules & Referrals"; `CHANGELOG.md`: two `### Fixed` entries under `[Unreleased]`.
+
+4. Diagnosis (trace)
+   - Route chain: Referral Center builds `https://app.useclevr.com/signup?ref=uc-…` (`buildReferralLink`); `src/app/(public)/signup/page.tsx` normalizes the code and redirects to `/api/referral/visit?code=…`; the visit route records the click, sets the httpOnly `useclevr_ref_attribution` cookie (30 days, lax, secure), and redirects to `/login?tab=signup`; the signup server action creates the user, email verification completes, and `verifyEmailOtp` (purpose signup) calls `confirmReferralAfterVerification` which reads the cookie and runs `confirmReferralSignup` (unique per referred user, self-referral blocked by id and email, immutable first attribution, pending reward retried on Referral Center load).
+   - Unauthorized source: `src/proxy.ts` middleware — unauthenticated `/api/*` requests outside `publicApiPrefixes` (`/api/auth`) and `publicApiPaths` return `NextResponse.json({ error: "Unauthorized" }, { status: 401 })`. `/signup` pages were never blocked; the redirect chain's first hop (`/api/referral/visit`) was the 401.
+   - Reward-grant failure surfaced by the E2E test: attribution wrote correctly while the 5-credit grant failed; drizzle wrapped the cause, so the true PG errors were recovered by probing the exact insert: first a test-fixture FK miss, then the real `ON CONFLICT` partial-index inference failure, then a reachable-in-production missing `UserCredit` row (`uc-7110f2603c` owner has no credit row).
+
+5. Validation
+   - New proxy access-control suite (production `proxy()` against real `NextRequest`s, 11/11): logged-out `/api/referral/visit` passes through (was 401); logged-out `/signup`, `/signup?ref=…` pass through; regression guards keep `/api/referral`, `/api/datasets`, `/api/analyze` at 401 `{"error":"Unauthorized"}` for anonymous callers; `/api/auth/session` stays public; `/app/dashboard` still passes through the proxy with layout-level auth unchanged; logged-in requests unaffected; CSP nonce plumbing intact.
+   - New live-DB lifecycle E2E (24/24, production functions in production order, full cleanup verified zero rows): click recorded and deduped per IP/day; self-visit and unknown codes ignored; attribution exactly once with correct referrer/code; stats signups incremented once; one signup event; reward ledger row with the per-referred-user idempotency key at the configured 5 credits; referrer `purchasedBalance` credited; `creditsEarned` recomputed; replay and second-code confirmation rejected as `already_attributed` with original attribution standing; self-referral blocked; unknown code returns `no_attribution` without side effects.
+   - Suites: `pnpm test:referral-automation` 23/23, `pnpm test:auth` pass, `pnpm exec tsc --noEmit --pretty false` exit 0.
+   - Environment limits hit during HTTP testing (inotify cap killed Turbopack dev; background processes reaped), so flow semantics were validated against the exact production middleware and lifecycle code plus the live database instead of a dev server; the repo's existing suites cover URL format and page wiring.
+   - Test data cleanup verified in the live DB: 0 leftover users, stats, attributions, or ledger rows.
+
+6. User learning
+   Referral links now open signup for logged-out visitors, attribution is recorded exactly once, and referrers actually receive their 5 signup credits (previously every reward grant failed silently).
+
+7. AI-agent learning
+   Drizzle `onConflictDoNothing({ target })` cannot infer Postgres partial unique indexes; the codebase's `CreditLedger_idempotencyKey_key` is partial, so targeted conflicts on it always throw "no unique or exclusion constraint matching the ON CONFLICT specification" — use the engine's bare `onConflictDoNothing()` pattern. Also: dev-server HTTP testing is unavailable in this environment (inotify cap, reaped background processes); validate middleware with the real `proxy()` function and lifecycle paths against the live DB with full cleanup.
+
+8. Follow-up tasks
+   - None blocking. Optional hardening (outside this request): a superadmin-visible monitor for referral rewards stuck in pending state.
+
+9. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+10. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirement: requirements.md
