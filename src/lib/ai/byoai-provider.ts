@@ -286,6 +286,21 @@ export async function getUseClevrCloudFallbackAllowed(userId: string): Promise<b
   return mode !== "local-only" && mode !== "byok";
 }
 
+/**
+ * Whether managed UseClevr cloud AI may serve this user's request.
+ *
+ * In cloud-only mode UseClevr Cloud is the selected route, not a fallback, so
+ * it stays available even when the stored fallback preference is off. Every
+ * other mode still honors the stored fallback preference.
+ */
+export async function getUseClevrCloudAiAllowed(userId: string): Promise<boolean> {
+  const [mode, fallbackAllowed] = await Promise.all([
+    getAiMode(userId),
+    getUseClevrCloudFallbackAllowed(userId),
+  ]);
+  return fallbackAllowed || mode === "cloud-only";
+}
+
 export async function listPublicAiProviderConfigs(userId: string): Promise<PublicAiProviderConfig[]> {
   const rows = await db.query.aiProviderConfigs.findMany({
     where: eq(aiProviderConfigs.userId, userId),

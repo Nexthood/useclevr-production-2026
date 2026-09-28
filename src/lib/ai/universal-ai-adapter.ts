@@ -3,6 +3,7 @@ export {
   ByokProviderUnavailableError,
   assertByokProviderAvailable,
   getAiMode,
+  getUseClevrCloudAiAllowed,
   getUseClevrCloudFallbackAllowed,
   generateWithUniversalAiAdapter,
   isByokProviderUnavailableError,
