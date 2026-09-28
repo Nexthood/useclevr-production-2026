@@ -180,7 +180,14 @@ Text rules for this file:
 - Show SKU, product name, category, current stock, reorder point, units sold, revenue, cost, gross profit, margin percentage, last sale date, and order number in Retail Inventory Analyst rows when the uploaded dataset provides those fields.
 - Explain each Retail Inventory Analyst low-stock alert with current stock, reorder point, recent units sold, and a reorder recommendation.
 - Explain each Retail Inventory Analyst dead-stock row with recent sales level, days since last sale, stock value stuck, and a suggested discount, bundle, or stop-reorder action.
-- Deduplicate Retail Inventory Analyst top-profit rows by product, SKU, and order number while preserving distinct SKU or order records.
+- Resolve Retail product identity by stable product ID (or Square variant ID) first, then SKU, then the normalized product name only when no stable identifier exists, so distinct products that share a display name never merge.
+- Resolve Retail location identity by stable store/location ID first and the normalized location name otherwise, so one canonical inventory grain of product identity plus location identity drives stock, low-stock alerts, dead stock, slow movers, and top-profit rankings.
+- Use each product/location item's latest dated stock snapshot as current stock, never a sum of repeated stock values, and treat equal timestamps deterministically by keeping the first row.
+- Flag a Retail low-stock or reorder alert when current stock is at or below the product's own reorder point, apply the 10-unit default threshold only when no reorder-point column exists, and keep the alert calculation, summary wording, recommendation, and table rows on that one rule.
+- Classify Retail dead stock as stock on hand with zero recorded units sold or no sale for at least 60 days, classify slow movers as stock with no sale for 30 to 59 days, and report insufficient data instead of a clean result when stock, sales, or date columns are missing.
+- Rank Retail top-profit rows by gross profit at the canonical product/location grain so each location keeps its own profit, and derive margin from aggregated profit and revenue rather than averaging row margins.
+- Count Retail orders and customers as distinct identifiers when those columns exist and show canonical product counts and product/location item counts separately.
+- Feed Retail AI enrichment the deterministic engine findings and require the AI explanation to restate those numbers instead of recalculating inventory from sampled rows.
 - Show Retail POS Connections at the top of the Retail workspace before CSV and Excel upload, with Square connection status, connect action, merchant name, locations, products, last sync, manual sync, disconnect action, imported record counts, sync history, last webhook time, and connection errors.
 - Show the Retail POS Connections empty state as Not Connected when the signed-in user has no POS connection.
 - Let authenticated retail users start Square OAuth from the Retail workspace through a server-created state value tied to the current primary business organization.

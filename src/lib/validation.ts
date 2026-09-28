@@ -29,6 +29,10 @@ export const analyzeRequestSchema = z.object({
   // standard_upload_analysis feature. Only granted once per fresh dataset.
   initialAnalysis: z.boolean().optional().default(false),
   ghostMode: z.boolean().optional().default(false),
+  // Deterministic Retail engine findings for the selected dataset. When
+  // present, the AI explanation must be based on these numbers instead of
+  // recalculating inventory from sampled rows.
+  retailFindings: z.record(z.string(), z.any()).optional(),
 })
 
 export const queryRequestSchema = z.object({

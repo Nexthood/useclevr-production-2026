@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import * as XLSX from "xlsx";
 
 import {
+  RETAIL_DEAD_STOCK_AFTER_DAYS,
+  RETAIL_SLOW_MOVER_AFTER_DAYS,
   aggregateRetailInventoryRecords,
   buildRetailRecords,
   computeLowStock,
+  computeTopProfit,
+  computeTopSellers,
+  detectColumns,
 } from "@/lib/retail/retail-record-engine";
 import {
   buildDatasetRetailSnapshot,
@@ -41,7 +47,7 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "Uploaded retail dataset regression baseline: low stock, dead stock, and profit match historical calculations",
+    name: "Uploaded retail dataset regression baseline: low stock, dead stock, and profit match canonical calculations",
     run() {
       const snapshot = buildDatasetRetailSnapshot({
         datasetId: "ds_retail_baseline",
@@ -58,6 +64,7 @@ const tests: TestCase[] = [
       assert.equal(snapshot.kpis.netSales, 534);
       assert.equal(snapshot.kpis.unitsSold, 24);
       assert.equal(snapshot.kpis.productCount, 4);
+      assert.equal(snapshot.kpis.inventoryItemCount, 4);
 
       assert.equal(snapshot.lowStock.status, "ok");
       assert.deepEqual(
@@ -74,6 +81,7 @@ const tests: TestCase[] = [
       assert.equal(snapshot.deadStock.items.length, 1);
       assert.equal(snapshot.deadStock.items[0].product, "Gamma Lamp");
       assert.equal(snapshot.deadStock.items[0].stockValue, 60);
+      assert.equal(snapshot.deadStock.items[0].classification, "dead_stock");
 
       assert.equal(snapshot.topProfit.items.length, 2);
       assert.deepEqual(
@@ -88,10 +96,14 @@ const tests: TestCase[] = [
       assert.equal(snapshot.summary.deterministic, true);
       assert.ok(snapshot.summary.insight.includes("Analysis of 4 product/location items complete"));
       assert.ok(snapshot.summary.explanation.includes("from 5 transaction rows"));
+      assert.ok(
+        snapshot.summary.explanation.includes("at or below their reorder point"),
+        "summary states the reorder-point rule, not a hardcoded unit threshold",
+      );
     },
   },
   {
-    name: "Dataset without cost columns keeps historical engine behavior and warns about missing cost",
+    name: "Dataset without cost columns keeps historical engine behavior, warns, and states the revenue-as-profit caveat",
     run() {
       const snapshot = buildDatasetRetailSnapshot({
         datasetId: "ds_no_cost",
@@ -108,10 +120,103 @@ const tests: TestCase[] = [
       });
 
       // Historical dataset semantics: missing cost is treated as zero cost by
-      // the shared engine, with an explicit data-quality warning surfaced.
+      // the shared engine, with an explicit data-quality warning surfaced and
+      // a section message that says profit equals revenue.
       assert.equal(snapshot.topProfit.status, "ok");
       assert.equal(snapshot.topProfit.items.length, 2);
+      assert.ok(snapshot.topProfit.message.includes("No cost column was detected"));
       assert.ok(snapshot.dataQualityWarnings.some((warning) => warning.includes("cost")));
+    },
+  },
+  {
+    name: "GOLDEN 01_local_retail.xlsx: canonical results independently derived from the real workbook",
+    run() {
+      const rows = parseXlsxFixture("test-fixtures/business-models/01_local_retail.xlsx");
+      const columns = Object.keys(rows[0] || {});
+      assert.equal(rows.length, 180, "fixture must contain 180 transaction rows");
+
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_01_local_retail",
+        name: "01_local_retail",
+        fileName: "01_local_retail.xlsx",
+        rowCount: rows.length,
+        columnCount: columns.length,
+        createdAt: null,
+        columns,
+        rows,
+      });
+
+      // Column detection: product_id wins identity, store_id wins location,
+      // unit_cost is a unit cost, and reorder_point is never read as an order id.
+      const detected = detectColumns(columns);
+      assert.equal(detected.productIdCol, "product_id");
+      assert.equal(detected.storeCol, "store_id");
+      assert.equal(detected.costCol, "unit_cost");
+      assert.equal(detected.orderCol, null, "reorder_point must not be detected as an order column");
+      assert.equal(detected.customerCol, null);
+      assert.equal(detected.skuCol, null);
+
+      // Canonical entities: 35 product IDs x 3 store IDs = 105, never 24, and
+      // never the 180 transaction rows.
+      assert.equal(snapshot.kpis.productCount, 35, "35 canonical products");
+      assert.equal(snapshot.kpis.inventoryItemCount, 105, "105 product/location entities");
+      assert.equal(snapshot.kpis.locationCount, 3);
+
+      // Additive KPIs across all transaction rows.
+      assert.equal(snapshot.kpis.unitsSold, 1216);
+      assert.equal(snapshot.kpis.netSales, 79800);
+      assert.equal(snapshot.kpis.orderCount, null, "no order column in the fixture");
+      assert.equal(snapshot.kpis.customerCount, null, "no customer column in the fixture");
+      assert.equal(snapshot.kpis.averageOrderValue, null);
+
+      // Latest-snapshot inventory semantics (never the summed 10,643).
+      assert.equal(snapshot.kpis.totalOnHand, 6341);
+      assert.equal(snapshot.kpis.inventoryValue, 260821.61);
+      assert.equal(snapshot.kpis.lastSaleAt, "2026-07-31T00:00:00.000Z");
+
+      // Low stock / reorder alerts: latest stock <= reorder point.
+      assert.equal(snapshot.lowStock.status, "ok");
+      assert.equal(snapshot.lowStock.hasReorderThresholds, true);
+      assert.equal(snapshot.lowStock.items.length, 11);
+      assert.deepEqual(
+        snapshot.lowStock.items.map((item) => [item.product, item.store, item.stock, item.reorderPoint]),
+        Array.from({ length: 11 }, (_, index) => [`SKU-${String(index + 1).padStart(3, "0")}`, "STORE-1", 4, 5]),
+      );
+      assert.ok(
+        snapshot.lowStock.message.includes("reorder point"),
+        "banner states the reorder-point rule",
+      );
+
+      // Dead stock / slow movers: every entity sold on the reference date.
+      assert.equal(snapshot.deadStock.status, "empty");
+      assert.equal(snapshot.deadStock.items.length, 0);
+      assert.ok(snapshot.deadStock.message.includes("No dead stock or slow movers"));
+
+      // Top profit: all 105 entities tie at revenue 886.67 - cost 534.44 =
+      // 352.22; ranking must stay per product/location with a deterministic
+      // tie-break (product, then store).
+      assert.equal(snapshot.topProfit.status, "ok");
+      assert.equal(snapshot.topProfit.items.length, 20);
+      for (const item of snapshot.topProfit.items) {
+        assert.equal(item.profit?.toFixed(2), "352.22", `every entity ties at 352.22, got ${item.profit}`);
+        assert.equal(item.margin?.toFixed(2), "39.72");
+      }
+      assert.equal(snapshot.topProfit.items[0].product, "SKU-001");
+      assert.equal(snapshot.topProfit.items[0].store, "STORE-1");
+      assert.ok(
+        snapshot.topProfit.items.some((item) => item.store === "STORE-2")
+          && snapshot.topProfit.items.some((item) => item.store === "STORE-3"),
+        "top profit keeps separate store entities instead of merging them",
+      );
+
+      // Summary agrees with the deterministic sections.
+      assert.ok(
+        snapshot.summary.explanation.includes("105 product/location inventory items for 35 products from 180 transaction rows"),
+      );
+      assert.ok(snapshot.summary.explanation.includes("11 items are at or below their reorder point"));
+      assert.ok(snapshot.summary.explanation.includes("0 dead-stock and 0 slow-mover items"));
+      assert.ok(snapshot.summary.explanation.includes("SKU-001 (STORE-1)"));
+      assert.ok(snapshot.summary.recommendation.includes("Restock 11 low-inventory product/location items"));
     },
   },
   {
@@ -128,6 +233,7 @@ const tests: TestCase[] = [
 
       assert.equal(snapshot.kpis.productCount, 3);
       assert.equal(snapshot.kpis.variantCount, 3);
+      assert.equal(snapshot.kpis.inventoryItemCount, 3);
       assert.equal(snapshot.kpis.locationCount, 1);
       assert.equal(snapshot.kpis.totalOnHand, 14);
       assert.equal(snapshot.kpis.netSales, null);
@@ -236,6 +342,38 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: "Square variants sharing a display name stay separate through Square-native variant IDs",
+    run() {
+      const input = squareCatalogOnlyInput();
+      // Two variants of the same product, no SKUs, same display name.
+      input.variants = [
+        { productId: "p2", productName: "Mug", productCategory: "Home", productStatus: "ACTIVE", variantId: "var-2a", sku: null, variantName: "Blue", unitCost: 2, retailPrice: 10, currency: "EUR" },
+        { productId: "p2", productName: "Mug", productCategory: "Home", productStatus: "ACTIVE", variantId: "var-2b", sku: null, variantName: "Red", unitCost: 2, retailPrice: 10, currency: "EUR" },
+      ];
+      input.inventory = [
+        { variantId: "var-2a", locationId: "loc-1", quantityOnHand: 5, quantityAvailable: 5, reorderPoint: null, providerUpdatedAt: null },
+        { variantId: "var-2b", locationId: "loc-1", quantityOnHand: 9, quantityAvailable: 9, reorderPoint: null, providerUpdatedAt: null },
+      ];
+      input.orders = [{
+        id: "COMPLETED:EUR:2026-09", status: "COMPLETED", currency: "EUR",
+        totalAmount: 40, discountAmount: 0, refundAmount: 0,
+        orderedAt: "2026-09-01T00:00:00.000Z", orderCount: 2,
+      }];
+      input.orderItems = [
+        { variantId: "var-2a", sku: null, itemName: "Mug", units: 1, revenue: 10, orderCount: 1, lastSaleAt: "2026-09-01T00:00:00.000Z" },
+        { variantId: "var-2b", sku: null, itemName: "Mug", units: 3, revenue: 30, orderCount: 1, lastSaleAt: "2026-09-01T00:00:00.000Z" },
+      ];
+
+      const snapshot = buildSquareRetailSnapshot(input);
+      assert.equal(snapshot.kpis.inventoryItemCount, 2, "variants never merge via name");
+      assert.deepEqual(
+        snapshot.topProfit.items.map((item) => [item.stock, item.profit]),
+        [[9, 24], [5, 8]],
+        "each variant keeps its own stock and profit",
+      );
+    },
+  },
+  {
     name: "Square missing inventory: products still render and low stock reports unknown stock",
     run() {
       const input = squareCatalogOnlyInput();
@@ -300,6 +438,35 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: "Q: Square + upload built from disjoint data never contaminate each other",
+    run() {
+      const datasetSnapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_only_upload",
+        name: "upload-only",
+        fileName: null,
+        rowCount: 2,
+        columnCount: 5,
+        createdAt: null,
+        columns: ["product", "sku", "store", "stock", "reorder point", "units sold", "revenue", "unit_cost", "date"],
+        rows: [
+          { product: "Upload Widget", sku: "UW-1", store: "Webshop", stock: 3, "reorder point": 5, "units sold": 2, revenue: 20, unit_cost: 2, date: "2026-09-01" },
+          { product: "Upload Gadget", sku: "UG-1", store: "Webshop", stock: 9, "reorder point": 5, "units sold": 1, revenue: 9, unit_cost: 1, date: "2026-09-01" },
+        ],
+      });
+      const squareSnapshot = buildSquareRetailSnapshot(squareCatalogOnlyInput());
+
+      const datasetNames = new Set(datasetSnapshot.topSellers.items.map((item) => item.product));
+      assert.ok(datasetNames.has("Upload Widget"), "dataset snapshot lists dataset products");
+      assert.ok(!datasetNames.has("Crew Neck"), "dataset snapshot never lists Square products");
+      const squareNames = new Set(squareSnapshot.topSellers.items.map((item) => item.product));
+      assert.ok(!squareNames.has("Upload Widget"), "Square snapshot never lists upload products");
+      assert.equal(squareSnapshot.source.type, "square");
+      assert.equal(datasetSnapshot.source.type, "dataset");
+      assert.equal(squareSnapshot.kpis.unitsSold, null, "Square without synchronized sales stays null");
+      assert.equal(datasetSnapshot.kpis.unitsSold, 3);
+    },
+  },
+  {
     name: "Tenant isolation: analytics and source routes resolve ownership server-side",
     run() {
       const analyticsRoute = readProjectFile("src/app/api/retail/analytics/route.ts");
@@ -323,6 +490,9 @@ const tests: TestCase[] = [
       const analyticsEngine = readProjectFile("src/integrations/retail/analytics/square-analytics.service.ts");
       assert.ok(analyticsEngine.includes("eq(retailLocations.connectionId, connection.id)"), "location reads are connection-scoped");
       assert.ok(analyticsEngine.includes("eq(retailOrders.connectionId, connection.id)"), "order reads are connection-scoped");
+
+      const syncRoute = readProjectFile("src/app/api/integrations/retail/[connectionId]/sync/route.ts");
+      assert.ok(syncRoute.includes("getOwnedRetailConnection"), "sync route re-validates connection ownership server-side");
     },
   },
   {
@@ -335,8 +505,18 @@ const tests: TestCase[] = [
       assert.ok(clientSource.includes("EMPTY_STATE_HINT"), "no-source state explains connecting a retail system or uploading");
       assert.ok(clientSource.includes("Sync now"), "Square source header offers sync");
       assert.ok(clientSource.includes("/app/retail/integrations"), "Square header links to connection management");
-      assert.ok(clientSource.includes("aggregateRetailInventoryRecords(retailRecords)"), "upload flow aggregates to product/location grain before retail findings");
-      assert.ok(clientSource.includes("computeLowStock(inventoryRecords)"), "upload flow still uses the shared retail engine");
+      assert.ok(
+        clientSource.includes("buildDatasetRetailSnapshot({"),
+        "upload flow produces findings through the one canonical dataset snapshot builder",
+      );
+      assert.ok(
+        clientSource.includes("buildRetailFindingsPayload(datasetSnapshot)"),
+        "AI enrichment receives deterministic retail findings",
+      );
+      assert.ok(
+        clientSource.includes("Low Stock &amp; Reorder Alerts"),
+        "low stock section is titled Low Stock & Reorder Alerts to match the reorder-point rule",
+      );
       assert.ok(clientSource.includes("options.length === 1"), "dashboard auto-selects only when one source exists");
       assert.ok(
         !clientSource.includes("const square = available.connections[0]"),
@@ -355,6 +535,29 @@ const tests: TestCase[] = [
         !clientSource.includes("SquareRetailAnalyticsEngine"),
         "no duplicate Square analytics engine was introduced",
       );
+    },
+  },
+  {
+    name: "AI enrichment consumes deterministic findings and never recalculates retail numbers",
+    run() {
+      const analyzeRoute = readProjectFile("src/app/api/analyze/route.ts");
+      assert.ok(analyzeRoute.includes("buildRetailFindingsPrompt"), "analyze route builds a deterministic findings block");
+      assert.ok(
+        analyzeRoute.includes("DETERMINISTIC RETAIL FINDINGS (AUTHORITATIVE)"),
+        "findings block tells the AI the numbers are authoritative",
+      );
+      assert.ok(
+        analyzeRoute.includes("Do NOT recalculate inventory"),
+        "findings block forbids recalculating retail numbers",
+      );
+
+      const validation = readProjectFile("src/lib/validation.ts");
+      assert.ok(validation.includes("retailFindings"), "analyze request schema accepts deterministic retail findings");
+
+      // Cloud/BYOK routing fix stays intact.
+      assert.ok(analyzeRoute.includes("generateWithUniversalAiAdapter"), "BYOK routing unchanged");
+      assert.ok(analyzeRoute.includes("getManagedCloudLanguageModel"), "managed cloud routing unchanged");
+      assert.ok(analyzeRoute.includes("BYOK_PROVIDER_REQUIRED"), "BYOK provider-required handling unchanged");
     },
   },
   {
@@ -391,6 +594,7 @@ const tests: TestCase[] = [
       const posRecords = buildRetailRecords(
         [{ product: "Crew Neck", stock: null, "units sold": null, revenue: null }],
         {
+          productIdCol: null,
           skuCol: null,
           productCol: "product",
           categoryCol: null,
@@ -402,6 +606,7 @@ const tests: TestCase[] = [
           costCol: null,
           dateCol: null,
           orderCol: null,
+          customerCol: null,
         },
         { defaultReorderPoint: null, defaultMissingNumbersToZero: false },
       );
@@ -457,38 +662,327 @@ const tests: TestCase[] = [
     },
   },
   {
-    name: "01_local_retail fixture analyzes product/location entities, not transaction rows",
+    name: "A: same product name, different product IDs, same store stay separate entities",
     run() {
-      const rows = parseCsvFixture("test-fixtures/business-models/01_local_retail.csv");
-      const columns = Object.keys(rows[0] || {});
+      const columns = ["product_id", "product_name", "store", "stock", "reorder point", "units sold", "revenue", "unit_cost", "date"];
+      const rows = [
+        { product_id: "P-1", product_name: "Yoga Mat", store: "Main", stock: 16, "reorder point": 19, "units sold": 5, revenue: 500, unit_cost: 10, date: "2026-08-01" },
+        { product_id: "P-2", product_name: "Yoga Mat", store: "Main", stock: 30, "reorder point": 5, "units sold": 5, revenue: 500, unit_cost: 10, date: "2026-08-01" },
+      ];
       const snapshot = buildDatasetRetailSnapshot({
-        datasetId: "ds_01_local_retail",
-        name: "01_local_retail",
-        fileName: "01_local_retail.xlsx",
-        rowCount: rows.length,
-        columnCount: columns.length,
-        createdAt: null,
-        columns,
-        rows,
+        datasetId: "ds_same_name", name: "same-name", fileName: null, rowCount: rows.length,
+        columnCount: columns.length, createdAt: null, columns, rows,
       });
-
-      assert.equal(rows.length, 180);
-      assert.equal(snapshot.source.type, "dataset");
-      assert.equal(snapshot.kpis.productCount, 105);
-      assert.equal(snapshot.kpis.locationCount, 3);
-      assert.ok(snapshot.lowStock.items.length <= 20);
-      assert.equal(
-        new Set(snapshot.lowStock.items.map((item) => `${item.product}|${item.sku}|${item.store}`)).size,
-        snapshot.lowStock.items.length,
-        "low-stock list contains one row per product/location entity",
+      assert.equal(snapshot.kpis.inventoryItemCount, 2, "distinct product IDs never merge by display name");
+      assert.equal(snapshot.kpis.productCount, 2);
+      assert.ok(
+        snapshot.topProfit.items.every((item) => item.stock === 16 || item.stock === 30),
+        "top profit rows keep per-entity stock",
       );
-      assert.ok(snapshot.summary.explanation.includes("105 product/location inventory items from 180 transaction rows"));
+    },
+  },
+  {
+    name: "B: same product ID, same store, many rows collapse to one entity",
+    run() {
+      const detected = detectColumnsWithIds();
+      const records = buildRetailRecords([
+        { product_id: "P-1", product: "Widget", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        { product_id: "P-1", product: "Widget", store: "Main", stock: 4, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-02" },
+        { product_id: "P-1", product: "Widget", store: "Main", stock: 3, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-03" },
+      ], detected);
+      const entities = aggregateRetailInventoryRecords(records);
+      assert.equal(entities.length, 1);
+      assert.equal(entities[0].transactionRows, 3);
+      assert.equal(entities[0].stock, 3, "latest snapshot wins");
+      assert.equal(entities[0].unitsSold, 3);
+    },
+  },
+  {
+    name: "C: same product ID in different stores stays separate inventory entities",
+    run() {
+      const detected = detectColumnsWithIds();
+      const records = buildRetailRecords([
+        { product_id: "P-1", product: "Widget", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        { product_id: "P-1", product: "Widget", store: "East", stock: 9, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+      ], detected);
+      const entities = aggregateRetailInventoryRecords(records);
+      assert.equal(entities.length, 2);
+      assert.deepEqual(entities.map((entity) => entity.store).sort(), ["East", "Main"]);
+    },
+  },
+  {
+    name: "D: different product IDs sharing one SKU stay separate (ID precedence over SKU)",
+    run() {
+      const columns = ["product_id", "sku", "product_name", "store", "stock", "units sold", "revenue", "unit_cost", "date"];
+      const rows = [
+        { product_id: "P-1", sku: "SHARED-SKU", product_name: "Widget A", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        { product_id: "P-2", sku: "SHARED-SKU", product_name: "Widget B", store: "Main", stock: 7, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+      ];
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_shared_sku", name: "shared-sku", fileName: null, rowCount: rows.length,
+        columnCount: columns.length, createdAt: null, columns, rows,
+      });
+      assert.equal(snapshot.kpis.inventoryItemCount, 2, "product ID takes precedence over a shared SKU");
+      assert.equal(snapshot.kpis.productCount, 2);
+    },
+  },
+  {
+    name: "E: no product ID but SKU present uses SKU identity in both directions",
+    run() {
+      const columns = ["sku", "product_name", "store", "stock", "units sold", "revenue", "unit_cost", "date"];
+      // Same SKU, different display names -> one entity.
+      const sameSku = buildDatasetRetailSnapshot({
+        datasetId: "ds_sku_same", name: "sku-same", fileName: null, rowCount: 2, columnCount: columns.length, createdAt: null, columns,
+        rows: [
+          { sku: "S-1", product_name: "Red Mug", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+          { sku: "S-1", product_name: "Mug (red)", store: "Main", stock: 4, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-02" },
+        ],
+      });
+      assert.equal(sameSku.kpis.inventoryItemCount, 1, "same SKU merges when no product ID exists");
+      // Different SKUs, same display name -> two entities.
+      const differentSku = buildDatasetRetailSnapshot({
+        datasetId: "ds_sku_diff", name: "sku-diff", fileName: null, rowCount: 2, columnCount: columns.length, createdAt: null, columns,
+        rows: [
+          { sku: "S-1", product_name: "Red Mug", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+          { sku: "S-2", product_name: "Red Mug", store: "Main", stock: 6, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        ],
+      });
+      assert.equal(differentSku.kpis.inventoryItemCount, 2, "different SKUs never merge by name");
+    },
+  },
+  {
+    name: "F: no ID and no SKU falls back to the normalized display name",
+    run() {
+      const columns = ["product_name", "store", "stock", "units sold", "revenue", "unit_cost", "date"];
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_name_fallback", name: "name-fallback", fileName: null, rowCount: 3, columnCount: columns.length, createdAt: null, columns,
+        rows: [
+          { product_name: "Yoga  Mat", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+          { product_name: "yoga mat", store: "Main", stock: 4, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-02" },
+          { product_name: "Yoga Mat Pro", store: "Main", stock: 9, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        ],
+      });
+      assert.equal(snapshot.kpis.inventoryItemCount, 2, "case/whitespace normalize, different names do not");
+      assert.equal(snapshot.kpis.productCount, 2);
+    },
+  },
+  {
+    name: "G + H: repeated stock snapshots are never summed and the latest valid snapshot wins; equal dates keep the first row",
+    run() {
+      const detected = detectColumnsForTest();
+      const records = buildRetailRecords([
+        { product: "Chair", sku: "C-1", store: "Main", stock: 10, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        { product: "Chair", sku: "C-1", store: "Main", stock: 20, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-05" },
+        { product: "Chair", sku: "C-1", store: "Main", stock: 30, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-03" },
+      ], detected);
+      const entities = aggregateRetailInventoryRecords(records);
+      assert.equal(entities[0].stock, 20, "newest date wins, stock is not summed to 60");
+
+      const equalDates = buildRetailRecords([
+        { product: "Desk", sku: "D-1", store: "Main", stock: 10, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-05" },
+        { product: "Desk", sku: "D-1", store: "Main", stock: 20, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-05" },
+      ], detected);
+      const equalEntities = aggregateRetailInventoryRecords(equalDates);
+      assert.equal(equalEntities[0].stock, 10, "equal timestamps keep the first row deterministically");
+
+      const undated = buildRetailRecords([
+        { product: "Lamp", sku: "L-1", store: "Main", stock: 7, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1 },
+        { product: "Lamp", sku: "L-1", store: "Main", stock: 12, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1 },
+      ], detected);
+      const undatedEntities = aggregateRetailInventoryRecords(undated);
+      assert.equal(undatedEntities[0].stock, 7, "undated rows fall back to first-occurrence order");
+    },
+  },
+  {
+    name: "I + J: revenue/cost/profit are additive and margin is recomputed, never averaged",
+    run() {
+      const detected = detectColumnsForTest();
+      const records = buildRetailRecords([
+        // Margin 50%: revenue 100, cost 50.
+        { product: "Bottle", sku: "B-1", store: "Main", stock: 5, "units sold": 10, revenue: 100, unit_cost: 5, date: "2026-08-01" },
+        // Margin 0%: revenue 100, cost 100.
+        { product: "Bottle", sku: "B-1", store: "Main", stock: 5, "units sold": 10, revenue: 100, unit_cost: 10, date: "2026-08-02" },
+      ], detected);
+      const entities = aggregateRetailInventoryRecords(records);
+      assert.equal(entities[0].revenue, 200);
+      assert.equal(entities[0].cost, 150);
+      assert.equal(entities[0].grossProfit, 50);
+      assert.equal(entities[0].margin, 25, "margin derives from aggregated profit/revenue, not the 50%/0% row average");
+    },
+  },
+  {
+    name: "K: repeated order IDs count as one distinct order per entity",
+    run() {
+      const columns = ["product", "sku", "store", "stock", "reorder point", "units sold", "revenue", "unit_cost", "date", "order_id"];
+      const detected = detectColumns(columns);
+      assert.equal(detected.orderCol, "order_id");
+      const records = buildRetailRecords([
+        { product: "Sock", sku: "SO-1", store: "Main", stock: 5, "reorder point": 5, "units sold": 2, revenue: 10, unit_cost: 1, date: "2026-08-01", order_id: "O-1" },
+        { product: "Sock", sku: "SO-1", store: "Main", stock: 5, "reorder point": 5, "units sold": 3, revenue: 15, unit_cost: 1, date: "2026-08-01", order_id: "O-1" },
+        { product: "Sock", sku: "SO-1", store: "Main", stock: 5, "reorder point": 5, "units sold": 1, revenue: 5, unit_cost: 1, date: "2026-08-02", order_id: "O-2" },
+      ], detected);
+      const entities = aggregateRetailInventoryRecords(records);
+      assert.equal(entities[0].orderCount, 2, "O-1 twice plus O-2 counts as two distinct orders");
+      assert.equal(entities[0].orderId, "2 orders");
+
+      const topSellers = computeTopSellers(records);
+      assert.equal(topSellers[0].orderCount, 2, "top seller order counts are distinct order IDs, not row counts");
+    },
+  },
+  {
+    name: "L: repeated customer IDs count once in the dataset KPIs",
+    run() {
+      const columns = ["product", "store", "stock", "units sold", "revenue", "unit_cost", "date", "customer_id"];
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_customers", name: "customers", fileName: null, rowCount: 3, columnCount: columns.length, createdAt: null, columns,
+        rows: [
+          { product: "A", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01", customer_id: "C-1" },
+          { product: "A", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01", customer_id: "C-1" },
+          { product: "A", store: "Main", stock: 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-02", customer_id: "C-2" },
+        ],
+      });
+      assert.equal(snapshot.kpis.customerCount, 2);
+    },
+  },
+  {
+    name: "M + N + O: reorder boundary behavior and the documented default threshold",
+    run() {
+      const columns = ["product", "store", "stock", "reorder point", "units sold", "revenue", "unit_cost", "date"];
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_boundary", name: "boundary", fileName: null, rowCount: 4, columnCount: columns.length, createdAt: null, columns,
+        rows: [
+          { product: "Mat-20-20", store: "Main", stock: 20, "reorder point": 20, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+          { product: "Mat-16-19", store: "Main", stock: 16, "reorder point": 19, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+          { product: "Mat-21-20", store: "Main", stock: 21, "reorder point": 20, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        ],
+      });
+      const alerted = snapshot.lowStock.items.map((item) => item.product).sort();
+      assert.deepEqual(alerted, ["Mat-16-19", "Mat-20-20"], "stock <= reorder point alerts; stock 21 does not");
+      assert.equal(snapshot.kpis.inventoryItemCount, 3);
+      assert.ok(
+        snapshot.summary.explanation.includes("2 items are at or below their reorder point"),
+        "summary matches the section count even when stock is above 10",
+      );
+
+      // No reorder column: the default threshold applies and the wording says so.
+      const defaultColumns = ["product", "store", "stock", "units sold", "revenue", "unit_cost", "date"];
+      const defaultSnapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_default_threshold", name: "default-threshold", fileName: null, rowCount: 2, columnCount: defaultColumns.length, createdAt: null, columns: defaultColumns,
+        rows: [
+          { product: "Low", store: "Main", stock: 8, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+          { product: "High", store: "Main", stock: 12, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        ],
+      });
+      assert.equal(defaultSnapshot.lowStock.hasReorderThresholds, false);
+      assert.deepEqual(defaultSnapshot.lowStock.items.map((item) => [item.product, item.reorderPoint]), [["Low", 10]]);
+      assert.ok(defaultSnapshot.lowStock.message.includes("default threshold of 10 units"));
+      assert.ok(defaultSnapshot.summary.explanation.includes("default 10-unit threshold"));
+    },
+  },
+  {
+    name: "P: missing stock or movement evidence reports insufficient data instead of false certainty",
+    run() {
+      // Stock column but no sales and no date column: movement cannot be judged.
+      const stockOnly = buildDatasetRetailSnapshot({
+        datasetId: "ds_stock_only", name: "stock-only", fileName: null, rowCount: 1, columnCount: 2, createdAt: null,
+        columns: ["product", "store", "stock"],
+        rows: [{ product: "Mystery", store: "Main", stock: 12 }],
+      });
+      assert.equal(stockOnly.deadStock.status, "insufficient_data");
+      assert.equal(stockOnly.deadStock.items.length, 0);
+      assert.ok(stockOnly.deadStock.message.includes("No sales or date columns"));
+
+      // No stock column at all: no inventory claims whatsoever.
+      const noStock = buildDatasetRetailSnapshot({
+        datasetId: "ds_no_stock", name: "no-stock", fileName: null, rowCount: 1, columnCount: 3, createdAt: null,
+        columns: ["product", "store", "revenue"],
+        rows: [{ product: "Mystery", store: "Main", revenue: 100 }],
+      });
+      assert.equal(noStock.lowStock.status, "no_inventory");
+      assert.equal(noStock.lowStock.items.length, 0);
+      assert.equal(noStock.kpis.totalOnHand, null);
+      assert.equal(noStock.kpis.inventoryValue, null);
+      assert.equal(noStock.deadStock.status, "insufficient_data");
+      assert.ok(noStock.deadStock.message.includes("No stock column"));
+
+      // Sales and dates exist: zero recorded units is real dead-stock evidence.
+      const neverSold = buildDatasetRetailSnapshot({
+        datasetId: "ds_never_sold", name: "never-sold", fileName: null, rowCount: 1, columnCount: 6, createdAt: null,
+        columns: ["product", "store", "stock", "units sold", "revenue", "unit_cost", "date"],
+        rows: [{ product: "Dust Collector", store: "Main", stock: 9, "units sold": 0, revenue: 0, unit_cost: 5, date: "2026-08-01" }],
+      });
+      assert.equal(neverSold.deadStock.status, "ok");
+      assert.equal(neverSold.deadStock.items.length, 1);
+      assert.equal(neverSold.deadStock.items[0].classification, "dead_stock");
+      assert.ok(neverSold.deadStock.items[0].suggestedAction.includes("Discount"));
+    },
+  },
+  {
+    name: "Slow movers: stock with no sale inside the slow-mover window is classified separately",
+    run() {
+      const columns = ["product", "store", "stock", "units sold", "revenue", "unit_cost", "date"];
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_slow", name: "slow", fileName: null, rowCount: 3, columnCount: columns.length, createdAt: null, columns,
+        rows: [
+          // Reference date is 2026-09-10 (max across rows). A last sale 40
+          // days back lands inside the slow-mover window (30-59 days).
+          { product: "Stale", store: "Main", stock: 5, "units sold": 4, revenue: 40, unit_cost: 2, date: "2026-08-01" },
+          { product: "Recent", store: "Main", stock: 5, "units sold": 4, revenue: 40, unit_cost: 2, date: "2026-09-10" },
+          { product: "NeverMoved", store: "Main", stock: 5, "units sold": 0, revenue: 0, unit_cost: 2, date: "2026-09-10" },
+        ],
+      });
+      const byProduct = new Map(snapshot.deadStock.items.map((item) => [item.product, item]));
+      assert.equal(byProduct.get("Stale")?.classification, "slow_mover");
+      assert.ok((byProduct.get("Stale")?.daysSinceLastSale ?? 0) >= RETAIL_SLOW_MOVER_AFTER_DAYS);
+      assert.ok((byProduct.get("Stale")?.daysSinceLastSale ?? 0) < RETAIL_DEAD_STOCK_AFTER_DAYS);
+      assert.equal(byProduct.get("NeverMoved")?.classification, "dead_stock");
+      assert.equal(byProduct.get("Recent"), undefined, "fresh movement is neither dead nor slow");
+      assert.ok(snapshot.deadStock.message.includes("1 dead-stock and 1 slow-mover item"));
+    },
+  },
+  {
+    name: "Category conflicts on one canonical entity resolve deterministically and raise a data-quality warning",
+    run() {
+      const detected = detectColumnsForTest();
+      const records = buildRetailRecords([
+        { product: "Mug", sku: "M-1", category: "Home", store: "Main", stock: 5, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+        { product: "Mug", sku: "M-1", category: "Kitchen", store: "Main", stock: 5, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-02" },
+      ], detected);
+      const entities = aggregateRetailInventoryRecords(records);
+      assert.equal(entities.length, 1);
+      assert.equal(entities[0].category, "Kitchen", "latest snapshot's category wins deterministically");
+      assert.equal(entities[0].categoryAmbiguous, true);
+
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_category_conflict", name: "category-conflict", fileName: null, rowCount: 2, columnCount: 7, createdAt: null,
+        columns: ["product", "sku", "category", "store", "stock", "reorder point", "units sold", "revenue", "unit_cost", "date"],
+        rows: [
+          { product: "Mug", sku: "M-1", category: "Home", store: "Main", stock: 5, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-01" },
+          { product: "Mug", sku: "M-1", category: "Kitchen", store: "Main", stock: 5, "reorder point": 5, "units sold": 1, revenue: 10, unit_cost: 1, date: "2026-08-02" },
+        ],
+      });
+      assert.ok(
+        snapshot.dataQualityWarnings.some((warning) => warning.includes("conflicting category")),
+        "ambiguity is flagged, never silently randomized",
+      );
+    },
+  },
+  {
+    name: "R: sync and disconnect routes reject unowned connections server-side",
+    run() {
+      const syncRoute = readProjectFile("src/app/api/integrations/retail/[connectionId]/sync/route.ts");
+      assert.ok(syncRoute.includes("404"), "unowned connection ids return not found");
+      const disconnectRoute = readProjectFile("src/app/api/integrations/retail/[connectionId]/disconnect/route.ts");
+      assert.ok(disconnectRoute.includes("404"), "unowned disconnect targets return not found");
+      const sourcesRoute = readProjectFile("src/app/api/retail/sources/route.ts");
+      assert.ok(sourcesRoute.includes("401"), "sources require an authenticated session");
     },
   },
 ];
 
 function detectColumnsForTest() {
   return {
+    productIdCol: null,
     skuCol: "sku",
     productCol: "product",
     categoryCol: "category",
@@ -500,6 +994,14 @@ function detectColumnsForTest() {
     costCol: "unit_cost",
     dateCol: "date",
     orderCol: null,
+    customerCol: null,
+  };
+}
+
+function detectColumnsWithIds() {
+  return {
+    ...detectColumnsForTest(),
+    productIdCol: "product_id",
   };
 }
 
@@ -541,21 +1043,16 @@ function squareCatalogOnlyInput(): SquareSnapshotInput {
   };
 }
 
-function readProjectFile(path: string) {
-  return readFileSync(resolve(repoRoot, path), "utf8");
+/** Parse the REAL workbook exactly like the browser upload path does. */
+function parseXlsxFixture(path: string): Record<string, unknown>[] {
+  const buffer = readFileSync(resolve(repoRoot, path));
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 }
 
-function parseCsvFixture(path: string): Record<string, unknown>[] {
-  const [headerLine, ...lines] = readProjectFile(path).trim().split(/\r?\n/);
-  const headers = headerLine.split(",");
-  return lines.map((line) => {
-    const values = line.split(",");
-    return Object.fromEntries(headers.map((header, index) => {
-      const raw = values[index] ?? "";
-      const numeric = Number(raw);
-      return [header, Number.isFinite(numeric) && raw.trim() !== "" ? numeric : raw];
-    }));
-  });
+function readProjectFile(path: string) {
+  return readFileSync(resolve(repoRoot, path), "utf8");
 }
 
 async function main() {

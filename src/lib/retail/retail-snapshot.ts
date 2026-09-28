@@ -1,4 +1,5 @@
 import {
+  RETAIL_DEFAULT_REORDER_POINT,
   aggregateRetailInventoryRecords,
   buildRetailRecords,
   computeDeadStock,
@@ -8,6 +9,7 @@ import {
   detectColumns,
   formatDateValue,
   getReferenceDate,
+  retailProductIdentityKey,
   type RetailDeadStockItem,
   type RetailLowStockItem,
   type RetailRecord,
@@ -89,10 +91,14 @@ export type RetailSnapshotSourcePos = {
 };
 
 export type RetailSnapshotKpis = {
+  /** Distinct canonical products, independent of location. */
   productCount: number | null;
+  /** Canonical product + location inventory entities. */
+  inventoryItemCount: number | null;
   variantCount: number | null;
   locationCount: number | null;
   orderCount: number | null;
+  customerCount: number | null;
   totalOnHand: number | null;
   inventoryValue: number | null;
   netSales: number | null;
@@ -173,10 +179,24 @@ export function buildDatasetRetailSnapshot(input: {
   const topSellerItems = computeTopSellers(records);
   const referenceDate = getReferenceDate(inventoryRecords);
   const hasCostBasis = detected.costCol !== null;
+  const hasStockBasis = detected.stockCol !== null;
+  const hasMovementEvidence = Boolean(detected.salesCol || detected.dateCol);
   const warnings: string[] = [];
   if (!hasCostBasis) {
     warnings.push("No unit cost or COGS column was detected, so profit and margin cannot be calculated.");
   }
+  const ambiguousCategoryEntities = inventoryRecords.filter((record) => record.categoryAmbiguous).length;
+  if (ambiguousCategoryEntities > 0) {
+    warnings.push(
+      `${ambiguousCategoryEntities} product/location item${ambiguousCategoryEntities === 1 ? " has" : "s have"} conflicting category values across rows; the latest snapshot's category is shown.`,
+    );
+  }
+
+  // Orders and customers are distinct identifiers, never transaction rows.
+  const distinctOrders = detected.orderCol ? countDistinctColumnValues(input.rows, detected.orderCol) : null;
+  const distinctCustomers = detected.customerCol ? countDistinctColumnValues(input.rows, detected.customerCol) : null;
+  const distinctProducts = new Set(inventoryRecords.map(retailProductIdentityKey)).size;
+  const netSales = detected.revenueCol ? round2(records.reduce((sum, record) => sum + (record.revenue ?? 0), 0)) : null;
 
   return {
     source: {
@@ -190,15 +210,19 @@ export function buildDatasetRetailSnapshot(input: {
     },
     currency: null,
     kpis: {
-      productCount: inventoryRecords.length || null,
+      productCount: distinctProducts || null,
+      inventoryItemCount: inventoryRecords.length || null,
       variantCount: null,
       locationCount: new Set(inventoryRecords.map((record) => record.store).filter(Boolean)).size || null,
-      orderCount: null,
+      orderCount: distinctOrders,
+      customerCount: distinctCustomers,
       totalOnHand: detected.stockCol ? round2(inventoryRecords.reduce((sum, record) => sum + Math.max(record.stock ?? 0, 0), 0)) : null,
-      inventoryValue: null,
-      netSales: detected.revenueCol ? round2(records.reduce((sum, record) => sum + (record.revenue ?? 0), 0)) : null,
+      inventoryValue: detected.stockCol && detected.costCol
+        ? round2(inventoryRecords.reduce((sum, record) => sum + (record.stockValue ?? 0), 0))
+        : null,
+      netSales,
       unitsSold: detected.salesCol ? round2(records.reduce((sum, record) => sum + (record.unitsSold ?? 0), 0)) : null,
-      averageOrderValue: null,
+      averageOrderValue: distinctOrders && netSales !== null ? round2(netSales / distinctOrders) : null,
       lastSaleAt: referenceDate ? referenceDate.toISOString() : null,
     },
     sales: {
@@ -206,21 +230,8 @@ export function buildDatasetRetailSnapshot(input: {
       message: null,
       trend: [],
     },
-    lowStock: {
-      status: "ok",
-      message: lowStockItems.length
-        ? "Reorder these items first so recent sellers do not run out before the next buying cycle."
-        : "No products are at or below their reorder point.",
-      hasReorderThresholds: detected.reorderPointCol !== null,
-      items: lowStockItems,
-    },
-    deadStock: {
-      status: "ok",
-      message: deadStockItems.length
-        ? "Free cash from items that sit on the shelf before reordering more of the same stock."
-        : "No dead stock detected from stock and movement fields.",
-      items: deadStockItems,
-    },
+    lowStock: buildDatasetLowStockSection(detected, lowStockItems),
+    deadStock: buildDatasetDeadStockSection(detected, deadStockItems),
     topSellers: {
       status: topSellerItems.length ? "ok" : "insufficient_data",
       message: topSellerItems.length
@@ -232,16 +243,21 @@ export function buildDatasetRetailSnapshot(input: {
       // Uploaded datasets keep their historical engine semantics: a missing
       // cost column computes profit as revenue; connected POS sources with
       // no cost basis report "no_cost_data" instead of fabricating values.
+      // The message states that caveat whenever the cost basis is missing.
       status: topProfitItems.length ? "ok" : "empty",
       message: topProfitItems.length
-        ? "Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost."
+        ? (hasCostBasis
+          ? "Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost."
+          : "No cost column was detected, so items are ranked with missing cost treated as zero (profit equals revenue). Add cost data for true profit ranking.")
         : "Add cost and revenue columns to see profit rankings.",
       items: topProfitItems,
     },
     summary: buildDatasetSummary({
       rowCount: input.rowCount,
       inventoryEntityCount: inventoryRecords.length,
+      productCount: distinctProducts,
       columnCount: input.columnCount,
+      hasReorderColumn: detected.reorderPointCol !== null,
       lowStockItems,
       deadStockItems,
       topProfitItems,
@@ -250,37 +266,120 @@ export function buildDatasetRetailSnapshot(input: {
   };
 }
 
+/**
+ * Low-stock/reorder rule: current stock <= the item's own reorder point.
+ * Only when no reorder-point column exists does the default threshold
+ * (10 units) apply, and the wording says so.
+ */
+function buildDatasetLowStockSection(
+  detected: ReturnType<typeof detectColumns>,
+  lowStockItems: RetailLowStockItem[],
+): RetailLowStockSection {
+  if (!detected.stockCol) {
+    return {
+      status: "no_inventory",
+      message: "No stock column was detected, so stock levels are unknown and low-stock alerts cannot be raised.",
+      hasReorderThresholds: detected.reorderPointCol !== null,
+      items: [],
+    };
+  }
+  const boundary = detected.reorderPointCol
+    ? "their reorder point"
+    : `the default threshold of ${RETAIL_DEFAULT_REORDER_POINT} units (no reorder-point column was detected)`;
+  return {
+    status: "ok",
+    message: lowStockItems.length
+      ? `Stock is at or below ${boundary}. Reorder these items first so recent sellers do not run out before the next buying cycle.`
+      : `No products are at or below ${boundary}.`,
+    hasReorderThresholds: detected.reorderPointCol !== null,
+    items: lowStockItems,
+  };
+}
+
+/**
+ * Dead stock / slow mover rule: dead stock is stock on hand with no recorded
+ * movement (zero units sold, or no sale for 60+ days). A slow mover has sold
+ * before but has no sale for 30+ days. Without stock or movement columns the
+ * section reports insufficient data instead of a false "no dead stock".
+ */
+function buildDatasetDeadStockSection(
+  detected: ReturnType<typeof detectColumns>,
+  deadStockItems: RetailDeadStockItem[],
+): RetailDeadStockSection {
+  if (!detected.stockCol) {
+    return {
+      status: "insufficient_data",
+      message: "No stock column was detected, so dead stock and slow movers cannot be determined.",
+      items: [],
+    };
+  }
+  if (!detected.salesCol && !detected.dateCol) {
+    return {
+      status: "insufficient_data",
+      message: "No sales or date columns were detected, so movement cannot be evaluated for dead stock.",
+      items: [],
+    };
+  }
+  const deadCount = deadStockItems.filter((item) => item.classification === "dead_stock").length;
+  const slowCount = deadStockItems.length - deadCount;
+  return {
+    status: deadStockItems.length ? "ok" : "empty",
+    message: deadStockItems.length
+      ? `${deadCount} dead-stock and ${slowCount} slow-mover item${deadStockItems.length === 1 ? "" : "s"} detected. Free cash from items that sit on the shelf before reordering more of the same stock.`
+      : "No dead stock or slow movers detected from stock and movement fields.",
+    items: deadStockItems,
+  };
+}
+
 function buildDatasetSummary(input: {
   rowCount: number;
   inventoryEntityCount: number;
+  productCount: number;
   columnCount: number;
+  hasReorderColumn: boolean;
   lowStockItems: RetailLowStockItem[];
   deadStockItems: RetailDeadStockItem[];
   topProfitItems: RetailTopProfitItem[];
 }): RetailAnalyticsSnapshot["summary"] {
   const total = new Intl.NumberFormat().format(input.inventoryEntityCount);
+  const products = new Intl.NumberFormat().format(input.productCount);
   const rows = new Intl.NumberFormat().format(input.rowCount);
   const low = input.lowStockItems.length;
-  const dead = input.deadStockItems.length;
+  const deadCount = input.deadStockItems.filter((item) => item.classification === "dead_stock").length;
+  const slowCount = input.deadStockItems.length - deadCount;
   const top = input.topProfitItems[0];
-  const profit = top ? top.product : "N/A";
+  const profit = top ? `${top.product}${top.store ? ` (${top.store})` : ""}` : "N/A";
   const maxProfit = top
     ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(top.profit ?? 0)
     : "N/A";
+  const lowBoundary = input.hasReorderColumn ? "at or below their reorder point" : `at or below the default ${RETAIL_DEFAULT_REORDER_POINT}-unit threshold`;
 
   return {
     insight: `Analysis of ${total} product/location items complete`,
     explanation:
-      `Found ${total} product/location inventory items from ${rows} transaction rows across ${input.columnCount} columns. ` +
-      `${low} products have low stock (below 10 units). ` +
-      `${dead} products have no recorded sales. ` +
-      `Top profit product: ${profit} (${maxProfit}).`,
+      `Found ${total} product/location inventory items for ${products} products from ${rows} transaction rows across ${input.columnCount} columns. ` +
+      `${low} item${low === 1 ? " is" : "s are"} ${lowBoundary}. ` +
+      `${deadCount} dead-stock and ${slowCount} slow-mover item${deadCount + slowCount === 1 ? "" : "s"} detected from recorded movement. ` +
+      `Top profit product/location: ${profit} (${maxProfit}).`,
     recommendation:
       low > 0
-        ? `Restock ${low} low-inventory products to prevent stockouts. Focus on reordering top-selling items first.`
+        ? `Restock ${low} low-inventory product/location items to prevent stockouts. Focus on reordering top-selling items first.`
         : "Review pricing strategy and consider promotions for slow-moving items.",
     deterministic: true,
   };
+}
+
+/** Distinct non-empty text values in a column; identifiers are never summed. */
+function countDistinctColumnValues(rows: Record<string, unknown>[], column: string): number | null {
+  const values = new Set<string>();
+  for (const row of rows) {
+    const raw = row[column];
+    if (raw === null || raw === undefined) continue;
+    const text = String(raw).trim();
+    if (!text || text === "Not provided") continue;
+    values.add(text);
+  }
+  return values.size || null;
 }
 
 // ---------------------------------------------------------------------------
@@ -446,13 +545,17 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
     soldByVariant.set(key, current);
   }
 
-  // Normalized records for the shared retail engine. Unknown Square values
-  // stay null; a genuine zero (no units of a sold product) stays zero.
+  // Normalized records for the shared retail engine. Square-native
+  // variant IDs are preserved as the canonical product identity so
+  // variants that share a display name or SKU stay separate. Unknown
+  // Square values stay null; a genuine zero (no units of a sold product)
+  // stays zero.
   const records: RetailRecord[] = input.variants.map((variant) => {
     const sold = soldByVariant.get(variant.variantId) ?? null;
     const onHand = onHandByVariant.get(variant.variantId) ?? null;
     const unitCost = variant.unitCost;
     return {
+      productId: variant.variantId,
       product: variant.productName || "Unknown product",
       sku: variant.sku || "Not provided",
       category: variant.productCategory || "Not provided",
@@ -471,9 +574,11 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
     };
   });
 
-  const lowStockKnown = computeLowStock(records);
-  const deadStockItems = hasSales ? computeDeadStock(records) : [];
-  const topProfitItems = hasSales && hasCostData ? computeTopProfit(records) : [];
+  // One canonical pass so every finding uses the same entity grain.
+  const inventoryRecords = aggregateRetailInventoryRecords(records);
+  const lowStockKnown = computeLowStock(inventoryRecords);
+  const deadStockItems = hasSales ? computeDeadStock(inventoryRecords) : [];
+  const topProfitItems = hasSales && hasCostData ? computeTopProfit(inventoryRecords) : [];
 
   const topSellerItems: RetailTopSellerItem[] = input.orderItems
     .map((item) => ({
@@ -507,7 +612,7 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
         status: "no_reorder_thresholds",
         message: "Square does not provide reorder thresholds, so no low-stock alerts can be raised. Current stock levels are shown for reference.",
         hasReorderThresholds: false,
-        items: records
+        items: inventoryRecords
           .filter((record) => record.stock !== null)
           .map((record) => ({
             product: record.product,
@@ -582,13 +687,15 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
     currency: currency || null,
     kpis: {
       productCount: source.counts.products || null,
+      inventoryItemCount: inventoryRecords.length || null,
       variantCount: source.counts.variants || null,
       locationCount: source.counts.locations || null,
       orderCount: salesOrderCount || null,
+      customerCount: null,
       totalOnHand,
-      inventoryValue: round2(records.reduce<number>((sum, record) => sum + (record.stockValue ?? 0), 0)) || null,
+      inventoryValue: round2(inventoryRecords.reduce<number>((sum, record) => sum + (record.stockValue ?? 0), 0)) || null,
       netSales: hasSales ? round2(netSales) : null,
-      unitsSold: hasSales ? round2(records.reduce((sum, record) => sum + (record.unitsSold ?? 0), 0)) : null,
+      unitsSold: hasSales ? round2(inventoryRecords.reduce((sum, record) => sum + (record.unitsSold ?? 0), 0)) : null,
       averageOrderValue: salesOrderCount ? round2(netSales / salesOrderCount) : null,
       lastSaleAt: lastSaleAt ? lastSaleAt.toISOString() : null,
     },

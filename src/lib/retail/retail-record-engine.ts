@@ -5,10 +5,29 @@ import { parseBusinessNumber } from "@/lib/data/semantic-schema";
  *
  * Deterministic, environment-free calculations used by both the browser
  * upload flow and the server-side retail source analytics endpoint. The
- * dataset path keeps its historical zero/default semantics; connected POS
- * sources pass `null` for unknown values so missing data is never turned
- * into a fake zero with a different business meaning.
+ * dataset path keeps its historical zero/default semantics for missing
+ * numeric values; connected POS sources pass `null` for unknown values so
+ * missing data is never turned into a fake zero with a different business
+ * meaning.
+ *
+ * Canonical identity rules (shared by every Retail finding):
+ * - Product identity: stable product_id/variant_id/item_id first, then SKU,
+ *   then the normalized display name only as a last fallback. Distinct
+ *   product IDs are never merged because their display names match.
+ * - Location identity: a stable store/location ID column when detected,
+ *   otherwise the normalized store/location name. The canonical inventory
+ *   grain is product identity + location identity.
+ * - Stock on hand is a snapshot, never an additive value: for repeated
+ *   rows the latest dated snapshot wins and equal timestamps keep the
+ *   first row in input order.
  */
+
+/** Items with no sale/movement for at least this many days are dead stock. */
+export const RETAIL_DEAD_STOCK_AFTER_DAYS = 60;
+/** Items whose last sale is this many days back (but below the dead threshold) are slow movers. */
+export const RETAIL_SLOW_MOVER_AFTER_DAYS = 30;
+/** Default reorder threshold used only when a dataset has no reorder-point column. */
+export const RETAIL_DEFAULT_REORDER_POINT = 10;
 
 export type RetailLowStockItem = {
   product: string;
@@ -27,6 +46,8 @@ export type RetailLowStockItem = {
   recommendation: string;
 };
 
+export type RetailDeadStockClassification = "dead_stock" | "slow_mover";
+
 export type RetailDeadStockItem = {
   product: string;
   sku: string;
@@ -43,6 +64,7 @@ export type RetailDeadStockItem = {
   daysSinceLastSale: number | null;
   stockValue: number | null;
   orderId: string;
+  classification: RetailDeadStockClassification;
   suggestedAction: string;
   recommendation: string;
 };
@@ -74,6 +96,8 @@ export type RetailTopSellerItem = {
 };
 
 export type RetailRecord = {
+  /** Stable source-native product identifier (product_id/variant_id/item_id). */
+  productId: string | null;
   product: string;
   sku: string;
   category: string;
@@ -94,6 +118,8 @@ export type RetailRecord = {
 export type RetailInventoryEntityRecord = RetailRecord & {
   transactionRows: number;
   orderCount: number | null;
+  /** True when rows of the same canonical entity carried conflicting category values. */
+  categoryAmbiguous: boolean;
 };
 
 export type BuildRetailRecordsOptions = {
@@ -103,14 +129,14 @@ export type BuildRetailRecordsOptions = {
   defaultMissingNumbersToZero?: boolean;
 };
 
-export function matchColumn(columns: string[], keywords: string[]): string | null {
+export function matchColumn(columns: string[], keywords: string[], exclude?: RegExp): string | null {
   const normalized = columns.map((c) => ({
     original: c,
     normalized: c.toLowerCase().trim().replace(/[^a-z0-9]/g, "_"),
   }));
   for (const keyword of keywords) {
     const kw = keyword.toLowerCase().trim().replace(/[^a-z0-9]/g, "_")
-    const found = normalized.find((c) => c.normalized.includes(kw))
+    const found = normalized.find((c) => c.normalized.includes(kw) && (!exclude || !exclude.test(c.normalized)))
     if (found) return found.original
   }
   return null
@@ -118,6 +144,10 @@ export function matchColumn(columns: string[], keywords: string[]): string | nul
 
 export function detectColumns(columns: string[]) {
   return {
+    productIdCol: matchColumn(columns, [
+      "product_id", "variant_id", "item_id", "productid", "variantid", "itemid",
+      "product_number", "item_number", "listing_id",
+    ]),
     skuCol: matchColumn(columns, [
       "sku", "product_sku", "item_sku", "variant_sku", "barcode",
       "upc", "ean", "code", "item_code", "product_code",
@@ -130,7 +160,10 @@ export function detectColumns(columns: string[]) {
       "category", "department", "collection", "product_type", "type",
       "class", "group",
     ]),
+    // Stable store/location IDs win over free-text location names so the
+    // canonical location identity follows the source's own keying.
     storeCol: matchColumn(columns, [
+      "store_id", "location_id", "branch_id", "shop_id",
       "store", "location", "branch", "shop",
     ]),
     stockCol: matchColumn(columns, [
@@ -158,9 +191,14 @@ export function detectColumns(columns: string[]) {
       "date", "transaction_date", "order_date", "sale_date", "created_at",
       "timestamp", "datetime", "date_created",
     ]),
+    // "order" must never match "reorder_point"/"reorder" columns.
     orderCol: matchColumn(columns, [
       "order_number", "order_id", "orderid", "order", "invoice_number",
       "invoice_id", "receipt_number", "transaction_id",
+    ], /reorder/),
+    customerCol: matchColumn(columns, [
+      "customer_id", "customer_number", "customer", "client_id", "client",
+      "buyer_id", "buyer", "member_id",
     ]),
   }
 }
@@ -212,21 +250,27 @@ export function buildRetailRecords(
   options: BuildRetailRecordsOptions = {},
 ): RetailRecord[] {
   const zeroDefaults = options.defaultMissingNumbersToZero !== false
-  const defaultReorderPoint = options.defaultReorderPoint === undefined ? 10 : options.defaultReorderPoint
+  const defaultReorderPoint = options.defaultReorderPoint === undefined ? RETAIL_DEFAULT_REORDER_POINT : options.defaultReorderPoint
 
   return rows
     .map((row) => {
       const product = detected.productCol
         ? toText(row[detected.productCol], "Unknown product")
         : "Unknown product"
+      const productId = detected.productIdCol ? (toText(row[detected.productIdCol], "") || null) : null
       const sku = detected.skuCol ? toText(row[detected.skuCol]) : "Not provided"
       const category = detected.categoryCol ? toText(row[detected.categoryCol]) : "Not provided"
       const store = detected.storeCol ? toText(row[detected.storeCol]) : null
+      // A missing stock column means stock is unknown (null); a present
+      // column with an empty cell keeps the dataset zero-default.
       const stock = detected.stockCol
         ? (zeroDefaults ? toNumber(row[detected.stockCol]) : parseNullableNumber(row[detected.stockCol]))
-        : zeroDefaults ? 0 : null
+        : null
+      // An empty reorder cell means "not provided" and falls back to the
+      // dataset default threshold instead of fabricating a zero reorder
+      // point, which would silently change the alert boundary.
       const reorderPoint = detected.reorderPointCol
-        ? (zeroDefaults ? toNumber(row[detected.reorderPointCol]) : parseNullableNumber(row[detected.reorderPointCol]))
+        ? (parseNullableNumber(row[detected.reorderPointCol]) ?? (defaultReorderPoint === null ? null : defaultReorderPoint))
         : defaultReorderPoint === null ? null : defaultReorderPoint
       const unitsSold = detected.salesCol
         ? (zeroDefaults ? toNumber(row[detected.salesCol]) : parseNullableNumber(row[detected.salesCol]))
@@ -253,6 +297,7 @@ export function buildRetailRecords(
       const orderId = detected.orderCol ? toText(row[detected.orderCol]) : "Not provided"
 
       return {
+        productId,
         product,
         sku,
         category,
@@ -272,57 +317,81 @@ export function buildRetailRecords(
           : null,
       }
     })
-    .filter((record) => record.product !== "Unknown product" || record.sku !== "Not provided")
+    .filter((record) => record.product !== "Unknown product" || record.sku !== "Not provided" || record.productId !== null)
 }
 
 /**
- * Collapses transaction rows into the product/location inventory grain.
+ * Collapses transaction rows into the canonical product/location inventory
+ * grain (product identity + location identity).
  *
- * Sales fields are additive, but stock-on-hand is an inventory snapshot. For
- * repeated product/location rows, keep the latest dated stock snapshot instead
- * of summing stock across transaction rows.
+ * Sales fields (units, revenue, cost) are additive. Stock-on-hand and the
+ * reorder point are inventory snapshots: for repeated rows the latest dated
+ * snapshot wins, equal timestamps keep the first row in input order, and
+ * rows without any date fall back to first-occurrence order. Stock is never
+ * summed across transaction rows.
  */
 export function aggregateRetailInventoryRecords(records: RetailRecord[]): RetailInventoryEntityRecord[] {
-  const grouped = new Map<string, RetailInventoryEntityRecord>()
+  type AggregateEntry = {
+    entity: RetailInventoryEntityRecord;
+    orderIds: Set<string>;
+    latest: RetailRecord;
+    categories: Set<string>;
+  };
+  const grouped = new Map<string, AggregateEntry>()
 
   for (const record of records) {
-    const key = inventoryEntityKey(record)
+    const key = retailInventoryEntityKey(record)
     const existing = grouped.get(key)
     if (!existing) {
-      grouped.set(key, { ...record, transactionRows: 1, orderCount: record.orderId === "Not provided" ? null : 1 })
+      const orderIds = new Set<string>()
+      if (record.orderId !== "Not provided") orderIds.add(record.orderId)
+      const categories = new Set<string>()
+      if (record.category !== "Not provided") categories.add(record.category)
+      grouped.set(key, {
+        entity: {
+          ...record,
+          transactionRows: 1,
+          orderCount: orderIds.size || null,
+          categoryAmbiguous: false,
+        },
+        orderIds,
+        latest: record,
+        categories,
+      })
       continue
     }
 
-    const revenue = combineAdditive(existing.revenue, record.revenue)
-    const cost = combineAdditive(existing.cost, record.cost)
-    const unitsSold = combineAdditive(existing.unitsSold, record.unitsSold)
+    const entity = existing.entity
+    const revenue = combineAdditive(entity.revenue, record.revenue)
+    const cost = combineAdditive(entity.cost, record.cost)
+    const unitsSold = combineAdditive(entity.unitsSold, record.unitsSold)
     const grossProfit = revenue !== null && cost !== null ? revenue - cost : null
-    const latestInventory = chooseLatestInventoryRecord(existing, record)
-    const lastSaleAt = !existing.lastSaleAt || (record.lastSaleAt && record.lastSaleAt > existing.lastSaleAt)
+    const latestInventory = chooseLatestInventoryRecord(existing.latest, record)
+    const lastSaleAt = !entity.lastSaleAt || (record.lastSaleAt && record.lastSaleAt > entity.lastSaleAt)
       ? record.lastSaleAt
-      : existing.lastSaleAt
-    const orderCount = combineOrderCount(existing.orderCount, record.orderId)
+      : entity.lastSaleAt
+    if (record.orderId !== "Not provided") existing.orderIds.add(record.orderId)
+    if (record.category !== "Not provided") existing.categories.add(record.category)
 
-    grouped.set(key, {
-      ...existing,
-      category: existing.category !== "Not provided" ? existing.category : record.category,
-      stock: latestInventory.stock,
-      reorderPoint: latestInventory.reorderPoint,
-      unitsSold,
-      revenue,
-      cost,
-      grossProfit,
-      margin: revenue !== null && revenue > 0 && grossProfit !== null ? (grossProfit / revenue) * 100 : null,
-      lastSaleAt,
-      lastSaleDate: formatDateValue(lastSaleAt),
-      orderId: orderCount === null ? "Not provided" : `${orderCount} orders`,
-      stockValue: latestInventory.stockValue,
-      transactionRows: existing.transactionRows + 1,
-      orderCount,
-    })
+    entity.category = latestInventory.category !== "Not provided" ? latestInventory.category : entity.category
+    entity.stock = latestInventory.stock
+    entity.reorderPoint = latestInventory.reorderPoint
+    entity.unitsSold = unitsSold
+    entity.revenue = revenue
+    entity.cost = cost
+    entity.grossProfit = grossProfit
+    entity.margin = revenue !== null && revenue > 0 && grossProfit !== null ? (grossProfit / revenue) * 100 : null
+    entity.lastSaleAt = lastSaleAt
+    entity.lastSaleDate = formatDateValue(lastSaleAt)
+    entity.orderId = existing.orderIds.size ? `${existing.orderIds.size} orders` : "Not provided"
+    entity.stockValue = latestInventory.stockValue
+    entity.transactionRows = entity.transactionRows + 1
+    entity.orderCount = existing.orderIds.size || null
+    entity.categoryAmbiguous = existing.categories.size > 1
+    existing.latest = latestInventory
   }
 
-  return Array.from(grouped.values())
+  return Array.from(grouped.values()).map((entry) => entry.entity)
 }
 
 export function getReferenceDate(records: RetailRecord[]): Date | null {
@@ -350,9 +419,9 @@ export function computeLowStock(records: RetailRecord[]): RetailLowStockItem[] {
       margin: item.margin,
       lastSaleDate: item.lastSaleDate,
       orderId: item.orderId,
-      recommendation: `Stock ${formatPlainNumber(item.stock ?? 0)}, reorder point ${formatPlainNumber(item.reorderPoint ?? 0)}, sold ${formatPlainNumber(item.unitsSold ?? 0)} units recently → reorder recommended.`,
+      recommendation: `Stock ${formatPlainNumber(item.stock ?? 0)} is at or below reorder point ${formatPlainNumber(item.reorderPoint ?? 0)}, sold ${formatPlainNumber(item.unitsSold ?? 0)} units recently → reorder recommended.`,
     }))
-    .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0))
+    .sort(compareEntityThen((a, b) => (a.stock ?? 0) - (b.stock ?? 0)))
     .slice(0, 20)
 }
 
@@ -364,12 +433,28 @@ export function computeDeadStock(records: RetailRecord[]): RetailDeadStockItem[]
       const daysSinceLastSale = referenceDate && item.lastSaleAt
         ? Math.max(0, Math.floor((referenceDate.getTime() - item.lastSaleAt.getTime()) / 86_400_000))
         : null
-      const unitsSold = item.unitsSold ?? 0
-      const suggestedAction = unitsSold === 0
-        ? "Discount or bundle"
-        : daysSinceLastSale !== null && daysSinceLastSale >= 60
-          ? "Bundle or stop reorder"
-          : "Review before reorder"
+      // Zero recorded units is direct no-movement evidence; without a units
+      // column, only a stale last-sale date may classify movement.
+      const unitsSold = item.unitsSold
+      const hasNoRecordedUnits = unitsSold !== null && unitsSold <= 0
+      const isDead = (item.stock ?? 0) > 0
+        && (hasNoRecordedUnits || (daysSinceLastSale !== null && daysSinceLastSale >= RETAIL_DEAD_STOCK_AFTER_DAYS))
+      const isSlowMover = (item.stock ?? 0) > 0
+        && !hasNoRecordedUnits
+        && unitsSold !== null
+        && daysSinceLastSale !== null
+        && daysSinceLastSale >= RETAIL_SLOW_MOVER_AFTER_DAYS
+        && daysSinceLastSale < RETAIL_DEAD_STOCK_AFTER_DAYS
+      if (!isDead && !isSlowMover) return null
+      const classification: RetailDeadStockClassification = isDead ? "dead_stock" : "slow_mover"
+      const suggestedAction = isDead
+        ? (hasNoRecordedUnits ? "Discount or bundle" : "Bundle or stop reorder")
+        : "Review before reorder"
+      const movementSummary = hasNoRecordedUnits
+        ? "no recorded units sold"
+        : daysSinceLastSale !== null
+          ? `no sale in ${formatPlainNumber(daysSinceLastSale)} days`
+          : "no sale date recorded"
 
       return {
         product: item.product,
@@ -387,57 +472,31 @@ export function computeDeadStock(records: RetailRecord[]): RetailDeadStockItem[]
         daysSinceLastSale,
         stockValue: item.stockValue,
         orderId: item.orderId,
+        classification,
         suggestedAction,
         recommendation:
-          `${suggestedAction}: ${item.stock !== null && item.stock > 0 ? "clear stocked units before buying more" : "keep off reorder lists until demand returns"}.`,
+          isDead
+            ? `${suggestedAction}: ${item.stock !== null && item.stock > 0 ? "clear stocked units before buying more" : "keep off reorder lists until demand returns"} (${movementSummary}).`
+            : `Slow mover with ${movementSummary}: review pricing or placement before it turns into dead stock.`,
       }
     })
-    .filter((item) => (item.stock ?? 0) > 0 && ((item.unitsSold ?? 0) <= 0 || (item.daysSinceLastSale !== null && item.daysSinceLastSale >= 60)))
-    .sort((a, b) => (b.stockValue ?? 0) - (a.stockValue ?? 0))
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .sort(compareEntityThen((a, b) => round2(b.stockValue ?? 0) - round2(a.stockValue ?? 0)))
     .slice(0, 20)
 }
 
+/**
+ * Ranks canonical product/location entities by recomputed gross profit.
+ *
+ * Input must already be at the canonical entity grain (see
+ * aggregateRetailInventoryRecords); no secondary regrouping happens here, so
+ * entities in different locations (or sharing a display name) keep their own
+ * profit.
+ */
 export function computeTopProfit(records: RetailRecord[]): RetailTopProfitItem[] {
-  const grouped = new Map<string, RetailRecord>()
-
-  for (const record of records) {
-    const key = [
-      record.product.toLowerCase(),
-      record.sku.toLowerCase(),
-      record.orderId === "Not provided" ? "" : record.orderId.toLowerCase(),
-    ].join("|")
-    const existing = grouped.get(key)
-
-    if (!existing) {
-      grouped.set(key, { ...record })
-      continue
-    }
-
-    const revenue = (existing.revenue ?? 0) + (record.revenue ?? 0)
-    const cost = (existing.cost ?? 0) + (record.cost ?? 0)
-    const grossProfit = existing.cost === null || record.cost === null ? null : revenue - cost
-    const lastSaleAt = !existing.lastSaleAt || (record.lastSaleAt && record.lastSaleAt > existing.lastSaleAt)
-      ? record.lastSaleAt
-      : existing.lastSaleAt
-
-    grouped.set(key, {
-      ...existing,
-      stock: maxNullable(existing.stock, record.stock),
-      reorderPoint: maxNullable(existing.reorderPoint, record.reorderPoint),
-      unitsSold: existing.unitsSold === null && record.unitsSold === null ? null : (existing.unitsSold ?? 0) + (record.unitsSold ?? 0),
-      revenue,
-      cost,
-      grossProfit,
-      margin: revenue > 0 && grossProfit !== null ? (grossProfit / revenue) * 100 : null,
-      lastSaleAt,
-      lastSaleDate: formatDateValue(lastSaleAt),
-      stockValue: existing.stockValue === null && record.stockValue === null ? null : (existing.stockValue ?? 0) + (record.stockValue ?? 0),
-    })
-  }
-
-  return Array.from(grouped.values())
+  return [...records]
     .filter((item) => item.grossProfit !== null && item.grossProfit > 0)
-    .sort((a, b) => (b.grossProfit ?? 0) - (a.grossProfit ?? 0))
+    .sort(compareEntityThen((a, b) => round2(b.grossProfit ?? 0) - round2(a.grossProfit ?? 0) || round2(b.revenue ?? 0) - round2(a.revenue ?? 0)))
     .slice(0, 20)
     .map((item) => ({
       product: item.product,
@@ -462,17 +521,23 @@ export function computeTopProfit(records: RetailRecord[]): RetailTopProfitItem[]
     }))
 }
 
+/**
+ * Global product-level sales ranking (not per location). Order counts are
+ * distinct order IDs, never transaction-row counts.
+ */
 export function computeTopSellers(records: RetailRecord[]): RetailTopSellerItem[] {
-  const grouped = new Map<string, RetailTopSellerItem & { key: string }>()
+  const grouped = new Map<string, RetailTopSellerItem & { key: string; orderIds: Set<string> }>()
 
   for (const record of records) {
     if ((record.unitsSold ?? 0) <= 0 && (record.revenue ?? 0) <= 0) continue
-    const key = [record.product.toLowerCase(), record.sku.toLowerCase()].join("|")
+    const key = retailProductIdentityKey(record)
     const existing = grouped.get(key)
+    const orderIds = existing?.orderIds ?? new Set<string>()
+    if (record.orderId !== "Not provided") orderIds.add(record.orderId)
     if (existing) {
       existing.unitsSold += record.unitsSold ?? 0
       existing.revenue += record.revenue ?? 0
-      existing.orderCount += 1
+      existing.orderCount = orderIds.size
       continue
     }
     grouped.set(key, {
@@ -481,14 +546,15 @@ export function computeTopSellers(records: RetailRecord[]): RetailTopSellerItem[
       sku: record.sku,
       unitsSold: record.unitsSold ?? 0,
       revenue: record.revenue ?? 0,
-      orderCount: 1,
+      orderCount: orderIds.size,
+      orderIds,
     })
   }
 
   return Array.from(grouped.values())
-    .sort((a, b) => b.unitsSold - a.unitsSold || b.revenue - a.revenue)
+    .sort((a, b) => b.unitsSold - a.unitsSold || round2(b.revenue) - round2(a.revenue) || a.product.localeCompare(b.product))
     .slice(0, 20)
-    .map(({ key: _key, ...item }) => item)
+    .map(({ key: _key, orderIds: _orderIds, ...item }) => item)
 }
 
 export function formatPlainNumber(val: number): string {
@@ -500,15 +566,45 @@ function parseNullableNumber(val: unknown): number | null {
   return parsed === null ? null : parsed
 }
 
-function maxNullable(a: number | null, b: number | null): number | null {
-  if (a === null) return b
-  if (b === null) return a
-  return Math.max(a, b)
+/** Money-precision rounding used for deterministic ranking comparisons. */
+function round2(value: number): number {
+  return Math.round(value * 100) / 100
 }
 
-function inventoryEntityKey(record: RetailRecord): string {
-  const identity = record.sku !== "Not provided" ? record.sku : record.product
-  return [identity, record.store || ""].map((part) => part.toLowerCase().trim()).join("|")
+/**
+ * Normalized identity value: case-insensitive, trimmed, whitespace-collapsed.
+ * Identity comparisons never depend on display formatting.
+ */
+export function normalizeRetailIdentityValue(value: string): string {
+  return value.toLowerCase().trim().replace(/\s+/g, " ")
+}
+
+/**
+ * Canonical product identity precedence:
+ * 1. stable product_id / variant_id / item_id
+ * 2. SKU
+ * 3. normalized display name (final fallback only)
+ *
+ * Distinct stable IDs are never merged because their display names match.
+ */
+export function retailProductIdentityKey(record: Pick<RetailRecord, "productId" | "sku" | "product">): string {
+  if (record.productId) return `id:${normalizeRetailIdentityValue(record.productId)}`
+  if (record.sku && record.sku !== "Not provided") return `sku:${normalizeRetailIdentityValue(record.sku)}`
+  return `name:${normalizeRetailIdentityValue(record.product)}`
+}
+
+/**
+ * Canonical location identity: the detected stable store/location ID column
+ * value when present, otherwise the normalized store/location name. Entities
+ * without any location field share one unnamed-location bucket.
+ */
+export function retailLocationIdentityKey(record: Pick<RetailRecord, "store">): string {
+  return normalizeRetailIdentityValue(record.store ?? "")
+}
+
+/** Canonical inventory grain: product identity + location identity. */
+export function retailInventoryEntityKey(record: RetailRecord): string {
+  return `${retailProductIdentityKey(record)}|${retailLocationIdentityKey(record)}`
 }
 
 function combineAdditive(a: number | null, b: number | null): number | null {
@@ -516,14 +612,23 @@ function combineAdditive(a: number | null, b: number | null): number | null {
   return (a ?? 0) + (b ?? 0)
 }
 
-function combineOrderCount(current: number | null, orderId: string): number | null {
-  if (orderId === "Not provided") return current
-  return (current ?? 0) + 1
-}
-
+/**
+ * Latest inventory snapshot selection: a strictly newer date wins, equal
+ * dates keep the first row in input order, undated rows fall back to
+ * first-occurrence order.
+ */
 function chooseLatestInventoryRecord(existing: RetailRecord, next: RetailRecord) {
   if (!existing.lastSaleAt && next.lastSaleAt) return next
   if (existing.lastSaleAt && next.lastSaleAt && next.lastSaleAt > existing.lastSaleAt) return next
   if (existing.lastSaleAt || !next.lastSaleAt) return existing
   return next
+}
+
+/** Deterministic ordering: primary metric first, then stable entity tie-breakers. */
+function compareEntityThen<T extends Pick<RetailRecord, "product" | "sku" | "store">>(primary: (a: T, b: T) => number) {
+  return (a: T, b: T) =>
+    primary(a, b)
+    || a.product.localeCompare(b.product)
+    || (a.store ?? "").localeCompare(b.store ?? "")
+    || a.sku.localeCompare(b.sku)
 }
