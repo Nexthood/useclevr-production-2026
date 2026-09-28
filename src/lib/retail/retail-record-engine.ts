@@ -14,6 +14,7 @@ export type RetailLowStockItem = {
   product: string;
   sku: string;
   category: string;
+  store: string | null;
   stock: number | null;
   reorderPoint: number | null;
   unitsSold: number | null;
@@ -30,6 +31,7 @@ export type RetailDeadStockItem = {
   product: string;
   sku: string;
   category: string;
+  store: string | null;
   stock: number | null;
   reorderPoint: number | null;
   unitsSold: number | null;
@@ -49,6 +51,7 @@ export type RetailTopProfitItem = {
   product: string;
   sku: string;
   category: string;
+  store: string | null;
   stock: number | null;
   reorderPoint: number | null;
   unitsSold: number | null;
@@ -86,6 +89,11 @@ export type RetailRecord = {
   lastSaleAt: Date | null;
   orderId: string;
   stockValue: number | null;
+};
+
+export type RetailInventoryEntityRecord = RetailRecord & {
+  transactionRows: number;
+  orderCount: number | null;
 };
 
 export type BuildRetailRecordsOptions = {
@@ -267,6 +275,56 @@ export function buildRetailRecords(
     .filter((record) => record.product !== "Unknown product" || record.sku !== "Not provided")
 }
 
+/**
+ * Collapses transaction rows into the product/location inventory grain.
+ *
+ * Sales fields are additive, but stock-on-hand is an inventory snapshot. For
+ * repeated product/location rows, keep the latest dated stock snapshot instead
+ * of summing stock across transaction rows.
+ */
+export function aggregateRetailInventoryRecords(records: RetailRecord[]): RetailInventoryEntityRecord[] {
+  const grouped = new Map<string, RetailInventoryEntityRecord>()
+
+  for (const record of records) {
+    const key = inventoryEntityKey(record)
+    const existing = grouped.get(key)
+    if (!existing) {
+      grouped.set(key, { ...record, transactionRows: 1, orderCount: record.orderId === "Not provided" ? null : 1 })
+      continue
+    }
+
+    const revenue = combineAdditive(existing.revenue, record.revenue)
+    const cost = combineAdditive(existing.cost, record.cost)
+    const unitsSold = combineAdditive(existing.unitsSold, record.unitsSold)
+    const grossProfit = revenue !== null && cost !== null ? revenue - cost : null
+    const latestInventory = chooseLatestInventoryRecord(existing, record)
+    const lastSaleAt = !existing.lastSaleAt || (record.lastSaleAt && record.lastSaleAt > existing.lastSaleAt)
+      ? record.lastSaleAt
+      : existing.lastSaleAt
+    const orderCount = combineOrderCount(existing.orderCount, record.orderId)
+
+    grouped.set(key, {
+      ...existing,
+      category: existing.category !== "Not provided" ? existing.category : record.category,
+      stock: latestInventory.stock,
+      reorderPoint: latestInventory.reorderPoint,
+      unitsSold,
+      revenue,
+      cost,
+      grossProfit,
+      margin: revenue !== null && revenue > 0 && grossProfit !== null ? (grossProfit / revenue) * 100 : null,
+      lastSaleAt,
+      lastSaleDate: formatDateValue(lastSaleAt),
+      orderId: orderCount === null ? "Not provided" : `${orderCount} orders`,
+      stockValue: latestInventory.stockValue,
+      transactionRows: existing.transactionRows + 1,
+      orderCount,
+    })
+  }
+
+  return Array.from(grouped.values())
+}
+
 export function getReferenceDate(records: RetailRecord[]): Date | null {
   return records.reduce<Date | null>((latest, record) => {
     if (!record.lastSaleAt) return latest
@@ -282,6 +340,7 @@ export function computeLowStock(records: RetailRecord[]): RetailLowStockItem[] {
       product: item.product,
       sku: item.sku,
       category: item.category,
+      store: item.store,
       stock: item.stock,
       reorderPoint: item.reorderPoint,
       unitsSold: item.unitsSold,
@@ -316,6 +375,7 @@ export function computeDeadStock(records: RetailRecord[]): RetailDeadStockItem[]
         product: item.product,
         sku: item.sku,
         category: item.category,
+        store: item.store,
         stock: item.stock,
         reorderPoint: item.reorderPoint,
         unitsSold: item.unitsSold,
@@ -383,6 +443,7 @@ export function computeTopProfit(records: RetailRecord[]): RetailTopProfitItem[]
       product: item.product,
       sku: item.sku,
       category: item.category,
+      store: item.store,
       stock: item.stock,
       reorderPoint: item.reorderPoint,
       unitsSold: item.unitsSold,
@@ -443,4 +504,26 @@ function maxNullable(a: number | null, b: number | null): number | null {
   if (a === null) return b
   if (b === null) return a
   return Math.max(a, b)
+}
+
+function inventoryEntityKey(record: RetailRecord): string {
+  const identity = record.sku !== "Not provided" ? record.sku : record.product
+  return [identity, record.store || ""].map((part) => part.toLowerCase().trim()).join("|")
+}
+
+function combineAdditive(a: number | null, b: number | null): number | null {
+  if (a === null && b === null) return null
+  return (a ?? 0) + (b ?? 0)
+}
+
+function combineOrderCount(current: number | null, orderId: string): number | null {
+  if (orderId === "Not provided") return current
+  return (current ?? 0) + 1
+}
+
+function chooseLatestInventoryRecord(existing: RetailRecord, next: RetailRecord) {
+  if (!existing.lastSaleAt && next.lastSaleAt) return next
+  if (existing.lastSaleAt && next.lastSaleAt && next.lastSaleAt > existing.lastSaleAt) return next
+  if (existing.lastSaleAt || !next.lastSaleAt) return existing
+  return next
 }

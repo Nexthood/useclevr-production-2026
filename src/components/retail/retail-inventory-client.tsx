@@ -19,6 +19,7 @@ import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
 import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError } from "@/lib/utils/debug"
 import {
+  aggregateRetailInventoryRecords,
   buildRetailRecords,
   computeDeadStock,
   computeLowStock,
@@ -53,6 +54,7 @@ interface RetailInsights {
   aiSummary: string | null
   aiExplanation: string | null
   aiRecommendation: string | null
+  aiWarning: string | null
   lowStock: RetailLowStockItem[]
   deadStock: RetailDeadStockItem[]
   topProfit: RetailTopProfitItem[]
@@ -189,8 +191,10 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
     }
   }, [])
 
-  // Initial source selection: URL param wins (deep-link + refresh), then the
-  // connected Square source, then the most recent retail dataset.
+  // Initial source selection: URL param wins when it still belongs to the
+  // signed-in user. With multiple available sources, require an explicit
+  // selection so Square and uploaded datasets never silently replace each
+  // other. A single source can auto-open because no boundary choice exists.
   useEffect(() => {
     let cancelled = false
     async function init() {
@@ -205,17 +209,12 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
       const loadedSources = await loadSources()
       if (cancelled) return
       const available = loadedSources ?? { datasets: [], connections: [] }
-      if (initial) {
+      const options = [...available.connections, ...available.datasets]
+      if (initial && options.some((option) => sourceOptionValue(option) === initial)) {
         updateSelectedSource(initial)
         return
       }
-      const square = available.connections[0]
-      const fallback = square
-        ? sourceOptionValue(square)
-        : available.datasets[0]
-          ? sourceOptionValue(available.datasets[0])
-          : null
-      if (fallback) updateSelectedSource(fallback)
+      if (options.length === 1) updateSelectedSource(sourceOptionValue(options[0]))
     }
     void init()
     return () => {
@@ -235,22 +234,17 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   }, [selectedSource, uploadFlowActive, fetchSnapshot])
 
   // A selected source that disappears (dataset deleted, Square disconnected)
-  // falls back safely to the next available source.
+  // clears the selection instead of silently switching across source types.
   useEffect(() => {
     if (!sourceView.error || !sources || !selectedSource) return
     const stillAvailable = [...sources.connections, ...sources.datasets].some(
       (option) => sourceOptionValue(option) === selectedSource,
     )
     if (stillAvailable) return
-    const fallback = sources.connections[0]
-      ? sourceOptionValue(sources.connections[0])
-      : sources.datasets[0]
-        ? sourceOptionValue(sources.datasets[0])
-        : null
-    updateSelectedSource(fallback)
-    if (fallback) toast({
+    updateSelectedSource(null)
+    toast({
       title: "Retail source switched",
-      description: "The previously selected retail source is no longer available.",
+      description: "The previously selected retail source is no longer available. Select another source to analyze it.",
     })
   }, [sourceView.error, sources, selectedSource, updateSelectedSource, toast])
 
@@ -312,13 +306,15 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
     const { rows, columns } = data
     const detected = detectColumns(columns)
     const retailRecords = buildRetailRecords(rows, detected)
-    const lowStock = computeLowStock(retailRecords)
-    const deadStock = computeDeadStock(retailRecords)
-    const topProfit = computeTopProfit(retailRecords)
+    const inventoryRecords = aggregateRetailInventoryRecords(retailRecords)
+    const lowStock = computeLowStock(inventoryRecords)
+    const deadStock = computeDeadStock(inventoryRecords)
+    const topProfit = computeTopProfit(inventoryRecords)
 
     let aiSummary: string | null = null
     let aiExplanation: string | null = null
     let aiRecommendation: string | null = null
+    let aiWarning: string | null = null
 
     if (datasetId) {
       try {
@@ -335,24 +331,30 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
           await zeroCredit.openFromResponse(analyzeRes)
         }
         const analyzeResult = await analyzeRes.json()
-        if (analyzeResult.success) {
+        if (analyzeRes.ok && analyzeResult.success) {
           aiSummary = analyzeResult.insight || null
           aiExplanation = analyzeResult.explanation || null
           aiRecommendation = analyzeResult.recommendation || null
+        } else if (analyzeRes.status >= 500) {
+          const reason = typeof analyzeResult?.error === "string" && analyzeResult.error.trim()
+            ? ` Reason: ${analyzeResult.error}`
+            : ""
+          aiWarning = `Deterministic retail analysis completed. AI enrichment is temporarily unavailable.${reason}`
         }
       } catch (err) {
         debugError("Analysis error:", err)
+        aiWarning = "Deterministic retail analysis completed. AI enrichment could not be loaded."
       }
     }
 
     if (!aiSummary) {
-      const fallback = generateFallbackSummary(rows, columns, lowStock, deadStock, topProfit)
+      const fallback = generateFallbackSummary(rows, columns, inventoryRecords.length, lowStock, deadStock, topProfit)
       aiSummary = fallback.insight
       aiExplanation = fallback.explanation
       aiRecommendation = fallback.recommendation
     }
 
-    setInsights({ aiSummary, aiExplanation, aiRecommendation, lowStock, deadStock, topProfit })
+    setInsights({ aiSummary, aiExplanation, aiRecommendation, aiWarning, lowStock, deadStock, topProfit })
     setState("complete")
   }, [])
 
@@ -575,6 +577,9 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   const aiRecommendation = uploadFlowActive || snapshot === null
     ? insights?.aiRecommendation ?? null
     : snapshot.summary.recommendation
+  const aiWarning = uploadFlowActive || snapshot === null
+    ? insights?.aiWarning ?? null
+    : null
   const showSquareSummaryTag = !uploadFlowActive && snapshotIsSquare
 
   const lowStockItems = uploadFlowActive || snapshot === null
@@ -905,6 +910,11 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                     Deterministic summary from synchronized Square data
                   </p>
                 )}
+                {aiWarning && (
+                  <p className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                    {aiWarning}
+                  </p>
+                )}
                 <p className="text-sm font-medium text-foreground">{aiSummary}</p>
                 {aiExplanation && (
                   <p className="text-sm text-muted-foreground">{aiExplanation}</p>
@@ -965,10 +975,11 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                     </thead>
                     <tbody className="divide-y divide-border">
                       {lowStockItems.map((item, i) => (
-                        <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
+                        <tr key={`${item.sku}-${item.store ?? "no-store"}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
                             <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
+                            {item.store && <div className="text-xs text-muted-foreground">Location: {item.store}</div>}
                           </td>
                           <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
                           <td className="px-3 py-2">
@@ -1053,10 +1064,11 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                     </thead>
                     <tbody className="divide-y divide-border">
                       {deadStockItems.map((item, i) => (
-                        <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
+                        <tr key={`${item.sku}-${item.store ?? "no-store"}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
                             <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
+                            {item.store && <div className="text-xs text-muted-foreground">Location: {item.store}</div>}
                           </td>
                           <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
                           <td className="px-3 py-2">
@@ -1147,10 +1159,11 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
                     </thead>
                     <tbody className="divide-y divide-border">
                       {topProfitItems.map((item, i) => (
-                        <tr key={`${item.sku}-${item.orderId}-${i}`} className="align-top">
+                        <tr key={`${item.sku}-${item.store ?? "no-store"}-${item.orderId}-${i}`} className="align-top">
                           <td className="px-3 py-2">
                             <div className="font-medium text-foreground">{item.product}</div>
                             <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
+                            {item.store && <div className="text-xs text-muted-foreground">Location: {item.store}</div>}
                           </td>
                           <td className="px-3 py-2 text-muted-foreground">{item.category}</td>
                           <td className="px-3 py-2">{formatNumberOrDash(item.unitsSold)}</td>
@@ -1360,11 +1373,13 @@ function formatSyncDate(value: string | null): string {
 function generateFallbackSummary(
   rows: Record<string, unknown>[],
   columns: string[],
+  inventoryEntityCount: number,
   lowStock: RetailLowStockItem[],
   deadStock: RetailDeadStockItem[],
   topProfit: RetailTopProfitItem[],
 ): { insight: string; explanation: string; recommendation: string } {
-  const total = new Intl.NumberFormat().format(rows.length)
+  const total = new Intl.NumberFormat().format(inventoryEntityCount)
+  const rowTotal = new Intl.NumberFormat().format(rows.length)
   const cols = columns.length
   const low = lowStock.length
   const dead = deadStock.length
@@ -1374,9 +1389,9 @@ function generateFallbackSummary(
     : "N/A"
 
   return {
-    insight: `Analysis of ${total} products complete`,
+    insight: `Analysis of ${total} product/location items complete`,
     explanation:
-      `Found ${total} inventory records across ${cols} columns. ` +
+      `Found ${total} product/location inventory items from ${rowTotal} transaction rows across ${cols} columns. ` +
       `${low} products have low stock (below 10 units). ` +
       `${dead} products have no recorded sales. ` +
       `Top profit product: ${profit} (${maxProfit}).`,

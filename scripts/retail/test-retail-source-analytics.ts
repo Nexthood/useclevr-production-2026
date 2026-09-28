@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
+  aggregateRetailInventoryRecords,
   buildRetailRecords,
   computeLowStock,
 } from "@/lib/retail/retail-record-engine";
@@ -63,11 +64,12 @@ const tests: TestCase[] = [
         snapshot.lowStock.items.map((item) => [item.product, item.stock, item.reorderPoint]),
         [
           ["Gamma Lamp", 2, 5],
-          ["Alpha Hoodie", 4, 10],
           ["Alpha Hoodie", 6, 10],
           ["Delta Chair", 9, 12],
         ],
       );
+      assert.equal(snapshot.kpis.totalOnHand, 42);
+      assert.equal(snapshot.kpis.locationCount, 1);
 
       assert.equal(snapshot.deadStock.items.length, 1);
       assert.equal(snapshot.deadStock.items[0].product, "Gamma Lamp");
@@ -84,7 +86,8 @@ const tests: TestCase[] = [
       assert.equal(snapshot.topProfit.items[1].margin?.toFixed(1), "32.6");
 
       assert.equal(snapshot.summary.deterministic, true);
-      assert.ok(snapshot.summary.insight.includes("Analysis of 5 products complete"));
+      assert.ok(snapshot.summary.insight.includes("Analysis of 4 product/location items complete"));
+      assert.ok(snapshot.summary.explanation.includes("from 5 transaction rows"));
     },
   },
   {
@@ -332,7 +335,21 @@ const tests: TestCase[] = [
       assert.ok(clientSource.includes("EMPTY_STATE_HINT"), "no-source state explains connecting a retail system or uploading");
       assert.ok(clientSource.includes("Sync now"), "Square source header offers sync");
       assert.ok(clientSource.includes("/app/retail/integrations"), "Square header links to connection management");
-      assert.ok(clientSource.includes("computeLowStock(retailRecords)"), "upload flow still uses the shared retail engine");
+      assert.ok(clientSource.includes("aggregateRetailInventoryRecords(retailRecords)"), "upload flow aggregates to product/location grain before retail findings");
+      assert.ok(clientSource.includes("computeLowStock(inventoryRecords)"), "upload flow still uses the shared retail engine");
+      assert.ok(clientSource.includes("options.length === 1"), "dashboard auto-selects only when one source exists");
+      assert.ok(
+        !clientSource.includes("const square = available.connections[0]"),
+        "dashboard no longer silently prefers Square over uploaded datasets",
+      );
+      assert.ok(
+        clientSource.includes("AI enrichment is temporarily unavailable"),
+        "upload flow warns when AI enrichment fails without hiding the deterministic result",
+      );
+      assert.ok(
+        clientSource.includes("Reason: ${analyzeResult.error}"),
+        "the AI enrichment warning surfaces the server-provided error reason instead of hiding it",
+      );
       assert.ok(clientSource.includes("Deterministic summary from synchronized Square data"), "Square summary is labeled deterministic");
       assert.ok(
         !clientSource.includes("SquareRetailAnalyticsEngine"),
@@ -366,8 +383,10 @@ const tests: TestCase[] = [
       const records = buildRetailRecords(rows, detected);
       assert.equal(records.length, 5);
       assert.equal(records[0].reorderPoint, 10);
-      const lowStock = computeLowStock(records);
-      assert.ok(lowStock.length >= 3);
+      const inventoryRecords = aggregateRetailInventoryRecords(records);
+      const lowStock = computeLowStock(inventoryRecords);
+      assert.equal(inventoryRecords.length, 4);
+      assert.equal(lowStock.length, 3);
 
       const posRecords = buildRetailRecords(
         [{ product: "Crew Neck", stock: null, "units sold": null, revenue: null }],
@@ -390,6 +409,80 @@ const tests: TestCase[] = [
       assert.equal(posRecords[0].unitsSold, null);
       assert.equal(posRecords[0].reorderPoint, null);
       assert.equal(posRecords[0].stockValue, null);
+    },
+  },
+  {
+    name: "Repeated transaction rows aggregate to one product/location inventory item",
+    run() {
+      const detected = detectColumnsForTest();
+      const records = buildRetailRecords([
+        { product: "Protein Bar", sku: "PB-1", category: "Food", store: "North", stock: 3, "reorder point": 8, "units sold": 4, revenue: 40, unit_cost: 2, date: "2026-08-01" },
+        { product: "Protein Bar", sku: "PB-1", category: "Food", store: "North", stock: 5, "reorder point": 8, "units sold": 6, revenue: 60, unit_cost: 2, date: "2026-08-03" },
+        { product: "Protein Bar", sku: "PB-1", category: "Food", store: "North", stock: 2, "reorder point": 8, "units sold": 1, revenue: 10, unit_cost: 2, date: "2026-07-31" },
+      ], detected);
+
+      const inventoryRecords = aggregateRetailInventoryRecords(records);
+      assert.equal(inventoryRecords.length, 1);
+      assert.equal(inventoryRecords[0].stock, 5, "latest dated stock snapshot wins; stock is never summed");
+      assert.equal(inventoryRecords[0].unitsSold, 11);
+      assert.equal(inventoryRecords[0].revenue, 110);
+      assert.equal(inventoryRecords[0].cost, 22);
+      assert.equal(inventoryRecords[0].grossProfit, 88);
+      assert.equal(inventoryRecords[0].margin, 80);
+
+      const lowStock = computeLowStock(inventoryRecords);
+      assert.equal(lowStock.length, 1);
+      assert.equal(lowStock[0].product, "Protein Bar");
+    },
+  },
+  {
+    name: "Same product in two stores remains location-specific",
+    run() {
+      const detected = detectColumnsForTest();
+      const records = buildRetailRecords([
+        { product: "Protein Bar", sku: "PB-1", category: "Food", store: "North", stock: 5, "reorder point": 8, "units sold": 10, revenue: 100, unit_cost: 2, date: "2026-08-03" },
+        { product: "Protein Bar", sku: "PB-1", category: "Food", store: "South", stock: 20, "reorder point": 8, "units sold": 3, revenue: 30, unit_cost: 2, date: "2026-08-03" },
+      ], detected);
+
+      const inventoryRecords = aggregateRetailInventoryRecords(records);
+      assert.equal(inventoryRecords.length, 2);
+      assert.deepEqual(
+        inventoryRecords.map((record) => [record.product, record.store, record.stock]).sort(),
+        [
+          ["Protein Bar", "North", 5],
+          ["Protein Bar", "South", 20],
+        ],
+      );
+      assert.deepEqual(computeLowStock(inventoryRecords).map((item) => [item.product, item.stock]), [["Protein Bar", 5]]);
+    },
+  },
+  {
+    name: "01_local_retail fixture analyzes product/location entities, not transaction rows",
+    run() {
+      const rows = parseCsvFixture("test-fixtures/business-models/01_local_retail.csv");
+      const columns = Object.keys(rows[0] || {});
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_01_local_retail",
+        name: "01_local_retail",
+        fileName: "01_local_retail.xlsx",
+        rowCount: rows.length,
+        columnCount: columns.length,
+        createdAt: null,
+        columns,
+        rows,
+      });
+
+      assert.equal(rows.length, 180);
+      assert.equal(snapshot.source.type, "dataset");
+      assert.equal(snapshot.kpis.productCount, 105);
+      assert.equal(snapshot.kpis.locationCount, 3);
+      assert.ok(snapshot.lowStock.items.length <= 20);
+      assert.equal(
+        new Set(snapshot.lowStock.items.map((item) => `${item.product}|${item.sku}|${item.store}`)).size,
+        snapshot.lowStock.items.length,
+        "low-stock list contains one row per product/location entity",
+      );
+      assert.ok(snapshot.summary.explanation.includes("105 product/location inventory items from 180 transaction rows"));
     },
   },
 ];
@@ -450,6 +543,19 @@ function squareCatalogOnlyInput(): SquareSnapshotInput {
 
 function readProjectFile(path: string) {
   return readFileSync(resolve(repoRoot, path), "utf8");
+}
+
+function parseCsvFixture(path: string): Record<string, unknown>[] {
+  const [headerLine, ...lines] = readProjectFile(path).trim().split(/\r?\n/);
+  const headers = headerLine.split(",");
+  return lines.map((line) => {
+    const values = line.split(",");
+    return Object.fromEntries(headers.map((header, index) => {
+      const raw = values[index] ?? "";
+      const numeric = Number(raw);
+      return [header, Number.isFinite(numeric) && raw.trim() !== "" ? numeric : raw];
+    }));
+  });
 }
 
 async function main() {
