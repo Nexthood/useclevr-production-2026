@@ -1,3 +1,4 @@
+import { RETAIL_DEAD_STOCK_AFTER_DAYS } from "@/lib/retail/retail-record-engine";
 import {
   buildSemanticSchema,
   parseBusinessNumber,
@@ -41,6 +42,7 @@ export type RetailInventoryIntent =
   | "inventory_turnover";
 
 type RetailColumns = {
+  productId: string | null;
   product: string | null;
   stock: string | null;
   unitsSold: string | null;
@@ -57,6 +59,7 @@ type RetailColumns = {
 
 type RetailProduct = {
   product: string;
+  productId: string | null;
   sku: string | null;
   store: string | null;
   category: string | null;
@@ -70,6 +73,7 @@ type RetailProduct = {
   unitCost: number | null;
   inventoryValue: number | null;
   latestDateTime: number | null;
+  lastSaleDateTime: number | null;
   latestRowIndex: number;
 };
 
@@ -166,6 +170,7 @@ function retailColumns(schema: SemanticSchema): RetailColumns {
       : null
   );
   return {
+    productId: stableProductIdColumn(schema),
     product: semanticColumn(schema, "product"),
     stock: semanticColumn(schema, "stock_on_hand"),
     unitsSold,
@@ -179,6 +184,22 @@ function retailColumns(schema: SemanticSchema): RetailColumns {
     date: semanticColumn(schema, "date"),
     store: schema.columns.find((column) => /store|branch|location/i.test(column)) ?? null,
   };
+}
+
+/**
+ * Canonical product identity for retail aggregation: a stable
+ * product/variant/item ID column when present, otherwise the mapped product
+ * display column. Distinct product IDs are never merged because their
+ * display names match.
+ */
+function stableProductIdColumn(schema: SemanticSchema): string | null {
+  return schema.columns.find((column) =>
+    /^(product|variant|item)(_id|id|_number|number)$/.test(normalizeIdentityColumnName(column)),
+  ) ?? null;
+}
+
+function normalizeIdentityColumnName(column: string) {
+  return column.toLowerCase().trim().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
 }
 
 function validatedUnitCostFromCogs(schema: SemanticSchema) {
@@ -221,9 +242,11 @@ function hasConcept(concept: RequiredConcept, columns: RetailColumns) {
 function aggregateProducts(rows: Record<string, unknown>[], columns: RetailColumns): RetailProduct[] {
   const groups = new Map<string, RetailProduct>();
   rows.forEach((row, index) => {
+    const productId = textValue(row, columns.productId);
     const product = textValue(row, columns.product) || `Product ${index + 1}`;
     const store = textValue(row, columns.store);
-    const key = `${store ?? "all"}::${product}`;
+    const identity = productId ? `id:${productId.toLowerCase()}` : `name:${product.toLowerCase()}`;
+    const key = `${store ?? "all"}::${identity}`;
     const revenue = numberValue(row, columns.revenue) ?? 0;
     const unitsSold = numberValue(row, columns.unitsSold) ?? 0;
     const grossProfit = rowGrossProfit(row, columns, revenue, unitsSold);
@@ -238,6 +261,9 @@ function aggregateProducts(rows: Record<string, unknown>[], columns: RetailColum
       existing.unitsSold += unitsSold;
       existing.grossProfit = addNullable(existing.grossProfit, grossProfit);
       existing.marginPct = existing.revenue > 0 && existing.grossProfit !== null ? (existing.grossProfit / existing.revenue) * 100 : existing.marginPct;
+      if (unitsSold > 0 && dateTime !== null && (existing.lastSaleDateTime === null || dateTime > existing.lastSaleDateTime)) {
+        existing.lastSaleDateTime = dateTime;
+      }
       if (stock !== null && isLaterSnapshot(dateTime, index, existing)) {
         existing.stock = stock;
         existing.reorderPoint = reorderPoint ?? existing.reorderPoint;
@@ -251,6 +277,7 @@ function aggregateProducts(rows: Record<string, unknown>[], columns: RetailColum
 
     groups.set(key, {
       product,
+      productId,
       sku: textValue(row, columns.product),
       store,
       category: textValue(row, columns.category),
@@ -264,6 +291,7 @@ function aggregateProducts(rows: Record<string, unknown>[], columns: RetailColum
       unitCost,
       inventoryValue: stock !== null && unitCost !== null ? stock * unitCost : null,
       latestDateTime: dateTime,
+      lastSaleDateTime: unitsSold > 0 && dateTime !== null ? dateTime : null,
       latestRowIndex: index,
     });
   });
@@ -336,17 +364,33 @@ function describeLowStockItems(
 }
 
 function describeDeadStockProducts(input: RetailInventoryInput, columns: RetailColumns, products: RetailProduct[]): RetailInventoryDeterministicResult {
+  const referenceDateTime = products.reduce<number | null>((latest, product) => {
+    const candidate = product.lastSaleDateTime ?? product.latestDateTime;
+    if (candidate === null) return latest;
+    return latest === null || candidate > latest ? candidate : latest;
+  }, null);
   const rows = products
-    .filter((product) => (product.stock ?? 0) > 0 && product.unitsSold <= 0)
+    .filter((product) => (product.stock ?? 0) > 0 && isRetailDeadStock(product, referenceDateTime))
     .sort((a, b) => (b.inventoryValue ?? b.stock ?? 0) - (a.inventoryValue ?? a.stock ?? 0))
     .slice(0, 10)
     .map(productRow);
   const top = rows[0];
   return success(input, "dead_stock_products", rows, {
     answer: top ? `Answer: ${top.product} is a dead-stock candidate because it has ${top.stock} units on hand and no detected sales movement.` : "Answer: No dead-stock products were detected from stock and movement fields.",
-    insight: `Dead stock uses stock on hand greater than zero plus zero detected units sold from "${columns.unitsSold}".`,
+    insight: `Dead stock uses stock on hand greater than zero plus no detected sales movement: zero units sold from "${columns.unitsSold}" or no sale for ${RETAIL_DEAD_STOCK_AFTER_DAYS}+ days.`,
     recommendation: top ? "Review the listed products for clearance, bundling, or reorder suppression." : "Keep monitoring products with stock on hand and low movement.",
   });
+}
+
+/**
+ * Dead-stock rule shared with the Retail dashboard engine: stock on hand with
+ * zero recorded units sold, or no sale for RETAIL_DEAD_STOCK_AFTER_DAYS days
+ * against the latest detected movement date.
+ */
+function isRetailDeadStock(product: RetailProduct, referenceDateTime: number | null) {
+  if (product.unitsSold <= 0) return true;
+  if (product.lastSaleDateTime === null || referenceDateTime === null) return false;
+  return referenceDateTime - product.lastSaleDateTime >= RETAIL_DEAD_STOCK_AFTER_DAYS * 86_400_000;
 }
 
 function describeInventoryValuation(input: RetailInventoryInput, columns: RetailColumns, products: RetailProduct[]): RetailInventoryDeterministicResult {

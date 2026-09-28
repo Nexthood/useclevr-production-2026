@@ -1,3 +1,15 @@
+## 2026-09-28 — Retail hardening audit: canonical identity, snapshot semantics, reorder rule, honest empty states
+
+- fixed: retail product identity now prefers the stable product ID (or Square variant ID), then SKU, then the normalized name, so distinct products sharing a display name stay separate everywhere
+- fixed: column detection no longer reads `reorder_point` as an order column (the bare "order" keyword matched inside "reorder"), which previously fabricated order IDs and distorted top-profit grouping
+- fixed: top-profit ranking keeps the canonical product/location grain with deterministic money-precision tie-breaks instead of merging entities across stores by product+SKU+orderId
+- fixed: dataset summaries now state the actual reorder-point rule (or the documented 10-unit default) instead of "below 10 units", and count dead stock and slow movers separately
+- added: dead stock (zero units sold or no sale 60+ days) is classified separately from slow movers (no sale 30-59 days) with a shared threshold constant
+- added: honest insufficient-data states when stock, sales, or date evidence is missing; missing stock columns no longer fabricate zero stock
+- added: distinct order/customer KPIs, canonical product vs product/location item KPIs, and latest-snapshot inventory value for datasets
+- changed: the upload flow computes findings through the same canonical dataset snapshot builder as the server endpoint, and passes deterministic findings to AI enrichment with a no-recalculation prompt block
+- verified: retail-source-analytics 33 checks, retail POS 21 checks, clevrsync-retail-profitability, retail-credit-integration, local-retail-inventory-snapshots (reports module cross-validation: 6,341 stock / 11 alerts / 260,821.61 value), dataset-ai-assistant, hybrid-ai gates, BYOK provider-required, `pnpm exec tsc --noEmit --pretty false` exit 0, `pnpm lint:secrets` pass, ESLint 0 errors
+- not committed or pushed per instruction
 - fixed: referral visit redirects now resolve through the canonical public auth origin instead of constructing `/login?tab=signup` from `request.nextUrl.origin`, so Railway's internal `https://0.0.0.0:8080` bind origin cannot leak into production browser redirects; production resolves to `https://app.useclevr.com/login?tab=signup`, and local development keeps localhost behavior
 - hardened: `normalizePublicAuthBaseUrl` rejects `0.0.0.0`, localhost, private/internal hosts, and non-HTTPS origins in production, prefers configured public app/auth URLs plus Railway public domains, and falls back to `https://app.useclevr.com` only in production when every configured/request origin is unsafe
 - added: referral/auth regressions pin the Railway-origin case, local-development redirects, preserved anonymous `/api/referral/visit` access, protected `/api/referral` access, attribution-cookie write source, 30-day attribution, and removal of raw `new URL("/login", request.nextUrl.origin)` construction

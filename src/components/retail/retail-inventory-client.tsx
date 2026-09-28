@@ -19,21 +19,14 @@ import { parseCSVFileBrowser } from "@/lib/data/csvLoaderBrowser"
 import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { debugError } from "@/lib/utils/debug"
 import {
-  aggregateRetailInventoryRecords,
-  buildRetailRecords,
-  computeDeadStock,
-  computeLowStock,
-  computeTopProfit,
-  detectColumns,
-} from "@/lib/retail/retail-record-engine"
-import type {
-  RetailDeadStockItem,
-  RetailLowStockItem,
-  RetailTopProfitItem,
+  RETAIL_DEAD_STOCK_AFTER_DAYS,
+  RETAIL_DEFAULT_REORDER_POINT,
+  RETAIL_SLOW_MOVER_AFTER_DAYS,
 } from "@/lib/retail/retail-record-engine"
 import {
   formatRetailSourceParam,
   parseRetailSourceRef,
+  buildDatasetRetailSnapshot,
   type RetailAnalyticsSnapshot,
 } from "@/lib/retail/retail-snapshot";
 import {
@@ -55,9 +48,7 @@ interface RetailInsights {
   aiExplanation: string | null
   aiRecommendation: string | null
   aiWarning: string | null
-  lowStock: RetailLowStockItem[]
-  deadStock: RetailDeadStockItem[]
-  topProfit: RetailTopProfitItem[]
+  datasetSnapshot: RetailAnalyticsSnapshot | null
 }
 
 type SourceOptionDataset = {
@@ -303,13 +294,18 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
     setState("analyzing")
     setProcessingStep(5)
 
-    const { rows, columns } = data
-    const detected = detectColumns(columns)
-    const retailRecords = buildRetailRecords(rows, detected)
-    const inventoryRecords = aggregateRetailInventoryRecords(retailRecords)
-    const lowStock = computeLowStock(inventoryRecords)
-    const deadStock = computeDeadStock(inventoryRecords)
-    const topProfit = computeTopProfit(inventoryRecords)
+    // One canonical deterministic builder produces every dataset Retail
+    // finding — the exact code path the server-side analytics endpoint uses.
+    const datasetSnapshot = buildDatasetRetailSnapshot({
+      datasetId: datasetId || "local-retail-preview",
+      name: data.fileName,
+      fileName: data.fileName,
+      rowCount: data.rowCount,
+      columnCount: data.columnCount,
+      createdAt: null,
+      columns: data.columns,
+      rows: data.rows,
+    })
 
     let aiSummary: string | null = null
     let aiExplanation: string | null = null
@@ -325,6 +321,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
             question: "Analyze this retail inventory data for a store owner. Explain exactly which product and SKU are affected, why each issue matters, and what action to take. Include low stock alerts, dead stock with stuck stock value, and top profit products without repeated duplicate product rows.",
             datasetId,
             initialAnalysis: true,
+            retailFindings: buildRetailFindingsPayload(datasetSnapshot),
           }),
         })
         if (!analyzeRes.ok) {
@@ -347,14 +344,15 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
       }
     }
 
+    // The deterministic snapshot is always the source of truth for the
+    // numbers; AI text only wraps the explanation around them.
     if (!aiSummary) {
-      const fallback = generateFallbackSummary(rows, columns, inventoryRecords.length, lowStock, deadStock, topProfit)
-      aiSummary = fallback.insight
-      aiExplanation = fallback.explanation
-      aiRecommendation = fallback.recommendation
+      aiSummary = datasetSnapshot.summary.insight
+      aiExplanation = datasetSnapshot.summary.explanation
+      aiRecommendation = datasetSnapshot.summary.recommendation
     }
 
-    setInsights({ aiSummary, aiExplanation, aiRecommendation, aiWarning, lowStock, deadStock, topProfit })
+    setInsights({ aiSummary, aiExplanation, aiRecommendation, aiWarning, datasetSnapshot })
     setState("complete")
   }, [])
 
@@ -565,73 +563,52 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   // The rendered analytics content. Upload-flow results take precedence;
   // otherwise the selected source snapshot drives every card.
   const snapshot = uploadFlowActive ? null : sourceView.snapshot
+  const datasetSnapshot = uploadFlowActive ? insights?.datasetSnapshot ?? null : null
   const snapshotIsSquare = snapshot?.source.type === "square"
   const hasAnySource = Boolean(sources && (sources.datasets.length > 0 || sources.connections.length > 0))
 
-  const aiSummary = uploadFlowActive || snapshot === null
+  const aiSummary = datasetSnapshot || snapshot === null
     ? insights?.aiSummary ?? null
     : snapshot.summary.insight
-  const aiExplanation = uploadFlowActive || snapshot === null
+  const aiExplanation = datasetSnapshot || snapshot === null
     ? insights?.aiExplanation ?? null
     : snapshot.summary.explanation
-  const aiRecommendation = uploadFlowActive || snapshot === null
+  const aiRecommendation = datasetSnapshot || snapshot === null
     ? insights?.aiRecommendation ?? null
     : snapshot.summary.recommendation
-  const aiWarning = uploadFlowActive || snapshot === null
+  const aiWarning = datasetSnapshot || snapshot === null
     ? insights?.aiWarning ?? null
     : null
   const showSquareSummaryTag = !uploadFlowActive && snapshotIsSquare
 
-  const lowStockItems = uploadFlowActive || snapshot === null
-    ? insights?.lowStock ?? []
-    : snapshot.lowStock.items
-  const lowStockBanner = uploadFlowActive || snapshot === null
-    ? (insights?.lowStock.length ? "Reorder these items first so recent sellers do not run out before the next buying cycle." : null)
-    : snapshot.lowStock.items.length
-      ? snapshot.lowStock.message
-      : null
-  const lowStockStatus = uploadFlowActive || snapshot === null
-    ? null
-    : snapshot.lowStock.items.length === 0 && snapshot.lowStock.status !== "ok"
-      ? snapshot.lowStock.message
-      : null
-  const lowStockDatasetEmpty = uploadFlowActive && insights && insights.lowStock.length === 0
-  const lowStockSnapshotOkEmpty = !uploadFlowActive && snapshot !== null
-    && snapshot.lowStock.items.length === 0 && snapshot.lowStock.status === "ok"
+  // Every section reads from one RetailAnalyticsSnapshot, so upload-flow
+  // results and saved-source results share identical calculations, messages,
+  // and empty-state semantics.
+  const lowStockSection = datasetSnapshot ? datasetSnapshot.lowStock : snapshot?.lowStock ?? null
+  const lowStockItems = lowStockSection?.items ?? []
+  const lowStockBanner = lowStockSection?.items.length ? lowStockSection.message : null
+  // "empty" means the engine ran and found no qualifying items (green
+  // state); every other non-ok status is an honest insufficient-data note.
+  const lowStockStatus = lowStockSection && lowStockSection.items.length === 0 && lowStockSection.status !== "ok" && lowStockSection.status !== "empty"
+    ? lowStockSection.message
+    : null
+  const lowStockOkEmpty = Boolean(lowStockSection && lowStockSection.items.length === 0 && lowStockSection.status === "ok")
 
-  const deadStockItems = uploadFlowActive || snapshot === null
-    ? insights?.deadStock ?? []
-    : snapshot.deadStock.items
-  const deadStockBanner = uploadFlowActive || snapshot === null
-    ? (insights?.deadStock.length ? "Free cash from items that sit on the shelf before reordering more of the same stock." : null)
-    : snapshot.deadStock.items.length
-      ? snapshot.deadStock.message
-      : null
-  const deadStockStatus = uploadFlowActive || snapshot === null
-    ? null
-    : snapshot.deadStock.items.length === 0 && snapshot.deadStock.status !== "ok"
-      ? snapshot.deadStock.message
-      : null
-  const deadStockDatasetEmpty = uploadFlowActive && insights && insights.deadStock.length === 0
-  const deadStockSnapshotOkEmpty = !uploadFlowActive && snapshot !== null
-    && snapshot.deadStock.items.length === 0 && snapshot.deadStock.status === "ok"
+  const deadStockSection = datasetSnapshot ? datasetSnapshot.deadStock : snapshot?.deadStock ?? null
+  const deadStockItems = deadStockSection?.items ?? []
+  const deadStockBanner = deadStockSection?.items.length ? deadStockSection.message : null
+  const deadStockStatus = deadStockSection && deadStockSection.items.length === 0 && deadStockSection.status !== "ok" && deadStockSection.status !== "empty"
+    ? deadStockSection.message
+    : null
+  const deadStockOkEmpty = Boolean(deadStockSection && deadStockSection.items.length === 0 && deadStockSection.status === "ok")
 
-  const topProfitItems = uploadFlowActive || snapshot === null
-    ? insights?.topProfit ?? []
-    : snapshot.topProfit.items
-  const topProfitBanner = uploadFlowActive || snapshot === null
-    ? (insights?.topProfit.length ? "Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost." : null)
-    : snapshot.topProfit.items.length
-      ? snapshot.topProfit.message
-      : null
-  const topProfitStatus = uploadFlowActive || snapshot === null
-    ? null
-    : snapshot.topProfit.items.length === 0 && snapshot.topProfit.status !== "ok"
-      ? snapshot.topProfit.message
-      : null
-  const topProfitDatasetEmpty = uploadFlowActive && insights && insights.topProfit.length === 0
-  const topProfitSnapshotOkEmpty = !uploadFlowActive && snapshot !== null
-    && snapshot.topProfit.items.length === 0 && snapshot.topProfit.status === "ok"
+  const topProfitSection = datasetSnapshot ? datasetSnapshot.topProfit : snapshot?.topProfit ?? null
+  const topProfitItems = topProfitSection?.items ?? []
+  const topProfitBanner = topProfitSection?.items.length ? topProfitSection.message : null
+  const topProfitStatus = topProfitSection && topProfitSection.items.length === 0 && topProfitSection.status !== "ok" && topProfitSection.status !== "empty"
+    ? topProfitSection.message
+    : null
+  const topProfitOkEmpty = Boolean(topProfitSection && topProfitSection.items.length === 0 && topProfitSection.status === "ok")
 
   const showSourceInsights = uploadFlowActive
     ? Boolean(insights)
@@ -932,12 +909,12 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
           </CardContent>
         </Card>
 
-        {/* Low Stock Alerts */}
+        {/* Low Stock / Reorder Alerts */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
-              Low Stock Alerts
+              Low Stock &amp; Reorder Alerts
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1011,10 +988,10 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
               </div>
             ) : lowStockStatus ? (
               <StatusNote message={lowStockStatus} />
-            ) : lowStockDatasetEmpty || lowStockSnapshotOkEmpty ? (
+            ) : lowStockOkEmpty ? (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4" />
-                {uploadFlowActive ? "No low stock items detected" : snapshot?.lowStock.message}
+                {datasetSnapshot ? "No low stock items detected" : snapshot?.lowStock.message}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
@@ -1105,10 +1082,10 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
               </div>
             ) : deadStockStatus ? (
               <StatusNote message={deadStockStatus} />
-            ) : deadStockDatasetEmpty || deadStockSnapshotOkEmpty ? (
+            ) : deadStockOkEmpty ? (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4" />
-                {uploadFlowActive ? "No dead stock detected" : snapshot?.deadStock.message}
+                {datasetSnapshot ? "No dead stock or slow movers detected" : snapshot?.deadStock.message}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
@@ -1192,8 +1169,8 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
               </div>
             ) : topProfitStatus ? (
               <StatusNote message={topProfitStatus} />
-            ) : topProfitDatasetEmpty || topProfitSnapshotOkEmpty ? (
-              <p className="text-sm text-muted-foreground">{uploadFlowActive ? "Add cost and revenue columns to see profit rankings" : snapshot?.topProfit.message}</p>
+            ) : topProfitOkEmpty ? (
+              <p className="text-sm text-muted-foreground">{datasetSnapshot ? "Add cost and revenue columns to see profit rankings" : snapshot?.topProfit.message}</p>
             ) : (
               <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
             )}
@@ -1315,8 +1292,15 @@ function SnapshotSummary({ snapshot }: { snapshot: RetailAnalyticsSnapshot }) {
       { label: "Rows", value: formatCount(source.rowCount) },
       { label: "Columns", value: formatCount(source.columnCount) },
       { label: "Products", value: snapshot.kpis.productCount === null ? "—" : formatCount(snapshot.kpis.productCount) },
-      { label: "Uploaded", value: formatSyncDate(source.createdAt) },
+      { label: "Inventory items", value: snapshot.kpis.inventoryItemCount === null ? "—" : formatCount(snapshot.kpis.inventoryItemCount) },
     )
+    if (snapshot.kpis.orderCount !== null) {
+      kpis.push({ label: "Orders", value: formatCount(snapshot.kpis.orderCount) })
+    }
+    if (snapshot.kpis.customerCount !== null) {
+      kpis.push({ label: "Customers", value: formatCount(snapshot.kpis.customerCount) })
+    }
+    kpis.push({ label: "Uploaded", value: formatSyncDate(source.createdAt) })
   } else {
     kpis.push(
       { label: "Locations", value: formatCount(source.counts.locations) },
@@ -1370,35 +1354,38 @@ function formatSyncDate(value: string | null): string {
   }).format(new Date(value))
 }
 
-function generateFallbackSummary(
-  rows: Record<string, unknown>[],
-  columns: string[],
-  inventoryEntityCount: number,
-  lowStock: RetailLowStockItem[],
-  deadStock: RetailDeadStockItem[],
-  topProfit: RetailTopProfitItem[],
-): { insight: string; explanation: string; recommendation: string } {
-  const total = new Intl.NumberFormat().format(inventoryEntityCount)
-  const rowTotal = new Intl.NumberFormat().format(rows.length)
-  const cols = columns.length
-  const low = lowStock.length
-  const dead = deadStock.length
-  const profit = topProfit.length > 0 ? topProfit[0].product : "N/A"
-  const maxProfit = topProfit.length > 0
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(topProfit[0].profit ?? 0)
-    : "N/A"
-
+/**
+ * Compact, authoritative deterministic findings for AI enrichment. The AI
+ * explanation must restate these numbers, never recalculate them.
+ */
+function buildRetailFindingsPayload(snapshot: RetailAnalyticsSnapshot): Record<string, unknown> {
+  const deadCount = snapshot.deadStock.items.filter((item) => item.classification === "dead_stock").length
+  const slowCount = snapshot.deadStock.items.length - deadCount
+  const topProfit = snapshot.topProfit.items[0]
   return {
-    insight: `Analysis of ${total} product/location items complete`,
-    explanation:
-      `Found ${total} product/location inventory items from ${rowTotal} transaction rows across ${cols} columns. ` +
-      `${low} products have low stock (below 10 units). ` +
-      `${dead} products have no recorded sales. ` +
-      `Top profit product: ${profit} (${maxProfit}).`,
-    recommendation:
-      low > 0
-        ? `Restock ${low} low-inventory products to prevent stockouts. Focus on reordering top-selling items first.`
-        : "Review pricing strategy and consider promotions for slow-moving items.",
+    inventoryItems: snapshot.kpis.inventoryItemCount,
+    products: snapshot.kpis.productCount,
+    locations: snapshot.kpis.locationCount,
+    orders: snapshot.kpis.orderCount,
+    customers: snapshot.kpis.customerCount,
+    unitsSold: snapshot.kpis.unitsSold,
+    netSales: snapshot.kpis.netSales,
+    totalOnHand: snapshot.kpis.totalOnHand,
+    inventoryValue: snapshot.kpis.inventoryValue,
+    lowStockAlerts: snapshot.lowStock.items.length,
+    lowStockRule: snapshot.lowStock.hasReorderThresholds
+      ? "stock at or below the item's own reorder point"
+      : `stock at or below the default ${RETAIL_DEFAULT_REORDER_POINT}-unit threshold (no reorder-point column detected)`,
+    lowStockItems: snapshot.lowStock.items.slice(0, 10).map((item) => ({
+      product: item.product, sku: item.sku, store: item.store, stock: item.stock, reorderPoint: item.reorderPoint,
+    })),
+    deadStockItems: deadCount,
+    slowMovers: slowCount,
+    deadStockRule: `stock on hand with no recorded movement: zero units sold, or no sale for ${RETAIL_DEAD_STOCK_AFTER_DAYS}+ days; slow movers have no sale for ${RETAIL_SLOW_MOVER_AFTER_DAYS}+ days`,
+    topProfitItem: topProfit
+      ? { product: topProfit.product, sku: topProfit.sku, store: topProfit.store, profit: topProfit.profit, margin: topProfit.margin }
+      : null,
+    dataQualityWarnings: snapshot.dataQualityWarnings,
   }
 }
 

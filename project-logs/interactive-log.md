@@ -1,3 +1,29 @@
+## 2026-09-28 — Final retail hardening audit (canonical identity end-to-end)
+
+1. Interaction title
+   One complete end-to-end audit of the Retail module fixing all remaining correctness problems in identity, aggregation, inventory snapshots, low-stock/reorder logic, dead/slow stock, top profit, orders/customers, KPIs, AI enrichment consistency, and UI wording, validated against the real 01_local_retail.xlsx fixture.
+
+2. What was the user goal
+   Stop issue-by-issue patching: define one canonical product/location identity, audit the whole normalization pipeline for hidden regrouping, pin golden fixture results derived independently from the workbook, add adversarial regressions (cases A-R), keep Square/upload source isolation and the Cloud/BYOK routing fix intact, and fix root causes without committing or pushing.
+
+3. What changed
+   - `src/lib/retail/retail-record-engine.ts`: adds `productId` to records and `retailProductIdentityKey`/`retailLocationIdentityKey`/`retailInventoryEntityKey` (stable ID > SKU > normalized name); detects product ID, customer, and stable store/location ID columns; excludes reorder columns from order detection; distinct-order counting per entity; category from the latest snapshot with ambiguity flagging; dead-stock/slow-mover classification with shared 60/30-day constants; top profit ranks canonical entities without regrouping; top sellers count distinct orders; missing stock columns yield null instead of fake zeros; blank reorder cells fall back to the documented default threshold.
+   - `src/lib/retail/retail-snapshot.ts`: KPIs gain `inventoryItemCount` and `customerCount`, canonical product counts, distinct orders/customers, and latest-snapshot inventory value; low-stock/dead-stock sections report honest statuses (`no_inventory`, `insufficient_data`) and rule-accurate messages; Square records carry Square-native variant IDs and pass through canonical aggregation.
+   - `src/lib/data/retail-inventory-intents.ts`: chat Q&A aggregates by product ID when present and applies the same 60-day dead-stock rule, keeping one definition across surfaces.
+   - `src/lib/validation.ts` + `src/app/api/analyze/route.ts`: optional `retailFindings` request field renders an authoritative deterministic-findings prompt block that forbids recalculation.
+   - `src/components/retail/retail-inventory-client.tsx`: the upload flow computes findings through `buildDatasetRetailSnapshot` (the server code path), passes `retailFindings` to `/api/analyze`, renames the section to "Low Stock & Reorder Alerts", distinguishes "no qualifying items" from "insufficient data", and shows canonical product and inventory-item KPI cards.
+   - `scripts/retail/test-retail-source-analytics.ts`: golden workbook assertions plus adversarial cases A-R (33 checks total).
+   - `scripts/analysis/test-dataset-ai-assistant.ts`: repaired three stale assertions left by the Cloud/BYOK routing commit (managed-model fallback, Antigravity path, universal-adapter BYOK routing, Usy chat route) so the AI routing suite verifies the current implementation.
+
+4. Problems marked
+   - blocker: none.
+   - risk: dataset semantics keep the historical missing-cost-means-zero profit behavior (warning surfaced, message states profit equals revenue); a product/location item can legitimately reach 105 rows for 35 products x 3 stores, which differs from the stale production display of 24.
+   - observation: production's "24 items / 4 low stock" numbers do not reproduce from the current workbook under any grouping and were not preserved; the independently derived and cross-validated values are 105 items, 11 reorder alerts.
+   - improvement: `matchColumn` still resolves same-priority keyword collisions by column order; an explicit priority list per concept would harden exotic schemas.
+
+5. Verification
+   `pnpm test:retail-source-analytics` 33/33, `pnpm test:retail-pos` 21 checks, `pnpm test:clevrsync-retail-profitability`, `pnpm test:retail-credit-integration`, `pnpm test:local-retail-inventory-snapshots` (independent reports-module cross-validation), `pnpm test:dataset-ai-assistant`, `pnpm test:hybrid-ai-gates`, `pnpm test:byok-provider-required`, `pnpm test:ai-mode-save-feedback`, `pnpm test:ai-governance-consistency`, `pnpm test:zero-credit-ux`, `pnpm test:csv-analyzer`, `pnpm test:csv-edge-cases`, `pnpm exec tsc --noEmit --pretty false` exit 0, `pnpm lint` 0 errors, `pnpm lint:secrets` pass.
+
 ## 2026-09-28 — Referral production redirect origin fixed
 
 1. Interaction title

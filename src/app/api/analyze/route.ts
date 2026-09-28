@@ -251,7 +251,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const { question, datasetId, data, columns, analysis: precomputedAnalysis, ghostMode, initialAnalysis } = parseResult.data;
+    const { question, datasetId, data, columns, analysis: precomputedAnalysis, ghostMode, initialAnalysis, retailFindings } = parseResult.data;
     isGhostMode = normalizeGhostMode(ghostMode)
     traceQuestion = question
     traceDatasetId = datasetId || null
@@ -786,9 +786,10 @@ try {
          debugWarn('[ANALYZE] Business profile context skipped:', businessProfileError);
        }
 
-       const businessModelPrompt = `\n\nSTRICT BUSINESS MODEL CONTEXT\n${getBusinessModelPromptContext(requestBusinessModel)}\nThe assistant must not return KPIs from another business model unless the current dataset columns explicitly support them.\n`;
-       const semanticPrompt = buildBusinessSemanticPromptBlock(businessSemanticProfile);
-       const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis, null, skillResult) + businessModelPrompt + semanticPrompt + businessProfilePrompt + mcpToolsPrompt;
+        const businessModelPrompt = `\n\nSTRICT BUSINESS MODEL CONTEXT\n${getBusinessModelPromptContext(requestBusinessModel)}\nThe assistant must not return KPIs from another business model unless the current dataset columns explicitly support them.\n`;
+        const semanticPrompt = buildBusinessSemanticPromptBlock(businessSemanticProfile);
+        const retailFindingsPrompt = buildRetailFindingsPrompt(retailFindings);
+        const prompt = generateAnalysisPrompt(question, result, availableColumns, analysisToUse ?? precomputedAnalysis, null, skillResult) + businessModelPrompt + semanticPrompt + businessProfilePrompt + mcpToolsPrompt + retailFindingsPrompt;
 
       try {
         let text: string | null = null;
@@ -1182,6 +1183,27 @@ function providerStatusLabel(providerType: string, providerName: string) {
   if (providerType === "openai") return "OpenAI";
   if (providerType === "anthropic") return "Anthropic";
   return providerName || "AI Provider";
+}
+
+/**
+ * Deterministic Retail findings block. These numbers come from UseClevr's
+ * deterministic retail engine over the full dataset; the AI explanation must
+ * agree with them and must never recalculate inventory, product counts,
+ * low-stock alerts, dead stock, or profit rankings from sampled rows.
+ */
+function buildRetailFindingsPrompt(retailFindings: Record<string, unknown> | undefined): string {
+  if (!retailFindings || typeof retailFindings !== "object") return "";
+  try {
+    const findings = JSON.stringify(retailFindings, null, 2);
+    if (!findings || findings === "{}") return "";
+    return `\n\nDETERMINISTIC RETAIL FINDINGS (AUTHORITATIVE)\n` +
+      `UseClevr's deterministic retail engine already computed the findings below from the FULL dataset. They are authoritative.\n` +
+      `Your explanation MUST use exactly these numbers where they answer the question. Do NOT recalculate inventory, product or item counts, low-stock alerts, dead stock, or profit rankings, and do NOT derive numbers from the sampled query rows when a finding below covers it.\n` +
+      `If a number is not covered by these findings, say what the sampled rows show and state the limitation.\n` +
+      `${findings}\n`;
+  } catch {
+    return "";
+  }
 }
 
 export async function DELETE() {

@@ -2,10 +2,18 @@
 
 ### Fixed
 
+- Retail now identifies each product by its own product ID or SKU first, so different products that happen to share a display name keep separate stock, alerts, and profit instead of being merged into one item.
+- Retail low-stock alerts now fire when stock reaches each product's own reorder point, and the summary, recommendations, and tables all use that same rule instead of claiming stock is "below 10".
+- Retail top-profit rankings now show one row per product at each location with that location's real profit, instead of merging locations and reporting inflated amounts.
+- Retail order counts now count each order and customer once, and product counts show distinct products separately from product-at-location inventory items.
+- Retail inventory now uses each product's latest recorded stock count, so repeated stock rows in transaction exports never add up into fake stock levels or wrong inventory values.
+- Retail now reports "insufficient data" instead of a clean result when stock, sales, or date information is missing, so empty dead-stock or low-stock sections never hide unknown data.
+- Retail AI summaries now restate the exact deterministic analysis numbers instead of recalculating inventory from sampled rows.
+
 - Retail upload analysis now counts each product at each location once, so repeated transaction rows no longer appear as duplicate products or inflate stock, and stock always reflects the latest recorded count.
 - Retail product lists now show the store location for each low-stock, dead-stock, and top-profit item so multi-store uploads are readable.
 - Retail now keeps connected Square accounts and uploaded datasets fully separate: with both available you pick the source to analyze, and a removed source no longer silently switches you to the other kind.
-- Retail uploads still complete their own stock and sales analysis when AI enrichment is briefly unavailable, and now show why the AI summary could not load instead of failing silently.
+- Retail uploads show their deterministic stock and sales analysis immediately and display the reason whenever the AI summary cannot load.
 - Retail AI enrichment now works when UseClevr Cloud is your selected AI mode, even if the separate cloud-fallback switch was turned off earlier.
 - Referral links now open the signup page for logged-out visitors instead of returning an error, so shared referral links work again.
 - Referrers now receive their signup reward credits reliably, including accounts that have not used credits yet.
