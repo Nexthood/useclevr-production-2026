@@ -1,3 +1,40 @@
+## 2026-09-28 — Referral production redirect origin fixed
+
+1. Interaction title
+   Fix the UseClevr referral production redirect bug where `/signup?ref=<code>` reached `/api/referral/visit` and then redirected the browser to `https://0.0.0.0:8080/login?tab=signup` instead of the public app origin.
+
+2. What was the user goal
+   Preserve the referral lifecycle and protected API boundaries, reuse the existing environment-aware public-origin helper, add a Railway-origin regression, search signup/auth redirect construction for the same bug, run referral/auth/type validation, and do not commit or push.
+
+3. What changed
+   - `src/app/api/referral/visit/route.ts`: replaces raw `new URL("/login", request.nextUrl.origin)` construction with `buildReferralSignupRedirect(request.nextUrl.origin, callbackUrl)`.
+   - `src/lib/referrals/referral-store.ts`: adds `buildReferralSignupRedirect`, which builds `/login?tab=signup` from the normalized public auth base and preserves `callbackUrl` when present.
+   - `src/lib/auth/redirect-origin.ts`: hardens `normalizePublicAuthBaseUrl` so production rejects `0.0.0.0`, localhost, private/internal hosts, and non-HTTPS origins, prefers public app/auth/Railway-domain env values, and falls back to `https://app.useclevr.com` only in production when every input is unsafe; non-production localhost behavior stays intact.
+   - `scripts/billing/test-referral-automation.ts` and `scripts/auth/test-auth-redirect.ts`: add regressions for the Railway bind-origin case, production fallback, local development behavior, anonymous referral-visit public access, protected Referral Center API access, preserved attribution-cookie write, and no raw login URL construction.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the referral route itself is not imported into the lightweight referral script because that pulls full server config; the regression asserts the exact shared helper output and source invariants instead.
+   - improvement: add a future compiled-artifact check for referral redirects if deployment bugs recur in dist-only artifacts.
+   - observation: Railway binds Next to `0.0.0.0:8080`, so browser-facing redirects must never trust `request.nextUrl.origin` directly in production.
+
+5. User learning
+   Referral links now redirect production visitors to `https://app.useclevr.com/login?tab=signup` while keeping attribution, signup verification, reward, and Referral Center behavior unchanged.
+
+6. AI-agent learning
+   Browser-facing redirects should use `normalizePublicAuthBaseUrl` or a domain-specific wrapper; `request.nextUrl.origin` is a request-local/server bind origin and can represent Railway internals.
+
+7. Follow-up tasks
+   - None.
+
+8. Instruction sources
+   - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
 ## 2026-09-27 — BYOK empty-provider UX fixed end to end
 
 1. Interaction title

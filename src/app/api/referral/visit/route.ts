@@ -1,4 +1,4 @@
-import { normalizeReferralCode } from "@/lib/referrals/referral-store"
+import { buildReferralSignupRedirect, normalizeReferralCode } from "@/lib/referrals/referral-store"
 import { recordReferralClick, referralAttributionCookieName } from "@/lib/referrals/referral-lifecycle"
 import { auth } from "@/lib/auth/auth"
 import type { NextRequest } from "next/server"
@@ -18,10 +18,8 @@ export const runtime = "nodejs"
 export async function GET(request: NextRequest) {
   const code = normalizeReferralCode(request.nextUrl.searchParams.get("code"))
 
-  const loginUrl = new URL("/login", request.nextUrl.origin)
-  loginUrl.searchParams.set("tab", "signup")
   const callbackUrl = request.nextUrl.searchParams.get("callbackUrl")
-  if (callbackUrl) loginUrl.searchParams.set("callbackUrl", callbackUrl)
+  const loginUrl = buildReferralSignupRedirect(request.nextUrl.origin, callbackUrl)
 
   if (!code) {
     return NextResponse.redirect(loginUrl.toString())

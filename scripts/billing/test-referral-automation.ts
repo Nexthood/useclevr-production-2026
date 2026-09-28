@@ -2,7 +2,12 @@ import assert from "node:assert/strict"
 import { readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 
-import { normalizeReferralCode, createReferralCode, buildReferralLink } from "@/lib/referrals/referral-store"
+import {
+  normalizeReferralCode,
+  createReferralCode,
+  buildReferralLink,
+  buildReferralSignupRedirect,
+} from "@/lib/referrals/referral-store"
 import { clientClickFingerprint } from "@/lib/referrals/referral-lifecycle"
 import { REFERRAL_REWARD_CONFIG } from "@/lib/referrals/referral-config"
 
@@ -18,6 +23,30 @@ function readProjectFile(relativePath: string) {
 function assertNoReference(source: string, patterns: Array<[string, RegExp]>) {
   for (const [label, pattern] of patterns) {
     assert.ok(!pattern.test(source), `must not contain ${label}`)
+  }
+}
+
+async function withEnv<T>(values: Record<string, string | undefined>, run: () => Promise<T> | T) {
+  const previous = new Map<string, string | undefined>()
+  for (const [key, value] of Object.entries(values)) {
+    previous.set(key, process.env[key])
+    if (value === undefined) {
+      delete process.env[key]
+    } else {
+      process.env[key] = value
+    }
+  }
+
+  try {
+    return await run()
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
+    }
   }
 }
 
@@ -50,6 +79,16 @@ const tests: TestCase[] = [
       const route = readProjectFile("src/app/api/referral/route.ts")
       assert.ok(route.includes("requireSession"), "/api/referral must require a session")
       assert.ok(route.includes('if (!authResult.success) return authResult.error'), "GET must reject unauthenticated callers")
+
+      const proxySource = readProjectFile("src/proxy.ts")
+      assert.ok(!proxySource.includes('"/api/referral",'), "the Referral Center summary API stays out of the public API allowlist")
+    },
+  },
+  {
+    name: "referral visit endpoint stays public for anonymous attribution",
+    run() {
+      const proxySource = readProjectFile("src/proxy.ts")
+      assert.ok(proxySource.includes('"/api/referral/visit"'), "anonymous referral visits remain allowed")
     },
   },
   {
@@ -113,6 +152,11 @@ const tests: TestCase[] = [
         authAction.includes("markEmailVerified(email)") && authAction.includes("confirmReferralAfterVerification(email)"),
         "signup confirmation must run only after server-side email verification",
       )
+      assert.ok(
+        visit.includes("response.cookies.set(referralAttributionCookieName, code"),
+        "valid referral visits still write the attribution cookie",
+      )
+      assert.ok(visit.includes("maxAge: 60 * 60 * 24 * 30"), "attribution cookie remains valid for 30 days")
     },
   },
   {
@@ -399,6 +443,59 @@ const tests: TestCase[] = [
       assert.equal(url.origin, "https://app.useclevr.com")
       assert.equal(url.pathname, "/signup")
       assert.equal(url.searchParams.get("ref"), "uc-test123")
+    },
+  },
+  {
+    name: "referral visit redirects use the public production origin on Railway",
+    async run() {
+      await withEnv(
+        {
+          NODE_ENV: "production",
+          NEXT_PUBLIC_APP_URL: "https://app.useclevr.com",
+          AUTH_URL: "https://0.0.0.0:8080",
+          NEXTAUTH_URL: "https://0.0.0.0:8080",
+        },
+        async () => {
+          const redirect = buildReferralSignupRedirect("https://0.0.0.0:8080").toString()
+          assert.equal(redirect, "https://app.useclevr.com/login?tab=signup")
+          assert.ok(!redirect.includes("0.0.0.0:8080"), "production redirect must not expose the Railway bind host")
+        },
+      )
+    },
+  },
+  {
+    name: "referral visit redirects keep local development origins local",
+    async run() {
+      await withEnv(
+        {
+          NODE_ENV: "development",
+          NEXT_PUBLIC_APP_URL: "",
+          AUTH_URL: "",
+          NEXTAUTH_URL: "",
+          PORT: "3000",
+        },
+        () => {
+          assert.equal(
+            buildReferralSignupRedirect("http://localhost:3000").toString(),
+            "http://localhost:3000/login?tab=signup",
+          )
+          assert.equal(
+            buildReferralSignupRedirect("http://0.0.0.0:3000").toString(),
+            "http://localhost:3000/login?tab=signup",
+          )
+        },
+      )
+    },
+  },
+  {
+    name: "referral visit route no longer constructs browser redirects from request.nextUrl.origin",
+    run() {
+      const visit = readProjectFile("src/app/api/referral/visit/route.ts")
+      assert.ok(
+        visit.includes("buildReferralSignupRedirect(request.nextUrl.origin, callbackUrl)"),
+        "visit redirects must flow through the public-origin helper",
+      )
+      assertNoReference(visit, [["raw login URL construction", /new URL\(["']\/login["'],\s*request\.nextUrl\.origin\)/]])
     },
   },
   {
