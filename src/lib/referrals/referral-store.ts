@@ -28,3 +28,11 @@ export function buildReferralLink(origin: string, code: string) {
   url.searchParams.set("ref", code)
   return url.toString()
 }
+
+export function buildReferralSignupRedirect(origin: string, callbackUrl?: string | null) {
+  const baseUrl = normalizePublicAuthBaseUrl(process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || origin)
+  const url = new URL("/login", baseUrl)
+  url.searchParams.set("tab", "signup")
+  if (callbackUrl) url.searchParams.set("callbackUrl", callbackUrl)
+  return url
+}
