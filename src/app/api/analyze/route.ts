@@ -21,7 +21,7 @@ import { debugError, debugLog, debugWarn } from "@/lib/utils/debug";
 import {
   BYOK_PROVIDER_REQUIRED_MESSAGE,
   generateWithUniversalAiAdapter,
-  getUseClevrCloudFallbackAllowed,
+  getUseClevrCloudAiAllowed,
   isByokProviderUnavailableError,
   isLocalAiUnavailableError,
   logDefaultCloudFallback,
@@ -312,8 +312,10 @@ export async function POST(request: Request) {
     }
 
     const effectiveUserId = userId
-    const allowUseclevrCloudFallback = effectiveUserId
-      ? await getUseClevrCloudFallbackAllowed(effectiveUserId)
+    // Managed UseClevr cloud is the selected route in cloud-only mode, not a
+    // fallback; every other mode honors the stored fallback preference.
+    const allowManagedCloudAi = effectiveUserId
+      ? await getUseClevrCloudAiAllowed(effectiveUserId)
       : true
 
     // The upload feature already reserved the full 10-credit
@@ -831,7 +833,7 @@ try {
                 providerStatus,
               });
             }
-            if (isByokProviderUnavailableError(byoAiError) && !allowUseclevrCloudFallback) {
+            if (isByokProviderUnavailableError(byoAiError) && !allowManagedCloudAi) {
               if (creditOperationId) {
                 await releaseCredits(creditOperationId, "byok_provider_required")
               }
@@ -866,7 +868,7 @@ try {
           }
         }
 
-        if (!text && !mockAIMode && effectiveUserId && !allowUseclevrCloudFallback) {
+        if (!text && !mockAIMode && effectiveUserId && !allowManagedCloudAi) {
           if (creditOperationId) {
             await releaseCredits(creditOperationId, "cloud_fallback_disabled")
           }

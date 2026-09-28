@@ -6,6 +6,7 @@ import {
   __aiProviderSecurityTestHooks,
   generateWithUniversalAiAdapter,
   getAiMode,
+  getUseClevrCloudAiAllowed,
   getUseClevrCloudFallbackAllowed,
   isByokProviderUnavailableError,
   isLocalAiUnavailableError,
@@ -226,6 +227,44 @@ async function main() {
   seedAiMode("byok", true);
   seedProvider({ id: "aip_openai", providerType: "openai", modelName: "gpt-test" });
   assert.equal(await getUseClevrCloudFallbackAllowed(USER_ID), true, "explicit fallback preference must be honored");
+
+  // -- Managed cloud route resolution (retail /api/analyze 503 fix) ---------
+
+  resetState();
+  seedAiMode("cloud-only", false);
+  assert.equal(
+    await getUseClevrCloudAiAllowed(USER_ID),
+    true,
+    "cloud-only mode keeps managed UseClevr Cloud available even when the fallback preference is off",
+  );
+
+  resetState();
+  seedAiMode("auto", false);
+  assert.equal(
+    await getUseClevrCloudAiAllowed(USER_ID),
+    false,
+    "auto mode with a disabled fallback preference keeps managed cloud blocked",
+  );
+
+  resetState();
+  seedAiMode("byok", false);
+  assert.equal(
+    await getUseClevrCloudAiAllowed(USER_ID),
+    false,
+    "byok mode with a disabled fallback preference keeps managed cloud blocked",
+  );
+
+  resetState();
+  seedAiMode("local-only", false);
+  assert.equal(
+    await getUseClevrCloudAiAllowed(USER_ID),
+    false,
+    "local-only mode never allows managed cloud",
+  );
+
+  resetState();
+  seedAiMode("auto", true);
+  assert.equal(await getUseClevrCloudAiAllowed(USER_ID), true, "an enabled fallback preference allows managed cloud");
 
   // -- Specific error mapping instead of generic background failure (req. 5) -
 

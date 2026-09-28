@@ -6,6 +6,7 @@
 - Retail product lists now show the store location for each low-stock, dead-stock, and top-profit item so multi-store uploads are readable.
 - Retail now keeps connected Square accounts and uploaded datasets fully separate: with both available you pick the source to analyze, and a removed source no longer silently switches you to the other kind.
 - Retail uploads still complete their own stock and sales analysis when AI enrichment is briefly unavailable, and now show why the AI summary could not load instead of failing silently.
+- Retail AI enrichment now works when UseClevr Cloud is your selected AI mode, even if the separate cloud-fallback switch was turned off earlier.
 - Referral links now open the signup page for logged-out visitors instead of returning an error, so shared referral links work again.
 - Referrers now receive their signup reward credits reliably, including accounts that have not used credits yet.
 
