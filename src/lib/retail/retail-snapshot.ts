@@ -1,4 +1,5 @@
 import {
+  aggregateRetailInventoryRecords,
   buildRetailRecords,
   computeDeadStock,
   computeLowStock,
@@ -165,11 +166,12 @@ export function buildDatasetRetailSnapshot(input: {
 }): RetailAnalyticsSnapshot {
   const detected = detectColumns(input.columns);
   const records = buildRetailRecords(input.rows, detected);
-  const lowStockItems = computeLowStock(records);
-  const deadStockItems = computeDeadStock(records);
-  const topProfitItems = computeTopProfit(records);
+  const inventoryRecords = aggregateRetailInventoryRecords(records);
+  const lowStockItems = computeLowStock(inventoryRecords);
+  const deadStockItems = computeDeadStock(inventoryRecords);
+  const topProfitItems = computeTopProfit(inventoryRecords);
   const topSellerItems = computeTopSellers(records);
-  const referenceDate = getReferenceDate(records);
+  const referenceDate = getReferenceDate(inventoryRecords);
   const hasCostBasis = detected.costCol !== null;
   const warnings: string[] = [];
   if (!hasCostBasis) {
@@ -188,11 +190,11 @@ export function buildDatasetRetailSnapshot(input: {
     },
     currency: null,
     kpis: {
-      productCount: new Set(records.map((record) => `${record.product}|${record.sku}`)).size || null,
+      productCount: inventoryRecords.length || null,
       variantCount: null,
-      locationCount: null,
+      locationCount: new Set(inventoryRecords.map((record) => record.store).filter(Boolean)).size || null,
       orderCount: null,
-      totalOnHand: detected.stockCol ? round2(records.reduce((sum, record) => sum + Math.max(record.stock ?? 0, 0), 0)) : null,
+      totalOnHand: detected.stockCol ? round2(inventoryRecords.reduce((sum, record) => sum + Math.max(record.stock ?? 0, 0), 0)) : null,
       inventoryValue: null,
       netSales: detected.revenueCol ? round2(records.reduce((sum, record) => sum + (record.revenue ?? 0), 0)) : null,
       unitsSold: detected.salesCol ? round2(records.reduce((sum, record) => sum + (record.unitsSold ?? 0), 0)) : null,
@@ -238,6 +240,7 @@ export function buildDatasetRetailSnapshot(input: {
     },
     summary: buildDatasetSummary({
       rowCount: input.rowCount,
+      inventoryEntityCount: inventoryRecords.length,
       columnCount: input.columnCount,
       lowStockItems,
       deadStockItems,
@@ -249,12 +252,14 @@ export function buildDatasetRetailSnapshot(input: {
 
 function buildDatasetSummary(input: {
   rowCount: number;
+  inventoryEntityCount: number;
   columnCount: number;
   lowStockItems: RetailLowStockItem[];
   deadStockItems: RetailDeadStockItem[];
   topProfitItems: RetailTopProfitItem[];
 }): RetailAnalyticsSnapshot["summary"] {
-  const total = new Intl.NumberFormat().format(input.rowCount);
+  const total = new Intl.NumberFormat().format(input.inventoryEntityCount);
+  const rows = new Intl.NumberFormat().format(input.rowCount);
   const low = input.lowStockItems.length;
   const dead = input.deadStockItems.length;
   const top = input.topProfitItems[0];
@@ -264,9 +269,9 @@ function buildDatasetSummary(input: {
     : "N/A";
 
   return {
-    insight: `Analysis of ${total} products complete`,
+    insight: `Analysis of ${total} product/location items complete`,
     explanation:
-      `Found ${total} inventory records across ${input.columnCount} columns. ` +
+      `Found ${total} product/location inventory items from ${rows} transaction rows across ${input.columnCount} columns. ` +
       `${low} products have low stock (below 10 units). ` +
       `${dead} products have no recorded sales. ` +
       `Top profit product: ${profit} (${maxProfit}).`,
@@ -508,6 +513,7 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
             product: record.product,
             sku: record.sku,
             category: record.category,
+            store: record.store,
             stock: record.stock,
             reorderPoint: null,
             unitsSold: record.unitsSold,
