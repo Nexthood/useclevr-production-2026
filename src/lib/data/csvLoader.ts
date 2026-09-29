@@ -411,6 +411,31 @@ export async function parseCSVStreaming(
   })
 }
 
+/**
+ * Normalizes workbook cell values into deterministic row shapes.
+ *
+ * XLSX `cellDates` parsing produces Date objects in the host's local
+ * timezone, so a date-only cell (workbook value 2026-06-05) serializes as
+ * "2026-06-04T22:00:00.000Z" on a UTC+2 machine and "2026-06-05T00:00:00.000Z"
+ * on UTC — the same upload would yield different stored dates per environment.
+ * Date-only cells therefore serialize through their local calendar date as a
+ * plain "YYYY-MM-DD" string, which every downstream parser (and
+ * JSON.stringify round-trips) treats identically. Cells carrying a real time
+ * of day keep the Date object so timestamp precision is preserved.
+ */
+function normalizeWorkbookCell(value: unknown): unknown {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    const hasTimeComponent = value.getHours() !== 0 || value.getMinutes() !== 0 || value.getSeconds() !== 0 || value.getMilliseconds() !== 0;
+    if (!hasTimeComponent) {
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, "0");
+      const day = String(value.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+  }
+  return value;
+}
+
 async function parseExcelStreaming(
   file: File,
   rowLimit: number,
@@ -503,7 +528,7 @@ async function parseExcelStreaming(
     if (i < actualRowLimit) {
       rowObj = {}
       columns.forEach((col, idx) => {
-        rowObj![col] = row[idx]
+        rowObj![col] = normalizeWorkbookCell(row[idx])
       })
       allRows.push(rowObj)
       if (previewRows.length < PREVIEW_ROW_COUNT) {

@@ -599,7 +599,9 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   const deadStockStatus = deadStockSection && deadStockSection.items.length === 0 && deadStockSection.status !== "ok" && deadStockSection.status !== "empty"
     ? deadStockSection.message
     : null
-  const deadStockOkEmpty = Boolean(deadStockSection && deadStockSection.items.length === 0 && deadStockSection.status === "ok")
+  // "empty" means the engine ran and found no dead-stock or slow-mover items;
+  // that is a real analysis result, never a "connect a source" state.
+  const deadStockOkEmpty = Boolean(deadStockSection && deadStockSection.items.length === 0 && (deadStockSection.status === "ok" || deadStockSection.status === "empty"))
 
   const topProfitSection = datasetSnapshot ? datasetSnapshot.topProfit : snapshot?.topProfit ?? null
   const topProfitItems = topProfitSection?.items ?? []
@@ -607,7 +609,10 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
   const topProfitStatus = topProfitSection && topProfitSection.items.length === 0 && topProfitSection.status !== "ok" && topProfitSection.status !== "empty"
     ? topProfitSection.message
     : null
-  const topProfitOkEmpty = Boolean(topProfitSection && topProfitSection.items.length === 0 && topProfitSection.status === "ok")
+  // "empty" means the deterministic engine ran against the selected source and
+  // found no profitable items; that is a real analysis result, never a
+  // "connect a source" state.
+  const topProfitOkEmpty = Boolean(topProfitSection && topProfitSection.items.length === 0 && (topProfitSection.status === "ok" || topProfitSection.status === "empty"))
 
   const showSourceInsights = uploadFlowActive
     ? Boolean(insights)
@@ -1084,7 +1089,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
             ) : deadStockOkEmpty ? (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4" />
-                {datasetSnapshot ? "No dead stock or slow movers detected" : snapshot?.deadStock.message}
+                {deadStockSection?.message ?? "No dead stock or slow movers detected"}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
@@ -1169,7 +1174,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
             ) : topProfitStatus ? (
               <StatusNote message={topProfitStatus} />
             ) : topProfitOkEmpty ? (
-              <p className="text-sm text-muted-foreground">{datasetSnapshot ? "Add cost and revenue columns to see profit rankings" : snapshot?.topProfit.message}</p>
+              <p className="text-sm text-muted-foreground">{topProfitSection?.message}</p>
             ) : (
               <p className="text-sm text-muted-foreground">{EMPTY_STATE_HINT}</p>
             )}

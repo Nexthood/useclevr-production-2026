@@ -6,15 +6,16 @@ import {
   computeLowStock,
   computeTopProfit,
   computeTopSellers,
-  detectColumns,
   formatDateValue,
   getReferenceDate,
+  resolveRetailSchema,
   retailProductIdentityKey,
   type RetailDeadStockItem,
   type RetailLowStockItem,
   type RetailRecord,
   type RetailTopProfitItem,
   type RetailTopSellerItem,
+  type DetectedColumns,
 } from "@/lib/retail/retail-record-engine";
 
 /**
@@ -170,18 +171,22 @@ export function buildDatasetRetailSnapshot(input: {
   columns: string[];
   rows: Record<string, unknown>[];
 }): RetailAnalyticsSnapshot {
-  const detected = detectColumns(input.columns);
+  const { detected, warnings: schemaWarnings } = resolveRetailSchema(input.columns, input.rows);
   const records = buildRetailRecords(input.rows, detected);
   const inventoryRecords = aggregateRetailInventoryRecords(records);
-  const lowStockItems = computeLowStock(inventoryRecords);
-  const deadStockItems = computeDeadStock(inventoryRecords);
+  // Findings lists stay capped for display; the summary always states the
+  // uncapped true counts so a long alert list is never underreported.
+  const reorderAlertItems = computeLowStock(inventoryRecords, Number.MAX_SAFE_INTEGER);
+  const deadSlowItems = computeDeadStock(inventoryRecords, Number.MAX_SAFE_INTEGER);
+  const lowStockItems = reorderAlertItems.slice(0, 20);
+  const deadStockItems = deadSlowItems.slice(0, 20);
   const topProfitItems = computeTopProfit(inventoryRecords);
   const topSellerItems = computeTopSellers(records);
   const referenceDate = getReferenceDate(inventoryRecords);
   const hasCostBasis = detected.costCol !== null;
   const hasStockBasis = detected.stockCol !== null;
   const hasMovementEvidence = Boolean(detected.salesCol || detected.dateCol);
-  const warnings: string[] = [];
+  const warnings: string[] = [...schemaWarnings];
   if (!hasCostBasis) {
     warnings.push("No unit cost or COGS column was detected, so profit and margin cannot be calculated.");
   }
@@ -231,7 +236,12 @@ export function buildDatasetRetailSnapshot(input: {
       trend: [],
     },
     lowStock: buildDatasetLowStockSection(detected, lowStockItems),
-    deadStock: buildDatasetDeadStockSection(detected, deadStockItems),
+    deadStock: buildDatasetDeadStockSection(
+      detected,
+      deadStockItems,
+      deadSlowItems.filter((item) => item.classification === "dead_stock").length,
+      deadSlowItems.length - deadSlowItems.filter((item) => item.classification === "dead_stock").length,
+    ),
     topSellers: {
       status: topSellerItems.length ? "ok" : "insufficient_data",
       message: topSellerItems.length
@@ -243,13 +253,17 @@ export function buildDatasetRetailSnapshot(input: {
       // Uploaded datasets keep their historical engine semantics: a missing
       // cost column computes profit as revenue; connected POS sources with
       // no cost basis report "no_cost_data" instead of fabricating values.
-      // The message states that caveat whenever the cost basis is missing.
+      // The message states that caveat whenever the cost basis is missing,
+      // and a genuinely unprofitable dataset says so instead of pretending
+      // no source exists.
       status: topProfitItems.length ? "ok" : "empty",
       message: topProfitItems.length
         ? (hasCostBasis
           ? "Protect these winners: keep inventory available, avoid unnecessary markdowns, and watch supplier cost."
           : "No cost column was detected, so items are ranked with missing cost treated as zero (profit equals revenue). Add cost data for true profit ranking.")
-        : "Add cost and revenue columns to see profit rankings.",
+        : (hasCostBasis
+          ? "No profitable product/location items were detected: every analyzed item has zero or negative profit at the mapped revenue and cost fields."
+          : "No cost column was detected, so items were ranked with missing cost treated as zero and none showed profit. Add cost data for true profit ranking."),
       items: topProfitItems,
     },
     summary: buildDatasetSummary({
@@ -258,8 +272,8 @@ export function buildDatasetRetailSnapshot(input: {
       productCount: distinctProducts,
       columnCount: input.columnCount,
       hasReorderColumn: detected.reorderPointCol !== null,
-      lowStockItems,
-      deadStockItems,
+      lowStockCount: reorderAlertItems.length,
+      deadStockItems: deadSlowItems,
       topProfitItems,
     }),
     dataQualityWarnings: warnings,
@@ -272,7 +286,7 @@ export function buildDatasetRetailSnapshot(input: {
  * (10 units) apply, and the wording says so.
  */
 function buildDatasetLowStockSection(
-  detected: ReturnType<typeof detectColumns>,
+  detected: DetectedColumns,
   lowStockItems: RetailLowStockItem[],
 ): RetailLowStockSection {
   if (!detected.stockCol) {
@@ -303,8 +317,10 @@ function buildDatasetLowStockSection(
  * section reports insufficient data instead of a false "no dead stock".
  */
 function buildDatasetDeadStockSection(
-  detected: ReturnType<typeof detectColumns>,
+  detected: DetectedColumns,
   deadStockItems: RetailDeadStockItem[],
+  trueDeadCount: number,
+  trueSlowCount: number,
 ): RetailDeadStockSection {
   if (!detected.stockCol) {
     return {
@@ -320,12 +336,11 @@ function buildDatasetDeadStockSection(
       items: [],
     };
   }
-  const deadCount = deadStockItems.filter((item) => item.classification === "dead_stock").length;
-  const slowCount = deadStockItems.length - deadCount;
+  const totalCount = trueDeadCount + trueSlowCount;
   return {
-    status: deadStockItems.length ? "ok" : "empty",
-    message: deadStockItems.length
-      ? `${deadCount} dead-stock and ${slowCount} slow-mover item${deadStockItems.length === 1 ? "" : "s"} detected. Free cash from items that sit on the shelf before reordering more of the same stock.`
+    status: totalCount ? "ok" : "empty",
+    message: totalCount
+      ? `${trueDeadCount} dead-stock and ${trueSlowCount} slow-mover item${totalCount === 1 ? "" : "s"} detected. Free cash from items that sit on the shelf before reordering more of the same stock.`
       : "No dead stock or slow movers detected from stock and movement fields.",
     items: deadStockItems,
   };
@@ -337,14 +352,14 @@ function buildDatasetSummary(input: {
   productCount: number;
   columnCount: number;
   hasReorderColumn: boolean;
-  lowStockItems: RetailLowStockItem[];
+  lowStockCount: number;
   deadStockItems: RetailDeadStockItem[];
   topProfitItems: RetailTopProfitItem[];
 }): RetailAnalyticsSnapshot["summary"] {
   const total = new Intl.NumberFormat().format(input.inventoryEntityCount);
   const products = new Intl.NumberFormat().format(input.productCount);
   const rows = new Intl.NumberFormat().format(input.rowCount);
-  const low = input.lowStockItems.length;
+  const low = input.lowStockCount;
   const deadCount = input.deadStockItems.filter((item) => item.classification === "dead_stock").length;
   const slowCount = input.deadStockItems.length - deadCount;
   const top = input.topProfitItems[0];

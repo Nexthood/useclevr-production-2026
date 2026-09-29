@@ -1,3 +1,47 @@
+## 2026-09-29 — Retail schema-mapping hardening for alternative column structures
+
+1. Interaction title
+   Retail semantic schema resolver for differently named columns, second golden fixture, and honest Top Profit empty states.
+
+2. What was the user goal
+   A second production Retail workbook (02_retail_alternative_structure.xlsx, 164 rows, 16 columns) uploaded Ready but produced wrong Retail analytics: vendor names ("BeautyHub") as products, monetary totals as units sold, thousands-of-percent negative margins, an empty Top Profit section showing the "Connect a retail system or upload CSV/Excel" hint, and untrustworthy dead/slow classifications. Make the schema-detection layer map alternative names into the same canonical Retail model without touching the canonical business rules, add the workbook as a permanent fixture with independently derived expected values, and do not commit or push.
+
+3. What changed
+   - `src/lib/retail/retail-record-engine.ts`: replaced the bare substring `detectColumns` with `resolveRetailSchema`, a tiered deterministic resolver (exact alias, token-aware alias, distinctive whole token, value-validated heuristic) with cross-field exclusivity, reserved-token protection, and optional value-shape validation from parsed rows. Adds `unitPriceCol` and `supplierCol` mapping fields. The canonical engine rules (identity precedence, latest-snapshot inventory, own-reorder-point alerts, additive money, distinct orders/customers, dataset-relative dead/slow windows) are unchanged.
+   - `src/lib/data/csvLoader.ts`: `parseExcelStreaming` serializes date-only workbook cells as `YYYY-MM-DD` strings so XLSX dates stop shifting by the host timezone.
+   - `src/lib/retail/retail-snapshot.ts`: passes parsed rows to the resolver, merges mapping warnings into data-quality warnings, keeps the legacy price-as-revenue fallback only with an explicit warning, and reports true uncapped dead/slow/reorder counts in section messages and summaries while keeping 20-item display lists.
+   - `src/components/retail/retail-inventory-client.tsx`: `empty` Top Profit and Dead Stock statuses render the snapshot's honest message instead of the no-source hint.
+   - `test-fixtures/business-models/02_retail_alternative_structure.xlsx`: permanent second golden fixture (SHA-256 f365f4fd7e83163f6b6c37aca9116006a42e62c823aa1b3aa0969ead10c2c1b6).
+   - `scripts/retail/test-retail-source-analytics.ts`: fixture 02 golden test pins all 15 exact source-column mappings, negative mapping assertions, and independently derived results; new adversarial collision cases A-J cover reorder/order independence, qty vs inventory_qty, item_description vs supplier_name, price vs sales_amount, cost_price vs total_cost, branch_code vs city, decimal quantities, unknown numeric columns, the warned price-revenue fallback, and value-shape rejection of text in numeric fields.
+   - `CHANGELOG.md`: added Fixed entries for alternative-structure mapping and the honest Top Profit empty state.
+
+4. Problems marked
+   - blocker: none for Retail.
+   - correction: the fixture 01 summary previously stated "7 dead-stock and 13 slow-mover items" from the capped top-20 display list; the true entity-level counts are 23 dead and 39 slow. The display list is unchanged; summaries and section messages now state true counts. Fixture 02 exposed the same undercount (22 reorder alerts shown as 20).
+   - risk: `pnpm test:dataset-aware-report-profiles` still stops at the pre-existing SaaS results-summary assertion that fails identically on pristine `beta` (documented last interaction; outside Retail).
+   - observation: XLSX `cellDates` parsing produced host-timezone Date objects, so the same upload stored different dates per environment; date-only cells now serialize as calendar dates.
+
+5. User learning
+   Retail uploads with alternative column names (sale_date, branch_code, receipt_no, client_ref, sku, item_description, department, qty, selling_price, net_sales, purchase_cost, total_cost, inventory_qty, min_stock_level, vendor_name, region) now produce the same canonical analysis: 12 products, 4 locations, 43 product/location items, 164 orders, 54 customers, 561 units, 12,237.80 revenue, 6,108.30 cost, 6,129.50 profit (50.09% margin), 706 current stock, 6,257.00 inventory value, 22 reorder alerts, 3 dead-stock and 8 slow-mover items, top profit Yoga Mat (NL-EIN) 491.70, reference date 2026-07-31. Generic upload insights still cannot replace the deterministic Retail summary.
+
+6. AI-agent learning
+   Substring column matching cannot distinguish "sales" inside "net_sales", "order" inside "reorder_point", or "name" inside "vendor_name"; tiered exact/token matching with reserved tokens and cross-field exclusivity resolves all three classes. Value-shape validation needs parsed rows, so schema resolution belongs after upload parsing, and golden summaries must assert uncapped classification counts because display caps silently undercount.
+
+7. Follow-up tasks
+   - Fix the pre-existing SaaS results-summary metadata assertion in `test:dataset-aware-report-profiles` as separate non-Retail work.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+
 ## 2026-09-29 — Retail production parity summary guard and 17-column golden fixture
 
 1. Interaction title

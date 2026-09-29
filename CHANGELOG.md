@@ -2,6 +2,9 @@
 
 ### Fixed
 
+- Retail uploads with differently named columns (like sale_date, branch_code, receipt_no, qty, and inventory_qty) now map to the same reliable analysis instead of showing supplier names as products, money amounts as units sold, or impossible margins.
+- Top Profit Products now shows an honest result when analysis finds no profitable items, instead of asking you to connect a source you already have.
+
 - Retail now identifies each product by its own product ID or SKU first, so different products that happen to share a display name keep separate stock, alerts, and profit instead of being merged into one item.
 - Retail low-stock alerts now fire when stock reaches each product's own reorder point, and the summary, recommendations, and tables all use that same rule instead of claiming stock is "below 10".
 - Retail top-profit rankings now show one row per product at each location with that location's real profit, instead of merging locations and reporting inflated amounts.

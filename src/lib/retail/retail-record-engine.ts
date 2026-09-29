@@ -142,68 +142,411 @@ export function matchColumn(columns: string[], keywords: string[], exclude?: Reg
   return null
 }
 
-export function detectColumns(columns: string[]) {
-  return {
-    productIdCol: matchColumn(columns, [
-      "product_id", "variant_id", "item_id", "productid", "variantid", "itemid",
-      "product_number", "item_number", "listing_id",
-    ]),
-    skuCol: matchColumn(columns, [
-      "sku", "product_sku", "item_sku", "variant_sku", "barcode",
-      "upc", "ean", "code", "item_code", "product_code",
-    ]),
-    productCol: matchColumn(columns, [
-      "product_name", "item_name", "product", "name", "item", "title",
-      "description", "article",
-    ]),
-    categoryCol: matchColumn(columns, [
-      "category", "department", "collection", "product_type", "type",
-      "class", "group",
-    ]),
-    // Stable store/location IDs win over free-text location names so the
-    // canonical location identity follows the source's own keying.
-    storeCol: matchColumn(columns, [
-      "store_id", "location_id", "branch_id", "shop_id",
-      "store", "location", "branch", "shop",
-    ]),
-    stockCol: matchColumn(columns, [
-      "stock", "quantity", "qty", "on_hand", "inventory", "available",
-      "qty_in_stock", "units_in_stock", "stock_qty", "stock_level",
-    ]),
-    reorderPointCol: matchColumn(columns, [
-      "reorder_point", "reorder", "minimum_stock", "min_stock", "par_level",
-      "safety_stock", "restock_level",
-    ]),
-    salesCol: matchColumn(columns, [
-      "sold", "units_sold", "quantity_sold", "sales_quantity", "qty_sold",
-      "sales", "sell", "quantity", "qty",
-    ]),
-    revenueCol: matchColumn(columns, [
-      "revenue", "sales_amount", "total_sales", "income", "turnover",
-      "total_revenue", "amount", "price", "selling_price", "retail_price",
-      "unit_price", "sale_price",
-    ]),
-    costCol: matchColumn(columns, [
-      "cost", "cogs", "unit_cost", "product_cost", "cost_price",
-      "wholesale_price", "purchase_price", "cost_of_goods", "buying_price",
-    ]),
-    dateCol: matchColumn(columns, [
-      "date", "transaction_date", "order_date", "sale_date", "created_at",
-      "timestamp", "datetime", "date_created",
-    ]),
-    // "order" must never match "reorder_point"/"reorder" columns.
-    orderCol: matchColumn(columns, [
-      "order_number", "order_id", "orderid", "order", "invoice_number",
-      "invoice_id", "receipt_number", "transaction_id",
-    ], /reorder/),
-    customerCol: matchColumn(columns, [
-      "customer_id", "customer_number", "customer", "client_id", "client",
-      "buyer_id", "buyer", "member_id",
-    ]),
-  }
+// ---------------------------------------------------------------------------
+// Deterministic Retail schema resolver
+//
+// Maps arbitrary real-world Retail column names onto one canonical Retail
+// model with tiered matching, cross-field exclusivity, and lightweight
+// value-shape validation. Matching is tiered, never a bare substring scan:
+//
+// 1. "exact"     — normalized column name equals a canonical alias.
+// 2. "alias"     — explicit high-confidence alias whose full token list is
+//                  contained in the column's tokens ("min_stock" ⊆
+//                  "min_stock_level").
+// 3. "token"     — one distinctive alias token appears as a whole token
+//                  ("receipt" ⊆ "receipt_no"); whole-token equality is what
+//                  keeps "reorder_point" from ever matching the "order" token.
+// 4. "heuristic" — legacy fallbacks (for example a bare price column standing
+//                  in for revenue), only when nothing stronger matched, and
+//                  only with value-shape evidence plus a data-quality note.
+//
+// A physical column can serve only one canonical field: once claimed at a
+// stronger tier, later fields must find another candidate. Reserved tokens
+// (vendor/supplier/brand for product, date/time for order identity,
+// refund/cost-like tokens for revenue) never map into the protected field.
+// ---------------------------------------------------------------------------
+
+export type RetailCanonicalField =
+  | "date" | "order" | "customer" | "productId" | "sku" | "product"
+  | "category" | "store" | "supplier" | "reorderPoint" | "stock"
+  | "sales" | "unitPrice" | "revenue" | "cost";
+
+export type RetailColumnConfidence = "exact" | "alias" | "token" | "heuristic";
+
+export type RetailColumnMapping = {
+  field: RetailCanonicalField;
+  column: string | null;
+  confidence: RetailColumnConfidence | null;
+  reason: string;
+};
+
+/** Tokens that describe seller/brand metadata, never an item's display name. */
+const PRODUCT_RESERVED_TOKENS = ["vendor", "supplier", "brand", "manufacturer", "seller", "store", "shop", "branch"];
+/** Tokens that mark order-like money aggregates rather than per-unit prices. */
+const UNIT_PRICE_RESERVED_TOKENS = ["total", "net", "gross", "cogs", "cost"];
+/** Money-deduction tokens that must never become operating revenue. */
+const REVENUE_RESERVED_PATTERN = /refund|return|payout|cost|expense|discount|tax|fee/;
+
+type FieldSpec = {
+  field: RetailCanonicalField;
+  /** Human-readable canonical concept name for diagnostics. */
+  label: string;
+  exact: string[];
+  alias?: string[];
+  token?: string[];
+  heuristic?: string[];
+  /** Column candidates containing any of these tokens are never used. */
+  reservedTokens?: string[];
+  /** Extra normalized-name exclusion (kept from the historical reorder guard). */
+  reservedPattern?: RegExp;
+  /** Required value shape when rows are available. */
+  shape?: "number" | "date";
+  /** Extra validation applied to weak-tier matches only. */
+  weakShape?: "integer_dominant";
+};
+
+const FIELD_SPECS: FieldSpec[] = [
+  {
+    field: "date",
+    label: "sale date",
+    exact: ["date", "sale_date", "sales_date", "transaction_date", "order_date", "sold_at", "timestamp", "datetime", "date_time", "created_at", "date_created", "order_datetime", "day"],
+    alias: ["sale", "sold_at", "date_of_sale"],
+    token: ["date"],
+    shape: "date",
+  },
+  {
+    field: "order",
+    label: "transaction / order identity",
+    exact: ["order_id", "orderid", "order_number", "order_no", "order_ref", "receipt_no", "receipt_id", "receipt_number", "receipt", "transaction_id", "transaction_number", "transaction_no", "invoice_no", "invoice_id", "invoice_number", "sale_id", "sale_number"],
+    reservedTokens: ["date", "time", "reorder"],
+    reservedPattern: /reorder/,
+  },
+  {
+    field: "customer",
+    label: "customer identity",
+    exact: ["customer_id", "customerid", "customer_number", "customer_no", "customer_ref", "client_id", "clientid", "client_ref", "client_number", "buyer_id", "buyer"],
+    alias: ["customer", "client"],
+    token: ["customer", "client", "buyer"],
+  },
+  {
+    field: "productId",
+    label: "stable product identity",
+    exact: ["product_id", "productid", "product_number", "item_id", "itemid", "item_number", "variant_id", "variantid", "listing_id"],
+    // No token tier on purpose: the bare "product"/"item" token must never
+    // capture display-name columns such as "product_name".
+  },
+  {
+    field: "sku",
+    label: "SKU identity",
+    exact: ["sku", "product_sku", "item_sku", "variant_sku", "stock_code", "item_code", "product_code", "barcode", "upc", "ean", "gtin"],
+    token: ["sku"],
+  },
+  {
+    field: "product",
+    label: "product display name",
+    exact: ["product_name", "productname", "item_name", "itemname", "item_description", "product_description", "product_title", "product", "item", "title", "article"],
+    alias: ["name", "description", "title"],
+    token: ["product", "item", "description"],
+    reservedTokens: PRODUCT_RESERVED_TOKENS,
+  },
+  {
+    field: "category",
+    label: "category",
+    exact: ["category", "department", "product_category", "item_category", "product_type", "item_type", "product_group", "item_group"],
+    alias: ["type", "class", "group", "collection"],
+    token: ["category", "department"],
+    reservedTokens: ["cost", "price", "revenue", "amount"],
+  },
+  {
+    field: "store",
+    label: "store / location identity",
+    exact: ["store_id", "storeid", "store_number", "store_code", "branch_id", "branch_code", "location_id", "location_code", "shop_id", "shop_code", "outlet_id", "warehouse_id"],
+    alias: ["store", "branch", "location", "shop", "outlet", "warehouse"],
+    token: ["store", "branch", "location", "shop", "outlet", "warehouse"],
+    // City/region/country stay geography metadata; the store identity follows
+    // the source's own keying, not a free-text place name.
+    reservedTokens: ["city", "region", "country", "state", "market", "zone"],
+  },
+  {
+    field: "supplier",
+    label: "supplier",
+    exact: ["supplier", "supplier_name", "supplier_id", "vendor", "vendor_name", "vendor_id", "manufacturer", "brand"],
+    alias: ["vendor", "supplier"],
+    token: ["vendor", "supplier", "manufacturer", "brand"],
+  },
+  {
+    field: "reorderPoint",
+    label: "reorder point",
+    exact: ["reorder_point", "reorderpoint", "reorder_level", "min_stock_level", "minimum_stock", "min_stock", "minimum_inventory", "min_inventory", "par_level", "safety_stock", "restock_level"],
+    token: ["reorder"],
+    shape: "number",
+    // A reorder-point column is never stock-on-hand evidence: the stock field
+    // skips it through cross-field exclusivity, never by name luck.
+  },
+  {
+    field: "stock",
+    label: "stock on hand",
+    exact: ["stock_on_hand", "stockonhand", "stock_onhand", "inventory_qty", "inventory_quantity", "current_stock", "stock_qty", "stock_level", "stock_quantity", "on_hand", "onhand", "qty_on_hand", "units_in_stock", "qty_in_stock", "closing_stock", "stock_count", "inventory_on_hand"],
+    alias: ["stock", "inventory", "available"],
+    token: ["stock", "inventory", "onhand"],
+    shape: "number",
+    // Bare qty/quantity tokens are transaction quantities; they map to units
+    // sold, never to stock, unless every stock-flavored name is absent.
+    heuristic: ["qty", "quantity", "units"],
+  },
+  {
+    field: "sales",
+    label: "units sold",
+    exact: ["units_sold", "unitssold", "qty_sold", "qtysold", "quantity_sold", "sold_qty", "sold_units", "sales_quantity", "sales_units", "sold_quantity", "qty", "quantity", "units"],
+    alias: ["sold", "sold_qty"],
+    token: ["sold", "qty", "quantity", "units"],
+    shape: "number",
+    weakShape: "integer_dominant",
+    // Inventory snapshot columns are stock, never units sold.
+    reservedTokens: ["stock", "inventory", "onhand", "on_hand"],
+  },
+  {
+    field: "unitPrice",
+    label: "unit price",
+    exact: ["unit_price", "unitprice", "price_per_unit", "price_each", "selling_price", "sale_price", "retail_price", "list_price", "price"],
+    alias: ["price"],
+    token: ["price"],
+    shape: "number",
+    reservedTokens: ["total", "net", "gross", "cogs", "cost"],
+  },
+  {
+    field: "revenue",
+    label: "revenue",
+    exact: ["revenue", "net_sales", "netsales", "total_sales", "total_revenue", "gross_sales", "sales_amount", "line_total", "linetotal", "net_revenue", "sale_amount", "turnover", "income", "gross_sales_amount"],
+    alias: ["amount", "sales", "total"],
+    token: ["revenue", "sales", "turnover", "income"],
+    shape: "number",
+    reservedTokens: ["refund", "payout", "discount", "expense"],
+    reservedPattern: REVENUE_RESERVED_PATTERN,
+  },
+  {
+    field: "cost",
+    label: "cost basis",
+    // Unit-cost fields win over aggregate/COGS fields: the canonical engine
+    // multiplies a detected unit cost by units sold, and a unit-cost reading
+    // is the only one that stays correct for both grain interpretations.
+    exact: ["unit_cost", "unitcost", "cost_price", "costprice", "purchase_cost", "purchase_price", "cost_per_unit", "product_cost", "wholesale_price", "buying_price", "total_cost", "cogs", "cost_of_goods_sold", "cost_of_goods", "cost_of_sales", "cost_amount", "cost"],
+    alias: ["cost"],
+    token: ["cost", "cogs"],
+    shape: "number",
+    reservedTokens: ["revenue", "refund"],
+  },
+];
+
+type NormalizedColumn = { original: string; normalized: string; tokens: string[] };
+
+function normalizeRetailColumnName(column: string): string {
+  return column.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-export type DetectedColumns = ReturnType<typeof detectColumns>
+function columnTokenList(normalized: string): string[] {
+  return normalized.split("_").filter(Boolean);
+}
+
+function aliasTokensInColumn(alias: string, tokens: string[]): boolean {
+  const aliasTokens = alias.split("_").filter(Boolean);
+  return aliasTokens.length > 0 && aliasTokens.every((token) => tokens.includes(token));
+}
+
+function isReservedColumn(spec: FieldSpec, entry: NormalizedColumn): boolean {
+  if (spec.reservedPattern && spec.reservedPattern.test(entry.normalized)) return true;
+  if (spec.reservedTokens?.some((token) => entry.tokens.includes(token))) return true;
+  return false;
+}
+
+function numericShare(rows: Record<string, unknown>[], column: string): number {
+  const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== undefined && String(value).trim() !== "");
+  if (values.length === 0) return 0;
+  const numeric = values.filter((value) => parseBusinessNumber(value) !== null).length;
+  return numeric / values.length;
+}
+
+function dateLikeShare(rows: Record<string, unknown>[], column: string): number {
+  const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== undefined && String(value).trim() !== "");
+  if (values.length === 0) return 0;
+  const parseable = values.filter((value) => value instanceof Date || parseDateValue(value) !== null).length;
+  return parseable / values.length;
+}
+
+function integerDominantShare(rows: Record<string, unknown>[], column: string): number {
+  const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== undefined && String(value).trim() !== "");
+  if (values.length === 0) return 0;
+  const integral = values.filter((value) => {
+    const parsed = parseBusinessNumber(value);
+    return parsed !== null && Number.isInteger(parsed);
+  }).length;
+  return integral / values.length;
+}
+
+function passesShapeValidation(
+  spec: FieldSpec,
+  column: string,
+  tier: RetailColumnConfidence,
+  rows: Record<string, unknown>[] | null,
+): boolean {
+  if (!rows || rows.length === 0) return true;
+  if (spec.shape === "number" && numericShare(rows, column) < 0.5) return false;
+  if (spec.shape === "date" && dateLikeShare(rows, column) < 0.5) return false;
+  // Weak matches must show quantity-like evidence before driving units sold;
+  // explicit qty-family aliases may carry legitimate decimal quantities.
+  if (spec.weakShape === "integer_dominant" && tier !== "exact" && integerDominantShare(rows, column) < 0.8) return false;
+  return true;
+}
+
+/**
+ * Resolves one canonical Retail schema from physical column names, with
+ * optional value-shape validation from the parsed rows.
+ *
+ * Cross-field exclusivity is enforced by tiered passes: every field claims
+ * its exact match before any field may take an alias match, and so on, so a
+ * strong explicit match ("net_sales" → revenue) can never be stolen by a
+ * weaker match from an earlier field ("sales" token inside "net_sales").
+ */
+export function resolveRetailSchema(
+  columns: string[],
+  rows?: Record<string, unknown>[],
+): {
+  detected: DetectedColumns;
+  mapping: RetailColumnMapping[];
+  warnings: string[];
+} {
+  const normalized = columns.map((column) => {
+    const normalizedColumn = normalizeRetailColumnName(column);
+    return { original: column, normalized: normalizedColumn, tokens: columnTokenList(normalizedColumn) };
+  });
+  const claimed = new Map<string, RetailCanonicalField>();
+  const mapping = new Map<RetailCanonicalField, RetailColumnMapping>();
+  const warnings: string[] = [];
+  const rowsOrNull = rows && rows.length > 0 ? rows : null;
+  const tiers: RetailColumnConfidence[] = ["exact", "alias", "token", "heuristic"];
+
+  for (const tier of tiers) {
+    for (const spec of FIELD_SPECS) {
+      const existing = mapping.get(spec.field);
+      if (existing && existing.column) continue;
+      if (tier === "heuristic" && !spec.heuristic?.length) continue;
+      const aliases = tier === "exact" ? spec.exact : tier === "alias" ? (spec.alias ?? []) : tier === "token" ? (spec.token ?? []) : (spec.heuristic ?? []);
+      for (const alias of aliases) {
+        const candidates = candidateColumnsFor(spec, alias, tier, normalized);
+        for (const candidate of candidates) {
+          if (claimed.has(candidate.normalized)) continue;
+          if (!passesShapeValidation(spec, candidate.original, tier, rowsOrNull)) continue;
+          claimed.set(candidate.normalized, spec.field);
+          mapping.set(spec.field, {
+            field: spec.field,
+            column: candidate.original,
+            confidence: tier,
+            reason: `${spec.label} resolved from "${candidate.original}" via ${tier} match`,
+          });
+          break;
+        }
+        const current = mapping.get(spec.field);
+        if (current && current.column) break;
+      }
+    }
+  }
+
+  // Legacy failsafe: when no revenue column exists, the detected unit-price
+  // column served as per-row revenue. Keep it, but flag the weaker reading.
+  if (!mapping.get("revenue")?.column && mapping.get("unitPrice")?.column) {
+    const priceColumn = mapping.get("unitPrice")!.column!;
+    if (!claimed.has(normalizeRetailColumnName(priceColumn)) || claimed.get(normalizeRetailColumnName(priceColumn)) === "unitPrice") {
+      claimed.set(normalizeRetailColumnName(priceColumn), "revenue");
+      mapping.set("revenue", {
+        field: "revenue",
+        column: priceColumn,
+        confidence: "heuristic",
+        reason: `revenue fell back to the unit price column "${priceColumn}" because no revenue-like column exists`,
+      });
+      warnings.push(
+        `Revenue could not be confidently identified, so the unit price column "${priceColumn}" was used as per-row revenue; add a line-total or revenue column for exact sales totals.`,
+      );
+    }
+  }
+
+  const detected: DetectedColumns = {
+    productIdCol: mapping.get("productId")?.column ?? null,
+    skuCol: mapping.get("sku")?.column ?? null,
+    productCol: mapping.get("product")?.column ?? null,
+    categoryCol: mapping.get("category")?.column ?? null,
+    storeCol: mapping.get("store")?.column ?? null,
+    stockCol: mapping.get("stock")?.column ?? null,
+    reorderPointCol: mapping.get("reorderPoint")?.column ?? null,
+    salesCol: mapping.get("sales")?.column ?? null,
+    unitPriceCol: mapping.get("unitPrice")?.column ?? null,
+    revenueCol: mapping.get("revenue")?.column ?? null,
+    costCol: mapping.get("cost")?.column ?? null,
+    dateCol: mapping.get("date")?.column ?? null,
+    orderCol: mapping.get("order")?.column ?? null,
+    customerCol: mapping.get("customer")?.column ?? null,
+    supplierCol: mapping.get("supplier")?.column ?? null,
+  };
+
+  for (const spec of FIELD_SPECS) {
+    if (!mapping.has(spec.field)) {
+      mapping.set(spec.field, { field: spec.field, column: null, confidence: null, reason: `no confident ${spec.label} column was found` });
+    }
+  }
+
+  return {
+    detected,
+    mapping: FIELD_SPECS.map((spec) => mapping.get(spec.field)!),
+    warnings,
+  };
+}
+
+function candidateColumnsFor(
+  spec: FieldSpec,
+  alias: string,
+  tier: RetailColumnConfidence,
+  normalized: NormalizedColumn[],
+): NormalizedColumn[] {
+  const aliasTokens = alias.split("_").filter(Boolean);
+  return normalized
+    .filter((entry) => {
+      if (tier === "exact") return entry.normalized === alias;
+      if (tier === "alias") {
+        if (aliasTokens.length === 0) return false;
+        // A bare reserved token ("name", "description") must not sweep a
+        // vendor/seller column into the product field.
+        if (spec.reservedTokens?.includes(alias) && isReservedColumn(spec, entry)) return false;
+        return aliasTokens.every((token) => entry.tokens.includes(token));
+      }
+      // token tier: the alias is one distinctive whole token inside the column
+      return aliasTokens.length === 1 && entry.tokens.includes(aliasTokens[0]);
+    })
+    .filter((entry) => !isReservedColumn(spec, entry));
+}
+
+export function detectColumns(columns: string[], rows?: Record<string, unknown>[]): DetectedColumns {
+  return resolveRetailSchema(columns, rows).detected;
+}
+
+export type DetectedColumns = {
+  /** Stable source-native product/item/variant identifier column. */
+  productIdCol: string | null;
+  skuCol: string | null;
+  productCol: string | null;
+  categoryCol: string | null;
+  storeCol: string | null;
+  stockCol: string | null;
+  reorderPointCol: string | null;
+  salesCol: string | null;
+  /** Alternative-structure price field; informational for mapping quality. */
+  unitPriceCol?: string | null;
+  revenueCol: string | null;
+  costCol: string | null;
+  dateCol: string | null;
+  orderCol: string | null;
+  customerCol: string | null;
+  /** Alternative-structure supplier field; informational for mapping quality. */
+  supplierCol?: string | null;
+};
 
 export function isUnitCostColumn(column: string | null): boolean {
   if (!column) return false
@@ -402,7 +745,8 @@ export function getReferenceDate(records: RetailRecord[]): Date | null {
   }, null)
 }
 
-export function computeLowStock(records: RetailRecord[]): RetailLowStockItem[] {
+/** The visible item list stays capped; callers needing the true count pass a larger limit. */
+export function computeLowStock(records: RetailRecord[], limit = 20): RetailLowStockItem[] {
   return records
     .filter((item) => item.stock !== null && item.reorderPoint !== null && item.stock <= item.reorderPoint)
     .map((item) => ({
@@ -422,10 +766,11 @@ export function computeLowStock(records: RetailRecord[]): RetailLowStockItem[] {
       recommendation: `Stock ${formatPlainNumber(item.stock ?? 0)} is at or below reorder point ${formatPlainNumber(item.reorderPoint ?? 0)}, sold ${formatPlainNumber(item.unitsSold ?? 0)} units recently → reorder recommended.`,
     }))
     .sort(compareEntityThen((a, b) => (a.stock ?? 0) - (b.stock ?? 0)))
-    .slice(0, 20)
+    .slice(0, limit)
 }
 
-export function computeDeadStock(records: RetailRecord[]): RetailDeadStockItem[] {
+/** The visible item list stays capped; callers needing the true count pass a larger limit. */
+export function computeDeadStock(records: RetailRecord[], limit = 20): RetailDeadStockItem[] {
   const referenceDate = getReferenceDate(records)
 
   return records
@@ -482,7 +827,7 @@ export function computeDeadStock(records: RetailRecord[]): RetailDeadStockItem[]
     })
     .filter((item): item is NonNullable<typeof item> => item !== null)
     .sort(compareEntityThen((a, b) => round2(b.stockValue ?? 0) - round2(a.stockValue ?? 0)))
-    .slice(0, 20)
+    .slice(0, limit)
 }
 
 /**
