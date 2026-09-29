@@ -119,12 +119,17 @@ export type RetailLowStockSection = {
   message: string;
   hasReorderThresholds: boolean;
   items: RetailLowStockItem[];
+  /** True uncapped reorder-alert count; the display list stays capped for UI. */
+  alertCount: number;
 };
 
 export type RetailDeadStockSection = {
   status: RetailListStatus;
   message: string;
   items: RetailDeadStockItem[];
+  /** True uncapped classification counts; the display list stays capped for UI. */
+  deadCount: number;
+  slowMoverCount: number;
 };
 
 export type RetailTopSellersSection = {
@@ -235,7 +240,7 @@ export function buildDatasetRetailSnapshot(input: {
       message: null,
       trend: [],
     },
-    lowStock: buildDatasetLowStockSection(detected, lowStockItems),
+    lowStock: buildDatasetLowStockSection(detected, lowStockItems, reorderAlertItems.length),
     deadStock: buildDatasetDeadStockSection(
       detected,
       deadStockItems,
@@ -288,6 +293,7 @@ export function buildDatasetRetailSnapshot(input: {
 function buildDatasetLowStockSection(
   detected: DetectedColumns,
   lowStockItems: RetailLowStockItem[],
+  trueAlertCount: number,
 ): RetailLowStockSection {
   if (!detected.stockCol) {
     return {
@@ -295,6 +301,7 @@ function buildDatasetLowStockSection(
       message: "No stock column was detected, so stock levels are unknown and low-stock alerts cannot be raised.",
       hasReorderThresholds: detected.reorderPointCol !== null,
       items: [],
+      alertCount: 0,
     };
   }
   const boundary = detected.reorderPointCol
@@ -307,6 +314,7 @@ function buildDatasetLowStockSection(
       : `No products are at or below ${boundary}.`,
     hasReorderThresholds: detected.reorderPointCol !== null,
     items: lowStockItems,
+    alertCount: trueAlertCount,
   };
 }
 
@@ -327,6 +335,8 @@ function buildDatasetDeadStockSection(
       status: "insufficient_data",
       message: "No stock column was detected, so dead stock and slow movers cannot be determined.",
       items: [],
+      deadCount: 0,
+      slowMoverCount: 0,
     };
   }
   if (!detected.salesCol && !detected.dateCol) {
@@ -334,6 +344,8 @@ function buildDatasetDeadStockSection(
       status: "insufficient_data",
       message: "No sales or date columns were detected, so movement cannot be evaluated for dead stock.",
       items: [],
+      deadCount: 0,
+      slowMoverCount: 0,
     };
   }
   const totalCount = trueDeadCount + trueSlowCount;
@@ -343,6 +355,8 @@ function buildDatasetDeadStockSection(
       ? `${trueDeadCount} dead-stock and ${trueSlowCount} slow-mover item${totalCount === 1 ? "" : "s"} detected. Free cash from items that sit on the shelf before reordering more of the same stock.`
       : "No dead stock or slow movers detected from stock and movement fields.",
     items: deadStockItems,
+    deadCount: trueDeadCount,
+    slowMoverCount: trueSlowCount,
   };
 }
 
@@ -363,23 +377,40 @@ function buildDatasetSummary(input: {
   const deadCount = input.deadStockItems.filter((item) => item.classification === "dead_stock").length;
   const slowCount = input.deadStockItems.length - deadCount;
   const top = input.topProfitItems[0];
-  const profit = top ? `${top.product}${top.store ? ` (${top.store})` : ""}` : "N/A";
   const maxProfit = top
     ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(top.profit ?? 0)
     : "N/A";
   const lowBoundary = input.hasReorderColumn ? "at or below their reorder point" : `at or below the default ${RETAIL_DEFAULT_REORDER_POINT}-unit threshold`;
+
+  const topProfitSentence = top
+    ? ` Top profit product/location: ${top.product}${top.store ? ` at ${top.store}` : ""}, generating ${maxProfit} profit.`
+    : "";
+
+  const recommendationParts: string[] = [];
+  if (low > 0) {
+    recommendationParts.push(
+      `${low} item${low === 1 ? " is" : "s are"} ${lowBoundary}. Prioritize high-selling items with the lowest stock coverage.`,
+    );
+  }
+  if (deadCount + slowCount > 0) {
+    recommendationParts.push(
+      `${deadCount} dead-stock and ${slowCount} slow-moving product/location item${deadCount + slowCount === 1 ? "" : "s"} were identified. Review high-value stagnant inventory before replenishing.`,
+    );
+  }
+  if (recommendationParts.length === 0) {
+    recommendationParts.push(
+      "No reorder alerts or stagnant stock were detected. Review pricing and promotion opportunities in the detailed findings.",
+    );
+  }
 
   return {
     insight: `Analysis of ${total} product/location items complete`,
     explanation:
       `Found ${total} product/location inventory items for ${products} products from ${rows} transaction rows across ${input.columnCount} columns. ` +
       `${low} item${low === 1 ? " is" : "s are"} ${lowBoundary}. ` +
-      `${deadCount} dead-stock and ${slowCount} slow-mover item${deadCount + slowCount === 1 ? "" : "s"} detected from recorded movement. ` +
-      `Top profit product/location: ${profit} (${maxProfit}).`,
-    recommendation:
-      low > 0
-        ? `Restock ${low} low-inventory product/location items to prevent stockouts. Focus on reordering top-selling items first.`
-        : "Review pricing strategy and consider promotions for slow-moving items.",
+      `${deadCount} dead-stock and ${slowCount} slow-mover item${deadCount + slowCount === 1 ? "" : "s"} detected from recorded movement.` +
+      topProfitSentence,
+    recommendation: recommendationParts.join(" "),
     deterministic: true,
   };
 }
@@ -589,10 +620,14 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
     };
   });
 
-  // One canonical pass so every finding uses the same entity grain.
+  // One canonical pass so every finding uses the same entity grain. The
+  // classification lists stay capped for display; the sections carry the
+  // true uncapped counts for summaries and AI grounding.
   const inventoryRecords = aggregateRetailInventoryRecords(records);
-  const lowStockKnown = computeLowStock(inventoryRecords);
-  const deadStockItems = hasSales ? computeDeadStock(inventoryRecords) : [];
+  const lowStockAll = computeLowStock(inventoryRecords, Number.MAX_SAFE_INTEGER);
+  const lowStockKnown = lowStockAll.slice(0, 20);
+  const deadSlowAll = hasSales ? computeDeadStock(inventoryRecords, Number.MAX_SAFE_INTEGER) : [];
+  const deadStockItems = deadSlowAll.slice(0, 20);
   const topProfitItems = hasSales && hasCostData ? computeTopProfit(inventoryRecords) : [];
 
   const topSellerItems: RetailTopSellerItem[] = input.orderItems
@@ -613,6 +648,7 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
       message: "Square inventory has not been synchronized yet, so stock levels are unknown.",
       hasReorderThresholds: false,
       items: [],
+      alertCount: 0,
     }
     : hasReorderThresholds
       ? {
@@ -622,6 +658,7 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
           : "No products are at or below their reorder point.",
         hasReorderThresholds: true,
         items: lowStockKnown,
+        alertCount: lowStockAll.length,
       }
       : {
         status: "no_reorder_thresholds",
@@ -647,6 +684,7 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
           }))
           .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0))
           .slice(0, 20),
+        alertCount: 0,
       };
 
   const deadStock: RetailDeadStockSection = !hasSales
@@ -654,6 +692,8 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
       status: "insufficient_data",
       message: "Not enough sales history to identify slow-moving products.",
       items: [],
+      deadCount: 0,
+      slowMoverCount: 0,
     }
     : {
       status: deadStockItems.length ? "ok" : "empty",
@@ -661,6 +701,8 @@ export function buildSquareRetailSnapshot(input: SquareSnapshotInput): RetailAna
         ? "Products with synchronized stock but no synchronized sales movement."
         : "No dead stock detected in synchronized sales history.",
       items: deadStockItems,
+      deadCount: deadSlowAll.filter((item) => item.classification === "dead_stock").length,
+      slowMoverCount: deadSlowAll.filter((item) => item.classification === "slow_mover").length,
     };
 
   const topProfit: RetailTopProfitSection = !hasSales

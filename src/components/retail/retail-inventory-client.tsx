@@ -29,6 +29,7 @@ import {
   buildDatasetRetailSnapshot,
   type RetailAnalyticsSnapshot,
 } from "@/lib/retail/retail-snapshot";
+import { resolveRetailDisplayedInsights } from "@/lib/retail/retail-enrichment-guard";
 import {
   setActiveRetailSource,
 } from "@/lib/retail/retail-source-bridge"
@@ -307,7 +308,6 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
       rows: data.rows,
     })
 
-    let aiSummary: string | null = null
     let aiExplanation: string | null = null
     let aiRecommendation: string | null = null
     let aiWarning: string | null = null
@@ -329,9 +329,18 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
         }
         const analyzeResult = await analyzeRes.json()
         if (analyzeRes.ok && analyzeResult.success) {
-          aiSummary = analyzeResult.insight || null
-          aiExplanation = analyzeResult.explanation || null
-          aiRecommendation = analyzeResult.recommendation || null
+          // The deterministic Retail snapshot owns the headline, findings, and
+          // fallback recommendation. AI enrichment may fill explanation and
+          // recommendation only after the guard rejects generic ranking
+          // language, raw identifiers, unexplained numbers, and ungrounded
+          // metric claims; rejected lines fall back to the snapshot text.
+          const displayed = resolveRetailDisplayedInsights({
+            snapshot: datasetSnapshot,
+            aiExplanation: analyzeResult.explanation,
+            aiRecommendation: analyzeResult.recommendation,
+          })
+          aiExplanation = displayed.aiExplanationUsed ? displayed.explanation : null
+          aiRecommendation = displayed.aiRecommendationUsed ? displayed.recommendation : null
         } else if (analyzeRes.status >= 500) {
           const reason = typeof analyzeResult?.error === "string" && analyzeResult.error.trim()
             ? ` Reason: ${analyzeResult.error}`
@@ -347,7 +356,7 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
     // The deterministic snapshot is always the source of truth for the
     // visible Retail summary. AI enrichment may expand the explanation, but
     // generic upload-analysis insight text must not replace Retail findings.
-    aiSummary = datasetSnapshot.summary.insight
+    const aiSummary = datasetSnapshot.summary.insight
     aiExplanation = aiExplanation || datasetSnapshot.summary.explanation
     aiRecommendation = aiRecommendation || datasetSnapshot.summary.recommendation
 
@@ -1363,10 +1372,9 @@ function formatSyncDate(value: string | null): string {
  * explanation must restate these numbers, never recalculate them.
  */
 function buildRetailFindingsPayload(snapshot: RetailAnalyticsSnapshot): Record<string, unknown> {
-  const deadCount = snapshot.deadStock.items.filter((item) => item.classification === "dead_stock").length
-  const slowCount = snapshot.deadStock.items.length - deadCount
   const topProfit = snapshot.topProfit.items[0]
   return {
+    rowCount: snapshot.source.type === "dataset" ? snapshot.source.rowCount : null,
     inventoryItems: snapshot.kpis.inventoryItemCount,
     products: snapshot.kpis.productCount,
     locations: snapshot.kpis.locationCount,
@@ -1376,19 +1384,23 @@ function buildRetailFindingsPayload(snapshot: RetailAnalyticsSnapshot): Record<s
     netSales: snapshot.kpis.netSales,
     totalOnHand: snapshot.kpis.totalOnHand,
     inventoryValue: snapshot.kpis.inventoryValue,
-    lowStockAlerts: snapshot.lowStock.items.length,
+    lowStockAlerts: snapshot.lowStock.alertCount,
     lowStockRule: snapshot.lowStock.hasReorderThresholds
       ? "stock at or below the item's own reorder point"
       : `stock at or below the default ${RETAIL_DEFAULT_REORDER_POINT}-unit threshold (no reorder-point column detected)`,
     lowStockItems: snapshot.lowStock.items.slice(0, 10).map((item) => ({
       product: item.product, sku: item.sku, store: item.store, stock: item.stock, reorderPoint: item.reorderPoint,
     })),
-    deadStockItems: deadCount,
-    slowMovers: slowCount,
+    deadStockItems: snapshot.deadStock.deadCount,
+    slowMovers: snapshot.deadStock.slowMoverCount,
     deadStockRule: `stock on hand with no recorded movement: zero units sold, or no sale for ${RETAIL_DEAD_STOCK_AFTER_DAYS}+ days; slow movers have no sale for ${RETAIL_SLOW_MOVER_AFTER_DAYS}+ days`,
+    topSellers: snapshot.topSellers.items.slice(0, 5).map((item) => ({
+      product: item.product, sku: item.sku, unitsSold: item.unitsSold, revenue: item.revenue,
+    })),
     topProfitItem: topProfit
       ? { product: topProfit.product, sku: topProfit.sku, store: topProfit.store, profit: topProfit.profit, margin: topProfit.margin }
       : null,
+    referenceDate: snapshot.kpis.lastSaleAt,
     dataQualityWarnings: snapshot.dataQualityWarnings,
   }
 }
