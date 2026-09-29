@@ -1,3 +1,46 @@
+## 2026-09-29 — Retail production parity summary guard and 17-column golden fixture
+
+1. Interaction title
+   Retail production parity for generic upload insights and the authoritative 17-column golden fixture.
+
+2. What was the user goal
+   Trace the Retail upload-to-dashboard path, identify the source of "P-028 dominates the category", preserve Square/upload and Cloud/BYOK fixes, make the refreshed 17-column `01_local_retail` workbook the authoritative golden fixture, remove every stale 11-column assumption, add production-parity regression coverage, run focused validation, and do not commit or push.
+
+3. What changed
+   - `src/components/retail/retail-inventory-client.tsx`: the upload flow always displays `datasetSnapshot.summary.insight` as the Retail dashboard summary after deterministic analysis. AI enrichment can fill explanation and recommendation text, but generic `/api/analyze` insight text no longer replaces the authoritative Retail summary.
+   - `test-fixtures/business-models/01_local_retail.xlsx` and `01_local_retail.csv`: refreshed to the authoritative 17-column Retail schema (180 rows with `date`, `store_id`, `transaction_id`, `customer_id`, `product_id`, `product_name`, `category`, `units_sold`, `unit_price`, `revenue`, `unit_cost`, `cogs`, `gross_profit`, `stock_on_hand`, `reorder_point`, `supplier`, `city`).
+   - `scripts/retail/test-retail-source-analytics.ts`: pins the refreshed 17-column golden results and adds a production-parity fixture test that compares direct workbook parsing with the actual upload parser (`parseCSVStreaming`), JSON serialization, and the same `buildDatasetRetailSnapshot` path, including distinct transaction and customer counts.
+   - `scripts/analysis/test-local-retail-inventory-snapshots.ts`: asserts the 17-column schema and refreshed financial goldens for CSV and XLSX plus the generated PDF.
+   - `scripts/analysis/test-dataset-analyzer-semantics.ts`: asserts the 17-column resolutions — `city` geography, `date` time axis, `gross_profit` source-profit provenance, and per-distinct-order averages through `transaction_id`.
+   - `scripts/analysis/test-dataset-aware-report-profiles.ts`: asserts refreshed fixture financials (79,764.51 revenue / 48,085.19 COGS / 31,679.32 profit) and available AOV 443.14 from 180 distinct `transaction_id` values in the report input and the generated PDF.
+   - `CHANGELOG.md`: added a Fixed entry for Retail dashboard summaries staying based on Retail findings after upload.
+
+4. Problems marked
+   - blocker: none.
+   - risk: `pnpm test:dataset-aware-report-profiles` stops at a pre-existing SaaS results-summary assertion ("results summary top findings must suppress technical metadata") that fails identically on the unmodified `beta` tree; it is outside Retail scope and untouched here.
+   - observation: `/api/analyze` `generateBusinessInsights()` is the exact code path that can return "{top} dominates the category" and "{top} leads with ..."; the Retail upload client previously accepted that as `aiSummary`.
+
+5. User learning
+   The Retail dashboard keeps the deterministic Retail summary visible after upload, and the authoritative golden fixture consistently produces 180 rows, 17 columns, 35 products, 4 locations, 106 product/location entities, 180 distinct orders, 73 customers, 11 low-stock alerts, 7 dead-stock and 13 slow-mover items, and top profit at Protein Bar (RTM-01) using dataset max date 2026-03-31 as the reference date.
+
+6. AI-agent learning
+   Retail production-parity checks must include row-shape serialization between workbook parsing and persisted/uploaded dataset rows, not only direct fixture analysis. When the golden fixture schema changes, every cross-suite golden pin (report profiles, analyzer semantics, snapshot cross-validation, PDF text) must be refreshed in the same change.
+
+7. Follow-up tasks
+   - Fix the pre-existing SaaS results-summary metadata assertion in `test:dataset-aware-report-profiles` as separate non-Retail work.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+
 ## 2026-09-28 — Final retail hardening audit (canonical identity end-to-end)
 
 1. Interaction title

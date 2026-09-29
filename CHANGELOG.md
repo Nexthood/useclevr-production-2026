@@ -9,6 +9,7 @@
 - Retail inventory now uses each product's latest recorded stock count, so repeated stock rows in transaction exports never add up into fake stock levels or wrong inventory values.
 - Retail now reports "insufficient data" instead of a clean result when stock, sales, or date information is missing, so empty dead-stock or low-stock sections never hide unknown data.
 - Retail AI summaries now restate the exact deterministic analysis numbers instead of recalculating inventory from sampled rows.
+- Retail dashboard summaries now stay based on Retail findings after upload, so generic dataset insights never replace the authoritative Retail result.
 
 - Retail upload analysis now counts each product at each location once, so repeated transaction rows no longer appear as duplicate products or inflate stock, and stock always reflects the latest recorded count.
 - Retail product lists now show the store location for each low-stock, dead-stock, and top-profit item so multi-store uploads are readable.

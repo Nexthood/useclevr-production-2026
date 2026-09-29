@@ -345,12 +345,11 @@ export function RetailInventoryClient({ embedded = false }: { embedded?: boolean
     }
 
     // The deterministic snapshot is always the source of truth for the
-    // numbers; AI text only wraps the explanation around them.
-    if (!aiSummary) {
-      aiSummary = datasetSnapshot.summary.insight
-      aiExplanation = datasetSnapshot.summary.explanation
-      aiRecommendation = datasetSnapshot.summary.recommendation
-    }
+    // visible Retail summary. AI enrichment may expand the explanation, but
+    // generic upload-analysis insight text must not replace Retail findings.
+    aiSummary = datasetSnapshot.summary.insight
+    aiExplanation = aiExplanation || datasetSnapshot.summary.explanation
+    aiRecommendation = aiRecommendation || datasetSnapshot.summary.recommendation
 
     setInsights({ aiSummary, aiExplanation, aiRecommendation, aiWarning, datasetSnapshot })
     setState("complete")

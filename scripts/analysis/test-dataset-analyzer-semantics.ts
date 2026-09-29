@@ -220,11 +220,11 @@ function main() {
   const localRetailRows = loadFixture("01_local_retail.xlsx")
   const localRetailDetected = detectBusinessColumns(localRetailRows)
   const localRetailKpis = analyzeBusinessData(localRetailRows, localRetailDetected).kpis
-  assert.equal(localRetailDetected.regionColumn, "location", "retail store locations resolve as geography")
+  assert.equal(localRetailDetected.regionColumn, "city", "retail city column resolves as geography")
   assert.equal(localRetailDetected.revenueColumn, "revenue", "retail revenue resolves")
-  assert.equal(localRetailDetected.dateColumn, null, "single-period inventory snapshots expose no time axis")
-  assert.equal(localRetailKpis.profitDefinition, "cost_component_profit", "retail profit follows recognized unit costs")
-  assert.equal(localRetailKpis.avgRevenueBasis, "row", "retail rows without order identity average per row")
+  assert.equal(localRetailDetected.dateColumn, "date", "transaction dates resolve as the time axis")
+  assert.equal(localRetailKpis.profitDefinition, "source_profit", "retail dataset profit field is authoritative")
+  assert.equal(localRetailKpis.avgRevenueBasis, "order", "retail transaction identity averages per distinct order")
 
   const saasRows = loadFixture("03_saas_startup.xlsx")
   const saasDetected = detectBusinessColumns(saasRows)
