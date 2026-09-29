@@ -130,9 +130,10 @@ async function assertLocalRetailFixture(extension: "csv" | "xlsx") {
   }).length
 
   assert(parsed.rowCount === 180, `${extension}: fixture must contain 180 transaction rows`)
-  nearlyEqual(reportInput.financials?.revenue, 79800, `${extension}: revenue must use all transaction rows`, 0.01)
-  nearlyEqual(reportInput.financials?.cogs, 48100, `${extension}: COGS must use all transaction rows`, 0.01)
-  nearlyEqual(reportInput.financials?.grossProfit, 31700, `${extension}: gross profit must use all transaction rows`, 0.01)
+  assert(parsed.columns.length === 17, `${extension}: fixture must contain the authoritative 17-column Retail schema`)
+  nearlyEqual(reportInput.financials?.revenue, 79764.51, `${extension}: revenue must use all transaction rows`, 0.01)
+  nearlyEqual(reportInput.financials?.cogs, 48085.19, `${extension}: COGS must use all transaction rows`, 0.01)
+  nearlyEqual(reportInput.financials?.grossProfit, 31679.32, `${extension}: gross profit must use all transaction rows`, 0.01)
   nearlyEqual(reportInput.financials?.grossMargin, 39.72, `${extension}: gross margin must use all transaction rows`, 0.03)
   nearlyEqual(kpiValue(reportInput, "Units Sold"), 1216, `${extension}: units sold must use all transaction rows`, 0.01)
   assert(reportInput.retailAnalysis?.productCount === 35, `${extension}: product count must remain distinct product IDs`)

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as XLSX from "xlsx";
 
+import { parseCSVStreaming } from "@/lib/data/csvLoader";
 import {
   RETAIL_DEAD_STOCK_AFTER_DAYS,
   RETAIL_SLOW_MOVER_AFTER_DAYS,
@@ -147,32 +148,54 @@ const tests: TestCase[] = [
       });
 
       // Column detection: product_id wins identity, store_id wins location,
-      // unit_cost is a unit cost, and reorder_point is never read as an order id.
+      // product_name is the display label, transaction_id/customer_id carry
+      // distinct counts, and reorder_point is never read as an order id.
       const detected = detectColumns(columns);
+      assert.equal(columns.length, 17);
+      assert.deepEqual(columns, [
+        "date",
+        "store_id",
+        "transaction_id",
+        "customer_id",
+        "product_id",
+        "product_name",
+        "category",
+        "units_sold",
+        "unit_price",
+        "revenue",
+        "unit_cost",
+        "cogs",
+        "gross_profit",
+        "stock_on_hand",
+        "reorder_point",
+        "supplier",
+        "city",
+      ]);
       assert.equal(detected.productIdCol, "product_id");
+      assert.equal(detected.productCol, "product_name");
       assert.equal(detected.storeCol, "store_id");
       assert.equal(detected.costCol, "unit_cost");
-      assert.equal(detected.orderCol, null, "reorder_point must not be detected as an order column");
-      assert.equal(detected.customerCol, null);
+      assert.equal(detected.orderCol, "transaction_id");
+      assert.equal(detected.customerCol, "customer_id");
       assert.equal(detected.skuCol, null);
 
-      // Canonical entities: 35 product IDs x 3 store IDs = 105, never 24, and
-      // never the 180 transaction rows.
+      // Canonical entities stay at product/location grain, never collapsed to
+      // products only and never expanded to the 180 transaction rows.
       assert.equal(snapshot.kpis.productCount, 35, "35 canonical products");
-      assert.equal(snapshot.kpis.inventoryItemCount, 105, "105 product/location entities");
-      assert.equal(snapshot.kpis.locationCount, 3);
+      assert.equal(snapshot.kpis.inventoryItemCount, 106, "106 product/location entities");
+      assert.equal(snapshot.kpis.locationCount, 4);
 
       // Additive KPIs across all transaction rows.
       assert.equal(snapshot.kpis.unitsSold, 1216);
-      assert.equal(snapshot.kpis.netSales, 79800);
-      assert.equal(snapshot.kpis.orderCount, null, "no order column in the fixture");
-      assert.equal(snapshot.kpis.customerCount, null, "no customer column in the fixture");
-      assert.equal(snapshot.kpis.averageOrderValue, null);
+      assert.equal(snapshot.kpis.netSales, 79764.51);
+      assert.equal(snapshot.kpis.orderCount, 180);
+      assert.equal(snapshot.kpis.customerCount, 73);
+      assert.equal(snapshot.kpis.averageOrderValue, 443.14);
 
-      // Latest-snapshot inventory semantics (never the summed 10,643).
+      // Latest-snapshot inventory semantics.
       assert.equal(snapshot.kpis.totalOnHand, 6341);
-      assert.equal(snapshot.kpis.inventoryValue, 260821.61);
-      assert.equal(snapshot.kpis.lastSaleAt, "2026-07-31T00:00:00.000Z");
+      assert.equal(snapshot.kpis.inventoryValue, 263566.08);
+      assert.equal(snapshot.kpis.lastSaleAt, "2026-03-31T00:00:00.000Z");
 
       // Low stock / reorder alerts: latest stock <= reorder point.
       assert.equal(snapshot.lowStock.status, "ok");
@@ -180,43 +203,128 @@ const tests: TestCase[] = [
       assert.equal(snapshot.lowStock.items.length, 11);
       assert.deepEqual(
         snapshot.lowStock.items.map((item) => [item.product, item.store, item.stock, item.reorderPoint]),
-        Array.from({ length: 11 }, (_, index) => [`SKU-${String(index + 1).padStart(3, "0")}`, "STORE-1", 4, 5]),
+        [
+          ["Protein Bar", "RTM-01", 4, 19],
+          ["Coffee Maker", "UTR-01", 5, 30],
+          ["Desk Chair", "EIN-01", 6, 11],
+          ["Desk Chair", "UTR-01", 7, 10],
+          ["Protein Bar", "UTR-01", 8, 12],
+          ["Protein Bar", "AMS-01", 9, 25],
+          ["Skin Serum", "RTM-01", 11, 22],
+          ["Desk Chair", "EIN-01", 16, 26],
+          ["LED Lamp", "EIN-01", 17, 22],
+          ["Skin Serum", "RTM-01", 18, 21],
+          ["LED Lamp", "AMS-01", 20, 20],
+        ],
       );
       assert.ok(
         snapshot.lowStock.message.includes("reorder point"),
         "banner states the reorder-point rule",
       );
 
-      // Dead stock / slow movers: every entity sold on the reference date.
-      assert.equal(snapshot.deadStock.status, "empty");
-      assert.equal(snapshot.deadStock.items.length, 0);
-      assert.ok(snapshot.deadStock.message.includes("No dead stock or slow movers"));
+      // Dead stock / slow movers use the dataset reference date, 2026-03-31.
+      assert.equal(snapshot.deadStock.status, "ok");
+      assert.equal(snapshot.deadStock.items.length, 20);
+      assert.equal(snapshot.deadStock.items.filter((item) => item.classification === "dead_stock").length, 7);
+      assert.equal(snapshot.deadStock.items.filter((item) => item.classification === "slow_mover").length, 13);
+      assert.ok(snapshot.deadStock.message.includes("7 dead-stock and 13 slow-mover items"));
 
-      // Top profit: all 105 entities tie at revenue 886.67 - cost 534.44 =
-      // 352.22; ranking must stay per product/location with a deterministic
-      // tie-break (product, then store).
+      // Top profit ranks product/location entities without merging locations.
       assert.equal(snapshot.topProfit.status, "ok");
       assert.equal(snapshot.topProfit.items.length, 20);
-      for (const item of snapshot.topProfit.items) {
-        assert.equal(item.profit?.toFixed(2), "352.22", `every entity ties at 352.22, got ${item.profit}`);
-        assert.equal(item.margin?.toFixed(2), "39.72");
-      }
-      assert.equal(snapshot.topProfit.items[0].product, "SKU-001");
-      assert.equal(snapshot.topProfit.items[0].store, "STORE-1");
-      assert.ok(
-        snapshot.topProfit.items.some((item) => item.store === "STORE-2")
-          && snapshot.topProfit.items.some((item) => item.store === "STORE-3"),
-        "top profit keeps separate store entities instead of merging them",
-      );
+      assert.equal(snapshot.topProfit.items[0].product, "Protein Bar");
+      assert.equal(snapshot.topProfit.items[0].store, "RTM-01");
+      assert.equal(snapshot.topProfit.items[0].unitsSold, 43);
+      assert.equal(snapshot.topProfit.items[0].revenue, 3722.79);
+      assert.equal(snapshot.topProfit.items[0].cost, 2258.7);
+      assert.equal(snapshot.topProfit.items[0].profit?.toFixed(2), "1464.09");
+      assert.equal(snapshot.topProfit.items[0].margin?.toFixed(2), "39.33");
 
       // Summary agrees with the deterministic sections.
       assert.ok(
-        snapshot.summary.explanation.includes("105 product/location inventory items for 35 products from 180 transaction rows"),
+        snapshot.summary.explanation.includes("106 product/location inventory items for 35 products from 180 transaction rows"),
       );
       assert.ok(snapshot.summary.explanation.includes("11 items are at or below their reorder point"));
-      assert.ok(snapshot.summary.explanation.includes("0 dead-stock and 0 slow-mover items"));
-      assert.ok(snapshot.summary.explanation.includes("SKU-001 (STORE-1)"));
+      assert.ok(snapshot.summary.explanation.includes("7 dead-stock and 13 slow-mover items"));
+      assert.ok(snapshot.summary.explanation.includes("Protein Bar (RTM-01)"));
       assert.ok(snapshot.summary.recommendation.includes("Restock 11 low-inventory product/location items"));
+    },
+  },
+  {
+    name: "Production-parity upload parser: 01_local_retail.xlsx direct and uploaded row shapes produce identical Retail findings",
+    async run() {
+      const fixturePath = "test-fixtures/business-models/01_local_retail.xlsx";
+      const directRows = parseXlsxFixture(fixturePath);
+      const directColumns = Object.keys(directRows[0] || {});
+      const fileBuffer = readFileSync(resolve(repoRoot, fixturePath));
+      const uploadParse = await parseCSVStreaming(
+        new File([fileBuffer], "01_local_retail.xlsx", {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+        10_000,
+      );
+      const serializedRows = JSON.parse(JSON.stringify(uploadParse.previewRows)) as Record<string, unknown>[];
+
+      assert.equal(uploadParse.rowCount, directRows.length);
+      assert.deepEqual(uploadParse.columns, directColumns);
+      assert.equal(uploadParse.columns.length, 17);
+      assert.deepEqual(uploadParse.columns, [
+        "date",
+        "store_id",
+        "transaction_id",
+        "customer_id",
+        "product_id",
+        "product_name",
+        "category",
+        "units_sold",
+        "unit_price",
+        "revenue",
+        "unit_cost",
+        "cogs",
+        "gross_profit",
+        "stock_on_hand",
+        "reorder_point",
+        "supplier",
+        "city",
+      ]);
+
+      const directSnapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_direct_01_local_retail",
+        name: "01_local_retail",
+        fileName: "01_local_retail.xlsx",
+        rowCount: directRows.length,
+        columnCount: directColumns.length,
+        createdAt: null,
+        columns: directColumns,
+        rows: directRows,
+      });
+      const uploadedSnapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_uploaded_01_local_retail",
+        name: "01_local_retail",
+        fileName: "01_local_retail.xlsx",
+        rowCount: uploadParse.rowCount,
+        columnCount: uploadParse.columns.length,
+        createdAt: null,
+        columns: uploadParse.columns,
+        rows: serializedRows,
+      });
+
+      assertSnapshotParity(uploadedSnapshot, directSnapshot);
+      assert.equal(uploadedSnapshot.kpis.productCount, 35);
+      assert.equal(uploadedSnapshot.kpis.locationCount, 4);
+      assert.equal(uploadedSnapshot.kpis.inventoryItemCount, 106);
+      assert.equal(uploadedSnapshot.lowStock.items.length, 11);
+      assert.equal(uploadedSnapshot.deadStock.items.filter((item) => item.classification === "dead_stock").length, 7);
+      assert.equal(uploadedSnapshot.deadStock.items.filter((item) => item.classification === "slow_mover").length, 13);
+      assert.equal(uploadedSnapshot.kpis.netSales, 79764.51);
+      assert.equal(uploadedSnapshot.kpis.unitsSold, 1216);
+      assert.equal(uploadedSnapshot.kpis.inventoryValue, 263566.08);
+      assert.equal(uploadedSnapshot.kpis.lastSaleAt, "2026-03-31T00:00:00.000Z");
+      assert.equal(uploadedSnapshot.kpis.orderCount, 180);
+      assert.equal(uploadedSnapshot.kpis.customerCount, 73);
+      assert.equal(uploadedSnapshot.topProfit.items[0].product, "Protein Bar");
+      assert.equal(uploadedSnapshot.topProfit.items[0].store, "RTM-01");
+      assert.equal(uploadedSnapshot.topProfit.items[0].profit?.toFixed(2), "1464.09");
     },
   },
   {
@@ -525,6 +633,10 @@ const tests: TestCase[] = [
       assert.ok(
         clientSource.includes("AI enrichment is temporarily unavailable"),
         "upload flow warns when AI enrichment fails without hiding the deterministic result",
+      );
+      assert.ok(
+        clientSource.includes("aiSummary = datasetSnapshot.summary.insight"),
+        "generic AI upload insights cannot replace the deterministic Retail summary",
       );
       assert.ok(
         clientSource.includes("Reason: ${analyzeResult.error}"),
@@ -1041,6 +1153,19 @@ function squareCatalogOnlyInput(): SquareSnapshotInput {
     orders: [],
     orderItems: [],
   };
+}
+
+function assertSnapshotParity(
+  actual: ReturnType<typeof buildDatasetRetailSnapshot>,
+  expected: ReturnType<typeof buildDatasetRetailSnapshot>,
+) {
+  assert.deepEqual(actual.kpis, expected.kpis);
+  assert.deepEqual(actual.lowStock, expected.lowStock);
+  assert.deepEqual(actual.deadStock, expected.deadStock);
+  assert.deepEqual(actual.topProfit, expected.topProfit);
+  assert.deepEqual(actual.topSellers, expected.topSellers);
+  assert.deepEqual(actual.summary, expected.summary);
+  assert.deepEqual(actual.dataQualityWarnings, expected.dataQualityWarnings);
 }
 
 /** Parse the REAL workbook exactly like the browser upload path does. */
