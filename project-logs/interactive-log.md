@@ -1,3 +1,48 @@
+## 2026-09-29 — Retail AI Insights Summary determinism guard and third golden fixture
+
+1. Interaction title
+   Retail AI Insights Summary: deterministic-only findings, validated AI enrichment, deterministic fallback, and the third schema-variation golden fixture (03_retail_mixed_structure_test.xlsx).
+
+2. What was the user goal
+   The Retail page correctly showed "Analysis of 39 product/location items complete" but still displayed generic `/api/analyze` output underneath ("P-6001 leads with 999, vs P-1002 at 122.4." and "Analyze what drives P-6001 success and apply those learnings to improve other categories."), and fixture 02 showed the same failure ("SKU-A102 leads with 2,234.4, vs SKU-B202 at 128."). Make the deterministic Retail snapshot the exclusive authority for the Retail summary, recommendation, and findings; allow AI enrichment only as validated, grounded human-readable wording; fall back to deterministic Retail recommendations whenever enrichment is unavailable or generic; add fixture 03; keep Square/upload isolation, BYOK/cloud routing, credits, schema resolver, aggregation, identity, stock/reorder/dead-slow/profit logic untouched; do not commit or push.
+
+3. What changed
+    - Traced the exact entry path: `/api/analyze` falls back to `generateBusinessInsights()` (src/app/api/analyze/route.ts:83) whenever the LLM is unavailable or fails, returning `success: true` with generic insight/explanation/recommendation built from sampled query rows; the previous guard only overwrote the headline (`aiSummary = datasetSnapshot.summary.insight`) and still accepted `analyzeResult.explanation`/`analyzeResult.recommendation` verbatim, which is why the generic explanation and recommendation kept appearing under the deterministic headline.
+    - `src/lib/retail/retail-enrichment-guard.ts` (new): `buildRetailEnrichmentGrounding(snapshot)` derives the grounding from the deterministic snapshot (KPI counts, true alert/dead/slow counts, item-level stock/reorder/profit/margin/revenue values, product display names, store labels, SKU-to-name map, 60/30-day and default-threshold constants). `validateRetailEnrichment` rejects generic ranking language ("dominates", "leads with", "Analyze what drives", plus the other `/api/analyze` fallback templates), identifier-shaped tokens (P-6001, SKU-A102) unless they are part of a real product name, a store label, or a known identifier accompanied by its product name, numbers that no deterministic finding supplies (with human rounding tolerance), count-noun statements that contradict the findings, negation of existing findings, trend-change claims (dataset snapshots have no trend findings), and metric claims without grounding (profit/margin, revenue, inventory value, stock on hand). `resolveRetailDisplayedInsights` keeps the snapshot headline authoritative and substitutes the deterministic explanation/recommendation for every rejected line, returning rejection reasons.
+    - `src/components/retail/retail-inventory-client.tsx`: the upload flow routes the `/api/analyze` response through `resolveRetailDisplayedInsights` instead of accepting explanation/recommendation verbatim; the headline stays `datasetSnapshot.summary.insight` unconditionally. `buildRetailFindingsPayload` now sends true uncapped counts (`alertCount`, `deadCount`, `slowMoverCount`), row count, top sellers, and the reference date so the AI grounding matches the visible summary exactly.
+    - `src/lib/retail/retail-snapshot.ts`: `RetailLowStockSection` gains true uncapped `alertCount`, `RetailDeadStockSection` gains true uncapped `deadCount`/`slowMoverCount` (display lists stay capped at 20; Square builder computes both from uncapped engine passes). The dataset summary states the top profit as "Top profit product/location: Product at Location, generating $X profit." and the recommendation is derived from the findings: "N items are at or below their reorder point. Prioritize high-selling items with the lowest stock coverage." plus "N dead-stock and M slow-moving product/location items were identified. Review high-value stagnant inventory before replenishing.", with an honest no-findings fallback line.
+    - `test-fixtures/business-models/03_retail_mixed_structure_test.xlsx`: permanent third golden fixture (213 rows, 16 columns: business_date, location_code, ticket_id, buyer_ref, item_code, stock_code, description, product_group, quantity_sold, retail_price, sales_amount, cost_price, cost_amount, on_hand_qty, reorder_level, vendor; Test Notes sheet pins the intent). Fixture 03 is the dataset from the production bug report: 15 products (SKU identity; 14 display names because Protein Bar exists under two SKUs), 39 product/location items, 3 locations, 59 customers, 408 units, 4,851.70 net sales, 1,660 stock, 8,031.07 inventory value, 1 reorder alert (Protein Bar AMS-C 6<=12), 1 dead-stock and 4 slow-mover items, top profit Wireless Charger at AMS-C 267.20, top seller Storage Basket 54 units/999 revenue, reference date 2026-09-29 — every value independently re-derived from raw workbook cells without the engine. The resolver intentionally leaves `item_code` (product ID) and `ticket_id` (order identity) unmapped under the current tiered rules; fixture 03 pins that current behavior, and the resolver itself is untouched per instruction.
+    - `scripts/retail/test-retail-source-analytics.ts`: fixture 03 golden test (schema mapping, negative mappings, independently derived KPIs, alert/dead/slow/profit/seller goldens, deterministic summary, forbidden-phrase check on the summary); cross-fixture guard regression that builds snapshots for fixtures 01/02/03 through the real upload parser, feeds the exact production generic payloads, and asserts the displayed summary/explanation/recommendation equal the deterministic snapshot text with zero rejections leaking through; grounded-enrichment acceptance ("Wireless Charger at AMS-C is the highest-profit product/location, generating $267.20 profit. 1 item is at or below its reorder point."); rejection regressions for trend claims, unexplained numbers, count conflicts, dead-stock denial, identifier-only references, unknown identifiers, and Square profit claims without cost data; refreshed pins for the new summary/recommendation wording on fixtures 01 and 02.
+
+4. Problems marked
+    - blocker: none.
+    - risk: the number grounding accepts human rounding of deterministic values (money and percentage rounding to 0-2 decimals), so a generic sentence whose only numbers happen to round to grounded values could pass the numeric layer; the phrase, identifier, count-conflict, and metric layers still catch the observed generic templates.
+    - observation: fixture 03's `item_code`/`ticket_id` stay unmapped by the semantic resolver (no product-ID or order-token match), so SKU carries identity and order counts stay null; that is the existing resolver contract, unchanged per instruction.
+    - observation: the deterministic fallback now covers every Retail display line even when `/api/analyze` returns HTTP 200 with `generateBusinessInsights()` output (mock mode, provider failure, cloud-fallback paths), because the guard validates before display rather than trusting `success: true`.
+
+5. User learning
+    The Retail AI Insights Summary now always reads as Retail intelligence: the headline is the deterministic analysis status, the summary states the deterministic findings (item counts, reorder alerts, dead/slow counts, top-profit product at its location with its profit), and the recommendation is the finding-dependent deterministic action unless a grounded AI line passes validation. Generic `/api/analyze` text is rejected before display on all three Retail fixtures.
+
+6. AI-agent learning
+    A display guard must validate the fields that actually render, not only the headline: the earlier fix replaced only `aiSummary` while `explanation`/`recommendation` from the same generic fallback flowed through untouched. True uncapped counts must be carried as structured snapshot fields (`alertCount`, `deadCount`, `slowMoverCount`) rather than re-derived from capped display lists or parsed from message strings, so AI grounding and summaries always state the same numbers.
+
+7. Follow-up tasks
+    - Fix the pre-existing SaaS results-summary assertion in `test:dataset-aware-report-profiles` as separate non-Retail work.
+    - Consider extending the semantic schema resolver to map `item_code`/`ticket_id`-family columns so fixture 03 gains product-ID identity and order counts (resolver change, currently out of scope by instruction).
+
+8. Instruction sources
+    - AGENTS.md
+    - .kilo/agent/changelog.md
+    - ai-chat-behavior.config.ts
+    - gemini-behavior.config.ts
+
+9. Minimal destination
+    - Detailed session record: project-logs/interactive-log.md (this entry)
+    - Activity summary: project-logs/activity-log.md
+    - Latest interaction status: docs/AI-interaction/interaction-status.md
+    - Release notes: CHANGELOG.md
+    - Product requirement: requirements.md
+
 ## 2026-09-29 — Retail schema-mapping hardening for alternative column structures
 
 1. Interaction title

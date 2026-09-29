@@ -23,6 +23,7 @@ import {
   parseRetailSourceRef,
   type SquareSnapshotInput,
 } from "@/lib/retail/retail-snapshot";
+import { resolveRetailDisplayedInsights } from "@/lib/retail/retail-enrichment-guard";
 
 type TestCase = {
   name: string;
@@ -248,8 +249,18 @@ const tests: TestCase[] = [
       );
       assert.ok(snapshot.summary.explanation.includes("11 items are at or below their reorder point"));
       assert.ok(snapshot.summary.explanation.includes("23 dead-stock and 39 slow-mover items"));
-      assert.ok(snapshot.summary.explanation.includes("Protein Bar (RTM-01)"));
-      assert.ok(snapshot.summary.recommendation.includes("Restock 11 low-inventory product/location items"));
+      assert.ok(snapshot.summary.explanation.includes("Protein Bar at RTM-01"));
+      assert.ok(snapshot.summary.explanation.includes("generating $1,464.09 profit"));
+      assert.ok(
+        snapshot.summary.recommendation.includes("11 items are at or below their reorder point. Prioritize high-selling items with the lowest stock coverage."),
+      );
+      assert.ok(
+        snapshot.summary.recommendation.includes("23 dead-stock and 39 slow-moving product/location items were identified. Review high-value stagnant inventory before replenishing."),
+      );
+      assert.ok(
+        !/dominates the category|leads with|Analyze what drives/i.test(snapshot.summary.insight + snapshot.summary.explanation + snapshot.summary.recommendation),
+        "the deterministic Retail summary never contains generic dataset ranking language",
+      );
     },
   },
   {
@@ -460,8 +471,130 @@ const tests: TestCase[] = [
       assert.equal(snapshot.summary.deterministic, true);
       assert.ok(snapshot.summary.explanation.includes("43 product/location inventory items for 12 products from 164 transaction rows"));
       assert.ok(snapshot.summary.explanation.includes("22 items are at or below their reorder point"));
-      assert.ok(snapshot.summary.explanation.includes("Yoga Mat (NL-EIN)"));
-      assert.ok(snapshot.summary.recommendation.includes("Restock 22 low-inventory product/location items"));
+      assert.ok(snapshot.summary.explanation.includes("Yoga Mat at NL-EIN"));
+      assert.ok(snapshot.summary.explanation.includes("generating $491.70 profit"));
+      assert.ok(
+        snapshot.summary.recommendation.includes("22 items are at or below their reorder point. Prioritize high-selling items with the lowest stock coverage."),
+      );
+      assert.ok(
+        snapshot.summary.recommendation.includes("3 dead-stock and 8 slow-moving product/location items were identified. Review high-value stagnant inventory before replenishing."),
+      );
+    },
+  },
+  {
+    name: "GOLDEN 03_retail_mixed_structure_test.xlsx: third schema variation (product ID + SKU coexist) matches independently derived results",
+    async run() {
+      const fixturePath = "test-fixtures/business-models/03_retail_mixed_structure_test.xlsx";
+      const fileBuffer = readFileSync(resolve(repoRoot, fixturePath));
+      const uploadParse = await parseCSVStreaming(
+        new File([fileBuffer], "03_retail_mixed_structure_test.xlsx", {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+        10_000,
+      );
+      const rows = JSON.parse(JSON.stringify(uploadParse.previewRows)) as Record<string, unknown>[];
+      const columns = uploadParse.columns;
+
+      // Workbook shape: 213 transaction rows, 16 columns with a third naming
+      // convention (the workbook's Test Notes sheet pins this structure).
+      assert.equal(uploadParse.rowCount, 213);
+      assert.equal(columns.length, 16);
+      assert.deepEqual(columns, [
+        "business_date", "location_code", "ticket_id", "buyer_ref", "item_code", "stock_code",
+        "description", "product_group", "quantity_sold", "retail_price", "sales_amount", "cost_price",
+        "cost_amount", "on_hand_qty", "reorder_level", "vendor",
+      ]);
+      assert.equal(typeof rows[0].business_date, "string");
+      assert.match(String(rows[0].business_date), /^\d{4}-\d{2}-\d{2}$/);
+
+      // Exact source-column mapping pinned from the real mixed-structure headers.
+      const { detected, warnings } = resolveRetailSchema(columns, rows);
+      assert.equal(detected.dateCol, "business_date");
+      assert.equal(detected.storeCol, "location_code");
+      assert.equal(detected.customerCol, "buyer_ref");
+      assert.equal(detected.skuCol, "stock_code");
+      assert.equal(detected.productCol, "description");
+      assert.equal(detected.categoryCol, "product_group");
+      assert.equal(detected.supplierCol, "vendor");
+      assert.equal(detected.reorderPointCol, "reorder_level");
+      assert.equal(detected.stockCol, "on_hand_qty");
+      assert.equal(detected.salesCol, "quantity_sold");
+      assert.equal(detected.unitPriceCol, "retail_price");
+      assert.equal(detected.revenueCol, "sales_amount");
+      assert.equal(detected.costCol, "cost_price", "the unit-cost family wins the cost basis over the aggregate cost_amount");
+      // Negative mapping assertions: the classic confusion pairs stay impossible.
+      assert.notEqual(detected.stockCol, "quantity_sold", "transaction quantity must never double as stock");
+      assert.notEqual(detected.stockCol, "reorder_level", "reorder thresholds must never become stock on hand");
+      assert.notEqual(detected.revenueCol, "retail_price", "unit price must not replace the monetary revenue total");
+      assert.notEqual(detected.salesCol, "sales_amount", "monetary line totals must never become units sold");
+      assert.ok(warnings.length === 0, `complete schema resolves without mapping warnings, got: ${warnings.join("; ")}`);
+
+      // The real upload pipeline output matches the independently derived values.
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_03_retail_mixed",
+        name: "03_retail_mixed_structure_test",
+        fileName: "03_retail_mixed_structure_test.xlsx",
+        rowCount: uploadParse.rowCount,
+        columnCount: columns.length,
+        createdAt: null,
+        columns,
+        rows,
+      });
+
+      // Canonical entities: SKU carries identity; 14 display names but 15
+      // products because "Protein Bar" exists under two different SKUs.
+      assert.equal(snapshot.kpis.productCount, 15);
+      assert.equal(snapshot.kpis.inventoryItemCount, 39);
+      assert.equal(snapshot.kpis.locationCount, 3);
+      assert.equal(snapshot.kpis.customerCount, 59);
+      assert.equal(snapshot.kpis.unitsSold, 408);
+      assert.equal(snapshot.kpis.netSales, 4851.7);
+      assert.equal(snapshot.kpis.totalOnHand, 1660);
+      assert.equal(snapshot.kpis.inventoryValue, 8031.07);
+      assert.equal(snapshot.kpis.lastSaleAt, "2026-09-29T00:00:00.000Z", "reference date is the dataset max business date");
+
+      // The single reorder alert: latest Protein Bar @ AMS-C snapshot 6 <= 12.
+      assert.equal(snapshot.lowStock.status, "ok");
+      assert.equal(snapshot.lowStock.alertCount, 1, "the section carries the true uncapped alert count");
+      assert.deepEqual(
+        snapshot.lowStock.items.map((item) => [item.product, item.store, item.stock, item.reorderPoint]),
+        [["Protein Bar", "AMS-C", 6, 12]],
+      );
+
+      // One dead-stock and four slow-mover items at the 2026-09-29 reference.
+      assert.equal(snapshot.deadStock.status, "ok");
+      assert.equal(snapshot.deadStock.items.length, 5);
+      assert.equal(snapshot.deadStock.deadCount, 1);
+      assert.equal(snapshot.deadStock.slowMoverCount, 4);
+      assert.ok(snapshot.deadStock.message.includes("1 dead-stock and 4 slow-mover items"));
+
+      // Top profit ranks product/location entities; the same product name in
+      // different locations keeps separate profit.
+      assert.equal(snapshot.topProfit.items[0].product, "Wireless Charger");
+      assert.equal(snapshot.topProfit.items[0].store, "AMS-C");
+      assert.equal(snapshot.topProfit.items[0].profit?.toFixed(2), "267.20");
+      assert.equal(snapshot.topSellers.items[0].product, "Storage Basket");
+      assert.equal(snapshot.topSellers.items[0].unitsSold, 54);
+      assert.equal(snapshot.topSellers.items[0].revenue, 999);
+
+      // Summary stays deterministic and business-readable.
+      assert.equal(snapshot.summary.deterministic, true);
+      assert.equal(snapshot.summary.insight, "Analysis of 39 product/location items complete");
+      assert.ok(snapshot.summary.explanation.includes("39 product/location inventory items for 15 products from 213 transaction rows"));
+      assert.ok(snapshot.summary.explanation.includes("1 item is at or below their reorder point"));
+      assert.ok(snapshot.summary.explanation.includes("1 dead-stock and 4 slow-mover items"));
+      assert.ok(snapshot.summary.explanation.includes("Wireless Charger at AMS-C"));
+      assert.ok(snapshot.summary.explanation.includes("generating $267.20 profit"));
+      assert.ok(
+        snapshot.summary.recommendation.includes("1 item is at or below their reorder point. Prioritize high-selling items with the lowest stock coverage."),
+      );
+      assert.ok(
+        snapshot.summary.recommendation.includes("1 dead-stock and 4 slow-moving product/location items were identified. Review high-value stagnant inventory before replenishing."),
+      );
+      assert.ok(
+        !/dominates the category|leads with|Analyze what drives/i.test(snapshot.summary.insight + snapshot.summary.explanation + snapshot.summary.recommendation),
+        "the deterministic Retail summary never contains generic dataset ranking language",
+      );
     },
   },
   {
@@ -871,8 +1004,16 @@ const tests: TestCase[] = [
         "upload flow warns when AI enrichment fails without hiding the deterministic result",
       );
       assert.ok(
-        clientSource.includes("aiSummary = datasetSnapshot.summary.insight"),
+        clientSource.includes("aiSummary = datasetSnapshot.summary.insight") || clientSource.includes("const aiSummary = datasetSnapshot.summary.insight"),
         "generic AI upload insights cannot replace the deterministic Retail summary",
+      );
+      assert.ok(
+        clientSource.includes("resolveRetailDisplayedInsights({"),
+        "every AI enrichment line passes the Retail enrichment guard before display",
+      );
+      assert.ok(
+        !clientSource.includes("analyzeResult.explanation || null"),
+        "raw /api/analyze explanation text is never displayed unguarded",
       );
       assert.ok(
         clientSource.includes("Reason: ${analyzeResult.error}"),
@@ -906,6 +1047,94 @@ const tests: TestCase[] = [
       assert.ok(analyzeRoute.includes("generateWithUniversalAiAdapter"), "BYOK routing unchanged");
       assert.ok(analyzeRoute.includes("getManagedCloudLanguageModel"), "managed cloud routing unchanged");
       assert.ok(analyzeRoute.includes("BYOK_PROVIDER_REQUIRED"), "BYOK provider-required handling unchanged");
+    },
+  },
+  {
+    name: "Enrichment guard: generic /api/analyze text can never become the Retail summary or recommendation for any fixture",
+    async run() {
+      const guardSource = readProjectFile("src/lib/retail/retail-enrichment-guard.ts");
+      assert.ok(guardSource.includes("dominates"), "the guard blocklists the generic dominance headline");
+      assert.ok(guardSource.includes("leads with"), "the guard blocklists the generic leads-with explanation");
+      assert.ok(guardSource.includes("analyze what drives"), "the guard blocklists the generic Analyze-what-drives recommendation");
+
+      // The exact production generic payload observed on the Retail dashboard.
+      const genericProduction = {
+        insight: "P-6001 dominates the category",
+        explanation: "P-6001 leads with 999, vs P-1002 at 122.4.",
+        recommendation: "Analyze what drives P-6001 success and apply those learnings to improve other categories.",
+      };
+      const genericFixture02 = {
+        insight: "SKU-A102 dominates the category",
+        explanation: "SKU-A102 leads with 2,234.4, vs SKU-B202 at 128.",
+        recommendation: "Analyze what drives SKU-A102 success and apply those learnings to improve other categories.",
+      };
+      const forbidden = /dominates the category|leads with|Analyze what drives/i;
+
+      for (const { fixture, label, generic } of [
+        { fixture: "01", label: "canonical 17-column", generic: genericProduction },
+        { fixture: "02", label: "alternative schema", generic: genericFixture02 },
+        { fixture: "03", label: "mixed structure", generic: genericProduction },
+      ] as const) {
+        const snapshot = await buildSnapshotForFixture(fixture);
+        const displayed = resolveRetailDisplayedInsights({
+          snapshot,
+          aiInsight: generic.insight,
+          aiExplanation: generic.explanation,
+          aiRecommendation: generic.recommendation,
+        });
+
+        // The deterministic snapshot owns every displayed line.
+        assert.equal(displayed.summary, snapshot.summary.insight, `${label}: headline stays deterministic`);
+        assert.equal(displayed.explanation, snapshot.summary.explanation, `${label}: generic explanation falls back to deterministic findings`);
+        assert.equal(displayed.recommendation, snapshot.summary.recommendation, `${label}: generic recommendation falls back to deterministic findings`);
+        assert.equal(displayed.aiExplanationUsed, false, `${label}: generic explanation is rejected`);
+        assert.equal(displayed.aiRecommendationUsed, false, `${label}: generic recommendation is rejected`);
+        assert.ok(displayed.rejections.length >= 2, `${label}: both generic lines are rejected with reasons`);
+        for (const text of [displayed.summary, displayed.explanation, displayed.recommendation]) {
+          assert.doesNotMatch(text, forbidden, `${label}: displayed Retail summary never contains generic ranking language`);
+        }
+      }
+
+      // Grounded, human-readable enrichment passes the guard.
+      const fixture03 = await buildSnapshotForFixture("03");
+      const grounded = resolveRetailDisplayedInsights({
+        snapshot: fixture03,
+        aiExplanation:
+          "Wireless Charger at AMS-C is the highest-profit product/location, generating $267.20 profit. 1 item is at or below its reorder point.",
+        aiRecommendation:
+          "Prioritize high-selling items with the lowest stock coverage, starting with Protein Bar at AMS-C.",
+      });
+      assert.equal(grounded.aiExplanationUsed, true, "grounded explanation passes the guard");
+      assert.equal(grounded.aiRecommendationUsed, true, "grounded recommendation passes the guard");
+
+      // Ungrounded variations stay rejected.
+      const rejections = [
+        { text: "Revenue grew by 37% this period.", why: "trend change claim with no deterministic trend finding" },
+        { text: "Storage Basket sold 1,234 units.", why: "unexplained raw number" },
+        { text: "11 dead-stock items were identified.", why: "conflicts with the deterministic dead-stock count" },
+        { text: "No dead stock was found.", why: "denies deterministic dead stock" },
+        { text: "SKU-2001 needs attention.", why: "references a known identifier without the product name" },
+        { text: "P-9999 stands out among products.", why: "references an identifier no finding supplies" },
+      ];
+      for (const rejection of rejections) {
+        const verdict = resolveRetailDisplayedInsights({
+          snapshot: fixture03,
+          aiRecommendation: rejection.text,
+        });
+        assert.equal(verdict.aiRecommendationUsed, false, `${rejection.why}: "${rejection.text}" must be rejected`);
+      }
+
+      // Square catalog-only grounding: profit claims without cost data are rejected.
+      const squareCatalog = buildSquareRetailSnapshot(squareCatalogOnlyInput());
+      const squareVerdict = resolveRetailDisplayedInsights({
+        snapshot: squareCatalog,
+        aiRecommendation: "Your top profit product is Crew Neck with strong margin.",
+      });
+      assert.equal(squareVerdict.aiRecommendationUsed, false, "profit claims without a deterministic profit finding are rejected");
+      assert.ok(
+        !forbidden.test(squareVerdict.recommendation),
+        "Square fallback recommendation stays free of generic ranking language",
+      );
     },
   },
   {
@@ -1346,6 +1575,38 @@ function detectColumnsForTest() {
     unitPriceCol: null,
     supplierCol: null,
   };
+}
+
+/**
+ * Builds the canonical dataset snapshot for a Retail workbook fixture through
+ * the exact upload parser path, so guard tests exercise production parity.
+ */
+async function buildSnapshotForFixture(fixture: "01" | "02" | "03") {
+  const fileNames = {
+    "01": "01_local_retail.xlsx",
+    "02": "02_retail_alternative_structure.xlsx",
+    "03": "03_retail_mixed_structure_test.xlsx",
+  } as const;
+  const fileName = fileNames[fixture];
+  const fixturePath = `test-fixtures/business-models/${fileName}`;
+  const fileBuffer = readFileSync(resolve(repoRoot, fixturePath));
+  const uploadParse = await parseCSVStreaming(
+    new File([fileBuffer], fileName, {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    10_000,
+  );
+  const rows = JSON.parse(JSON.stringify(uploadParse.previewRows)) as Record<string, unknown>[];
+  return buildDatasetRetailSnapshot({
+    datasetId: `ds_guard_${fixture}`,
+    name: fileName,
+    fileName,
+    rowCount: uploadParse.rowCount,
+    columnCount: uploadParse.columns.length,
+    createdAt: null,
+    columns: uploadParse.columns,
+    rows,
+  });
 }
 
 function columnOf(mapping: { field: string; column: string | null }[], field: string): string | null {
