@@ -13,6 +13,8 @@ import {
   computeTopProfit,
   computeTopSellers,
   detectColumns,
+  isUnitCostColumn,
+  resolveRetailSchema,
 } from "@/lib/retail/retail-record-engine";
 import {
   buildDatasetRetailSnapshot,
@@ -224,10 +226,10 @@ const tests: TestCase[] = [
 
       // Dead stock / slow movers use the dataset reference date, 2026-03-31.
       assert.equal(snapshot.deadStock.status, "ok");
-      assert.equal(snapshot.deadStock.items.length, 20);
+      assert.equal(snapshot.deadStock.items.length, 20, "the dead/slow section shows the top 20 items by stock value");
       assert.equal(snapshot.deadStock.items.filter((item) => item.classification === "dead_stock").length, 7);
       assert.equal(snapshot.deadStock.items.filter((item) => item.classification === "slow_mover").length, 13);
-      assert.ok(snapshot.deadStock.message.includes("7 dead-stock and 13 slow-mover items"));
+      assert.ok(snapshot.deadStock.message.includes("23 dead-stock and 39 slow-mover items"), "the section message states the true uncapped classification counts");
 
       // Top profit ranks product/location entities without merging locations.
       assert.equal(snapshot.topProfit.status, "ok");
@@ -245,7 +247,7 @@ const tests: TestCase[] = [
         snapshot.summary.explanation.includes("106 product/location inventory items for 35 products from 180 transaction rows"),
       );
       assert.ok(snapshot.summary.explanation.includes("11 items are at or below their reorder point"));
-      assert.ok(snapshot.summary.explanation.includes("7 dead-stock and 13 slow-mover items"));
+      assert.ok(snapshot.summary.explanation.includes("23 dead-stock and 39 slow-mover items"));
       assert.ok(snapshot.summary.explanation.includes("Protein Bar (RTM-01)"));
       assert.ok(snapshot.summary.recommendation.includes("Restock 11 low-inventory product/location items"));
     },
@@ -325,6 +327,240 @@ const tests: TestCase[] = [
       assert.equal(uploadedSnapshot.topProfit.items[0].product, "Protein Bar");
       assert.equal(uploadedSnapshot.topProfit.items[0].store, "RTM-01");
       assert.equal(uploadedSnapshot.topProfit.items[0].profit?.toFixed(2), "1464.09");
+    },
+  },
+  {
+    name: "GOLDEN 02_retail_alternative_structure.xlsx: alternative naming convention resolves through the semantic schema and matches independently derived results",
+    async run() {
+      const fixturePath = "test-fixtures/business-models/02_retail_alternative_structure.xlsx";
+      const fileBuffer = readFileSync(resolve(repoRoot, fixturePath));
+      const uploadParse = await parseCSVStreaming(
+        new File([fileBuffer], "02_retail_alternative_structure.xlsx", {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+        10_000,
+      );
+      const rows = JSON.parse(JSON.stringify(uploadParse.previewRows)) as Record<string, unknown>[];
+      const columns = uploadParse.columns;
+
+      // Workbook shape: 164 rows, 16 differently named columns.
+      assert.equal(uploadParse.rowCount, 164);
+      assert.equal(columns.length, 16);
+      assert.deepEqual(columns, [
+        "sale_date", "branch_code", "receipt_no", "client_ref", "sku", "item_description",
+        "department", "qty", "selling_price", "net_sales", "purchase_cost", "total_cost",
+        "inventory_qty", "min_stock_level", "vendor_name", "region",
+      ]);
+      // Date-only workbook cells serialize deterministically as calendar dates,
+      // so the reference date is machine-independent.
+      assert.equal(typeof rows[0].sale_date, "string");
+      assert.match(String(rows[0].sale_date), /^\d{4}-\d{2}-\d{2}$/);
+
+      // Exact source-column mapping pinned from the real alternative headers.
+      const { detected, mapping, warnings } = resolveRetailSchema(columns, rows);
+      const columnFor = (field: string) => mapping.find((entry) => entry.field === field)?.column ?? null;
+      assert.equal(detected.dateCol, "sale_date");
+      assert.equal(detected.orderCol, "receipt_no");
+      assert.equal(detected.customerCol, "client_ref");
+      assert.equal(detected.skuCol, "sku");
+      assert.equal(detected.productIdCol, null, "no stable product ID column exists; SKU carries identity");
+      assert.equal(detected.productCol, "item_description");
+      assert.equal(detected.categoryCol, "department");
+      assert.equal(detected.storeCol, "branch_code");
+      assert.equal(detected.supplierCol, "vendor_name");
+      assert.equal(detected.reorderPointCol, "min_stock_level");
+      assert.equal(detected.stockCol, "inventory_qty");
+      assert.equal(detected.salesCol, "qty");
+      assert.equal(detected.unitPriceCol, "selling_price");
+      assert.equal(detected.revenueCol, "net_sales");
+      assert.equal(detected.costCol, "purchase_cost");
+      // Negative mapping assertions: the historical failure modes stay impossible.
+      assert.notEqual(detected.productCol, "vendor_name", "supplier/brand data must never become the product name");
+      assert.notEqual(detected.salesCol, "net_sales", "monetary line totals must never become units sold");
+      assert.notEqual(detected.revenueCol, "selling_price", "unit price must not replace the monetary revenue total");
+      assert.notEqual(detected.stockCol, "min_stock_level", "reorder thresholds must never become stock on hand");
+      assert.notEqual(detected.stockCol, "qty", "transaction quantity must never double as stock");
+      assert.notEqual(detected.orderCol, "min_stock_level", "reorder fields must never become order identity");
+      assert.notEqual(detected.storeCol, "region", "geography metadata must not replace branch identity");
+      for (const entry of mapping) {
+        if (entry.column) assert.equal(entry.confidence, "exact", `fixture 02 maps every field at exact confidence, got ${entry.confidence} for ${entry.field}`);
+      }
+      assert.ok(warnings.length === 0, `complete schema resolves without mapping warnings, got: ${warnings.join("; ")}`);
+
+      // The real upload pipeline output matches the independently derived values.
+      const snapshot = buildDatasetRetailSnapshot({
+        datasetId: "ds_02_retail_alternative",
+        name: "02_retail_alternative_structure",
+        fileName: "02_retail_alternative_structure.xlsx",
+        rowCount: uploadParse.rowCount,
+        columnCount: columns.length,
+        createdAt: null,
+        columns,
+        rows,
+      });
+
+      assert.equal(snapshot.kpis.productCount, 12, "12 canonical products keyed by SKU even where display names repeat");
+      assert.equal(snapshot.kpis.locationCount, 4, "4 branch identities");
+      assert.equal(snapshot.kpis.inventoryItemCount, 43, "43 product/location entities");
+      assert.equal(snapshot.kpis.orderCount, 164, "164 distinct receipt numbers");
+      assert.equal(snapshot.kpis.customerCount, 54, "54 distinct client references");
+      assert.equal(snapshot.kpis.unitsSold, 561);
+      assert.equal(snapshot.kpis.netSales, 12237.8);
+      assert.equal(snapshot.kpis.averageOrderValue, 74.62);
+      assert.equal(snapshot.kpis.totalOnHand, 706);
+      assert.equal(snapshot.kpis.inventoryValue, 6257);
+      assert.equal(snapshot.kpis.lastSaleAt, "2026-07-31T00:00:00.000Z", "reference date is the dataset max sale date");
+
+      // Low stock / reorder alerts: latest snapshot stock <= own reorder point.
+      // The visible list caps at 20 items; the summary states the true 22.
+      assert.equal(snapshot.lowStock.items.length, 20);
+      assert.deepEqual(
+        snapshot.lowStock.items.map((item) => `${item.sku}@${item.store}:${item.stock}<=${item.reorderPoint}`),
+        [
+          "SKU-E501@NL-RTM:3<=8",
+          "SKU-E501@NL-AMS:4<=8", "SKU-A102@NL-EIN:4<=10",
+          "SKU-E501@NL-EIN:5<=8", "SKU-B202@NL-EIN:5<=12", "SKU-B202@NL-RTM:5<=12", "SKU-B202@NL-UTR:5<=12",
+          "SKU-E501@NL-UTR:6<=8", "SKU-X901@NL-AMS:6<=9", "SKU-X901@NL-RTM:6<=9", "SKU-A102@NL-AMS:6<=10",
+          "SKU-D401@NL-AMS:7<=10", "SKU-B202@NL-AMS:7<=12", "SKU-X902@NL-AMS:7<=9", "SKU-X902@NL-RTM:7<=9",
+          "SKU-D401@NL-RTM:9<=10", "SKU-A102@NL-RTM:9<=10",
+          "SKU-D401@NL-EIN:10<=10", "SKU-C301@NL-RTM:10<=16",
+          "SKU-C301@NL-UTR:11<=16",
+        ],
+      );
+
+      // Dead stock (60+ days) and slow movers (30-59 days) at the dataset
+      // reference date; the 60-day boundary case classifies as dead stock.
+      assert.equal(snapshot.deadStock.items.filter((item) => item.classification === "dead_stock").length, 3);
+      assert.equal(snapshot.deadStock.items.filter((item) => item.classification === "slow_mover").length, 8);
+      assert.ok(
+        snapshot.deadStock.items.some((item) => item.sku === "SKU-E502" && item.store === "NL-EIN" && item.classification === "dead_stock" && item.daysSinceLastSale === 60),
+        "the exact 60-day boundary classifies as dead stock",
+      );
+      assert.ok(snapshot.deadStock.message.includes("3 dead-stock and 8 slow-mover items"));
+
+      // Top profit at the canonical product/location grain.
+      assert.equal(snapshot.topProfit.status, "ok");
+      assert.equal(snapshot.topProfit.items.length, 20);
+      assert.equal(snapshot.topProfit.items[0].product, "Yoga Mat");
+      assert.equal(snapshot.topProfit.items[0].sku, "SKU-C301");
+      assert.equal(snapshot.topProfit.items[0].store, "NL-EIN");
+      assert.equal(snapshot.topProfit.items[0].unitsSold, 33);
+      assert.equal(snapshot.topProfit.items[0].revenue, 986.7);
+      assert.equal(snapshot.topProfit.items[0].cost, 495);
+      assert.equal(snapshot.topProfit.items[0].profit?.toFixed(2), "491.70");
+      assert.equal(snapshot.topProfit.items[0].margin?.toFixed(2), "49.83");
+
+      // Top sellers rank by real units sold, not monetary totals.
+      assert.equal(snapshot.topSellers.items[0].product, "Yoga Mat");
+      assert.equal(snapshot.topSellers.items[0].sku, "SKU-C301");
+      assert.equal(snapshot.topSellers.items[0].unitsSold, 74);
+      assert.equal(snapshot.topSellers.items[0].revenue.toFixed(2), "2212.60");
+
+      // Summary stays deterministic and names the alternative-structure findings.
+      assert.equal(snapshot.summary.deterministic, true);
+      assert.ok(snapshot.summary.explanation.includes("43 product/location inventory items for 12 products from 164 transaction rows"));
+      assert.ok(snapshot.summary.explanation.includes("22 items are at or below their reorder point"));
+      assert.ok(snapshot.summary.explanation.includes("Yoga Mat (NL-EIN)"));
+      assert.ok(snapshot.summary.recommendation.includes("Restock 22 low-inventory product/location items"));
+    },
+  },
+  {
+    name: "Adversarial schema collisions: tiered semantic matching keeps canonical concepts independent",
+    run() {
+      // A. order_id + reorder_point map independently (token-aware matching
+      //    never lets the "order" token inside "reorder" capture identity).
+      {
+        const { detected } = resolveRetailSchema(["order_id", "reorder_point"]);
+        assert.equal(detected.orderCol, "order_id");
+        assert.equal(detected.reorderPointCol, "reorder_point");
+      }
+      // B. qty = sold quantity, inventory_qty = stock; neither doubles up.
+      {
+        const { detected, mapping } = resolveRetailSchema(["qty", "inventory_qty"]);
+        assert.equal(detected.salesCol, "qty");
+        assert.equal(detected.stockCol, "inventory_qty");
+        assert.notEqual(columnOf(mapping, "sales"), columnOf(mapping, "stock"));
+      }
+      // C. item_description beats supplier/vendor/brand for the product name.
+      {
+        const { detected } = resolveRetailSchema(["item_description", "supplier_name"]);
+        assert.equal(detected.productCol, "item_description");
+        assert.equal(detected.supplierCol, "supplier_name");
+        assert.notEqual(detected.productCol, "supplier_name");
+      }
+      // D. price = unit price, sales_amount = revenue; price never replaces
+      //    the monetary total when an explicit one exists.
+      {
+        const { detected } = resolveRetailSchema(["price", "sales_amount"]);
+        assert.equal(detected.unitPriceCol, "price");
+        assert.equal(detected.revenueCol, "sales_amount");
+        assert.notEqual(detected.revenueCol, "price");
+      }
+      // E. unit cost and aggregate cost stay distinct; the unit-cost family
+      //    wins the cost basis so the engine multiplies by units sold.
+      {
+        const { detected } = resolveRetailSchema(["cost_price", "total_cost"]);
+        assert.equal(detected.costCol, "cost_price");
+        assert.ok(isUnitCostColumn(detected.costCol), "cost_price keeps unit-cost semantics");
+      }
+      // F. branch_code = location identity; city stays geography metadata.
+      {
+        const { detected } = resolveRetailSchema(["branch_code", "city"]);
+        assert.equal(detected.storeCol, "branch_code");
+        assert.notEqual(detected.storeCol, "city");
+      }
+      // G. Decimal quantities are legitimate when mapped from an explicit
+      //    qty-family column; they are never rejected globally.
+      {
+        const columns = ["product", "qty", "revenue", "date"];
+        const rows = [
+          { product: "A", qty: 1.5, revenue: 30, date: "2026-01-01" },
+          { product: "A", qty: 2.5, revenue: 50, date: "2026-01-02" },
+        ];
+        const { detected } = resolveRetailSchema(columns, rows);
+        assert.equal(detected.salesCol, "qty");
+        const records = buildRetailRecords(rows, detected);
+        assert.equal(records.reduce((sum, record) => sum + (record.unitsSold ?? 0), 0), 4);
+      }
+      // H. Unknown ambiguous numeric columns receive no critical semantics.
+      {
+        const columns = ["product", "revenue", "mystery_metric", "date"];
+        const rows = [
+          { product: "A", revenue: 30, mystery_metric: 42, date: "2026-01-01" },
+          { product: "B", revenue: 50, mystery_metric: 17, date: "2026-01-02" },
+        ];
+        const { detected, mapping } = resolveRetailSchema(columns, rows);
+        assert.equal(detected.stockCol, null);
+        assert.equal(detected.salesCol, null);
+        assert.equal(detected.costCol, null);
+        assert.equal(detected.unitPriceCol, null);
+        assert.ok(mapping.every((entry) => entry.column !== "mystery_metric"), "unknown numeric columns never drive critical fields");
+      }
+      // I. Heuristic failsafe: without any revenue-like column, the unit price
+      //    column falls back to revenue with an explicit data-quality warning
+      //    instead of silently misreporting.
+      {
+        const columns = ["product", "qty", "price", "date"];
+        const rows = [
+          { product: "A", qty: 2, price: 10, date: "2026-01-01" },
+        ];
+        const { detected, warnings } = resolveRetailSchema(columns, rows);
+        assert.equal(detected.unitPriceCol, "price");
+        assert.equal(detected.revenueCol, "price");
+        assert.ok(warnings.some((warning) => warning.includes("Revenue could not be confidently identified")), "revenue fallback is flagged, not silent");
+      }
+      // J. Value-shape validation: a text column never maps into a numeric
+      //    field even when its name matches.
+      {
+        const columns = ["product", "stock", "cost_code", "date"];
+        const rows = [
+          { product: "A", stock: "many", cost_code: "PREMIUM", date: "2026-01-01" },
+        ];
+        const { detected } = resolveRetailSchema(columns, rows);
+        assert.equal(detected.stockCol, null, "non-numeric stock candidates are rejected");
+        assert.equal(detected.costCol, null, "non-numeric cost candidates are rejected");
+        assert.equal(detected.dateCol, "date");
+      }
     },
   },
   {
@@ -609,7 +845,7 @@ const tests: TestCase[] = [
       const clientSource = readProjectFile("src/components/retail/retail-inventory-client.tsx");
       assert.ok(clientSource.includes("/api/retail/sources"), "dashboard loads owner-scoped sources");
       assert.ok(clientSource.includes("/api/retail/analytics"), "dashboard consumes the normalized analytics endpoint");
-      assert.ok(clientSource.includes("snapshot?.deadStock.message"), "Square insufficient-sales message renders from the snapshot");
+      assert.ok(clientSource.includes("deadStockSection?.message ?? \"No dead stock or slow movers detected\""), "Square insufficient-sales message renders from the snapshot");
       assert.ok(clientSource.includes("EMPTY_STATE_HINT"), "no-source state explains connecting a retail system or uploading");
       assert.ok(clientSource.includes("Sync now"), "Square source header offers sync");
       assert.ok(clientSource.includes("/app/retail/integrations"), "Square header links to connection management");
@@ -1107,7 +1343,13 @@ function detectColumnsForTest() {
     dateCol: "date",
     orderCol: null,
     customerCol: null,
+    unitPriceCol: null,
+    supplierCol: null,
   };
+}
+
+function columnOf(mapping: { field: string; column: string | null }[], field: string): string | null {
+  return mapping.find((entry) => entry.field === field)?.column ?? null;
 }
 
 function detectColumnsWithIds() {
