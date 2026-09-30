@@ -2,6 +2,9 @@
 
 ### Fixed
 
+- Profitability analysis now reads revenue and expense totals correctly from differently structured CSV and Excel files, including quantity-times-unit-price schemas, gross-sales-minus-discount schemas, and European number formats.
+- Profitability analysis now withholds totals and explains why when two amount columns cannot be told apart or when a file mixes currencies, instead of showing a wrong combined number.
+
 - Profitability analysis now recognizes explicit revenue and expense amount columns in separate files, so generated previews and reports use final row totals instead of unit prices, unit costs, tax fields, or quantity-multiplied amounts.
 - Retail AI Insights summaries now show only business-readable analysis from the deterministic Retail engine, so raw product codes, unexplained numbers, and generic ranking text never replace real Retail findings.
 - Retail uploads with differently named columns (like sale_date, branch_code, receipt_no, qty, and inventory_qty) now map to the same reliable analysis instead of showing supplier names as products, money amounts as units sold, or impossible margins.

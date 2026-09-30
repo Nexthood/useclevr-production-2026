@@ -18874,3 +18874,71 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - Latest interaction status: docs/AI-interaction/interaction-status.md
    - Release notes: CHANGELOG.md
    - Product requirement: requirements.md
+
+## 2026-09-30 — Universal Profitability schema resolver and end-to-end accuracy
+
+1. Interaction title
+   Master fix for UseClevr Profitability: different customer Revenue and Expense CSV/Excel structures must be semantically recognized and produce accurate deterministic results through one authoritative normalized model from upload to dashboard, reports, and AI explanation; do not commit or push.
+
+2. What the user goal required
+   Build/consolidate a universal Profitability schema resolver recognizing semantic concepts (not fixture headers), match with multiple signals (aliases, tokens, distinctive tokens, value shapes, arithmetic reconciliation, cross-column consistency, confidence), validate values before assigning financial roles, apply deterministic amount precedence with zero double counting, fail safe on ambiguity instead of guessing, keep one canonical normalized record model authoritative through the whole pipeline, trace the production 44.7K revenue / 83.9K expense divergence to its exact stage, add currency safety, cover schemas A-L with independently derived goldens, pin fixture 04 (Revenue 86,312.00 / Expenses 34,633.20 / Profit 51,678.80 / Margin 59.87%), preserve Retail/Square/ClevrSync/BYOK/credits/auth/subscriptions, and never let AI calculate authoritative totals.
+
+3. Production-bug trace (root cause)
+   - The authoritative Profitability numbers come from the browser stage: `profitability-upload.tsx` parses both files client-side, calls the two-file engine, and submits the result as the persisted `profitabilityData`; the server returns the same payload (`profitabilityResult: profitabilityData`), the page reads `analysis.profitability`, and the report builder consumes the stored metrics. Nothing downstream remaps columns — so any wrong number originates in the semantic resolver stage.
+   - Production (origin/main) still runs the pre-`41850f24b` resolver: `detectColumns(columns)` matched amounts with ordered regexes including bare substrings `/revenue/`, `/expense/`, `/cost/`, `/value/`. Replayed on the current fixture 04 that engine produces revenue = 0 (the `/revenue/` pattern claims `revenue_category`, a text dimension, so every amount row is skipped) and expenses = 314,030 (the `/expense/` pattern claims `expense_date`, and `numberValue("2026-01-01")` parses each of 155 date strings as the number 2026). The user's production 44.7K/83.9K variant is the same failure class on their exact file layout: a substring match selected a non-final amount column and downstream displayed it faithfully. The deployed test/live environment also lags beta, which already carries the first targeted alias fix.
+   - Additional divergence source in the deployed browser flow: the naive client CSV parser dropped zero cells (`values[idx] || ''`), split quoted multiline cells, and parsed Excel without `cellDates`, so persisted rows differed from the analyzed rows.
+   - Every place that previously remapped financial semantics: pre-fix `two-file-analysis.ts` `detectColumns` (substring regexes), the client `parseCSV`/XLSX cell handling (row corruption), and the generic semantic layers (`business-columns.ts`, `semantic-schema.ts`, `business-semantics.ts`, `dataset-analyzer.ts`) that exist for non-profitability dataset types. After this change the Profitability path has exactly one resolver; the generic layers are untouched and out of the Profitability path.
+
+4. New canonical architecture
+   - `src/lib/profitability/schema-resolver.ts` — universal resolver. Concepts: revenue amount, gross amount, discount, refund, quantity, unit price, unit cost, tax, period, product, sku, customer, category, vendor, department, company, cost center, location, currency. Signals: (A) normalized exact aliases (60+), (B) token-aware aliases (40), (C) distinctive tokens (turnover/spend/vendor/payee/…), (D) value-shape evidence (numeric ratio ≥ 0.8, date ratio, integer-dominance and magnitude checks for quantity), (E) arithmetic reconciliation of unit×quantity against the amount column (discount-aware, 2% tolerance, ≤10% mismatch), (F) one physical column per concept with greedy highest-score assignment, (G) per-field confidence. Disqualifier tokens make `category/type/date/region/center/code/id/ref/name/…` and unqualified component tokens (`unit`, `tax`, `discount`, `quantity`, `gross`, cost-in-revenue) impossible as amounts; "net/ex/excluding" neutralizes component tokens so `revenue_ex_vat` stays an amount. Locale-tolerant money parsing understands US `1,234.56`, European `1.234,56`, `(1,234.56)` accounting negatives and currency markers, while interior separators (`INV-0001`, `2026-01-02`, `CUST-001`) are never money.
+   - `src/lib/profitability/normalized-model.ts` — `NormalizedRevenueRecord` (date, periodLabel, amount, grossAmount?, discount?, refund?, quantity?, unitPrice?, product?, sku?, customer?, category?, department?, company?, costCenter?, location?, currency?, provenance) and `NormalizedExpenseRecord` (date, periodLabel, amount, quantity?, unitCost?, tax?, category?, vendor?, department?, costCenter?, company?, location?, currency?, provenance). Amount precedence: (1) explicit final/line amount — components are never added to it; (2) quantity×unit price/cost when no total exists (tax is never added because the schema cannot prove additivity); (3) gross − discounts − refunds for revenue, withheld entirely when the derived relationship produces negative revenue on >20% of rows. Skipped rows are counted and warned.
+   - `src/lib/profitability/two-file-analysis.ts` — consumes resolver + normalized records only; same exported `ProfitabilityMetrics` contract plus additive `schemaDiagnostics` (selected mappings, confidence, amount strategy, skipped rows, resolver warnings), `currencyObservation`, `revenueByCustomer`, `revenueByCategory`, `expensesByVendor`, `expensesByDepartment`, `expensesByLocation`, `topCostDrivers`, `costConcentration`, `top3CostShare`, `revenueExpenseRatio`. Mixed currencies across or within files withhold all monetary totals (status failed, note explains, dimensions stay empty) — never a false combined total.
+   - `src/lib/profitability/file-parsing.ts` — the one shared reader: RFC4180 CSV (quoted commas/newlines, CRLF, BOM-safe headers, zero cells preserved) and Excel via `cellDates` with ISO date serialization; cells stay raw strings/numbers and the resolver does semantic typing.
+   - `src/components/forms/profitability-upload.tsx` — replaced the naive browser parser with the shared reader, so parsed rows, normalized records, CSV upload bytes, persisted children, dashboard, and reports all see one interpretation.
+   - `src/lib/profitability/analysis-value-utils.ts` — shared label/month-key helpers.
+
+5. Ambiguity and fail-safe rules
+   - Exact score tie between two amount candidates with materially different sums (top-2 equal, delta > 0.5%) withholds the amount: status failed, resolver warning lists both columns, no guess.
+   - Near-tie (score gap ≤ 5 points) with materially different sums selects the evidence-backed winner but emits a verify-mapping warning naming both columns and the deciding signals.
+   - Amount-unresolved schemas list rejected candidate columns; volume-only revenue files fail safe instead of summing `sales_volume` as revenue; all-zero and all-unparseable amount columns fail safe.
+   - Resolver warnings surface in `dataQualityNotes` and `schemaDiagnostics` so the dashboard and reports show them.
+
+6. Double-counting protections
+   - One physical column, one concept; components (unit price/cost, tax, discount, refund, gross, quantity) can never be the amount.
+   - Explicit-amount schemas never add unit/tax/quantity; derived schemas never add tax; classification buckets (COGS/interest/tax/operating) each receive the row amount exactly once; per-row `tax_amount` is recorded in the normalized record but never summed into totals.
+
+7. Currency behavior
+   - Detects an explicit currency column (ISO codes/symbols in values) or symbol markers inside amount strings; single currency passes through as record metadata; mixed currencies (or codes like USD alongside €) withhold combined totals with an explanatory note — no invented conversions, no silent aggregation.
+
+8. Fixture matrix (12 cases, expected totals computed from raw cells, never hardcoded in production logic)
+   - A explicit totals with adversarial bait columns (`revenue`=999999, unit/tax columns) → 9,316 / 4,231.25 ✓; B quantity×unit price and quantity×unit cost without totals → 2,662 / 950 with derived provenance notes ✓; C gross + discount + refunds, no net → 12,806 / 600 ✓; D `Line Total`/`Total Cost` title case → 2,091 / 631 ✓; E misleading `revenue_category`/`revenue_month`/`sales_region`/`cost_center`/`expense_date` never become amounts; `spend` wins → 2,500 / 1,300 ✓; F capitalization/space variants (`Net Sales`, `Units Sold`, `Expense Amount`) → 1,701 / 701 ✓; G reordered columns → 500.5 / 210.75 ✓; H extra irrelevant numerics (pct/rates/counts) → 3,000 / 600 ✓; I period-less, category-less minimal schemas → 1,000 / 250 ✓; J tied ambiguous amounts (`amount` 800 vs `value` 1000) withheld with warning ✓; K synthetic schema as XLSX and CSV agree at 350.75 with ISO dates ✓; L mixed EUR/USD currency withheld ✓; volume-only file fails safe ✓; European decimals parse deterministically (1.234,56 + 2.000,00 = 3,234.56) ✓.
+
+9. Production fixture 04 end-to-end result
+   - XLSX and CSV variants both produce Revenue 86,312.00 / Expenses 34,633.20 / Operating Profit 51,678.80 / Margin 59.87%, mapping `net_revenue` and `expense_amount` as explicit amounts, ready status, no withheld warnings; parity holds through JSON persistence (`analysis.profitability`), the dashboard payload, the shared Node-side reader, and the real `buildDatasetReportInput` report path (financials revenue 86,312 / operating expenses 34,633.2 / net profit 51,678.8 / net margin 59.87).
+
+10. Files changed
+    - New: `src/lib/profitability/schema-resolver.ts`, `src/lib/profitability/normalized-model.ts`, `src/lib/profitability/file-parsing.ts`, `src/lib/profitability/analysis-value-utils.ts`, `scripts/analysis/test-profitability-universal-schema.ts`.
+    - Modified: `src/lib/profitability/two-file-analysis.ts` (resolver + normalized consumption), `src/components/forms/profitability-upload.tsx` (shared reader, typed rows, escapeCsvCell), `scripts/analysis/test-profitability-two-file.ts` (source assertions follow the shared reader), `package.json` (`test:profitability-universal` wired into `test:all`), `CHANGELOG.md`, `requirements.md`, `docs/AI-interaction/interaction-status.md`, `project-logs/*`.
+    - Unrelated systems untouched: Retail, Square, ClevrSync, BYOK/cloud routing, credits, authentication, subscriptions.
+
+11. Tests and verification
+    - `pnpm test:profitability-universal` exit 0 (all fixtures + parity + K + failsafes); `pnpm test:profitability-two-file` exit 0; `pnpm test:profitability-period-trend` exit 0; `pnpm test:profitability-report-entry-points` PASS; `pnpm test:clevrsync-retail-profitability` exit 0; `pnpm test:dataset-analyzer-semantics` PASS; `pnpm test:retail-source-analytics` 38 checks; `pnpm test:upload-security` PASS; `pnpm test:csv-edge-cases` PASS; `pnpm test:dashboard-semantic-profiles`, `pnpm test:business-semantics` PASS.
+    - `pnpm validate:types` ✓ (next typegen + tsc), `pnpm exec tsc --noEmit --pretty false` exit 0, `pnpm lint:secrets` ✓, `pnpm lint:changelog` ✓, ESLint 0 errors on changed files (2 pre-existing `any` warnings in the upload component remain).
+    - Not committed or pushed per instruction.
+
+12. Remaining ambiguous schemas and risks
+    - Files whose only money columns carry unknown names (e.g. `col1`, `field_x`) stay unresolved by design — the fail-safe withholds totals and names the rejected candidates.
+    - Tax handling in derived-only schemas (quantity×unit cost) records tax per row but never adds it, matching the deterministic rule; a future schema could prove additive tax via an explicit "total with tax" alias if needed.
+    - Currency conversion remains out of scope: mixed-currency files are withheld, not converted.
+    - Generic semantic layers for non-profitability dataset types (`business-columns.ts`, `semantic-schema.ts`) were intentionally left alone; a dataset whose type later resolves away from profitability would follow those layers' existing contracts.
+    - Production/test deployments still run the pre-fix resolver until beta merges and deploys; this branch's fix is not yet merged.
+
+13. Instruction sources
+    - AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts.
+
+14. Minimal destination
+    - Detailed session record: project-logs/interactive-log.md
+    - Activity summary: project-logs/activity-log.md
+    - Latest interaction status: docs/AI-interaction/interaction-status.md
+    - Release notes: CHANGELOG.md
+    - Product requirement: requirements.md
