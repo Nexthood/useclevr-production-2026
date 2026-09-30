@@ -1,8 +1,10 @@
 import * as fs from "fs"
+import * as XLSX from "xlsx"
 import { execFileSync } from "child_process"
 import { calculateProfitabilityAnalysis } from "../../src/lib/profitability/two-file-analysis"
 import { resolveBusinessModel } from "../../src/lib/data/business-model"
 import { buildDashboardSemanticAnalysis } from "../../src/lib/data/dashboard-semantic-profile"
+import { assertStandardUploadFile, UploadValidationError } from "../../src/lib/upload/upload-security"
 
 function assert(condition: unknown, message: string) {
   if (!condition) throw new Error(message)
@@ -19,6 +21,25 @@ function assertIncludes(text: string, expected: string, message: string) {
 
 function assertNotIncludes(text: string, unexpected: string, message: string) {
   assert(!text.includes(unexpected), `${message}: unexpected "${unexpected}"`)
+}
+
+function readWorkbookFixture(filePath: string) {
+  const workbook = XLSX.read(fs.readFileSync(filePath), { type: "buffer", cellDates: true })
+  const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+  const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][]
+  const columns = (json[0] || []).map(String)
+  const rows = json.slice(1).map((row) => {
+    const record: Record<string, unknown> = {}
+    columns.forEach((column, index) => {
+      record[column] = row[index]
+    })
+    return record
+  })
+  return { columns, rows, rowCount: rows.length }
+}
+
+function sumColumn(rows: Record<string, unknown>[], column: string) {
+  return Math.round(rows.reduce((total, row) => total + Number(row[column] || 0), 0) * 100) / 100
 }
 
 const revenueFile = {
@@ -46,6 +67,16 @@ const expensesFile = {
 }
 
 async function main() {
+  const generatedCsvBytes = "net_revenue,quantity\n100,2\n"
+  let mismatchRejected = false
+  try {
+    await assertStandardUploadFile(new File([generatedCsvBytes], "04_profitability_revenue_test.xlsx", { type: "text/csv" }))
+  } catch (error) {
+    mismatchRejected = error instanceof UploadValidationError && error.status === 422 && error.code === "UPLOAD_FILE_TYPE_INVALID"
+  }
+  assert(mismatchRejected, "Generated CSV bytes with the original .xlsx filename must reproduce the upload-security 422")
+  await assertStandardUploadFile(new File([generatedCsvBytes], "04_profitability_revenue_test.csv", { type: "text/csv" }))
+
   const waitingForExpenses = calculateProfitabilityAnalysis({
     analysisId: "pa_wait_expenses",
     revenueFile,
@@ -85,8 +116,8 @@ async function main() {
   nearlyEqual(opexOnly.operatingMargin, 80, "Opex-only paired operating margin")
   assert(opexOnly.interestExpense === null, "Missing interest must remain unavailable")
   assert(opexOnly.taxExpense === null, "Missing tax must remain unavailable")
-  assert(opexOnly.netProfit === null, "Net profit must require source-backed interest and tax")
-  assert(opexOnly.netMargin === null, "Net margin must require source-backed net profit")
+  nearlyEqual(opexOnly.netProfit, 8000, "Opex-only paired net profit")
+  nearlyEqual(opexOnly.netMargin, 80, "Opex-only paired net margin")
   assert(opexOnly.metricSources.operatingProfit?.kind === "derived_value", "Opex-only operating profit must be derived")
   assert(opexOnly.metricSources.operatingProfit?.note.includes("Revenue minus source-backed operating expenses"), "Opex-only operating profit provenance must name the paired formula")
 
@@ -182,10 +213,10 @@ async function main() {
   nearlyEqual(userSchemaAnalysis.totalExpenses, 3000, "User-schema total expenses")
   nearlyEqual(userSchemaAnalysis.grossProfit, 6000, "User-schema gross profit")
   nearlyEqual(userSchemaAnalysis.operatingProfit, 5000, "User-schema operating profit")
-  assert(userSchemaAnalysis.netProfit === null, "User-schema net profit must require interest/tax")
+  nearlyEqual(userSchemaAnalysis.netProfit, 5000, "User-schema net profit")
   nearlyEqual(userSchemaAnalysis.grossMargin, 75, "User-schema gross margin")
   nearlyEqual(userSchemaAnalysis.operatingMargin, 62.5, "User-schema operating margin")
-  assert(userSchemaAnalysis.netMargin === null, "User-schema net margin must require net profit")
+  nearlyEqual(userSchemaAnalysis.netMargin, 62.5, "User-schema net margin")
   assert(
     userSchemaAnalysis.expenseCategories.some(([name]) => name === "COGS"),
     "User-schema must detect COGS from expense_category column"
@@ -194,6 +225,62 @@ async function main() {
     userSchemaAnalysis.expenseCategories.some(([name]) => name === "Rent"),
     "User-schema must detect Rent from expense_category column"
   )
+
+  const workbookRevenue = readWorkbookFixture("test-fixtures/business-models/04_profitability_revenue_test.xlsx")
+  const workbookExpenses = readWorkbookFixture("test-fixtures/business-models/04_profitability_expenses_test.xlsx")
+  const expectedWorkbookRevenue = sumColumn(workbookRevenue.rows, "net_revenue")
+  const expectedWorkbookExpenses = sumColumn(workbookExpenses.rows, "expense_amount")
+  const expectedWorkbookNetProfit = Math.round((expectedWorkbookRevenue - expectedWorkbookExpenses) * 100) / 100
+  const expectedWorkbookNetMargin = Math.round((expectedWorkbookNetProfit / expectedWorkbookRevenue) * 10000) / 100
+  const inflatedRevenue = sumColumn(workbookRevenue.rows.map((row) => ({
+    inflated: Number(row.net_revenue || 0) * Number(row.quantity || 0),
+  })), "inflated")
+  const inflatedExpenses = sumColumn(workbookExpenses.rows.map((row) => ({
+    inflated: Number(row.expense_amount || 0) * Number(row.quantity || 0),
+  })), "inflated")
+  const unitCostPlusTaxAndExpense = sumColumn(workbookExpenses.rows.map((row) => ({
+    inflated: Number(row.unit_cost || 0) + Number(row.tax_amount || 0) + Number(row.expense_amount || 0),
+  })), "inflated")
+  const expectedExpenseCategories = new Map<string, number>()
+  for (const row of workbookExpenses.rows) {
+    const category = String(row.expense_category || "Uncategorized")
+    expectedExpenseCategories.set(category, Math.round(((expectedExpenseCategories.get(category) || 0) + Number(row.expense_amount || 0)) * 100) / 100)
+  }
+  const workbookAnalysis = calculateProfitabilityAnalysis({
+    analysisId: "pa_profitability_fixture_04",
+    revenueFile: {
+      role: "revenue",
+      name: "04_profitability_revenue_test.xlsx",
+      columns: workbookRevenue.columns,
+      rows: workbookRevenue.rows,
+      rowCount: workbookRevenue.rowCount,
+    },
+    expensesFile: {
+      role: "expenses",
+      name: "04_profitability_expenses_test.xlsx",
+      columns: workbookExpenses.columns,
+      rows: workbookExpenses.rows,
+      rowCount: workbookExpenses.rowCount,
+    },
+  })
+
+  assert(workbookRevenue.rowCount === 240, "Revenue golden fixture must contain 240 rows")
+  assert(workbookExpenses.rowCount === 155, "Expense golden fixture must contain 155 rows")
+  assert(workbookAnalysis.status === "ready", "Golden profitability workbooks must produce ready analysis")
+  assert(workbookAnalysis.matchKey === null, "Separate revenue and expense schemas must not require identical non-period schemas")
+  nearlyEqual(workbookAnalysis.totalRevenue, expectedWorkbookRevenue, "Golden fixture revenue must use SUM(net_revenue)")
+  nearlyEqual(workbookAnalysis.totalExpenses, expectedWorkbookExpenses, "Golden fixture expenses must use SUM(expense_amount)")
+  nearlyEqual(workbookAnalysis.netProfit, expectedWorkbookNetProfit, "Golden fixture net profit")
+  nearlyEqual(workbookAnalysis.netMargin, expectedWorkbookNetMargin, "Golden fixture net margin")
+  assert(workbookAnalysis.totalRevenue !== inflatedRevenue, "Golden fixture revenue must not multiply net_revenue by quantity")
+  assert(workbookAnalysis.totalExpenses !== inflatedExpenses, "Golden fixture expenses must not multiply expense_amount by quantity")
+  assert(workbookAnalysis.totalExpenses !== unitCostPlusTaxAndExpense, "Golden fixture expenses must not add unit_cost or tax_amount to expense_amount")
+  assert(workbookAnalysis.sourceFiles.some((file) => file.role === "revenue" && file.rowCount === 240), "Golden analysis must preserve revenue source file metadata")
+  assert(workbookAnalysis.sourceFiles.some((file) => file.role === "expenses" && file.rowCount === 155), "Golden analysis must preserve expense source file metadata")
+  for (const [category, expectedAmount] of expectedExpenseCategories) {
+    const actual = workbookAnalysis.expenseCategories.find(([name]) => name === category)?.[1] ?? null
+    nearlyEqual(actual, expectedAmount, `Golden expense category ${category} must use expense_amount only`)
+  }
 
   const unrelatedExpensesFile = {
     ...expensesFile,
@@ -301,15 +388,15 @@ async function main() {
   assert(opexOnlyBuiltInput.financials?.operatingMargin === 80, "Opex-only paired report must derive operating margin")
   assert(opexOnlyBuiltInput.financials?.cogs === null, "Opex-only paired report must keep COGS unavailable")
   assert(opexOnlyBuiltInput.financials?.grossProfit === null, "Opex-only paired report must keep gross profit unavailable")
-  assert(opexOnlyBuiltInput.financials?.netProfit === null, "Opex-only paired report must keep net profit unavailable without interest/tax")
+  assert(opexOnlyBuiltInput.financials?.netProfit === 8000, "Opex-only paired report must derive net profit from source-backed total expenses")
   assert(opexOnlyBuiltInput.financials?.metricSources?.operatingProfit?.kind === "derived_value", "Opex-only paired report must mark operating profit as derived")
-  assert(opexOnlyBuiltInput.summary.includes("Operating profit is $8.0K"), "Opex-only paired summary must state operating profit")
-  assert(opexOnlyBuiltInput.summary.includes("Gross profitability cannot be calculated because COGS is unavailable."), "Opex-only paired summary must explain gross profitability availability")
-  assert(opexOnlyBuiltInput.summary.includes("Net profitability cannot be fully assessed because interest and/or tax inputs are unavailable."), "Opex-only paired summary must explain net profitability availability")
+  assert(opexOnlyBuiltInput.summary.includes("net margin of 80.0%"), "Opex-only paired summary must state net margin")
+  assert(opexOnlyBuiltInput.financials?.grossMargin === null, "Opex-only paired report must keep gross margin unavailable")
+  assertNotIncludes(opexOnlyBuiltInput.summary, "Net profitability cannot be fully assessed", "Opex-only paired summary must not mark net profitability unavailable")
   assertNotIncludes(opexOnlyBuiltInput.summary, "gross margin of not available and net margin of not available", "Opex-only paired summary must avoid unavailable-margin boilerplate")
   assert(!(opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("Operating Profit")), "Opex-only paired recommendations must not request derived operating profit")
   assert((opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("COGS")), "Opex-only paired recommendations must request COGS for gross profitability")
-  assert((opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("Interest Expense") || item.requiredData?.includes("Tax Expense")), "Opex-only paired recommendations must request interest/tax for net profitability")
+  assert(!(opexOnlyBuiltInput.recommendations || []).some((item) => item.requiredData?.includes("Interest Expense") || item.requiredData?.includes("Tax Expense")), "Opex-only paired recommendations must not request interest/tax when net profit is derivable from total expenses")
 
   const poisonedChildBusinessModel = resolveBusinessModel({
     explicit: "marketplace",
@@ -369,6 +456,8 @@ async function main() {
   const profitabilityUploadSource = fs.readFileSync("src/components/forms/profitability-upload.tsx", "utf8")
   assertIncludes(profitabilityUploadSource, "initialProfitabilityResult?.profitabilityAnalysisId", "Profitability rich view refresh must seed the parent analysis id from persisted metrics")
   assertIncludes(profitabilityUploadSource, "initialUploadResult?.datasetId", "Profitability rich view refresh must retain parent-scoped report generation")
+  assertIncludes(profitabilityUploadSource, "csvUploadName(entry.file.name)", "Profitability generate must submit converted CSV bytes with a .csv filename")
+  assertIncludes(profitabilityUploadSource, "headers.map(csvCell)", "Profitability generate must CSV-escape headers and row values before upload")
 
   const partialOpexBuiltInput = await buildDatasetReportInput({
     id: "ds_profitability_partial_opex",

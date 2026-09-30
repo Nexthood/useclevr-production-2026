@@ -1,3 +1,12 @@
+## 2026-09-30 — Profitability explicit amount schema fix
+
+- fixed: Profitability two-file analysis now resolves revenue and expense columns with role-aware, token-aware aliases and one-column-one-role exclusivity, so `net_revenue`/`expense_amount` win over `unit_price`, `unit_cost`, `tax_amount`, discounts, and quantity fields
+- changed: revenue and expenses derive from unit price/cost times quantity only when no explicit final amount column exists; complete total expenses now support net profit and net margin as revenue minus total expenses
+- fixed: the Profitability generate flow submits converted CSV bytes with a `.csv` filename and CSV-escaped values, so XLSX inputs no longer hit upload-security `422` from extension/content mismatch
+- added: permanent golden workbooks `04_profitability_revenue_test.xlsx` and `04_profitability_expenses_test.xlsx` plus workbook-derived assertions for revenue 86,312.00, expenses 34,633.20, net profit 51,678.80, net margin 59.87%, category totals, and no quantity double-multiplication
+- verified: `pnpm test:profitability-two-file` passes with escalated `pdftotext` permission after sandbox `EPERM`; `pnpm exec tsc --noEmit --pretty false` exits 0
+- not committed or pushed per instruction
+
 ## 2026-09-28 — Retail hardening audit: canonical identity, snapshot semantics, reorder rule, honest empty states
 
 - fixed: retail product identity now prefers the stable product ID (or Square variant ID), then SKU, then the normalized name, so distinct products sharing a display name stay separate everywhere

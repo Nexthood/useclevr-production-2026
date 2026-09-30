@@ -1,3 +1,45 @@
+## 2026-09-30 — Profitability explicit amount schema fix
+
+1. Interaction title
+   Fix Profitability revenue/expense schema detection and the XLSX generate-upload 422.
+
+2. What was the user goal
+   Trace the complete Profitability pipeline for separate revenue and expense workbooks, fix generic schema resolution so explicit final amount fields win over unit, tax, discount, and quantity columns, make Generate succeed without weakening upload security, add permanent golden fixtures, and do not commit or push.
+
+3. What changed
+   - `src/lib/profitability/two-file-analysis.ts`: the resolver is now role-aware and token-aware. It maps explicit revenue fields (`net_revenue`, `revenue`, `net_sales`, `sales_amount`, `total_revenue`) and explicit expense fields (`expense_amount`, `total_expense`, `amount`, `total_cost`) before unit fields, reserves assigned columns so one column cannot satisfy multiple monetary roles, validates numeric shape from rows, and derives unit price/cost times quantity only when no explicit final amount exists. Expense row classification now uses the row category text, not every file header, so a `tax_amount` header no longer classifies every expense as tax. Complete total expenses now support net profit and net margin as revenue minus total expenses.
+   - `src/components/forms/profitability-upload.tsx`: the Generate flow CSV-escapes generated content, preserves zero values, and submits converted XLSX/XLS rows as a real `.csv` file name, fixing the upload-security extension/content mismatch that returned 422.
+   - `src/lib/reports/dataset-report-builder.ts`: missing-interest/tax recommendations no longer appear when net profit and net margin are already derivable from complete total expenses.
+   - `scripts/analysis/test-profitability-two-file.ts`: golden workbook regressions compute expected totals directly from cells and pin explicit amount precedence, category totals, separate schema pairing, generated upload contract guards, and updated net-profit semantics.
+   - `test-fixtures/business-models/04_profitability_revenue_test.xlsx` and `test-fixtures/business-models/04_profitability_expenses_test.xlsx`: permanent golden fixtures matching the reported schemas and row counts.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the supplied production workbooks were not attached in the workspace, so the permanent fixtures reproduce the reported schemas and row counts with deterministic synthetic values instead of the original private rows.
+   - improvement: future Profitability tests can expose the semantic column map directly instead of asserting mappings through totals and source behavior.
+   - observation: Generate sent CSV bytes with the original `.xlsx` filename, so upload security correctly rejected the request with a 422 content-versus-extension mismatch.
+
+5. User learning
+   Profitability now treats explicit final revenue and expense amount columns as authoritative and combines separate files analytically without requiring identical schemas.
+
+6. AI-agent learning
+   Profitability schema detection needs the same exact/token-aware, role-exclusive approach used for Retail; client-side file conversions must change both bytes and filename before passing through upload-security validation.
+
+7. Follow-up tasks
+   - None.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+
 ## 2026-09-29 — Retail AI Insights Summary determinism guard and third golden fixture
 
 1. Interaction title
