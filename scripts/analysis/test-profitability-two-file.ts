@@ -457,7 +457,8 @@ async function main() {
   assertIncludes(profitabilityUploadSource, "initialProfitabilityResult?.profitabilityAnalysisId", "Profitability rich view refresh must seed the parent analysis id from persisted metrics")
   assertIncludes(profitabilityUploadSource, "initialUploadResult?.datasetId", "Profitability rich view refresh must retain parent-scoped report generation")
   assertIncludes(profitabilityUploadSource, "csvUploadName(entry.file.name)", "Profitability generate must submit converted CSV bytes with a .csv filename")
-  assertIncludes(profitabilityUploadSource, "headers.map(csvCell)", "Profitability generate must CSV-escape headers and row values before upload")
+  assertIncludes(profitabilityUploadSource, "headers.map(escapeCsvCell)", "Profitability generate must CSV-escape headers and row values before upload")
+  assertIncludes(profitabilityUploadSource, "parseTabularFile(file)", "Profitability upload must use the shared authoritative file reader")
 
   const partialOpexBuiltInput = await buildDatasetReportInput({
     id: "ds_profitability_partial_opex",

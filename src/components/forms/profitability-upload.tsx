@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { USAGE_REFRESH_EVENT } from "@/components/ui/usage-monitor"
 import { useToast } from "@/hooks/use-toast"
 import { calculateProfitabilityAnalysis, type ProfitabilityFileRole } from "@/lib/profitability/two-file-analysis"
+import { parseTabularFile, escapeCsvCell } from "@/lib/profitability/file-parsing"
 import { uploadDatasetFile, type UploadDatasetResponse } from "@/lib/upload/upload-client"
 import { formatCurrencyForKPI, formatPercentSimple } from "@/lib/utils/formatting"
 import { ArrowRight, BarChart3, CheckCircle2, DollarSign, FileText, Lightbulb, Loader2, Receipt, Sparkles, Table2, TrendingUp, X } from "lucide-react"
@@ -29,7 +30,7 @@ import {
 interface UploadedFile {
   name: string
   type: "revenue" | "expense"
-  data?: any[]
+  data?: Record<string, unknown>[]
   columns?: string[]
   rowCount?: number
 }
@@ -167,7 +168,7 @@ export function ProfitabilityUpload({
     const fileName = file.name.toLowerCase()
     const isCsv = fileName.endsWith(".csv")
     const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls")
-    
+
     if (!isCsv && !isExcel) {
       toast({ title: "Invalid file", description: "Please upload a CSV or Excel file (.csv, .xlsx, .xls)", variant: "destructive" })
       return
@@ -177,38 +178,16 @@ export function ProfitabilityUpload({
     setGenerateStatus("parsing")
 
     try {
-      let data: any[], fields: string[]
-      
-      if (isExcel) {
-        // Parse Excel file
-        const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-        const XLSX = require('xlsx')
-        const workbook = XLSX.read(buffer, { type: 'buffer' })
-        const firstSheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[firstSheetName]
-        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
-        
-        if (json.length === 0) {
-          toast({ title: "Invalid file", description: "Excel file is empty", variant: "destructive" })
-          setGenerateStatus("idle")
-          return
-        }
-        
-        fields = json[0] as string[]
-        data = json.slice(1).map((row) => {
-          const obj: any = {}
-          fields.forEach((col, i) => {
-            obj[col] = row[i]
-          })
-          return obj
-        })
-      } else {
-        // Parse CSV file
-        const text = await file.text()
-        const parsed = parseCSV(text)
-        data = parsed.data
-        fields = parsed.meta.fields || []
+      // One authoritative reader for the whole Profitability flow: rows parsed
+      // here are the same rows the resolver normalizes and the dashboard shows.
+      const parsed = await parseTabularFile(file)
+      const data: Record<string, unknown>[] = parsed.rows
+      const fields = parsed.columns
+
+      if (fields.length === 0 || data.length === 0) {
+        toast({ title: "Invalid file", description: isExcel ? "Excel file is empty" : "CSV file has no data rows", variant: "destructive" })
+        setGenerateStatus("idle")
+        return
       }
 
       const uploadedFile: UploadedFile = {
@@ -236,54 +215,6 @@ export function ProfitabilityUpload({
       setIsUploading(false)
       setGenerateStatus("idle")
     }
-  }
-
-  const parseCSV = (text: string): { data: any[], meta: { fields: string[] } } => {
-    const lines = text.trim().split('\n')
-    if (lines.length < 2) return { data: [], meta: { fields: [] } }
-
-    const parseCSVLine = (line: string) => {
-      const values: string[] = []
-      let current = ''
-      let inQuotes = false
-
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i]
-        const nextChar = line[i + 1]
-
-        if (char === '"' && inQuotes && nextChar === '"') {
-          current += '"'
-          i++
-        } else if (char === '"') {
-          inQuotes = !inQuotes
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim())
-          current = ''
-        } else {
-          current += char
-        }
-      }
-
-      values.push(current.trim())
-      return values
-    }
-
-    const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''))
-    const data = lines.slice(1).map(line => {
-      const values = parseCSVLine(line).map(v => v.trim().replace(/^"|"$/g, ''))
-      const row: any = {}
-      headers.forEach((header, idx) => {
-        row[header] = values[idx] || ''
-      })
-      return row
-    })
-
-    return { data, meta: { fields: headers } }
-  }
-
-  const csvCell = (value: unknown) => {
-    const text = value === null || value === undefined ? "" : String(value)
-    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
   }
 
   const csvUploadName = (name: string) => name.replace(/\.(xlsx|xls|csv)$/i, "") + ".csv"
@@ -339,9 +270,9 @@ export function ProfitabilityUpload({
       for (const entry of filesToUpload) {
         const headers = entry.file.columns || []
         const csvContent = [
-          headers.map(csvCell).join(','),
+          headers.map(escapeCsvCell).join(','),
           ...(entry.file.data || []).map(row =>
-            headers.map(h => csvCell(row[h])).join(',')
+            headers.map(h => escapeCsvCell(row[h])).join(',')
           )
         ].join('\n')
 

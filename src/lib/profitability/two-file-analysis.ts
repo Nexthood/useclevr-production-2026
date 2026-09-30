@@ -1,3 +1,13 @@
+import { resolveProfitabilitySchema } from "./schema-resolver"
+import {
+  normalizeRevenueFromResolution,
+  normalizeExpenseFromResolution,
+  type MappingDiagnostics,
+  type NormalizedRevenueRecord,
+  type NormalizedExpenseRecord,
+} from "./normalized-model"
+import { monthKey as monthKeyFromValue } from "./analysis-value-utils"
+
 export type ProfitabilityFileRole = "revenue" | "expenses"
 export type ProfitabilityStatus =
   | "waiting_for_expenses"
@@ -83,24 +93,24 @@ export type ProfitabilityMetrics = {
     rowCount: number
     columns: string[]
   }>
-}
-
-type ColumnMap = {
-  amount?: string
-  amountSource?: "explicit" | "derived"
-  unitAmount?: string
-  quantity?: string
-  discount?: string
-  tax?: string
-  period?: string
-  department?: string
-  companyId?: string
-  costCenter?: string
-  category?: string
-  product?: string
-  region?: string
-  customer?: string
-  salesVolume?: string
+  schemaDiagnostics?: {
+    revenue: MappingDiagnostics & { warnings: string[] }
+    expenses: MappingDiagnostics & { warnings: string[] }
+  }
+  currencyObservation?: {
+    mixed: boolean
+    currencies: string[]
+    totalsWithheld: boolean
+  }
+  revenueByCustomer?: [string, number][]
+  revenueByCategory?: [string, number][]
+  expensesByVendor?: [string, number][]
+  expensesByDepartment?: [string, number][]
+  expensesByLocation?: [string, number][]
+  topCostDrivers?: Array<{ name: string; amount: number; shareOfExpenses: number }>
+  costConcentration?: number
+  top3CostShare?: number
+  revenueExpenseRatio?: number
 }
 
 type Bucket = {
@@ -127,23 +137,50 @@ export function calculateProfitabilityAnalysis(input: {
       ? "partial"
       : "complete"
     : "unavailable"
-  const revenueColumns = detectColumns(revenueFile?.columns || [], revenueFile?.rows || [], "revenue")
-  const expenseColumns = detectColumns(expensesFile?.columns || [], expensesFile?.rows || [], "expenses")
-  const matchKey = chooseMatchKey(revenueColumns, expenseColumns)
+
+  // One authoritative semantic interpretation: resolve + normalize each file
+  // exactly once; everything downstream reads the normalized records.
+  const revenueResolution = resolveProfitabilitySchema(revenueFile?.columns || [], revenueFile?.rows || [], "revenue")
+  const expenseResolution = resolveProfitabilitySchema(expensesFile?.columns || [], expensesFile?.rows || [], "expenses")
+  const revenueNormalized = normalizeRevenueFromResolution(revenueFile?.columns || [], revenueFile?.rows || [], revenueResolution)
+  const expenseNormalized = normalizeExpenseFromResolution(expensesFile?.columns || [], expensesFile?.rows || [], expenseResolution)
+
+  const matchKey = chooseMatchKey(revenueResolution.mapping, expenseResolution.mapping)
   const missingColumns: string[] = []
   const unavailableMetrics: string[] = []
   const dataQualityNotes: string[] = []
 
+  for (const warning of [...revenueNormalized.warnings, ...expenseNormalized.warnings]) {
+    dataQualityNotes.push(warning.message)
+  }
+
   if (!hasRevenue) missingColumns.push("revenue file")
   if (!hasExpenses) missingColumns.push("expenses file")
-  if (hasRevenue && !hasAmountSource(revenueColumns)) missingColumns.push("revenue amount")
-  if (hasExpenses && !hasAmountSource(expenseColumns)) missingColumns.push("expenses amount")
-  if (hasBothFiles && !matchKey) dataQualityNotes.push("No shared period + department, company_id, or cost_center key was detected; totals are combined without row-level matching.")
+  if (hasRevenue && revenueNormalized.records.length === 0) missingColumns.push("revenue amount")
+  if (hasExpenses && expenseNormalized.records.length === 0) missingColumns.push("expenses amount")
+  if (hasBothFiles && !matchKey) {
+    dataQualityNotes.push("No shared period + department, company, or cost center key was detected; totals are combined without row-level matching.")
+  }
+
+  const currencyObservation = combineCurrencyObservation(
+    revenueNormalized.currency,
+    expenseNormalized.currency,
+    hasRevenue || hasExpenses,
+  )
+  if (currencyObservation.totalsWithheld) {
+    dataQualityNotes.unshift(`Mixed currencies (${currencyObservation.currencies.join(", ")}) were detected across the Profitability inputs; combined monetary totals are withheld because no conversion data was provided.`)
+  }
+  const currencySafe = !currencyObservation.totalsWithheld
 
   const revenueByProduct = new Map<string, number>()
   const revenueByRegion = new Map<string, number>()
+  const revenueByCategory = new Map<string, number>()
+  const revenueByCustomer = new Map<string, number>()
   const revenueByMonth: Record<string, number> = {}
   const expenseCategories = new Map<string, number>()
+  const expensesByVendor = new Map<string, number>()
+  const expensesByDepartment = new Map<string, number>()
+  const expensesByLocation = new Map<string, number>()
   const periodBuckets = new Map<string, Bucket>()
   const departmentBuckets = new Map<string, Bucket>()
   const customers = new Set<string>()
@@ -151,26 +188,27 @@ export function calculateProfitabilityAnalysis(input: {
   let salesVolume = 0
   let foundSalesVolume = false
 
-  for (const row of revenueFile?.rows || []) {
-    const amount = rowAmount(row, revenueColumns, "revenue")
-    if (amount === null) continue
+  for (const record of revenueNormalized.records) {
+    const amount = record.amount
     totalRevenue += amount
-    addBucket(periodBuckets, periodKey(row, revenueColumns, matchKey)).revenue += amount
-    addBucket(departmentBuckets, departmentKey(row, revenueColumns)).revenue += amount
+    if (!currencySafe) continue
+    addBucket(periodBuckets, periodBucketKey(record, matchKey)).revenue += amount
+    addBucket(departmentBuckets, departmentBucketKey(record)).revenue += amount
 
-    const volume = numberValue(row[revenueColumns.salesVolume || ""])
-    if (volume !== null) {
-      salesVolume += volume
+    if (record.quantity !== null) {
+      salesVolume += record.quantity
       foundSalesVolume = true
     }
-    const product = labelValue(row[revenueColumns.product || revenueColumns.category || ""])
+    const product = record.product || record.category || record.sku
     if (product) addMapValue(revenueByProduct, product, amount)
-    const region = labelValue(row[revenueColumns.region || ""])
-    if (region) addMapValue(revenueByRegion, region, amount)
-    const month = monthKey(row[revenueColumns.period || ""])
+    if (record.location) addMapValue(revenueByRegion, record.location, amount)
+    if (record.customer) {
+      addMapValue(revenueByCustomer, record.customer, amount)
+      customers.add(record.customer)
+    }
+    if (record.category) addMapValue(revenueByCategory, record.category, amount)
+    const month = record.date ? monthKeyFromValue(record.date) : ""
     if (month) revenueByMonth[month] = (revenueByMonth[month] || 0) + amount
-    const customer = labelValue(row[revenueColumns.customer || ""])
-    if (customer) customers.add(customer)
   }
 
   let cogs = 0
@@ -182,14 +220,17 @@ export function calculateProfitabilityAnalysis(input: {
   let foundInterest = false
   let foundTax = false
 
-  for (const row of expensesFile?.rows || []) {
-    const amount = rowAmount(row, expenseColumns, "expenses")
-    if (amount === null) continue
-    const category = labelValue(row[expenseColumns.category || ""]) || "Uncategorized"
+  for (const record of expenseNormalized.records) {
+    const amount = record.amount
+    const category = record.category || "Uncategorized"
     const kind = classifyExpense(category)
+    if (!currencySafe) continue
     addMapValue(expenseCategories, category, amount)
-    const period = addBucket(periodBuckets, periodKey(row, expenseColumns, matchKey))
-    const department = addBucket(departmentBuckets, departmentKey(row, expenseColumns))
+    if (record.vendor) addMapValue(expensesByVendor, record.vendor, amount)
+    if (record.department) addMapValue(expensesByDepartment, record.department, amount)
+    if (record.location) addMapValue(expensesByLocation, record.location, amount)
+    const period = addBucket(periodBuckets, periodBucketKey(record, matchKey))
+    const department = addBucket(departmentBuckets, departmentBucketKey(record))
 
     if (kind === "cogs") {
       cogs += amount
@@ -214,13 +255,16 @@ export function calculateProfitabilityAnalysis(input: {
     }
   }
 
-  const revenueValue = hasRevenue && hasAmountSource(revenueColumns) ? round(totalRevenue) : null
-  const cogsValue = hasExpenses && foundCogs ? round(cogs) : null
-  const operatingExpensesValue = hasExpenses && foundOperating ? round(operatingExpenses) : null
+  const totalsWithheld = currencyObservation.totalsWithheld
+  const revenueValue = hasRevenue && revenueNormalized.records.length > 0 && !totalsWithheld ? round(totalRevenue) : null
+  const cogsValue = hasExpenses && foundCogs && !totalsWithheld ? round(cogs) : null
+  const operatingExpensesValue = hasExpenses && foundOperating && !totalsWithheld ? round(operatingExpenses) : null
   const completeOperatingExpensesValue = operatingExpenseCoverage === "complete" ? operatingExpensesValue : null
-  const interestExpenseValue = hasExpenses && foundInterest ? round(interestExpense) : null
-  const taxExpenseValue = hasExpenses && foundTax ? round(taxExpense) : null
-  const totalExpenses = hasExpenses && hasAmountSource(expenseColumns) ? round(cogs + operatingExpenses + interestExpense + taxExpense) : null
+  const interestExpenseValue = hasExpenses && foundInterest && !totalsWithheld ? round(interestExpense) : null
+  const taxExpenseValue = hasExpenses && foundTax && !totalsWithheld ? round(taxExpense) : null
+  const totalExpenses = hasExpenses && expenseNormalized.records.length > 0 && !totalsWithheld
+    ? round(cogs + operatingExpenses + interestExpense + taxExpense)
+    : null
   const grossProfit = revenueValue !== null && cogsValue !== null ? round(revenueValue - cogsValue) : null
   const operatingProfit = grossProfit !== null && completeOperatingExpensesValue !== null
     ? round(grossProfit - completeOperatingExpensesValue)
@@ -244,23 +288,26 @@ export function calculateProfitabilityAnalysis(input: {
     ? "waiting_for_revenue"
     : !hasExpenses
       ? "waiting_for_expenses"
-      : missingColumns.length > 0
+      : missingColumns.length > 0 || totalsWithheld
         ? "failed"
         : "ready"
+
+  const expenseCategoryEntries = currencySafe ? sortedEntries(expenseCategories) : []
+  const totalExpenseFromCategories = expenseCategoryEntries.reduce((total, [, value]) => total + value, 0)
 
   return {
     profitabilityAnalysisId: input.analysisId,
     status,
-    statusLabel: statusLabel(status, missingColumns),
+    statusLabel: statusLabel(status, missingColumns, totalsWithheld),
     fileRole: input.fileRole,
     hasRevenue,
     hasExpenses,
     hasBothFiles,
     operatingExpenseCoverage,
-    reportingPeriod: reportingPeriodFromPeriodKeys(periodBuckets),
+    reportingPeriod: currencySafe ? reportingPeriodFromPeriodKeys(periodBuckets) : null,
     revenueGrowth,
     totalRevenue: revenueValue,
-    salesVolume: foundSalesVolume ? round(salesVolume) : null,
+    salesVolume: foundSalesVolume && !totalsWithheld ? round(salesVolume) : null,
     customerCount: customers.size > 0 ? customers.size : null,
     cogs: cogsValue,
     operatingExpenses: operatingExpensesValue,
@@ -275,16 +322,16 @@ export function calculateProfitabilityAnalysis(input: {
     operatingMargin: margin(operatingProfit, revenueValue),
     netMargin: margin(netProfit, revenueValue),
     margin: margin(netProfit, revenueValue),
-    expenseCategories: sortedEntries(expenseCategories),
-    topCostCategories: sortedEntries(expenseCategories),
-    revenueByProduct: sortedEntries(revenueByProduct),
-    revenueByRegion: sortedEntries(revenueByRegion),
-    revenueByMonth,
+    expenseCategories: expenseCategoryEntries,
+    topCostCategories: expenseCategoryEntries,
+    revenueByProduct: currencySafe ? sortedEntries(revenueByProduct) : [],
+    revenueByRegion: currencySafe ? sortedEntries(revenueByRegion) : [],
+    revenueByMonth: currencySafe ? revenueByMonth : {},
     metricSources: {
-      revenue: revenueValue !== null ? sourceMeta(revenueColumns.amountSource === "derived" ? "Revenue derived from unit price and quantity because no final revenue amount field was present." : "Revenue source total from selected Revenue input.") : unavailableMeta("No recognized revenue source field."),
+      revenue: revenueValue !== null ? sourceMeta(revenueAmountSourceNote(revenueResolution)) : unavailableMeta("No recognized revenue source field."),
       cogs: cogsValue !== null ? sourceMeta("COGS source total from selected Expenses input.") : unavailableMeta("No recognized COGS source field."),
       operatingExpenses: operatingExpensesValue !== null
-        ? sourceMeta(expenseColumns.amountSource === "derived" ? "Operating expenses derived from unit cost, quantity, and tax because no final expense amount field was present." : operatingExpenseCoverage === "partial" ? "Partial operating-expense source total from selected Expenses input." : "Operating-expense source total from selected Expenses input.")
+        ? sourceMeta(expenseAmountSourceNote(expenseResolution, cogsValue !== null))
         : unavailableMeta("No recognized operating-expense source rows."),
       interestExpense: interestExpenseValue !== null ? sourceMeta("Interest-expense source total from selected Expenses input.") : unavailableMeta("No recognized interest-expense source rows."),
       taxExpense: taxExpenseValue !== null ? sourceMeta("Tax-expense source total from selected Expenses input.") : unavailableMeta("No recognized tax-expense source rows."),
@@ -301,12 +348,12 @@ export function calculateProfitabilityAnalysis(input: {
       operatingMargin: margin(operatingProfit, revenueValue) !== null ? derivedMeta("Operating profit divided by revenue.") : unavailableMeta("Requires operating profit and non-zero revenue."),
       netMargin: margin(netProfit, revenueValue) !== null ? derivedMeta("Net profit divided by revenue.") : unavailableMeta("Requires net profit and non-zero revenue."),
     },
-    periodTrends: buildPeriodTrends(periodBuckets, { hasCogs: foundCogs, hasOperating: foundOperating, hasCompleteOperatingExpenses: operatingExpenseCoverage === "complete", hasInterest: foundInterest, hasTax: foundTax }),
-    departmentComparison: buildDepartmentComparison(departmentBuckets),
+    periodTrends: currencySafe ? buildPeriodTrends(periodBuckets, { hasCogs: foundCogs, hasOperating: foundOperating, hasCompleteOperatingExpenses: operatingExpenseCoverage === "complete", hasInterest: foundInterest, hasTax: foundTax }) : [],
+    departmentComparison: currencySafe ? buildDepartmentComparison(departmentBuckets) : [],
     matchKey,
     missingColumns,
     unavailableMetrics: Array.from(new Set(unavailableMetrics)),
-    dataConfidence: confidenceScore(hasRevenue, hasExpenses, revenueColumns, expenseColumns, matchKey),
+    dataConfidence: confidenceScore(hasRevenue, hasExpenses, revenueResolution, expenseResolution, matchKey, totalsWithheld),
     dataQualityNotes,
     sourceFiles: [revenueFile, expensesFile].filter(Boolean).map((file) => ({
       role: file!.role,
@@ -314,89 +361,43 @@ export function calculateProfitabilityAnalysis(input: {
       rowCount: file!.rowCount ?? file!.rows.length,
       columns: file!.columns,
     })),
+    schemaDiagnostics: {
+      revenue: toSchemaDiagnostics(revenueNormalized.mappingDiagnostics, revenueResolution.warnings),
+      expenses: toSchemaDiagnostics(expenseNormalized.mappingDiagnostics, expenseResolution.warnings),
+    },
+    currencyObservation: {
+      mixed: currencyObservation.mixed,
+      currencies: currencyObservation.currencies,
+      totalsWithheld,
+    },
+    revenueByCustomer: currencySafe ? sortedEntries(revenueByCustomer) : [],
+    revenueByCategory: currencySafe ? sortedEntries(revenueByCategory) : [],
+    expensesByVendor: currencySafe ? sortedEntries(expensesByVendor) : [],
+    expensesByDepartment: currencySafe ? sortedEntries(expensesByDepartment) : [],
+    expensesByLocation: currencySafe ? sortedEntries(expensesByLocation) : [],
+    topCostDrivers: expenseCategoryEntries.slice(0, 5).map(([name, value]) => ({
+      name,
+      amount: value,
+      shareOfExpenses: totalExpenseFromCategories > 0 ? round((value / totalExpenseFromCategories) * 100) : 0,
+    })),
+    costConcentration: expenseCategoryEntries.length > 0 && totalExpenseFromCategories > 0
+      ? round((expenseCategoryEntries[0][1] / totalExpenseFromCategories) * 100)
+      : undefined,
+    top3CostShare: expenseCategoryEntries.length > 0 && totalExpenseFromCategories > 0
+      ? round((expenseCategoryEntries.slice(0, 3).reduce((total, [, value]) => total + value, 0) / totalExpenseFromCategories) * 100)
+      : undefined,
+    revenueExpenseRatio: revenueValue !== null && totalExpenses !== null && totalExpenses > 0
+      ? round(revenueValue / totalExpenses)
+      : undefined,
   }
 }
 
-function detectColumns(columns: string[], rows: Record<string, unknown>[], role: ProfitabilityFileRole): ColumnMap {
-  const reserved = new Set<string>()
-  const finalAmountAliases = role === "revenue"
-    ? [
-        ["net", "revenue"],
-        ["revenue"],
-        ["net", "sales"],
-        ["sales", "amount"],
-        ["total", "revenue"],
-        ["total", "sales"],
-        ["amount"],
-        ["sales"],
-        ["income"],
-        ["value"],
-      ]
-    : [
-        ["expense", "amount"],
-        ["total", "expense"],
-        ["amount"],
-        ["total", "cost"],
-        ["expense"],
-        ["cost"],
-        ["debit"],
-        ["value"],
-      ]
-  const unitAmountAliases = role === "revenue"
-    ? [["unit", "price"], ["selling", "price"], ["price"]]
-    : [["unit", "cost"], ["cost", "per", "unit"]]
-
-  const amount = findSemanticColumn(columns, rows, finalAmountAliases, {
-    reject: role === "revenue" ? [["unit"], ["discount"]] : [["unit"], ["tax"], ["vat"]],
-  })
-  if (amount) reserved.add(amount)
-  const unitAmount = findSemanticColumn(columns, rows, unitAmountAliases, { exclude: reserved })
-  if (unitAmount) reserved.add(unitAmount)
-  const quantity = findSemanticColumn(columns, rows, [["quantity"], ["qty"], ["units"]], {
-    exclude: reserved,
-    allowZeroSum: true,
-  })
-  if (quantity) reserved.add(quantity)
-  const discount = role === "revenue"
-    ? findSemanticColumn(columns, rows, [["discount", "amount"], ["discount", "pct"], ["discount"]], {
-        exclude: reserved,
-        allowZeroSum: true,
-      })
-    : undefined
-  if (discount) reserved.add(discount)
-  const tax = role === "expenses"
-    ? findSemanticColumn(columns, rows, [["tax", "amount"], ["vat", "amount"], ["tax"], ["vat"]], {
-        exclude: reserved,
-        allowZeroSum: true,
-      })
-    : undefined
-  if (tax) reserved.add(tax)
-
-  const hasExplicitAmount = Boolean(amount)
-  const hasDerivedAmount = !hasExplicitAmount && Boolean(unitAmount && quantity)
-
-  return {
-    amount,
-    amountSource: hasExplicitAmount ? "explicit" : hasDerivedAmount ? "derived" : undefined,
-    unitAmount,
-    quantity,
-    discount,
-    tax,
-    period: findColumn(columns, [/^period$/, /^month$/, /^date$/, /transaction date/, /posted date/, /created at/, /sale date/, /expense date/, /year/]),
-    department: findColumn(columns, [/department/, /^dept$/]),
-    companyId: findColumn(columns, [/company id/, /companyid/, /^company$/]),
-    costCenter: findColumn(columns, [/cost center/, /costcentre/]),
-    category: findColumn(columns, [/category/, /expense type/, /income type/, /account/, /description/, /type/]),
-    product: findColumn(columns, [/product/, /sku/, /item/, /service/]),
-    region: findColumn(columns, [/region/, /country/, /location/, /market/]),
-    customer: findColumn(columns, [/customer/, /client/, /account name/, /customer ref/]),
-    salesVolume: findColumn(columns, [/sales volume/, /^quantity$/, /^qty$/, /^units$/]),
-  }
-}
-
-function chooseMatchKey(revenue: ColumnMap, expenses: ColumnMap) {
+function chooseMatchKey(
+  revenue: ReturnType<typeof resolveProfitabilitySchema>["mapping"],
+  expenses: ReturnType<typeof resolveProfitabilitySchema>["mapping"],
+) {
   if (revenue.period && expenses.period && revenue.department && expenses.department) return "period_department"
-  if (revenue.period && expenses.period && revenue.companyId && expenses.companyId) return "period_company_id"
+  if (revenue.period && expenses.period && revenue.company && expenses.company) return "period_company"
   if (revenue.period && expenses.period && revenue.costCenter && expenses.costCenter) return "period_cost_center"
   return null
 }
@@ -409,163 +410,55 @@ function classifyExpense(category: string) {
   return "operating"
 }
 
-function findColumn(columns: string[], patterns: RegExp[]) {
-  for (const pattern of patterns) {
-    const match = columns.find((column) => {
-      const normalized = column.toLowerCase().trim().replace(/[_-]+/g, " ")
-      return pattern.test(normalized)
-    })
-    if (match) return match
+function combineCurrencyObservation(
+  revenueCurrency: { mixed: boolean; currencies: string[]; source: string | null },
+  expenseCurrency: { mixed: boolean; currencies: string[]; source: string | null },
+  anyFile: boolean,
+): { mixed: boolean; currencies: string[]; totalsWithheld: boolean } {
+  const observed = new Set<string>()
+  for (const currency of [...revenueCurrency.currencies, ...expenseCurrency.currencies]) {
+    observed.add(normalizeCurrencyMarker(currency))
   }
-  return undefined
+  const currencies = Array.from(observed).sort()
+  const mixed = currencies.length > 1
+  return { mixed, currencies, totalsWithheld: mixed && anyFile }
 }
 
-function hasAmountSource(columns: ColumnMap) {
-  return Boolean(columns.amount || (columns.unitAmount && columns.quantity))
+function normalizeCurrencyMarker(marker: string): string {
+  if (marker === "$") return "USD"
+  if (marker === "€") return "EUR"
+  if (marker === "£") return "GBP"
+  if (marker === "¥") return "JPY"
+  if (marker === "₹") return "INR"
+  return marker.toUpperCase()
 }
 
-function rowAmount(row: Record<string, unknown>, columns: ColumnMap, role: ProfitabilityFileRole) {
-  if (columns.amount) return positiveAmount(row[columns.amount])
-  if (!columns.unitAmount || !columns.quantity) return null
-
-  const unit = positiveAmount(row[columns.unitAmount])
-  const quantity = positiveAmount(row[columns.quantity])
-  if (unit === null || quantity === null) return null
-
-  const base = unit * quantity
-  if (role === "expenses") {
-    const tax = columns.tax ? positiveAmount(row[columns.tax]) : null
-    return round(base + (tax ?? 0))
+function revenueAmountSourceNote(resolution: ReturnType<typeof resolveProfitabilitySchema>) {
+  if (resolution.amountStrategy === "derived_unit_quantity") {
+    return "Revenue derived from unit price and quantity because no final revenue amount field was present."
   }
-
-  const discount = columns.discount ? positiveAmount(row[columns.discount]) : null
-  return round(base - (discount ?? 0))
-}
-
-function findSemanticColumn(
-  columns: string[],
-  rows: Record<string, unknown>[],
-  aliases: string[][],
-  options: { exclude?: Set<string>; reject?: string[][]; allowZeroSum?: boolean } = {},
-) {
-  for (const alias of aliases) {
-    const match = columns.find((column) => {
-      if (options.exclude?.has(column)) return false
-      const tokens = columnTokens(column)
-      if (!hasAliasTokens(tokens, alias)) return false
-      if ((options.reject || []).some((rejected) => hasAliasTokens(tokens, rejected))) return false
-      return hasNumericShape(column, rows, options.allowZeroSum)
-    })
-    if (match) return match
+  if (resolution.amountStrategy === "gross_minus_adjustments") {
+    return "Revenue derived from gross sales minus refunds and discounts because no final revenue amount field was present."
   }
-  return undefined
+  return "Revenue source total from selected Revenue input."
 }
 
-function columnTokens(column: string) {
-  return column
-    .toLowerCase()
-    .trim()
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean)
-}
-
-function hasAliasTokens(tokens: string[], alias: string[]) {
-  return alias.every((token) => tokens.includes(token))
-}
-
-function hasNumericShape(column: string, rows: Record<string, unknown>[], allowZeroSum = false) {
-  if (rows.length === 0) return true
-  const sampleRows = rows.slice(0, 100)
-  let numericCount = 0
-  let presentCount = 0
-  let absoluteSum = 0
-
-  for (const row of sampleRows) {
-    const value = row[column]
-    if (value === null || value === undefined || value === "") continue
-    presentCount += 1
-    const numeric = numberValue(value)
-    if (numeric === null) continue
-    numericCount += 1
-    absoluteSum += Math.abs(numeric)
+function expenseAmountSourceNote(resolution: ReturnType<typeof resolveProfitabilitySchema>, hasCogs: boolean) {
+  if (resolution.amountStrategy === "derived_unit_quantity") {
+    return "Operating expenses derived from unit cost and quantity because no final expense amount field was present; tax stays recorded separately and is never added."
   }
-
-  if (presentCount === 0) return false
-  if (numericCount / presentCount < 0.8) return false
-  return allowZeroSum || absoluteSum > 0
+  if (hasCogs) return "Expense source total split into COGS and operating expenses by category."
+  return "Operating-expense source total from selected Expenses input."
 }
 
-function positiveAmount(value: unknown) {
-  const amount = numberValue(value)
-  return amount === null ? null : Math.abs(amount)
-}
-
-function numberValue(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) return value
-  if (typeof value !== "string") return null
-  const raw = value.trim()
-  const parenthesized = raw.includes("(") && raw.includes(")")
-  const parsed = Number.parseFloat(raw.replace(/[^0-9.-]/g, ""))
-  if (!Number.isFinite(parsed)) return null
-  return parenthesized ? -Math.abs(parsed) : parsed
-}
-
-function labelValue(value: unknown) {
-  const label = String(value ?? "").trim()
-  return label ? label.slice(0, 80) : ""
-}
-
-function monthKey(value: unknown) {
-  const text = String(value ?? "").trim()
-  const yyyyMm = text.match(/(\d{4})[-/](\d{1,2})/)
-  if (yyyyMm) return `${yyyyMm[1]}-${yyyyMm[2].padStart(2, "0")}`
-  const parsed = Date.parse(text)
-  if (Number.isNaN(parsed)) return ""
-  const date = new Date(parsed)
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`
-}
-
-function periodKey(row: Record<string, unknown>, columns: ColumnMap, matchKey: string | null) {
-  const period = labelValue(row[columns.period || ""]) || "All periods"
-  if (matchKey === "period_department") return `${period} • ${labelValue(row[columns.department || ""]) || "All departments"}`
-  if (matchKey === "period_company_id") return `${period} • ${labelValue(row[columns.companyId || ""]) || "All companies"}`
-  if (matchKey === "period_cost_center") return `${period} • ${labelValue(row[columns.costCenter || ""]) || "All cost centers"}`
-  return period
-}
-
-function departmentKey(row: Record<string, unknown>, columns: ColumnMap) {
-  return labelValue(row[columns.department || columns.costCenter || columns.companyId || ""]) || "Unassigned"
-}
-
-function addBucket(map: Map<string, Bucket>, key: string) {
-  const current = map.get(key) || { revenue: 0, cogs: 0, operatingExpenses: 0, interestExpense: 0, taxExpense: 0 }
-  map.set(key, current)
-  return current
-}
-
-function addMapValue(map: Map<string, number>, key: string, value: number) {
-  map.set(key, (map.get(key) || 0) + value)
-}
-
-function sortedEntries(map: Map<string, number>): [string, number][] {
-  return Array.from(map.entries()).map(([key, value]) => [key, round(value)] as [string, number]).sort((a, b) => b[1] - a[1]).slice(0, 8)
-}
-
-function revenueGrowthFromMonthlyAggregation(monthly: Record<string, number>) {
-  const months = Object.keys(monthly).filter((month) => month).sort()
-  if (months.length < 2) return null
-  const first = monthly[months[0]]
-  const last = monthly[months[months.length - 1]]
-  if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return null
-  return round(((last - first) / first) * 100)
-}
-
-function reportingPeriodFromPeriodKeys(map: Map<string, Bucket>) {
-  const periods = Array.from(new Set(Array.from(map.keys()).map((period) => period.split(" • ")[0]).filter((period) => period && period !== "All periods"))).sort((a, b) => a.localeCompare(b))
-  if (periods.length === 0) return null
-  if (periods.length === 1) return periods[0]
-  return `${periods[0]} to ${periods[periods.length - 1]}`
+function toSchemaDiagnostics(
+  diagnostics: MappingDiagnostics,
+  warnings: { code: string; message: string }[],
+): MappingDiagnostics & { warnings: string[] } {
+  return {
+    ...diagnostics,
+    warnings: warnings.map((warning) => warning.message),
+  }
 }
 
 function buildPeriodTrends(map: Map<string, Bucket>, availability: { hasCogs: boolean; hasOperating: boolean; hasCompleteOperatingExpenses: boolean; hasInterest: boolean; hasTax: boolean }) {
@@ -600,18 +493,6 @@ function buildPeriodTrends(map: Map<string, Bucket>, availability: { hasCogs: bo
   }).sort((a, b) => a.period.localeCompare(b.period)).slice(0, 24)
 }
 
-function sourceMeta(note: string) {
-  return { kind: "source_value" as const, note }
-}
-
-function derivedMeta(note: string) {
-  return { kind: "derived_value" as const, note }
-}
-
-function unavailableMeta(note: string) {
-  return { kind: "unavailable" as const, note }
-}
-
 function buildDepartmentComparison(map: Map<string, Bucket>) {
   return Array.from(map.entries()).map(([department, bucket]) => {
     const expenses = bucket.cogs + bucket.operatingExpenses + bucket.interestExpense + bucket.taxExpense
@@ -634,24 +515,91 @@ function margin(value: number | null, revenue: number | null) {
   return round((value / revenue) * 100)
 }
 
-function confidenceScore(hasRevenue: boolean, hasExpenses: boolean, revenue: ColumnMap, expenses: ColumnMap, matchKey: string | null) {
+function confidenceScore(
+  hasRevenue: boolean,
+  hasExpenses: boolean,
+  revenueResolution: ReturnType<typeof resolveProfitabilitySchema>,
+  expenseResolution: ReturnType<typeof resolveProfitabilitySchema>,
+  matchKey: string | null,
+  totalsWithheld: boolean,
+): number {
   let score = 0
   if (hasRevenue) score += 20
   if (hasExpenses) score += 20
-  if (revenue.amount) score += 15
-  if (expenses.amount) score += 15
-  if (expenses.category) score += 15
+  if (revenueResolution.amountStrategy === "explicit_amount") score += 15
+  else if (revenueResolution.amountStrategy !== "unresolved") score += 12
+  if (expenseResolution.amountStrategy === "explicit_amount") score += 15
+  else if (expenseResolution.amountStrategy !== "unresolved") score += 12
+  if (expenseResolution.mapping.category) score += 15
   if (matchKey) score += 15
+  if (totalsWithheld) score = Math.round(score / 2)
   return Math.min(100, score)
 }
 
-function statusLabel(status: ProfitabilityStatus, missingColumns: string[]) {
+function statusLabel(status: ProfitabilityStatus, missingColumns: string[], totalsWithheld: boolean) {
+  if (totalsWithheld) return "Mixed currencies detected; combined monetary totals withheld"
   if (status === "waiting_for_expenses") return "Waiting for Expenses file"
   if (status === "waiting_for_revenue") return "Waiting for Revenue file"
   if (status === "matching_files") return "Matching files"
   if (status === "calculating") return "Calculating profitability"
   if (status === "failed") return `Failed${missingColumns.length ? `: missing ${missingColumns.join(", ")}` : ""}`
   return "Ready"
+}
+
+function reportingPeriodFromPeriodKeys(map: Map<string, Bucket>) {
+  const periods = Array.from(new Set(Array.from(map.keys()).map((period) => period.split(" • ")[0]).filter((period) => period && period !== "All periods"))).sort((a, b) => a.localeCompare(b))
+  if (periods.length === 0) return null
+  if (periods.length === 1) return periods[0]
+  return `${periods[0]} to ${periods[periods.length - 1]}`
+}
+
+function addBucket(map: Map<string, Bucket>, key: string) {
+  const current = map.get(key) || { revenue: 0, cogs: 0, operatingExpenses: 0, interestExpense: 0, taxExpense: 0 }
+  map.set(key, current)
+  return current
+}
+
+function addMapValue(map: Map<string, number>, key: string, value: number) {
+  map.set(key, (map.get(key) || 0) + value)
+}
+
+function sortedEntries(map: Map<string, number>): [string, number][] {
+  return Array.from(map.entries()).map(([key, value]) => [key, round(value)] as [string, number]).sort((a, b) => b[1] - a[1]).slice(0, 8)
+}
+
+function revenueGrowthFromMonthlyAggregation(monthly: Record<string, number>) {
+  const months = Object.keys(monthly).filter((month) => month).sort()
+  if (months.length < 2) return null
+  const first = monthly[months[0]]
+  const last = monthly[months[months.length - 1]]
+  if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return null
+  return round(((last - first) / first) * 100)
+}
+
+/** Bucket key preserving the original period label and the shared match key. */
+function periodBucketKey(record: NormalizedRevenueRecord | NormalizedExpenseRecord, matchKey: string | null): string {
+  const period = record.periodLabel || "All periods"
+  if (matchKey === "period_department" && record.department) return `${period} • ${record.department}`
+  if (matchKey === "period_company" && record.company) return `${period} • ${record.company}`
+  if (matchKey === "period_cost_center" && record.costCenter) return `${period} • ${record.costCenter}`
+  return period
+}
+
+function departmentBucketKey(record: NormalizedRevenueRecord | NormalizedExpenseRecord): string {
+  return record.department || record.costCenter || record.company || "Unassigned"
+}
+
+
+function sourceMeta(note: string) {
+  return { kind: "source_value" as const, note }
+}
+
+function derivedMeta(note: string) {
+  return { kind: "derived_value" as const, note }
+}
+
+function unavailableMeta(note: string) {
+  return { kind: "unavailable" as const, note }
 }
 
 function round(value: number) {
