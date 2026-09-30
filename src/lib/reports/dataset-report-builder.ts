@@ -668,6 +668,7 @@ function buildProfitabilitySummary(datasetName: string, financials: ReportFinanc
 function missingProfitabilityFields(values: Record<string, number | null>, metrics: Record<string, unknown>) {
   const missing = new Set<string>()
   for (const [field, value] of Object.entries(values)) {
+    if ((field === "interestExpense" || field === "taxExpense") && values.netProfit !== null && values.netMargin !== null) continue
     if (value === null) missing.add(humanizeField(field))
   }
   if (Array.isArray(metrics.missingColumns)) {

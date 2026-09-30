@@ -281,6 +281,13 @@ export function ProfitabilityUpload({
     return { data, meta: { fields: headers } }
   }
 
+  const csvCell = (value: unknown) => {
+    const text = value === null || value === undefined ? "" : String(value)
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+  }
+
+  const csvUploadName = (name: string) => name.replace(/\.(xlsx|xls|csv)$/i, "") + ".csv"
+
   const calculateTotals = () => calculateProfitabilityAnalysis({
     analysisId: profitabilityAnalysisId,
     revenueFile: revenueFile
@@ -332,14 +339,14 @@ export function ProfitabilityUpload({
       for (const entry of filesToUpload) {
         const headers = entry.file.columns || []
         const csvContent = [
-          headers.join(','),
+          headers.map(csvCell).join(','),
           ...(entry.file.data || []).map(row =>
-            headers.map(h => row[h] || '').join(',')
+            headers.map(h => csvCell(row[h])).join(',')
           )
         ].join('\n')
 
         const blob = new Blob([csvContent], { type: 'text/csv' })
-        const file = new File([blob], entry.file.name, { type: 'text/csv' })
+        const file = new File([blob], csvUploadName(entry.file.name), { type: 'text/csv' })
         const extraFields: Record<string, string> = {
           datasetName: `Profitability - ${new Date().toLocaleDateString()}`,
           profitability_analysis_id: profitabilityAnalysisId,
@@ -1293,6 +1300,9 @@ export function ProfitabilityUpload({
     )
   }
 
+  const revenueColumnMissing = stats.missingColumns.includes("revenue amount")
+  const expenseColumnMissing = stats.missingColumns.includes("expenses amount")
+
   return (
     <div className="space-y-6">
       {/* Progress Steps */}
@@ -1330,12 +1340,18 @@ export function ProfitabilityUpload({
               <p className={`text-lg font-bold ${stats.hasRevenue ? 'text-cyan-400' : 'text-muted-foreground'}`}>
                 {stats.totalRevenue !== null ? formatCurrency(stats.totalRevenue) : "—"}
               </p>
+              {revenueColumnMissing && (
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">Revenue column could not be confidently identified</p>
+              )}
             </div>
             <div className="bg-muted rounded-lg p-3">
               <p className="text-xs text-muted-foreground uppercase">Total Expenses</p>
               <p className={`text-lg font-bold ${stats.hasExpenses ? 'text-purple-400' : 'text-muted-foreground'}`}>
                 {stats.totalExpenses !== null ? formatCurrency(stats.totalExpenses) : "—"}
               </p>
+              {expenseColumnMissing && (
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">Expense column could not be confidently identified</p>
+              )}
             </div>
             <div className="bg-muted rounded-lg p-3">
               <p className="text-xs text-muted-foreground uppercase">Net Profit</p>
