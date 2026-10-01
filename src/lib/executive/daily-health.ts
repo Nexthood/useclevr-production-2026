@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto"
 
 import { generateServerAiText } from "@/lib/ai/server-ai-text"
+import { resolveCanonicalFinancialMetrics, type CanonicalFinancialMetrics } from "@/lib/data/canonical-financial-metrics"
 import { getDashboardDataFingerprint, loadDashboardDatasetAggregation, normalizeDashboardColumnName } from "@/lib/data/dashboard-dataset-aggregation"
 import { db } from "@/lib/db"
 import { executiveDailyHealthChecks, profiles } from "@/lib/db/schema"
@@ -500,22 +501,22 @@ export const healthSignalProviders: HealthSignalProvider[] = [
 export function calculateMetrics(source: DailyHealthSource): DailyHealthMetrics {
   const rows = source.datasets.flatMap((dataset) => dataset.rows)
   const columns = detectColumns(source.datasets.flatMap((dataset) => dataset.columns), rows)
-  const profitabilityMetrics = findActiveProfitabilityMetrics(source)
+  const canonicalFinancials = findActiveCanonicalFinancials(source)
   const latestUploadAgeDays = source.datasets[0] ? daysBetween(source.datasets[0].createdAt, new Date()) : null
   const revenueRows = rows.map((row) => getNumber(row, columns.revenue)).filter(isNumber)
   const costRows = rows.map((row) => getNumber(row, columns.cost)).filter(isNumber)
   const profitRows = rows.map((row) => getNumber(row, columns.profit)).filter(isNumber)
-  const totalRevenue = profitabilityNumber(profitabilityMetrics, "totalRevenue") ?? (columns.revenue ? sum(revenueRows) : null)
-  const totalCost = profitabilityNumber(profitabilityMetrics, "operatingExpenses") ?? (columns.cost ? sum(costRows) : null)
+  const totalRevenue = canonicalFinancials?.revenue ?? (columns.revenue ? sum(revenueRows) : null)
+  const totalCost = canonicalFinancials?.operatingExpenses ?? (columns.cost ? sum(costRows) : null)
   const explicitProfit = columns.profit ? sum(profitRows) : null
-  const totalProfit = profitabilityNumber(profitabilityMetrics, "operatingProfit") ?? explicitProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
-  const profitMargin = profitabilityNumber(profitabilityMetrics, "operatingMargin") ?? (totalRevenue && totalProfit !== null ? (totalProfit / totalRevenue) * 100 : null)
+  const totalProfit = canonicalFinancials?.operatingProfit ?? explicitProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
+  const profitMargin = canonicalFinancials?.operatingMargin ?? (totalRevenue && totalProfit !== null ? (totalProfit / totalRevenue) * 100 : null)
   const revenueSeries = buildSeries(rows, columns.date, columns.revenue)
-  const revenueChangePct = profitabilityNumber(profitabilityMetrics, "revenueGrowth") ?? (revenueSeries.length >= 2 && revenueSeries[revenueSeries.length - 2].value !== 0
+  const revenueChangePct = canonicalFinancialsSourceGrowth(source, canonicalFinancials) ?? (revenueSeries.length >= 2 && revenueSeries[revenueSeries.length - 2].value !== 0
     ? ((revenueSeries[revenueSeries.length - 1].value - revenueSeries[revenueSeries.length - 2].value) / Math.abs(revenueSeries[revenueSeries.length - 2].value)) * 100
     : null)
-  const lowStockCount = profitabilityMetrics ? null : columns.stock ? countLowStock(rows, columns) : null
-  const deadStockCount = profitabilityMetrics ? null : columns.stock && (columns.quantity || columns.revenue) ? countDeadStock(rows, columns) : null
+  const lowStockCount = canonicalFinancials ? null : columns.stock ? countLowStock(rows, columns) : null
+  const deadStockCount = canonicalFinancials ? null : columns.stock && (columns.quantity || columns.revenue) ? countDeadStock(rows, columns) : null
   const inventoryHealth = lowStockCount === null && deadStockCount === null
     ? null
     : clamp(90 - (lowStockCount || 0) * 5 - (deadStockCount || 0) * 6, 10, 98)
@@ -542,8 +543,8 @@ export function calculateMetrics(source: DailyHealthSource): DailyHealthMetrics 
     missingDataCount,
     aiInsightCount: source.datasets.reduce((total, dataset) => total + countInsights(dataset.analysis) + countInsights(dataset.aiInsights), 0),
     columns,
-    isProfitabilityAnalysis: Boolean(profitabilityMetrics),
-    profitabilityExpenseShareLabel: topExpenseShareLabel(profitabilityMetrics),
+    isProfitabilityAnalysis: Boolean(canonicalFinancials),
+    profitabilityExpenseShareLabel: profitabilityExpenseShareLabel(source, canonicalFinancials),
   }
 }
 
@@ -612,34 +613,61 @@ function buildAnomalies(metrics: DailyHealthMetrics) {
   return anomalies.length > 0 ? anomalies : ["No critical anomaly was detected from the available uploaded data."]
 }
 
-function findActiveProfitabilityMetrics(source: DailyHealthSource): Record<string, unknown> | null {
+function findActiveCanonicalFinancials(source: DailyHealthSource): CanonicalFinancialMetrics | null {
   for (const dataset of source.datasets) {
-    if (dataset.datasetType !== "profitability" && !hasProfitabilityPayload(dataset.analysis)) continue
-    const precomputed = isRecord(dataset.precomputedMetrics) ? dataset.precomputedMetrics : null
-    if (precomputed) return precomputed
-    if (isRecord(dataset.analysis) && isRecord(dataset.analysis.profitability)) return dataset.analysis.profitability
+    const canonicalFinancials = resolveCanonicalFinancialMetrics(dataset)
+    if (canonicalFinancials) return canonicalFinancials
   }
   return null
 }
 
-function hasProfitabilityPayload(value: unknown) {
-  if (!isRecord(value)) return false
-  return value.datasetType === "profitability" || value.dataset_type === "profitability" || isRecord(value.profitability)
+function canonicalFinancialsSourceGrowth(
+  source: DailyHealthSource,
+  canonicalFinancials: CanonicalFinancialMetrics | null,
+): number | null {
+  if (!canonicalFinancials) return null
+  for (const dataset of source.datasets) {
+    if (dataset.id !== canonicalFinancials.sourceDatasetId) continue
+    const payload = findProfitabilityPayload(dataset)
+    if (!payload) return null
+    return profitabilityNumber(payload, "revenueGrowth")
+  }
+  return null
+}
+
+function profitabilityExpenseShareLabel(
+  source: DailyHealthSource,
+  canonicalFinancials: CanonicalFinancialMetrics | null,
+) {
+  if (!canonicalFinancials) return null
+  for (const dataset of source.datasets) {
+    if (dataset.id !== canonicalFinancials.sourceDatasetId) continue
+    const payload = findProfitabilityPayload(dataset)
+    if (!payload || !Array.isArray(payload.topCostCategories)) return null
+    const totalExpenses = canonicalFinancials.operatingExpenses ?? profitabilityNumber(payload, "totalExpenses")
+    if (!totalExpenses) return null
+    const [top] = payload.topCostCategories
+    if (!Array.isArray(top) || typeof top[0] !== "string" || typeof top[1] !== "number") return null
+    return `${top[0]} represents ${((top[1] / totalExpenses) * 100).toFixed(1)}% of categorized expenses.`
+  }
+  return null
+}
+
+function findProfitabilityPayload(dataset: {
+  datasetType: string
+  analysis: unknown
+  precomputedMetrics: unknown
+}): Record<string, unknown> | null {
+  const precomputed = isRecord(dataset.precomputedMetrics) ? dataset.precomputedMetrics : null
+  if (precomputed) return precomputed
+  if (isRecord(dataset.analysis) && isRecord(dataset.analysis.profitability)) return dataset.analysis.profitability
+  return null
 }
 
 function profitabilityNumber(metrics: Record<string, unknown> | null, key: string) {
   if (!metrics) return null
   const value = metrics[key]
   return typeof value === "number" && Number.isFinite(value) ? value : null
-}
-
-function topExpenseShareLabel(metrics: Record<string, unknown> | null) {
-  if (!metrics || !Array.isArray(metrics.topCostCategories)) return null
-  const totalExpenses = profitabilityNumber(metrics, "totalExpenses") ?? profitabilityNumber(metrics, "operatingExpenses")
-  if (!totalExpenses) return null
-  const [top] = metrics.topCostCategories
-  if (!Array.isArray(top) || typeof top[0] !== "string" || typeof top[1] !== "number") return null
-  return `${top[0]} represents ${((top[1] / totalExpenses) * 100).toFixed(1)}% of categorized expenses.`
 }
 
 function detectColumns(columns: string[], rows: DataRow[]): ColumnMap {

@@ -54,6 +54,11 @@ function fileExtension(fileName: string): string {
 /**
  * Derive the dataset source from immutable stored metadata only. Never
  * fabricates a connector origin: unknown stays unknown.
+ *
+ * `originalFileNames` carries the user-facing original input file names. The
+ * paired Profitability workflow serializes source files to CSV for internal
+ * transport, so when every original input agrees on one known file kind, that
+ * original provenance wins over transport-derived metadata.
  */
 export function deriveDatasetSource(input: {
   source?: string | null
@@ -61,7 +66,11 @@ export function deriveDatasetSource(input: {
   datasetType?: string | null
   fileName?: string | null
   mimeType?: string | null
+  originalFileNames?: Array<string | null | undefined>
 }): DatasetSource {
+  const original = originalProvenanceSource(input.originalFileNames)
+  if (original) return original
+
   const stored = normalizeDatasetSource(input.source)
   if (stored) return stored
 
@@ -86,6 +95,21 @@ export function deriveDatasetSource(input: {
   }
 
   return DEFAULT_DATASET_SOURCE
+}
+
+/**
+ * Original input provenance: only when every original file name maps to the
+ * same known file kind does that kind become the user-facing source. Mixed or
+ * unrecognized inputs fall through to stored/transport metadata.
+ */
+function originalProvenanceSource(originalFileNames?: Array<string | null | undefined>): DatasetSource | null {
+  const extensions = (originalFileNames || [])
+    .map((name) => fileExtension(typeof name === "string" ? name : ""))
+    .filter((extension): extension is string => Boolean(extension))
+  if (extensions.length === 0) return null
+  if (extensions.every((extension) => extension === "csv")) return "csv"
+  if (extensions.every((extension) => extension === "xlsx" || extension === "xls")) return "excel"
+  return null
 }
 
 /** Accountancy upload types map onto the shared source vocabulary. */

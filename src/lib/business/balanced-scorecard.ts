@@ -1,4 +1,5 @@
 import type { BusinessModel } from "@/lib/data/business-model"
+import type { CanonicalFinancialMetrics } from "@/lib/data/canonical-financial-metrics"
 
 export type BbscPerspectiveKey = "financial" | "customer" | "processes" | "growth"
 export type BbscTrend = "positive" | "stable" | "negative" | "unknown"
@@ -95,18 +96,20 @@ export function calculateBusinessBalancedScorecard(input: {
   rows: DataRow[]
   columns: string[]
   businessModel: BbscReportModel | string
+  canonicalFinancials?: CanonicalFinancialMetrics | null
 }): BusinessBalancedScorecard {
   const rows = input.rows.filter(isRecord)
   const columns = input.columns.filter(Boolean)
   const model = normalizeReportModel(input.businessModel)
+  const canonicalFinancials = input.canonicalFinancials ?? null
   const columnMap = detectBbscColumns(columns, model)
   const trendValueColumn = model === "investor" ? undefined : columnMap.revenue || columnMap.gmv || columnMap.mrr || columnMap.valuation
   const trend = valueTrend(rows, columnMap.date, trendValueColumn)
   const perspectives = {
-    financial: buildPerspective("financial", model, rows, columnMap, trend),
-    customer: buildPerspective("customer", model, rows, columnMap, trend),
-    processes: buildPerspective("processes", model, rows, columnMap, trend),
-    growth: buildPerspective("growth", model, rows, columnMap, trend),
+    financial: buildPerspective("financial", model, rows, columnMap, trend, canonicalFinancials),
+    customer: buildPerspective("customer", model, rows, columnMap, trend, null),
+    processes: buildPerspective("processes", model, rows, columnMap, trend, null),
+    growth: buildPerspective("growth", model, rows, columnMap, trend, null),
   }
   const available = Object.values(perspectives).filter((perspective) => perspective.status === "available" && perspective.score !== null)
   const weight = available.length > 0 ? 1 / available.length : 0
@@ -160,8 +163,9 @@ function buildPerspective(
   rows: DataRow[],
   columns: ColumnMap,
   overallTrend: BbscTrend,
+  canonicalFinancials: CanonicalFinancialMetrics | null = null,
 ): BbscPerspective {
-  const metrics = buildMetrics(key, model, rows, columns, overallTrend)
+  const metrics = buildMetrics(key, model, rows, columns, overallTrend, canonicalFinancials)
   const requiredFields = requiredFieldsFor(key, model)
   const meta = perspectiveMeta[key]
 
@@ -216,13 +220,16 @@ function buildMetrics(
   rows: DataRow[],
   columns: ColumnMap,
   _trend: BbscTrend,
+  canonicalFinancials: CanonicalFinancialMetrics | null = null,
 ): Metric[] {
   const revenue = sumColumn(rows, columns.revenue) ?? sumColumn(rows, columns.gmv)
   const cost = sumColumn(rows, columns.cost) ?? sumColumn(rows, columns.shippingCost) ?? sumColumn(rows, columns.returnCost)
   const profit = sumColumn(rows, columns.profit) ?? (revenue !== null && cost !== null ? revenue - cost : null)
   const margin = revenue && profit !== null ? (profit / revenue) * 100 : averageColumn(rows, columns.margin)
-  const orders = columns.order ? uniqueCount(rows, columns.order) : sumColumn(rows, columns.quantity)
-  const customers = columns.customer ? uniqueCount(rows, columns.customer) : null
+  // Counts over zero stored rows carry no evidence: they must stay unavailable
+  // instead of becoming fabricated zero-value scores.
+  const orders = rows.length === 0 ? null : columns.order ? uniqueCount(rows, columns.order) : sumColumn(rows, columns.quantity)
+  const customers = rows.length === 0 ? null : columns.customer ? uniqueCount(rows, columns.customer) : null
   const repeatRate = columns.customer ? repeatCustomerRate(rows, columns.customer) : null
   const growthRate = model === "investor"
     ? null
@@ -231,33 +238,37 @@ function buildMetrics(
   const metrics: Metric[] = []
 
   if (key === "financial") {
-    if (model !== "marketplace" && model !== "investor") {
-      addMetric(metrics, "Revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue || columns.gmv, "Revenue is available as a financial performance input.", undefined, "Review revenue trend monthly.")
-    }
-    addMetric(metrics, "Gross profit", profit, "currency", scoreMargin(margin), columns.profit || columns.cost, "Profitability is calculated from profit or revenue/cost fields.", margin !== null && margin < 10 ? "Margin is below 10%." : undefined, "Review pricing, COGS, and operating costs.")
-    addMetric(metrics, "Margin", margin, "percent", scoreMargin(margin), columns.margin || columns.profit || columns.cost, "Margin is included in the financial score.", margin !== null && margin < 10 ? "Low margin limits reinvestment capacity." : undefined, "Set margin targets by product, service, or channel.")
-    if (model === "saas" || model === "startup") {
-      addMetric(metrics, "MRR", sumColumn(rows, columns.mrr), "currency", scorePositiveValue(sumColumn(rows, columns.mrr)), columns.mrr, "MRR is included for SaaS/startup financial performance.")
-      addMetric(metrics, "ARR", sumColumn(rows, columns.arr), "currency", scorePositiveValue(sumColumn(rows, columns.arr)), columns.arr, "ARR is included for SaaS/startup financial performance.")
-      addMetric(metrics, "Runway", averageColumn(rows, columns.runway), "number", scoreTarget(averageColumn(rows, columns.runway), 12, false), columns.runway, "Runway is scored against a 12-month target.", undefined, "Extend runway through revenue growth or cost control.")
-    }
-    if (model === "investor") {
-      addMetric(metrics, "Portfolio company annual revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue, "Portfolio company annual revenue is included for investor financial context.")
-      addMetric(metrics, "Invested capital", sumColumn(rows, columns.investedAmount), "currency", 70, columns.investedAmount, "Invested capital is available for portfolio scoring.")
-      addMetric(metrics, "Latest valuation", sumColumn(rows, columns.valuation), "currency", scorePositiveValue(sumColumn(rows, columns.valuation)), columns.valuation, "Portfolio valuation is included in financial performance.")
-    }
-    if (model === "marketplace") {
-      const marketplaceRevenue = sumColumn(rows, columns.commission)
-      const takeRate = revenue !== null && marketplaceRevenue !== null && revenue > 0 ? (marketplaceRevenue / revenue) * 100 : null
-      addMetric(metrics, "GMV", revenue, "currency", scorePositiveValue(revenue), columns.gmv, "GMV is included for marketplace financial performance.")
-      addMetric(metrics, "Marketplace Revenue", marketplaceRevenue, "currency", scorePositiveValue(marketplaceRevenue), columns.commission, "Marketplace revenue is included from platform fee or commission fields.")
-      addMetric(metrics, "Take Rate", takeRate, "percent", scorePositiveValue(takeRate), columns.commission && columns.gmv ? columns.commission : undefined, "Take rate is calculated from marketplace revenue divided by GMV.")
-      addMetric(metrics, "Seller Payout", sumColumn(rows, columns.sellerPayout), "currency", scorePositiveValue(sumColumn(rows, columns.sellerPayout)), columns.sellerPayout, "Seller payout is included for marketplace financial performance.")
-      const refunds = sumColumn(rows, columns.refund)
-      if (revenue !== null) {
-        addMetric(metrics, "Refunds", refunds, "currency", scoreLowerIsBetter(refunds, revenue * 0.05, revenue * 0.2), columns.refund, "Refunds are included for marketplace financial performance.")
-      } else if (refunds !== null) {
-        addMetric(metrics, "Refunds", refunds, "currency", scoreLowerIsBetter(refunds, 0, 0), columns.refund, "Refunds are included for marketplace financial performance.")
+    if (canonicalFinancials && canonicalFinancials.availableFields.length > 0) {
+      addCanonicalFinancialMetrics(metrics, canonicalFinancials)
+    } else {
+      if (model !== "marketplace" && model !== "investor") {
+        addMetric(metrics, "Revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue || columns.gmv, "Revenue is available as a financial performance input.", undefined, "Review revenue trend monthly.")
+      }
+      addMetric(metrics, "Gross profit", profit, "currency", scoreMargin(margin), columns.profit || columns.cost, "Profitability is calculated from profit or revenue/cost fields.", margin !== null && margin < 10 ? "Margin is below 10%." : undefined, "Review pricing, COGS, and operating costs.")
+      addMetric(metrics, "Margin", margin, "percent", scoreMargin(margin), columns.margin || columns.profit || columns.cost, "Margin is included in the financial score.", margin !== null && margin < 10 ? "Low margin limits reinvestment capacity." : undefined, "Set margin targets by product, service, or channel.")
+      if (model === "saas" || model === "startup") {
+        addMetric(metrics, "MRR", sumColumn(rows, columns.mrr), "currency", scorePositiveValue(sumColumn(rows, columns.mrr)), columns.mrr, "MRR is included for SaaS/startup financial performance.")
+        addMetric(metrics, "ARR", sumColumn(rows, columns.arr), "currency", scorePositiveValue(sumColumn(rows, columns.arr)), columns.arr, "ARR is included for SaaS/startup financial performance.")
+        addMetric(metrics, "Runway", averageColumn(rows, columns.runway), "number", scoreTarget(averageColumn(rows, columns.runway), 12, false), columns.runway, "Runway is scored against a 12-month target.", undefined, "Extend runway through revenue growth or cost control.")
+      }
+      if (model === "investor") {
+        addMetric(metrics, "Portfolio company annual revenue", revenue, "currency", scorePositiveValue(revenue), columns.revenue, "Portfolio company annual revenue is included for investor financial context.")
+        addMetric(metrics, "Invested capital", sumColumn(rows, columns.investedAmount), "currency", 70, columns.investedAmount, "Invested capital is available for portfolio scoring.")
+        addMetric(metrics, "Latest valuation", sumColumn(rows, columns.valuation), "currency", scorePositiveValue(sumColumn(rows, columns.valuation)), columns.valuation, "Portfolio valuation is included in financial performance.")
+      }
+      if (model === "marketplace") {
+        const marketplaceRevenue = sumColumn(rows, columns.commission)
+        const takeRate = revenue !== null && marketplaceRevenue !== null && revenue > 0 ? (marketplaceRevenue / revenue) * 100 : null
+        addMetric(metrics, "GMV", revenue, "currency", scorePositiveValue(revenue), columns.gmv, "GMV is included for marketplace financial performance.")
+        addMetric(metrics, "Marketplace Revenue", marketplaceRevenue, "currency", scorePositiveValue(marketplaceRevenue), columns.commission, "Marketplace revenue is included from platform fee or commission fields.")
+        addMetric(metrics, "Take Rate", takeRate, "percent", scorePositiveValue(takeRate), columns.commission && columns.gmv ? columns.commission : undefined, "Take rate is calculated from marketplace revenue divided by GMV.")
+        addMetric(metrics, "Seller Payout", sumColumn(rows, columns.sellerPayout), "currency", scorePositiveValue(sumColumn(rows, columns.sellerPayout)), columns.sellerPayout, "Seller payout is included for marketplace financial performance.")
+        const refunds = sumColumn(rows, columns.refund)
+        if (revenue !== null) {
+          addMetric(metrics, "Refunds", refunds, "currency", scoreLowerIsBetter(refunds, revenue * 0.05, revenue * 0.2), columns.refund, "Refunds are included for marketplace financial performance.")
+        } else if (refunds !== null) {
+          addMetric(metrics, "Refunds", refunds, "currency", scoreLowerIsBetter(refunds, 0, 0), columns.refund, "Refunds are included for marketplace financial performance.")
+        }
       }
     }
   }
@@ -351,6 +362,111 @@ function buildMetrics(
   }
 
   return metrics
+}
+
+/**
+ * Financial perspective from the canonical deterministic financial resolver.
+ * Only genuinely available metrics are scored; unavailable inputs (COGS, gross
+ * profit, gross margin) are excluded instead of fabricated, and a derived net
+ * profit that duplicates the operating profit signal is not double-counted.
+ */
+function addCanonicalFinancialMetrics(metrics: Metric[], financials: CanonicalFinancialMetrics) {
+  const expenseRatio =
+    financials.operatingExpenses !== null && financials.revenue !== null && financials.revenue !== 0
+      ? (financials.operatingExpenses / financials.revenue) * 100
+      : null
+  addMetric(
+    metrics,
+    "Revenue",
+    financials.revenue,
+    "currency",
+    scorePositiveValue(financials.revenue),
+    `profitability.totalRevenue`,
+    "Revenue is available as a financial performance input from the canonical Profitability analysis.",
+    undefined,
+    "Review revenue trend monthly.",
+  )
+  addMetric(
+    metrics,
+    "Operating Expenses",
+    financials.operatingExpenses,
+    "currency",
+    scoreLowerIsBetter(expenseRatio, 50, 85),
+    `profitability.operatingExpenses`,
+    "Operating expenses are included as a cost-efficiency share of revenue.",
+    expenseRatio !== null && expenseRatio > 85 ? "Operating expenses exceed 85% of revenue." : undefined,
+    "Review operating-expense drivers against revenue.",
+  )
+  addMetric(
+    metrics,
+    "Operating Profit",
+    financials.operatingProfit,
+    "currency",
+    scoreMargin(financials.operatingMargin),
+    `profitability.operatingProfit`,
+    "Operating profit is calculated from the canonical Profitability analysis.",
+    financials.operatingMargin !== null && financials.operatingMargin < 10 ? "Margin is below 10%." : undefined,
+    "Review pricing, COGS, and operating costs.",
+  )
+  addMetric(
+    metrics,
+    "Operating Margin",
+    financials.operatingMargin,
+    "percent",
+    scoreMargin(financials.operatingMargin),
+    `profitability.operatingMargin`,
+    "Operating margin is included in the financial score.",
+    financials.operatingMargin !== null && financials.operatingMargin < 10 ? "Low margin limits reinvestment capacity." : undefined,
+    "Set margin targets by product, service, or channel.",
+  )
+  if (financials.grossProfit !== null || financials.cogs !== null) {
+    addMetric(
+      metrics,
+      "Gross Profit",
+      financials.grossProfit,
+      "currency",
+      scoreMargin(financials.grossMargin),
+      `profitability.grossProfit`,
+      "Gross profit is source-backed by the Profitability analysis.",
+      financials.grossMargin !== null && financials.grossMargin < 10 ? "Margin is below 10%." : undefined,
+      "Review pricing, COGS, and operating costs.",
+    )
+    addMetric(
+      metrics,
+      "Gross Margin",
+      financials.grossMargin,
+      "percent",
+      scoreMargin(financials.grossMargin),
+      `profitability.grossMargin`,
+      "Gross margin is included in the financial score.",
+      financials.grossMargin !== null && financials.grossMargin < 10 ? "Low margin limits reinvestment capacity." : undefined,
+      "Set margin targets by product, service, or channel.",
+    )
+  }
+  if (financials.netProfit !== null && (financials.operatingProfit === null || financials.netProfit !== financials.operatingProfit)) {
+    addMetric(
+      metrics,
+      "Net Profit",
+      financials.netProfit,
+      "currency",
+      scoreMargin(financials.netMargin),
+      `profitability.netProfit`,
+      "Net profit is source-backed by the Profitability analysis.",
+      financials.netMargin !== null && financials.netMargin < 10 ? "Margin is below 10%." : undefined,
+      "Review interest, tax, and operating costs.",
+    )
+    addMetric(
+      metrics,
+      "Net Margin",
+      financials.netMargin,
+      "percent",
+      scoreMargin(financials.netMargin),
+      `profitability.netMargin`,
+      "Net margin is included in the financial score.",
+      financials.netMargin !== null && financials.netMargin < 10 ? "Low margin limits reinvestment capacity." : undefined,
+      "Set margin targets by product, service, or channel.",
+    )
+  }
 }
 
 function detectBbscColumns(columns: string[], model: BbscReportModel | string = "generic") {
@@ -634,7 +750,7 @@ function uniqueCount(rows: DataRow[], column: string) {
 }
 
 function groupedCount(rows: DataRow[], column?: string) {
-  if (!column) return null
+  if (!column || rows.length === 0) return null
   return uniqueCount(rows, column)
 }
 

@@ -1,4 +1,5 @@
 import { calculateBusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
+import { resolveCanonicalFinancialMetrics } from "@/lib/data/canonical-financial-metrics"
 import {
   buildBusinessSemanticProfile,
   conceptColumn,
@@ -500,11 +501,11 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
   }
 
   const nestedProfitability = nestedProfitabilityPayload(dataset)
-  const bbscRows = profitabilityRowsFromMetrics(metrics)
   const bbsc = calculateBusinessBalancedScorecard({
-    rows: bbscRows,
-    columns: Object.keys(bbscRows[0] || {}),
+    rows,
+    columns,
     businessModel: "profitability",
+    canonicalFinancials: resolveCanonicalFinancialMetrics(dataset),
   })
   const financials: ReportFinancials = {
     reportingPeriod: reportingPeriodFromMetrics(metrics, nestedProfitability),
@@ -3169,25 +3170,6 @@ function tupleChart(value: unknown, title: string): ReportChart | null {
     .filter((item): item is { name: string; value: number } => Boolean(item))
     .slice(0, 8)
   return data.length > 0 ? { type: "bar", title, data } : null
-}
-
-function profitabilityRowsFromMetrics(metrics: Record<string, unknown>) {
-  return [{
-    revenue: metrics.totalRevenue,
-    cost: metrics.totalExpenses,
-    cogs: metrics.cogs,
-    operating_expenses: metrics.operatingExpenses,
-    interest_expense: metrics.interestExpense,
-    tax_expense: metrics.taxExpense,
-    gross_profit: metrics.grossProfit,
-    operating_profit: metrics.operatingProfit,
-    net_profit: metrics.netProfit,
-    gross_margin: metrics.grossMargin,
-    operating_margin: metrics.operatingMargin,
-    net_margin: metrics.netMargin,
-    customer_id: metrics.customerCount,
-    quantity: metrics.salesVolume,
-  }]
 }
 
 function buildProfitabilityAlerts(netMargin: number | null, metrics: Record<string, unknown>) {

@@ -159,10 +159,12 @@ function numberFormField(formData: FormData, key: string) {
  * Authoritative upload-source persistence for file-based uploads. The explicit
  * form source (ClevrSync connector type) wins, then the ClevrSync marker, then
  * the immutable original file metadata. Nothing is inferred beyond that.
+ * Profitability paired uploads pass the original source-file names so the
+ * internal CSV transport never overwrites user-facing provenance.
  */
 function resolveUploadDatasetSource(
   formData: FormData,
-  input: { uploadSource: string; fileName: string; datasetType: string },
+  input: { uploadSource: string; fileName: string; datasetType: string; originalFileNames?: string[] },
 ) {
   const explicit = normalizeDatasetSource(
     String(formData.get("dataset_source") || formData.get("datasetSource") || ""),
@@ -180,7 +182,15 @@ function resolveUploadDatasetSource(
     uploadSource: input.uploadSource,
     datasetType: input.datasetType,
     fileName: input.fileName,
+    originalFileNames: input.originalFileNames,
   });
+}
+
+function profitabilityOriginalFileNames(profitabilityData: any) {
+  if (!Array.isArray(profitabilityData?.sourceFiles)) return [];
+  return profitabilityData.sourceFiles
+    .map((file: any) => (file && typeof file.name === "string" ? file.name : ""))
+    .filter((name: string) => name.trim().length > 0);
 }
 
 function clevrSyncConnectorTypeIn(value: string | null) {
@@ -607,11 +617,18 @@ export async function uploadCSV(
       columns: headers,
       datasetName,
     });
-    const datasetSource = resolveUploadDatasetSource(formData, {
-      uploadSource: explicitUploadSource,
-      fileName: file.name,
-      datasetType: datasetCategory,
-    });
+    const datasetSource = isProfitabilityAnalysis
+      ? resolveUploadDatasetSource(formData, {
+          uploadSource: explicitUploadSource,
+          fileName: file.name,
+          datasetType: datasetCategory,
+          originalFileNames: profitabilityOriginalFileNames(profitabilityData),
+        })
+      : resolveUploadDatasetSource(formData, {
+          uploadSource: explicitUploadSource,
+          fileName: file.name,
+          datasetType: datasetCategory,
+        });
     const profitabilityAnalysisId = String(
       formData.get("profitability_analysis_id") ||
       formData.get("profitabilityAnalysisId") ||
