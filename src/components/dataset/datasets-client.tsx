@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { getDatasetCategoryDestinationLabel, getDatasetCategoryLabel, normalizeDatasetCategory } from "@/lib/data/dataset-category"
+import { profitabilityOriginalFileNames } from "@/lib/data/canonical-financial-metrics"
 import { deriveDatasetSource, getDatasetSourceLabel } from "@/lib/data/dataset-source"
 import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
 import Link from "next/link"
@@ -22,6 +23,8 @@ export interface DatasetListItem {
   datasetType: string | null
   uploadSource?: string | null
   source?: string | null
+  analysis?: unknown
+  columnMapping?: unknown
   destinationModule?: string | null
   createdAt: Date | null
   columns: string[]
@@ -141,6 +144,11 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
           uploadSource: dataset.uploadSource,
           datasetType: dataset.datasetType,
           fileName: dataset.fileName,
+          originalFileNames: profitabilityOriginalFileNames({
+            datasetType: dataset.datasetType,
+            analysis: dataset.analysis,
+            columnMapping: dataset.columnMapping,
+          }),
         })
         return <span className="text-sm text-muted-foreground">{getDatasetSourceLabel(source)}</span>
       },

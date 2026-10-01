@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
+import { profitabilityOriginalFileNames } from "@/lib/data/canonical-financial-metrics"
 import { resolveBusinessModel, type BusinessModel } from "@/lib/data/business-model"
 import {
   deriveDatasetSource,
@@ -214,6 +215,7 @@ async function loadDashboardDatasetRows(userId: string, datasetId?: string | nul
         datasetType: dataset.datasetType,
         fileName: dataset.fileName,
         mimeType: dataset.mimeType,
+        originalFileNames: profitabilityOriginalFileNames(dataset),
       }),
       analysisStatus: dataset.analysisStatus,
       status: dataset.status || "ready",

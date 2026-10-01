@@ -11,6 +11,7 @@ import {
   readSummedGeographicMetric,
 } from "@/lib/data/geographic-metric-semantics"
 import { calculateBusinessBalancedScorecard, type BusinessBalancedScorecard } from "@/lib/business/balanced-scorecard"
+import { resolveCanonicalFinancialMetrics } from "@/lib/data/canonical-financial-metrics"
 import { buildDashboardSemanticAnalysis, buildTrendPanel, type DashboardBusinessProfile, type DashboardSemanticAnalysis, type DashboardSemanticMetric, type DashboardSemanticTrend } from "@/lib/data/dashboard-semantic-profile"
 import {
   BBSC_SCORE_METHODOLOGY,
@@ -295,12 +296,17 @@ function buildExecutiveMetrics(stats: DashboardStats, range: RangeKey, semanticA
   const costValues = activeRows.map(({ row }) => getNumber(row, columns.cost || columns.expense))
   const profitValues = activeRows.map(({ row }) => getNumber(row, columns.profit))
 
+  // Canonical deterministic financials (Profitability analyses store totals, not
+  // rows): every KPI consumer falls back to the same resolver so the dashboard
+  // never shows N/A financial values next to available canonical ones.
+  const canonicalFinancials = resolveCanonicalFinancialMetrics(stats.allDatasets[0] ?? null)
   const semanticRevenue = semanticMetricValue(semanticAnalysis, ["Revenue", "MRR", "GMV"])
-  const totalRevenue = semanticRevenue ?? (columns.revenue ? sum(revenueValues) : null)
+  const totalRevenue = semanticRevenue ?? canonicalFinancials?.revenue ?? (columns.revenue ? sum(revenueValues) : null)
   const explicitProfit = columns.profit ? sum(profitValues) : null
-  const totalCost = columns.cost || columns.expense ? sum(costValues) : null
-  const totalProfit = explicitProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
-  const profitMargin = totalRevenue && totalProfit !== null ? (totalProfit / totalRevenue) * 100 : null
+  const totalCost = (columns.cost || columns.expense ? sum(costValues) : null) ?? canonicalFinancials?.operatingExpenses ?? null
+  const totalProfit = explicitProfit ?? canonicalFinancials?.operatingProfit ?? (totalRevenue !== null && totalCost !== null ? totalRevenue - totalCost : null)
+  const derivedProfitMargin = totalRevenue && totalProfit !== null ? (totalProfit / totalRevenue) * 100 : null
+  const profitMargin = derivedProfitMargin ?? canonicalFinancials?.operatingMargin ?? null
   const products = columns.product || columns.sku ? uniqueCount(activeRows.map(({ row }) => String(row[columns.product || columns.sku || ""] || "").trim()).filter(Boolean)) : null
   const inventoryValue = !isProfitabilityProfile && columns.stock && (columns.price || columns.cost)
     ? activeRows.reduce((total, { row }) => total + (getNumber(row, columns.stock) || 0) * (getNumber(row, columns.price || columns.cost) || 0), 0)
@@ -901,7 +907,9 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
     : null
   const metrics = buildExecutiveMetrics(dashboardStats, range, semanticAnalysis)
   const companyName = dashboardStats.profile?.businessName || dashboardStats.profile?.companyName || "UseClevr"
-  const hasRows = metrics.loadedRowCount > 0
+  // Profitability analyses persist canonical totals instead of row data, so the
+  // processed-row count also proves an active dataset (no misleading upload prompt).
+  const hasRows = metrics.rowCount > 0 || metrics.loadedRowCount > 0
   const canRenderWorldMap = shouldRenderWorldMapForDashboardProfile({
     businessModel: metrics.businessModel,
     mappedLocations: metrics.regions,
@@ -924,6 +932,7 @@ export default async function AppDashboard({ searchParams }: DashboardPageProps)
         rows: selected.selectedDataset.data,
         columns: selected.selectedDataset.columns,
         businessModel: metrics.businessModel,
+        canonicalFinancials: resolveCanonicalFinancialMetrics(selected.selectedDataset),
       })
     : null
 
