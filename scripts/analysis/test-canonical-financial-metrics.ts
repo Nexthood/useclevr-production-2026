@@ -1,3 +1,8 @@
+// Must stay the first import: installs a hermetic fake db singleton so the
+// report/dashboard parity flow never queries a real DatasetRow relation
+// (local dev databases and the GitHub Actions test schema must behave identically).
+import "./canonical-financial-metrics-test-db"
+
 import assert from "node:assert/strict"
 
 import { calculateProfitabilityAnalysis } from "../../src/lib/profitability/two-file-analysis"
