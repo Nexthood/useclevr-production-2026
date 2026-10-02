@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Profitability analysis now reads correct totals from gross line values that already include discounts or taxes, recognizes expense categories from differently named category columns instead of marking every expense Uncategorized, and understands camelCase column names in uploaded CSV and Excel files.
 - Profitability reports now show Revenue Growth only from comparable complete monthly periods, so partial-month uploads no longer produce misleading extreme growth percentages.
 - Profitability analysis now reads revenue and expense totals correctly from differently structured CSV and Excel files, including quantity-times-unit-price schemas, gross-sales-minus-discount schemas, and European number formats.
 - Profitability analysis now withholds totals and explains why when two amount columns cannot be told apart or when a file mixes currencies, instead of showing a wrong combined number.

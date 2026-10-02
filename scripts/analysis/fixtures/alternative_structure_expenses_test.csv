@@ -1,0 +1,14 @@
+date,vendor,cost_type,quantity,unit_cost,spend_value,tax_value
+2025-07-01,Workspace GmbH,Rent,1,4850.00,4862.25,12.25
+2025-08-02,Payroll Co,Payroll,1,4200.00,4200.00,0.00
+2025-09-03,Cloud Plus,Software,6,122.50,739.25,4.25
+2025-10-04,AdNetwork,Marketing,3,215.00,645.00,0.00
+2025-11-05,Cloud Plus,Software,12,95.00,1141.00,1.00
+2025-07-06,CityGrid,Utilities,1,3100.00,3100.00,0.00
+2025-08-07,TravelHub,Travel,4,185.00,740.00,0.00
+2025-09-08,Payroll Co,Payroll,9,160.00,1445.00,5.00
+2025-10-09,Workspace GmbH,Rent,2,740.00,1480.00,0.00
+2025-11-10,AdNetwork,Marketing,5,201.00,1005.00,0.00
+2025-07-11,CityGrid,Utilities,8,147.50,1182.00,2.00
+2025-08-12,Legal Partner,Professional Fees,1,1660.50,1660.50,0.00
+2025-09-13,Shield AG,Insurance,4,1700.00,6800.00,0.00

@@ -10,7 +10,11 @@ import { parseCanonicalDate } from "@/lib/data/canonical-date"
  * layers must never remap the original uploaded columns themselves.
  */
 
-export type RevenueAmountStrategy = "explicit_amount" | "derived_unit_quantity" | "gross_minus_adjustments"
+export type RevenueAmountStrategy =
+  | "explicit_amount"
+  | "reconciled_components"
+  | "derived_unit_quantity"
+  | "gross_minus_adjustments"
 
 export type NormalizedRevenueRecord = {
   date: string | null
@@ -53,7 +57,7 @@ export type NormalizedExpenseRecord = {
   location: string | null
   currency: string | null
   provenance: {
-    amountStrategy: "explicit_amount" | "derived_unit_quantity" | "unresolved"
+    amountStrategy: "explicit_amount" | "reconciled_components" | "derived_unit_quantity" | "unresolved"
     amountColumn: string | null
     confidence: number
   }
@@ -103,7 +107,7 @@ export function normalizeRevenueFromResolution(
   const discountColumn = mapping.discount?.column ?? null
   const refundColumn = mapping.refund?.column ?? null
 
-  if (quantityColumn && unitPriceColumn && amountColumn) {
+  if (quantityColumn && unitPriceColumn && amountColumn && resolution.amountStrategy !== "reconciled_components") {
     const reconciliation = reconcileUnitQuantity(
       rows,
       quantityColumn,
@@ -223,7 +227,7 @@ export function normalizeExpenseFromResolution(
   const quantityColumn = mapping.quantity?.column ?? null
   const unitCostColumn = mapping.unitCost?.column ?? null
 
-  if (quantityColumn && unitCostColumn && amountColumn) {
+  if (quantityColumn && unitCostColumn && amountColumn && resolution.amountStrategy !== "reconciled_components") {
     const reconciliation = reconcileUnitQuantity(rows, quantityColumn, unitCostColumn, amountColumn)
     if (reconciliation.checked > 0 && !reconciliation.consistent) {
       warnings.push({
@@ -242,6 +246,7 @@ export function normalizeExpenseFromResolution(
       amountColumn,
       quantityColumn,
       unitCostColumn,
+      taxColumn: mapping.tax?.column ?? null,
       strategy: resolution.amountStrategy,
     })
     if (amount === null) {
@@ -305,6 +310,20 @@ function computeRevenueAmount(
     strategy: string
   },
 ): number | null {
+  // Precedence 0: verified reconciled components. The row identity
+  // (amount - components == quantity x unit) was proven during resolution,
+  // so the embedded component values are subtracted from the gross line
+  // value; they are never added to a net amount.
+  if (context.strategy === "reconciled_components" && context.amountColumn) {
+    const base = parseMoneyNumber(row[context.amountColumn])
+    if (base === null) return null
+    let net = Math.abs(base)
+    if (context.discountColumn) net -= nonNegative(parseMoneyNumber(row[context.discountColumn])) ?? 0
+    if (context.refundColumn) net -= nonNegative(parseMoneyNumber(row[context.refundColumn])) ?? 0
+    const result = round(net)
+    return result < 0 ? null : result
+  }
+
   // Precedence 1: explicit final/line revenue column. Components (quantity,
   // unit price, gross, discount) are never summed with it.
   if (context.amountColumn) {
@@ -341,9 +360,23 @@ function computeExpenseAmount(
     amountColumn: string | null
     quantityColumn: string | null
     unitCostColumn: string | null
+    taxColumn: string | null
     strategy: string
   },
 ): number | null {
+  // Precedence 0: verified reconciled components. The row identity
+  // (spend - tax == quantity x unit cost) was proven during resolution, so
+  // the tax embedded in the gross spend value is subtracted; it is never
+  // added to a net amount.
+  if (context.strategy === "reconciled_components" && context.amountColumn) {
+    const base = parseMoneyNumber(row[context.amountColumn])
+    if (base === null) return null
+    let net = Math.abs(base)
+    if (context.taxColumn) net -= nonNegative(parseMoneyNumber(row[context.taxColumn])) ?? 0
+    const result = round(net)
+    return result < 0 ? null : result
+  }
+
   // Precedence 1: explicit final expense/line-total column. Tax and unit cost
   // are recorded separately and are never added to it.
   if (context.amountColumn) {

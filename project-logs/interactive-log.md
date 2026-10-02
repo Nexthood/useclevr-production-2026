@@ -1,3 +1,37 @@
+## 2026-10-02 — Central schema intelligence audit + universal profitability resolution
+
+1. Interaction title
+   Continue the master fix: audit existing semantic intelligence, trace the alternative Profitability structure's 73.3K / 29.0K / Uncategorized failures, consolidate shared primitives, and resolve verified ground truth without adding a parallel engine.
+
+2. What was the user goal
+   Continue Codex's interrupted central schema intelligence audit on `beta` with a clean tree, verify preliminary findings against actual code, trace exactly why the alternative structure produced ~73.3K revenue instead of 72,450.00, ~29.0K expenses instead of 28,975.50, and 100% Uncategorized expense categories, consolidate generic primitives into reusable shared infrastructure, keep the controlled fixture exact, add adversarial and invariance tests, validate broadly, and not commit or push.
+
+3. What changed
+   - `src/lib/data/semantic-profiling.ts` (new): the shared raw-table profiling layer extracted from the Profitability resolver — `tokenizeHeader` (with the camelCase/acronym boundary fix), `parseLocaleNumber` (US/European/accounting money parsing), `profileColumn` (numeric/date/integer/cardinality/currency-marker value shapes), `scoreCategoricalShape` (categorical vs identifier vs free-text), and `verifyRowIdentity` (row-level `base - components == quantity x unit` verification with 2% tolerance and 10% mismatch ceiling). No domain vocabulary; Profitability keeps its own financial aliases and constraints.
+   - `src/lib/profitability/schema-resolver.ts`: consumes the shared primitives (back-compat re-exports `columnTokens`/`parseMoneyNumber`/`buildColumnStats` kept); new `resolveExplicitAmountStrategy` adds the `reconciled_components` strategy, chosen only when a monetary component (discount/refund for revenue, tax for expenses) is PROVEN row-arithmetic-embedded; money-measure dimension disqualifiers now only reject numeric-shaped columns so `cost_type` maps as category; new `selectFallbackCategory` discovers unmapped category columns from categorical value shape alone.
+   - `src/lib/profitability/normalized-model.ts`: computes reconciled component amounts (gross minus embedded components, negative results skipped), skips the arithmetic-mismatch warning when reconciliation is the proven strategy, and extends provenance types with `reconciled_components`.
+   - `src/lib/profitability/two-file-analysis.ts`: provenance notes name the reconciled derivation and columns; a data-quality note reports unrecognized expense category fields while monetary totals stay available.
+   - `scripts/analysis/fixtures/alternative_structure_revenue_test.csv` + `alternative_structure_expenses_test.csv` (new, permanent goldens: net 72,450.00 / gross 73,300.00; expenses 28,975.50 / spend 29,000.00) with deterministic generator `scripts/analysis/generate-alternative-profitability-fixtures.ts`.
+   - `scripts/analysis/test-profitability-universal-schema.ts`: M section pins the alternative structure (strategy, generic `cost_type` category mapping, cell-derived goldens 72,450.00 / 28,975.50 / 43,474.50 / 60.01%) plus M1 reordered+irrelevant columns, M2 renamed/camelCase/unknown-header invariance, M3 European decimals and real Excel dates, M4 unproven-identity fail-safe (explicit amount stays authoritative, no tax subtraction), and M5 mixed-currency withholding.
+
+4. Root causes (verified at runtime, not assumed)
+   - Revenue 73.3K vs 72,450.00: `sales_value` matched token alias `sales` as an explicit amount and explicit precedence ignored reconciliation evidence; the file proves `sales_value - discount_value == quantity x unit_price` row-exact, so the authoritative total is the reconciled 72,450.00 (the engine even emitted an arithmetic-mismatch warning at 38% of rows while still summing the gross column).
+   - Expenses 29.0K vs 28,975.50: `spend_value` was summed raw because the engine had no expense-side component reconciliation; the identity `spend_value - tax_value == quantity x unit_cost` is row-exact, so the 24.50 embedded tax inflated the total.
+   - 100% Uncategorized: `cost_type` tokens are `cost`+`type`; `cost` is a blanket dimension disqualifier and the category alias match was token-subset (not exact), so the column was rejected in `selectDimensionField`, `mapping.category` stayed null, and the aggregation defaulted every record to `Uncategorized`.
+
+5. Audit findings (verified against code)
+   - Semantic-system inventory: Profitability resolver (aliases + shapes + relationships + ambiguity); EDIE `universal-structure-scanner.ts` (own locale parser `parseNumber`, `isCurrency`/`isPercentage`, identifier/email/uuid/url detection, structure quality); EDIE semantic/entity/relationship scanners with semantic dictionary; `dataset-analyzer.ts` (name-based column detection + numeric stats); Business Semantics Engine (`business-semantics.ts`, concept confirmation/blocking); dashboard semantic profiles; ClevrSync normalization is label-level (`dataset-source.ts`) plus `retail-record-engine.ts` record normalization; `geographic-metric-semantics.ts` has a private underscore-only `columnTokens`; `multi-currency-processor.ts` has its own EU/US parsing.
+   - Duplicated responsibilities now consolidated into the shared layer for the Profitability path; EDIE (caller-supplied separators), dataset-analyzer, and multi-currency parsing remain separate by contract and are documented as follow-up consolidation debt.
+   - Canonical flow verified: `calculateProfitabilityAnalysis` is the only production resolver entry (upload form → parser → resolver → normalized records → `ProfitabilityMetrics`), persisted under `analysis.profitability`/`precomputedMetrics`, and `canonical-financial-metrics.ts`, report builder, and BBSC consume the persisted payload only — no downstream raw-header reinterpretation.
+
+6. Verification
+   - `pnpm test:profitability-universal` (A-L + 04 + K + M matrix), `test:profitability-two-file`, `test:profitability-period-trend`, `test:profitability-report-entry-points`, `test:canonical-financial-metrics`, `test:clevrsync-retail-profitability`, `test:dataset-analyzer-semantics`, `test:csv-analyzer`, `test:csv-edge-cases`, `test:dashboard-semantic-profiles`, `test:score-semantics`, `test:trend-semantics`, `test:business-intelligence`, `test:bbsc`, `test:generic-business-canonical-resolution`, `test:risk-intelligence`, `test:world-map-semantics`, `test:clevrsync`, `test:retail-pos`, `test:retail-source-analytics`, `test:credit-unified`, `test:dataset-source-history`, `test:report-accuracy`, `test:auth`, `test:byok-provider-required` all pass; `pnpm exec tsc --noEmit --pretty false` exits 0; `pnpm lint:secrets` clean.
+
+7. Problems marked
+   - risk: the alternative fixture is a faithful reconstruction from the task description (headers `sales_value`/`spend_value`/`cost_type`, component columns, and every reported produced/true total tie out exactly: 73,300 - 850 = 72,450.00 and 29,000 - 24.50 = 28,975.50); the original private file was not available in the workspace.
+   - debt: EDIE locale parsing, dataset-analyzer column typing, and multi-currency parsing still duplicate value-shape primitives under different contracts; unify on `semantic-profiling.ts` incrementally.
+   - not committed or pushed per instruction.
+
 ## 2026-09-30 — Profitability explicit amount schema fix
 
 1. Interaction title

@@ -62,6 +62,13 @@ function file(
   return { role, name, columns, rows, rowCount: rows.length }
 }
 
+/** Restates rows under different (renamed) headers while keeping values. */
+function restate(row: Record<string, unknown>, mapping: Record<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [from, to] of Object.entries(mapping)) out[to] = row[from]
+  return out
+}
+
 function runPair(
   revenueColumns: string[],
   revenueRows: Record<string, unknown>[],
@@ -548,6 +555,163 @@ async function main() {
     assert(sumXlsx === sumCsv && sumXlsx === 350.75, `K: XLSX and CSV totals must match (got ${sumXlsx} vs ${sumCsv})`)
     assert(normalizedXlsx.records[0].date === "2026-01-15", "K: XLSX dates must serialize as ISO dates")
     console.log("Fixture K_csv_xlsx_versions: XLSX and CSV agree at 350.75 ✓")
+  }
+
+  // M — alternative structure: gross line values with embedded components and
+  // a compound categorical header (cost_type). Permanent golden CSVs; totals
+  // derive from raw cells and must equal 72,450.00 / 28,975.50 exactly.
+  {
+    const revenueFixture = parseDelimitedText(fs.readFileSync("scripts/analysis/fixtures/alternative_structure_revenue_test.csv", "utf8"), ",")
+    const expenseFixture = parseDelimitedText(fs.readFileSync("scripts/analysis/fixtures/alternative_structure_expenses_test.csv", "utf8"), ",")
+    const analysis = runPair(revenueFixture.columns, revenueFixture.rows, expenseFixture.columns, expenseFixture.rows)
+
+    nearlyEqual(analysis.totalRevenue, 72450, "M revenue")
+    nearlyEqual(analysis.totalExpenses, 28975.5, "M expenses")
+    nearlyEqual(analysis.netProfit, 43474.5, "M profit")
+    nearlyEqual(analysis.netMargin, 60.01, "M margin")
+    assert(analysis.status === "ready", `M must be ready (got ${analysis.status})`)
+    assert(analysis.schemaDiagnostics?.revenue.amountStrategy === "reconciled_components", `M: revenue must reconcile sales_value minus discount_value against quantity x unit price (got ${analysis.schemaDiagnostics?.revenue.amountStrategy})`)
+    assert(analysis.schemaDiagnostics?.expenses.amountStrategy === "reconciled_components", `M: expenses must reconcile spend_value minus tax_value against quantity x unit cost (got ${analysis.schemaDiagnostics?.expenses.amountStrategy})`)
+    assert(analysis.schemaDiagnostics?.revenue.selected.some((field) => field.column === "sales_value" && field.concept === "amount"), "M: sales_value must carry the amount role")
+    assert(analysis.schemaDiagnostics?.expenses.selected.some((field) => field.column === "spend_value" && field.concept === "amount"), "M: spend_value must carry the amount role")
+    assert(analysis.schemaDiagnostics?.expenses.selected.some((field) => field.column === "cost_type" && field.concept === "category"), "M: cost_type must resolve generically as the expense category")
+    assert(analysis.expenseCategories.length > 0 && analysis.expenseCategories.every(([name]) => name !== "Uncategorized"), "M: expense categories must come from cost_type, not Uncategorized")
+
+    const derivedRevenue = Math.round((expectedSum(revenueFixture.columns, revenueFixture.rows, "sales_value") - expectedSum(revenueFixture.columns, revenueFixture.rows, "discount_value")) * 100) / 100
+    const derivedExpenses = Math.round((expectedSum(expenseFixture.columns, expenseFixture.rows, "spend_value") - expectedSum(expenseFixture.columns, expenseFixture.rows, "tax_value")) * 100) / 100
+    nearlyEqual(analysis.totalRevenue, derivedRevenue, "M revenue must equal sales_value minus discount_value derived from raw cells")
+    nearlyEqual(analysis.totalExpenses, derivedExpenses, "M expenses must equal spend_value minus tax_value derived from raw cells")
+    console.log(`Fixture M_alternative_structure: revenue ${analysis.totalRevenue} / expenses ${analysis.totalExpenses} / profit ${analysis.netProfit} / margin ${analysis.netMargin} ✓`)
+
+    const revenueRows = revenueFixture.rows
+    const expenseRows = expenseFixture.rows
+
+    // M1 — reordered columns + irrelevant extra columns (string note, numeric
+    // rating, identifier-like and numeric-looking reference columns)
+    {
+      const reorderedRevenueColumns = ["star_rating", "discount_value", "batch_note", "sales_value", "product_code", "quantity", "unit_price", "date", "product"]
+      const reorderedRevenueRows = revenueRows.map((row, index) => ({ ...row, star_rating: 4, batch_note: "auto", product_code: 100777 + index }))
+      const reorderedExpenseColumns = ["internal_flag", "spend_value", "cost_type", "tax_value", "quantity", "unit_cost", "vendor", "date"]
+      const reorderedExpenseRows = expenseRows.map((row, index) => ({ ...row, internal_flag: index % 2 }))
+      const reordered = runPair(reorderedRevenueColumns, reorderedRevenueRows, reorderedExpenseColumns, reorderedExpenseRows)
+      nearlyEqual(reordered.totalRevenue, 72450, "M1 reordered revenue")
+      nearlyEqual(reordered.totalExpenses, 28975.5, "M1 reordered expenses")
+      assert(reordered.status === "ready", "M1 must stay ready")
+      console.log("Fixture M1_reordered_and_irrelevant: identical totals 72450 / 28975.5 ✓")
+    }
+
+    // M2 — renamed headers: spaces/case (aliases keep semantics) and
+    // camelCase variants; unknown amount headers backed by strong
+    // mathematical relationships keep the same totals via reconciliation.
+    {
+      const renameRevenue: Record<string, string> = {
+        date: "Sale Date", product: "Product", quantity: "Quantity", unit_price: "Unit Price",
+        sales_value: "Sales Value", discount_value: "Discount Value",
+      }
+      const renameExpense: Record<string, string> = {
+        date: "Date", vendor: "Vendor", cost_type: "Cost Type", quantity: "Quantity",
+        unit_cost: "Unit Cost", spend_value: "Spend Value", tax_value: "Tax Value",
+      }
+      const renamed = runPair(
+        Object.values(renameRevenue),
+        revenueRows.map((row) => restate(row, renameRevenue)),
+        Object.values(renameExpense),
+        expenseRows.map((row) => restate(row, renameExpense)),
+      )
+      nearlyEqual(renamed.totalRevenue, 72450, "M2 renamed revenue")
+      nearlyEqual(renamed.totalExpenses, 28975.5, "M2 renamed expenses")
+
+      const camel = runPair(
+        ["saleDate", "productName", "quantity", "unitPrice", "salesValue", "discountValue"],
+        revenueRows.map((row) => restate(row, {
+          date: "saleDate", product: "productName", quantity: "quantity", sales_value: "salesValue", discount_value: "discountValue", unit_price: "unitPrice",
+        })),
+        ["date", "vendor", "costType", "quantity", "unitCost", "spendValue", "taxValue"],
+        expenseRows.map((row) => restate(row, {
+          date: "date", vendor: "vendor", quantity: "quantity", spend_value: "spendValue", tax_value: "taxValue", unit_cost: "unitCost", cost_type: "costType",
+        })),
+      )
+      nearlyEqual(camel.totalRevenue, 72450, "M2 camelCase revenue")
+      nearlyEqual(camel.totalExpenses, 28975.5, "M2 camelCase expenses")
+
+      const unknown = runPair(
+        ["date", "item_name", "quantity", "unit_price"],
+        revenueRows,
+        ["date", "vendor", "cost_type", "quantity", "unit_cost"],
+        expenseRows,
+      )
+      nearlyEqual(unknown.totalRevenue, 72450, "M2 unknown revenue headers reconcile via quantity x unit price")
+      nearlyEqual(unknown.totalExpenses, 28975.5, "M2 unknown expense headers reconcile via quantity x unit cost")
+      console.log("Fixture M2_renamed_headers: renamed/camelCase/unknown-header totals invariant ✓")
+    }
+
+    // M3 — European decimals and currency symbols; XLSX with real Excel dates.
+    {
+      const eur = (value: unknown) => {
+        const num = parseMoneyNumber(value) ?? 0
+        if (num === 0) return 0
+        return `€${num.toFixed(2).replace(".", ",")}`
+      }
+      const euroRevenueRows = revenueRows.map((row) => ({ ...row, sales_value: eur(row.sales_value), discount_value: eur(row.discount_value) }))
+      const euroExpenseRows = expenseRows.map((row) => ({ ...row, spend_value: eur(row.spend_value), tax_value: eur(row.tax_value) }))
+      const euro = runPair(revenueFixture.columns, euroRevenueRows, expenseFixture.columns, euroExpenseRows)
+      nearlyEqual(euro.totalRevenue, 72450, "M3 European-decimal revenue")
+      nearlyEqual(euro.totalExpenses, 28975.5, "M3 European-decimal expenses")
+
+      const workbook = XLSX.utils.book_new()
+      const revenueSheet = [revenueFixture.columns, ...revenueRows.map((row) => revenueFixture.columns.map((column) => {
+        if (column === "date") {
+          const [year, month, day] = String(row.date).split("-").map(Number)
+          return new Date(Date.UTC(year, month - 1, day))
+        }
+        return row[column]
+      }))]
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(revenueSheet as unknown[][]), "Revenue")
+      const xlsxBytes = new Uint8Array(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer)
+      const parsedXlsx = await parseTabularFile(new File([xlsxBytes.buffer as ArrayBuffer], "m_revenue.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }))
+      const xlsxAnalysis = calculateProfitabilityAnalysis({
+        analysisId: "pa_m_xlsx",
+        revenueFile: file("revenue", "m_revenue.xlsx", parsedXlsx.columns, parsedXlsx.rows),
+        expensesFile: file("expenses", "alternative_structure_expenses_test.csv", expenseFixture.columns, expenseRows),
+      })
+      nearlyEqual(xlsxAnalysis.totalRevenue, 72450, "M3 XLSX Excel-date revenue")
+      assert(parsedXlsx.rows.every((row) => row.date instanceof Date || typeof row.date === "string"), "M3: XLSX dates must survive parsing")
+      console.log("Fixture M3_locale_and_xlsx: European decimals and Excel dates invariant ✓")
+    }
+
+    // M4 — expense shape where the embedded-component identity is NOT proven
+    // (tax sits inside the amount plus escalation): no subtraction, explicit
+    // amount stays authoritative, tax never added.
+    {
+      const expenseColumns = ["expense_date", "expense_category", "quantity", "unit_cost", "tax_amount", "expense_amount"]
+      const expenseRows = [1, 2, 3, 4, 5].map((i) => ({
+        expense_date: `2026-0${i}-10`,
+        expense_category: "Software",
+        quantity: 2,
+        unit_cost: 45,
+        tax_amount: 5.4,
+        expense_amount: 2 * 45 + 5.4 + 5,
+      }))
+      const unprovenRevenueRows = revenueRows.slice(0, 5).map((row) => ({
+        ...row,
+        net_revenue: Math.round((Number(row.quantity) * Number(row.unit_price)) * 100) / 100,
+      }))
+      const unproven = runPair(["date", "product", "quantity", "unit_price", "net_revenue"], unprovenRevenueRows, expenseColumns, expenseRows)
+      nearlyEqual(unproven.totalExpenses, Math.round(expectedSum(expenseColumns, expenseRows, "expense_amount") * 100) / 100, "M4 unproven identity keeps the explicit amount")
+      assert(unproven.schemaDiagnostics?.expenses.amountStrategy === "explicit_amount", "M4: identity failure must keep explicit_amount")
+      console.log("Fixture M4_unproven_identity: explicit amount stays authoritative, no tax subtraction ✓")
+    }
+
+    // M5 — mixed currency inside the alternative structure must withhold
+    // combined totals instead of aggregating.
+    {
+      const mixedExpenseRows = expenseRows.map((row, index) => ({ ...row, spend_value: `${index % 2 === 0 ? "€" : "$"}${row.spend_value}` }))
+      const mixed = runPair(revenueFixture.columns, revenueRows, expenseFixture.columns, mixedExpenseRows)
+      assert(mixed.currencyObservation?.mixed === true, "M5: mixed currencies must be detected")
+      assert(mixed.totalRevenue === null && mixed.totalExpenses === null, "M5: combined totals must stay withheld")
+      assert(mixed.dataQualityNotes.some((note) => note.includes("Mixed currencies")), "M5: mixed-currency warning must be present")
+      console.log("Fixture M5_mixed_currency: totals withheld ✓")
+    }
   }
 
   console.log(JSON.stringify({ status: "pass", fixtures: fixtures.length + 1 }))
