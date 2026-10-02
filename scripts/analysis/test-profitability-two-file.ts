@@ -23,6 +23,18 @@ function assertNotIncludes(text: string, unexpected: string, message: string) {
   assert(!text.includes(unexpected), `${message}: unexpected "${unexpected}"`)
 }
 
+function profitabilityGrowthForRows(rows: Record<string, unknown>[]) {
+  return calculateProfitabilityAnalysis({
+    analysisId: "pa_growth_semantics",
+    revenueFile: {
+      role: "revenue",
+      name: "growth_revenue.csv",
+      columns: ["date", "revenue"],
+      rows,
+    },
+  })
+}
+
 function readWorkbookFixture(filePath: string) {
   const workbook = XLSX.read(fs.readFileSync(filePath), { type: "buffer", cellDates: true })
   const worksheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -91,6 +103,49 @@ async function main() {
   assert(waitingForRevenue.status === "waiting_for_revenue", "Expenses-only upload should wait for revenue")
   assert(waitingForRevenue.grossMargin === null, "Expenses-only upload must not fabricate margin")
   assert(waitingForRevenue.operatingProfit === null, "Expenses-only upload must not derive operating profit without revenue")
+
+  const twoCompleteMonths = profitabilityGrowthForRows([
+    { date: "2026-05-01", revenue: 20000 },
+    { date: "2026-06-30", revenue: 25000 },
+  ])
+  nearlyEqual(twoCompleteMonths.revenueGrowth, 25, "Revenue growth must compare two complete months")
+  assert(twoCompleteMonths.revenueGrowthDetails.currentPeriod === "2026-06", "Growth current period must be latest complete month")
+  assert(twoCompleteMonths.revenueGrowthDetails.previousPeriod === "2026-05", "Growth previous period must be previous comparable month")
+
+  const partialFirstMonth = profitabilityGrowthForRows([
+    { date: "2026-04-15", revenue: 300 },
+    { date: "2026-05-01", revenue: 20000 },
+    { date: "2026-06-30", revenue: 25000 },
+  ])
+  nearlyEqual(partialFirstMonth.revenueGrowth, 25, "Revenue growth must skip a partial first month")
+  assert(partialFirstMonth.revenueGrowthDetails.previousPeriod === "2026-05", "Partial first month must not become the growth baseline")
+
+  const partialLatestMonth = profitabilityGrowthForRows([
+    { date: "2026-05-01", revenue: 20000 },
+    { date: "2026-06-01", revenue: 25000 },
+    { date: "2026-07-10", revenue: 1000 },
+  ])
+  nearlyEqual(partialLatestMonth.revenueGrowth, 25, "Revenue growth must skip a partial latest month")
+  assert(partialLatestMonth.revenueGrowthDetails.currentPeriod === "2026-06", "Partial latest month must not become the growth current period")
+
+  const zeroPreviousPeriod = profitabilityGrowthForRows([
+    { date: "2026-05-01", revenue: 0 },
+    { date: "2026-06-30", revenue: 25000 },
+  ])
+  assert(zeroPreviousPeriod.revenueGrowth === null, "Zero previous comparable period must withhold growth")
+  assert(zeroPreviousPeriod.revenueGrowthDetails.status === "zero_baseline", "Zero previous comparable period must expose zero_baseline")
+
+  const oneComparablePeriod = profitabilityGrowthForRows([
+    { date: "2026-05-01", revenue: 20000 },
+  ])
+  assert(oneComparablePeriod.revenueGrowth === null, "One comparable period must withhold growth")
+  assert(oneComparablePeriod.revenueGrowthDetails.reason === "Requires two comparable periods.", "One comparable period must explain the unavailable growth")
+
+  const unsortedInputPeriods = profitabilityGrowthForRows([
+    { date: "2026-06-30", revenue: 25000 },
+    { date: "2026-05-01", revenue: 20000 },
+  ])
+  nearlyEqual(unsortedInputPeriods.revenueGrowth, 25, "Revenue growth must sort periods before comparison")
 
   const opexOnlyExpensesFile = {
     role: "expenses" as const,

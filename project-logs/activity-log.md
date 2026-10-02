@@ -1210,3 +1210,12 @@
 - updated: `test-profitability-two-file.ts` source assertions follow the shared reader; `requirements.md` documents the universal resolver contract; `CHANGELOG.md` gained two Fixed entries under `[Unreleased]`
 - verified: `pnpm test:profitability-universal`, `test:profitability-two-file`, `test:profitability-period-trend`, `test:profitability-report-entry-points`, `test:clevrsync-retail-profitability`, `test:dataset-analyzer-semantics`, `test:csv-edge-cases`, `test:dashboard-semantic-profiles`, `test:business-semantics`, `test:retail-source-analytics` (38 checks), `test:upload-security` all pass; `pnpm validate:types`, `pnpm exec tsc --noEmit --pretty false`, `pnpm lint:secrets`, `pnpm lint:changelog` pass; ESLint 0 errors on changed files
 - not committed or pushed per instruction
+
+## 2026-10-02 — Profitability Revenue Growth comparable-period semantics
+
+- fixed: Profitability headline Revenue Growth now resolves through `src/lib/profitability/canonical-revenue-growth.ts`, comparing the latest complete monthly revenue period with the immediately previous comparable complete month, skipping partial boundary months, sorting periods chronologically, and returning unavailable reasons for insufficient data or zero previous-period revenue
+- traced: the verified fixture 04 still produces Revenue 86,312.00, Operating Expenses 34,633.20, Operating Profit 51,678.80, and Operating Margin 59.87%; its canonical growth compares May 2026 revenue 14,478 against April 2026 revenue 14,477 and skips partial June because the source reporting period ends on 2026-06-28
+- updated: Profitability persisted metrics include `revenueGrowthDetails`; report builder, generated PDFs, recommendations, and legacy persisted monthly buckets use the canonical resolver instead of first/last period fallbacks; generated PDFs show `Not available` with the resolver reason when growth is withheld
+- added: regression coverage in `test-profitability-two-file.ts` for two complete months, partial first month, partial latest month, zero previous period, one comparable period, and unsorted input; updated `test-profitability-period-trend.ts` to pin latest-comparable-month report/PDF behavior
+- verified: `pnpm exec tsc --noEmit --pretty false` exit 0; `pnpm exec tsx scripts/analysis/test-profitability-two-file.ts` pass; `pnpm exec tsx scripts/analysis/test-profitability-period-trend.ts` pass
+- not committed or pushed per instruction

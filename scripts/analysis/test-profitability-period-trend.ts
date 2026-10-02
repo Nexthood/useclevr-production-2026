@@ -18,8 +18,8 @@ import { calculateProfitabilityAnalysis } from "../../src/lib/profitability/two-
  * The fixes pin these rules:
  * - reportingPeriod comes from the persisted two-file analysis and covers every period
  *   bucket built from the Revenue and Expense rows actually used in the analysis.
- * - revenueGrowth compares the first and last complete calendar month, aggregating ALL
- *   revenue rows per month: ((lastMonthRevenue - firstMonthRevenue) / firstMonthRevenue) * 100.
+ * - revenueGrowth compares the latest complete calendar month with the immediately
+ *   previous comparable complete month, aggregating ALL revenue rows per month.
  * - Both stored and legacy persisted metrics resolve to the same deterministic values.
  */
 
@@ -111,10 +111,10 @@ function monthlyRevenueFromRows(rows: Record<string, string>[]) {
 function expectedRevenueGrowth(monthly: Record<string, number>) {
   const months = Object.keys(monthly).filter(Boolean).sort()
   assert(months.length >= 2, "Fixture must contain at least two revenue months")
-  const first = monthly[months[0]]
-  const last = monthly[months[months.length - 1]]
-  assert(first > 0, "First revenue month must be non-zero for a deterministic trend")
-  return ((last - first) / first) * 100
+  const previous = monthly[months[months.length - 2]]
+  const current = monthly[months[months.length - 1]]
+  assert(previous > 0, "Previous revenue month must be non-zero for a deterministic trend")
+  return ((current - previous) / Math.abs(previous)) * 100
 }
 
 function persistedProfitabilityMetrics(analysis: Record<string, unknown>) {
@@ -132,6 +132,7 @@ function persistedProfitabilityMetrics(analysis: Record<string, unknown>) {
     operatingMargin: number | null
     netMargin: number | null
     revenueGrowth: number | null
+    revenueGrowthDetails?: unknown
     reportingPeriod: string | null
     expenseCategories: [string, number][]
     revenueByProduct: [string, number][]
@@ -169,6 +170,7 @@ function persistedProfitabilityMetrics(analysis: Record<string, unknown>) {
     netMargin: source.netMargin,
     margin: source.netMargin,
     revenueGrowth: source.revenueGrowth,
+    revenueGrowthDetails: source.revenueGrowthDetails,
     reportingPeriod: source.reportingPeriod,
     expenseCategories: source.expenseCategories,
     topCostCategories: source.expenseCategories,
@@ -289,7 +291,7 @@ async function main() {
   assertEqual(analysis.cogs, null, "COGS must remain unavailable for this fixture pair")
   nearlyEqual(analysis.operatingProfit, OPERATING_PROFIT, "Operating profit")
   assertEqual(analysis.reportingPeriod, EXPECTED_REPORTING_PERIOD, "Reporting period from all rows of both files")
-  nearlyEqual(analysis.revenueGrowth, deterministicGrowth, "Deterministic first-vs-last-month revenue growth")
+  nearlyEqual(analysis.revenueGrowth, deterministicGrowth, "Deterministic latest-comparable-month revenue growth")
   assertEqual(Object.keys(analysis.revenueByMonth).length, 12, "Monthly aggregation must cover all twelve revenue months")
   const monthlySum = Object.values(analysis.revenueByMonth).reduce((total, value) => total + value, 0)
   nearlyEqual(monthlySum, TOTAL_REVENUE, "Monthly revenue aggregation must cover every revenue row")
@@ -320,6 +322,7 @@ async function main() {
   assertEqual(reportInput.reportType, "profitability", "Profitability dataset must build a profitability report")
   assertEqual(reportInput.financials.reportingPeriod, EXPECTED_REPORTING_PERIOD, "Report reporting period")
   nearlyEqual(reportInput.financials.revenueGrowth ?? null, deterministicGrowth, "Report revenue growth")
+  assertEqual(reportInput.financials.revenueGrowthDetails?.comparisonType, "latest_complete_month_vs_previous_complete_month", "Report revenue growth comparison type")
   nearlyEqual(reportInput.financials.revenue ?? null, TOTAL_REVENUE, "Report total revenue")
   nearlyEqual(reportInput.financials.operatingExpenses ?? null, TOTAL_EXPENSES, "Report operating expenses total")
   nearlyEqual(reportInput.financials.operatingProfit, OPERATING_PROFIT, "Report operating profit")

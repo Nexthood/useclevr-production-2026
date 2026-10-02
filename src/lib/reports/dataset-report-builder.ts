@@ -12,6 +12,10 @@ import { resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-cat
 import { resolveSaasSemanticProfile, type SaasSemanticResolution } from "@/lib/data/dataset-intelligence-engine"
 import type { datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
+import {
+  resolveCanonicalRevenueGrowth,
+  type CanonicalRevenueGrowthResult,
+} from "@/lib/profitability/canonical-revenue-growth"
 import { ReportIntegrityError } from "@/lib/reports/report-generator"
 import type { EcommerceReportAnalysis, InvestorReportAnalysis, MarketplaceReportAnalysis, ReportChart, ReportDiagnostics, ReportFinancials, ReportRecommendation, ReportSemanticContext, RetailReportAnalysis, SaasReportAnalysis, DepartmentProfitability } from "@/lib/reports/report-generator"
 import { getReportProfile } from "@/lib/reports/report-profiles"
@@ -507,6 +511,7 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     businessModel: "profitability",
     canonicalFinancials: resolveCanonicalFinancialMetrics(dataset),
   })
+  const revenueGrowthDetails = revenueGrowthFromMetrics(metrics, nestedProfitability)
   const financials: ReportFinancials = {
     reportingPeriod: reportingPeriodFromMetrics(metrics, nestedProfitability),
     dataConfidence: typeof metrics.dataConfidence === "number" ? metrics.dataConfidence : null,
@@ -534,7 +539,8 @@ function buildProfitabilityReportInput(dataset: DatasetRecord, rows: DataRow[], 
     grossMargin,
     operatingMargin,
     netMargin,
-    revenueGrowth: revenueGrowthFromMetrics(metrics, nestedProfitability),
+    revenueGrowth: revenueGrowthDetails.value,
+    revenueGrowthDetails,
     expenseRatio: totalRevenue && numeric("totalExpenses") !== null ? round((numeric("totalExpenses")! / totalRevenue) * 100) : null,
     missingFields,
     topCostCategories: topCostCategories?.data || [],
@@ -720,34 +726,62 @@ function nestedProfitabilityPayload(dataset: DatasetRecord): Record<string, unkn
   return isRecord(profitability) ? profitability : null
 }
 
-function revenueGrowthFromMetrics(metrics: Record<string, unknown>, nested: Record<string, unknown> | null = null) {
-  const stored = numberOrNull(metrics.revenueGrowth) ?? (nested ? numberOrNull(nested.revenueGrowth) : null)
-  if (stored !== null) return stored
-  const monthlyGrowth = revenueGrowthFromRevenueByMonth(metrics.revenueByMonth) ?? (nested ? revenueGrowthFromRevenueByMonth(nested.revenueByMonth) : null)
-  if (monthlyGrowth !== null) return monthlyGrowth
+function revenueGrowthFromMetrics(metrics: Record<string, unknown>, nested: Record<string, unknown> | null = null): CanonicalRevenueGrowthResult {
+  const details = revenueGrowthDetailsFromSource(metrics) ?? (nested ? revenueGrowthDetailsFromSource(nested) : null)
+  if (details) return details
+
+  const monthlyPeriods = revenueGrowthPeriodsFromRevenueByMonth(metrics.revenueByMonth)
+    ?? (nested ? revenueGrowthPeriodsFromRevenueByMonth(nested.revenueByMonth) : null)
+  if (monthlyPeriods) {
+    return resolveCanonicalRevenueGrowth(monthlyPeriods, reportingContextFromMetrics(metrics, nested))
+  }
+
   const trends = periodTrendsFromMetrics(metrics) || []
-  const revenuePeriods = trends.filter((trend) => trend.revenue !== null)
-  if (revenuePeriods.length < 2) return null
-  const first = revenuePeriods[0].revenue
-  const last = revenuePeriods[revenuePeriods.length - 1].revenue
-  if (!first || last === null) return null
-  return round(((last - first) / first) * 100)
+  return resolveCanonicalRevenueGrowth(
+    trends.map((trend) => ({ period: trend.period, revenue: trend.revenue })),
+    reportingContextFromMetrics(metrics, nested),
+  )
 }
 
-function revenueGrowthFromRevenueByMonth(source: unknown) {
+function revenueGrowthDetailsFromSource(source: Record<string, unknown>): CanonicalRevenueGrowthResult | null {
+  if (!isRecord(source.revenueGrowthDetails)) return null
+  const details = source.revenueGrowthDetails
+  const status = details.status
+  if (status !== "available" && status !== "insufficient_data" && status !== "zero_baseline") return null
+  return {
+    value: numberOrNull(details.value),
+    status,
+    currentPeriod: typeof details.currentPeriod === "string" ? details.currentPeriod : null,
+    previousPeriod: typeof details.previousPeriod === "string" ? details.previousPeriod : null,
+    currentRevenue: numberOrNull(details.currentRevenue),
+    previousRevenue: numberOrNull(details.previousRevenue),
+    comparisonType: "latest_complete_month_vs_previous_complete_month",
+    reason: typeof details.reason === "string" ? details.reason : null,
+  }
+}
+
+function revenueGrowthPeriodsFromRevenueByMonth(source: unknown) {
   if (!isRecord(source)) return null
-  const months: [string, number][] = []
+  const months: Array<{ period: string; revenue: number }> = []
   for (const [month, revenue] of Object.entries(source)) {
     const amount = numberOrNull(revenue)
     if (amount === null) continue
-    months.push([month, amount])
+    months.push({ period: month, revenue: amount })
   }
-  months.sort(([a], [b]) => a.localeCompare(b))
-  if (months.length < 2) return null
-  const first = months[0][1]
-  const last = months[months.length - 1][1]
-  if (first === 0) return null
-  return round(((last - first) / first) * 100)
+  return months.length > 0 ? months : null
+}
+
+function reportingContextFromMetrics(metrics: Record<string, unknown>, nested: Record<string, unknown> | null = null) {
+  const reportingPeriod = typeof metrics.reportingPeriod === "string"
+    ? metrics.reportingPeriod
+    : nested && typeof nested.reportingPeriod === "string"
+      ? nested.reportingPeriod
+      : null
+  const match = reportingPeriod?.match(/(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})/)
+  return {
+    reportingStart: match?.[1] ?? null,
+    reportingEnd: match?.[2] ?? null,
+  }
 }
 
 function reportingPeriodFromMetrics(metrics: Record<string, unknown>, nested: Record<string, unknown> | null = null) {
@@ -804,7 +838,7 @@ function buildProfitabilityRecommendations(
   }
   if (financials.revenueGrowth !== null && financials.revenueGrowth !== undefined && financials.revenueGrowth < 0) {
     recommendations.push({
-      issue: `Revenue has declined by ${Math.abs(financials.revenueGrowth).toFixed(1)}% over the reporting period.`,
+      issue: `Revenue has declined by ${Math.abs(financials.revenueGrowth).toFixed(1)}% versus the previous comparable month.`,
       businessImpact: "Revenue decline signals potential market share loss or demand issues.",
       recommendedAction: "Analyze sales channels, customer churn, and market conditions to identify decline drivers.",
       estimatedImpact: null,
@@ -913,7 +947,7 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
     ? round((costValues.reduce((total, value) => total + value, 0) / revenue.value) * 100)
     : null
   const periodTrends = buildPeriodTrends(rows, columns)
-  const revenueGrowth = revenueGrowthFromPeriodTrends(periodTrends)
+  const revenueGrowthDetails = revenueGrowthFromPeriodTrends(periodTrends)
 
   return {
     reportingPeriod: reportingPeriodFromPeriodTrends(periodTrends),
@@ -942,7 +976,8 @@ function buildGenericFinancials(rows: DataRow[], columns: ColumnMap): ReportFina
     grossMargin: grossMargin.value,
     operatingMargin: operatingMargin.value,
     netMargin: netMargin.value,
-    revenueGrowth,
+    revenueGrowth: revenueGrowthDetails.value,
+    revenueGrowthDetails,
     expenseRatio,
     missingFields: missingProfitabilityFields({
       revenue: revenue.value,
@@ -2814,12 +2849,7 @@ function XLSXDateToJSDate(serial: number) {
 }
 
 function revenueGrowthFromPeriodTrends(trends: NonNullable<ReportFinancials["periodTrends"]>) {
-  const revenuePeriods = trends.filter((trend) => trend.revenue !== null)
-  if (revenuePeriods.length < 2) return null
-  const first = revenuePeriods[0].revenue
-  const last = revenuePeriods[revenuePeriods.length - 1].revenue
-  if (!first || last === null) return null
-  return round(((last - first) / first) * 100)
+  return resolveCanonicalRevenueGrowth(trends.map((trend) => ({ period: trend.period, revenue: trend.revenue })))
 }
 
 function reportingPeriodFromPeriodTrends(trends: NonNullable<ReportFinancials["periodTrends"]>) {
@@ -3069,7 +3099,7 @@ function buildDatasetRecommendations(
     }
     if (financials.revenueGrowth !== null && financials.revenueGrowth !== undefined && financials.revenueGrowth < 0) {
       recommendations.push({
-        issue: `Revenue has declined by ${Math.abs(financials.revenueGrowth).toFixed(1)}% over the reporting period.`,
+        issue: `Revenue has declined by ${Math.abs(financials.revenueGrowth).toFixed(1)}% versus the previous comparable month.`,
         businessImpact: "Revenue decline signals potential market share loss or demand issues.",
         recommendedAction: "Analyze sales channels, customer churn, and market conditions to identify decline drivers.",
         estimatedImpact: null,
