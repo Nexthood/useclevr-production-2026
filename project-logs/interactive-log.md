@@ -18942,3 +18942,54 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
     - Latest interaction status: docs/AI-interaction/interaction-status.md
     - Release notes: CHANGELOG.md
     - Product requirement: requirements.md
+
+## 2026-10-02 — Profitability Revenue Growth comparable-period semantics
+
+1. Interaction title
+   Fix Profitability Revenue Growth so generated PDFs, reports, summaries, dashboard consumers, recommendations, and Daily Health use one financially meaningful comparable-period calculation instead of arbitrary first/last or persisted fallback values.
+
+2. What was the user goal
+   Trace the current huge `Revenue Growth: +5538.4%`, define canonical like-for-like monthly semantics, protect partial periods, return unavailable with reasons when comparison is invalid, preserve verified Profitability totals and BBSC scores, and add deterministic regression tests.
+
+3. What changed
+   - `src/lib/profitability/canonical-revenue-growth.ts` now exports `resolveCanonicalRevenueGrowth`, status/reason details, monthly period construction from normalized revenue records, and display detail text.
+   - `src/lib/profitability/two-file-analysis.ts` builds monthly revenue periods from normalized dated revenue rows and exposes `revenueGrowthDetails`; `revenueGrowth` is now the resolver value.
+   - `src/app/actions/upload.ts` persists `revenueGrowthDetails`.
+   - `src/lib/reports/dataset-report-builder.ts` reads persisted resolver details, recomputes legacy monthly buckets through the resolver, removes first/last period growth fallbacks, and uses comparable-month wording for growth decline recommendations.
+   - `src/lib/reports/report-generator.ts` and `src/lib/reports/pdf-report-generator.ts` carry and render resolver details; PDFs show `Not available - <reason>` when growth is withheld.
+   - `scripts/analysis/test-profitability-two-file.ts` covers two complete months, partial first month, partial latest month, zero baseline, one comparable period, and unsorted periods.
+   - `scripts/analysis/test-profitability-period-trend.ts` expects latest-comparable-month growth and verifies report/PDF propagation.
+   - `requirements.md`, `CHANGELOG.md`, `project-logs/activity-log.md`, and `docs/AI-interaction/interaction-status.md` document the current behavior.
+
+4. Trace and findings
+   - Fixture 04 remains correct: Revenue 86,312.00; Operating Expenses 34,633.20; Operating Profit 51,678.80; Operating Margin 59.87%.
+   - The old two-file monthly first/last path compared January 2026 revenue 14,387 with June 2026 revenue 14,372. The new canonical path skips partial June because the reporting period ends 2026-06-28 and compares May 2026 revenue 14,478 with April 2026 revenue 14,477, returning +0.01%.
+   - Raw first/last row, sorted first/last row, full daily buckets, and capped daily period trends on fixture 04 do not reproduce +5538.4%; the emitted PDF value therefore comes from a persisted/report-shape mismatch that compared unlike scopes. The resolver now prevents row-vs-period, total-vs-period, and partial-vs-complete headline growth.
+
+5. Problems marked
+   - blocker: none.
+   - risk: existing deployed reports can keep stale generated PDF content until regenerated after this change.
+   - improvement: report metadata could include a visible current/previous period subtitle beside every Revenue Growth card in the UI, matching the PDF text.
+   - observation: `tsx` requires escalated execution in this environment because sandboxed IPC pipe creation under `/tmp/tsx-*` fails with `EPERM`.
+
+6. User learning
+   Profitability Revenue Growth now means latest comparable complete month versus previous comparable complete month. Invalid comparisons return an explicit unavailable reason instead of a huge percentage.
+
+7. AI-agent learning
+   Do not trust stored scalar `revenueGrowth` without semantic context. Persist and consume structured resolver details so legacy fallbacks cannot silently reintroduce first/last or partial-period calculations.
+
+8. Follow-up tasks
+   - None assigned.
+
+9. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+10. Minimal destination
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+   - Release notes: CHANGELOG.md
+   - Product requirement: requirements.md

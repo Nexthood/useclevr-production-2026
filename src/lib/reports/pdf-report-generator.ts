@@ -4,6 +4,7 @@ import * as fs from "fs";
 import assert from "node:assert";
 import { jsPDF } from "jspdf";
 import * as path from "path";
+import { revenueGrowthDisplayDetail } from "@/lib/profitability/canonical-revenue-growth";
 import type { Report, ReportFinancials, ReportRecommendation, SaasReportAnalysis } from "./report-generator";
 
 const PDF_DIR = path.join(process.env.TEMP_DIR || "/tmp/useclevr-reports", "pdfs");
@@ -1389,6 +1390,11 @@ function selectPerformanceHighlights(report: Report, financials: ReportFinancial
         label: "Revenue Growth",
         detail: `${financials.revenueGrowth > 0 ? "+" : ""}${financials.revenueGrowth.toFixed(1)}%`,
       });
+    } else if (financials.revenueGrowthDetails) {
+      highlights.push({
+        label: "Revenue Growth",
+        detail: `Not available - ${revenueGrowthDisplayDetail(financials.revenueGrowthDetails)}`,
+      });
     }
     if (financials.netProfit !== null) {
       highlights.push({
@@ -2069,7 +2075,19 @@ function drawTrendPanel(doc: jsPDF, financials: ReportFinancials, x: number, y: 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(...colors.muted);
-  doc.text(`Revenue growth: ${financials.revenueGrowth === null || financials.revenueGrowth === undefined ? "Not available" : formatPercent(financials.revenueGrowth)}`, x + 6, startY + height - 6);
+  const revenueGrowthDetail = financials.revenueGrowth === null || financials.revenueGrowth === undefined
+    ? `Not available${financials.revenueGrowthDetails?.reason ? ` - ${financials.revenueGrowthDetails.reason}` : ""}`
+    : `${formatPercent(financials.revenueGrowth)} (${revenueGrowthDisplayDetail(financials.revenueGrowthDetails || {
+      value: financials.revenueGrowth,
+      status: "available",
+      currentPeriod: null,
+      previousPeriod: null,
+      currentRevenue: null,
+      previousRevenue: null,
+      comparisonType: "latest_complete_month_vs_previous_complete_month",
+      reason: null,
+    })})`;
+  doc.text(`Revenue growth: ${revenueGrowthDetail}`, x + 6, startY + height - 6);
   doc.text(`Net margin: ${financials.netMargin === null ? "Not available" : formatPercent(financials.netMargin)}`, x + 70, startY + height - 6);
   return startY + height;
 }

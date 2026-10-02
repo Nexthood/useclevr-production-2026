@@ -13,6 +13,7 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { BusinessBalancedScorecard } from '@/lib/business/balanced-scorecard';
 import type { SemanticProfile } from '@/lib/data/business-semantics';
+import type { CanonicalRevenueGrowthResult } from '@/lib/profitability/canonical-revenue-growth';
 import { generatePdfReport } from './pdf-report-generator';
 import type { ReportProfile } from './report-profiles';
 
@@ -131,6 +132,7 @@ export interface ReportFinancials {
   operatingMargin: number | null;
   netMargin: number | null;
   revenueGrowth?: number | null;
+  revenueGrowthDetails?: CanonicalRevenueGrowthResult;
   expenseRatio?: number | null;
   missingFields?: string[];
   topCostCategories?: { name: string; value: number }[];

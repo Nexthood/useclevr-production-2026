@@ -754,6 +754,7 @@ export async function uploadCSV(
                   revenueByMonth: profitabilityData.revenueByMonth,
                   reportingPeriod: profitabilityData.reportingPeriod,
                   revenueGrowth: profitabilityData.revenueGrowth,
+                  revenueGrowthDetails: profitabilityData.revenueGrowthDetails,
                   periodTrends: profitabilityData.periodTrends,
                   departmentComparison: profitabilityData.departmentComparison,
                   matchKey: profitabilityData.matchKey,
