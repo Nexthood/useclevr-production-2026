@@ -1,3 +1,13 @@
+## 2026-10-02 — Central schema intelligence audit + universal profitability resolution
+
+- added: shared raw-table semantic profiling layer `src/lib/data/semantic-profiling.ts` (header tokenization, locale-tolerant money parsing, column value-shape profiling, categorical/identifier/free-text shape scoring, row-level arithmetic identity verification) and rewired the Profitability resolver onto it, so domain resolvers reuse one generic primitive set
+- fixed: the alternative Profitability structure (gross `sales_value`/`spend_value` line values with embedded `discount_value`/`tax_value` components and compound `cost_type` category header) now produces the verified ground truth 72,450.00 / 28,975.50 / 43,474.50 / 60.01% through a new `reconciled_components` strategy that subtracts components only when `amount - components == quantity x unit` is proven row-level within tolerance on substantially all rows
+- fixed: compound category headers like `cost_type` map generically (money-measure disqualifiers now only reject numeric-shaped columns) plus a value-shape category fallback for unknown headers with strong categorical behavior
+- fixed: camelCase headers (`salesValue`, `costType`) tokenize correctly because camel/acronym boundaries split before lowercasing
+- added: permanent alternative-structure golden CSVs (`alternative_structure_revenue_test.csv`, `alternative_structure_expenses_test.csv`) with deterministic generator, and M1-M5 invariance matrix covering reordered/irrelevant columns, renames/camelCase/unknown headers, European decimals, Excel dates, unproven-identity fail-safe, and mixed-currency withholding
+- verified: fixture 04 stays exact (86,312.00 / 34,633.20 / 51,678.80 / 59.87%); profitability suites (universal, two-file, period-trend, report-entry-points, canonical-financial-metrics), ClevrSync/retail, dataset analyzer, BI/BBSC/risk, credits, auth, BYOK, and report accuracy all pass; `pnpm exec tsc --noEmit --pretty false` exits 0; `pnpm lint:secrets` clean
+- not committed or pushed per instruction
+
 ## 2026-09-30 — Profitability explicit amount schema fix
 
 - fixed: Profitability two-file analysis now resolves revenue and expense columns with role-aware, token-aware aliases and one-column-one-role exclusivity, so `net_revenue`/`expense_amount` win over `unit_price`, `unit_cost`, `tax_amount`, discounts, and quantity fields

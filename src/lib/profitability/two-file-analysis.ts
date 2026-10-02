@@ -167,6 +167,9 @@ export function calculateProfitabilityAnalysis(input: {
   if (hasBothFiles && !matchKey) {
     dataQualityNotes.push("No shared period + department, company, or cost center key was detected; totals are combined without row-level matching.")
   }
+  if (hasExpenses && expenseNormalized.records.length > 0 && !expenseResolution.mapping.category) {
+    dataQualityNotes.push("No expense category field was recognized; category analytics report Uncategorized while monetary totals stay available.")
+  }
 
   const currencyObservation = combineCurrencyObservation(
     revenueNormalized.currency,
@@ -448,6 +451,12 @@ function normalizeCurrencyMarker(marker: string): string {
 }
 
 function revenueAmountSourceNote(resolution: ReturnType<typeof resolveProfitabilitySchema>) {
+  if (resolution.amountStrategy === "reconciled_components" && resolution.mapping.amount) {
+    const components = [resolution.mapping.discount?.column, resolution.mapping.refund?.column]
+      .filter(Boolean)
+      .join("\", \"")
+    return `Revenue derived from "${resolution.mapping.amount.column}" minus embedded component columns ("${components}") because row-level reconciliation against quantity x unit price proves the components are already included.`
+  }
   if (resolution.amountStrategy === "derived_unit_quantity") {
     return "Revenue derived from unit price and quantity because no final revenue amount field was present."
   }
@@ -458,6 +467,9 @@ function revenueAmountSourceNote(resolution: ReturnType<typeof resolveProfitabil
 }
 
 function expenseAmountSourceNote(resolution: ReturnType<typeof resolveProfitabilitySchema>, hasCogs: boolean) {
+  if (resolution.amountStrategy === "reconciled_components" && resolution.mapping.amount && resolution.mapping.tax) {
+    return `Operating expenses derived from "${resolution.mapping.amount.column}" minus embedded tax ("${resolution.mapping.tax.column}") because row-level reconciliation against quantity x unit cost proves the tax is already included.`
+  }
   if (resolution.amountStrategy === "derived_unit_quantity") {
     return "Operating expenses derived from unit cost and quantity because no final expense amount field was present; tax stays recorded separately and is never added."
   }

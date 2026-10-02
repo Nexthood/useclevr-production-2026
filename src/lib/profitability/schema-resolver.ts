@@ -1,7 +1,15 @@
-import { parseCanonicalDate } from "@/lib/data/canonical-date"
+import {
+  extractCurrencyMarkers,
+  parseLocaleNumber,
+  profileColumn,
+  scoreCategoricalShape,
+  tokenizeHeader,
+  verifyRowIdentity,
+  type ColumnProfile,
+} from "@/lib/data/semantic-profiling"
 
 /**
- * Universal Profitability schema resolver.
+ * Universal Profitability schema resolver (domain contract).
  *
  * Recognizes semantic concepts (not fixture headers) across differently
  * structured revenue and expense files using multiple independent signals:
@@ -9,10 +17,16 @@ import { parseCanonicalDate } from "@/lib/data/canonical-date"
  *   A. normalized exact aliases
  *   B. token-aware aliases
  *   C. distinctive semantic tokens
- *   D. value-shape / type evidence
+ *   D. value-shape / type evidence (shared profiling primitives)
  *   E. arithmetic relationships (unit x quantity reconciliation)
  *   F. cross-column consistency (one physical column per concept)
  *   G. confidence scoring with fail-safe ambiguity handling
+ *
+ * The generic primitives (header tokenization, locale-tolerant money
+ * parsing, column profiling, categorical shape scoring, row-identity
+ * verification) live in src/lib/data/semantic-profiling.ts and are shared
+ * with the other domain resolvers; this module owns only the financial
+ * vocabulary and the Profitability constraints.
  *
  * Dangerous broad substring matching is intentionally absent: a column named
  * `revenue_category` can never become the revenue amount, `expense_date` can
@@ -44,6 +58,7 @@ export type ResolverConcept =
 
 export type AmountStrategy =
   | "explicit_amount"
+  | "reconciled_components"
   | "derived_unit_quantity"
   | "gross_minus_adjustments"
   | "unresolved"
@@ -76,24 +91,7 @@ export type ProfitabilitySchemaResolution = {
   currency: { mixed: boolean; currencies: string[]; source: "column" | "symbols" | null }
 }
 
-export type ColumnStats = {
-  column: string
-  tokens: string[]
-  normalized: string
-  numericRatio: number
-  dateRatio: number
-  integerRatio: number
-  distinctStrings: number
-  stringRatio: number
-  numericCount: number
-  presentCount: number
-  min: number
-  max: number
-  median: number
-  sum: number
-  currencyMarkers: string[]
-  sampleNumeric: number[]
-}
+export type ColumnStats = ColumnProfile
 
 const AMOUNT_ALIAS_GROUPS: Record<ProfitabilitySchemaRole, string[][]> = {
   revenue: [
@@ -266,8 +264,6 @@ const DISTINCTIVE_CONCEPT_TOKENS: Partial<Record<ResolverConcept, Set<string>>> 
 
 const PERIOD_NAME_TOKENS = new Set(["year", "month", "period", "quarter"])
 
-const CURRENCY_SYMBOL_CHARS = ["€", "$", "£", "¥", "₹"]
-
 export function resolveProfitabilitySchema(
   columns: string[],
   rows: Record<string, unknown>[],
@@ -301,11 +297,22 @@ export function resolveProfitabilitySchema(
     }
   }
 
+  // Value-shape fallback: an unmapped category is discovered from categorical
+  // behavior alone (repeated short strings, sensible cardinality, low
+  // identifier and free-text likelihood) when no alias matches.
+  if (!mapping.category) {
+    const fallback = selectFallbackCategory(stats, reserved)
+    if (fallback) {
+      mapping.category = fallback
+      reserved.add(fallback.column)
+    }
+  }
+
   const currency = observeCurrency(mapping, stats)
 
   let amountStrategy: AmountStrategy = "unresolved"
   if (mapping.amount) {
-    amountStrategy = "explicit_amount"
+    amountStrategy = resolveExplicitAmountStrategy(role, rows, mapping)
   } else if ((mapping.unitPrice || mapping.unitCost) && mapping.quantity) {
     amountStrategy = "derived_unit_quantity"
   } else if (role === "revenue" && mapping.grossAmount) {
@@ -329,6 +336,70 @@ export function resolveProfitabilitySchema(
     amountConfidence: mapping.amount ? mapping.amount.confidence : 0,
     warnings,
     currency,
+  }
+}
+
+/**
+ * Chooses the authoritative amount strategy for an explicit amount column.
+ * The column stays authoritative unless a monetary component (discount,
+ * refund, tax) is PROVEN row-arithmetic-embedded: the identity
+ *   amount - components == quantity x unit
+ * must hold within tolerance on substantially all rows. Only that verified
+ * reconciliation licenses subtracting the component; without it the explicit
+ * column is final and components are never subtracted or added.
+ */
+function resolveExplicitAmountStrategy(
+  role: ProfitabilitySchemaRole,
+  rows: Record<string, unknown>[],
+  mapping: Partial<Record<ResolverConcept, ResolverFieldMapping>>,
+): AmountStrategy {
+  const amount = mapping.amount
+  if (!amount) return "unresolved"
+  const componentColumns = role === "revenue"
+    ? [mapping.discount?.column, mapping.refund?.column]
+    : [mapping.tax?.column]
+  const subtract = componentColumns.filter((column): column is string => Boolean(column))
+  const quantity = mapping.quantity
+  const unit = role === "revenue" ? mapping.unitPrice : mapping.unitCost
+  if (!quantity || !unit || subtract.length === 0) return "explicit_amount"
+
+  const identity = verifyRowIdentity(rows, {
+    base: amount.column,
+    subtract,
+    productOf: { quantity: quantity.column, unit: unit.column },
+  })
+  const minChecked = Math.max(3, Math.ceil(rows.length * 0.25))
+  if (identity.checked >= minChecked && identity.consistent) {
+    return "reconciled_components"
+  }
+  return "explicit_amount"
+}
+
+/**
+ * Discovers an unmapped category from value shape alone: string-dominant,
+ * repeated values with sensible cardinality, short labels, low identifier
+ * and free-text likelihood. Header names are ignored so unknown headers with
+ * strong categorical behavior stay discoverable.
+ */
+function selectFallbackCategory(
+  stats: ColumnStats[],
+  reserved: Set<string>,
+): ResolverFieldMapping | null {
+  let best: { stat: ColumnStats; score: number } | null = null
+  for (const stat of stats) {
+    if (reserved.has(stat.column)) continue
+    if (stat.numericRatio >= 0.5 || stat.dateRatio >= 0.7) continue
+    const shape = scoreCategoricalShape(stat)
+    if (!shape.categorical) continue
+    if (shape.identifierLikelihood >= 0.5 || shape.freeTextLikelihood >= 0.5) continue
+    if (!best || shape.score > best.score) best = { stat, score: shape.score }
+  }
+  if (!best) return null
+  return {
+    concept: "category",
+    column: best.stat.column,
+    confidence: Math.min(80, 30 + Math.round(best.score / 2)),
+    signals: ["value_shape_category"],
   }
 }
 
@@ -597,7 +668,10 @@ function selectDimensionField(
       let disqualified = false
       for (const token of stat.tokens) {
         if (DIMENSION_DISQUALIFIER_TOKENS.has(token)) {
-          disqualified = true
+          // Money-measure tokens only disqualify numeric-shaped columns; a
+          // string-shaped compound header such as "cost_type" is a dimension
+          // label, not a hidden money column.
+          disqualified = stat.numericRatio >= 0.5
           break
         }
       }
@@ -637,136 +711,18 @@ function observeCurrency(
 }
 
 export function buildColumnStats(column: string, rows: Record<string, unknown>[]): ColumnStats {
-  const tokens = columnTokens(column)
-  let numericCount = 0
-  let dateCount = 0
-  let stringCount = 0
-  let presentCount = 0
-  let integerCount = 0
-  let min = Number.POSITIVE_INFINITY
-  let max = Number.NEGATIVE_INFINITY
-  let sum = 0
-  const numericValues: number[] = []
-  const distinctStrings = new Set<string>()
-  const currencyMarkers = new Set<string>()
-
-  for (const row of rows) {
-    const value = row[column]
-    if (value === null || value === undefined || value === "") continue
-    presentCount += 1
-
-    if (value instanceof Date) {
-      dateCount += 1
-      continue
-    }
-
-    const text = String(value).trim()
-    const parsed = parseMoneyNumber(text)
-    if (parsed !== null) {
-      numericCount += 1
-      if (Number.isInteger(parsed)) integerCount += 1
-      numericValues.push(parsed)
-      sum += parsed
-      min = Math.min(min, parsed)
-      max = Math.max(max, parsed)
-      for (const marker of extractCurrencyMarkers(text)) currencyMarkers.add(marker)
-    } else if (parseCanonicalDate(text)) {
-      dateCount += 1
-    } else {
-      stringCount += 1
-      distinctStrings.add(text)
-      for (const marker of extractCurrencyMarkers(text)) currencyMarkers.add(marker)
-    }
-  }
-
-  numericValues.sort((a, b) => a - b)
-  const median = numericValues.length === 0 ? 0 : numericValues.length % 2 === 1
-    ? numericValues[(numericValues.length - 1) / 2]
-    : (numericValues[numericValues.length / 2 - 1] + numericValues[numericValues.length / 2]) / 2
-
-  return {
-    column,
-    tokens,
-    normalized: tokens.join(" "),
-    numericRatio: presentCount === 0 ? 0 : numericCount / presentCount,
-    dateRatio: presentCount === 0 ? 0 : dateCount / presentCount,
-    integerRatio: numericCount === 0 ? 0 : integerCount / numericCount,
-    distinctStrings: distinctStrings.size,
-    stringRatio: presentCount === 0 ? 0 : stringCount / presentCount,
-    numericCount,
-    presentCount,
-    min: numericValues.length === 0 ? 0 : min,
-    max: numericValues.length === 0 ? 0 : max,
-    median,
-    sum,
-    currencyMarkers: Array.from(currencyMarkers),
-    sampleNumeric: numericValues.slice(0, 120),
-  }
+  return profileColumn(column, rows)
 }
 
 export function columnTokens(column: string): string[] {
-  return column
-    .toLowerCase()
-    .trim()
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean)
+  return tokenizeHeader(column)
 }
 
 function hasAllTokens(tokens: string[], alias: string[]): boolean {
   return alias.every((token) => tokens.includes(token))
 }
 
-/**
- * Locale-tolerant money parsing: understands US "1,234.56", European
- * "1.234,56", accounting negatives "(1,234.56)", and currency markers.
- * Date-shaped strings ("2026-01-02", "01/15/2026") are never money, and
- * identifier/period strings with interior separators stay non-numeric.
- */
-export function parseMoneyNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value
-  if (typeof value !== "string") return null
-  const raw = value.trim()
-  if (!raw || !/\d/.test(raw)) return null
-  if (/\d[-/]\d/.test(raw)) return null
-  // Interior separators mean identifiers ("INV-0001", "CUST-001"), periods
-  // ("2026-01"), or dates — never money. Leading/trailing sign stays money.
-  if (raw.slice(1).includes("-") || raw.includes("/")) return null
-  const cleaned = raw.replace(/[^\d.,]/g, "")
-  if (!/\d/.test(cleaned)) return null
-  const hasComma = cleaned.includes(",")
-  const hasDot = cleaned.includes(".")
-
-  let normalized = cleaned
-  if (hasComma && hasDot) {
-    normalized = cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")
-      ? cleaned.replace(/\./g, "").replace(/,/g, ".")
-      : cleaned.replace(/,/g, "")
-  } else if (hasComma) {
-    normalized = /,\d{1,2}$/.test(cleaned) ? cleaned.replace(/,(?=\d{1,2}$)/, ".") : cleaned.replace(/,/g, "")
-  } else if (hasDot) {
-    const dotGroups = cleaned.split(".")
-    if (dotGroups.length > 2 || (dotGroups[dotGroups.length - 1] || "").length === 3) {
-      normalized = cleaned.replace(/\./g, "")
-    }
-  }
-
-  const negativeSign = /^\s*[-(]/.test(raw) || /[-)]\s*$/.test(raw)
-  const parsed = Number.parseFloat(normalized)
-  if (!Number.isFinite(parsed)) return null
-  return negativeSign ? -Math.abs(parsed) : parsed
-}
-
-function extractCurrencyMarkers(text: string): string[] {
-  const markers: string[] = []
-  for (const symbol of CURRENCY_SYMBOL_CHARS) {
-    if (text.includes(symbol)) markers.push(symbol)
-  }
-  for (const match of text.matchAll(/\b(USD|EUR|GBP|JPY|CHF|CAD|AUD|SEK|NOK|DKK|INR)\b/g)) {
-    markers.push(match[1])
-  }
-  return markers
-}
+export const parseMoneyNumber = parseLocaleNumber
 
 /**
  * Checks that quantity x unit reconciles with an amount column (or is at
