@@ -110,7 +110,7 @@ assert.match(datasetAssistantSource, /setMessages\(\(current\) => current\.map/,
 assert.match(datasetAssistantSource, /setOverrideMap\(\(prev\) => \(\{ \.\.\.prev, \[editedMessageId\]: "edit" \}\)\)/, "Dataset AI marks Human Control Edit only after save");
 assert.match(datasetAssistantSource, /disabled=\{savingResponseEdit \|\| !responseEditor\?\.draft\.trim\(\)\}/, "Dataset AI disables Save during empty or saving edit states");
 assert.doesNotMatch(datasetAssistantSource, /fallback-\$\{selectedDatasetId\}/, "Selected-dataset suggestions do not use client-side generic fallback buttons");
-assert.match(datasetAssistantSource, /SUGGESTION_CLIENT_CACHE_VERSION = "v5"/, "Selected-dataset suggestion memory cache uses the current semantic cache version");
+assert.match(datasetAssistantSource, /SUGGESTION_CLIENT_CACHE_VERSION = "v6"/, "Selected-dataset suggestion memory cache uses the current semantic cache version");
 assert.match(datasetAssistantSource, /SUGGESTION_CLIENT_CACHE_VERSION\}:\$\{selectedDatasetId\}/, "Selected-dataset suggestion memory cache is dataset-specific and semantic-version-specific");
 assert.match(datasetAssistantSource, /No supported suggested questions are available for this dataset yet\. You can still ask a question below\./, "Selected-dataset suggestions show a neutral empty state when the server returns no supported questions");
 assert.match(datasetAssistantSource, /PROVIDER_TIMEOUT/, "Dataset AI classifies timeout errors");

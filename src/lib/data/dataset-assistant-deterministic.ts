@@ -22,6 +22,11 @@ import {
   buildBusinessSemanticProfile,
   conceptColumn,
 } from "@/lib/data/business-semantics";
+import {
+  isSupportedProfitabilitySuggestion,
+  readProfitabilityAssistantContext,
+  resolveProfitabilityAnswer,
+} from "@/lib/data/profitability-assistant";
 
 export type DatasetAssistantDeterministicResult = {
   status: "success";
@@ -40,6 +45,10 @@ type DatasetAssistantInput = {
   datasetType: string;
   columns: string[];
   rows: Record<string, unknown>[];
+  /** Optional canonical dataset context (Profitability totals + provenance) stored on the dataset record. */
+  precomputedMetrics?: unknown;
+  analysis?: unknown;
+  datasetName?: string;
 };
 
 type SegmentSummary = {
@@ -97,8 +106,27 @@ export function answerDatasetQuestionDeterministically(
   input: DatasetAssistantInput,
 ): DatasetAssistantDeterministicResult | null {
   const question = input.question.trim();
-  if (!question || input.rows.length === 0) return null;
+  if (!question) return null;
 
+  // Canonical Profitability datasets answer from stored canonical metrics and
+  // provenance; row-level data is not required for them.
+  const profitabilityContext = readProfitabilityAssistantContext({
+    datasetId: input.datasetId,
+    datasetName: input.datasetName,
+    datasetType: input.datasetType,
+    analysis: input.analysis,
+    precomputedMetrics: input.precomputedMetrics,
+  });
+  if (profitabilityContext) {
+    const profitabilityAnswer = resolveProfitabilityAnswer(
+      { question, datasetId: input.datasetId, datasetName: input.datasetName ?? "" },
+      profitabilityContext,
+    );
+    if (profitabilityAnswer) return profitabilityAnswer.result;
+    if (input.rows.length === 0) return null;
+  }
+
+  if (input.rows.length === 0) return null;
   const marketplaceResult = answerMarketplaceQuestionDeterministically(input);
   if (marketplaceResult) return marketplaceResult;
 
@@ -667,6 +695,18 @@ function formatInvestorPercent(value: number) {
 }
 
 export function canAnswerDatasetSuggestionDeterministically(input: DatasetAssistantInput) {
+  // Capability-gated Profitability datasets: only supported canonical answers
+  // and deterministic unavailable-metric explanations may become suggestions.
+  const profitabilityContext = readProfitabilityAssistantContext({
+    datasetId: input.datasetId,
+    datasetName: input.datasetName,
+    datasetType: input.datasetType,
+    analysis: input.analysis,
+    precomputedMetrics: input.precomputedMetrics,
+  });
+  if (profitabilityContext) {
+    return isSupportedProfitabilitySuggestion(input.question, profitabilityContext);
+  }
   if (hasRetailInventoryDeterministicCapability(input)) return true;
   if (isRetailInventoryQuestion(input.question)) return false;
   return answerDatasetQuestionDeterministically(input) !== null;

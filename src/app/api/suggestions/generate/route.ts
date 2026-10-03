@@ -13,6 +13,10 @@ import {
   fallbackSuggestionsForDatasetType,
   generateSuggestions,
 } from "@/lib/data/dataset-intelligence"
+import {
+  buildCapabilitySuggestedQuestions,
+  deriveQuestionCapabilityContext,
+} from "@/lib/data/question-capabilities"
 import { and, eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
@@ -42,7 +46,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dataset not found" }, { status: 404 })
     }
 
-    const datasetKey = `suggestions_dataset_v5_${datasetId}`
+    const datasetKey = `suggestions_dataset_v6_${datasetId}`
     const [cached] = await db
       .select()
       .from(appSettings)
@@ -76,10 +80,17 @@ export async function POST(request: Request) {
       ? prebookkeepingSuggestedQuestions
       : buildStandardSuggestions({
           datasetId,
+          datasetName: dataset.name,
           datasetType: intelligenceDatasetType,
           columns: columns.length > 0 ? columns : Object.keys(data[0] || {}),
           rows: data,
-          datasetName: dataset.name,
+          dataset: {
+            id: dataset.id,
+            name: dataset.name,
+            datasetType: dataset.datasetType,
+            analysis: dataset.analysis,
+            precomputedMetrics: dataset.precomputedMetrics,
+          },
         })
 
     const savedSuggestions = safeSuggestions.map((s) => ({
@@ -117,10 +128,17 @@ export async function POST(request: Request) {
 
 function buildStandardSuggestions(input: {
   datasetId: string
+  datasetName: string
   datasetType: DatasetKind
   columns: string[]
   rows: Record<string, unknown>[]
-  datasetName: string
+  dataset: {
+    id: string
+    name: string
+    datasetType: string | null
+    analysis: unknown
+    precomputedMetrics: unknown
+  }
 }) {
   const analyticalSuggestions = availableAnalyticalSuggestions({
     datasetId: input.datasetId,
@@ -130,12 +148,29 @@ function buildStandardSuggestions(input: {
   })
   const generatedSuggestions = input.rows.length > 0
     ? generateSuggestions(buildDatasetIntelligence(input.rows as DatasetRecord[]), input.datasetName)
-    : fallbackSuggestionsForDatasetType(input.datasetType)
+    : []
+  const fallbackPrompts = input.rows.length > 0
+    ? fallbackSuggestionsForDatasetType(input.datasetType)
+    : []
+
+  // Universal capability registry: every question declares its required
+  // capabilities; only fully supported questions become candidates.
+  const capabilityContext = deriveQuestionCapabilityContext({
+    datasetId: input.datasetId,
+    datasetName: input.datasetName,
+    datasetType: input.datasetType,
+    columns: input.columns,
+    rows: input.rows,
+    dataset: input.dataset,
+  })
+  const capabilitySuggestions = buildCapabilitySuggestedQuestions(capabilityContext)
+
   const grossMarginQuestion = "What is the current gross margin?"
   const candidates = [...new Set([
     ...analyticalSuggestions,
     ...generatedSuggestions,
-    ...fallbackSuggestionsForDatasetType(input.datasetType),
+    ...fallbackPrompts,
+    ...capabilitySuggestions,
   ])]
 
   return candidates.filter((suggestion) =>
@@ -143,8 +178,11 @@ function buildStandardSuggestions(input: {
   ).filter((suggestion) => canAnswerDatasetSuggestionDeterministically({
     question: suggestion,
     datasetId: input.datasetId,
+    datasetName: input.datasetName,
     datasetType: input.datasetType,
     columns: input.columns,
     rows: input.rows,
+    analysis: input.dataset.analysis,
+    precomputedMetrics: input.dataset.precomputedMetrics,
   })).slice(0, 12)
 }

@@ -148,6 +148,10 @@ Text rules for this file:
 - Calculate gross margin deterministically from revenue plus COGS, revenue plus validated gross profit, or validated gross margin fields.
 - Never calculate gross margin from operating expenses alone and never infer COGS from an ambiguous generic cost field.
 - Return structured unsupported analysis messages for missing revenue, missing COGS, ambiguous cost mapping, zero revenue, mixed currency, invalid numeric values, unavailable dataset context, unsupported dataset type, and insufficient data.
+- Derive AI Assistant suggested questions from a central capability registry that reads only the active dataset's recorded capabilities, including canonical Profitability totals, expense categories, revenue composition, and metric provenance.
+- Answer zero-row canonical Profitability datasets from stored canonical Profitability metrics and provenance instead of the empty-dataset refusal.
+- Withhold suggestions for metrics the active dataset cannot support and offer the deterministic why-is-it-unavailable explanation when recorded provenance names the missing source data.
+- Refresh selected-dataset suggestions deterministically for the active dataset only, with no AI provider dependency and owner-scoped cache keys.
 - Filter AI Assistant suggested questions by selected-dataset semantic capabilities and deterministic answer capability before showing dataset KPI prompts.
 - Show deterministic KPI results with Direct data analysis status and Last provider: Not required when no AI provider is needed.
 - Answer declining sales segment questions from validated dataset rows by detecting a time column, sales or revenue metric, and segment-like dimensions before provider routing.
@@ -164,7 +168,8 @@ Text rules for this file:
 - Keep each analysis request isolated from dataset state used by other requests.
 - Open the AI Assistant from the dashboard sidebar.
 - Keep dataset selection, suggested questions, and chat input visible in the AI Assistant.
-- Generate at least 10 contextual AI Assistant suggestions automatically after dataset selection by detecting retail, inventory, sales, finance, SaaS, or generic data from the dataset columns.
+- Generate contextual AI Assistant suggestions automatically after dataset selection by detecting retail, inventory, sales, finance, SaaS, generic, or canonical Profitability data from the dataset columns and recorded totals.
+- Show at most eight capability-backed suggested questions for canonical Profitability analyses, ordered by usefulness.
 - Cache AI Assistant suggestions per selected dataset and semantic suggestion version; show selected-dataset suggestions only when the server verifies semantic capability and deterministic answer execution for the selected dataset.
 - Show a neutral empty state when selected-dataset suggestion generation returns no supported questions.
 - Keep AI answers within the uploaded dataset scope.
