@@ -61,6 +61,18 @@ const PROFITABILITY_MARKER_KEYS = [
   "profitability_file_role",
 ] as const
 
+/**
+ * Stored Profitability payload accessor for consumers that need the canonical
+ * aggregates recorded at upload time (expense categories, revenue composition,
+ * provenance notes). Read-only: it never recomputes or fabricates metrics.
+ */
+export function resolveCanonicalProfitabilityPayload(
+  dataset: CanonicalFinancialDatasetInput | null | undefined,
+): Record<string, unknown> | null {
+  if (!dataset) return null
+  return profitabilityPayload(dataset)
+}
+
 export function resolveCanonicalFinancialMetrics(
   dataset: CanonicalFinancialDatasetInput | null | undefined,
 ): CanonicalFinancialMetrics | null {

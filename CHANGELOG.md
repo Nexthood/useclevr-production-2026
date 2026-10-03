@@ -2,6 +2,8 @@
 
 ### Fixed
 
+- Suggested questions now appear for Profitability analyses in the AI Assistant, generated from the capabilities the selected dataset actually supports instead of an "unavailable" empty state.
+- The AI Assistant answers why unavailable metrics are missing (like gross profit without cost data) instead of suggesting calculations the dataset cannot support.
 - Profitability analysis now recognizes rebate-style discount columns as line components through row-level arithmetic, so revenue totals no longer double-count them and real ledger files resolve to their true revenue.
 - Profitability analysis now reads correct totals from gross line values that already include discounts or taxes, recognizes expense categories from differently named category columns instead of marking every expense Uncategorized, and understands camelCase column names in uploaded CSV and Excel files.
 - Profitability reports now show Revenue Growth only from comparable complete monthly periods, so partial-month uploads no longer produce misleading extreme growth percentages.

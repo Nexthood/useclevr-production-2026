@@ -102,7 +102,7 @@ type HistoryEntry = {
 
 const ACTIVE_DATASET_ID_KEY = "useclevr_active_dataset_id"
 const GHOST_MODE_NOTICE_KEY = "useclevr_ghost_mode_notice_seen"
-const SUGGESTION_CLIENT_CACHE_VERSION = "v5"
+const SUGGESTION_CLIENT_CACHE_VERSION = "v6"
 
 function buildWelcomeMessage(): AssistantMessage {
   return {

@@ -33,6 +33,7 @@ import {
   answerDatasetQuestionDeterministically,
   type DatasetAssistantDeterministicResult,
 } from "@/lib/data/dataset-assistant-deterministic";
+import { readProfitabilityAssistantContext } from "@/lib/data/profitability-assistant";
 import { resolveDatasetType } from "@/lib/data/dataset-category";
 import { detectDatasetTypeFromColumns } from "@/lib/data/dataset-intelligence";
 import { buildDatasetIntelligenceEngine, type DatasetIntelligenceEngineResult } from "@/lib/data/dataset-intelligence-engine";
@@ -231,7 +232,17 @@ export async function POST(request: Request) {
   const analysisRows = normalizeRows(
     storedRows.length > 0 ? storedRows.map((row) => row.data) : Array.isArray(dataset.data) ? dataset.data.slice(0, MAX_DETERMINISTIC_ROWS) : [],
   );
-  if (analysisRows.length === 0) {
+  // Canonical Profitability datasets keep their authoritative totals in
+  // precomputed metrics instead of row-level data, so an empty row set is a
+  // supported shape when the canonical payload resolves for this dataset.
+  const profitabilityContext = readProfitabilityAssistantContext({
+    datasetId: dataset.id,
+    datasetName: dataset.name,
+    datasetType: dataset.datasetType,
+    analysis: dataset.analysis,
+    precomputedMetrics: dataset.precomputedMetrics,
+  });
+  if (analysisRows.length === 0 && !profitabilityContext) {
     return datasetAiErrorResponse({
       status: 422,
       code: "EMPTY_DATASET",
@@ -333,6 +344,9 @@ export async function POST(request: Request) {
       datasetType,
       columns,
       rows: analysisRows,
+      datasetName: dataset.name,
+      analysis: dataset.analysis,
+      precomputedMetrics: dataset.precomputedMetrics,
     };
     let deterministicResult: DatasetAssistantDeterministicResult | null = answerDatasetQuestionDeterministically(deterministicInput);
     if (isMarketplaceDeterministicResult(deterministicResult)) {
@@ -508,6 +522,61 @@ export async function POST(request: Request) {
         ghostMode,
         privacyWarning: ghostModeWarning(ghostMode, null),
         providerStatus,
+        requestId,
+      });
+    }
+
+    // Zero-row canonical Profitability datasets answer from recorded canonical
+    // metrics only: when no deterministic handler matches, report the
+    // capability boundary honestly instead of a row-count based refusal.
+    // The successful analytical branch already returned above.
+    if (profitabilityContext && analysisRows.length === 0) {
+      const summaryResult: DatasetAssistantDeterministicResult = answerDatasetQuestionDeterministically({
+        ...deterministicInput,
+        question: "What metrics are available in this dataset?",
+      }) ?? {
+        status: "success",
+        answer: "This Profitability dataset answers from its recorded canonical metrics only.",
+        insight: "Unmatched question on a canonical Profitability dataset.",
+        explanation: "Direct data analysis answers recorded totals, compositions, trends, and data gaps without provider routing.",
+        data: [],
+        chartType: "kpi",
+        result: {
+          intent: "profitability.question_unmatched",
+          status: "success",
+          datasetId: dataset.id,
+          datasetType: "profitability",
+        },
+      } as DatasetAssistantDeterministicResult;
+      recordAiRequestAudit({
+        userId,
+        datasetId: parsed.datasetId,
+        providerName: "Direct data analysis",
+        providerType: "deterministic",
+        modelName: "none",
+        mode: "direct",
+        executionLocation: "none",
+        fallbackUsed: false,
+        purpose: "dataset_analysis",
+        success: true,
+      });
+      return NextResponse.json({
+        success: true,
+        answer: summaryResult.answer,
+        content: summaryResult.answer,
+        insight: summaryResult.insight,
+        explanation: summaryResult.explanation,
+        recommendation: summaryResult.recommendation,
+        data: summaryResult.data,
+        chartType: summaryResult.chartType,
+        providerName: "Not required",
+        modelName: "",
+        mode: "direct",
+        route: "direct",
+        datasetContext: contextForClient(context),
+        ghostMode,
+        privacyWarning: ghostModeWarning(ghostMode, null),
+        providerStatus: directDataAnalysisStatus(),
         requestId,
       });
     }

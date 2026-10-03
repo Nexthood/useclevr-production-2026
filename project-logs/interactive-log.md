@@ -19027,3 +19027,46 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - Latest interaction status: docs/AI-interaction/interaction-status.md
    - Release notes: CHANGELOG.md
    - Product requirement: requirements.md
+
+## 2026-10-03 — Universal AI Analyst suggested-questions capability engine
+
+1. Interaction title
+   Fix the AI Analyst Suggestions panel for canonical Profitability datasets by generating suggested questions from recorded dataset capabilities through one central capability engine instead of reporting "No supported suggested questions are available for this dataset yet."
+
+2. What was the user goal
+   Trace the complete Suggestions flow for the active "Revenue + Expense Analysis" Profitability dataset, report the exact root cause, and implement a universal capability-driven suggested-questions architecture that also explains why important metrics are unavailable, keeps dataset isolation, refresh independence from AI providers, and does not regress Retail, Accountancy, Pre-bookkeeping, canonical financial arithmetic, BBSC, Risk Intelligence, or the recently fixed Profitability schema resolver.
+
+3. What changed
+   - `src/lib/data/question-capabilities.ts` adds the central capability model: `QuestionCapabilityId` registry (canonical financial metrics, expense composition, revenue composition, timeseries, periods, and recorded data gaps), `QuestionCapabilityContext` derivation from `resolveCanonicalFinancialMetrics` plus the stored Profitability payload, semantic-schema derivation for row-level datasets, explainable missing-metric provenance with near-cause reasons, and the ordered 14-question `SUGGESTED_QUESTION_REGISTRY` capped at 8 supported questions.
+   - `src/lib/data/profitability-assistant.ts` adds canonical Profitability deterministic answering: metric values, operating-profit drivers, expense-category impact, cost reduction, top revenue source, revenue timeseries, revenue growth, revenue-to-expense ratio, the gross-profit unavailability explanation, data-completeness gap analysis, dataset summary, and missing-evidence refusals; every value reads stored canonical totals and aggregates without recalculation.
+   - `src/lib/data/dataset-assistant-deterministic.ts` accepts optional canonical dataset context (`precomputedMetrics`, `analysis`, `datasetName`), resolves the Profitability context before the other handlers, lets zero-row canonical datasets answer, and gates Profitability suggestions strictly through `isSupportedProfitabilitySuggestion` so refusals never become suggestions.
+   - `src/lib/data/canonical-financial-metrics.ts` exposes the read-only `resolveCanonicalProfitabilityPayload` accessor without changing any calculation.
+   - `src/app/api/suggestions/generate/route.ts` passes the canonical dataset context into `buildStandardSuggestions`, appends `buildCapabilitySuggestedQuestions` candidates behind the existing deterministic gate, and bumps the suggestion cache key to `suggestions_dataset_v6_`.
+   - `src/app/api/hybrid-ai/dataset-chat/route.ts` allows zero-row datasets only when a canonical Profitability context resolves, passes canonical context into the deterministic gate, and returns an honest deterministic capability-boundary answer instead of the misleading empty-rows 422 when no deterministic handler matches.
+   - `src/components/chat/ai-assistant-workspace.tsx` bumps `SUGGESTION_CLIENT_CACHE_VERSION` to `"v6"` so stale suggestion caches recompute immediately.
+   - `scripts/analysis/test-question-capability-engine.ts` adds the permanent capability-engine regression suite (A-J: Profitability full, no-COGS explain/withhold, revenue-only, retail, dataset-switch isolation, missing metrics, provider independence, refresh determinism, unknown-schema empty state) plus route and workspace wiring assertions; `scripts/analysis/test-suggestions-pipeline-shape.ts` pins the live pipeline suggestion set.
+   - `package.json` adds `test:question-capability-engine` and includes it in `test:all`.
+   - `requirements.md`, `CHANGELOG.md`, `project-logs/activity-log.md`, and `docs/AI-interaction/interaction-status.md` document the current behavior.
+
+4. Trace and findings (root cause audit)
+   - Suggestions UI: `src/components/chat/ai-assistant-workspace.tsx` Suggestions tab; refresh posts `force=true` to `/api/suggestions/generate`.
+   - Suggestions route: owner-scoped dataset lookup, `suggestions_dataset_v5_` appSettings cache, three candidate sources (analytical intents, dataset intelligence, per-kind fallback lists), then the `canAnswerDatasetSuggestionDeterministically` gate.
+   - Semantic capability layer: `buildSemanticSchema` plus `detectDatasetSemanticCapabilities`; a SaaS-only capability registry inside `dataset-intelligence-engine.ts`; retail inventory capability in `retail-inventory-intents.ts`; the canonical financial resolver in `canonical-financial-metrics.ts` with provenance in `metricSources`.
+   - Profitability datasets store authoritative totals in `precomputedMetrics`/`analysis.profitability` with `data: []` and no `datasetRows`; `answerDatasetQuestionDeterministically` early-returns null for zero-row inputs, so every candidate suggestion failed the gate and the UI showed the empty state. `detectDatasetTypeFromColumns` also misread the combined column set, but the empty row set is decisive.
+   - The dataset-chat route also returned 422 `EMPTY_DATASET` on zero rows, so no suggested question could ever be answered for Profitability.
+   - Exact original root cause: the central engine had no canonical dataset path; its row-based implementations rejected every zero-row Profitability candidate.
+
+5. Problems marked
+   - blocker: none.
+   - risk: old v5 `appSettings` suggestion rows remain as inert history after the v6 cache bump.
+   - improvement: a future canonical source type can extend `CanonicalFinancialSourceType` and reuse the same capability derivation without new suggestion code.
+   - observation: `scripts/analysis/test-dataset-aware-report-profiles.ts` fails on the clean beta tree (PDF top-findings wording) and predates this work; it is unrelated to the Suggestions path.
+
+6. User learning
+   Selecting a Profitability dataset now fills the AI Analyst suggestion panel with supported questions, including why gross profit is unavailable and what data would complete the analysis. Refreshing stays deterministic and never switches datasets.
+
+7. AI-agent learning
+   Keep suggested-question validity capability-based, not label-based. The registry question order encodes usefulness; the deterministic answer gate stays the single validity authority.
+
+8. Follow-up tasks
+   - None assigned.
