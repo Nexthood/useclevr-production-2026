@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs"
 import { formatAiProviderLimit, getHybridAiEntitlement, canUseHybridAiFeature } from "../../src/lib/hybrid-ai/features"
 import {
   calculateRiskIntelligence,
+  getRiskDatasetEligibility,
   getDatasetSourceHref,
   isSupportedRiskDatasetType,
   type RiskDataRow,
@@ -13,6 +14,7 @@ import { RISK_RULES, RISK_SEVERITY_LABELS } from "../../src/lib/risk-intelligenc
 import { formatCanonicalIsoTimestamp, parseCanonicalDate, periodKeyFromDate } from "../../src/lib/data/canonical-date"
 import {
   canAccessRiskDataset,
+  resolveRiskDatasetSelection,
   normalizeRiskModuleScope,
   riskScopeEmptyMessage,
   toRiskDatasetSummary,
@@ -80,9 +82,9 @@ assert.equal(isSupportedRiskDatasetType("accountancy"), true, "accountancy datas
 assert.equal(isSupportedRiskDatasetType("pre-bookkeeping"), true, "pre-bookkeeping datasets are supported")
 assert.equal(isSupportedRiskDatasetType("unknown"), false, "unrelated dataset types stay isolated")
 assert.equal(
-  calculateRiskIntelligence(buildDataset({ datasetType: "unknown" }), noHistoryRows),
-  null,
-  "unsupported dataset type does not receive a score",
+  getRiskDatasetEligibility(buildDataset({ datasetType: "unknown", columns: ["unmapped_text"] }), [{ unmapped_text: "not usable" }]).eligible,
+  false,
+  "unknown unusable data stays out of Risk Intelligence selection",
 )
 
 const deadStockRows: RiskDataRow[] = [
@@ -218,6 +220,27 @@ assert.equal(canAccessRiskDataset({ id: "user_a", role: "user", email: "a@exampl
 assert.equal(canAccessRiskDataset({ id: "user_a", role: "user", email: "a@example.com" }, "user_b"), false, "normal users cannot access another user's dataset")
 assert.equal(canAccessRiskDataset({ id: "user_a", role: "user", email: "superadmin@useclevr.com" }, "user_b"), true, "official superadmin can access managed datasets")
 
+assert.deepEqual(
+  resolveRiskDatasetSelection([{ id: "dataset_a" }, { id: "dataset_b" }], null),
+  { selectedDatasetId: null, staleSelection: false },
+  "multiple eligible datasets require an explicit Risk Intelligence selection",
+)
+assert.deepEqual(
+  resolveRiskDatasetSelection([{ id: "dataset_a" }], null),
+  { selectedDatasetId: "dataset_a", staleSelection: false },
+  "exactly one eligible dataset keeps the safe auto-selection behavior",
+)
+assert.deepEqual(
+  resolveRiskDatasetSelection([{ id: "dataset_a" }, { id: "dataset_b" }], "dataset_b"),
+  { selectedDatasetId: "dataset_b", staleSelection: false },
+  "a valid requested dataset becomes the active Risk Intelligence scope",
+)
+assert.deepEqual(
+  resolveRiskDatasetSelection([{ id: "dataset_a" }, { id: "dataset_b" }], "deleted_dataset"),
+  { selectedDatasetId: null, staleSelection: true },
+  "deleted or ineligible selected datasets clear instead of falling back to another dataset",
+)
+
 assert.equal(normalizeRiskModuleScope("pre-bookkeeping"), "prebookkeeping", "risk scope normalizes pre-bookkeeping")
 assert.equal(normalizeRiskModuleScope("retail"), "retail", "risk scope normalizes retail")
 assert.equal(normalizeRiskModuleScope("unknown"), null, "unknown risk scope is rejected")
@@ -246,19 +269,24 @@ const deleteDatasetButtonSource = readFileSync("src/components/dataset/delete-da
 const assistantWorkspaceSource = readFileSync("src/components/chat/ai-assistant-workspace.tsx", "utf8")
 const prebookkeepingPageSource = readFileSync("src/app/(auth)/app/prebookkeeping/page.tsx", "utf8")
 const accountancyUploadSource = readFileSync("src/components/accountancy/accountancy-upload.tsx", "utf8")
-assert.ok(riskServiceSource.includes("scope ? eq(datasets.datasetType, scope)"), "risk dataset list filters by dataset_type scope")
+assert.ok(riskServiceSource.includes("getRiskDatasetEligibility"), "risk dataset list filters candidates through central capability eligibility")
+assert.ok(!riskServiceSource.includes("scope ? eq(datasets.datasetType, scope)"), "risk dataset list never filters ClevrSync candidates by stored dataset_type before canonical eligibility")
 assert.ok(riskServiceSource.includes("datasetId ? eq(datasets.id, datasetId)"), "risk dataset list filters by current dataset ID when supplied")
 assert.ok(riskServiceSource.includes("dedupeByDatasetId"), "risk dataset list deduplicates by immutable dataset ID")
 assert.ok(riskServiceSource.includes("isVisibleRiskDataset"), "risk dataset list hides test and seed records from production selectors")
-assert.ok(riskPageSource.includes('params?.scope || "standard"'), "risk page defaults to standard scope instead of every user dataset")
+assert.ok(riskPageSource.includes("params?.scope || null"), "risk page defaults to all eligible Risk Intelligence datasets")
 assert.doesNotMatch(
   riskPageSource,
   /listRiskIntelligenceDatasets\([\s\S]*datasetId:\s*params\?\.datasetId/,
   "risk page lists all module-scoped datasets before selecting the active dataset",
 )
 assert.ok(riskPageSource.includes("selectionRedirectHref"), "risk page redirects stale active dataset IDs to another dataset or empty scope")
+assert.ok(riskPageSource.includes("resolveRiskDatasetSelection"), "risk page uses the shared stale-selection resolver")
 assert.ok(riskPageSource.includes("calculateRiskIntelligenceForDataset(selectedDatasetId"), "risk page calculates risk for one selected dataset ID")
 assert.ok(riskPageSource.includes("RiskDatasetSelector"), "risk page renders the deletion-capable dataset selector")
+assert.ok(riskSelectorSource.includes("<select"), "risk selector exposes an explicit dataset dropdown")
+assert.ok(riskSelectorSource.includes("selectedDataset.sourceLabel"), "risk selector shows source provenance for the selected dataset")
+assert.ok(riskSelectorSource.includes("selectedDataset.applicableModules"), "risk selector shows the supported Risk Intelligence modules")
 assert.ok(riskSelectorSource.includes("DeleteDatasetButton"), "risk selector renders delete controls for dataset items")
 assert.ok(riskSelectorSource.includes("BatchDeleteButton"), "risk selector renders a bulk delete control")
 assert.ok(riskSelectorSource.includes("Manage datasets"), "risk selector keeps bulk checkboxes behind an explicit management mode")
@@ -275,7 +303,7 @@ assert.ok(riskSelectorSource.includes("datasets.map"), "risk selector renders ev
 assert.ok(riskSelectorSource.includes("visibleDatasets.filter((dataset) => !deletedIds.has(dataset.id))"), "risk selector removes bulk-deleted datasets from local visible state together")
 assert.ok(riskSelectorSource.includes("deletedIds.has(selectedDatasetId)"), "risk selector detects when bulk deletion includes the active dataset")
 assert.ok(riskSelectorSource.includes("remainingDatasets[0]?.id"), "risk selector selects another available dataset after active deletion")
-assert.ok(riskSelectorSource.includes("router.replace(redirectHref)"), "risk selector redirects after deleting the active dataset")
+assert.ok(riskSelectorSource.includes("router.replace(riskHref(nextSelectedDatasetId))"), "risk selector clears or redirects after deleting the active dataset")
 assert.ok(datasetsPageSource.includes(".limit(100)"), "dataset library loads enough rows for 50+ dataset bulk management")
 assert.ok(riskServiceSource.includes("limit: datasetId ? 1 : 100"), "risk dataset selector loads enough scoped datasets for 50+ bulk management")
 assert.ok(datasetsClientSource.includes("Select all"), "dataset library bulk action bar offers select all")
@@ -369,6 +397,19 @@ function runFixture(rows: RiskDataRow[], overrides: Partial<RiskDatasetInput> = 
     buildFixtureDataset({ ...overrides, rowCount: overrides.rowCount ?? rows.length, columns: overrides.columns ?? Object.keys(rows[0] ?? {}) }),
     rows,
   )
+}
+
+function parseSimpleCsvFixture(csvText: string): RiskDataRow[] {
+  const [headerLine, ...lines] = csvText.trim().split(/\r?\n/)
+  const headers = (headerLine || "").split(",")
+  return lines.map((line) => {
+    const values = line.split(",")
+    return Object.fromEntries(headers.map((header, index) => {
+      const value = values[index] ?? ""
+      const numeric = Number(value)
+      return [header, Number.isFinite(numeric) && value.trim() !== "" ? numeric : value]
+    }))
+  })
 }
 
 function assertFiniteNumbers(result: NonNullable<ReturnType<typeof calculateRiskIntelligence>>) {
@@ -533,6 +574,38 @@ assert.ok(retailResult.findings.some((finding) => finding.ruleId === "concentrat
 assert.equal(retailResult.metrics.invalidDateRatio.value, 0, "retail order dates parse canonically")
 assertFiniteNumbers(retailResult)
 assertDeterministic(retailRows)
+
+const clevrSyncRows = parseSimpleCsvFixture(readFileSync("test-fixtures/business-models/clevrsync-retail-test-500.csv", "utf8"))
+const clevrSyncDataset = buildFixtureDataset({
+  id: "synthetic_clevrsync_persisted_retail_test_500",
+  name: "UseClevr ClevrSync Retail Test 500 - Retail Sales 2026",
+  fileName: "UseClevr ClevrSync Retail Test 500 - Retail Sales 2026.csv",
+  datasetType: "standard",
+  businessModel: "generic",
+  rowCount: clevrSyncRows.length,
+  columns: Object.keys(clevrSyncRows[0] ?? {}),
+})
+const clevrSyncEligibility = getRiskDatasetEligibility(clevrSyncDataset, clevrSyncRows)
+assert.equal(clevrSyncRows.length, 500, "production ClevrSync retail fixture contains 500 persisted rows")
+assert.equal(clevrSyncEligibility.eligible, true, "ClevrSync Google Sheets Retail dataset is eligible through canonical risk capabilities")
+assert.equal(clevrSyncEligibility.semanticDatasetType, "retail", "ClevrSync Retail dataset classifies as canonical Retail despite stored standard upload type")
+assert.ok(clevrSyncEligibility.applicableModuleLabels.includes("Financial Risk"), "ClevrSync Retail exposes financial risk capability")
+assert.ok(clevrSyncEligibility.applicableModuleLabels.includes("Profitability Risk"), "ClevrSync Retail exposes profitability risk capability")
+const clevrSyncRisk = calculateRiskIntelligence(clevrSyncDataset, clevrSyncRows)
+assert.ok(clevrSyncRisk, "ClevrSync Retail dataset calculates Risk Intelligence")
+assert.equal(clevrSyncRisk.dataset.id, "synthetic_clevrsync_persisted_retail_test_500", "ClevrSync result keeps the selected dataset ID")
+assert.equal(clevrSyncRisk.dataset.name, "UseClevr ClevrSync Retail Test 500 - Retail Sales 2026", "ClevrSync result displays the selected dataset name")
+assert.equal(clevrSyncRisk.dataset.rowCount, 500, "ClevrSync result row count comes only from its 500 rows")
+const uploadedRetailEligibility = getRiskDatasetEligibility(
+  buildFixtureDataset({ id: "uploaded_retail_xlsx", name: "Uploaded Retail XLSX", fileName: "uploaded-retail.xlsx", datasetType: "retail", rowCount: clevrSyncRows.length, columns: Object.keys(clevrSyncRows[0] ?? {}) }),
+  clevrSyncRows,
+)
+assert.equal(uploadedRetailEligibility.eligible, true, "uploaded Retail XLSX remains eligible")
+assert.deepEqual(
+  clevrSyncEligibility.applicableModuleLabels,
+  uploadedRetailEligibility.applicableModuleLabels,
+  "ClevrSync and uploaded Retail data share equivalent risk capability semantics",
+)
 
 // --- Ecommerce: net_sales trend with real periods ---------------------------
 
@@ -738,6 +811,7 @@ const crashCandidateRows: RiskDatasetRow[] = [
     datasetType: "standard",
     analysis: null,
     status: "ready",
+    source: "excel",
     createdAt: new Date("not-a-date"),
     updatedAt: "infinity",
   },
@@ -748,8 +822,9 @@ const crashCandidateRows: RiskDatasetRow[] = [
     rowCount: 2,
     columnCount: 3,
     datasetType: "standard",
-    analysis: null,
+    analysis: { uploadSource: "clevrsync", source: "google_sheets" },
     status: "ready",
+    source: "google_sheets",
     createdAt: null,
     updatedAt: null,
   },
@@ -761,6 +836,7 @@ assert.equal(crashSummaries[0]?.createdAt, null, "invalid Date createdAt formats
 assert.equal(crashSummaries[0]?.updatedAt, null, "'infinity' updatedAt formats as null instead of throwing")
 assert.equal(crashSummaries[0]?.supported, true, "a candidate with invalid metadata stays selectable for risk calculation")
 assert.equal(crashSummaries[1]?.createdAt, null, "missing timestamps format as null")
+assert.equal(crashSummaries[1]?.sourceLabel, "Google Sheets / ClevrSync", "ClevrSync Google Sheets provenance stays visible in Risk Intelligence selection")
 
 // standard scope, requestedDatasetId=null: workspace listing + initial dataset
 // determination must complete even when a candidate dataset's rows contain

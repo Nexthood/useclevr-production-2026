@@ -35,9 +35,12 @@ async function main() {
       buildDataset(datasetB1, userB, "Isolation Retail B1", now, 60),
     ])
     await db.insert(datasetRows).values([
-      buildRow(datasetA1, 0, { order_id: "A1-1", revenue: 100 }),
-      buildRow(datasetA2, 0, { order_id: "A2-1", revenue: 200 }),
-      buildRow(datasetB1, 0, { order_id: "B1-1", revenue: 300 }),
+      buildRow(datasetA1, 0, { order_id: "A1-1", date: "2026-01-15", product: "A1 Shirt", quantity: 5, inventory: 12, revenue: 100, cost: 60 }),
+      buildRow(datasetA1, 1, { order_id: "A1-2", date: "2026-02-15", product: "A1 Shirt", quantity: 3, inventory: 9, revenue: 80, cost: 55 }),
+      buildRow(datasetA2, 0, { order_id: "A2-1", date: "2026-01-15", revenue: 200, cost: 120 }),
+      buildRow(datasetA2, 1, { order_id: "A2-2", date: "2026-02-15", revenue: 180, cost: 125 }),
+      buildRow(datasetB1, 0, { order_id: "B1-1", date: "2026-01-15", product: "B1 Bag", quantity: 7, inventory: 20, revenue: 300, cost: 160 }),
+      buildRow(datasetB1, 1, { order_id: "B1-2", date: "2026-02-15", product: "B1 Bag", quantity: 5, inventory: 15, revenue: 260, cost: 150 }),
     ])
 
     // ─── Direct dataset access ────────────────────────────────────────
@@ -144,16 +147,19 @@ async function main() {
 }
 
 function buildDataset(id: string, userId: string, name: string, now: Date, rowCount: number) {
+  const isRetail = name.includes("Retail")
   return {
     id,
     userId,
     name,
     fileName: `${id}.csv`,
     rowCount,
-    columnCount: 2,
-    columns: ["order_id", "revenue"],
+    columnCount: isRetail ? 7 : 4,
+    columns: isRetail
+      ? ["order_id", "date", "product", "quantity", "inventory", "revenue", "cost"]
+      : ["order_id", "date", "revenue", "cost"],
     data: [],
-    datasetType: name.includes("Retail") ? "retail" : "standard",
+    datasetType: isRetail ? "retail" : "standard",
     status: "ready",
     analysisStatus: "completed",
     analysis: {},

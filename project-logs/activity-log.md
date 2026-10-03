@@ -1,3 +1,12 @@
+## 2026-10-03 — Risk Intelligence explicit dataset selection recovery
+
+- continued: recovered the interrupted working-tree implementation from the existing diff without reverting or overwriting prior changes
+- fixed: Risk Intelligence now lists datasets by central capability eligibility, treats normalized Google Sheets / ClevrSync Retail rows as Retail-capable, requires explicit selection when multiple eligible datasets exist, and clears stale/deleted/ineligible selections without falling back to the newest dataset or `02_ecommerce`
+- changed: selected-dataset calculation and APIs validate ownership, visibility, status, semantic scope, and eligibility on the server before calculating; the page calculates only the requested selected dataset and shows the selector empty state when multiple eligible datasets have no explicit selection
+- added: regression coverage in `test-risk-engine.ts` for selection resolution, no stored-type prefiltering, ClevrSync Retail 500-row eligibility, source provenance, selected dataset identity, and uploaded-vs-ClevrSync Retail capability equivalence; dataset isolation fixtures now include eligible business signals so the stricter eligibility list is tested realistically
+- verified: `pnpm validate:types`; `test:risk-intelligence`; `test:risk-explainability`; dashboard selected-dataset routing; dashboard workspace scope; dataset isolation; ClevrSync core, Sheets discovery, Google OAuth redirect, entitlement, and retail-profitability suites; Retail POS, source analytics, credit integration, and local-retail inventory snapshots; `lint:project-records`; `lint:secrets`
+- noted: networked DB tests required scoped network escalation after Neon DNS failures; local-retail snapshots required scoped escalation for `pdftotext`; no commit or push
+
 ## 2026-10-03 — Dependency security fix for PR #390
 
 - changed: `pnpm-workspace.yaml` overrides bump `hono` 4.13.5 → 4.13.12 (clears GHSA-hxh3-vqpv-xpqv) and `dompurify` 3.4.14 → 3.4.16 (clears GHSA-p98j-92pf-mc4p), and `package.json` bumps the direct `dompurify` dependency to 3.4.16; `braces` stays 3.0.3 because no patched release exists upstream (GHSA-vfj7-8cjw-p6xm states "Patched versions: None", npm latest resolves 3.0.3, no `>=3.0.4` release is published)

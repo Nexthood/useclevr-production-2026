@@ -124,6 +124,15 @@ export type RiskIntelligenceResult = {
   trendComparison: string
 }
 
+export type RiskDatasetEligibility = {
+  eligible: boolean
+  semanticDatasetType: RiskSemanticDatasetType | null
+  semanticConfidence: string | null
+  applicableCategories: RiskCategory[]
+  applicableModuleLabels: string[]
+  applicableRuleCount: number
+}
+
 export const RISK_CATEGORY_LABELS: Record<RiskCategory, string> = {
   inventory: "Inventory Risk",
   financial: "Financial Risk",
@@ -150,7 +159,7 @@ export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskD
   const normalizedRows = rows.filter(isRecord)
   const columns = getColumns(dataset.columns, normalizedRows)
 
-  if (!isSupportedRiskDatasetType(datasetType) || columns.length === 0 || normalizedRows.length === 0) {
+  if (columns.length === 0 || normalizedRows.length === 0) {
     return null
   }
 
@@ -252,6 +261,31 @@ export function calculateRiskIntelligence(dataset: RiskDatasetInput, rows: RiskD
       .filter(([, metric]) => !metric.available)
       .map(([metric]) => metric as RiskMetricKey),
     trendComparison: derived.hasComparableHistory ? derived.trendComparison : "No previous comparison available.",
+  }
+}
+
+export function getRiskDatasetEligibility(dataset: RiskDatasetInput, rows: RiskDataRow[]): RiskDatasetEligibility {
+  const result = calculateRiskIntelligence(dataset, rows)
+  if (!result) {
+    return {
+      eligible: false,
+      semanticDatasetType: null,
+      semanticConfidence: null,
+      applicableCategories: [],
+      applicableModuleLabels: [],
+      applicableRuleCount: 0,
+    }
+  }
+
+  const applicableCategories = unique(result.categorySummaries.map((summary) => summary.category))
+  const businessCategories = applicableCategories.filter((category) => category !== "data_quality")
+  return {
+    eligible: businessCategories.length > 0,
+    semanticDatasetType: result.dataset.semanticDatasetType,
+    semanticConfidence: result.dataset.semanticConfidence,
+    applicableCategories,
+    applicableModuleLabels: applicableCategories.map((category) => RISK_CATEGORY_LABELS[category]),
+    applicableRuleCount: result.categorySummaries.reduce((sum, summary) => sum + summary.applicableRuleCount, 0),
   }
 }
 

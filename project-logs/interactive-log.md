@@ -19028,6 +19028,51 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
    - Release notes: CHANGELOG.md
    - Product requirement: requirements.md
 
+## 2026-10-03 — Risk Intelligence dataset-selection recovery
+
+1. Interaction title
+   Continue the interrupted Risk Intelligence dataset-selection fix after a VS Code/Codex crash.
+
+2. What was the user goal
+   Recover the existing uncommitted implementation, avoid restarting or reverting work, and finish explicit Risk Intelligence dataset selection so eligible normalized ClevrSync / Google Sheets Retail datasets can be selected without latest-dataset or `02_ecommerce` fallback.
+
+3. What changed
+   - `src/lib/risk-intelligence/risk-engine.ts` exposes central `getRiskDatasetEligibility`, using semantic rule applicability instead of stored upload type alone.
+   - `src/lib/risk-intelligence/risk-service.ts` lists datasets through capability eligibility, loads rows for semantic checks, records semantic type/source/module metadata, validates owner/status/visibility/eligibility/scope before calculation, and adds `resolveRiskDatasetSelection`.
+   - `src/app/(auth)/app/risk-intelligence/page.tsx` defaults to all eligible Risk Intelligence datasets, requires an explicit dataset when multiple eligible datasets exist, redirects stale selections to the empty selector state, and calculates only the selected dataset.
+   - `src/components/risk-intelligence/risk-dataset-selector.tsx` adds an explicit dropdown, provenance/module details, safe active-selection clearing after delete, and scope-preserving links.
+   - `scripts/risk-intelligence/test-risk-engine.ts` pins explicit selection, ClevrSync Retail 500-row eligibility, source labels, and ClevrSync/uploaded Retail capability equivalence.
+   - `scripts/security/test-dataset-cross-user-isolation.ts` fixtures now include enough business semantics for the stricter Risk eligibility gate.
+   - `CHANGELOG.md`, `requirements.md`, `project-logs/activity-log.md`, and `docs/AI-interaction/interaction-status.md` document the current behavior.
+
+4. Problems marked
+   - blocker: none.
+   - risk: Risk Intelligence dataset listing now loads rows for up to 100 candidates to evaluate eligibility; this is correct for capability selection but heavier than stored-type filtering.
+   - improvement: a future cached semantic eligibility field can reduce selector load while preserving the same central eligibility contract.
+   - observation: networked DB tests need network permission in this sandbox, and PDF-based Retail tests need `pdftotext` execution permission.
+
+5. User learning
+   Risk Intelligence now shows eligible datasets as choices and does not silently switch to the newest dataset or the old ecommerce fixture when the selected dataset is stale.
+
+6. AI-agent learning
+   Treat stored `datasetType` as a hint only for Risk Intelligence selection; the authoritative eligibility source is semantic rule applicability over the selected dataset rows.
+
+7. Follow-up tasks
+   - None assigned.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Product requirement updates: requirements.md
+   - Release notes: CHANGELOG.md
+   - Detailed session record: project-logs/interactive-log.md
+   - Activity summary: project-logs/activity-log.md
+   - Latest interaction status: docs/AI-interaction/interaction-status.md
+
 ## 2026-10-03 — Universal AI Analyst suggested-questions capability engine
 
 1. Interaction title

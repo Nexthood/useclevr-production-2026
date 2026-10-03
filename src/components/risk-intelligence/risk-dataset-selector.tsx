@@ -12,7 +12,7 @@ import * as React from "react"
 type RiskDatasetSelectorProps = {
   datasets: RiskDatasetSummary[]
   selectedDatasetId: string | null
-  scope: string
+  scope: string | null
 }
 
 export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: RiskDatasetSelectorProps) {
@@ -42,6 +42,15 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
   const selectedCount = selectedIds.size
   const filteredIds = filteredDatasets.map((dataset) => dataset.id)
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((datasetId) => selectedIds.has(datasetId))
+  const selectedDataset = visibleDatasets.find((dataset) => dataset.id === selectedDatasetId) || null
+
+  const riskHref = React.useCallback((datasetId?: string | null) => {
+    const params = new URLSearchParams()
+    if (datasetId) params.set("datasetId", datasetId)
+    if (scope) params.set("scope", scope)
+    const queryString = params.toString()
+    return queryString ? `/app/risk-intelligence?${queryString}` : "/app/risk-intelligence"
+  }, [scope])
 
   const toggleDataset = (datasetId: string) => {
     setSelectedIds((current) => {
@@ -100,12 +109,14 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
     }
 
     if (selectedDatasetId && deletedIds.has(selectedDatasetId)) {
-      const nextSelectedDatasetId = nextVisibleDatasets[0]?.id || null
-      const redirectHref = nextSelectedDatasetId
-        ? `/app/risk-intelligence?datasetId=${encodeURIComponent(nextSelectedDatasetId)}&scope=${encodeURIComponent(scope)}`
-        : `/app/risk-intelligence?scope=${encodeURIComponent(scope)}`
-      router.replace(redirectHref)
+      const nextSelectedDatasetId = nextVisibleDatasets.length === 1 ? nextVisibleDatasets[0]?.id || null : null
+      router.replace(riskHref(nextSelectedDatasetId))
     }
+  }
+
+  const handleDatasetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const datasetId = event.target.value
+    router.push(riskHref(datasetId || null))
   }
 
   return (
@@ -126,6 +137,40 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
           </Button>
         </div>
       </div>
+
+      {!isManaging && (
+        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <label className="block min-w-0">
+            <span className="text-xs font-medium text-muted-foreground">Analyzed dataset</span>
+            <select
+              value={selectedDatasetId || ""}
+              onChange={handleDatasetChange}
+              className="mt-1 h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              aria-label="Select Risk Intelligence dataset"
+            >
+              <option value="" disabled>
+                Select an eligible dataset
+              </option>
+              {visibleDatasets.map((dataset) => (
+                <option key={dataset.id} value={dataset.id}>
+                  {dataset.name} - {dataset.sourceLabel} - {dataset.semanticDatasetTypeLabel || dataset.datasetTypeLabel} - {dataset.rowCount.toLocaleString()} rows
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedDataset ? (
+            <div className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">{selectedDataset.name}</p>
+              <p>
+                Source: {selectedDataset.sourceLabel} / Type: {selectedDataset.semanticDatasetTypeLabel || selectedDataset.datasetTypeLabel} / {selectedDataset.rowCount.toLocaleString()} rows
+              </p>
+              {selectedDataset.applicableModules.length > 0 ? (
+                <p className="mt-1">Modules: {selectedDataset.applicableModules.join(", ")}</p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {isManaging && (
         <div className="mt-3 space-y-3">
@@ -168,10 +213,8 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
             const isSelected = selectedDatasetId === dataset.id
             const isBulkSelected = selectedIds.has(dataset.id)
             const remainingDatasets = visibleDatasets.filter((candidate) => candidate.id !== dataset.id)
-            const nextSelectedDatasetId = isSelected ? remainingDatasets[0]?.id || null : selectedDatasetId
-            const redirectHref = nextSelectedDatasetId
-              ? `/app/risk-intelligence?datasetId=${encodeURIComponent(nextSelectedDatasetId)}&scope=${encodeURIComponent(scope)}`
-              : `/app/risk-intelligence?scope=${encodeURIComponent(scope)}`
+            const nextSelectedDatasetId = isSelected && remainingDatasets.length === 1 ? remainingDatasets[0]?.id || null : selectedDatasetId
+            const redirectHref = riskHref(nextSelectedDatasetId)
 
             return (
               <div
@@ -206,7 +249,7 @@ export function RiskDatasetSelector({ datasets, selectedDatasetId, scope }: Risk
                 ) : (
                   <>
                     <Link
-                      href={`/app/risk-intelligence?datasetId=${encodeURIComponent(dataset.id)}&scope=${encodeURIComponent(scope)}`}
+                      href={riskHref(dataset.id)}
                       className="inline-flex min-h-9 items-center gap-2 px-3 py-2 text-xs font-medium"
                     >
                       <Database className="h-3.5 w-3.5" aria-hidden="true" />

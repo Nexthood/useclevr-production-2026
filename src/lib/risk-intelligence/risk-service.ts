@@ -4,8 +4,10 @@ import { isSuperadmin } from "@/lib/auth/builtin-users"
 import { canAccessAllDatasets, loadDatasetData } from "@/lib/data/dataset-access"
 import { normalizeDatasetCategory, resolveDatasetType, type DatasetCategory } from "@/lib/data/dataset-category"
 import { formatCanonicalIsoTimestamp } from "@/lib/data/canonical-date"
+import { getDatasetSourceLabel } from "@/lib/data/dataset-source"
 import {
   calculateRiskIntelligence,
+  getRiskDatasetEligibility,
   getDatasetTypeLabel,
   isSupportedRiskDatasetType,
   type RiskIntelligenceResult,
@@ -24,6 +26,13 @@ export type RiskDatasetSummary = {
   fileName: string | null
   datasetType: string
   datasetTypeLabel: string
+  semanticDatasetType: string | null
+  semanticDatasetTypeLabel: string | null
+  semanticConfidence: string | null
+  source: string | null
+  sourceLabel: string
+  applicableModules: string[]
+  applicableRuleCount: number
   rowCount: number
   columnCount: number
   /** ISO timestamp or null when the stored value is not a valid date. */
@@ -40,15 +49,23 @@ export type RiskDatasetListOptions = {
   datasetId?: string | null
 }
 
+export type RiskDatasetSelection = {
+  selectedDatasetId: string | null
+  staleSelection: boolean
+}
+
 export type RiskDatasetRow = {
   id: string
   name: string | null
   fileName: string | null
   rowCount: number | null
   columnCount: number | null
+  columns?: string[] | null
+  data?: Record<string, unknown>[] | null
   datasetType: string | null
   analysis: unknown
   status: string
+  source?: string | null
   createdAt: Date | string | null
   updatedAt: Date | string | null
 }
@@ -74,12 +91,20 @@ export function canAccessRiskDataset(user: RiskUserContext, datasetOwnerId: stri
 export function toRiskDatasetSummary(row: RiskDatasetRow): RiskDatasetSummary | null {
   if (!isVisibleRiskDataset(row.name, row.fileName, row.id)) return null
   const datasetType = resolveDatasetType(row.datasetType, row.analysis)
+  const source = row.source || analysisString(row.analysis, "source")
   return {
     id: row.id,
     name: row.name || row.id,
     fileName: row.fileName || null,
     datasetType,
     datasetTypeLabel: getDatasetTypeLabel(datasetType),
+    semanticDatasetType: null,
+    semanticDatasetTypeLabel: null,
+    semanticConfidence: null,
+    source,
+    sourceLabel: riskDatasetSourceLabel(source, row.analysis),
+    applicableModules: [],
+    applicableRuleCount: 0,
     rowCount: row.rowCount || 0,
     columnCount: row.columnCount || 0,
     createdAt: formatCanonicalIsoTimestamp(row.createdAt),
@@ -101,7 +126,6 @@ export async function listRiskIntelligenceDatasets(
   const whereConditions = [
     canReadAll ? undefined : eq(datasets.userId, user.id),
     datasetId ? eq(datasets.id, datasetId) : undefined,
-    scope ? eq(datasets.datasetType, scope) : undefined,
     ne(datasets.status, "deleted"),
     ne(datasets.status, "archived"),
   ].filter(Boolean) as Parameters<typeof and>
@@ -114,8 +138,11 @@ export async function listRiskIntelligenceDatasets(
       fileName: true,
       rowCount: true,
       columnCount: true,
+      columns: true,
+      data: true,
       datasetType: true,
       analysis: true,
+      source: true,
       status: true,
       createdAt: true,
       updatedAt: true,
@@ -124,10 +151,41 @@ export async function listRiskIntelligenceDatasets(
     limit: datasetId ? 1 : 100,
   })
 
-  return dedupeByDatasetId(rows)
-    .map((row) => toRiskDatasetSummary(row as RiskDatasetRow))
-    .filter((dataset): dataset is RiskDatasetSummary => dataset !== null)
-    .filter((dataset) => !scope || dataset.datasetType === scope)
+  const summaries: RiskDatasetSummary[] = []
+  for (const row of dedupeByDatasetId(rows as RiskDatasetRow[])) {
+    const summary = toRiskDatasetSummary(row)
+    if (!summary) continue
+    const rowsForDataset = await loadDatasetData(row.id, row as typeof datasets.$inferSelect)
+    const eligibility = getRiskDatasetEligibility(
+      {
+        id: row.id,
+        name: row.name || row.id,
+        fileName: row.fileName || null,
+        datasetType: summary.datasetType,
+        rowCount: row.rowCount,
+        columns: Array.isArray((row as { columns?: unknown }).columns) ? ((row as { columns: string[] }).columns) : null,
+        analysis: row.analysis,
+      },
+      rowsForDataset,
+    )
+
+    if (!eligibility.eligible) continue
+    if (scope && eligibility.semanticDatasetType !== scope) continue
+
+    summaries.push({
+      ...summary,
+      semanticDatasetType: eligibility.semanticDatasetType,
+      semanticDatasetTypeLabel: eligibility.semanticDatasetType
+        ? getDatasetTypeLabel(eligibility.semanticDatasetType)
+        : null,
+      semanticConfidence: eligibility.semanticConfidence,
+      applicableModules: eligibility.applicableModuleLabels,
+      applicableRuleCount: eligibility.applicableRuleCount,
+      supported: eligibility.eligible,
+    })
+  }
+
+  return summaries
 }
 
 export async function calculateRiskIntelligenceForDataset(
@@ -166,15 +224,6 @@ export async function calculateRiskIntelligenceForDataset(
   }
 
   const datasetType = resolveDatasetType(dataset.datasetType, dataset.analysis)
-  if (scope && datasetType !== scope) {
-    return {
-      success: false,
-      status: 404,
-      error: `No ${getDatasetTypeLabel(scope)} dataset is available for this Risk Intelligence scope.`,
-      code: "dataset_scope_mismatch",
-    }
-  }
-
   if (!isVisibleRiskDataset(dataset.name, dataset.fileName, dataset.id)) {
     return {
       success: false,
@@ -184,7 +233,9 @@ export async function calculateRiskIntelligenceForDataset(
     }
   }
 
-  if (!isSupportedRiskDatasetType(datasetType)) {
+  const rows = await loadDatasetData(dataset.id, dataset)
+  const eligibility = getRiskDatasetEligibility({ ...dataset, datasetType }, rows)
+  if (!eligibility.eligible) {
     return {
       success: false,
       status: 400,
@@ -193,7 +244,15 @@ export async function calculateRiskIntelligenceForDataset(
     }
   }
 
-  const rows = await loadDatasetData(dataset.id, dataset)
+  if (scope && eligibility.semanticDatasetType !== scope) {
+    return {
+      success: false,
+      status: 404,
+      error: `No ${getDatasetTypeLabel(scope)} dataset is available for this Risk Intelligence scope.`,
+      code: "dataset_scope_mismatch",
+    }
+  }
+
   const result = calculateRiskIntelligence({ ...dataset, datasetType }, rows)
 
   if (!result) {
@@ -206,6 +265,25 @@ export async function calculateRiskIntelligenceForDataset(
   }
 
   return { success: true, result }
+}
+
+export function resolveRiskDatasetSelection(
+  eligibleDatasets: Array<Pick<RiskDatasetSummary, "id">>,
+  requestedDatasetId?: string | null,
+): RiskDatasetSelection {
+  const requested = normalizeId(requestedDatasetId)
+  if (requested) {
+    const selected = eligibleDatasets.find((dataset) => dataset.id === requested)
+    return {
+      selectedDatasetId: selected?.id || null,
+      staleSelection: !selected,
+    }
+  }
+
+  return {
+    selectedDatasetId: eligibleDatasets.length === 1 ? eligibleDatasets[0]?.id || null : null,
+    staleSelection: false,
+  }
 }
 
 export function normalizeRiskModuleScope(value?: string | null): RiskModuleScope | null {
@@ -242,4 +320,17 @@ function isVisibleRiskDataset(name: string | null | undefined, fileName: string 
   if (text.includes("provider_path_dataset")) return false
   if (text.includes("codex-selected-dashboard-check")) return false
   return true
+}
+
+function riskDatasetSourceLabel(source: string | null | undefined, analysis: unknown) {
+  const base = getDatasetSourceLabel(source)
+  const uploadSource = analysisString(analysis, "uploadSource")
+  if (uploadSource === "clevrsync" && base !== "ClevrSync") return `${base} / ClevrSync`
+  return base
+}
+
+function analysisString(analysis: unknown, key: string) {
+  if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) return null
+  const value = (analysis as Record<string, unknown>)[key]
+  return typeof value === "string" && value.trim() ? value.trim() : null
 }
