@@ -19147,3 +19147,27 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - Follow-up tasks
   - None assigned.
 - Not committed or pushed per instruction.
+
+## 2026-10-03 — Risk ClevrSync Parity CI Hermetic Repair
+
+- User goal: fix only the CI failure introduced by the new `test:risk-clevrsync-parity` suite — GitHub Actions failed `pnpm validate:types` (the shared validate job) while executing the suite with PostgreSQL `42P01` from `parserOpenTable` around line 91; keep the production fix untouched, keep the suite in `test:all` with every assertion, and make it hermetic against the bare CI database.
+- Trace and findings
+  - `validate.yml` starts a bare `postgres:17-alpine` service and exports `DATABASE_URL=postgresql://ci:ci@localhost:5432/ci` with no migrations; `ci.yml` runs `test:all` inside that job.
+  - The parity suite is the only `test:all` member that imports `@/lib/db` and runs real SQL; the previous hermetic-db pattern (`scripts/analysis/canonical-financial-metrics-test-db.ts`, globalThis fake singleton) fakes query results and cannot serve insert/query dedupe/ownership assertions.
+  - Exact first failure: the suite's first database statement, `db.insert(users)` at test line 91, targets the physical `"User"` relation — missing on the bare DB → `code 42P01`, `routine parserOpenTable`, `relation "User" does not exist`; `"Dataset"` and `"DatasetRow"` would fail the same way immediately after.
+  - Local validation passed because the local `DATABASE_URL` points at the fully migrated developer database, where the rehearsal for the same statements hit existing relations.
+- What changed
+  - `scripts/risk-intelligence/risk-clevrsync-parity-test-db.ts` (new): idempotent bootstrap creating exactly `"User"`, `"Dataset"`, `"DatasetRow"` (plus convergence `ALTER ... ADD COLUMN IF NOT EXISTS` statements and the `User_email_key`, `Dataset_userId_businessModel_idx`, `DatasetRow_datasetId_idx`, `DatasetRow_datasetId_rowIndex_idx` indexes) faithful to the current `src/lib/db/schema.ts` shapes, with FKs `Dataset_userId_fkey` and `DatasetRow_datasetId_fkey` — the same idempotent-DDL pattern `scripts/runtime/railway-predeploy.cjs` uses for bare runtime databases. No migrations journal is written; nothing beyond the three relations is touched; the ephemeral container probe verified bare-state reproduction of the exact CI error and full-suite success with the bootstrap.
+  - `scripts/risk-intelligence/test-risk-clevrsync-parity.ts`: imports the bootstrap first and awaits `ensureRiskClevrSyncParityTables()` before the insert sequence; all parity, isolation, selection, and stale/ineligible assertions unchanged; production code untouched.
+- Verification
+  - Bare-container probe (bootstrap disabled): `code = 42P01`, `routine = parserOpenTable`, `relation "User" does not exist` — the exact CI failure.
+  - Bare-container run (bootstrap enabled): suite passes, exits 0, creates only the three intended relations, cleans its rows.
+  - `pnpm validate:types` clean; `test:risk-clevrsync-parity`, `test:risk-intelligence`, `test:risk-explainability`, `test:dataset-isolation`, `test:dashboard-selected-dataset-routing`, `test:dashboard-workspace-scope`, `pnpm lint:secrets`, `pnpm lint:project-records`, `pnpm lint:changelog` pass; `CHANGELOG.md` gains a `### Dev` entry under `[Unreleased]`; `docs/AI-interaction/interaction-status.md` swaps in this interaction.
+- Problems marked
+  - blocker: none.
+  - risk: none new; the bootstrap only converges the declared relation subset idempotently and never drops or journals.
+  - improvement: a shared scripts-level test-schema helper could later serve additional real-SQL suites extracted into `test:all`.
+- User learning: ClevrSync parity coverage now holds in CI without production migrations and without weakening any assertion.
+- AI-agent learning: database-backed suites added to `test:all` must self-provision their schema against the bare CI Postgres; reuse the predeploy-style idempotent DDL pattern rather than a fake-db singleton when assertions require real SQL.
+- Follow-up tasks: none assigned.
+- Not committed or pushed per instruction.

@@ -7,6 +7,10 @@
  * Retail dataset through the canonical capability layer — the production
  * failure shape that previously excluded capable datasets by name tokens.
  */
+// Must stay the first import: provisions the hermetic parity test schema (bare
+// CI databases start empty) before the src/lib/db import evaluates.
+import { ensureRiskClevrSyncParityTables } from "./risk-clevrsync-parity-test-db"
+
 import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 
@@ -86,6 +90,10 @@ async function main() {
   const rows = buildRetailRows()
   const userContextA = { id: ownerA, role: "user", email: `${ownerA}@example.test` }
   const userContextB = { id: ownerB, role: "user", email: `${ownerB}@example.test` }
+
+  // Hermetic schema setup: bare CI databases carry no migrations, so create the
+  // exact relations this suite touches before the first statement runs.
+  await ensureRiskClevrSyncParityTables()
 
   try {
     await db.insert(users).values([

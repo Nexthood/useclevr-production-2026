@@ -1280,3 +1280,11 @@
 - verified: `pnpm validate:types` clean; `test:risk-clevrsync-parity`, `test:risk-intelligence`, `test:risk-explainability`, `test:dataset-isolation`, `test:dashboard-selected-dataset-routing`, `test:dashboard-workspace-scope`, `test:clevrsync`, `test:clevrsync-sheets-discovery`, `test:clevrsync-google-oauth-redirect`, `test:clevrsync-entitlement`, `test:clevrsync-retail-profitability`, `test:retail-pos`, `test:retail-source-analytics` pass; `pnpm lint:todos`, `pnpm lint:secrets`, `pnpm lint:project-records` pass
 - updated: `requirements.md`, `CHANGELOG.md` (`[Unreleased]`), `.TODO/todo-done.md` (T-1083), `docs/AI-interaction/interaction-status.md`
 - not committed or pushed per instruction
+
+## 2026-10-03 — Risk ClevrSync parity suite hermetic CI schema bootstrap
+
+- fixed: the `test:risk-clevrsync-parity` suite provisions its own database relations so the bare GitHub Actions validation PostgreSQL (`postgresql://ci:ci@localhost:5432/ci`, no migrations) no longer fails with `42P01` `parserOpenTable` `relation "User" does not exist` on the suite's first insert at line 91
+- added: `scripts/risk-intelligence/risk-clevrsync-parity-test-db.ts` creates exactly `"User"`, `"Dataset"`, and `"DatasetRow"` idempotently (`CREATE TABLE IF NOT EXISTS` + `ALTER ... ADD COLUMN IF NOT EXISTS` + indexes, faithful to the current `src/lib/db/schema.ts` shapes, same pattern as `scripts/runtime/railway-predeploy.cjs`); the parity suite imports it first and awaits it before any insert
+- verified: a probe against a bare `postgres:17-alpine` container reproduces the exact CI error with the bootstrap disabled and the suite passes with it enabled, creating only the three intended relations with proper row cleanup; `pnpm validate:types`, `pnpm exec tsc --noEmit --pretty false`, `test:risk-intelligence`, `test:risk-explainability`, `test:dataset-isolation`, `test:dashboard-selected-dataset-routing`, `test:dashboard-workspace-scope`, `lint:secrets`, `lint:project-records`, and `lint:changelog` all pass
+- production Risk eligibility code stays untouched; the suite remains in `test:all` with every parity assertion intact
+- not committed or pushed per instruction

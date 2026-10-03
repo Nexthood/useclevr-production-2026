@@ -43,6 +43,7 @@
 
 ### Dev
 
+- Add a hermetic test-schema bootstrap for the Risk ClevrSync parity suite so the bare CI PostgreSQL database provisions only the relations that suite exercises, keeping local runs no-op.
 - Add Stripe market-price checkout regression tests that reproduce and block the UK GBP price-mismatch checkout failure and pin Pro UK Monthly to £35.
 - Add a Stripe market price audit script that compares configured market Price IDs against the approved currency, amount, and billing interval matrix.
 
