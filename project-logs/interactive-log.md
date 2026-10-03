@@ -19115,3 +19115,35 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 
 8. Follow-up tasks
    - None assigned.
+
+## 2026-10-03 — Risk Intelligence ClevrSync Eligibility Repair
+
+- User goal: fix the remaining Risk Intelligence eligibility bug observed in production where the Dashboard analyzes "UseClevr ClevrSync Retail Test 500 – Retail Sales 2026" (Google Sheets / ClevrSync, 500 processed rows, correct Retail KPIs and low-stock signals) while Risk Intelligence omits it from the eligible dataset list and the explicit selector; trace the exact persisted path from ClevrSync persistence through dataset record, stored rows, semantic capability, eligibility helper, dataset query, and selector, compare it with an uploaded Retail dataset, find the first exclusion point, make ClevrSync datasets first-class through deterministic semantic capability, and add a regression test built on the real failure shape.
+- What changed
+  - `src/lib/risk-intelligence/risk-service.ts`: removes the user-authored name-word gate `/\b(test|fixture|seed|demo|sample|codex)\b/` that vetoed capable datasets; `isVisibleRiskDataset` now hides only the internal synthetic-record identities (`provider_path_dataset`, `codex-selected-dashboard-check`) on both the selector list and calculation paths; `toRiskDatasetSummary` no longer applies the visibility guard; `calculateRiskIntelligenceForDataset` orders owner access → eligibility from persisted rows → marker hiding → eligibility 400 → scope 404 so eligibility decisions come only from owner scope, deleted/archived status, and `getRiskDatasetEligibility`; documentation comments state the canonical contract.
+  - `scripts/risk-intelligence/test-risk-clevrsync-parity.ts` (new, `test:risk-clevrsync-parity`, added to `test:all`): inserts the exact ClevrSync persistence representation through the database — dataset.data with 500 Retail rows plus datasetRows, stored `datasetType: "standard"`, `businessModel: "generic"`, `source: "google_sheets"`, `mimeType: "text/csv"`, analysis `uploadSource: "clevrsync"` — and asserts: it is Risk-eligible through canonical capabilities; it appears in unscoped and Retail-scoped selector candidates with ClevrSync provenance; an equivalent uploaded Retail dataset receives identical applicable module labels, rule counts, and semantic type; selecting it calculates only that dataset (immutable ID, 500 rows, actual rows-only net margin, deterministic findings, Retail scope succeeds); no `02_ecommerce` fallback with explicit selection resolving the requested dataset and the ecommerce dataset staying independently calculable; multi-dataset state requires explicit selection and reports stale requested IDs without fallback; owner isolation denies cross-user listing and calculation with 404; deleted, ineligible (unmapped-column), and internal-marker datasets remain excluded with the same statuses as before.
+  - `scripts/risk-intelligence/test-risk-engine.ts`: updates the visibility source assertion to the marker-id contract and adds a ban on re-introducing the name-word regex.
+  - `package.json`: adds `test:risk-clevrsync-parity` and includes it in `test:all`.
+  - `requirements.md` adds the first-class ClevrSync eligibility requirement; `CHANGELOG.md` records the fix under `[Unreleased]`; `.TODO/todo-done.md` records T-1083; `docs/AI-interaction/interaction-status.md` swaps in this interaction.
+- Trace and findings (root cause audit)
+  - ClevrSync path: `Preview → googleSheetPreviewToCsvFile → uploadCSV` persists `datasetType: "standard"`, `businessModel: "generic"`, `source: "google_sheets"`, `analysis.uploadSource: "clevrsync"`, full `dataset.data`, and `datasetRows`.
+  - Risk selector: `listRiskIntelligenceDatasets` → `toRiskDatasetSummary` → visibility gate → `getRiskDatasetEligibility(loadDatasetData(...))` → scope filter.
+  - First exclusion point: the visibility gate inside `toRiskDatasetSummary`, before rows load or semantics run. The dataset name contains the standalone word "Test" from its Google Sheets spreadsheet title, so `\b(test)\b` matched.
+  - Exact original root cause: the synthetic-record name heuristic wrapped itself around the eligibility pipeline as a hard gate, so word-choosing of production spreadsheet titles by users could silently exclude deterministic capability-passing datasets; the calculation path returned 404 `dataset_not_found` for the same reason.
+  - Comparison: the uploaded Retail twin passed because its name has no name-word hits; engine eligibility itself already returned `eligible: true, semanticDatasetType: retail` for the ClevrSync dataset (existing `test:risk-intelligence` coverage), so datasetType/source suspicion was false.
+  - Dashboard-vs-Risk asymmetry: `isDashboardEligibleDataset` in `dashboard-dataset-aggregation.ts` has no name gate and explicitly accepts standard-type ClevrSync datasets, so the Dashboard analyzed it while Risk excluded it.
+- Verification
+  - Pre-fix live-DB repro: ClevrSync dataset absent from the list, calculation 404, direct eligibility true and retail.
+  - Post-fix: repro shows both datasets in the list and scoped calculation succeeding from only the selected 500 rows.
+  - `pnpm validate:types` clean; `test:risk-clevrsync-parity`, `test:risk-intelligence`, `test:risk-explainability`, `test:dataset-isolation`, `test:dashboard-selected-dataset-routing`, `test:dashboard-workspace-scope`, `test:clevrsync`, `test:clevrsync-sheets-discovery`, `test:clevrsync-google-oauth-redirect`, `test:clevrsync-entitlement`, `test:clevrsync-retail-profitability`, `test:retail-pos`, `test:retail-source-analytics` all pass; `pnpm lint:todos`, `pnpm lint:secrets`, `pnpm lint:project-records` pass.
+- Problems marked
+  - blocker: none.
+  - risk: production datasets from earlier QA sessions whose names contain test/seed/demo/sample/fixture words now appear in Risk selectors when they prove canonical capability; this is the intended capability contract, and owner scoping still applies.
+  - improvement: none assigned.
+- User learning
+  ClevrSync datasets from Google Sheets now score Risk Intelligence like uploaded Retail datasets; spreadsheets titled with words like "test" or "sample" no longer vanish from the Risk selector when their data supports deterministic rules.
+- AI-agent learning
+  Never treat user-authored identifiers (names) as capability evidence. Synthetic-record hiding belongs on stable internal identity markers, and every eligibility decision must run through the canonical capability helper from persisted rows.
+- Follow-up tasks
+  - None assigned.
+- Not committed or pushed per instruction.

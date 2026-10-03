@@ -273,7 +273,11 @@ assert.ok(riskServiceSource.includes("getRiskDatasetEligibility"), "risk dataset
 assert.ok(!riskServiceSource.includes("scope ? eq(datasets.datasetType, scope)"), "risk dataset list never filters ClevrSync candidates by stored dataset_type before canonical eligibility")
 assert.ok(riskServiceSource.includes("datasetId ? eq(datasets.id, datasetId)"), "risk dataset list filters by current dataset ID when supplied")
 assert.ok(riskServiceSource.includes("dedupeByDatasetId"), "risk dataset list deduplicates by immutable dataset ID")
-assert.ok(riskServiceSource.includes("isVisibleRiskDataset"), "risk dataset list hides test and seed records from production selectors")
+assert.ok(riskServiceSource.includes("isVisibleRiskDataset"), "risk dataset list hides internal synthetic-record marker identities from production selectors")
+assert.ok(
+  !riskServiceSource.includes("\\b(test|fixture|seed|demo|sample|codex)\\b"),
+  "risk eligibility never vetoes capable datasets on user-authored name words such as ClevrSync titles",
+)
 assert.ok(riskPageSource.includes("params?.scope || null"), "risk page defaults to all eligible Risk Intelligence datasets")
 assert.doesNotMatch(
   riskPageSource,
