@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/usy/chat/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/home/runner/work/useclevr-production-2026/useclevr-production-2026/src/app/api/usy/chat/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};
