@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Risk Intelligence now includes datasets connected through ClevrSync from Google Sheets when their retail data supports the same deterministic rules, so connected and uploaded datasets with equivalent data receive the same risk eligibility.
 - Risk Intelligence now lets users explicitly choose among eligible datasets, including connected Google Sheets Retail datasets, and clears stale selections instead of falling back to another dataset.
 - Suggested questions now appear for Profitability analyses in the AI Assistant, generated from the capabilities the selected dataset actually supports instead of an "unavailable" empty state.
 - The AI Assistant answers why unavailable metrics are missing (like gross profit without cost data) instead of suggesting calculations the dataset cannot support.
@@ -42,6 +43,7 @@
 
 ### Dev
 
+- Add a hermetic test-schema bootstrap for the Risk ClevrSync parity suite so the bare CI PostgreSQL database provisions only the relations that suite exercises, keeping local runs no-op.
 - Add Stripe market-price checkout regression tests that reproduce and block the UK GBP price-mismatch checkout failure and pin Pro UK Monthly to £35.
 - Add a Stripe market price audit script that compares configured market Price IDs against the approved currency, amount, and billing interval matrix.
 

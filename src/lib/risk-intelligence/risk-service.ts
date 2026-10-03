@@ -87,9 +87,13 @@ export function canAccessRiskDataset(user: RiskUserContext, datasetOwnerId: stri
  * Metadata timestamps go through canonical validation; invalid or missing
  * timestamps become null so one bad candidate row can never break the
  * workspace listing that determines the initial dataset.
+ *
+ * This mapping never decides eligibility: only the canonical capability
+ * helper (`getRiskDatasetEligibility`) may exclude a dataset, so user-authored
+ * names — including ClevrSync spreadsheet titles that contain words like
+ * "test" or "sample" — can never veto a capable dataset.
  */
 export function toRiskDatasetSummary(row: RiskDatasetRow): RiskDatasetSummary | null {
-  if (!isVisibleRiskDataset(row.name, row.fileName, row.id)) return null
   const datasetType = resolveDatasetType(row.datasetType, row.analysis)
   const source = row.source || analysisString(row.analysis, "source")
   return {
@@ -153,6 +157,7 @@ export async function listRiskIntelligenceDatasets(
 
   const summaries: RiskDatasetSummary[] = []
   for (const row of dedupeByDatasetId(rows as RiskDatasetRow[])) {
+    if (!isVisibleRiskDataset(row.id, row.name, row.fileName)) continue
     const summary = toRiskDatasetSummary(row)
     if (!summary) continue
     const rowsForDataset = await loadDatasetData(row.id, row as typeof datasets.$inferSelect)
@@ -224,7 +229,13 @@ export async function calculateRiskIntelligenceForDataset(
   }
 
   const datasetType = resolveDatasetType(dataset.datasetType, dataset.analysis)
-  if (!isVisibleRiskDataset(dataset.name, dataset.fileName, dataset.id)) {
+
+  const rows = await loadDatasetData(dataset.id, dataset)
+  const eligibility = getRiskDatasetEligibility({ ...dataset, datasetType }, rows)
+
+  if (!isVisibleRiskDataset(dataset.id, dataset.name, dataset.fileName)) {
+    // Known internal synthetic-record markers stay hidden even when the stored
+    // data would be computable; real user datasets never carry them.
     return {
       success: false,
       status: 404,
@@ -232,9 +243,6 @@ export async function calculateRiskIntelligenceForDataset(
       code: "dataset_not_found",
     }
   }
-
-  const rows = await loadDatasetData(dataset.id, dataset)
-  const eligibility = getRiskDatasetEligibility({ ...dataset, datasetType }, rows)
   if (!eligibility.eligible) {
     return {
       success: false,
@@ -314,9 +322,16 @@ function dedupeByDatasetId<T extends { id: string }>(rows: T[]) {
   })
 }
 
-function isVisibleRiskDataset(name: string | null | undefined, fileName: string | null | undefined, id: string) {
+/**
+ * Visibility guard for known internal synthetic-record identities, not a
+ * dataset-content veto. Synthetic QA identity markers (provider-path and
+ * dashboard-check records) stay hidden from production selectors and
+ * calculations. Ordinary name words can never hide a dataset: Risk
+ * eligibility is decided only by owner scope, dataset status, and the
+ * canonical semantic capability helper.
+ */
+function isVisibleRiskDataset(id: string, name: string | null | undefined, fileName: string | null | undefined) {
   const text = [id, name, fileName].filter(Boolean).join(" ").toLowerCase()
-  if (/\b(test|fixture|seed|demo|sample|codex)\b/.test(text)) return false
   if (text.includes("provider_path_dataset")) return false
   if (text.includes("codex-selected-dashboard-check")) return false
   return true

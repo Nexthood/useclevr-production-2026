@@ -19115,3 +19115,59 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 
 8. Follow-up tasks
    - None assigned.
+
+## 2026-10-03 — Risk Intelligence ClevrSync Eligibility Repair
+
+- User goal: fix the remaining Risk Intelligence eligibility bug observed in production where the Dashboard analyzes "UseClevr ClevrSync Retail Test 500 – Retail Sales 2026" (Google Sheets / ClevrSync, 500 processed rows, correct Retail KPIs and low-stock signals) while Risk Intelligence omits it from the eligible dataset list and the explicit selector; trace the exact persisted path from ClevrSync persistence through dataset record, stored rows, semantic capability, eligibility helper, dataset query, and selector, compare it with an uploaded Retail dataset, find the first exclusion point, make ClevrSync datasets first-class through deterministic semantic capability, and add a regression test built on the real failure shape.
+- What changed
+  - `src/lib/risk-intelligence/risk-service.ts`: removes the user-authored name-word gate `/\b(test|fixture|seed|demo|sample|codex)\b/` that vetoed capable datasets; `isVisibleRiskDataset` now hides only the internal synthetic-record identities (`provider_path_dataset`, `codex-selected-dashboard-check`) on both the selector list and calculation paths; `toRiskDatasetSummary` no longer applies the visibility guard; `calculateRiskIntelligenceForDataset` orders owner access → eligibility from persisted rows → marker hiding → eligibility 400 → scope 404 so eligibility decisions come only from owner scope, deleted/archived status, and `getRiskDatasetEligibility`; documentation comments state the canonical contract.
+  - `scripts/risk-intelligence/test-risk-clevrsync-parity.ts` (new, `test:risk-clevrsync-parity`, added to `test:all`): inserts the exact ClevrSync persistence representation through the database — dataset.data with 500 Retail rows plus datasetRows, stored `datasetType: "standard"`, `businessModel: "generic"`, `source: "google_sheets"`, `mimeType: "text/csv"`, analysis `uploadSource: "clevrsync"` — and asserts: it is Risk-eligible through canonical capabilities; it appears in unscoped and Retail-scoped selector candidates with ClevrSync provenance; an equivalent uploaded Retail dataset receives identical applicable module labels, rule counts, and semantic type; selecting it calculates only that dataset (immutable ID, 500 rows, actual rows-only net margin, deterministic findings, Retail scope succeeds); no `02_ecommerce` fallback with explicit selection resolving the requested dataset and the ecommerce dataset staying independently calculable; multi-dataset state requires explicit selection and reports stale requested IDs without fallback; owner isolation denies cross-user listing and calculation with 404; deleted, ineligible (unmapped-column), and internal-marker datasets remain excluded with the same statuses as before.
+  - `scripts/risk-intelligence/test-risk-engine.ts`: updates the visibility source assertion to the marker-id contract and adds a ban on re-introducing the name-word regex.
+  - `package.json`: adds `test:risk-clevrsync-parity` and includes it in `test:all`.
+  - `requirements.md` adds the first-class ClevrSync eligibility requirement; `CHANGELOG.md` records the fix under `[Unreleased]`; `.TODO/todo-done.md` records T-1083; `docs/AI-interaction/interaction-status.md` swaps in this interaction.
+- Trace and findings (root cause audit)
+  - ClevrSync path: `Preview → googleSheetPreviewToCsvFile → uploadCSV` persists `datasetType: "standard"`, `businessModel: "generic"`, `source: "google_sheets"`, `analysis.uploadSource: "clevrsync"`, full `dataset.data`, and `datasetRows`.
+  - Risk selector: `listRiskIntelligenceDatasets` → `toRiskDatasetSummary` → visibility gate → `getRiskDatasetEligibility(loadDatasetData(...))` → scope filter.
+  - First exclusion point: the visibility gate inside `toRiskDatasetSummary`, before rows load or semantics run. The dataset name contains the standalone word "Test" from its Google Sheets spreadsheet title, so `\b(test)\b` matched.
+  - Exact original root cause: the synthetic-record name heuristic wrapped itself around the eligibility pipeline as a hard gate, so word-choosing of production spreadsheet titles by users could silently exclude deterministic capability-passing datasets; the calculation path returned 404 `dataset_not_found` for the same reason.
+  - Comparison: the uploaded Retail twin passed because its name has no name-word hits; engine eligibility itself already returned `eligible: true, semanticDatasetType: retail` for the ClevrSync dataset (existing `test:risk-intelligence` coverage), so datasetType/source suspicion was false.
+  - Dashboard-vs-Risk asymmetry: `isDashboardEligibleDataset` in `dashboard-dataset-aggregation.ts` has no name gate and explicitly accepts standard-type ClevrSync datasets, so the Dashboard analyzed it while Risk excluded it.
+- Verification
+  - Pre-fix live-DB repro: ClevrSync dataset absent from the list, calculation 404, direct eligibility true and retail.
+  - Post-fix: repro shows both datasets in the list and scoped calculation succeeding from only the selected 500 rows.
+  - `pnpm validate:types` clean; `test:risk-clevrsync-parity`, `test:risk-intelligence`, `test:risk-explainability`, `test:dataset-isolation`, `test:dashboard-selected-dataset-routing`, `test:dashboard-workspace-scope`, `test:clevrsync`, `test:clevrsync-sheets-discovery`, `test:clevrsync-google-oauth-redirect`, `test:clevrsync-entitlement`, `test:clevrsync-retail-profitability`, `test:retail-pos`, `test:retail-source-analytics` all pass; `pnpm lint:todos`, `pnpm lint:secrets`, `pnpm lint:project-records` pass.
+- Problems marked
+  - blocker: none.
+  - risk: production datasets from earlier QA sessions whose names contain test/seed/demo/sample/fixture words now appear in Risk selectors when they prove canonical capability; this is the intended capability contract, and owner scoping still applies.
+  - improvement: none assigned.
+- User learning
+  ClevrSync datasets from Google Sheets now score Risk Intelligence like uploaded Retail datasets; spreadsheets titled with words like "test" or "sample" no longer vanish from the Risk selector when their data supports deterministic rules.
+- AI-agent learning
+  Never treat user-authored identifiers (names) as capability evidence. Synthetic-record hiding belongs on stable internal identity markers, and every eligibility decision must run through the canonical capability helper from persisted rows.
+- Follow-up tasks
+  - None assigned.
+- Not committed or pushed per instruction.
+
+## 2026-10-03 — Risk ClevrSync Parity CI Hermetic Repair
+
+- User goal: fix only the CI failure introduced by the new `test:risk-clevrsync-parity` suite — GitHub Actions failed `pnpm validate:types` (the shared validate job) while executing the suite with PostgreSQL `42P01` from `parserOpenTable` around line 91; keep the production fix untouched, keep the suite in `test:all` with every assertion, and make it hermetic against the bare CI database.
+- Trace and findings
+  - `validate.yml` starts a bare `postgres:17-alpine` service and exports `DATABASE_URL=postgresql://ci:ci@localhost:5432/ci` with no migrations; `ci.yml` runs `test:all` inside that job.
+  - The parity suite is the only `test:all` member that imports `@/lib/db` and runs real SQL; the previous hermetic-db pattern (`scripts/analysis/canonical-financial-metrics-test-db.ts`, globalThis fake singleton) fakes query results and cannot serve insert/query dedupe/ownership assertions.
+  - Exact first failure: the suite's first database statement, `db.insert(users)` at test line 91, targets the physical `"User"` relation — missing on the bare DB → `code 42P01`, `routine parserOpenTable`, `relation "User" does not exist`; `"Dataset"` and `"DatasetRow"` would fail the same way immediately after.
+  - Local validation passed because the local `DATABASE_URL` points at the fully migrated developer database, where the rehearsal for the same statements hit existing relations.
+- What changed
+  - `scripts/risk-intelligence/risk-clevrsync-parity-test-db.ts` (new): idempotent bootstrap creating exactly `"User"`, `"Dataset"`, `"DatasetRow"` (plus convergence `ALTER ... ADD COLUMN IF NOT EXISTS` statements and the `User_email_key`, `Dataset_userId_businessModel_idx`, `DatasetRow_datasetId_idx`, `DatasetRow_datasetId_rowIndex_idx` indexes) faithful to the current `src/lib/db/schema.ts` shapes, with FKs `Dataset_userId_fkey` and `DatasetRow_datasetId_fkey` — the same idempotent-DDL pattern `scripts/runtime/railway-predeploy.cjs` uses for bare runtime databases. No migrations journal is written; nothing beyond the three relations is touched; the ephemeral container probe verified bare-state reproduction of the exact CI error and full-suite success with the bootstrap.
+  - `scripts/risk-intelligence/test-risk-clevrsync-parity.ts`: imports the bootstrap first and awaits `ensureRiskClevrSyncParityTables()` before the insert sequence; all parity, isolation, selection, and stale/ineligible assertions unchanged; production code untouched.
+- Verification
+  - Bare-container probe (bootstrap disabled): `code = 42P01`, `routine = parserOpenTable`, `relation "User" does not exist` — the exact CI failure.
+  - Bare-container run (bootstrap enabled): suite passes, exits 0, creates only the three intended relations, cleans its rows.
+  - `pnpm validate:types` clean; `test:risk-clevrsync-parity`, `test:risk-intelligence`, `test:risk-explainability`, `test:dataset-isolation`, `test:dashboard-selected-dataset-routing`, `test:dashboard-workspace-scope`, `pnpm lint:secrets`, `pnpm lint:project-records`, `pnpm lint:changelog` pass; `CHANGELOG.md` gains a `### Dev` entry under `[Unreleased]`; `docs/AI-interaction/interaction-status.md` swaps in this interaction.
+- Problems marked
+  - blocker: none.
+  - risk: none new; the bootstrap only converges the declared relation subset idempotently and never drops or journals.
+  - improvement: a shared scripts-level test-schema helper could later serve additional real-SQL suites extracted into `test:all`.
+- User learning: ClevrSync parity coverage now holds in CI without production migrations and without weakening any assertion.
+- AI-agent learning: database-backed suites added to `test:all` must self-provision their schema against the bare CI Postgres; reuse the predeploy-style idempotent DDL pattern rather than a fake-db singleton when assertions require real SQL.
+- Follow-up tasks: none assigned.
+- Not committed or pushed per instruction.
