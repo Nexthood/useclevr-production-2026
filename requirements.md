@@ -256,6 +256,7 @@ Text rules for this file:
 - Score Risk Intelligence from 0 to 100 where higher scores mean greater risk, with Low at 0-24, Medium at 25-49, High at 50-74, and Critical at 75-100.
 - Calculate category and overall Risk Intelligence scores from applicable rule weights only, exclude rules that cannot execute from both the numerator and denominator, and keep identical inputs producing identical scores.
 - Keep Risk Intelligence isolated to one selected dataset or module scope at a time.
+- Show an explicit Risk Intelligence dataset selector for eligible datasets, require a dataset choice when multiple eligible datasets exist, and clear deleted, stale, or ineligible selections without falling back to another dataset.
 - Show Risk Intelligence summary cards, severity counts, last calculated time, dataset scope, prioritized findings, recommendations, and source links.
 - Show "No supported business data is available yet. Upload or connect a dataset to generate risk intelligence." when supported data is unavailable.
 - Require the Hybrid AI Lite dashboard-insights entitlement before Risk Intelligence page and API calculations run, while the official superadmin account keeps unrestricted access.

@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Risk Intelligence now lets users explicitly choose among eligible datasets, including connected Google Sheets Retail datasets, and clears stale selections instead of falling back to another dataset.
 - Suggested questions now appear for Profitability analyses in the AI Assistant, generated from the capabilities the selected dataset actually supports instead of an "unavailable" empty state.
 - The AI Assistant answers why unavailable metrics are missing (like gross profit without cost data) instead of suggesting calculations the dataset cannot support.
 - Profitability analysis now recognizes rebate-style discount columns as line components through row-level arithmetic, so revenue totals no longer double-count them and real ledger files resolve to their true revenue.

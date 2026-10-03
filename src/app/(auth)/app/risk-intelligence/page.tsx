@@ -12,6 +12,7 @@ import {
 import {
   calculateRiskIntelligenceForDataset,
   listRiskIntelligenceDatasets,
+  resolveRiskDatasetSelection,
   riskScopeEmptyMessage,
   type RiskDatasetSummary,
 } from "@/lib/risk-intelligence/risk-service"
@@ -45,7 +46,7 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
   }
 
   const params = await searchParams
-  const requestedScope = params?.scope || "standard"
+  const requestedScope = params?.scope || null
   const requestedDatasetId = params?.datasetId || null
   let supportedDatasets: RiskDatasetSummary[] = []
   let selectedDatasetId: string | null = null
@@ -62,13 +63,13 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
       scope: requestedScope,
     })
     supportedDatasets = datasets.filter((dataset) => dataset.supported)
-    selectedDatasetId =
-      supportedDatasets.find((dataset) => dataset.id === requestedDatasetId)?.id || supportedDatasets[0]?.id || null
+    const selection = resolveRiskDatasetSelection(supportedDatasets, requestedDatasetId)
+    selectedDatasetId = selection.selectedDatasetId
 
-    if (requestedDatasetId && selectedDatasetId && requestedDatasetId !== selectedDatasetId) {
-      selectionRedirectHref = `/app/risk-intelligence?datasetId=${encodeURIComponent(selectedDatasetId)}&scope=${encodeURIComponent(requestedScope)}`
-    } else if (requestedDatasetId && !selectedDatasetId) {
-      selectionRedirectHref = `/app/risk-intelligence?scope=${encodeURIComponent(requestedScope)}`
+    if (selection.staleSelection) {
+      selectionRedirectHref = requestedScope
+        ? `/app/risk-intelligence?scope=${encodeURIComponent(requestedScope)}`
+        : "/app/risk-intelligence"
     }
 
     riskResult = selectedDatasetId && !selectionRedirectHref
@@ -110,7 +111,15 @@ export default async function RiskIntelligencePage({ searchParams }: RiskIntelli
         ) : loadError ? (
           <ProblemState reason={loadError} />
         ) : (
-          <EmptyState message={riskResult && !riskResult.success ? riskResult.error : riskScopeEmptyMessage(requestedScope)} />
+          <EmptyState
+            message={
+              riskResult && !riskResult.success
+                ? riskResult.error
+                : supportedDatasets.length > 1
+                  ? "Select an eligible dataset to calculate Risk Intelligence."
+                  : riskScopeEmptyMessage(requestedScope)
+            }
+          />
         )}
       </div>
     </DashboardSubpageLayout>
