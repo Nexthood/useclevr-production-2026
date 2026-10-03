@@ -12,6 +12,7 @@ export const stripeCalls = {
   priceRetrievals: [],
   paymentIntentRetrievals: [],
   chargeRetrievals: [],
+  sessionCreations: [],
 }
 
 export function setMockPrice(price) {
@@ -54,6 +55,7 @@ export function resetStripeMock() {
   stripeCalls.priceRetrievals.length = 0
   stripeCalls.paymentIntentRetrievals.length = 0
   stripeCalls.chargeRetrievals.length = 0
+  stripeCalls.sessionCreations.length = 0
 }
 
 class NotFoundError extends Error {
@@ -107,8 +109,17 @@ export function getStripe() {
     },
     checkout: {
       sessions: {
-        create: async () => {
-          throw new Error("mock-stripe: checkout session creation is not available in tests")
+        create: async (params) => {
+          stripeCalls.sessionCreations.push(params)
+          return {
+            id: `cs_mock_${stripeCalls.sessionCreations.length}_${params.mode}`,
+            object: "checkout.session",
+            mode: params.mode ?? "payment",
+            payment_status: "unpaid",
+            client_reference_id: params.client_reference_id,
+            metadata: params.metadata,
+            url: `https://checkout.stripe.com/c/pay/mock_${stripeCalls.sessionCreations.length}`,
+          }
         },
         retrieve: async () => {
           throw new Error("mock-stripe: session retrieval is not available in tests")
