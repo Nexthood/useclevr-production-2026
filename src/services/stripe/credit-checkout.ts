@@ -30,6 +30,7 @@ export interface CreateCreditTopUpCheckoutOptions {
   customerId?: string | null
   stripePriceId: string
   expectedCurrency?: string
+  expectedAmountMinor?: number | null
   successUrl: string
   cancelUrl: string
   metadata?: Record<string, string>
@@ -41,12 +42,13 @@ export async function createCreditTopUpCheckoutSession({
   customerId,
   stripePriceId,
   expectedCurrency,
+  expectedAmountMinor,
   successUrl,
   cancelUrl,
   metadata,
 }: CreateCreditTopUpCheckoutOptions): Promise<Stripe.Checkout.Session> {
   const stripe = getStripe()
-  await validateCreditTopUpPrice(stripe, stripePriceId, expectedCurrency)
+  await validateCreditTopUpPrice(stripe, stripePriceId, expectedCurrency, expectedAmountMinor)
 
   // Trusted ownership fields win: caller-supplied metadata must never be able
   // to redirect a payment to a different UseClevr user via metadata override.
@@ -57,7 +59,7 @@ export async function createCreditTopUpCheckoutSession({
     stripePriceId,
   }
 
-  const session = await stripe.checkout.sessions.create({
+  const sessionCreateParams = {
     ...(customerId ? { customer: customerId } : { customer_email: userEmail }),
     client_reference_id: userId,
     metadata: mergedMetadata,
@@ -69,7 +71,15 @@ export async function createCreditTopUpCheckoutSession({
     // Stripe-generated invoice (hosted URL + PDF) for this one-time payment.
     // This does NOT create a subscription — the invoice documents the payment.
     invoice_creation: { enabled: true },
-  })
+  } as Stripe.Checkout.SessionCreateParams & { adaptive_pricing: { enabled: boolean } }
+
+  // Stripe Adaptive Pricing localizes the presented (and charged) currency to the
+  // customer's location — a Romania-based customer sees €10.00 for the USD $10
+  // price. Credit top-ups must stay USD, so adaptive pricing is disabled like the
+  // subscription checkout does.
+  sessionCreateParams.adaptive_pricing = { enabled: false }
+
+  const session = await stripe.checkout.sessions.create(sessionCreateParams)
 
   if (!session.url) {
     throw new Error("Stripe did not return a checkout URL for the credit top-up.")
@@ -91,6 +101,7 @@ async function validateCreditTopUpPrice(
   stripe: Stripe,
   priceId: string,
   expectedCurrency?: string,
+  expectedAmountMinor?: number | null,
 ): Promise<void> {
   const price = await stripe.prices.retrieve(priceId)
 
@@ -115,6 +126,19 @@ async function validateCreditTopUpPrice(
       `The selected credit top-up price currency (${price.currency}) does not match the expected currency (${expectedCurrencyLower}).`,
     )
   }
+
+  if (typeof expectedAmountMinor === "number" && price.unit_amount !== expectedAmountMinor) {
+    throw new StripeCreditCheckoutConfigurationError(
+      "credit_amount_mismatch",
+      `The selected credit top-up price amount (${price.unit_amount}) does not match the expected amount (${expectedAmountMinor}).`,
+    )
+  }
+}
+
+export const __stripeCreditCheckoutTestHooks = {
+  setStripeClientForTest(stripe: Stripe | null) {
+    _stripe = stripe
+  },
 }
 
 export function verifyStripeWebhookSignature(

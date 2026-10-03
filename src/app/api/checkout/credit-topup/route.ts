@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
         customerId: await getUserStripeCustomerId(user.id),
         stripePriceId,
         expectedCurrency: creditPackage.currency,
+        expectedAmountMinor: creditPackage.monetaryAmountCents,
         successUrl,
         cancelUrl,
         metadata: {
