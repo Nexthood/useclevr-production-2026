@@ -26,6 +26,20 @@ These entries are specific advisory decisions and do not weaken the audit gate g
 - **Reason deferred**: No stable patched `3.88.1` package exists on npm. Payload `4.0.0-canary` is not a safe compatible remediation path for this patch.
 - **Temporary status**: Remove this entry when a stable patched Payload `3.x` release is available and passes Payload, upload, MCP, and app validation.
 
+### 2. braces GHSA-vfj7-8cjw-p6xm
+
+- **Advisory**: [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) (CVE-2026-93687)
+- **Vulnerable package/version**: `braces@3.0.3` (latest published release)
+- **Vulnerable range**: `<=3.0.3`
+- **Patched version required**: The GitHub advisory states **Patched versions: None**; pnpm reports `>=3.0.4`, but no `braces` release at or above `3.0.4` exists on npm (dist-tag `latest` resolves to `3.0.3`). Upstream fix is tracked in micromatch/braces#70 without a published patch.
+- **Dependency path**: transitive, build-time only: `next > sass > chokidar > braces`, `tailwindcss > chokidar/fast-glob/micromatch > braces`, `findup-sync > micromatch > braces`. `hono` and `dompurify` advisories from the same audit are fixed in the same pass; `braces` has no installable safe version.
+- **Production exposure**: None at runtime. `braces` resolves only inside build/watch tooling (`sass`, `chokidar`, `micromatch`, `fast-glob`) that processes static, workspace-controlled glob patterns; the served application never imports it, and users cannot feed arbitrary brace patterns into any runtime request path.
+- **Existing mitigations**:
+  - No runtime consumer of `braces` exists in `src/`; the exploit precondition (attacker-controlled deeply nested brace patterns reaching `braces.expand`/`compile` during build) is not attacker-reachable.
+  - Build inputs (Tailwind content globs, Next sass configuration) are repository-owned static patterns.
+- **Reason deferred**: A stack-exhaustion DoS through deeply nested patterns; upstream has no published patched release, so no dependency resolution or override can satisfy `>=3.0.4`. Installing a fictional/incompatible version would break `micromatch` resolution; replacing the package with a nonstandard fork adds supply-chain risk without an upstream contract.
+- **Temporary status**: Remove this entry and re-run `pnpm audit` when upstream publishes `braces >=3.0.4`; then move the check back into the unapproved gate. Re-evaluate if any runtime consumer of `braces` is introduced or if the advisories list grows beyond build-time globals.
+
 ## Resolved Payload Transitive Advisories
 
 Upgrading the complete Payload family from `3.85.1` to `3.88.0` removes the previously approved `undici` and `image-size` residual findings from the installed graph.
@@ -42,7 +56,7 @@ Upgrading the complete Payload family from `3.85.1` to `3.88.0` removes the prev
 
 ## Non-Payload Known Deferred HIGH
 
-No active non-Payload high-severity residual advisories are allowlisted.
+- `GHSA-vfj7-8cjw-p6xm` (`braces`): documented in entry 2 above; build-time-only paths and no upstream patched release. This is the only non-Payload high-severity residual advisory.
 
 ## CI Allowlist
 
@@ -55,3 +69,4 @@ The CI pipeline uses `scripts/security/audit-allowlist.cjs` to enforce that:
 Approved residual advisory IDs:
 
 - `GHSA-jg8r-5jh2-v2xj`
+- `GHSA-vfj7-8cjw-p6xm`

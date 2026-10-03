@@ -1,3 +1,10 @@
+## 2026-10-03 — Dependency security fix for PR #390
+
+- changed: `pnpm-workspace.yaml` overrides bump `hono` 4.13.5 → 4.13.12 (clears GHSA-hxh3-vqpv-xpqv) and `dompurify` 3.4.14 → 3.4.16 (clears GHSA-p98j-92pf-mc4p), and `package.json` bumps the direct `dompurify` dependency to 3.4.16; `braces` stays 3.0.3 because no patched release exists upstream (GHSA-vfj7-8cjw-p6xm states "Patched versions: None", npm latest resolves 3.0.3, no `>=3.0.4` release is published)
+- added: `GHSA-vfj7-8cjw-p6xm` to the approved residual allowlist with full rationale in `docs/security/residual-risk-register.md` (build-time-only paths through sass/chokidar/micromatch/fast-glob, no runtime consumer in src, review trigger when upstream publishes braces >=3.0.4)
+- verified: `pnpm install` clean; lockfile resolves hono@4.13.12, dompurify@3.4.16, braces@3.0.3 (single versions); `pnpm audit:allowlist` (CI gate at ci.yml:38) exits 0; `pnpm validate:types` exits 0; `lint:secrets`/`lint:changelog`/`lint:project-records` clean; `test:auth`, `test:upload-security`, `test:csv-analyzer` pass
+- not committed or pushed per instruction
+
 ## 2026-10-03 — Profitability revenue fix (line-identity component excommunication)
 
 - added: shared row-level two-member line decomposition check `verifyRowSumIdentity` in `src/lib/data/semantic-profiling.ts` (|A| + |B| == quantity x unit with tolerance/coverage plus bounded-member classification)
