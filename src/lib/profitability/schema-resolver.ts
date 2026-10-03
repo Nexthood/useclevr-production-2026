@@ -5,6 +5,7 @@ import {
   scoreCategoricalShape,
   tokenizeHeader,
   verifyRowIdentity,
+  verifyRowSumIdentity,
   type ColumnProfile,
 } from "@/lib/data/semantic-profiling"
 
@@ -73,6 +74,7 @@ export type ResolverFieldMapping = {
 export type ResolverWarning = {
   code:
     | "ambiguous_amount_candidates"
+    | "amount_resolved_by_line_identity"
     | "amount_unresolved"
     | "arithmetic_mismatch"
     | "no_currency_column"
@@ -289,6 +291,12 @@ export function resolveProfitabilitySchema(
     }
   }
 
+  // Line-identity evidence: when the amount was withheld because tied
+  // candidates could not be separated by alias or shape, a proven row-level
+  // line decomposition (|final| + |contra| == quantity x unit) may still
+  // resolve the tie by demoting the bounded, generically-aliased member.
+  resolveWithheldAmountByLineIdentity(role, rows, stats, mapping, warnings, reserved)
+
   for (const concept of dimensionConcepts) {
     const field = selectDimensionField(concept, stats, reserved)
     if (field) {
@@ -311,11 +319,14 @@ export function resolveProfitabilitySchema(
   const currency = observeCurrency(mapping, stats)
 
   let amountStrategy: AmountStrategy = "unresolved"
+  // Fail-safe: when the amount candidates could not be separated, no
+  // fallback derivation may fabricate a total — withheld stays withheld.
+  const amountAmbiguityWithheld = warnings.some((warning) => warning.code === "ambiguous_amount_candidates")
   if (mapping.amount) {
     amountStrategy = resolveExplicitAmountStrategy(role, rows, mapping)
-  } else if ((mapping.unitPrice || mapping.unitCost) && mapping.quantity) {
+  } else if (!amountAmbiguityWithheld && (mapping.unitPrice || mapping.unitCost) && mapping.quantity) {
     amountStrategy = "derived_unit_quantity"
-  } else if (role === "revenue" && mapping.grossAmount) {
+  } else if (!amountAmbiguityWithheld && role === "revenue" && mapping.grossAmount) {
     amountStrategy = "gross_minus_adjustments"
   } else {
     const rejected = stats
@@ -336,6 +347,116 @@ export function resolveProfitabilitySchema(
     amountConfidence: mapping.amount ? mapping.amount.confidence : 0,
     warnings,
     currency,
+  }
+}
+
+/**
+ * Tokens that only carry generic measure semantics; alias matches that rely
+ * on them exclusively carry no role-specific competitiveness, so the owner
+ * column may be demoted by stronger arithmetic evidence.
+ */
+const GENERIC_AMOUNT_ALIAS_TOKENS = new Set(["value"])
+
+/**
+ * True when the column's amount evidence includes a ROLE-SPECIFIC amount
+ * alias (an alias group carrying at least one non-generic token that the
+ * column fully token-matches). Such columns keep amount candidacy even when
+ * arithmetic line-identity evidence marks them as the bounded member.
+ */
+function hasRoleSpecificAmountAlias(stat: ColumnStats, role: ProfitabilitySchemaRole): boolean {
+  for (const alias of AMOUNT_ALIAS_GROUPS[role]) {
+    if (alias.some((token) => GENERIC_AMOUNT_ALIAS_TOKENS.has(token))) continue
+    if (hasAllTokens(stat.tokens, alias)) return true
+  }
+  return false
+}
+
+/**
+ * Resolves a withheld amount when tied candidates cannot be separated by
+ * alias or shape but a row-level line decomposition separates them: for the
+ * pair (A, B) and the mapped quantity x unit product P,
+ *   |A| + |B| == |P|   row-wise,
+ * marks the bounded member as a proven contra component and the unbounded
+ * member as the final amount. Demotion is conservative: a member with a
+ * role-specific amount alias is never demoted, and direction-less
+ * decompositions (members of comparable magnitude) stay withheld.
+ */
+function resolveWithheldAmountByLineIdentity(
+  role: ProfitabilitySchemaRole,
+  rows: Record<string, unknown>[],
+  stats: ColumnStats[],
+  mapping: Partial<Record<ResolverConcept, ResolverFieldMapping>>,
+  warnings: ResolverWarning[],
+  reserved: Set<string>,
+): void {
+  if (mapping.amount) return
+  const quantity = mapping.quantity
+  const unit = role === "revenue" ? mapping.unitPrice : mapping.unitCost
+  if (!quantity || !unit) return
+
+  const withdrawalIndex = warnings.findIndex((warning) => warning.code === "ambiguous_amount_candidates" && (warning.candidates?.length ?? 0) >= 2)
+  if (withdrawalIndex === -1) return
+  const candidates = warnings[withdrawalIndex].candidates as string[]
+  const statsByColumn = new Map(stats.map((stat) => [stat.column, stat]))
+
+  // A tied candidate reserved by another concept later in resolution is no
+  // longer competing; a single surviving tied candidate wins outright.
+  const usable = candidates.filter((column) => !reserved.has(column))
+  if (usable.length === 1) {
+    const sole = statsByColumn.get(usable[0])
+    if (sole) {
+      const scored = scoreNumericCandidate("amount", sole, role)
+      if (scored.score > 0) {
+        mapping.amount = {
+          concept: "amount",
+          column: sole.column,
+          confidence: Math.min(98, scored.score),
+          signals: [...scored.signals, "tied_candidate_reserved_elsewhere"],
+        }
+        reserved.add(sole.column)
+        warnings.splice(withdrawalIndex, 1)
+      }
+      return
+    }
+  }
+  if (usable.length < 2) return
+
+  for (let i = 0; i < usable.length && !mapping.amount; i += 1) {
+    for (let j = i + 1; j < usable.length && !mapping.amount; j += 1) {
+      const statA = statsByColumn.get(usable[i])
+      const statB = statsByColumn.get(usable[j])
+      if (!statA || !statB) continue
+      const identity = verifyRowSumIdentity(rows, statA.column, statB.column, {
+        quantity: quantity.column,
+        unit: unit.column,
+      })
+      if (!identity.consistent || !identity.boundedMember) continue
+
+      const componentStat = identity.boundedMember === statA.column ? statA : statB
+      const finalStat = identity.boundedMember === statA.column ? statB : statA
+      // Never demote a member that claims a role-specific amount alias, and
+      // never promote a final member that lacks one when the component has
+      // one: only a generically-aliased bounded member may lose candidacy.
+      const componentClaimed = hasRoleSpecificAmountAlias(componentStat, role)
+      const finalClaimed = hasRoleSpecificAmountAlias(finalStat, role)
+      if (componentClaimed || !finalClaimed) continue
+
+      const scored = scoreNumericCandidate("amount", finalStat, role)
+      if (scored.score <= 0) continue
+      mapping.amount = {
+        concept: "amount",
+        column: finalStat.column,
+        confidence: Math.min(98, scored.score),
+        signals: [...scored.signals, "line_sum_identity:" + componentStat.column],
+      }
+      reserved.add(finalStat.column)
+      reserved.add(componentStat.column)
+      warnings.splice(withdrawalIndex, 1, {
+        code: "amount_resolved_by_line_identity",
+        message: `"${finalStat.column}" was selected as the ${role === "revenue" ? "revenue" : "expense"} amount because the row-level line identity "${finalStat.column}" + "${componentStat.column}" = "${quantity.column}" x "${unit.column}" holds on ${identity.checked} of ${rows.length} sampled rows; "${componentStat.column}" is a bounded contra component and stays excluded from amount candidacy.`,
+        candidates: [finalStat.column, componentStat.column],
+      })
+    }
   }
 }
 

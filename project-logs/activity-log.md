@@ -1,3 +1,20 @@
+## 2026-10-03 — Profitability revenue fix (line-identity component excommunication)
+
+- added: shared row-level two-member line decomposition check `verifyRowSumIdentity` in `src/lib/data/semantic-profiling.ts` (|A| + |B| == quantity x unit with tolerance/coverage plus bounded-member classification)
+- changed: `src/lib/profitability/schema-resolver.ts` resolves a previously withheld amount through proven line identities — a tied amount candidate that is bounded by the opposite member and carries only the generic value alias is demoted from amount candidacy (`amount_resolved_by_line_identity` warning replaces the withdrawal), role-aliased members are never demoted, and ambiguity now blocks derived/gross fallback strategies so withheld amounts can never leak as unit-times-rate gross totals
+- fixed: the real alternative ledger fixtures now resolve to Revenue 72,450.00 (was 73,327.49 via unreconciled units x rate), Expenses 28,975.50, Profit 43,474.50, Margin 60.01% with `sales_value`/`spend_value` explicit amounts; `sales_value + rebate_value == units x rate_per_unit` verified on all 180 revenue rows within resolver tolerance
+- added: M6/M6b/M6c permanent tests pinning identity-gated resolution, broken-identity withholding, and role-alias protection
+- verified: `pnpm test:profitability-universal` (A-L + 04 + K + M matrix + M6 family), two-file, period-trend, report-entry-points, canonical-financial-metrics, ClevrSync retail, BBSC, business intelligence, dataset analyzer, ClevrSync, retail POS, score semantics, dataset-source history all pass; `pnpm exec tsc --noEmit --pretty false` exits 0
+- not committed or pushed per instruction
+
+## 2026-10-03 — Final profitability amount audit (investigation only)
+
+- traced: the real alternative fixtures (`useclevr_profitability_revenue_alt_structure.xlsx`, `useclevr_profitability_expenses_alt_structure.xlsx`) carry `sales_value` summing to exactly 72,450.00 and `spend_value` to 28,975.50; the identity `sales_value = units x rate_per_unit - rebate_value` holds on 180/180 rows, so `sales_value` is the final net amount and `rebate_value` is a contra component
+- traced: the current deployed resolver never engages `reconciled_components` on these files: `rebate_value` maps to no component concept, ties `sales_value` at equal evidence (52), the explicit amount is withheld, and the derived fallback then sums `units x rate_per_unit` without subtracting rebates, producing 73,327.49 revenue ("73.3K"), 44,351.99 profit ("44.4K"), and 60.48% margin ("60.5%"); expenses stay 28,975.50 ("29.0K" is three-significant-figure display, not +24.50)
+- verified: the master-fix commit 982ef0bf1 is on origin/beta, origin/main (PR #389), and origin/dist (034b2bd23 "Main: Update dist 5514c0b"); the Railway production service redeployed at 2026-10-02T18:15:15Z from that dist and app.useclevr.com health returns ready; live numbers therefore match current code, not a stale deployment; the pre-universal engine (41850f24b era) returns the exact ground truth on the same files, so the regression entered with the universal resolver
+- noted: `sales_day`/`spend_day` ("day" tokens) do not match period aliases, so date/period, reporting period, and revenue growth stay null on these real files
+- not committed or pushed per instruction; no code changed
+
 ## 2026-10-02 — Central schema intelligence audit + universal profitability resolution
 
 - added: shared raw-table semantic profiling layer `src/lib/data/semantic-profiling.ts` (header tokenization, locale-tolerant money parsing, column value-shape profiling, categorical/identifier/free-text shape scoring, row-level arithmetic identity verification) and rewired the Profitability resolver onto it, so domain resolvers reuse one generic primitive set

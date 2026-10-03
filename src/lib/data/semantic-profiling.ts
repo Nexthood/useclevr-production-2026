@@ -70,6 +70,18 @@ export type RowIdentityResult = {
   consistent: boolean
 }
 
+export type RowSumIdentityResult = {
+  checked: number
+  mismatchRatio: number
+  consistent: boolean
+  /**
+   * Member whose per-row magnitude is bounded by the opposite member (contra
+   * adjustment evidence); null when the decomposition direction is
+   * undecidable from the rows.
+   */
+  boundedMember: string | null
+}
+
 /** Relative row-level tolerance for arithmetic identities. */
 export const ROW_IDENTITY_TOLERANCE = 0.02
 
@@ -309,5 +321,56 @@ export function verifyRowIdentity(
     checked,
     mismatchRatio: checked === 0 ? 1 : mismatched / checked,
     consistent: checked > 0 && mismatched / checked <= 0.1,
+  }
+}
+
+/**
+ * Verifies the row-level two-member line decomposition
+ *   |A| + |B| == |quantity x unit|
+ * and classifies which member is contra-bounded by the other. This is the
+ * generic evidence that separates a final amount from an embedded contra
+ * component (e.g. unit price x quantity = final amount + rebate/discount):
+ * a consistently bounded member adjusts the line value, while the unbounded
+ * member is the final amount the engine may select. Rows missing any
+ * referenced value are skipped; the identity is consistent when at most 10%
+ * of checked rows deviate beyond ROW_IDENTITY_TOLERANCE.
+ */
+export function verifyRowSumIdentity(
+  rows: Record<string, unknown>[],
+  memberA: string,
+  memberB: string,
+  productOf: { quantity: string; unit: string },
+): RowSumIdentityResult {
+  let checked = 0
+  let mismatched = 0
+  let rowsABounded = 0
+  let rowsBBounded = 0
+  for (const row of rows) {
+    const a = parseLocaleNumber(row[memberA])
+    const b = parseLocaleNumber(row[memberB])
+    const quantity = parseLocaleNumber(row[productOf.quantity])
+    const unit = parseLocaleNumber(row[productOf.unit])
+    if (a === null || b === null || quantity === null || unit === null) continue
+    const left = Math.abs(a) + Math.abs(b)
+    const product = Math.abs(quantity * unit)
+    if (left === 0 && product === 0) continue
+    if (Math.abs(left - product) / Math.max(left, product, 1) > ROW_IDENTITY_TOLERANCE) mismatched += 1
+    checked += 1
+    if (Math.abs(a) <= Math.abs(b) + 0.005) rowsABounded += 1
+    if (Math.abs(b) <= Math.abs(a) + 0.005) rowsBBounded += 1
+  }
+  const ratioA = checked === 0 ? 0 : rowsABounded / checked
+  const ratioB = checked === 0 ? 0 : rowsBBounded / checked
+  return {
+    checked,
+    mismatchRatio: checked === 0 ? 1 : mismatched / checked,
+    consistent: checked > 0 && mismatched / checked <= 0.1,
+    boundedMember: checked === 0
+      ? null
+      : ratioA >= 0.95 && ratioB < 0.95
+        ? memberA
+        : ratioB >= 0.95 && ratioA < 0.95
+          ? memberB
+          : null,
   }
 }
