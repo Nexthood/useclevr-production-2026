@@ -33,6 +33,7 @@ async function run() {
   const { getCreditAccount, resetAccountStore } = accountMock
   const stripeMock = (await import("./mocks/mock-stripe.mjs")) as {
     resetStripeMock: () => void
+    getStripe: () => { prices: { retrieve: (priceId: string) => Promise<unknown> }; checkout: { sessions: { create: (params: unknown) => Promise<{ id: string; url: string }> } } }
     setMockPrice: (price: { id: string; active: boolean; type: string; currency: string; unit_amount: number }) => void
     setMockPaymentRefundState: (state: {
       paymentIntentId: string
@@ -41,14 +42,135 @@ async function run() {
       amountRefunded?: number
       refunds?: Array<{ id: string; amount: number; status: string }>
     }) => void
-    stripeCalls: { priceRetrievals: string[]; paymentIntentRetrievals: string[]; chargeRetrievals: string[] }
+    stripeCalls: { priceRetrievals: string[]; paymentIntentRetrievals: string[]; chargeRetrievals: string[]; sessionCreations: unknown[] }
   }
-  const { resetStripeMock, setMockPrice, setMockPaymentRefundState, stripeCalls } = stripeMock
+  const { resetStripeMock, getStripe, setMockPrice, setMockPaymentRefundState, stripeCalls } = stripeMock
   const emailMock = (await import("./mocks/mock-emails.mjs")) as {
     sentEmails: Array<Record<string, any>>
     resetEmails: () => void
   }
   const { sentEmails, resetEmails } = emailMock
+
+  // The `?real` query bypasses the sibling mock alias in mocks/hooks.mjs so the
+  // unmocked checkout service (its own validation logic) drives these regressions
+  // against the mock Stripe client injected via the test hook. The non-literal
+  // specifier keeps TypeScript from resolving the query against the alias while
+  // the cast preserves the real module surface.
+  const realModuleSpecifier = "../../src/services/stripe/credit-checkout.ts?real"
+  const realCreditCheckout = (await import(realModuleSpecifier)) as {
+    createCreditTopUpCheckoutSession: (options: {
+      userId: string
+      userEmail: string
+      customerId?: string | null
+      stripePriceId: string
+      expectedCurrency?: string
+      expectedAmountMinor?: number | null
+      successUrl: string
+      cancelUrl: string
+      metadata?: Record<string, string>
+    }) => Promise<{ id: string; url: string | null; mode: string }>
+    StripeCreditCheckoutConfigurationError: new (code: string, message: string) => Error & { code: string }
+    __stripeCreditCheckoutTestHooks: { setStripeClientForTest: (stripe: unknown) => void }
+  }
+  const { createCreditTopUpCheckoutSession, StripeCreditCheckoutConfigurationError, __stripeCreditCheckoutTestHooks } = realCreditCheckout
+
+  async function expectCreditCheckoutAccepted(input: {
+    label: string
+    stripePriceId: string
+    expectedCurrency: string
+    expectedAmountMinor: number
+  }) {
+    __stripeCreditCheckoutTestHooks.setStripeClientForTest(getStripe() as never)
+    resetStripeMock()
+    seedPackagePrices()
+    try {
+      const session = await createCreditTopUpCheckoutSession({
+        userId: "user_checkout_regression",
+        userEmail: "checkout-regression@example.com",
+        customerId: "cus_checkout_regression",
+        stripePriceId: input.stripePriceId,
+        expectedCurrency: input.expectedCurrency,
+        expectedAmountMinor: input.expectedAmountMinor,
+        successUrl: "https://useclevr.test/app/settings/subscription?tab=billing&topup=success",
+        cancelUrl: "https://useclevr.test/app/settings/subscription?tab=billing&topup=cancel",
+        metadata: {
+          workspaceId: "user_checkout_regression",
+          creditPackageId: `checkout-${input.expectedAmountMinor}`,
+          pricingVersion: "v1",
+        },
+      })
+      assert.ok(session.url, `${input.label} returns a checkout URL`)
+      assert.equal(stripeCalls.sessionCreations.length, 1, `${input.label} creates exactly one Stripe Checkout Session`)
+      const params = stripeCalls.sessionCreations[0] as {
+        mode?: string
+        line_items?: Array<{ price?: string; quantity?: number }>
+        adaptive_pricing?: { enabled?: boolean }
+      }
+      assert.equal(params.mode, "payment", `${input.label} opens a payment-mode Checkout Session`)
+      assert.deepEqual(
+        params.line_items,
+        [{ price: input.stripePriceId, quantity: 1 }],
+        `${input.label} line items use the configured Stripe Price ID`,
+      )
+      assert.deepEqual(
+        params.adaptive_pricing,
+        { enabled: false },
+        `${input.label} disables Stripe Adaptive Pricing so the session cannot localize USD into EUR`,
+      )
+      assert.equal(
+        stripeCalls.priceRetrievals[0],
+        input.stripePriceId,
+        `${input.label} validates the configured Stripe Price ID before session creation`,
+      )
+    } finally {
+      __stripeCreditCheckoutTestHooks.setStripeClientForTest(null)
+    }
+  }
+
+  async function expectCreditCheckoutRejection(input: {
+    label: string
+    stripePriceId: string
+    expectedCurrency: string
+    expectedAmountMinor: number
+    seedPrice: { id: string; active: boolean; type: string; currency: string; unit_amount: number }
+    expectedCode: string
+    expectedMessage: string
+  }) {
+    __stripeCreditCheckoutTestHooks.setStripeClientForTest(getStripe() as never)
+    resetStripeMock()
+    seedPackagePrices()
+    setMockPrice(input.seedPrice)
+    try {
+      await assert.rejects(
+        createCreditTopUpCheckoutSession({
+          userId: "user_checkout_regression",
+          userEmail: "checkout-regression@example.com",
+          customerId: "cus_checkout_regression",
+          stripePriceId: input.stripePriceId,
+          expectedCurrency: input.expectedCurrency,
+          expectedAmountMinor: input.expectedAmountMinor,
+          successUrl: "https://useclevr.test/app/settings/subscription?tab=billing&topup=success",
+          cancelUrl: "https://useclevr.test/app/settings/subscription?tab=billing&topup=cancel",
+          metadata: {
+            workspaceId: "user_checkout_regression",
+            creditPackageId: `checkout-${input.expectedAmountMinor}`,
+            pricingVersion: "v1",
+          },
+        }),
+        (error: unknown) => {
+          assert.ok(error instanceof StripeCreditCheckoutConfigurationError, `${input.label} raises StripeCreditCheckoutConfigurationError`)
+          assert.equal(error.code, input.expectedCode, `${input.label} error code`)
+          assert.equal(error.message, input.expectedMessage, `${input.label} error message`)
+          return true
+        },
+        input.label,
+      )
+    } finally {
+      __stripeCreditCheckoutTestHooks.setStripeClientForTest(null)
+    }
+    assert.equal(stripeCalls.sessionCreations.length, 0, "no Stripe Checkout Session may be created on the rejection path")
+    assert.ok(stripeCalls.priceRetrievals.includes(input.stripePriceId), "the configured Stripe Price ID was validated before the rejection")
+  }
 
   type TestModule = { name: string; run: () => Promise<void> }
 
@@ -1081,11 +1203,64 @@ const tests: TestModule[] = [
 
       assert.equal(topupRows.length, 0)
       assert.equal(ledgerRows.length, 0)
+      assert.equal(topupRows.length, 0)
+      assert.equal(ledgerRows.length, 0)
       assert.equal(sentEmails.length, 0)
       for (const userId of ["user_unpaid", "user_sub_mode"]) {
         const account = await getCreditAccount(userId)
         assert.equal(account?.purchasedBalance ?? 0, 0)
       }
+    },
+  },
+  {
+    name: "credit checkout verifies the USD packages (usd 1000 / 4500 / 8500) before creating each payment session",
+    async run() {
+      await expectCreditCheckoutAccepted({
+        label: "100-credit package",
+        stripePriceId: PRICE_100,
+        expectedCurrency: "USD",
+        expectedAmountMinor: 1000,
+      })
+      await expectCreditCheckoutAccepted({
+        label: "500-credit package",
+        stripePriceId: PRICE_500,
+        expectedCurrency: "USD",
+        expectedAmountMinor: 4500,
+      })
+      await expectCreditCheckoutAccepted({
+        label: "1,000-credit package",
+        stripePriceId: PRICE_1000,
+        expectedCurrency: "USD",
+        expectedAmountMinor: 8500,
+      })
+    },
+  },
+  {
+    name: "credit checkout fails closed before session creation when the configured price is an EUR price",
+    async run() {
+      await expectCreditCheckoutRejection({
+        label: "EUR price mapped to the USD 100-credit package",
+        stripePriceId: PRICE_100,
+        expectedCurrency: "USD",
+        expectedAmountMinor: 1000,
+        seedPrice: { id: PRICE_100, active: true, type: "one_time", currency: "eur", unit_amount: 1000 },
+        expectedCode: "credit_currency_mismatch",
+        expectedMessage: "The selected credit top-up price currency (eur) does not match the expected currency (usd).",
+      })
+    },
+  },
+  {
+    name: "credit checkout fails closed before session creation when the price amount drifts from the package amount",
+    async run() {
+      await expectCreditCheckoutRejection({
+        label: "drifted amount for the USD 500-credit package",
+        stripePriceId: PRICE_500,
+        expectedCurrency: "USD",
+        expectedAmountMinor: 4500,
+        seedPrice: { id: PRICE_500, active: true, type: "one_time", currency: "usd", unit_amount: 4900 },
+        expectedCode: "credit_amount_mismatch",
+        expectedMessage: "The selected credit top-up price amount (4900) does not match the expected amount (4500).",
+      })
     },
   },
 ]
