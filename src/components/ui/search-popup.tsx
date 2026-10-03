@@ -204,12 +204,12 @@ export function Search() {
 
   return (
     <>
-      <Button
+      <button
+        type="button"
         ref={searchButtonRef}
-        variant="ghost"
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? "Close search" : "Search"}
-        className="h-11 min-w-11 gap-2 rounded-md px-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        className="inline-flex h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
         title={`Search (${shortcutLabel})`}
       >
         {open ? (
@@ -225,7 +225,7 @@ export function Search() {
             </span>
           </>
         )}
-      </Button>
+      </button>
 
       <Modal
         open={open}

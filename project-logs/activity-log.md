@@ -1,3 +1,11 @@
+## 2026-10-03 — Topbar search trigger hover normalization
+
+- fixed: the top-bar search button now uses the same subtle, stationary hover as the other top-bar icons (`hover:bg-muted/50 hover:text-foreground` with `transition-colors`), staying in place instead of lifting; the cyan `ring-ring` focus glow, the stronger `hover:bg-muted/70` tint, and the `transition-all duration-200` animation come in only from the shared ghost Button variant the trigger previously inherited (`hover:-translate-y-0.5` is the movement) and no longer apply to the trigger
+- changed: `src/components/ui/search-popup.tsx` renders the trigger as a plain `<button>` with the standard topbar icon classes, keeping h-11/min-w-11/px-3 metrics (no layout shift), the same onClick/aria-label/title/ref, the ⌘K shortcut, focus restoration, the native keyboard focus outline, and theme-token colors for light and dark; the shared Button, all other top-bar icons, and the search modal stay untouched
+- updated: `requirements.md` documents the topbar search hover requirement; `CHANGELOG.md` gains a Fixed entry under `[Unreleased]`; `.TODO/todo-done.md` records T-1084
+- verified: `pnpm exec tsc --noEmit --pretty false` exits clean
+- not committed or pushed per instruction
+
 ## 2026-10-03 — Risk Intelligence explicit dataset selection recovery
 
 - continued: recovered the interrupted working-tree implementation from the existing diff without reverting or overwriting prior changes

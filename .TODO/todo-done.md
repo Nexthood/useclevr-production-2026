@@ -706,3 +706,7 @@ moving work between states.
 ## Label: billing
 
 - T-1077. Fix the Business Monthly Stripe checkout amount mismatch for UK, US, and Canada by matching `approvedBusinessAmountByMarket` to the live Stripe Prices (UK 40950 → 36000 £360/month, US 47250 → 48500 $485/month, CA 57750 → 68000 CA$680/month, EU unchanged 42000 €420/month), add mocked Business Monthly validation regressions accepting the exact live amounts and rejecting the retired amounts with `invalid_business_price_mapping` and the exact production message, and update the canonical display, requirements, and changelog records. (labels: billing, payment; commit: worktree)
+
+## Label: ui
+
+- T-1084. Give the topbar search trigger the same subtle, stationary hover styling as the other topbar icons: render the trigger as a plain topbar icon button with the shared `hover:bg-muted/50 hover:text-foreground transition-colors` treatment so the shared Button ghost variant no longer applies its hover lift, stronger background tint, and cyan focus ring to the search trigger, keeping the search modal, ⌘K shortcut, focus restoration, aria labeling, and keyboard focus outline unchanged. (labels: ui, accessibility; commit: worktree)
