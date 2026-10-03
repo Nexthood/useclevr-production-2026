@@ -555,6 +555,7 @@ Text rules for this file:
   check at 100%, and route incomplete Business clicks directly to Business Profile setup.
 - Keep topbar items on one line with consistent icon color and compact hover targets.
 - Show a host-specific keyboard shortcut in the dashboard search trigger.
+- Give the topbar search trigger the same subtle, stationary hover highlight as the other topbar icons, with no glow, lift, or layout shift.
 - Show a simple sun/moon theme toggle in the global topbar.
 - Use full-height hover and click targets in the dashboard topbar.
 - Use a horizontal subpage bar for account profile, preferences, subscription, billing, and activity pages.

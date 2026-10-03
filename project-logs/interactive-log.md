@@ -19171,3 +19171,26 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - AI-agent learning: database-backed suites added to `test:all` must self-provision their schema against the bare CI Postgres; reuse the predeploy-style idempotent DDL pattern rather than a fake-db singleton when assertions require real SQL.
 - Follow-up tasks: none assigned.
 - Not committed or pushed per instruction.
+
+## 2026-10-03 — Topbar Search Trigger Hover Normalization
+
+- User goal: fix the Search icon/button hover in the dashboard top navigation — remove the cyan/neon glow, remove hover movement/animation, and make the search trigger use exactly the same subtle, stationary hover as the neighboring top-bar icons with no layout shift, no changes to other icons, no search functionality changes, and keyboard focus accessibility intact; do not commit or push.
+- Trace and findings
+  - The topbar renders `<Search />` from `src/components/ui/topbar.tsx:57`; the trigger lives in `src/components/ui/search-popup.tsx` and used the shared `Button` with `variant="ghost"`.
+  - The shared `Button` (`src/components/ui/button.tsx`) carries the design-system commit `cf385af24` styling: base `transition-all duration-200 ease-out` plus `focus-visible:ring-2 focus-visible:ring-ring/80` (cyan, `--ring: 185 78% 42%`), and the `ghost` variant adds `hover:-translate-y-0.5 hover:bg-muted/70 hover:text-foreground` — the movement, doubled stronger tint, and cyan ring the report describes.
+  - Neighboring top-bar icons are plain anchors/buttons that only use `hover:bg-muted/50 hover:text-foreground` (`theme-toggle.tsx`, `topbar-notice-activity-drawer.tsx`, sign-out wrapper, Subscription link, Hybrid AI button); they never lift.
+  - Ruled out other candidates: `.payload-topbar-search-btn` CSS is unused legacy, the Payload admin `.payload-topbar-nav-btn` hover is background/color-only, and `.glow-primary` in `globals.css` has no usages.
+- What changed
+  - `src/components/ui/search-popup.tsx`: the trigger renders as a plain `<button type="button">` with the standard topbar icon classes `inline-flex h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground`, removing the ghost variant inheritance; onClick, aria-label, title toggle, `searchButtonRef`, ⌘K handler, focus restoration, and the modal stay untouched.
+- Verification
+  - `pnpm exec tsc --noEmit --pretty false` exits clean.
+  - Hover metrics stay identical (`h-11 min-w-11 px-3 rounded-md`), so no layout shift; the trigger now shares the ThemeToggle hover pattern byte-for-byte in effect.
+  - Keyboard focus keeps the native visible outline (same as the other topbar buttons); light and dark themes both read the same token colors.
+- Problems marked
+  - blocker: none.
+  - risk: none; the shared ghost variant keeps its existing behavior everywhere else, so no other button changes.
+  - improvement: the shared ghost variant's `transition-all` + `hover:-translate-y-0.5` still disagrees with plain-text topbar controls; a scoped design pass could align the variant globally if the lift is wanted nowhere.
+- User learning: the topbar search trigger now matches the other top-bar icons' subtle, stationary hover in both themes.
+- AI-agent learning: shared variant components leak their hover vocabulary into specific placements; when a placement must match surrounding plain controls, use the plain element with the placement's standard classes instead of stacking variant overrides.
+- Follow-up tasks: none assigned.
+- Not committed or pushed per instruction.
