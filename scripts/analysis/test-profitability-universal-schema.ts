@@ -712,6 +712,61 @@ async function main() {
       assert(mixed.dataQualityNotes.some((note) => note.includes("Mixed currencies")), "M5: mixed-currency warning must be present")
       console.log("Fixture M5_mixed_currency: totals withheld ✓")
     }
+
+    // M6 — line-identity component excommunication (real-structure family):
+    // units x rate_per_unit == sales_value + rebate_value row-exact demotes
+    // the generically-aliased bounded member (rebate_value) from amount
+    // candidacy so the final net column wins as explicit amount.
+    {
+      const m6Columns = ["units", "rate_per_unit", "rebate_value", "sales_value"]
+      const m6Rows: Record<string, unknown>[] = []
+      for (let i = 0; i < 40; i += 1) {
+        const units = 2 + (i % 5)
+        const rate = (1050 + 50 * (i % 30)) / 100
+        const rebate = (250 + 75 * (i % 4)) / 100
+        const sales = (units * Math.round(rate * 100) - Math.round(rebate * 100)) / 100
+        m6Rows.push({ units, rate_per_unit: rate, rebate_value: rebate, sales_value: sales })
+      }
+
+      const m6Resolution = resolveProfitabilitySchema(m6Columns, m6Rows, "revenue")
+      assert(m6Resolution.mapping.amount?.column === "sales_value", `M6: line-identity evidence must resolve sales_value as the amount (got ${m6Resolution.mapping.amount?.column ?? "null"})`)
+      assert(m6Resolution.amountStrategy === "explicit_amount", `M6: resolved amount must use explicit_amount (got ${m6Resolution.amountStrategy})`)
+      assert(m6Resolution.mapping.amount?.signals.some((signal) => signal.startsWith("line_sum_identity:")), "M6: amount signals must cite the line-sum identity")
+      assert(m6Resolution.warnings.some((warning) => warning.code === "amount_resolved_by_line_identity" && warning.message.includes("rebate_value")), "M6: an info warning must describe the component exclusion")
+      assert(!m6Resolution.warnings.some((warning) => warning.code === "ambiguous_amount_candidates"), "M6: the tie must not stay withheld once the line identity resolves it")
+      const m6IdentitySpec = { quantity: "units", unit: "rate_per_unit" }
+      const m6IdentityOk = m6Rows.every((row) => Math.abs((Number(row.sales_value) + Number(row.rebate_value)) - Math.abs(Number(row.units) * Number(row.rate_per_unit))) < 0.02)
+      assert(m6IdentityOk, "M6: the line identity must hold row-exact on all 40 rows before the resolver may use it")
+      const m6Normalized = normalizeRevenueRows(m6Columns, m6Rows)
+      nearlyEqual(m6Normalized.records.reduce((total, record) => total + record.amount, 0), expectedSum(m6Columns, m6Rows, "sales_value"), "M6 normalized revenue must equal the sales_value column sum")
+
+      const m6Analysis = runPair(m6Columns, m6Rows, expenseFixture.columns, expenseFixture.rows)
+      nearlyEqual(m6Analysis.totalRevenue, expectedSum(m6Columns, m6Rows, "sales_value"), "M6 analysis revenue must equal the final net column, never units x rate gross")
+      nearlyEqual(m6Analysis.totalExpenses, 28975.5, "M6 analysis expenses must stay exact")
+      assert(m6Analysis.status === "ready", "M6 analysis must stay ready")
+      console.log(`Fixture M6_line_identity_component: amount = ${m6Resolution.mapping.amount?.column}, strategy = ${m6Resolution.amountStrategy}, revenue ${m6Analysis.totalRevenue} (gross units x rate would be ${(m6Rows.reduce((total, row) => total + Number(row.units) * Number(row.rate_per_unit), 0)).toFixed(2)}) ✓`)
+
+      // M6b — the identity must be REQUIRED: perturbing the contra member on
+      // a third of the rows breaks the proof and the tie stays withheld.
+      const brokenRows = m6Rows.map((row, i) => (i % 3 === 0 ? { ...row, rebate_value: Math.round(Number(row.rebate_value) * 100 + 5000) / 100 } : row))
+      const brokenResolution = resolveProfitabilitySchema(m6Columns, brokenRows, "revenue")
+      assert(brokenResolution.mapping.amount === undefined, `M6b: a broken line identity must keep the amount withheld (got ${brokenResolution.mapping.amount?.column})`)
+      assert(brokenResolution.warnings.some((warning) => warning.code === "ambiguous_amount_candidates"), "M6b: the ambiguity warning must stay present")
+      const m6bAnalysis = runPair(m6Columns, brokenRows, expenseFixture.columns, expenseFixture.rows)
+      assert(m6bAnalysis.totalRevenue === null, `M6b: unreconciled gross must never leak as revenue (got ${m6bAnalysis.totalRevenue})`)
+      assert(m6bAnalysis.status === "failed", `M6b: status must fail safe (got ${m6bAnalysis.status})`)
+      console.log("Fixture M6b_broken_identity: tie stays withheld without the row-exact proof ✓")
+
+      // M6c — a bounded member that claims a role-specific amount alias
+      // (e.g. contra_amount matching the amount vocabulary) is never demoted;
+      // the tie stays withheld.
+      const protectedColumns = ["units", "rate_per_unit", "contra_amount", "sales_value"]
+      const protectedRows = m6Rows.map((row) => ({ units: row.units, rate_per_unit: row.rate_per_unit, contra_amount: row.rebate_value, sales_value: row.sales_value }))
+      const protectedResolution = resolveProfitabilitySchema(protectedColumns, protectedRows, "revenue")
+      assert(protectedResolution.mapping.amount === undefined, `M6c: role-alias members must not be demoted by identity evidence (got ${protectedResolution.mapping.amount?.column})`)
+      assert(protectedResolution.warnings.some((warning) => warning.code === "ambiguous_amount_candidates"), "M6c: ambiguity warning must stay present")
+      console.log("Fixture M6c_protected_member: role-aliased bounded member keeps its candidacy, tie withheld ✓")
+    }
   }
 
   console.log(JSON.stringify({ status: "pass", fixtures: fixtures.length + 1 }))

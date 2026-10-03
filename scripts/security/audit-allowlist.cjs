@@ -3,6 +3,12 @@ const fs = require("node:fs");
 
 const APPROVED_RESIDUAL_IDS = new Set([
   "GHSA-jg8r-5jh2-v2xj",
+  // braces GHSA-vfj7-8cjw-p6xm / CVE-2026-93687: no patched release exists
+  // upstream (GHSA "Patched versions: None"; npm latest is 3.0.3). All
+  // dependency paths are build-time only (next/tailwindcss -> sass/chokidar/
+  // micromatch/fast-glob -> braces); the served application never reaches it.
+  // Remove when upstream publishes braces >=3.0.4 and re-run the audit gate.
+  "GHSA-vfj7-8cjw-p6xm",
 ]);
 
 function runAudit() {
