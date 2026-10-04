@@ -211,7 +211,7 @@ export function AppSidebar({ user, businessStatus, accountancyStatus, retailStat
         {!isCollapsed && (
           <div className="space-y-2">
             <div className="flex flex-col items-center gap-1.5 text-[10px] text-muted-foreground/70">
-              <span>Copyright {new Date().getFullYear()} UseClevr</span>
+              <span>© {new Date().getFullYear()} UseClevr</span>
               <Link href="/terms" className="transition hover:text-foreground">Terms</Link>
               <Link href="/privacy" className="transition hover:text-foreground">Privacy</Link>
             </div>
