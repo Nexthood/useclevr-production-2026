@@ -212,19 +212,7 @@ export function Search() {
         className="inline-flex h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
         title={`Search (${shortcutLabel})`}
       >
-        {open ? (
-          <X className="h-4 w-4" />
-        ) : (
-          <>
-            <SearchIcon className="h-4 w-4" />
-            <span className="hidden min-w-24 items-center justify-between rounded-md border border-border/70 bg-background px-2 py-1 text-xs text-muted-foreground xl:inline-flex">
-              <span className="truncate">Search</span>
-              <kbd className="ml-2 shrink-0 font-mono text-[10px] text-muted-foreground/70">
-                {shortcutLabel}
-              </kbd>
-            </span>
-          </>
-        )}
+        {open ? <X className="h-4 w-4" /> : <SearchIcon className="h-4 w-4" />}
       </button>
 
       <Modal
