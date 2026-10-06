@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/auth"
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock"
 import { deleteDatasetsForUser } from "@/lib/data/delete-datasets"
 import { db } from "@/lib/db"
 import { datasetRows, datasets } from "@/lib/db/schema"
@@ -30,6 +31,7 @@ export async function GET(
         createdAt: true,
         columns: true,
         rowCount: true,
+        columnCount: true,
         precomputedMetrics: true,
         analysis: true,
       },
@@ -44,6 +46,26 @@ export async function GET(
     const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1)
     const pageSize = Math.min(1000, Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "100", 10) || 100))
     const offset = (page - 1) * pageSize
+
+    // Preserved historical datasets are LOCKED READ-ONLY after the paid
+    // subscription ended: the customer can still see the dataset exists, but
+    // row content, metrics, and analysis stay sealed until the subscription is
+    // reactivated or the one-time historical data unlock is purchased.
+    if (await isHistoricalDatasetLocked(session.user.id, dataset.createdAt)) {
+      return NextResponse.json(
+        {
+          ...buildHistoricalDatasetLockedResponse(),
+          datasetMeta: {
+            id: dataset.id,
+            name: dataset.name,
+            createdAt: dataset.createdAt,
+            rowCount: dataset.rowCount ?? 0,
+            columnCount: dataset.columnCount ?? 0,
+          },
+        },
+        { status: 403 },
+      )
+    }
 
     const rows = await db.query.datasetRows.findMany({
       where: eq(datasetRows.datasetId, id),

@@ -362,6 +362,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0033_concurrent_analysis_count.sql"),
   readMigrationStatement("src/lib/db/migrations/0034_dataset_source.sql"),
   readMigrationStatement("src/lib/db/migrations/0035_referral_automation.sql"),
+  readMigrationStatement("src/lib/db/migrations/0036_historical_data_unlock.sql"),
 ];
 
 const constraints = [

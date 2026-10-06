@@ -1,3 +1,4 @@
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock"
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import { applyAutonomousReview, categorizePrebookkeepingRows } from "@/lib/accountancy/prebookkeeping-categorization";
@@ -40,11 +41,18 @@ export async function POST(request: Request) {
         id: true,
         analysis: true,
         datasetType: true,
+        createdAt: true,
       },
     });
 
     if (!dataset || resolveDatasetType(dataset.datasetType, dataset.analysis) !== "prebookkeeping") {
       return NextResponse.json({ ok: false, error: "Pre-bookkeeping dataset was not found." }, { status: 404 });
+    }
+
+    // Preserved historical data is LOCKED READ-ONLY after the paid subscription
+    // ended; categorization resumes after reactivation or the one-time unlock.
+    if (await isHistoricalDatasetLocked(userId, dataset.createdAt)) {
+      return NextResponse.json({ ok: false, ...buildHistoricalDatasetLockedResponse() }, { status: 403 });
     }
 
     const rows = await db.query.datasetRows.findMany({

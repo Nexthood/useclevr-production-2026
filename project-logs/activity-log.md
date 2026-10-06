@@ -1,3 +1,11 @@
+## 2026-10-06 — Subscription downgrade data retention + one-time historical data unlock
+
+- implemented: cancelled Pro/Business now downgrade to Free through the existing Stripe lifecycle while `Profile.lastPaidSubscriptionTier`/`subscriptionEndedAt` archive the paid tier and end moment; datasets created before the end moment become locked read-only, preserved and visible, and reactivate or the one-time unlock reopens them
+- added: `$29 pro / $149 business USD` one-time unlock via env-selected one-time Stripe Prices (`STRIPE_PRO_HISTORICAL_UNLOCK_PRICE_ID`, `STRIPE_BUSINESS_HISTORICAL_UNLOCK_PRICE_ID`), payment-mode Checkout created only by authenticated server calls, webhook-authoritative granting with price-derived tier checks, PaymentIntent idempotency, duplicate/`cross-account` fail-safes, and no recurring subscription or paid capacity; migration 0036 (additive, idempotent) registered in predeploy
+- gated: chat/query/analyze/dataset-detail/dashboard/reports-adjacent/prebookkeeping/retail/mcp surfaces return `HISTORICAL_DATA_LOCKED` for locked historical datasets; datasets library + detail + analyze pages show the locked read-only state and safe-data banners; cancellation dialog states "Your data stays safe."
+- verified: `test:historical-unlock` 33/33 pass; full `pnpm test:all` exit 0; `pnpm exec tsc --noEmit --pretty false` clean; `pnpm lint` 0 errors (pre-existing warnings); `pnpm build` exit 0; migration applied to the configured dev database
+- not committed or pushed per instruction
+
 ## 2026-10-03 — Topbar search trigger hover normalization
 
 - fixed: the top-bar search button now uses the same subtle, stationary hover as the other top-bar icons (`hover:bg-muted/50 hover:text-foreground` with `transition-colors`), staying in place instead of lifting; the cyan `ring-ring` focus glow, the stronger `hover:bg-muted/70` tint, and the `transition-all duration-200` animation come in only from the shared ghost Button variant the trigger previously inherited (`hover:-translate-y-0.5` is the movement) and no longer apply to the trigger

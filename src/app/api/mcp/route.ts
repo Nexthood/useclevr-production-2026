@@ -10,6 +10,7 @@ import type { MCPScope } from "@/lib/mcp/tools";
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { checkActionEnforcement } from "@/lib/billing/usage-enforcement";
+import { isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock";
 import { and, eq } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
@@ -212,10 +213,16 @@ async function canAccessDataset(authContext: MCPAuthContext, datasetId: string) 
     where: authContext.userId
       ? and(eq(datasets.id, datasetId), eq(datasets.userId, authContext.userId))
       : eq(datasets.id, datasetId),
-    columns: { id: true },
+    columns: { id: true, createdAt: true },
   });
 
-  return Boolean(record);
+  if (!record) return false;
+  if (!authContext.userId) return true;
+
+  // Preserved historical datasets are LOCKED READ-ONLY after the paid
+  // subscription ended unless the account reactivated or purchased the
+  // one-time historical data unlock.
+  return !(await isHistoricalDatasetLocked(authContext.userId, record.createdAt));
 }
 
 function isToolAllowedForRole(toolName: string, role: string): boolean {

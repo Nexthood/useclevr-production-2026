@@ -32,6 +32,11 @@ import { formatAIResponse } from '@/lib/chat/explanation';
 import { handleRegularChat, handleRegularChatStream, type ChatProviderStatus } from '@/lib/chat/fallback';
 import { checkChatLoop, logChatExecution } from '@/lib/chat/utils';
 import { requireHybridAiFeature } from '@/lib/hybrid-ai/feature-gate';
+import {
+  HISTORICAL_DATA_LOCKED_CODE,
+  HISTORICAL_DATA_LOCKED_MESSAGE,
+  isHistoricalDatasetLocked,
+} from '@/lib/billing/historical-unlock';
 import { ghostModeTraceMessage } from '@/lib/ai/ghost-mode';
 import { answerSquareRetailQuestion } from '@/integrations/retail/analytics/square-question.service';
 
@@ -442,6 +447,22 @@ export async function POST(request: Request) {
             reason: 'Dataset not found',
           },
           { status: 400 }
+        );
+      }
+
+      // Preserved historical datasets are LOCKED READ-ONLY after the paid
+      // subscription ended: AI chat on that historical content resumes only
+      // after reactivation or the one-time historical data unlock.
+      if (await isHistoricalDatasetLocked(userId, dataset.createdAt)) {
+        debugLog('[CHAT] REJECTED: Historical data locked:', datasetId);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Historical data locked',
+            code: HISTORICAL_DATA_LOCKED_CODE,
+            reason: HISTORICAL_DATA_LOCKED_MESSAGE,
+          },
+          { status: 403 }
         );
       }
 

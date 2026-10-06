@@ -23,6 +23,7 @@ import {
   type AiMode,
 } from "@/lib/ai/universal-ai-adapter";
 import { auth } from "@/lib/auth/auth";
+import { isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock";
 import { normalizeProviderUsage } from "@/lib/billing/provider-usage";
 import { detectBusinessColumns } from "@/lib/business/business-columns";
 import {
@@ -200,6 +201,7 @@ export async function POST(request: Request) {
       columnCount: true,
       columns: true,
       data: true,
+      createdAt: true,
       precomputedMetrics: true,
       detectedColumns: true,
       analysis: true,
@@ -213,6 +215,23 @@ export async function POST(request: Request) {
       status: 404,
       code: "DATASET_NOT_FOUND",
       message: "The selected dataset could not be found for this account.",
+      requestId,
+      userId,
+      datasetId: parsed.datasetId,
+      stage: "load_dataset",
+      startedAt,
+      ghostMode,
+    });
+  }
+
+  // Preserved historical datasets are LOCKED READ-ONLY after the paid
+  // subscription ended. Dataset AI answers on that historical content resume
+  // after reactivation or the one-time historical data unlock.
+  if (await isHistoricalDatasetLocked(userId, dataset.createdAt ?? null)) {
+    return datasetAiErrorResponse({
+      status: 403,
+      code: "HISTORICAL_DATA_LOCKED",
+      message: "Your subscription has ended. Your existing data is safe and preserved. Reactivate your subscription or complete the one-time historical data unlock to access this historical dataset again.",
       requestId,
       userId,
       datasetId: parsed.datasetId,

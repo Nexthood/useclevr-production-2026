@@ -1,3 +1,4 @@
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock"
 import { auth } from "@/lib/auth/auth";
 import { requireBuiltinUserRecord } from "@/lib/auth/builtin-user-store";
 import {
@@ -52,11 +53,18 @@ export async function PATCH(request: Request) {
         userId: true,
         datasetType: true,
         analysis: true,
+        createdAt: true,
       },
     });
 
     if (!dataset || resolveDatasetType(dataset.datasetType, dataset.analysis) !== "prebookkeeping") {
       return jsonError("Pre-bookkeeping dataset was not found.", 404);
+    }
+
+    // Preserved historical data is LOCKED READ-ONLY after the paid subscription
+    // ended; review resumes after reactivation or the one-time unlock.
+    if (await isHistoricalDatasetLocked(userId, dataset.createdAt)) {
+      return jsonError(buildHistoricalDatasetLockedResponse().message, 403);
     }
 
     const analysis = isRecord(dataset.analysis) ? dataset.analysis : {};

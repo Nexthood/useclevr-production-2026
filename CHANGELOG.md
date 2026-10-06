@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Added
+
+- Cancelling a subscription now moves the account to the Free plan while all existing datasets, reports, and analyses stay safe in UseClevr.
+- The subscription settings now show an end-of-subscription notice, confirm that the existing data stays safe, and offer reactivation or a one-time permanent unlock of the historical data.
+- Former Pro customers can unlock their historical data permanently for $29 one-time, and former Business customers for $149 one-time, with no subscription attached.
+- Locked historical datasets stay visible with their names, sizes, and dates, and reopen automatically the moment the subscription reactivates.
+
 ### Fixed
 
 - The top-bar search button now shows the same subtle, stationary hover highlight as the other top-bar icons, with no glow or movement on hover.

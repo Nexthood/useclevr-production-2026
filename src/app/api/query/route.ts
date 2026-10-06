@@ -3,6 +3,7 @@ import { debugError, debugLog } from "@/lib/utils/debug";
 // app/api/query/route.ts - Direct SQL execution for analytical questions
 import { processQuestion } from '@/lib/ai/ai-query-generator';
 import { auth } from '@/lib/auth/auth';
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from '@/lib/billing/historical-unlock';
 import { db } from '@/lib/db';
 import { datasetRows, datasets } from '@/lib/db/schema';
 import { aggregateData, findColumn } from '@/lib/data/queryEngine';
@@ -40,6 +41,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "No active dataset selected" },
         { status: 400 }
+      );
+    }
+
+    // Preserved historical datasets are LOCKED READ-ONLY after the paid
+    // subscription ended. Direct questioning resumes after reactivation or
+    // the one-time historical data unlock.
+    if (await isHistoricalDatasetLocked(session.user.id, dataset.createdAt)) {
+      return NextResponse.json(
+        buildHistoricalDatasetLockedResponse(),
+        { status: 403 }
       );
     }
 

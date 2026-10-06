@@ -5,6 +5,7 @@ import { AppPageHeader } from "@/components/layout/app-page-header";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth/auth";
 import { findAccessibleDataset, loadDatasetData } from "@/lib/data/dataset-access";
+import { HISTORICAL_DATA_LOCKED_MESSAGE } from "@/lib/billing/historical-unlock";
 import { resolveBusinessModel } from "@/lib/data/business-model";
 import { getDatasetCategoryRedirect, resolveDatasetType } from "@/lib/data/dataset-category";
 import { getSetupStatus } from "@/lib/business/company-setup-store";
@@ -182,6 +183,19 @@ export default async function AnalyzePage({ params }: { params: Promise<{ id: st
       )}
 
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        {(dataset as { historicalDataLocked?: boolean }).historicalDataLocked && (
+          <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/5 p-4">
+            <p className="font-semibold text-foreground">Your subscription has ended.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{HISTORICAL_DATA_LOCKED_MESSAGE}</p>
+            <div className="mt-3">
+              <Link href="/app/settings/subscription?tab=billing">
+                <Button size="sm" variant="outline" className="border-sky-400/40">
+                  Unlock options
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
         {isAnalysisPending && (
           <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
             <p className="font-semibold text-amber-950 dark:text-amber-100">
@@ -233,6 +247,7 @@ export default async function AnalyzePage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
+        {!(dataset as { historicalDataLocked?: boolean }).historicalDataLocked && (
         <DatasetAnalyzer
           datasetId={id}
           datasetName={dataset.name}
@@ -243,6 +258,7 @@ export default async function AnalyzePage({ params }: { params: Promise<{ id: st
           isAnalyzed={hasAnalysis}
           initialAnalysis={initialAnalysis}
         />
+        )}
       </main>
     </div>
   );

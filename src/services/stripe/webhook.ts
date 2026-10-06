@@ -239,6 +239,8 @@ async function syncCheckoutSession(
         stripeStatus?: string;
         stripeCurrentPeriodEnd?: Date;
         subscriptionTier?: "free" | "pro" | "business";
+        lastPaidSubscriptionTier?: "pro" | "business";
+        subscriptionEndedAt?: Date | null;
       }),
     });
   } else {
@@ -247,6 +249,7 @@ async function syncCheckoutSession(
       currentDBTier: profile.subscriptionTier,
       stripeCustomerIdPresent: Boolean(profile.stripeCustomerId),
     })
+    applyTierHistoryBookkeeping(updates, updates.subscriptionTier as string | null | undefined, profile.subscriptionTier);
     await activeDb.update(profiles).set(updates).where(eq(profiles.id, profile.id));
   }
 
@@ -472,6 +475,7 @@ async function syncSubscriptionInternal(
     updatedAt: new Date(),
   };
   applySubscriptionUpdates(updates, sub, undefined, eventType);
+  applyTierHistoryBookkeeping(updates, updates.subscriptionTier as string | null | undefined, currentTier);
 
   const dbUpdateAttempted = Boolean(updates.stripeCustomerId || updates.stripeSubscriptionId);
   console.warn("[STRIPE_SUBSCRIPTION_LIFECYCLE] db_update", {
@@ -614,6 +618,35 @@ async function findProfileForStripeCustomer({ customerId, userId, userEmail }: P
   }
 
   return null;
+}
+
+/**
+ * Server-authoritative tier history bookkeeping for profile updates.
+ *
+ *  - A resolved paid tier archives the verified tier in lastPaidSubscriptionTier
+ *    and clears any subscriptionEndedAt marker (data stops being historical).
+ *  - A resolved downgrade to Free from a paid tier stamps subscriptionEndedAt:
+ *    the moment datasets created before it become the preserved historical data
+ *    set. historical datasets are never deleted on downgrade — only entitlement
+ *    state changes.
+ */
+function applyTierHistoryBookkeeping(
+  updates: Record<string, unknown>,
+  resolvedTier: string | null | undefined,
+  previousTier: string | null | undefined,
+) {
+  if (resolvedTier === "pro" || resolvedTier === "business") {
+    updates.lastPaidSubscriptionTier = resolvedTier;
+    updates.subscriptionEndedAt = null;
+    return;
+  }
+
+  if (
+    resolvedTier === "free" &&
+    (previousTier === "pro" || previousTier === "business")
+  ) {
+    updates.subscriptionEndedAt = new Date();
+  }
 }
 
 function applySubscriptionUpdates(

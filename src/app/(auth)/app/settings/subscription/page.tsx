@@ -19,8 +19,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CreditTopUpButton } from "@/components/shared/credit-topup-button"
 import { TopUpConfirmationPoller } from "@/components/billing/topup-confirmation-poller";
+import {
+  HistoricalUnlockConfirmationPoller,
+  HistoricalUnlockPanel,
+} from "@/components/billing/historical-unlock-panel";
 import { SubscriptionPlanSelector } from "@/components/billing/subscription-plan-selector";
 import { SubscriptionCancelButton } from "@/components/billing/subscription-cancel-button";
+import {
+  getHistoricalUnlockDisplayPrice,
+  loadHistoricalAccessState,
+  resolveHistoricalUnlockCurrency,
+} from "@/lib/billing/historical-unlock";
 
 export const metadata: Metadata = { title: "Subscription" };
 
@@ -96,6 +105,7 @@ export default async function SubscriptionSettingsPage({
           stripeStatus: true,
           subscriptionTier: true,
           stripeSubscriptionId: true,
+          preferredCurrency: true,
         },
       }),
     ]);
@@ -299,6 +309,7 @@ const subs = await stripe.subscriptions.list({
             stripeStatus: true,
             subscriptionTier: true,
             stripeSubscriptionId: true,
+            preferredCurrency: true,
           },
         });
       }
@@ -408,6 +419,11 @@ const subs = await stripe.subscriptions.list({
   const providerConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
   const tier = profile?.subscriptionTier || usage.subscriptionTier || "free";
   const currentPlanLabel = planLabel(tier);
+
+  // Historical data entitlement state: preserved data after a paid
+  // subscription ends + the one-time unlock purchase availability.
+  const historicalState = await loadHistoricalAccessState(session?.user?.id ?? "");
+  const showUnlockConfirmation = params?.unlock === "success";
   const paymentStatus = profile?.stripeStatus
     ? profile.stripeStatus.replaceAll("_", " ")
     : profile?.stripeCustomerId
@@ -459,6 +475,30 @@ const subs = await stripe.subscriptions.list({
       </CardHeader>
 
       <CardContent className="space-y-5">
+        {(historicalState.subscriptionEnded || historicalState.historicalDataUnlocked) && (
+          <div className="rounded-lg border border-sky-500/30 bg-sky-500/5 p-4" role="status">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-sky-600 dark:text-sky-300" />
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground">Your subscription has ended.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your existing UseClevr data is safely preserved. Nothing was deleted.
+                  {historicalState.previousPaidTier
+                    ? ` Your previous plan was ${planLabel(historicalState.previousPaidTier)}.`
+                    : ""}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {historicalState.historicalDatasetsLocked
+                    ? "Your historical datasets are locked read-only. Reactivate your subscription at any time or permanently unlock access to your historical data with a one-time payment below."
+                    : historicalState.historicalDataUnlocked
+                      ? "Your historical data is permanently unlocked."
+                      : "You can reactivate your subscription at any time."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex min-w-0 gap-2 overflow-x-auto rounded-lg border border-border bg-muted/30 p-1" role="tablist" aria-label="Subscription sections">
           {tabs.map((tab) => {
             const active = tab.id === activeTab;
@@ -571,6 +611,39 @@ const subs = await stripe.subscriptions.list({
                 stripeSubscriptionId={profile?.stripeSubscriptionId ?? null}
               />
             </div>
+
+            {historicalState.subscriptionEnded && historicalState.unlockTier && historicalState.unlockPurchaseAvailable && (
+              <HistoricalUnlockPanel
+                unlockTier={historicalState.unlockTier}
+                {...(() => {
+                  // Regional price mirrors the server-resolved billing currency
+                  // (USD base fallback) — the same currency checkout charges.
+                  const currency = resolveHistoricalUnlockCurrency(profile?.preferredCurrency);
+                  const price = getHistoricalUnlockDisplayPrice(historicalState.unlockTier as "pro" | "business", currency);
+                  return { amount: price.amount, currency: price.currency, displayName: price.displayName };
+                })()}
+              />
+            )}
+
+            {historicalState.historicalDataUnlocked && (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-50 p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                      Historical data permanently unlocked
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                      Your one-time unlock grants permanent read access to your preserved historical data.
+                      This payment does not include new Pro/Business functionality; reactivate a subscription for
+                      premium features.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showUnlockConfirmation && <HistoricalUnlockConfirmationPoller />}
 
             <Card className="border-border bg-card">
               <CardHeader>

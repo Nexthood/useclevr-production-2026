@@ -1,11 +1,16 @@
 import { getDb } from "@/lib/db"
 import { isSuperadmin } from "@/lib/auth/builtin-users"
+import { isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock"
 import { datasetRows, datasets } from "@/lib/db/schema"
 import { debugLog } from "@/lib/utils/debug"
 import { and, eq } from "drizzle-orm"
 
+export type AccessibleDataset = typeof datasets.$inferSelect & {
+  historicalDataLocked?: boolean
+}
+
 export type DatasetAccessResult = {
-  dataset: typeof datasets.$inferSelect | null
+  dataset: AccessibleDataset | null
   dbUnavailable: boolean
 }
 
@@ -27,7 +32,7 @@ export async function findAccessibleDataset(
 
   // Superadmin shares the canonical dataset routes with read-all privileges,
   // matching Risk Intelligence dataset visibility. Normal users stay strictly
-  // owner-scoped.
+  // owner-scoped, and superadmin keeps its unchanged historical behavior.
   const superadminAccess = isSuperadmin({ id: userId, role })
   const dataset = await db.query.datasets.findFirst({
     where: superadminAccess
@@ -70,10 +75,38 @@ export async function findAccessibleDataset(
     },
   })
 
-  return { dataset: dataset ?? null, dbUnavailable: false }
+  if (!dataset) return { dataset: null, dbUnavailable: false }
+
+  // Preserved historical data is LOCKED READ-ONLY after a paid subscription
+  // ends unless an active subscription, the permanent one-time unlock, or an
+  // admin/superadmin entitlement grants access. Ownership is unchanged: the
+  // historical dataset stays exactly where it is, never migrated or recreated.
+  // While locked, stored row content and stored analysis stay sealed.
+  const historicalDataLocked = superadminAccess
+    ? false
+    : await isHistoricalDatasetLocked(userId, dataset.createdAt)
+
+  if (historicalDataLocked) {
+    // Row content and stored analysis outputs stay sealed while locked.
+    const sealed = { ...dataset, data: [], analysis: {}, aiInsights: null, precomputedMetrics: null }
+    return { dataset: { ...sealed, historicalDataLocked: true }, dbUnavailable: false }
+  }
+
+  return { dataset: { ...dataset, historicalDataLocked }, dbUnavailable: false }
 }
 
-export async function loadDatasetData(datasetId: string, dataset: typeof datasets.$inferSelect) {
+export async function loadDatasetData(datasetId: string, dataset: AccessibleDataset) {
+  if (dataset.historicalDataLocked) {
+    debugLog("[REPORT TRACE]", "loadDatasetData", {
+      datasetId,
+      filename: dataset.fileName,
+      persistedRowCount: dataset.rowCount,
+      loadedRowsLength: 0,
+      source: "historical_data_locked",
+    })
+    return []
+  }
+
   const storedData = Array.isArray(dataset.data) ? (dataset.data as Record<string, unknown>[]) : []
   const expectedRowCount = typeof dataset.rowCount === "number" ? dataset.rowCount : storedData.length
   if (storedData.length > 0 && storedData.length >= expectedRowCount) {

@@ -1,3 +1,51 @@
+## 2026-10-06 — Subscription downgrade data retention + one-time historical data unlock
+
+1. Interaction title
+   Implement the UseClevr subscription downgrade with permanent data retention and the one-time historical data unlock (master task), inspecting the existing billing architecture first and adding no unrelated refactors, with no commit, push, or deployment.
+
+2. What was the user goal
+   Make cancelling or failing payment on a Pro/Business subscription never delete customer data; keep historical data preserved and visible; let former Pro pay once for $29 USD and former Business $149 USD to unlock preserved historical data permanently without any subscription; restore everything automatically on resubscription; keep one unlock per account across later cancellations; keep strict tenant isolation, superadmin behavior, and existing flows; add the required tests; report before any commit.
+
+3. What changed
+   - `src/lib/db/schema.ts`: Profile gains durable, server-authoritative entitlement columns — `lastPaidSubscriptionTier`, `subscriptionEndedAt`, `historicalDataUnlocked`, `historicalDataUnlockedAt`, `historicalDataUnlockTier`, `historicalDataUnlockPaymentId`.
+   - `src/lib/db/migrations/0036_historical_data_unlock.sql` (new): idempotent additive-only ALTERs; registered in `scripts/runtime/railway-predeploy.cjs` after 0035 and applied to the configured dev database.
+   - `src/lib/billing/historical-unlock.ts` (new): one-time price configuration from `STRIPE_PRO_HISTORICAL_UNLOCK_PRICE_ID` ($29/2900 USD) and `STRIPE_BUSINESS_HISTORICAL_UNLOCK_PRICE_ID` ($149/14900 USD), price-to-tier resolution, the single pure `resolveHistoricalAccessState` (active tier, ended state, lock, unlock, purchase availability), the `isDatasetLockedByHistoricalState` boundary (datasets created before `subscriptionEndedAt`), and report-only state loading that fails open on read errors.
+   - `src/services/stripe/webhook.ts`: `applyTierHistoryBookkeeping` archives the verified paid tier on activation and stamps `subscriptionEndedAt` when a paid tier resolves to Free; wired into both the subscription sync and the checkout activation paths.
+   - `src/services/stripe/historical-unlock.ts` (new): one-time payment-mode Checkout creation (server-derived price, EUR-only verification, adaptive pricing off, trusted metadata/bind to the authenticated user) and webhook processing that verifies purpose, payment status, price-derived tier agreement, amount/currency, profile binding, and PaymentIntent idempotency before granting the entitlement while keeping the account on Free and credits untouched.
+   - `src/app/api/webhooks/stripe/route.ts`: payment-mode `checkout.session.completed` dispatches on the trusted `historical_data_unlock` purpose before the credit top-up fallback; signature verification untouched.
+   - `src/app/api/checkout/historical-unlock/route.ts` (new): authenticated checkout creation gated by resolved state (already unlocked → 409, active subscription → 409, no archived tier → 400, unconfigured price → 503) plus a report-only GET status endpoint.
+   - Locked read-only enforcement: `src/lib/data/dataset-access.ts` (header chokepoint seals data/analysis for locked historical datasets and flags them; superadmin path unchanged), `/api/datasets` (per-item lock flag), `/api/datasets/[id]` (403 `HISTORICAL_DATA_LOCKED`), `/api/chat` + `validateDatasetId`, `/api/query`, `/api/analyze` (both loads), `/api/datasets/[id]/analyze`, `/api/datasets/[id]/dashboard`, `/api/datasets/[id]/suggestions|investigate|analyst`, `/api/suggestions/generate`, `/api/auto-questions`, `/api/hybrid-ai/dataset-chat`, prebookkeeping categorize/review/export, `/api/retail/analytics`, and `/api/mcp` `canAccessDataset`.
+   - UI: subscription page shows the "Your subscription has ended. Your existing data is safely preserved." banner with the previous plan, the tier-specific one-time unlock panel, the unlocked confirmation, and the bounded webhook-confirmation poller; cancellation dialogs now state "Your data stays safe."; dataset library gains the safe-state banner and locked read-only badges; dataset detail and analyze pages show the locked notice with unlock options.
+   - `scripts/billing/mocks/mock-db.mjs`: aggregate `count()` select support, an awaitable `where()`, and Dataset/DatasetRow tables; `scripts/billing/test-historical-unlock.ts` (new, `test:historical-unlock`, in `test:all`): 33 behavioral/source tests covering the full required matrix.
+
+4. Problems marked
+   - blocker: none.
+   - risk: the Rails of long-tail read paths not wired directly (payload admin aggregates, accuracy search/ingestion, autopilot consumers) still respect the locked flag through the sealed `findAccessibleDataset` header, but any future consumer that hand-rolls `Dataset` row loading bypasses the lock by design; source-level owner-scope tests remain the guard there.
+   - improvement: a superadmin-facingUnlock management panel and a confirmation email for the unlock purchase are follow-ups.
+   - observation: the two one-time Stripe Prices must be created manually in the Stripe Dashboard; env vars follow.
+
+5. User learning
+   The unlock is not a subscription: it only restores read access to preserved historical data, and Premium functionality still requires an active plan.
+
+6. AI-agent learning
+   The configured database is a real Neon instance; suites that insert Profiles fail after schema additions until the idempotent migration is applied to the configured database. `scripts/runtime/railway-predeploy.cjs` is the manually curated migration chain every new migration must join.
+
+7. Follow-up tasks
+   - T-1085 completed this work (todo-done).
+   - Create the two one-time Stripe Products/Prices manually and set the unlock env vars (operator step).
+   - Consider a superadmin unlock-management panel and unlock confirmation email.
+
+8. Instruction sources
+   - AGENTS.md
+   - .kilo/agent/changelog.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - requirements.md, CHANGELOG.md, .TODO/todo-done.md, this file, activity-log, interaction-status updated; detailed flows live in the final report to the user.
+
+Keep this record concise.
+
 ## 2026-10-02 — Central schema intelligence audit + universal profitability resolution
 
 1. Interaction title

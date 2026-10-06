@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth/auth';
 // Auto Dashboard Builder - generates KPIs and charts from dataset
 
 import { buildDashboard } from '@/lib/data/dashboard-builder';
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from '@/lib/billing/historical-unlock';
 import { db } from '@/lib/db';
 import { datasetRows, datasets } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
@@ -32,6 +33,16 @@ export async function POST(
       return NextResponse.json(
         { error: 'Dataset not found' },
         { status: 404 }
+      );
+    }
+
+    // Preserved historical datasets are LOCKED READ-ONLY after the paid
+    // subscription ended. Dashboard building resumes after reactivation or
+    // the one-time historical data unlock.
+    if (await isHistoricalDatasetLocked(session.user.id, dataset.createdAt)) {
+      return NextResponse.json(
+        buildHistoricalDatasetLockedResponse(),
+        { status: 403 }
       );
     }
 

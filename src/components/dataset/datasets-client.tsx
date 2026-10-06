@@ -8,7 +8,7 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { getDatasetCategoryDestinationLabel, getDatasetCategoryLabel, normalizeDatasetCategory } from "@/lib/data/dataset-category"
 import { profitabilityOriginalFileNames } from "@/lib/data/canonical-financial-metrics"
 import { deriveDatasetSource, getDatasetSourceLabel } from "@/lib/data/dataset-source"
-import { BarChart3, Database, FileSpreadsheet, Upload } from "lucide-react"
+import { BarChart3, Database, FileSpreadsheet, Lock, ShieldCheck, Upload } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -30,13 +30,15 @@ export interface DatasetListItem {
   columns: string[]
   industry?: string | null
   monthRevenue?: number | null
+  historicalDataLocked?: boolean
 }
 
 interface DatasetsClientProps {
   initialDatasets: DatasetListItem[]
+  historicalBanner?: string | null
 }
 
-export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
+export function DatasetsClient({ initialDatasets, historicalBanner }: DatasetsClientProps) {
   const [datasets, setDatasets] = React.useState<DatasetListItem[]>(initialDatasets)
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
 
@@ -174,6 +176,22 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       },
     },
     {
+      key: "historicalAccess",
+      header: "Access",
+      render: (row) => {
+        const dataset = row as unknown as DatasetListItem
+        if (!dataset.historicalDataLocked) {
+          return <span className="text-xs text-muted-foreground">Full access</span>
+        }
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-400">
+            <Lock className="h-3 w-3" />
+            Locked read-only
+          </span>
+        )
+      },
+    },
+    {
       key: "shape",
       header: "Rows / columns",
       render: (row) => (
@@ -277,7 +295,18 @@ export function DatasetsClient({ initialDatasets }: DatasetsClientProps) {
       rightSidebar={rightSidebar}
     >
       <div className="min-w-0 flex-1 overflow-y-auto px-5 pb-5 pt-6">
-        <div className="mx-auto w-full max-w-6xl min-w-0">
+        <div className="mx-auto w-full max-w-6xl min-w-0 space-y-3">
+          {historicalBanner && (
+            <div className="flex items-start gap-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-4 text-sm text-muted-foreground" role="status">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+              <span>
+                {historicalBanner}{" "}
+                <Link href="/app/settings/subscription?tab=billing" className="font-medium text-primary hover:underline">
+                  Open subscription settings
+                </Link>
+              </span>
+            </div>
+          )}
           <DataTable
             title="Dataset library"
             description="All uploaded data files with processing status and actions."

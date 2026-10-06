@@ -16,6 +16,7 @@ import { analyzeDataset, generateAIExecutiveSummary } from "@/lib/data/dataset-a
 import { buildDatasetIntelligenceEngine, type DatasetIntelligenceEngineResult } from "@/lib/data/dataset-intelligence-engine";
 import { db } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock";
 import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -224,6 +225,13 @@ export async function POST(
 
     if (!dataset) {
       return NextResponse.json<ErrorResponse>({ error: "Dataset not found" }, { status: 404 });
+    }
+
+    // Preserved historical datasets are LOCKED READ-ONLY after the paid
+    // subscription ended. Deterministic re-analysis resumes after
+    // reactivation or the one-time historical data unlock.
+    if (await isHistoricalDatasetLocked(userId, (dataset as { createdAt?: Date | null }).createdAt)) {
+      return NextResponse.json(buildHistoricalDatasetLockedResponse(), { status: 403 });
     }
 
     const datasetData = dataset as {

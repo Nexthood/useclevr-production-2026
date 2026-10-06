@@ -87,6 +87,9 @@ export function SubscriptionCancelDialog({
                 You will not be charged again after this date.
               </p>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Your existing datasets, analyses, and reports stay safely preserved. Cancelling never deletes your data.
+            </p>
             {onResume && (
               <p className="text-sm text-muted-foreground">
                 You can resume your subscription anytime before the period ends.
@@ -132,6 +135,11 @@ export function SubscriptionCancelDialog({
               <p className="mt-2 text-sm text-muted-foreground">
                 You will not be charged again after this date. Your account will
                 automatically switch to the Free plan.
+              </p>
+              <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">
+                Your data stays safe. Your existing datasets and analyses remain preserved —
+                you can reactivate your subscription or permanently unlock access to your
+                historical data with a one-time payment at any time.
               </p>
             </div>
           ) : (
