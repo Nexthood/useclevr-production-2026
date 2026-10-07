@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- The Usy header badge rotates through all seven supported languages again, cycling continuously from English through to Romanian.
 - The top-bar search button now shows the same subtle, stationary hover highlight as the other top-bar icons, with no glow or movement on hover.
 - Risk Intelligence now includes datasets connected through ClevrSync from Google Sheets when their retail data supports the same deterministic rules, so connected and uploaded datasets with equivalent data receive the same risk eligibility.
 - Risk Intelligence now lets users explicitly choose among eligible datasets, including connected Google Sheets Retail datasets, and clears stale selections instead of falling back to another dataset.

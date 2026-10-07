@@ -12,6 +12,7 @@ import type {
   UsyActionButton,
 } from "@/lib/usy/types";
 import { getActionById } from "@/lib/usy/actions";
+import { supportedUsyLanguages } from "@/lib/usy/knowledge-base";
 import { ArrowUp, Bot, Loader2, Sparkles, X, ExternalLink, Mail } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -367,6 +368,8 @@ export function HelpChatbox({
   const [awaitMessageInput, setAwaitMessageInput] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
   const [currentUsyLanguage, setCurrentUsyLanguage] = useState<SupportedUsyLanguage>("english");
+  const [languageBadgeIndex, setLanguageBadgeIndex] = useState(0);
+  const [languageBadgeVisible, setLanguageBadgeVisible] = useState(true);
   const [showLanguageHint, setShowLanguageHint] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -435,7 +438,24 @@ export function HelpChatbox({
   }, [messages, isAsking]);
 
   useEffect(() => {
-    if (!open) setShowLanguageHint(false);
+    if (!open) {
+      setShowLanguageHint(false);
+      return;
+    }
+
+    let fadeTimeout: number | null = null;
+    const interval = window.setInterval(() => {
+      setLanguageBadgeVisible(false);
+      fadeTimeout = window.setTimeout(() => {
+        setLanguageBadgeIndex((current) => (current + 1) % supportedUsyLanguages.length);
+        setLanguageBadgeVisible(true);
+      }, 220);
+    }, 2000);
+
+    return () => {
+      window.clearInterval(interval);
+      if (fadeTimeout !== null) window.clearTimeout(fadeTimeout);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -631,8 +651,8 @@ export function HelpChatbox({
                   UseClevr AI Business Assistant
                 </p>
                 <UsyLanguageBadge
-                  language={usyLanguageBadges[currentUsyLanguage]}
-                  visible
+                  language={usyLanguageBadges[supportedUsyLanguages[languageBadgeIndex]]}
+                  visible={languageBadgeVisible}
                   showHint={showLanguageHint}
                   onHintChange={setShowLanguageHint}
                 />

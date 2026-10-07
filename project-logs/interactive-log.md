@@ -19333,3 +19333,24 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - AI-agent learning: when extending language detection, first strip accent variants that normalize identically (kw dedupe belongs at the normalized form) and exclude characters another supported language relies on (Romanian â/î, Hungarian é) or plain foreign words (English credits/stock/support).
 - Follow-up tasks: none assigned.
 - Not committed or pushed per instruction.
+## 2026-10-07 — Usy header multilingual badge rotation restored
+
+- User goal: the Usy header badge ("🌐 Multilingual •") regressed to showing a stuck "🇬🇧 English" label; restore the previous automatic language rotation, extend it to all seven supported Usy languages in the exact order English → Deutsch → Nederlands → Français → Español → Magyar → Română, keep visual style/spacing/timing, avoid hydration issues and timer leaks, and change no language detection, routing, translations, billing knowledge, or backend behavior.
+- Root cause: commit c6380e875 ("fix: polish Usy multilingual acceptance and send button") replaced the badge's rotation states (`languageBadgeIndex`/`languageBadgeVisible`) and its 2-second interval effect with the latest resolved reply language (`currentUsyLanguage`, default `english`) and a hardcoded `visible` — so the badge stopped cycling and displayed the reply language only.
+- What changed
+  - `src/components/ui/help-chatbox.tsx`: restored the original rotation effect from ef6e2f7f3 verbatim shape — when Usy is open, a `window.setInterval` (2000 ms) fades the label out, and after a 220 ms fade timeout advances a numeric index modulo `supportedUsyLanguages.length` and fades back in; the effect resets the hint popover when closed and cleans up both `clearInterval` and the pending `clearTimeout` on every unmount/re-run (no hydration risk: initial state is static English, interval is client-only).
+  - The rotating source is now the canonical `supportedUsyLanguages` array from `src/lib/usy/knowledge-base.ts` (English, German, Dutch, French, Spanish, Hungarian, Romanian — the required exact order with no duplicated list), indexed back through the existing `usyLanguageBadges` map for flag/label rendering.
+  - "🌐 Multilingual •" markup, badge styling, spacing, fade/slide classes, tooltip, and `min-w-[6.25rem]` reserved width stay unchanged; `currentUsyLanguage` continues to drive input placeholders, quick actions, and contact labels as before.
+- Verification
+  - `pnpm exec tsc --noEmit --pretty false` clean.
+  - Focused eslint on `src/components/ui/help-chatbox.tsx` clean.
+  - `test:usy-billing-knowledge` 17/17, `test:usy-secretariat`, `test:usy-guest-mode`, `test:usy-contact-message-step`, `test:usy-contact-handoff`, and `test:usy-product-knowledge` all pass.
+  - Rotation order verified against the canonical array source: seven entries, French added between Nederlands and Español, modulo loop returns to English.
+- Problems marked
+  - blocker: none.
+  - risk: no browser screenshot harness exists in the repository, so the animation is verified source-level plus TypeScript.
+  - improvement: none assigned.
+- User learning: the Usy header badge now cycles all seven supported languages continuously while Usy is open.
+- AI-agent learning: when a decorative cycling indicator is swapped for a state-driven value, the swap removes the interval effect; restoring it first (git log -S) preserves the original timing shape instead of inventing a parallel mechanism.
+- Follow-up tasks: none assigned.
+- Not committed or pushed per instruction.
