@@ -417,6 +417,17 @@ Text rules for this file:
 - Let users manage subscription, usage, downgrade, and cancellation from account billing.
 - Limit free analyst credits and prompt upgrades when credits run out.
 - Route mistyped dashboard settings links to Profile settings.
+- Cancel or end a Pro or Business subscription only through the existing subscription architecture: move the account to Free through the Stripe-authoritative lifecycle, and preserve every existing customer dataset, report, analysis, connector dataset, setting, and credit balance without deletion, recreation, migration, or reassignment.
+- Record the verified paid subscription tier and the subscription end moment on the account profile when a paid subscription ends, and treat datasets created before that end moment as the account's preserved historical data.
+- Show an end-of-subscription notice on the subscription page that states "Your subscription has ended. Your existing data is safe.", names the previous plan, and offers two separate actions: reactivate the Pro or Business subscription, or purchase the permanent historical data unlock with a one-time payment.
+- Place preserved historical datasets in a locked read-only state after the subscription ends: keep them visible with the stored names, dates, and row counts, block row content, stored analysis, and AI question answering on them, and keep datasets created while on Free fully usable within Free plan limits.
+- Price the one-time historical data unlock at fixed regional amounts — Pro $29 USD / €25 / £22 / C$40 and Business $149 USD / €130 / £112 / C$210 with USD as the Stripe base currency — for accounts whose archived paid tier is Pro or Business, resolve the tier and the Stripe Price ID on the server from the archived profile tier, and never accept a client-supplied tier or price.
+- Grant the permanent historical data unlock only from a signature-verified one-time Stripe Checkout `checkout.session.completed` webhook whose PaymentIntent and amount match the configured unlock tier: keep the account on Free, create no recurring subscription, grant no Pro or Business usage capacity, store the PaymentIntent reference, and treat webhook replays and second purchases as duplicates without re-charging or re-granting.
+- Never unlock historical data from a checkout success redirect, a cancelled checkout, or a failed payment.
+- Resolve the paying account only through the authenticated user bound at checkout creation, verify the paying Stripe customer against the profile, and keep user-owned historical datasets inaccessible to other accounts.
+- Reactivate a Pro or Business subscription to restore full access to all preserved historical data automatically without duplicating datasets and without charging for an already purchased permanent unlock.
+- Preserve a purchased permanent historical data unlock through later resubscriptions and later cancellations, keeping the account unlocked after any subsequent downgrade without a second payment.
+- Keep superadmin data access unchanged by the locked historical data state.
 
 ## Business Profile
 

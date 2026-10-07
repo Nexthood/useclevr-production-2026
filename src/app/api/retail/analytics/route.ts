@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { getOwnedRetailConnection } from "@/integrations/retail/core/connection.service";
 import { loadSquareRetailAnalytics } from "@/integrations/retail/analytics/square-analytics.service";
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock";
 import { getDb } from "@/lib/db";
 import { datasetRows, datasets } from "@/lib/db/schema";
 import { buildDatasetRetailSnapshot, parseRetailSourceRef } from "@/lib/retail/retail-snapshot";
@@ -44,6 +45,13 @@ export async function GET(request: Request) {
       });
       if (!dataset) {
         return NextResponse.json({ error: "Retail source not found." }, { status: 404 });
+      }
+
+      // Preserved historical retail data is LOCKED READ-ONLY after the paid
+      // subscription ended; access resumes after reactivation or the one-time
+      // historical data unlock.
+      if (await isHistoricalDatasetLocked(userId, dataset.createdAt)) {
+        return NextResponse.json(buildHistoricalDatasetLockedResponse(), { status: 403 });
       }
 
       let rows = (dataset.data as Record<string, unknown>[] | null) || [];

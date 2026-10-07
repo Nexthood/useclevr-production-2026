@@ -1,3 +1,9 @@
+import {
+  HISTORICAL_UNLOCK_BASE_CURRENCY,
+  HISTORICAL_UNLOCK_TIERS,
+  isHistoricalUnlockCurrency,
+  type HistoricalUnlockCurrency,
+} from "@/lib/billing/historical-unlock";
 import type { SupportedUsyLanguage, UsyUsageContext } from "@/lib/usy/types";
 
 /**
@@ -47,7 +53,54 @@ export const usyBillingKnowledgeRules = {
     "When usable credits reach zero: Free → upgrade to Pro/Business. Pro/Business → Add Credits.",
   useActualState:
     "Usy must use the user's actual plan/credit state when available and must not invent balances, subscription status, refund status or billing history.",
+  historicalUnlockIsOneTime:
+    "The Historical Data Unlock is a one-time payment, never a subscription or recurring charge.",
+  historicalDataPreservedAfterCancellation:
+    "Existing historical data is preserved after subscription cancellation: cancelling or downgrading never deletes customer datasets, analyses, or reports.",
+  historicalUnlockScope:
+    "The Historical Data Unlock restores read access to preserved historical data only. It does not restore Pro or Business subscription features — those require an active subscription.",
+  historicalUnlockFixedRegionalPrices:
+    "Historical Data Access prices are fixed regional one-time prices resolved by the server's billing currency resolution: Pro $29 USD / €25 / £22 / C$40, Business $149 USD / €130 / £112 / C$210. Amounts never follow exchange rates.",
 } as const;
+
+/**
+ * Fixed regional Historical Data Unlock price text from the canonical billing
+ * configuration (single source of truth — Usy never duplicates amounts).
+ */
+export function formatUsyHistoricalUnlockPrice(tier: "pro" | "business", currency?: string): string {
+  const resolved: HistoricalUnlockCurrency = isHistoricalUnlockCurrency(currency)
+    ? currency
+    : HISTORICAL_UNLOCK_BASE_CURRENCY;
+  const amountMinor = HISTORICAL_UNLOCK_TIERS[tier].amountsByCurrency[resolved];
+  const symbolByCurrency: Record<HistoricalUnlockCurrency, string> = {
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    CAD: "C$",
+  };
+  return `${symbolByCurrency[resolved]}${(amountMinor / 100).toLocaleString("en-US")}`;
+}
+
+/**
+ * Deterministic Historical Data Unlock explanation. Presents the tier prices
+ * in the caller's billing currency when known (USD base otherwise), states
+ * that the data is preserved and the unlock is a one-time payment, and makes
+ * clear the unlock never restores Pro/Business features.
+ */
+export function buildUsyHistoricalUnlockAnswer(language: SupportedUsyLanguage, currency?: string): string {
+  const proPrice = formatUsyHistoricalUnlockPrice("pro", currency);
+  const businessPrice = formatUsyHistoricalUnlockPrice("business", currency);
+
+  const copy: Record<SupportedUsyLanguage, string> = {
+    english: `After a Pro or Business subscription ends, your existing UseClevr data stays safe: your datasets, analyses, and reports are preserved — cancellation never deletes your data. Historical datasets open again automatically when you reactivate your subscription. You can also regain access to your preserved historical data with a one-time payment (not a subscription): Pro Historical Data Access is ${proPrice} one-time and Business Historical Data Access is ${businessPrice} one-time, charged in your billing region's fixed price. The unlock restores access to your historical data only — it does not restore Pro or Business features, new uploads capacity, or AI credits. Reactivate a Pro or Business subscription for premium functionality.`,
+    german: `Nach dem Ende eines Pro- oder Business-Abos bleiben deine UseClevr-Daten sicher: Datasets, Analysen und Berichte bleiben erhalten — eine Kündigung löscht nie deine Daten. Historische Datasets öffnen sich automatisch wieder, wenn du dein Abonnement reaktivierst. Du kannst den Zugriff auf deine erhaltenen historischen Daten auch per Einmalzahlung zurückkaufen (kein Abo): Pro Historical Data Access kostet ${proPrice} einmalig und Business Historical Data Access ${businessPrice} einmalig, jeweils zum festen regionalen Preis. Der Unlock stellt nur den Zugriff auf deine historischen Daten bereit — er stellt Pro- oder Business-Funktionen, Upload-Volumen oder AI-Credits nicht wieder her. Für Premium-Funktionen reaktiviere ein Pro- oder Business-Abonnement.`,
+    dutch: `Na het einde van een Pro- of Business-abonnement blijven je UseClevr-gegevens veilig: je datasets, analyses en rapporten blijven bewaard — opzeggen verwijdert nooit je gegevens. Historische datasets openen automatisch weer zodra je abonnement reactiveren. Je kunt ook toegang tot je bewaarde historische gegevens terugkopen met eenmalige betaling (geen abonnement): Pro Historical Data Access kost ${proPrice} eenmalig en Business Historical Data Access ${businessPrice} eenmalig, tegen de vaste regionale prijs. De unlock herstelt alleen toegang tot je historische gegevens — geen Pro- of Business-functies, uploadcapaciteit of AI-credits. Activeer een Pro- of Business-abonnement voor premium functionaliteit.`,
+    spanish: `Cuando termina una suscripción Pro o Business, tus datos de UseClevr permanecen seguros: tus datasets, análisis e informes se conservan — la cancelación nunca borra tus datos. Los datasets históricos se reabren automáticamente al reactivar tu suscripción. También puedes recuperar el acceso a tus datos históricos conservados con un pago único (no una suscripción): Pro Historical Data Access cuesta ${proPrice} único y Business Historical Data Access ${businessPrice} único, al precio regional fijo. El unlock restablece solo el acceso a tus datos históricos — no las funciones Pro o Business, capacidad de subidas ni créditos de IA. Reactiva una suscripción Pro o Business para funciones premium.`,
+    hungarian: `A Pro vagy Business előfizetés vége után a UseClevr-adataid biztonságban maradnak: a dataset-eid, elemzéseid és jelentéseid megmaradnak — a lemondás soha nem törli az adataidat. A historikus dataset-ek automatikusan megnyílnak, ha újraaktiválod az előfizetésedet. A megőrzött historikus adataidhoz egyszeri fizetéssel is visszavásárolhatod a hozzáférést (nem előfizetés): Pro Historical Data Access ${proPrice} egyszeri, Business Historical Data Access ${businessPrice} egyszeri, rögzített regionális áron. Az unlock csak a historikus adataidhoz ad hozzáférést — nem állítja vissza a Pro vagy Business funkciókat, a feltöltési keretet vagy az AI-krediteket. Premium funkciókért aktiváld újra a Pro vagy Business előfizetést.`,
+    romanian: `După încheierea unui abonament Pro sau Business, datele tale UseClevr rămân în siguranță: dataset-urile, analizele și rapoartele tale sunt păstrate — anularea nu îți șterge niciodată datele. Dataset-urile istorice se redeschid automat la reactivarea abonamentului. Poți răscumpăra accesul la datele istorice păstrate cu o plată unică (nu un abonament): Pro Historical Data Access costă ${proPrice} unic și Business Historical Data Access ${businessPrice} unic, la prețul regional fix. Deblocarea restabilește doar accesul la datele istorice — nu funcțiile Pro sau Business, capacitatea de încărcare sau creditele AI. Reactivă un abonament Pro sau Business pentru funcționabilitate premium.`,
+  };
+  return copy[language];
+}
 
 export type UsyBillingTier = "free" | "pro" | "business" | "unlimited" | "unknown";
 

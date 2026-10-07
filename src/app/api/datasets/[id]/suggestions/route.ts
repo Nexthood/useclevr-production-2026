@@ -1,3 +1,4 @@
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock"
 import { debugError, debugLog } from "@/lib/utils/debug";
 import { auth } from '@/lib/auth/auth';
 
@@ -41,6 +42,13 @@ export async function GET(
         { error: 'Dataset not found' },
         { status: 404 }
       );
+    }
+
+    // Preserved historical datasets are LOCKED READ-ONLY after the paid
+    // subscription ended. Access resumes after reactivation or the one-time
+    // historical data unlock.
+    if (await isHistoricalDatasetLocked(session.user.id, dataset.createdAt)) {
+      return NextResponse.json(buildHistoricalDatasetLockedResponse(), { status: 403 });
     }
 
     let data = (dataset.data as Record<string, unknown>[]) || [];

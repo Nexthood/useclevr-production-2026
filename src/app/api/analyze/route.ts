@@ -62,6 +62,7 @@ import { buildCreditExhaustionState } from "@/lib/billing/credit-exhaustion";
 import { checkSpendingLimits } from "@/lib/billing/credit-account-service";
 import { estimateUsageFromText, normalizeProviderUsage } from "@/lib/billing/provider-usage";
 import { checkActionEnforcement, logAiCost, incrementDailyRequestCount } from "@/lib/billing/usage-enforcement";
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock";
 import { consumeIncludedInitialAnalysis } from "@/lib/usage/initial-analysis";
 
 type GeminiUsageMetadata = {
@@ -451,7 +452,8 @@ export async function POST(request: Request) {
           where: and(eq(datasets.id, datasetId), eq(datasets.userId, effectiveUserId)),
         });
       }
-      if (storedDataset) {
+      if (storedDataset && !(await isHistoricalDatasetLocked(effectiveUserId!, storedDataset.createdAt))) {
+        // Stored analysis on an historical-locked dataset stays sealed.
         analysisToUse = storedDataset.analysis as Record<string, unknown> | null;
         debugLog('[ANALYZE] Loaded precomputedAnalysis from DB');
       }
@@ -498,6 +500,19 @@ export async function POST(request: Request) {
             data: [],
             chartType: "table",
           }, { status: 404 });
+        }
+
+        // Preserved historical datasets are LOCKED READ-ONLY after the paid
+        // subscription ended. Analysis resumes after reactivation or the
+        // one-time historical data unlock.
+        if (await isHistoricalDatasetLocked(effectiveUserId!, storedDataset.createdAt)) {
+          if (creditOperationId) {
+            await releaseCredits(creditOperationId, "historical_data_locked")
+          }
+          return Response.json(
+            buildHistoricalDatasetLockedResponse(),
+            { status: 403 },
+          );
         }
 
         const precomputedMetrics = storedDataset.precomputedMetrics;

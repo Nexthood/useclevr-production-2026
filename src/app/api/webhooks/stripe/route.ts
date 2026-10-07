@@ -4,6 +4,7 @@ import {
   handleStripeCreditCheckoutEvent,
   handleStripeRefundEvent,
 } from "@/services/stripe/credit-webhook"
+import { handleHistoricalUnlockCheckoutEvent } from "@/services/stripe/historical-unlock"
 import { recordReferralRefundForCustomer } from "@/lib/referrals/referral-lifecycle"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
@@ -51,6 +52,26 @@ export async function POST(request: NextRequest) {
       event.type === "checkout.session.completed" &&
       (event.data.object as Stripe.Checkout.Session).mode === "payment"
     ) {
+      // Permanent historical data unlock payments are webhook-authoritative
+      // and dispatch on the trusted purpose metadata stamped server-side at
+      // session creation. Every other paid-mode session stays on the credit
+      // top-up path below.
+      const unlockSession = event.data.object as Stripe.Checkout.Session
+      if (unlockSession.metadata?.purpose === "historical_data_unlock") {
+        const result = await handleHistoricalUnlockCheckoutEvent(event)
+        return NextResponse.json({
+          received: true,
+          type: event.type,
+          historicalUnlock: {
+            processed: result.processed,
+            synced: result.synced,
+            unlocked: result.unlocked,
+            duplicate: result.duplicate,
+            ...(result.reason ? { reason: result.reason } : {}),
+          },
+        })
+      }
+
       const result = await handleStripeCreditCheckoutEvent(event)
       return NextResponse.json({
         received: true,

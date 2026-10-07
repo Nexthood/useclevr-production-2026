@@ -1,3 +1,18 @@
+## 2026-10-07 — CI security audit dependency upgrade (payload 3.90.2 + multi-currency price overrides)
+
+- fixed: `scripts/security/audit-allowlist.cjs` CI failure eliminated by upgrading the smallest safe direct set — `payload` + all 7 `@payloadcms/*` 3.88.0 → 3.90.2 (2 CRITICAL access-control bypasses + 5 HIGH + 2 MODERATE payload advisories, incl. the plugin-stripe REST proxy fix), `sharp` ^0.35.4 → ^0.35.5 (HIGH librsvg CVE); `payload.config.ts` drops `rest: false` because plugin-stripe 3.90 replaced the boolean REST-proxy option with a config object and undefined keeps the proxy disabled exactly as before
+- updated: transitive in-range bumps `proxy-addr` 2.0.8 (CRITICAL IP-spoofing), `source-map-js` 1.2.2 (HIGH), `fast-copy` 3.1.0 (MODERATE) via `pnpm update`; exact-range blockers (`@modelcontextprotocol/sdk` pinned 1.30.0 by plugin-mcp even at 3.90.2, `katex` ^0.16 via micromark-extension-math, `smol-toml` ~1.7 via markdownlint-cli, `postcss-selector-parser` ^6 via tailwind 3.4) resolved through `pnpm-workspace.yaml` verified overrides to official patched floors (SDK 1.32.1, katex 0.19.0, smol-toml 1.9.0, selector-parser 7.1.6) — no resolutions copied into package.json since pnpm 11 ignores that field
+- verified: `node scripts/security/audit-allowlist.cjs` passes (0 unapproved, only the approved no-patch braces residual remains in `pnpm audit`), `pnpm validate:types` + `pnpm exec tsc --noEmit` clean, `pnpm build` exit 0 (tailwind chain proves selector-parser 7 compatibility), `pnpm test:all` exit 0, markdownlint on README/CHANGELOG exits 0 (katex/smol-toml chains), `payload:types` regenerated with additive-only fields
+- not committed or pushed per instruction
+
+## 2026-10-06 — Subscription downgrade data retention + one-time historical data unlock
+
+- implemented: cancelled Pro/Business now downgrade to Free through the existing Stripe lifecycle while `Profile.lastPaidSubscriptionTier`/`subscriptionEndedAt` archive the paid tier and end moment; datasets created before the end moment become locked read-only, preserved and visible, and reactivate or the one-time unlock reopens them
+- added: `$29 pro / $149 business USD` one-time unlock via env-selected one-time Stripe Prices (`STRIPE_PRO_HISTORICAL_UNLOCK_PRICE_ID`, `STRIPE_BUSINESS_HISTORICAL_UNLOCK_PRICE_ID`), payment-mode Checkout created only by authenticated server calls, webhook-authoritative granting with price-derived tier checks, PaymentIntent idempotency, duplicate/`cross-account` fail-safes, and no recurring subscription or paid capacity; migration 0036 (additive, idempotent) registered in predeploy
+- gated: chat/query/analyze/dataset-detail/dashboard/reports-adjacent/prebookkeeping/retail/mcp surfaces return `HISTORICAL_DATA_LOCKED` for locked historical datasets; datasets library + detail + analyze pages show the locked read-only state and safe-data banners; cancellation dialog states "Your data stays safe."
+- verified: `test:historical-unlock` 33/33 pass; full `pnpm test:all` exit 0; `pnpm exec tsc --noEmit --pretty false` clean; `pnpm lint` 0 errors (pre-existing warnings); `pnpm build` exit 0; migration applied to the configured dev database
+- not committed or pushed per instruction
+
 ## 2026-10-03 — Topbar search trigger hover normalization
 
 - fixed: the top-bar search button now uses the same subtle, stationary hover as the other top-bar icons (`hover:bg-muted/50 hover:text-foreground` with `transition-colors`), staying in place instead of lifting; the cyan `ring-ring` focus glow, the stronger `hover:bg-muted/70` tint, and the `transition-all duration-200` animation come in only from the shared ghost Button variant the trigger previously inherited (`hover:-translate-y-0.5` is the movement) and no longer apply to the trigger

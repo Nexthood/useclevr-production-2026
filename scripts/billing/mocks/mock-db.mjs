@@ -25,6 +25,8 @@ export const ledgerRows = []
 export const userCreditRows = []
 export const profileRows = []
 export const subscriptionPlanRows = []
+export const datasetRows = []
+export const datasetRowRows = []
 
 export function resetMockDb() {
   topupRows.length = 0
@@ -37,6 +39,8 @@ export function resetAllMockState() {
   userCreditRows.length = 0
   profileRows.length = 0
   subscriptionPlanRows.length = 0
+  datasetRows.length = 0
+  datasetRowRows.length = 0
 }
 
 function rowsFor(tableName) {
@@ -45,6 +49,8 @@ function rowsFor(tableName) {
   if (tableName === "UserCredit") return userCreditRows
   if (tableName === "Profile") return profileRows
   if (tableName === "SubscriptionPlan") return subscriptionPlanRows
+  if (tableName === "Dataset") return datasetRows
+  if (tableName === "DatasetRow") return datasetRowRows
   throw new Error(`mock-db: unsupported table "${tableName}"`)
 }
 
@@ -305,10 +311,38 @@ function updateBuilder(tableName) {
   }
 }
 
-function selectBuilder(tableName) {
+function selectBuilder(tableName, fields) {
   const rows = rowsFor(tableName)
   const state = { where: null }
+  // Aggregate selects (e.g. `count()` over the canonical dataset library
+  // filter) return one aggregated row instead of the raw rows.
+  const isAggregate =
+    fields &&
+    typeof fields === "object" &&
+    Object.values(fields).some((field) => field && typeof field === "object" && Array.isArray(field.queryChunks))
   const exec = () => {
+    if (isAggregate) {
+      const aggregateKey = Object.keys(fields)[0]
+      const filtered = state.where
+        ? rows.filter((row) => {
+            const pairs = state.where
+            // The canonical library filter includes `or(isNull(datasetType),
+            // ne(datasetType, 'prebookkeeping'))` which is TRUE for rows
+            // without a datasetType — emulate OR semantics for that pair and
+            // evaluate the remaining equality pairs normally.
+            const datasetTypePair = pairs.find(
+              (pair) => pair[0] === "datasetType",
+            )
+            for (const [key, value] of pairs) {
+              if (key === "datasetType") continue
+              if (row[key] !== value) return false
+              void datasetTypePair
+            }
+            return true
+          })
+        : [...rows]
+      return [{ [aggregateKey]: filtered.length }]
+    }
     const filtered = state.where ? rows.filter((row) => matchesAll(row, state.where)) : [...rows]
     return filtered
   }
@@ -316,6 +350,10 @@ function selectBuilder(tableName) {
     where: (where) => {
       state.where = wherePairs(where)
       return {
+        // Awaitable `.where()` for `select(...).from(t).where(...)` consumers
+        // (e.g. the canonical dataset count) alongside orderBy/limit chains.
+        then: (onFulfilled, onRejected) => Promise.resolve(exec()).then(onFulfilled, onRejected),
+        catch: (onRejected) => Promise.resolve(exec()).catch(onRejected),
         orderBy: () => ({
           limit: async (limit) => exec().slice(0, limit),
         }),
@@ -337,6 +375,8 @@ function makeDb() {
       userCredits: { findFirst: findFirst(userCreditRows), findMany: findMany(userCreditRows) },
       profiles: { findFirst: findFirst(profileRows), findMany: findMany(profileRows) },
       subscriptionPlans: { findFirst: findFirst(subscriptionPlanRows), findMany: findMany(subscriptionPlanRows) },
+      datasets: { findFirst: findFirst(datasetRows), findMany: findMany(datasetRows) },
+      datasetRows: { findFirst: findFirst(datasetRowRows), findMany: findMany(datasetRowRows) },
     },
     transaction: async (callback) => {
       const snapshot = {
@@ -345,6 +385,8 @@ function makeDb() {
         credits: structuredClone(userCreditRows),
         profiles: structuredClone(profileRows),
         plans: structuredClone(subscriptionPlanRows),
+        datasets: structuredClone(datasetRows),
+        datasetRows: structuredClone(datasetRowRows),
         accounts: new Map(
           [...accountsStore.entries()].map(([key, value]) => [key, structuredClone(value)]),
         ),
@@ -362,6 +404,10 @@ function makeDb() {
         profileRows.push(...snapshot.profiles)
         subscriptionPlanRows.length = 0
         subscriptionPlanRows.push(...snapshot.plans)
+        datasetRows.length = 0
+        datasetRows.push(...snapshot.datasets)
+        datasetRowRows.length = 0
+        datasetRowRows.push(...snapshot.datasetRows)
         accountsStore.clear()
         for (const [key, value] of snapshot.accounts) accountsStore.set(key, value)
         throw error
@@ -369,8 +415,8 @@ function makeDb() {
     },
     insert: (table) => insertBuilder(getTableName(table)),
     update: (table) => updateBuilder(getTableName(table)),
-    select: () => ({
-      from: (table) => selectBuilder(getTableName(table)),
+    select: (fields) => ({
+      from: (table) => selectBuilder(getTableName(table), fields),
     }),
     execute: async (sqlObject) => executeRawSql(sqlObject),
   }

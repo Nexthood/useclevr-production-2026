@@ -2,6 +2,11 @@ import { debugError } from "@/lib/utils/debug"
 
 import { DatasetsClient, type DatasetListItem } from "@/components/dataset/datasets-client"
 import { auth } from "@/lib/auth/auth"
+import {
+  HISTORICAL_DATA_SAFE_MESSAGE,
+  isDatasetLockedByHistoricalState,
+  loadHistoricalAccessState,
+} from "@/lib/billing/historical-unlock"
 import { getDatasetCategoryDestinationLabel, resolveDatasetType } from "@/lib/data/dataset-category"
 import { db } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
@@ -20,6 +25,14 @@ export default async function DatasetsPage() {
   }
 
   let datasetsList: DatasetListItem[] = []
+  // Datasets created before the subscription ended form the preserved
+  // historical data set. State resolution failing open keeps the library up.
+  const historicalState = await loadHistoricalAccessState(session.user.id)
+  const historicalBanner = historicalState.historicalDatasetsLocked
+    ? `${HISTORICAL_DATA_SAFE_MESSAGE} Your historical datasets are locked read-only. Reactivate your subscription at any time or permanently unlock access with a one-time payment in subscription settings.`
+    : historicalState.historicalDataUnlocked
+      ? `${HISTORICAL_DATA_SAFE_MESSAGE} Your historical data is permanently unlocked.`
+      : null
 
   try {
     const data = await db.select({
@@ -68,6 +81,7 @@ export default async function DatasetsPage() {
         source: dataset.source,
         columnMapping: dataset.columnMapping,
         destinationModule: getDatasetCategoryDestinationLabel(datasetType),
+        historicalDataLocked: isDatasetLockedByHistoricalState(historicalState, dataset.createdAt),
       columns: Array.isArray(dataset.columns)
         ? dataset.columns.filter((column): column is string => typeof column === "string")
         : [],
@@ -82,5 +96,5 @@ export default async function DatasetsPage() {
     datasetsList = []
   }
 
-  return <DatasetsClient initialDatasets={datasetsList} />
+  return <DatasetsClient initialDatasets={datasetsList} historicalBanner={historicalBanner} />
 }

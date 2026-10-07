@@ -10,6 +10,7 @@ import {
   buildUsyZeroCreditsAnswer,
   formatUsyCreditCount,
   resolveUsyBillingState,
+  buildUsyHistoricalUnlockAnswer,
 } from "@/lib/usy/billing-knowledge";
 import {
   getPlanSummary,
@@ -51,6 +52,7 @@ type ProductIntentId =
   | "refunds"
   | "subscription-status"
   | "downgrade"
+  | "historical-unlock"
   | "cancellation"
   | "plans"
   | "billing"
@@ -131,6 +133,7 @@ const usyIntentByProductIntent: Record<ProductIntentId, UsyIntent> = {
   refunds: "billing",
   "subscription-status": "billing",
   downgrade: "billing",
+  "historical-unlock": "billing",
   cancellation: "billing",
   plans: "billing",
   billing: "billing",
@@ -410,6 +413,34 @@ const productIntents: ProductIntentRule[] = [
     ],
     answer: (context) => buildUsyDowngradeAnswer(context.usage, "english"),
     followUps: ["Do purchased credits expire?", "Can I buy credits on Free?", "Upgrade to Pro", "View billing"],
+    actions: ["OPEN_SUBSCRIPTION", "OPEN_BILLING"],
+  },
+  {
+    id: "historical-unlock",
+    keywords: [
+      "unlock historical data",
+      "historical data unlock",
+      "historical unlock",
+      "one-time unlock",
+      "unlock my data",
+      "unlock price",
+      "unlock my old data",
+      "access my old data",
+      "recover my data",
+      "historische daten freischalten",
+      "daten freischalten",
+      "einzahlung historisch",
+      "historische gegevens ontgrendelen",
+      "eenmalige betaling historische",
+      "desbloquear datos historicos",
+      "pago unico historico",
+      "a historikus adatok",
+      "történeti adatok feloldása",
+      "deblocheaza datele istorice",
+      "plata unica date istorice",
+    ],
+    answer: (context) => buildUsyHistoricalUnlockAnswer("english", context.currency),
+    followUps: ["What happens to my data after cancellation?", "Reactivate subscription", "View billing", "Compare plans"],
     actions: ["OPEN_SUBSCRIPTION", "OPEN_BILLING"],
   },
   {
@@ -1868,6 +1899,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       "top-ups": buildUsyTopUpAnswer(context.usage, language),
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
+      "historical-unlock": buildUsyHistoricalUnlockAnswer("german", context.currency),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free enthält ${plans.free.monthlyCredits} AI-Credits und bis zu ${plans.free.maxDatasets} Datasets, ohne ClevrSync und ohne Credit-Top-ups. Pro kostet ${localizedMonthlyPrice(plans.pro.priceText, language)} mit ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} AI-Credits und bis zu ${formatUsyCreditCount(plans.pro.maxDatasets, language)} Datasets. Business kostet ${localizedMonthlyPrice(plans.business.priceText, language)} mit ${formatUsyCreditCount(plans.business.monthlyCredits, language)} AI-Credits und bis zu ${formatUsyCreditCount(plans.business.maxDatasets, language)} Datasets.`,
       billing: "Billing, Abos, Zahlungsdaten, Checkout, Rechnungen und Planaktionen werden in den sicheren Billing- und Account-Einstellungen verwaltet.",
@@ -1892,6 +1924,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       "top-ups": buildUsyTopUpAnswer(context.usage, language),
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
+      "historical-unlock": buildUsyHistoricalUnlockAnswer("dutch", context.currency),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free bevat ${plans.free.monthlyCredits} AI credits en maximaal ${plans.free.maxDatasets} datasets, zonder ClevrSync en zonder credit-top-ups. Pro kost ${localizedMonthlyPrice(plans.pro.priceText, language)} met ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} AI credits en maximaal ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasets. Business kost ${localizedMonthlyPrice(plans.business.priceText, language)} met ${formatUsyCreditCount(plans.business.monthlyCredits, language)} AI credits en maximaal ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasets.`,
       billing: "Billing, abonnementen, betalingsgegevens, checkout, facturen en planacties staan in de veilige billing- en accountinstellingen.",
@@ -1916,6 +1949,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       "top-ups": buildUsyTopUpAnswer(context.usage, language),
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
+      "historical-unlock": buildUsyHistoricalUnlockAnswer("spanish", context.currency),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free incluye ${plans.free.monthlyCredits} créditos AI y hasta ${plans.free.maxDatasets} datasets, sin ClevrSync y sin recargas de créditos. Pro cuesta ${localizedMonthlyPrice(plans.pro.priceText, language)} con ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} créditos AI y hasta ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasets. Business cuesta ${localizedMonthlyPrice(plans.business.priceText, language)} con ${formatUsyCreditCount(plans.business.monthlyCredits, language)} créditos AI y hasta ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasets.`,
       billing: "Facturación, suscripciones, pagos, checkout, facturas y acciones de plan se gestionan en la configuración segura de billing y cuenta.",
@@ -1940,6 +1974,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       "top-ups": buildUsyTopUpAnswer(context.usage, language),
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
+      "historical-unlock": buildUsyHistoricalUnlockAnswer("hungarian", context.currency),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `A Free ${plans.free.monthlyCredits} AI kreditet és legfeljebb ${plans.free.maxDatasets} datasetet tartalmaz, ClevrSync és kreditfeltöltés nélkül. A Pro ára ${localizedMonthlyPrice(plans.pro.priceText, language)} ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} AI kredittel és legfeljebb ${formatUsyCreditCount(plans.pro.maxDatasets, language)} datasettel. A Business ára ${localizedMonthlyPrice(plans.business.priceText, language)} ${formatUsyCreditCount(plans.business.monthlyCredits, language)} AI kredittel és legfeljebb ${formatUsyCreditCount(plans.business.maxDatasets, language)} datasettel.`,
       billing: "A billing, előfizetés, fizetési adatok, checkout, számlák és csomagműveletek a biztonságos billing és account beállításokban kezelhetők.",
@@ -1964,6 +1999,7 @@ function localizedIntentAnswer(intentId: string, context: UsyContext, language: 
       "top-ups": buildUsyTopUpAnswer(context.usage, language),
       refunds: buildUsyRefundAnswer(context.usage, language),
       cancellation: buildUsyCancellationAnswer(context.usage, language),
+      "historical-unlock": buildUsyHistoricalUnlockAnswer("romanian", context.currency),
       downgrade: buildUsyDowngradeAnswer(context.usage, language),
       plans: `Free include ${plans.free.monthlyCredits} credite AI și până la ${plans.free.maxDatasets} seturi de date, fără ClevrSync și fără reîncărcări de credite. Pro costă ${localizedMonthlyPrice(plans.pro.priceText, language)} cu ${formatUsyCreditCount(plans.pro.monthlyCredits, language)} credite AI și până la ${formatUsyCreditCount(plans.pro.maxDatasets, language)} seturi de date. Business costă ${localizedMonthlyPrice(plans.business.priceText, language)} cu ${formatUsyCreditCount(plans.business.monthlyCredits, language)} credite AI și până la ${formatUsyCreditCount(plans.business.maxDatasets, language)} seturi de date.`,
       billing: "Billingul, abonamentele, plățile, checkoutul, facturile și acțiunile de plan se gestionează în setările securizate de billing și cont.",

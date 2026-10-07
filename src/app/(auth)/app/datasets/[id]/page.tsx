@@ -81,11 +81,17 @@ export default async function DatasetDetailPage({
 
   let data: Record<string, unknown>[] = [];
   let dataLoadError = false;
+  const datasetLocked = Boolean((dataset as { historicalDataLocked?: boolean }).historicalDataLocked);
   const db = getDb();
   if (!db) {
     redirect(`/app/datasets/${id}/analyze`);
   }
 
+  if (datasetLocked) {
+    // Preserved historical data is locked read-only after the paid subscription
+    // ended: stay on the page, show the safe-state banner, load no row content.
+    data = [];
+  } else {
   try {
     const resultRows = await db.query.datasetRows.findMany({
       where: eq(datasetRows.datasetId, id),
@@ -105,6 +111,7 @@ export default async function DatasetDetailPage({
     } catch {
       dataLoadError = true;
     }
+  }
   }
 
   const analysisStatus = String(
@@ -208,6 +215,28 @@ export default async function DatasetDetailPage({
           )
         }
       />
+
+      {datasetLocked && (
+        <div className="px-4 pb-4 sm:px-6">
+          <Card className="border-sky-400/30 bg-sky-500/5 p-4">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-foreground">Your subscription has ended.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your existing data is safe. This historical dataset is preserved and locked
+                  read-only. Reactivate your subscription at any time or permanently unlock access
+                  to your historical data with a one-time payment.
+                </p>
+              </div>
+              <Link href="/app/settings/subscription?tab=billing">
+                <Button size="sm" variant="outline" className="border-sky-400/40">
+                  Unlock options
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {datasetType !== "standard" && (
         <div className="mb-4 px-4 sm:px-6">

@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid"
+import { buildHistoricalDatasetLockedResponse, isHistoricalDatasetLocked } from "@/lib/billing/historical-unlock"
 import { auth } from "@/lib/auth/auth"
 import { prebookkeepingSuggestedQuestions } from "@/lib/accountancy/prebookkeeping-ai-assistant"
 import { getDb } from "@/lib/db"
@@ -44,6 +45,13 @@ export async function POST(request: Request) {
 
     if (!dataset) {
       return NextResponse.json({ error: "Dataset not found" }, { status: 404 })
+    }
+
+    // Preserved historical datasets are LOCKED READ-ONLY after the paid
+    // subscription ended. Access resumes after reactivation or the one-time
+    // historical data unlock.
+    if (await isHistoricalDatasetLocked(session.user.id, dataset.createdAt)) {
+      return NextResponse.json(buildHistoricalDatasetLockedResponse(), { status: 403 });
     }
 
     const datasetKey = `suggestions_dataset_v6_${datasetId}`

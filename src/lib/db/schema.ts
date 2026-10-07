@@ -285,6 +285,19 @@ export const profiles = pgTable(
     lastSubscriptionActivationEmailSent: timestamp("lastSubscriptionActivationEmailSent"),
     lastSubscriptionCancellationEmailSent: timestamp("lastSubscriptionCancellationEmailSent"),
     lastSubscriptionCancellationScheduledEmailSent: timestamp("lastSubscriptionCancellationScheduledEmailSent"),
+    // Historical data retention entitlement (server-authoritative only).
+    // lastPaidSubscriptionTier persists the verified paid tier so a cancelled
+    // account can resolve its one-time unlock price after subscriptionTier
+    // returns to "free". subscriptionEndedAt marks the moment the most recent
+    // paid subscription ended: datasets created before it are the preserved
+    // historical data set. historicalDataUnlocked grants permanent read access
+    // to that historical data without reactivating any paid plan.
+    lastPaidSubscriptionTier: varchar("lastPaidSubscriptionTier", { length: 20 }),
+    subscriptionEndedAt: timestamp("subscriptionEndedAt"),
+    historicalDataUnlocked: boolean("historicalDataUnlocked").default(false).notNull(),
+    historicalDataUnlockedAt: timestamp("historicalDataUnlockedAt"),
+    historicalDataUnlockTier: varchar("historicalDataUnlockTier", { length: 20 }),
+    historicalDataUnlockPaymentId: text("historicalDataUnlockPaymentId"),
     // Business details
     businessName: text("businessName"),
     businessEmail: text("businessEmail"),

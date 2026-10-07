@@ -14,6 +14,7 @@ import { getAnalystCreditUsage } from "@/lib/usage/analyst-credits"
 import { datasetCreateSchema, validateOrError } from "@/lib/validation"
 import { deriveDatasetSource } from "@/lib/data/dataset-source"
 import { getDatasetLimitInfo, getDatasetLimitError } from "@/lib/usage/dataset-limits"
+import { isDatasetLockedByHistoricalState, loadHistoricalAccessState } from "@/lib/billing/historical-unlock"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
@@ -43,7 +44,17 @@ export async function GET() {
       orderBy: (datasets, { desc }) => [desc(datasets.createdAt)],
     })
 
-    return NextResponse.json({ datasets: userDatasets })
+    // Historical datasets show as LOCKED READ-ONLY after a paid subscription
+    // ended, unless the account reactivated or purchased the one-time unlock.
+    // The list itself stays visible so the customer can see their data exists.
+    const historicalState = await loadHistoricalAccessState(session.user.id)
+
+    return NextResponse.json({
+      datasets: userDatasets.map((dataset) => ({
+        ...dataset,
+        historicalDataLocked: isDatasetLockedByHistoricalState(historicalState, dataset.createdAt),
+      })),
+    })
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
