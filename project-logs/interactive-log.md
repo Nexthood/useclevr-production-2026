@@ -19288,3 +19288,25 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - AI-agent learning: shared variant components leak their hover vocabulary into specific placements; when a placement must match surrounding plain controls, use the plain element with the placement's standard classes instead of stacking variant overrides.
 - Follow-up tasks: none assigned.
 - Not committed or pushed per instruction.
+
+## 2026-10-07 — Topbar Search Trigger Outer Frame Removal
+
+- User goal: remove the remaining visible rounded rectangular outer frame around the Search icon in the UseClevr topbar while preserving the icon position, clickable area, search open/close behavior, keyboard shortcut, accessibility labels, ref handling, and all search functionality; change only Search trigger styling and do not commit or push.
+- What changed
+  - `src/components/ui/search-popup.tsx`: the Search trigger button now uses explicit topbar icon chrome classes: `h-11 w-11`, `border-0`, `bg-transparent`, `p-0`, `shadow-none`, and `outline-none`, with only the existing subtle `hover:bg-muted/50 hover:text-foreground` and `focus-visible:bg-muted/50` state behavior.
+  - Search modal state, click toggling, `Ctrl/⌘ K`, focus restoration, `aria-label`, `title`, and `searchButtonRef` stay unchanged.
+- Trace and findings
+  - The topbar renders `<Search />` from `src/components/ui/topbar.tsx`; the trigger lives in `src/components/ui/search-popup.tsx`.
+  - The remaining visible outer rectangle came from the trigger button's own normal-state chrome not being explicitly reset after earlier work removed the inner label/shortcut badge.
+  - Neighboring topbar icons use plain icon-button styling with transparent normal state and no transform or glow, so the Search trigger now follows that same local pattern without editing shared `Button` styles or other icons.
+- Verification
+  - `pnpm exec tsc --noEmit --pretty false` exits clean after rerun with approved filesystem access for pnpm's Corepack cache database.
+  - Source-level style check confirms the Search trigger normal state has no border, background, shadow, glow, translate, or scale classes; hover stays color/background-only; the button remains a 44px by 44px target.
+- Problems marked
+  - blocker: none.
+  - risk: no browser screenshot harness exists in the repository, so verification is source-level plus TypeScript.
+  - improvement: none assigned.
+- User learning: the topbar Search icon now renders as a standalone topbar icon in normal state while preserving the same clickable target and search behavior.
+- AI-agent learning: after replacing a shared button variant, explicitly reset normal-state button chrome on standalone topbar icon triggers so user-agent or inherited button visuals cannot appear as a frame.
+- Follow-up tasks: none assigned.
+- Not committed or pushed per instruction.
