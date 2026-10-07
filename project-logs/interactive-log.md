@@ -1,3 +1,49 @@
+## 2026-10-07 — CI security audit dependency upgrade
+
+1. Interaction title
+   Fix the only-failing CI job (`scripts/security/audit-allowlist.cjs`) by eliminating the unapproved Critical/High advisories through the smallest safe upgrade set, without touching the Historical Data Unlock implementation or unrelated code.
+
+2. What was the user goal
+   Root-cause each Critical/High advisory (payload family, sharp, proxy-addr, source-map-js, MCP SDK, plus moderator katex/smol-toml/postcss-selector-parser/fast-copy), upgrade direct parents to official patched releases where ranges allow, use verified overrides only where exact parent pins block patched versions, keep the audit gate passing, and never blind-allow advisories; validate install/audit/typecheck/build/full tests; do not commit, push, or deploy.
+
+3. What changed
+   - `package.json`: `payload` + 7 `@payloadcms/*` deps 3.88.0 → 3.90.2; `sharp` ^0.35.4 → ^0.35.5.
+   - `pnpm-workspace.yaml`: verified overrides for exact-range blockers — `@modelcontextprotocol/sdk >=1.31.0 <2` (plugin-mcp pins 1.30.0 exactly even at 3.90.2), `katex >=0.18.2 <1`, `smol-toml >=1.8.1 <2` (markdownlint-cli pins ~ ranges), `postcss-selector-parser >=7.1.6 <8` (tailwind 3.4 pins ^6).
+   - `pnpm-lock.yaml`: transitive in-range updates through `pnpm update` — `proxy-addr` 2.0.7 → 2.0.8, `source-map-js` 1.2.1 → 1.2.2, `fast-copy` 3.0.2 → 3.1.0.
+   - `payload.config.ts`: removed `rest: false` from the stripe plugin — plugin-stripe 3.90 replaced the boolean with a `StripeRESTConfig` object and an undefined `rest` leaves the `/stripe/rest` proxy unregistered, preserving the previous behavior.
+   - `src/payload-types.ts`: regenerated additive-only optional fields (`resetPasswordRequestedAt`, `hasAPIKey`).
+
+4. Root causes (per advisory)
+   - 2 CRITICAL + 3 HIGH + 2 MODERATE: payload/@payloadcms/plugin-stripe 3.88.0 (direct deps) below the 3.90.0 security floor.
+   - 1 HIGH sharp 0.35.4 (direct) → 0.35.5.
+   - 1 CRITICAL proxy-addr 2.0.7 (transitive: express → @modelcontextprotocol/sdk → @payloadcms/plugin-mcp) → 2.0.8 in range.
+   - 1 HIGH source-map-js 1.2.1 (transitive: postcss → next/tailwind chains) → 1.2.2 in range.
+   - 1 HIGH @modelcontextprotocol/sdk 1.30.0 (transitive, exact-pinned by @payloadcms/plugin-mcp) → override to 1.32.1.
+   - 1 MODERATE fast-copy 3.0.2 (transitive: pino-pretty → payload) → 3.1.0 in range.
+   - 1 MODERATE smol-toml, 1 LOW katex (dev-only markdownlint chains, tilde/caret-0 range pins) → verified overrides to 1.9.0 / 0.19.0.
+   - 1 MODERATE postcss-selector-parser 6.1.4 (dev-only tailwind 3.4 chain, ^6 pin) → override to 7.1.6, compatibility proven by the full webpack/tailwind build and test battery.
+
+5. Problems marked
+   - risk: none of the remaining tree — `pnpm audit` shows only the approved braces residual (no upstream patch, build-time only).
+   - observation: `pnpm` v11 no longer reads `pnpm.overrides` from package.json; the valid location is `pnpm-workspace.yaml`.
+   - observation: `pnpm lint:docs` fails on a pre-existing MD007 (3-space list indent) inside committed `project-logs/interactive-log.md` history; lint:docs is not a CI gate and the entry predates this session.
+
+6. User learning
+   Dependency-only fix; product behavior unchanged.
+
+7. AI-agent learning
+   For pnpm v11, all override changes belong in `pnpm-workspace.yaml`; package.json `pnpm` fields are ignored with a warning.
+
+8. Instruction sources
+   - AGENTS.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
+
+9. Minimal destination
+   - Activity summary and this detailed record updated; audit gate result reported to the user; no requirements/changelog impact (Dev-only dependency maintenance).
+
+Keyword check: keep concise; no secrets or customer data.
+
 ## 2026-10-06 — Subscription downgrade data retention + one-time historical data unlock
 
 1. Interaction title
