@@ -1329,3 +1329,10 @@
 - added: the checkout regression asserts `adaptive_pricing` deep-equals `{ enabled: false }` on every accepted credit top-up session
 - verified: `test:credit-topup-packages` 22/22, `pnpm exec tsc --noEmit --pretty false` clean, eslint clean
 - not committed or pushed per instruction
+
+## 2026-10-07 — Topbar Search trigger outer frame removed
+
+- fixed: the UseClevr topbar Search trigger now renders as a clean standalone 44px icon button with explicit transparent normal-state chrome (`border-0`, `bg-transparent`, `shadow-none`, `outline-none`, `p-0`) and no glow, movement, or scale classes
+- preserved: Search open/close, `Ctrl/⌘ K`, focus restoration, `aria-label`, `title`, button ref, and modal functionality stay unchanged
+- verified: `pnpm exec tsc --noEmit --pretty false` exits clean after approved filesystem access for pnpm's Corepack cache database; source check confirms only the Search trigger styling changed
+- not committed or pushed per instruction

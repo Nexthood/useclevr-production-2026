@@ -209,7 +209,7 @@ export function Search() {
         ref={searchButtonRef}
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? "Close search" : "Search"}
-        className="inline-flex h-11 min-w-11 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:bg-muted/50 active:bg-muted/70"
         title={`Search (${shortcutLabel})`}
       >
         {open ? <X className="h-4 w-4" /> : <SearchIcon className="h-4 w-4" />}
