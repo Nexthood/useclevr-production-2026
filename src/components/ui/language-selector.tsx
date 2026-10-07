@@ -7,6 +7,7 @@ import { useLanguage, type Language } from '@/lib/i18n/language-context'
 const LANGUAGES: { code: Language; name: string; flag: string }[] = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
   { code: 'hu', name: 'Magyar', flag: '🇭🇺' },
   { code: 'ro', name: 'Română', flag: '🇷🇴' },
 ]

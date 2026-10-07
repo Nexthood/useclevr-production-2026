@@ -28,7 +28,7 @@ export const usyContactPayloadSchema = z.object({
   senderName: z.string().trim().min(2, "Name is required.").max(120, "Name is too long."),
   company: z.string().trim().max(120, "Company is too long.").optional().or(z.literal("")),
   replyEmail: z.string().trim().email("A valid reply email is required.").max(254),
-  language: z.enum(["english", "german", "dutch", "spanish", "hungarian", "romanian"]),
+  language: z.enum(["english", "german", "dutch", "french", "spanish", "hungarian", "romanian"]),
   confirmed: z.literal(true),
 });
 
@@ -68,11 +68,11 @@ export function validateUsyContactPayload(input: unknown) {
 export function detectContactCategory(message: string): UsyContactCategory | null {
   const normalized = normalizeUsyText(message);
   const categoryKeywords: Array<[UsyContactCategory, string[]]> = [
-    ["executive", ["executive", "ceo", "founder", "vezetoseg", "felsovezetes", "directie", "conducere executiva"]],
-    ["management", ["management", "manager", "leiding", "vezetoseg", "conducere", "geschaftsfuhrung", "geschaeftsfuehrung"]],
-    ["billing", ["billing", "invoice", "invoices", "subscription", "payment", "stripe", "factuur", "factura", "rechnung", "szamla", "számla", "abonament"]],
-    ["technical_support", ["technical", "support", "it", "bug", "error", "broken", "upload failed", "troubleshoot", "technisch", "technik", "suport", "tamogatas", "támogatás"]],
-    ["sales", ["sales", "pricing", "demo", "upgrade", "plan", "quote", "verkauf", "vertrieb", "sales", "verkoop", "ventas", "ertekesites", "értékesítés", "vanzari", "vânzări"]],
+    ["executive", ["executive", "ceo", "founder", "vezetoseg", "felsovezetes", "directie", "direction executive", "direction exécutive", "conducere executiva"]],
+    ["management", ["management", "manager", "leiding", "vezetoseg", "conducere", "geschaftsfuhrung", "geschaeftsfuehrung", "direction"]],
+    ["billing", ["billing", "invoice", "invoices", "subscription", "payment", "stripe", "factuur", "factura", "rechnung", "szamla", "számla", "abonament", "facturation", "facture", "abonnement", "paiement"]],
+    ["technical_support", ["technical", "support", "it", "bug", "error", "broken", "upload failed", "troubleshoot", "technisch", "technik", "suport", "tamogatas", "támogatás", "technique", "erreur", "bogue", "depannage", "dépannage"]],
+    ["sales", ["sales", "pricing", "demo", "upgrade", "plan", "quote", "verkauf", "vertrieb", "sales", "verkoop", "ventas", "ertekesites", "értékesítés", "vanzari", "vânzări", "vente", "ventes", "tarifs", "devis"]],
   ];
 
   return categoryKeywords.find(([, keywords]) => keywords.some((keyword) => matchesKeyword(normalized, keyword)))?.[0] ?? null;
@@ -81,19 +81,19 @@ export function detectContactCategory(message: string): UsyContactCategory | nul
 export function isContactRequest(message: string) {
   const normalized = normalizeUsyText(message);
   const contactVerb = /\b(contact|speak|talk|connect|reach|message|email|call|support ticket|human|agent|representative)\b/.test(normalized) ||
-    /\b(kontakt|kontaktiere|kontaktieren|sprechen|spreek|contact|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez)\b/.test(normalized);
+    /\b(kontakt|kontaktiere|kontaktieren|sprechen|spreek|contact|contacter|parler|joindre|message|email|appeler|humain|agent|representant|représentant|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez)\b/.test(normalized);
   const department = /\b(sales|billing|management|executive|technical support|it support|support)\b/.test(normalized);
   return contactVerb || (department && /\b(help|request|need|want|please|with|about)\b/.test(normalized));
 }
 
 export function isConfirmation(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(yes|confirm|confirmed|send|submit|ok|okay|please send|go ahead|ja|senden|bestatigen|bestaetigen|bestatig|bestaetig|verstuur|versturen|bevestig|bevestigen|enviar|confirmar|si|sí|igen|kuldd|küldd|kuld|küld|megerositem|megerősítem|da|trimite|confirma|confirmă)\b/.test(normalized);
+  return /^(yes|confirm|confirmed|send|submit|ok|okay|please send|go ahead|ja|senden|bestatigen|bestaetigen|bestatig|bestaetig|verstuur|versturen|bevestig|bevestigen|envoyer|confirmer|oui|envoie|envoyez|enviar|confirmar|si|sí|igen|kuldd|küldd|kuld|küld|megerositem|megerősítem|da|trimite|confirma|confirmă)\b/.test(normalized);
 }
 
 export function isCancellation(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(no|cancel|stop|do not send|dont send|don't send|nein|abbrechen|annuleer|annuleren|cancelar|nem|megse|mégse|nu|opreste|oprește)\b/.test(normalized);
+  return /^(no|cancel|stop|do not send|dont send|don't send|nein|abbrechen|annuleer|annuleren|annuler|non|arreter|arrêter|cancelar|nem|megse|mégse|nu|opreste|oprește)\b/.test(normalized);
 }
 
 export function mergeContactDraft(
@@ -104,10 +104,10 @@ export function mergeContactDraft(
   const extractedEmail = message.match(emailPattern)?.[0];
   const category = detectContactCategory(message);
   const name = extractField(message, [
-    /(?:my name is|i am|i'm|name is|ich bin|mein name ist|ik ben|mi nombre es|soy|nevem|a nevem|mă numesc|ma numesc)\s+([^.,;\n]+)/i,
+    /(?:my name is|i am|i'm|name is|ich bin|mein name ist|ik ben|je m'appelle|mon nom est|mi nombre es|soy|nevem|a nevem|mă numesc|ma numesc)\s+([^.,;\n]+)/i,
   ]);
   const company = extractField(message, [
-    /(?:company is|company:|from company|for company|firma|unternehmen|bedrijf|empresa|ceg|cég|compania)\s+([^.,;\n]+)/i,
+    /(?:company is|company:|from company|for company|firma|unternehmen|bedrijf|entreprise|societe|société|empresa|ceg|cég|compania)\s+([^.,;\n]+)/i,
   ]);
   const trimmed = message.trim();
   const previousMessageCheck = validateContactMessage(previous?.message);
@@ -196,6 +196,20 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
       "Responde con \"enviar\" o \"confirmar\" para enviarla, o \"cancelar\" para cancelarla.",
     ].filter(Boolean).join("\n");
   }
+  if (draft.language === "french") {
+    return [
+      "Veuillez confirmer cette demande de contact avant que je l'envoie :",
+      "",
+      `Département : ${department}`,
+      `Nom : ${draft.senderName}`,
+      draft.company ? `Entreprise : ${draft.company}` : null,
+      `E-mail de réponse : ${draft.replyEmail}`,
+      `Langue : ${draft.language}`,
+      `Message : ${draft.message}`,
+      "",
+      "Répondez avec \"envoyer\" ou \"confirmer\" pour l'envoyer, ou \"annuler\" pour arrêter.",
+    ].filter(Boolean).join("\n");
+  }
   if (draft.language === "hungarian") {
     return [
       "Kérlek, erősítsd meg ezt a kapcsolatfelvételi kérést, mielőtt elküldöm:",
@@ -248,6 +262,9 @@ export function buildContactDepartmentPrompt(language: SupportedUsyLanguage) {
   if (language === "spanish") {
     return "¿Con qué equipo quieres contactar? Elige Sales, Technical Support, Billing, Management o Executive Management.";
   }
+  if (language === "french") {
+    return "Quelle équipe souhaitez-vous contacter ? Choisissez Sales, Technical Support, Billing, Management ou Executive Management.";
+  }
   if (language === "hungarian") {
     return "Melyik csapattal szeretnél kapcsolatba lépni? Válassz a Sales, Technical Support, Billing, Management vagy Executive Management közül.";
   }
@@ -261,6 +278,7 @@ export function buildContactMessagePrompt(language: SupportedUsyLanguage) {
   if (language === "german") return "Bitte beschreibe dein Anliegen.";
   if (language === "dutch") return "Beschrijf alstublieft je verzoek.";
   if (language === "spanish") return "Por favor, describe tu solicitud.";
+  if (language === "french") return "Veuillez décrire votre demande.";
   if (language === "hungarian") return "Kérlek, írd le a kérésedet.";
   if (language === "romanian") return "Te rugăm să descrii cererea ta.";
   return "Please describe your request.";
@@ -271,6 +289,7 @@ export function buildContactMessageProblemAnswer(problem: UsyContactMessageProbl
     if (language === "german") return "Dein Anliegen ist zu lang. Bitte fasse es in maximal 500 Zeichen zusammen.";
     if (language === "dutch") return "Je verzoek is te lang. Houd het alstublieft bij maximaal 500 tekens.";
     if (language === "spanish") return "Tu solicitud es demasiado larga. Por favor, mantenla en 500 caracteres como máximo.";
+    if (language === "french") return "Votre demande est trop longue. Veuillez la limiter à 500 caractères maximum.";
     if (language === "hungarian") return "A kérésed túl hosszú. Kérlek, legfeljebb 500 karakterben írd le.";
     if (language === "romanian") return "Cererea ta este prea lungă. Te rugăm să o limitezi la maximum 500 de caractere.";
     return "Your message is too long. Please keep it to 500 characters or fewer.";
@@ -279,6 +298,7 @@ export function buildContactMessageProblemAnswer(problem: UsyContactMessageProbl
     if (language === "german") return "Dein Anliegen ist etwas kurz. Bitte beschreibe dein Anliegen mit mindestens 10 Zeichen.";
     if (language === "dutch") return "Je verzoek is iets te kort. Beschrijf je verzoek alstublieft met minimaal 10 tekens.";
     if (language === "spanish") return "Tu solicitud es demasiado corta. Por favor, describe tu solicitud con al menos 10 caracteres.";
+    if (language === "french") return "Votre demande est un peu courte. Veuillez la décrire en au moins 10 caractères.";
     if (language === "hungarian") return "A kérésed kicsit rövid. Kérlek, írd le a kérésedet legalább 10 karakterben.";
     if (language === "romanian") return "Cererea ta este puțin prea scurtă. Te rugăm să descrii cererea cu cel puțin 10 caractere.";
     return "Your message is a bit short. Please describe your request with at least 10 characters.";
@@ -295,6 +315,9 @@ export function buildContactDetailsPrompt(language: SupportedUsyLanguage) {
   }
   if (language === "spanish") {
     return "Gracias. Indica tus datos de contacto para que el equipo pueda responderte. Envía tu nombre y tu email de respuesta. La empresa es opcional.";
+  }
+  if (language === "french") {
+    return "Merci. Indiquez vos coordonnées pour que l'équipe puisse répondre. Envoyez votre nom et votre e-mail de réponse. L'entreprise est optionnelle.";
   }
   if (language === "hungarian") {
     return "Köszönöm. Add meg a kapcsolattartási adataidat, hogy a csapat válaszolni tudjon. Küldd el a nevedet és a válasz e-mailedet. A cég opcionális.";

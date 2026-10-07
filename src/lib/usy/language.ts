@@ -12,7 +12,9 @@ export function normalizeUsyText(value: string) {
 
 export function detectUsyLanguage(question: string): SupportedUsyLanguage {
   const normalized = normalizeUsyText(question);
+  const hyphenless = normalized.replace(/-/g, " ").replace(/\s+/g, " ").trim();
 
+  if (/[àçèêëïôùûœ]/i.test(question)) return "french";
   if (
     /\b(deutsch|bitte|kontakt|kontaktiere|sprichst|sprechen|senden|bestatigen|bestaetigen|kannst du|kann ich|wie kann|was ist|was kann|was kostet|was enthalt|enthalt|enthalten|welche|daten|deine|gib mir|zeige mir|fur wen|für wen|gedacht|hochladen|rechnung|gutschrift|schlussel|schlüssel|datensatz|bericht|umsatz|marge|lager|handler|händler|verkauf|verkaufsanalyse|prognose|unterstutzung|unterstuetzung)\b/.test(
       normalized,
@@ -34,6 +36,14 @@ export function detectUsyLanguage(question: string): SupportedUsyLanguage {
     )
   ) {
     return "spanish";
+  }
+  if (
+    /\b(francais|parles|parlez|je parle|langues|quelle langue|quelles langues|que peux|que peut|qu est ce que|pour qui|comment puis|comment je peux|comment fonctionne|puis je|combien coute|combien|connecter|televerser|telechargement|facture|factures|jeu de donnees|revenu|remboursement|annulation|resiliation|instructions systeme)\b/.test(
+      normalized,
+    ) ||
+    /\b(francais|parles|parlez|que peux|que peut|qu est ce que|puis je|combien|comment puis)\b/.test(hyphenless)
+  ) {
+    return "french";
   }
   if (
     /[áéíóöőúüű]/i.test(question) ||
@@ -60,6 +70,7 @@ export function languageName(language: SupportedUsyLanguage) {
     english: "English",
     german: "German",
     dutch: "Dutch",
+    french: "French",
     spanish: "Spanish",
     hungarian: "Hungarian",
     romanian: "Romanian",

@@ -4,6 +4,7 @@ import {
   buildUsyBillingOverviewAnswer,
   buildUsyCancellationAnswer,
   buildUsyDowngradeAnswer,
+  buildUsyHistoricalUnlockAnswer,
   buildUsyPurchasedRulesAnswer,
   buildUsyRefundAnswer,
   buildUsyTopUpAnswer,
@@ -31,7 +32,7 @@ function contextFor(tier: string | null, overrides: Partial<UsyContext["usage"]>
   }
 }
 
-const languages: SupportedUsyLanguage[] = ["english", "german", "dutch", "spanish", "hungarian", "romanian"]
+const languages: SupportedUsyLanguage[] = ["english", "german", "dutch", "french", "spanish", "hungarian", "romanian"]
 
 function testFreeCannotPurchaseTopUps() {
   for (const language of languages) {
@@ -69,7 +70,7 @@ function testPurchasedCreditsNeverExpire() {
     const rules = buildUsyPurchasedRulesAnswer(language)
     assert.match(
       rules,
-      /do not expire|verfallen nicht|vervallen niet|no caducan|nem járnak le|nu expiră/,
+      /do not expire|verfallen nicht|vervallen niet|n'expirent pas|no caducan|nem járnak le|nu expiră/,
       `${language}: purchased credits never expire`,
     )
   }
@@ -80,12 +81,12 @@ function testPurchasedCreditsSurviveDowngrade() {
     const answer = buildUsyDowngradeAnswer(contextFor("free").usage, language)
     assert.match(
       answer,
-      /preserved|erhalten|bewaard|conservan|megmaradnak|păstrează/,
+      /preserved|erhalten|bewaard|conservés|conservan|megmaradnak|păstrează/,
       `${language}: purchased credits survive a downgrade`,
     )
     assert.match(
       answer,
-      /until|bis|tot|hasta|amíg|până/,
+      /until|bis|tot|jusqu|hasta|amíg|până/,
       `${language}: purchased credits remain usable until exhausted`,
     )
   }
@@ -103,7 +104,7 @@ function testIncludedBeforePurchased() {
     const rules = buildUsyPurchasedRulesAnswer(language)
     assert.match(
       rules,
-      /Included credits are consumed before purchased credits|Enthaltene Credits werden vor gekauften|Inbegrepen credits worden vóór|Los créditos incluidos se consumen antes|Az inkluzív kreditek a megvásároltak előtt|Creditele incluse sunt consumate înaintea/,
+      /Included credits are consumed before purchased credits|Enthaltene Credits werden vor gekauften|Inbegrepen credits worden vóór|Les crédits inclus sont consommés avant|Los créditos incluidos se consumen antes|Az inkluzív kreditek a megvásároltak előtt|Creditele incluse sunt consumate înaintea/,
       `${language}: included credits are consumed before purchased credits`,
     )
   }
@@ -114,12 +115,12 @@ function testCancellationKeepsPaidPlanUntilPeriodEnd() {
     const answer = buildUsyCancellationAnswer(contextFor("pro").usage, language)
     assert.match(
       answer,
-      /end of the already-paid billing period|bereits bezahlten Abrechnungsperiode|reeds betaalde factuurperiode|periodo ya pagado|már kifizetett számlázási időszak|perioadei deja plătite/,
+      /end of the already-paid billing period|bereits bezahlten Abrechnungsperiode|reeds betaalde factuurperiode|fin de la période déjà payée|periodo ya pagado|már kifizetett számlázási időszak|perioadei deja plătite/,
       `${language}: cancellation keeps the paid plan until period end`,
     )
     assert.match(
       answer,
-      /different operations|unterschiedliche Vorgänge|verschillende handelingen|operaciones distintas|különböző műveletek|operațiuni diferite/,
+      /different operations|unterschiedliche Vorgänge|verschillende handelingen|opérations différentes|operaciones distintas|különböző műveletek|operațiuni diferite/,
       `${language}: cancellation and refund are distinct operations`,
     )
   }
@@ -135,12 +136,12 @@ function testRefundAnswersNeverPromiseApproval() {
     )
     assert.match(
       answer,
-      /reviewed centrally|zentral von UseClevr geprüft|centraal door UseClevr beoordeeld|las revisa centralmente|központilag a UseClevr bírálja|analizate central de UseClevr/,
+      /reviewed centrally|zentral von UseClevr geprüft|centraal door UseClevr beoordeeld|examinées centralement par UseClevr|las revisa centralmente|központilag a UseClevr bírálja|analizate central de UseClevr/,
       `${language}: refund requests are reviewed centrally by UseClevr`,
     )
     assert.match(
       answer,
-      /different operations|unterschiedliche Vorgänge|verschillende handelingen|operaciones distintas|különböző műveletek|operațiuni diferite/,
+      /different operations|unterschiedliche Vorgänge|verschillende handelingen|opérations différentes|operaciones distintas|különböző műveletek|operațiuni diferite/,
       `${language}: cancellation and refund are distinct operations`,
     )
   }
@@ -213,12 +214,40 @@ function testConsistencyAcrossLanguages() {
     assert.match(paidTopUp, /Add Credits/i, `${language}: paid top-up answer names Add Credits`)
 
     const downgrade = buildUsyDowngradeAnswer(contextFor("free").usage, language)
-    assert.match(downgrade, /do not expire|verfallen nicht|verlopen niet|no expiran|nem járnak le|nu expiră/, `${language}: purchased credits do not expire`)
-    assert.match(downgrade, /Pro or Business|Pro oder Business|Pro of Business|Pro o Business|Pro vagy Business|Pro sau Business/, `${language}: purchasing requires Pro/Business`)
+    assert.match(downgrade, /do not expire|verfallen nicht|verlopen niet|n'expirent pas|no expiran|nem járnak le|nu expiră/, `${language}: purchased credits do not expire`)
+    assert.match(downgrade, /Pro or Business|Pro oder Business|Pro of Business|Pro ou Business|Pro o Business|Pro vagy Business|Pro sau Business/, `${language}: purchasing requires Pro/Business`)
 
     const cancellation = buildUsyCancellationAnswer(contextFor("pro").usage, language)
-    assert.match(cancellation, /different|unterschiedliche|verschillende|distintas|különböző|diferite/, `${language}: cancellation ≠ refund`)
+    assert.match(cancellation, /different|unterschiedliche|verschillende|différentes|distintas|különböző|diferite/, `${language}: cancellation ≠ refund`)
   }
+}
+
+function testFrenchBillingAnswersUseCanonicalPricingAndRouting() {
+  const context = contextFor("pro")
+  const topUp = buildUsyReply({ question: "Puis-je acheter des crédits supplémentaires sur Pro ?", context })
+  assert.equal(topUp.language, "french")
+  assert.equal(topUp.intent, "account_help")
+  assert.match(topUp.answer, /Add Credits/)
+
+  const plans = buildUsyReply({ question: "Combien coûte Pro et combien de crédits Business inclut ?", context })
+  assert.equal(plans.language, "french")
+  assert.equal(plans.intent, "billing")
+  assert.match(plans.answer, /Pro coûte €40\/mois/)
+  assert.match(plans.answer, /Business coûte €420\/mois/)
+  assert.match(plans.answer, /1 500|1 500/)
+  assert.doesNotMatch(plans.answer, /5,000|5000|5\.000|250/)
+
+  const unlock = buildUsyReply({ question: "Comment débloquer mes données historiques après annulation ?", context: { ...context, currency: "GBP" } })
+  assert.equal(unlock.language, "french")
+  assert.equal(unlock.intent, "billing")
+  assert.match(unlock.answer, /paiement unique/)
+  assert.match(unlock.answer, /£22/)
+  assert.match(unlock.answer, /£112/)
+  assert.match(unlock.answer, /ne restaure pas les fonctions Pro ou Business/)
+
+  const directUnlock = buildUsyHistoricalUnlockAnswer("french", "CAD")
+  assert.match(directUnlock, /C\$40/)
+  assert.match(directUnlock, /C\$210/)
 }
 
 function testBusinessPlanCreditsAnswer() {
@@ -316,7 +345,8 @@ const tests = [
   { name: "German Business plan answer includes 1,500 credits and 100 datasets", fn: testGermanBusinessPlanAnswer },
   { name: "Plan comparison answers include all three plans with the new limits", fn: testPlanComparisonAnswer },
   { name: "No business/plan answer across languages states 5,000 credits or 250 datasets", fn: testNoStaleBusinessNumbersAcrossLanguages },
-  { name: "Answers stay deterministic and consistent across EN, DE, NL, ES, HU, RO", fn: testConsistencyAcrossLanguages },
+  { name: "French billing answers route and use canonical regional pricing", fn: testFrenchBillingAnswersUseCanonicalPricingAndRouting },
+  { name: "Answers stay deterministic and consistent across EN, DE, NL, FR, ES, HU, RO", fn: testConsistencyAcrossLanguages },
 ]
 
 void (async () => {

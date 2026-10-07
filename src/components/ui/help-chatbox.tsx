@@ -22,6 +22,7 @@ const placeholderMap = {
   english: "Ask Usy about UseClevr or get help...",
   german: "Frag Usy zu UseClevr oder hol dir Hilfe...",
   dutch: "Vraag Usy over UseClevr of krijg hulp...",
+  french: "Demandez à Usy des infos sur UseClevr ou de l'aide...",
   spanish: "Pregunta a Usy sobre UseClevr o pide ayuda...",
   hungarian: "Kérdezd Usyt a UseClevrről, vagy kérj segítséget...",
   romanian: "Întreabă Usy despre UseClevr sau cere ajutor..."
@@ -31,6 +32,7 @@ const quickActionMap = {
   english: "Explain AI credits",
   german: "Erkläre AI-Credits",
   dutch: "Leg AI credits uit",
+  french: "Expliquer les crédits AI",
   spanish: "Explicar créditos AI",
   hungarian: "AI kreditek magyarázata",
   romanian: "Explică creditele AI"
@@ -60,6 +62,14 @@ const contactMessageLabels = {
     cancel: "Annuleren",
     tooShort: "Schrijf alstublieft minimaal 10 tekens.",
     counterLabel: "Tekenaantal van het bericht",
+  },
+  french: {
+    label: "Message",
+    placeholder: "Décrivez votre demande...",
+    continue: "Continuer",
+    cancel: "Annuler",
+    tooShort: "Veuillez écrire au moins 10 caractères.",
+    counterLabel: "Nombre de caractères du message",
   },
   spanish: {
     label: "Mensaje",
@@ -125,6 +135,7 @@ const usyLanguageBadges = {
   english: { flag: "🇬🇧", label: "English" },
   german: { flag: "🇩🇪", label: "Deutsch" },
   dutch: { flag: "🇳🇱", label: "Nederlands" },
+  french: { flag: "🇫🇷", label: "Français" },
   spanish: { flag: "🇪🇸", label: "Español" },
   hungarian: { flag: "🇭🇺", label: "Magyar" },
   romanian: { flag: "🇷🇴", label: "Română" },
@@ -301,6 +312,12 @@ const contactSubmitLabels = {
     submittedFailed: "De contactaanvraag kon nu niet worden verzonden. Je verzoek staat nog klaar — antwoord met \"versturen\" om het opnieuw te proberen.",
     confirm: "Bevestigen",
     cancel: "Annuleren",
+  },
+  french: {
+    submitted: "Votre demande de contact a été envoyée. L'équipe vous répondra.",
+    submittedFailed: "La demande de contact n'a pas pu être envoyée pour le moment. Votre demande est prête — répondez \"envoyer\" pour réessayer.",
+    confirm: "Confirmer",
+    cancel: "Annuler",
   },
   spanish: {
     submitted: "Tu solicitud de contacto ha sido enviada. El equipo te responderá.",

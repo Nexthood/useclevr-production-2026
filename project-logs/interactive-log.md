@@ -19310,3 +19310,26 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - AI-agent learning: after replacing a shared button variant, explicitly reset normal-state button chrome on standalone topbar icon triggers so user-agent or inherited button visuals cannot appear as a frame.
 - Follow-up tasks: none assigned.
 - Not committed or pushed per instruction.
+## 2026-10-07 — French Usy localization completion
+
+- User goal: continue Codex's uncommitted French (`fr`) language implementation in the current working tree without restarting or reverting anything; complete only the missing pieces across the localization architecture, Usy, and validation layers; keep EN/DE/NL/ES/HU/RO behavior intact; no commits or pushes.
+- Codex state found
+  - Working tree already carried 15 modified files: Usy types/knowledge-base/language-detection/actions/billing-knowledge/contact/router, help-chatbox, language selector, i18n language context and translation service, the Usy chat API zod enum, and three AI test scripts with French cases.
+  - TypeScriptcompiled clean, so every `Record<SupportedUsyLanguage, …>` map already included French.
+- Completed on top of Codex's work
+  - `src/lib/usy/language.ts`: the new French detection block midsdetected English ("Explain AI credits", "How do I contact support?") as French because it matched plain English words (credits/stock/support/assistance/abonnement), and midsdetected Romanian as French because the accent class included â/î (chars Romanian uses pervasively, e.g. "vânzărilor"); French detection now uses a unique-character class ([àçèêëïôùûœ]) checked before other languages plus a French-only keyword list with a hyphen-collapsed second pass for "puis-je"/"qu'est-ce que" spellings.
+  - `src/lib/usy/router.ts`: removed exact normalized-duplicate keywords ("crédit"/"crédits" in the credits intent, a duplicated "abonnement" and "combien coûte" in the plans intent) that inflated the credits intent so it outranked top-ups/plans for French questions; added "combien" to plans, "crédits supplémentaires" to top-ups, "donnees historiques" to historical-unlock so "Comment débloquer mes données historiques après annulation ?" no longer loses to the downgrade intent's "après annulation"; the Pro-monthly-price shortcut reverted to the pre-French price words so compound French plan questions reach the full plans answer; added French `account` and `ai_activity` intent answers so profile/AI-activity questions no longer fall back to English sentences; replaced the bare Hungarian "ár" keyword (normalized "ar" substring-matched "parles-tu") with "mennyi az ár" and added "parles-tu francais"/"parlez-vous francais" keywords to the languages intent.
+  - `scripts/ai/test-usy-contact-message-step.ts`: the "unsupported language rejected" case used `french`, which the new payload enum accepts — the reject case now uses `italian` and a neighboring assertion pins that `french` payloads are accepted.
+  - `scripts/ai/test-usy-secretariat.ts`: added French rows to supported-language response answers, localized quick actions, and restricted-information prevention.
+  - `requirements.md`, `CHANGELOG.md`: current-state language lists include French.
+- Verification
+  - `pnpm exec tsc --noEmit --pretty false` clean.
+  - `test:usy-billing-knowledge` 17/17 (including the new French canonical-pricing routing test), `test:usy-secretariat`, `test:usy-guest-mode`, `test:usy-contact-message-step`, `test:usy-contact-handoff`, `test:usy-product-knowledge` all pass; the billing suite previously failed 8 tests from the detection regressions.
+- Problems marked
+  - blocker: none.
+  - risk: French questions whose only accented character is é (or whose only signal is the word "marge") can still misdetect as Hungarian/German because those language checks own those characters and run first; French abonnement-only phrasings still detect as Dutch (both languages share the exact word).
+  - improvement: none assigned.
+- User learning: Usy now detects and answers French across product, billing, planning, contact, account, and security topics.
+- AI-agent learning: when extending language detection, first strip accent variants that normalize identically (kw dedupe belongs at the normalized form) and exclude characters another supported language relies on (Romanian â/î, Hungarian é) or plain foreign words (English credits/stock/support).
+- Follow-up tasks: none assigned.
+- Not committed or pushed per instruction.

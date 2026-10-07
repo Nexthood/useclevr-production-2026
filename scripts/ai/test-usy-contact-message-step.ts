@@ -317,10 +317,20 @@ function testServerRejectsInvalidContactPayloads() {
     message: validMessage,
     senderName: "Alex Rivera",
     replyEmail: "alex@example.com",
-    language: "french",
+    language: "italian",
     confirmed: true,
   });
   assert.equal(unsupportedLanguage.success, false, "unsupported language rejected");
+
+  const frenchLanguage = validateUsyContactPayload({
+    category: "billing",
+    message: validMessage,
+    senderName: "Alex Rivera",
+    replyEmail: "alex@example.com",
+    language: "french",
+    confirmed: true,
+  });
+  assert.equal(frenchLanguage.success, true, "french is a supported language");
 
   const unconfirmed = validateUsyContactPayload({
     category: "billing",
@@ -536,6 +546,7 @@ function testMessageStepLocalizedAcrossSupportedLanguages() {
     { language: "english", promptPattern: /Please describe your request/, problemPattern: /at least 10 characters/ },
     { language: "german", promptPattern: /Bitte beschreibe dein Anliegen/, problemPattern: /mindestens 10 Zeichen/ },
     { language: "dutch", promptPattern: /Beschrijf alstublieft je verzoek/, problemPattern: /minimaal 10 tekens/ },
+    { language: "french", promptPattern: /Veuillez décrire votre demande/, problemPattern: /au moins 10 caractères/ },
     { language: "spanish", promptPattern: /describe tu solicitud/i, problemPattern: /al menos 10 caracteres/ },
     { language: "hungarian", promptPattern: /írd le a kérésedet/i, problemPattern: /legalább 10 karakter/ },
     { language: "romanian", promptPattern: /descrii cererea ta/i, problemPattern: /cel puțin 10 caractere/ },
