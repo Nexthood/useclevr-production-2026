@@ -115,6 +115,10 @@ function testGuestPersonalQuestionsStayLocalized() {
   const dutch = buildUsyReply({ question: "Waar kan ik mijn factuur zien?", context: guestContext() })
   assert.equal(dutch.language, "dutch")
   assert.match(dutch.answer, /Log in om informatie over je account te zien/)
+
+  const french = buildUsyReply({ question: "Où puis-je voir mes factures ?", context: guestContext() })
+  assert.equal(french.language, "french")
+  assert.match(french.answer, /Veuillez vous connecter/)
 }
 
 function testGuestNeverReceivesPrivateUsageData() {

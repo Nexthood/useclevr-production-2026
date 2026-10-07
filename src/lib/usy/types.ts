@@ -2,6 +2,7 @@ export type SupportedUsyLanguage =
   | "english"
   | "german"
   | "dutch"
+  | "french"
   | "spanish"
   | "hungarian"
   | "romanian";

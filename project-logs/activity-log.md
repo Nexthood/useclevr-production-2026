@@ -1336,3 +1336,4 @@
 - preserved: Search open/close, `Ctrl/⌘ K`, focus restoration, `aria-label`, `title`, button ref, and modal functionality stay unchanged
 - verified: `pnpm exec tsc --noEmit --pretty false` exits clean after approved filesystem access for pnpm's Corepack cache database; source check confirms only the Search trigger styling changed
 - not committed or pushed per instruction
+- added: French as a fully supported Usy language — French detection, intent answers, actions, follow-ups, contact flow, billing/planning/historical-unlock answers, chatbox labels, the dashboard language selector, i18n context, and API payload validation all cover French, with the billing knowledge answers built from canonical pricing configuration; a 15-file uncommitted French implementation was completed rather than restarted and EN/DE/NL/ES/HU/RO behavior is preserved

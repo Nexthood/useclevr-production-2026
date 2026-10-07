@@ -15,9 +15,9 @@ interface TranslationCache {
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 const cache: TranslationCache = {}
 
-export type Language = 'en' | 'de' | 'hu' | 'ro'
+export type Language = 'en' | 'de' | 'fr' | 'hu' | 'ro'
 
-const SUPPORTED_LANGUAGES: Language[] = ['en', 'de', 'hu', 'ro']
+const SUPPORTED_LANGUAGES: Language[] = ['en', 'de', 'fr', 'hu', 'ro']
 
 export function getCachedTranslation(text: string, targetLang: Language): string | null {
   const key = `${text}_${targetLang}`

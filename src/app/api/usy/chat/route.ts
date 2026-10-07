@@ -39,7 +39,7 @@ const chatSchema = z.object({
       senderName: z.string().max(120).optional(),
       company: z.string().max(120).optional(),
       replyEmail: z.string().max(254).optional(),
-      language: z.enum(["english", "german", "dutch", "spanish", "hungarian", "romanian"]).optional(),
+      language: z.enum(["english", "german", "dutch", "french", "spanish", "hungarian", "romanian"]).optional(),
       awaitingConfirmation: z.boolean().optional(),
     })
     .nullable()
