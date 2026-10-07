@@ -317,7 +317,6 @@ export default buildConfig({
           stripePlugin({
             stripeSecretKey,
             logs: false,
-            rest: false,
           }),
         ]
       : []),
