@@ -601,6 +601,7 @@ Text rules for this file:
 - Show Usy as the official UseClevr AI Business Intelligence Assistant in the floating assistant panel.
 - Use the female Usy avatar in a premium circular frame with bright cyan, electric cyan, lilac, and soft-purple glow.
 - Keep the Usy assistant header compact with title, subtitle, online badge, and close button aligned without overlap or clipping.
+- Let users minimize Usy from the header and restore the same conversation from the floating avatar without clearing messages, context, or the current chat state.
 - Center the main Usy avatar inside the welcome card with generous whitespace.
 - Animate the Usy avatar with a reduced-motion-safe compact breathing pulse, close soft outer glow, and subtle floating motion.
 - Let Usy answer public, dashboard, and operator FAQ scope according to the current audience.

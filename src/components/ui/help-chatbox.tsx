@@ -13,7 +13,7 @@ import type {
 } from "@/lib/usy/types";
 import { getActionById } from "@/lib/usy/actions";
 import { supportedUsyLanguages } from "@/lib/usy/knowledge-base";
-import { ArrowUp, Bot, Loader2, Sparkles, X, ExternalLink, Mail } from "lucide-react";
+import { ArrowUp, Bot, Loader2, Sparkles, X, ExternalLink, Mail, Minus } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
@@ -360,6 +360,7 @@ export function HelpChatbox({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAsking, setIsAsking] = useState(false);
@@ -374,6 +375,8 @@ export function HelpChatbox({
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const contactMessageRef = useRef<HTMLTextAreaElement>(null);
+  const minimizedScrollTopRef = useRef<number | null>(null);
+  const shouldRestoreMinimizedScrollRef = useRef(false);
 
   function handleActionButton(actionButton: UsyActionButton) {
     if (actionButton.type === "navigation") {
@@ -415,19 +418,36 @@ export function HelpChatbox({
   ];
 
   useEffect(() => {
-    const openChat = () => setOpen(true);
+    const openChat = () => {
+      if (isMinimized) {
+        shouldRestoreMinimizedScrollRef.current = true;
+      }
+      setIsMinimized(false);
+      setOpen(true);
+    };
     window.addEventListener("toggle-help-chat", openChat);
     return () => window.removeEventListener("toggle-help-chat", openChat);
-  }, []);
+  }, [isMinimized]);
 
   useEffect(() => {
     if (!open) return;
-    window.setTimeout(() => inputRef.current?.focus(), 80);
+    const restoreScrollTop = shouldRestoreMinimizedScrollRef.current
+      ? minimizedScrollTopRef.current
+      : null;
+    const timeout = window.setTimeout(() => {
+      if (restoreScrollTop !== null) {
+        transcriptRef.current?.scrollTo({ top: restoreScrollTop, behavior: "auto" });
+      }
+      shouldRestoreMinimizedScrollRef.current = false;
+      inputRef.current?.focus();
+    }, 80);
+    return () => window.clearTimeout(timeout);
   }, [open]);
 
   useEffect(() => {
     if (!open || !awaitMessageInput) return;
-    window.setTimeout(() => contactMessageRef.current?.focus(), 80);
+    const timeout = window.setTimeout(() => contactMessageRef.current?.focus(), 80);
+    return () => window.clearTimeout(timeout);
   }, [open, awaitMessageInput]);
 
   useEffect(() => {
@@ -625,12 +645,35 @@ export function HelpChatbox({
     submitQuestion(query);
   }
 
+  function minimizeUsy() {
+    minimizedScrollTopRef.current = transcriptRef.current?.scrollTop ?? null;
+    shouldRestoreMinimizedScrollRef.current = true;
+    setIsMinimized(true);
+    setOpen(false);
+  }
+
+  function handleLauncherClick() {
+    if (open) {
+      setOpen(false);
+      setIsMinimized(false);
+      return;
+    }
+
+    if (isMinimized) {
+      shouldRestoreMinimizedScrollRef.current = true;
+    }
+    setIsMinimized(false);
+    setOpen(true);
+  }
+
   const containerClassName =
     "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] right-3 z-[139] flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-3 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] sm:right-6 sm:max-w-[calc(100vw-2rem)]";
   const panelClassName = [
     "usy-panel-open fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)] top-[calc(env(safe-area-inset-top,0px)+0.75rem)] flex max-h-[calc(100dvh-6rem)] flex-col overflow-hidden rounded-[24px] border border-cyan-200/25 bg-slate-950/[0.95] text-white shadow-[0_34px_100px_rgba(8,13,30,0.6),0_0_52px_rgba(34,211,238,0.16)] backdrop-blur-2xl sm:absolute sm:bottom-24 sm:top-auto sm:inset-x-auto sm:h-auto sm:max-h-[min(760px,calc(100dvh-8rem))] sm:w-[min(calc(100vw-2rem),520px)] sm:rounded-[30px]",
     "sm:right-0",
   ].join(" ");
+  const panelControlButtonClassName =
+    "shrink-0 rounded-full border border-white/10 bg-white/[0.08] p-2 text-white/70 transition hover:bg-white/[0.14] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300";
 
   return (
     <div className={containerClassName}>
@@ -657,14 +700,24 @@ export function HelpChatbox({
                   onHintChange={setShowLanguageHint}
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="shrink-0 rounded-full border border-white/10 bg-white/[0.08] p-2 text-white/70 transition hover:bg-white/[0.14] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                aria-label="Close Usy chat"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={minimizeUsy}
+                  className={panelControlButtonClassName}
+                  aria-label="Minimize Usy"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className={panelControlButtonClassName}
+                  aria-label="Close Usy chat"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </header>
 
@@ -907,7 +960,7 @@ export function HelpChatbox({
 
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={handleLauncherClick}
         className="usy-launcher group relative inline-flex h-14 w-14 items-center justify-center rounded-full text-white transition duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:h-16 sm:w-16"
         aria-label={open ? "Close Usy chat" : "Ask Usy"}
         aria-expanded={open}
