@@ -19379,3 +19379,30 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - Follow-up tasks: none assigned.
 - Instruction sources: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
 - Not committed or pushed per instruction.
+
+## 2026-10-08 — Next.js security advisory patch upgrade
+
+- User goal: fix the GitHub Actions security validation failure during `pnpm validate:types` by upgrading vulnerable Next.js to the patched release, keep the approved `braces` residual allowlist exactly as before, avoid adding Next.js advisories to the allowlist, avoid application behavior changes, and do not commit or push.
+- What changed
+  - `package.json`: pins `next` from `16.3.6` to `16.3.8`.
+  - `pnpm-lock.yaml`: resolves Next.js, `@next/env`, and peer snapshots to `16.3.8`.
+  - No source files, Usy files, AI Assistant files, Retail, Profitability, Risk Intelligence, Stripe, dataset logic, workspace settings, or audit allowlist files changed.
+- Findings
+  - Before the update, `pnpm list next --depth 0` resolved `next@16.3.6`.
+  - `pnpm audit:allowlist` reported one approved high `braces` residual (`GHSA-vfj7-8cjw-p6xm`) and six unapproved Next.js advisories patched by `>=16.3.8`: `GHSA-3w37-wq28-93x7`, `GHSA-4jqv-mc3x-m676`, `GHSA-39w2-rjm5-chcv`, `GHSA-f87g-xv8r-7p7x`, `GHSA-mcj8-r9mp-w47p`, and `GHSA-cjq9-62q9-8jv4`.
+  - After the update, `pnpm list next --depth 0` resolves `next@16.3.8`, and `pnpm audit:allowlist` reports no unapproved advisories.
+- Verification
+  - `pnpm install --frozen-lockfile` passes.
+  - `pnpm validate:types` passes.
+  - `pnpm exec tsc --noEmit --pretty false` passes.
+  - `pnpm audit:allowlist` passes with only the approved `braces` residual.
+  - `pnpm lint:secrets`, `pnpm lint:changelog`, and `pnpm lint:project-records` pass.
+- Problems marked
+  - blocker: none.
+  - risk: none; this is a patch-level dependency update inside the existing supported Payload peer range (`>=16.3.3 <17.0.0`).
+  - improvement: none assigned.
+- User learning: the security gate now clears patched Next.js advisories through dependency upgrade instead of allowlisting.
+- AI-agent learning: when audit output lists patched versions for framework advisories, update the dependency and preserve only residual advisories with no patched release.
+- Follow-up tasks: none assigned.
+- Instruction sources: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- Not committed or pushed per instruction.
