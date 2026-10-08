@@ -1,0 +1,304 @@
+"use strict";(()=>{var a={};a.id=1426,a.ids=[1426],a.modules={55591:a=>{a.exports=require("https")},108128:a=>{a.exports=require("next/dist/server/runtime-reacts.external.js")},164939:a=>{a.exports=import("pg")},200261:a=>{a.exports=require("next/dist/shared/lib/router/utils/app-paths")},289981:(a,b,c)=>{c.r(b),c.d(b,{handler:()=>A,patchFetch:()=>z,routeModule:()=>v,serverHooks:()=>y,workAsyncStorage:()=>w,workUnitAsyncStorage:()=>x});var d=c(684342),e=c(908031),f=c(419798),g=c(294040),h=c(643094),i=c(486610),j=c(200261),k=c(256424),l=c(219690),m=c(922570),n=c(132761),o=c(704775),p=c(788909),q=c(241035),r=c(189356),s=c(986439),t=c(258625),u=c(719410);let v=new d.AppRouteRouteModule({definition:{kind:e.RouteKind.APP_ROUTE,page:"/api/admin/replay-topup/route",pathname:"/api/admin/replay-topup",filename:"route",bundlePath:"app/api/admin/replay-topup/route"},distDir:".next",relativeProjectDir:"",resolvedPagePath:"/home/runner/work/useclevr-production-2026/useclevr-production-2026/src/app/api/admin/replay-topup/route.ts",nextConfigOutput:"standalone",userland:()=>c(457744),...{}}),{workAsyncStorage:w,workUnitAsyncStorage:x,serverHooks:y}=v;function z(){return(0,f.patchFetch)({workAsyncStorage:w,workUnitAsyncStorage:x})}async function A(a,b,c){c.requestMeta&&(0,g.setRequestMeta)(a,c.requestMeta),v.isDev&&(0,g.addRequestMeta)(a,"devRequestTimingInternalsEnd",process.hrtime.bigint());let d="/api/admin/replay-topup/route";"/index"===d&&(d="/");let f=await v.prepare(a,b,{srcPage:d,multiZoneDraftMode:!1});if(!f)return b.statusCode=400,b.end("Bad Request"),null==c.waitUntil||c.waitUntil.call(c,Promise.resolve()),null;let{buildId:w,deploymentId:x,params:y,nextConfig:z,parsedUrl:A,isDraftMode:B,prerenderManifest:C,routerServerContext:D,isOnDemandRevalidate:E,revalidateOnlyGenerated:F,resolvedPathname:G,clientReferenceManifest:H,serverActionsManifest:I}=f,J=(0,j.normalizeAppPath)(d),K=!!C.routes[G]&&(v.isDev||(0,t.isRouteCacheOwner)(G,v.cacheOwner,C.routes[G])),L=!!(C.dynamicRoutes[J]||K),M=async()=>((null==D?void 0:D.render404)?await D.render404(a,b,A,!1):b.end("This page could not be found"),null);if(L&&!B){let a=C.dynamicRoutes[J];if(a&&!1===a.fallback&&!K){if(z.adapterPath)return await M();throw new s.NoFallbackError}}let N=null;!L||v.isDev||B||(N="/index"===(N=G)?"/":N);let O=!0===v.isDev||!L,P=L&&!O;I&&H&&(0,i.setManifestsSingleton)({page:d,clientReferenceManifest:H,serverActionsManifest:I});let Q=a.method||"GET",R=(0,h.getTracer)(),S=R.getActiveScopeSpan(),T=!!(null==D?void 0:D.isWrappedByNextServer),U=!!(0,g.getRequestMeta)(a,"minimalMode"),V=(0,g.getRequestMeta)(a,"incrementalCache")||await v.getIncrementalCache(a,z,C,U);null==V||V.resetRequestCache(),globalThis.__incrementalCache=V;let W={params:y,previewProps:C.preview,renderOpts:{experimental:{authInterrupts:!!z.experimental.authInterrupts,useCacheTimeout:z.experimental.useCacheTimeout},cacheComponents:!!z.cacheComponents,validationLevel:z.experimental.instantInsights.validationLevel,isDraftMode:B,supportsDynamicResponse:O,incrementalCache:V,hmrRefreshHash:(0,g.getRequestMeta)(a,"hmrRefreshHash"),cacheLifeProfiles:z.cacheLife,staticPageGenerationTimeout:z.staticPageGenerationTimeout,waitUntil:c.waitUntil,onClose:a=>{b.on("close",a)},onAfterTaskError:void 0,onInstrumentationRequestError:(b,c,d,e)=>v.onRequestError(a,b,d,e,D)},sharedContext:{buildId:w,deploymentId:x}},X=new k.NodeNextRequest(a),Y=new k.NodeNextResponse(b),Z=l.NextRequestAdapter.fromNodeNextRequest(X,(0,l.signalFromNodeResponse)(b)),$=async({previousCacheEntry:e})=>{try{if(!U&&E&&F&&!e)return b.statusCode=404,b.setHeader("x-nextjs-cache","REVALIDATED"),b.end("This page could not be found"),null;let d=await v.handle(Z,W);a.fetchMetrics=W.renderOpts.fetchMetrics;let f=W.renderOpts.pendingWaitUntil;f&&c.waitUntil&&(c.waitUntil(f),f=void 0);let g=W.renderOpts.collectedTags;if(!L)return await (0,o.I)(X,Y,d,f),null;{let a=await d.blob(),b=(0,p.toNodeOutgoingHttpHeaders)(d.headers);g&&(b[r.NEXT_CACHE_TAGS_HEADER]=g),!b["content-type"]&&a.type&&(b["content-type"]=a.type);let c=void 0!==W.renderOpts.collectedRevalidate&&!(W.renderOpts.collectedRevalidate>=r.INFINITE_CACHE)&&W.renderOpts.collectedRevalidate,e=void 0===W.renderOpts.collectedExpire||W.renderOpts.collectedExpire>=r.INFINITE_CACHE?!1!==c&&c>0?z.expireTime:void 0:W.renderOpts.collectedExpire;return{value:{kind:u.CachedRouteKind.APP_ROUTE,status:d.status,body:Buffer.from(await a.arrayBuffer()),headers:b},cacheControl:{revalidate:c,expire:e}}}}catch(b){throw(null==e?void 0:e.isStale)&&await v.onRequestError(a,b,{routerKind:"App Router",routePath:d,routeType:"route",revalidateReason:(0,n.getRevalidateReason)({isStaticGeneration:P,isOnDemandRevalidate:E})},!1,D),b}},_=async(d,f)=>{try{var g,i;let d=await v.handleResponse({req:a,nextConfig:z,cacheKey:N,routeKind:e.RouteKind.APP_ROUTE,isFallback:!1,prerenderManifest:C,isRoutePPREnabled:!1,isOnDemandRevalidate:E,revalidateOnlyGenerated:F,responseGenerator:$,waitUntil:c.waitUntil,isMinimalMode:U});if(!L)return;if((null==d||null==(g=d.value)?void 0:g.kind)!==u.CachedRouteKind.APP_ROUTE)throw Object.defineProperty(Error(`Invariant: app-route received invalid cache entry ${null==d||null==(i=d.value)?void 0:i.kind}`),"__NEXT_ERROR_CODE",{value:"E701",enumerable:!1,configurable:!0});U||b.setHeader("x-nextjs-cache",E?"REVALIDATED":d.isMiss?"MISS":d.isStale?"STALE":"HIT"),B&&b.setHeader("Cache-Control","private, no-cache, no-store, max-age=0, must-revalidate");let f=(0,p.fromNodeOutgoingHttpHeaders)(d.value.headers);U&&L||f.delete(r.NEXT_CACHE_TAGS_HEADER),!d.cacheControl||b.getHeader("Cache-Control")||f.get("Cache-Control")||f.set("Cache-Control",(0,q.getCacheControlHeader)(d.cacheControl)),await (0,o.I)(X,Y,new Response(d.value.body,{headers:f,status:d.value.status||200}));return}catch(b){if(b instanceof s.NoFallbackError||await v.onRequestError(a,b,{routerKind:"App Router",routePath:J,routeType:"route",revalidateReason:(0,n.getRevalidateReason)({isStaticGeneration:P,isOnDemandRevalidate:E})},!1,D),L)throw b;await (0,o.I)(X,Y,new Response(null,{status:500}));return}finally{(()=>{if(!d)return;let a=b.statusCode;d.setAttributes({"http.status_code":a,"next.rsc":!1}),a&&a>=500&&(d.setStatus({code:h.SpanStatusCode.ERROR}),d.setAttribute("error.type",a.toString()));let c=R.getRootSpanAttributes();if(!c)return;if(c.get("next.span_type")!==m.BaseServerSpan.handleRequest)return console.warn(`Unexpected root span type '${c.get("next.span_type")}'. Please report this Next.js issue https://github.com/vercel/next.js`);let e=c.get("next.route")||J,g=`${Q} ${e}`;d.setAttributes({"next.route":e,"http.route":e,"next.span_name":g}),d.updateName(g),f&&f!==d&&(f.setAttribute("http.route",e),f.updateName(g))})()}};if(T&&S)await _(S,void 0);else{let b=R.getActiveScopeSpan();await R.withPropagatedContext(a.headers,()=>R.trace(m.BaseServerSpan.handleRequest,{spanName:`${Q} ${d}`,kind:h.SpanKind.SERVER,attributes:{"http.method":Q,"http.target":a.url}},a=>_(a,b)),void 0,!T)}}},328354:a=>{a.exports=require("util")},333873:a=>{a.exports=require("path")},419121:a=>{a.exports=require("next/dist/server/app-render/action-async-storage.external.js")},427641:(a,b,c)=>{c.d(b,{EA:()=>f,Jj:()=>g,eu:()=>h,xL:()=>i});var d=c(848650);let e=process.env.EMAIL_FROM||"UseClevr <no-reply@useclevr.com>";async function f(a){let{to:b,planName:c,billingInterval:d,amount:e,currency:f,activatedAt:g,nextBillingDate:h,dashboardUrl:i}=a,k=`Your ${c} subscription is now active`,l=new Intl.NumberFormat("en-US",{style:"currency",currency:f}).format(e),m=`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="margin: 0; color: #0ea5e9;">UseClevr</h1>
+  </div>
+
+  <h2 style="color: #1a1a1a;">Your ${c} subscription is now active!</h2>
+
+  <p>Thank you for subscribing to UseClevr ${c}. Your subscription has been successfully activated.</p>
+
+  <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Plan</td>
+        <td style="padding: 8px 0; font-weight: 600;">${c}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Billing</td>
+        <td style="padding: 8px 0;">${d}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Amount</td>
+        <td style="padding: 8px 0;">${l}/${"monthly"===d?"month":"year"}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Activated</td>
+        <td style="padding: 8px 0;">${new Date(g).toLocaleDateString()}</td>
+      </tr>
+      ${h?`
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Next billing</td>
+        <td style="padding: 8px 0;">${new Date(h).toLocaleDateString()}</td>
+      </tr>
+      `:""}
+    </table>
+  </div>
+
+  <p>Your UseClevr subscription gives you access to AI-powered business analytics that transforms your business data into KPIs, visualizations, trends, and actionable insights. Available features depend on your selected plan.</p>
+
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${i}" style="display: inline-block; background: #0ea5e9; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
+  </div>
+
+  <p style="color: #64748b; font-size: 14px;">
+    You can manage your subscription at any time from your <a href="${i}" style="color: #0ea5e9;">subscription settings</a>.
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+  <p style="color: #94a3b8; font-size: 12px;">
+    This email was sent to ${b}. If you have questions, contact us at support@useclevr.com.
+  </p>
+</body>
+</html>
+`;return j({to:b,subject:k,html:m,text:`
+Your ${c} subscription is now active!
+
+Thank you for subscribing to UseClevr ${c}. Your subscription has been successfully activated.
+
+Plan: ${c}
+Billing: ${d}
+Amount: ${l}/${"monthly"===d?"month":"year"}
+Activated: ${new Date(g).toLocaleDateString()}
+${h?`Next billing: ${new Date(h).toLocaleDateString()}`:""}
+
+Your UseClevr subscription gives you access to AI-powered business analytics that transforms your business data into KPIs, visualizations, trends, and actionable insights.
+
+Go to your dashboard: ${i}
+
+You can manage your subscription at any time from your subscription settings.
+`,emailType:"subscription_activation"})}async function g(a){let{to:b,planName:c,canceledAt:d,datasetsPreserved:e,purchasedCreditsPreserved:f,dashboardUrl:g}=a,h=`Your ${c} subscription has been cancelled`,i=`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="margin: 0; color: #0ea5e9;">UseClevr</h1>
+  </div>
+
+  <h2 style="color: #1a1a1a;">Subscription Cancelled</h2>
+
+  <p>Your ${c} subscription has been cancelled. Your account has been transitioned to the Free plan.</p>
+
+  <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Previous Plan</td>
+        <td style="padding: 8px 0; font-weight: 600;">${c}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Cancelled</td>
+        <td style="padding: 8px 0;">${new Date(d).toLocaleDateString()}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Datasets</td>
+        <td style="padding: 8px 0;">${e?"Preserved":"Removed"}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Purchased Credits</td>
+        <td style="padding: 8px 0;">${f?"Preserved":"Removed"}</td>
+      </tr>
+    </table>
+  </div>
+
+  <p>Your existing datasets have been preserved. You can continue to use UseClevr with the Free plan, which includes:</p>
+  <ul>
+    <li>Up to 2 datasets</li>
+    <li>5,000 rows per dataset</li>
+    <li>Basic AI analysis features</li>
+  </ul>
+
+  <p>Your purchased credits (if any) remain available for use.</p>
+
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${g}" style="display: inline-block; background: #0ea5e9; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
+  </div>
+
+  <p style="color: #64748b; font-size: 14px;">
+    We hope you enjoyed your time on the ${c} plan. You're welcome to upgrade again anytime from your <a href="${g}" style="color: #0ea5e9;">subscription settings</a>.
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+  <p style="color: #94a3b8; font-size: 12px;">
+    This email was sent to ${b}. If you have questions, contact us at support@useclevr.com.
+  </p>
+</body>
+</html>
+`;return j({to:b,subject:h,html:i,text:`
+Subscription Cancelled
+
+Your ${c} subscription has been cancelled. Your account has been transitioned to the Free plan.
+
+Previous Plan: ${c}
+Cancelled: ${new Date(d).toLocaleDateString()}
+Datasets: ${e?"Preserved":"Removed"}
+Purchased Credits: ${f?"Preserved":"Removed"}
+
+Your existing datasets have been preserved. You can continue to use UseClevr with the Free plan, which includes up to 2 datasets, 5,000 rows per dataset, and basic AI analysis features.
+
+Your purchased credits (if any) remain available for use.
+
+Go to your dashboard: ${g}
+
+We hope you enjoyed your time on the ${c} plan. You're welcome to upgrade again anytime.
+`,emailType:"subscription_cancellation"})}async function h(a){let{to:b,planName:c,currentPeriodEnd:d,dashboardUrl:e}=a,f=`Your ${c} subscription will cancel at period end`,g=`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="margin: 0; color: #0ea5e9;">UseClevr</h1>
+  </div>
+
+  <h2 style="color: #1a1a1a;">Subscription Cancellation Scheduled</h2>
+
+  <p>Your ${c} subscription is scheduled to cancel at the end of your billing period.</p>
+
+  <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Current Plan</td>
+        <td style="padding: 8px 0; font-weight: 600;">${c}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Access Until</td>
+        <td style="padding: 8px 0;">${new Date(d).toLocaleDateString()}</td>
+      </tr>
+    </table>
+  </div>
+
+  <p>Your ${c} benefits will remain active until ${new Date(d).toLocaleDateString()}. After that, your account will transition to the Free plan.</p>
+
+  <p>You can cancel this scheduled cancellation anytime before the period ends.</p>
+
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${e}" style="display: inline-block; background: #0ea5e9; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+  <p style="color: #94a3b8; font-size: 12px;">
+    This email was sent to ${b}. If you have questions, contact us at support@useclevr.com.
+  </p>
+</body>
+</html>
+`;return j({to:b,subject:f,html:g,text:`
+Subscription Cancellation Scheduled
+
+Your ${c} subscription is scheduled to cancel at the end of your billing period.
+
+Current Plan: ${c}
+Access Until: ${new Date(d).toLocaleDateString()}
+
+Your ${c} benefits will remain active until ${new Date(d).toLocaleDateString()}. After that, your account will transition to the Free plan.
+
+You can cancel this scheduled cancellation anytime before the period ends.
+
+Go to your dashboard: ${e}
+`,emailType:"subscription_cancellation_scheduled"})}async function i(a){let{to:b,creditsGranted:c,amount:d,currency:e,purchasedAt:f,providerPaymentId:g,dashboardUrl:h,receiptUrl:i,invoicePdfUrl:k,invoiceUrl:l,newPurchasedBalance:m}=a,n=new Intl.NumberFormat("en-US",{style:"currency",currency:e}).format(d),o=`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="margin: 0; color: #0ea5e9;">UseClevr</h1>
+  </div>
+
+  <h2 style="color: #1a1a1a;">Credits Added Successfully</h2>
+
+  <p>Thank you for your purchase! ${c.toLocaleString()} credits have been added to your UseClevr account.</p>
+
+  <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Credits Added</td>
+        <td style="padding: 8px 0; font-weight: 600; font-size: 18px;">${c.toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Amount Paid</td>
+        <td style="padding: 8px 0; font-weight: 600;">${n}</td>
+      </tr>
+      ${"number"==typeof m?`
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Purchased Credit Balance</td>
+        <td style="padding: 8px 0; font-weight: 600;">${m.toLocaleString()} credits</td>
+      </tr>
+      `:""}
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Date</td>
+        <td style="padding: 8px 0;">${new Date(f).toLocaleDateString()}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b;">Reference</td>
+        <td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${g}</td>
+      </tr>
+    </table>
+  </div>
+
+  <p><strong>Important:</strong> Purchased credits are non-refundable and do not expire. They are available immediately and will be used after your monthly included credits are exhausted.</p>
+
+  ${i||k||l?`
+  <p style="color: #64748b; font-size: 14px;">Your payment documentation from Stripe:</p>
+  <ul style="color: #64748b; font-size: 14px; padding-left: 20px;">
+    ${i?`<li><a href="${i}" style="color: #0ea5e9;">View Stripe receipt</a></li>`:""}
+    ${k?`<li><a href="${k}" style="color: #0ea5e9;">Download invoice PDF (Invoice / Rechnung)</a></li>`:""}
+    ${l?`<li><a href="${l}" style="color: #0ea5e9;">View invoice</a></li>`:""}
+  </ul>
+  `:`
+  <p style="color: #64748b; font-size: 14px;">Your Stripe payment receipt and invoice are available from your subscription settings on the dashboard.</p>
+  `}
+
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${h}" style="display: inline-block; background: #0ea5e9; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
+  </div>
+
+  <p style="color: #64748b; font-size: 14px;">
+    You can view your purchase history and manage your account from your <a href="${h}" style="color: #0ea5e9;">subscription settings</a>.
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+  <p style="color: #94a3b8; font-size: 12px;">
+    This email was sent to ${b}. If you have questions, contact us at support@useclevr.com.
+  </p>
+</body>
+</html>
+`;return j({to:b,subject:"Your UseClevr credit purchase is confirmed",html:o,text:`
+Credits Added Successfully
+
+Thank you for your purchase! ${c.toLocaleString()} credits have been added to your UseClevr account.
+
+Credits Added: ${c.toLocaleString()}
+Amount Paid: ${n}
+${"number"==typeof m?`Purchased Credit Balance: ${m.toLocaleString()} credits
+`:""}Date: ${new Date(f).toLocaleDateString()}
+Reference: ${g}
+
+Important: Purchased credits are non-refundable and do not expire. They are available immediately and will be used after your monthly included credits are exhausted.
+
+Payment documentation from Stripe:
+${i?`View Stripe receipt: ${i}
+`:""}${k?`Download invoice PDF (Invoice / Rechnung): ${k}
+`:""}${l?`View invoice: ${l}
+`:""}
+Go to your dashboard: ${h}
+
+You can view your purchase history and manage your account from your subscription settings.
+`,emailType:"credit_purchase",from:"UseClevr <no-reply@useclevr.com>"})}async function j(a){let b=process.env.RESEND_API_KEY?.trim();if(!b)return"console"===process.env.EMAIL_PROVIDER?((0,d.cY)(`[Email] ${a.emailType} email (console mode)`,{to:a.to,subject:a.subject}),{success:!0}):(console.error(`[Email] ${a.emailType} failed: RESEND_API_KEY not configured`),{success:!1,error:"RESEND_API_KEY not configured"});try{let c=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:`Bearer ${b}`,"Content-Type":"application/json"},body:JSON.stringify({from:a.from||e,to:a.to,subject:a.subject,text:a.text,html:a.html})}),d=await c.json().catch(()=>({})),f="string"==typeof d?.id?d.id:"";if(console.warn(`[Email] ${a.emailType} result`,{status:c.status,ok:c.ok,messageIdReturned:!!f}),!c.ok){let b=d?.message||d?.error||`HTTP ${c.status}`;return console.error(`[Email] ${a.emailType} failed:`,b),{success:!1,error:b}}return{success:!0,messageId:f}}catch(c){let b=c instanceof Error?c.message:"Unknown error";return console.error(`[Email] ${a.emailType} exception:`,b),{success:!1,error:b}}}},455511:a=>{a.exports=require("crypto")},457744:(a,b,c)=>{c.a(a,async(a,d)=>{try{c.r(b),c.d(b,{POST:()=>l,dynamic:()=>m});var e=c(664530),f=c(440708),g=c(207374),h=c(247063),i=c(860415),j=c(848650),k=a([e,i]);[e,i]=k.then?(await k)():k;let m="force-dynamic";async function l(a){let b=await (0,e.j2)(),c=b?.user,d=String(c?.role??""),k=!!(c?.id&&(0,f.zX)(c.id))||"superadmin"===d||"admin"===d;if(!c?.id||!c?.email)return h.NextResponse.json({error:"Unauthorized"},{status:401});if(!k)return h.NextResponse.json({error:"Forbidden"},{status:403});let l=await a.json().catch(()=>({})),m="string"==typeof l.sessionId?l.sessionId.trim():"",n="string"==typeof l.paymentIntentId?l.paymentIntentId.trim():"";if(!m&&!n)return h.NextResponse.json({error:"Provide either sessionId (cs_...) or paymentIntentId (pi_...)"},{status:400});let o=process.env.STRIPE_SECRET_KEY;if(!o)return h.NextResponse.json({error:"Stripe not configured"},{status:500});let p=new g.A(o,{}),q=null;try{if(m){if(!m.startsWith("cs_"))return h.NextResponse.json({error:"sessionId must be a Stripe Checkout Session ID starting with cs_"},{status:400});q=await p.checkout.sessions.retrieve(m,{expand:["payment_intent"]})}else if(n)try{let a=await p.paymentIntents.retrieve(n);return(0,j.cY)("[replay-topup] PaymentIntent validated",{id:a.id,amount:a.amount,currency:a.currency,status:a.status,paymentStatus:a.payment_status??a.status}),h.NextResponse.json({success:!1,processed:!1,synced:!1,reason:`PaymentIntent ${n} is valid (${a.amount} ${a.currency}, status: ${a.status}). To recover credits, call this endpoint again with sessionId (cs_...) instead of paymentIntentId.`,diagnostics:{paymentIntentId:a.id,amount:a.amount,currency:a.currency,status:a.status}})}catch(a){return(0,j.AO)("[replay-topup] Failed to retrieve PaymentIntent:",a),h.NextResponse.json({error:"Failed to retrieve PaymentIntent",details:a instanceof Error?a.message:String(a)},{status:500})}}catch(a){return(0,j.AO)("[replay-topup] Failed to retrieve Stripe session:",a),h.NextResponse.json({error:"Failed to retrieve Stripe session",details:a instanceof Error?a.message:String(a)},{status:500})}if(!q)return h.NextResponse.json({error:"Could not retrieve checkout session"},{status:500});let r={sessionId:q.id,mode:q.mode,paymentStatus:q.payment_status,amountTotal:q.amount_total,currency:q.currency,customerId:q.customer,clientReferenceId:q.client_reference_id,metadata:q.metadata,lineItemCount:Array.isArray(q.line_items)?q.line_items.length:0,createdAt:q.created,livemode:q.livemode};if((0,j.cY)("[replay-topup] Session diagnostics",r),"payment"!==q.mode)return h.NextResponse.json({error:"Not a payment-mode checkout session",diagnostics:r},{status:400});if("paid"!==q.payment_status)return h.NextResponse.json({error:"Session not paid",paymentStatus:q.payment_status,diagnostics:r},{status:400});let s="string"==typeof q.payment_intent?q.payment_intent:q.payment_intent&&"object"==typeof q.payment_intent?q.payment_intent.id:null;if(s)try{let a=await p.paymentIntents.retrieve(s),b="string"==typeof a.latest_charge?a.latest_charge:a.latest_charge?.id??null;if(b){let a=await p.charges.retrieve(b);if(a.amount_refunded>0)return(0,j.cY)("[replay-topup] Refused replay of refunded payment",{sessionId:q.id,chargeId:b,amountRefunded:a.amount_refunded,chargeAmount:a.amount}),h.NextResponse.json({success:!1,processed:!1,synced:!1,reason:`Payment is refunded (${a.amount_refunded} of ${a.amount} refunded). Refunded payments are never replayed into credits.`,diagnostics:r},{status:409})}}catch(a){return(0,j.AO)("[replay-topup] Failed to verify refund state:",a),h.NextResponse.json({error:"Could not verify payment refund state — refusing to replay.",details:a instanceof Error?a.message:String(a)},{status:500})}let t={id:`evt_replay_${Date.now()}`,object:"event",api_version:"2022-08-01",created:Math.floor(Date.now()/1e3),type:"checkout.session.completed",data:{object:q},livemode:q.livemode??!1,pending_webhooks:0,request:null},u=await (0,i.h)(t);return h.NextResponse.json({success:u.processed,processed:u.processed,synced:u.synced,creditsIssued:u.creditsIssued,duplicate:u.duplicate,reason:u.reason,diagnostics:r})}d()}catch(a){d(a)}})},529294:a=>{a.exports=require("next/dist/server/app-render/work-async-storage.external.js")},579646:a=>{a.exports=require("child_process")},594735:a=>{a.exports=require("events")},663033:a=>{a.exports=require("next/dist/server/app-render/work-unit-async-storage.external.js")},703778:(a,b,c)=>{c.d(b,{Ny:()=>m,TQ:()=>l,i3:()=>e,j3:()=>k,tc:()=>f,vO:()=>g});var d=c(800751);let e={STANDARD_UPLOAD_ANALYSIS:10,AI_ANALYST_MESSAGE:1,REPORT_GENERATION:3,FORECAST:3,PROFITABILITY_ANALYSIS:15,EXISTING_REPORT_DOWNLOAD:0},f=.085,g=11.76470588235294,h=["standard_upload_analysis","ai_question","report_generation","forecast","profitability_analysis","existing_report_download","accountancy_analysis","prebookkeeping_analysis","document_extraction","embedding_ingestion","hybrid_retrieval","export_generation"],i=a=>({maxReservationCredits:a,variableCredits:()=>0}),j={standard_upload_analysis:{feature:"standard_upload_analysis",label:"Upload with standard analysis",baseCredits:e.STANDARD_UPLOAD_ANALYSIS,allowedPlans:["free","demo","pro","business","admin","superadmin"],...i(e.STANDARD_UPLOAD_ANALYSIS)},ai_question:{feature:"ai_question",label:"AI Analyst message",baseCredits:e.AI_ANALYST_MESSAGE,allowedPlans:["free","demo","pro","business","admin","superadmin"],...i(e.AI_ANALYST_MESSAGE)},report_generation:{feature:"report_generation",label:"Report generation",baseCredits:e.REPORT_GENERATION,allowedPlans:["free","demo","pro","business","admin","superadmin"],...i(e.REPORT_GENERATION)},forecast:{feature:"forecast",label:"Forecast",baseCredits:e.FORECAST,allowedPlans:["free","demo","pro","business","admin","superadmin"],...i(e.FORECAST)},profitability_analysis:{feature:"profitability_analysis",label:"Profitability analysis",baseCredits:e.PROFITABILITY_ANALYSIS,allowedPlans:["pro","business","admin","superadmin"],...i(e.PROFITABILITY_ANALYSIS)},existing_report_download:{feature:"existing_report_download",label:"Existing report download",baseCredits:e.EXISTING_REPORT_DOWNLOAD,allowedPlans:["free","demo","pro","business","admin","superadmin"],...i(e.EXISTING_REPORT_DOWNLOAD)},accountancy_analysis:{feature:"accountancy_analysis",label:"Accountancy analysis",baseCredits:15,allowedPlans:["business","admin","superadmin"],...i(15)},prebookkeeping_analysis:{feature:"prebookkeeping_analysis",label:"Pre-bookkeeping analysis",baseCredits:15,allowedPlans:["business","admin","superadmin"],...i(15)},document_extraction:{feature:"document_extraction",label:"Document extraction",baseCredits:10,allowedPlans:["business","admin","superadmin"],...i(10)},embedding_ingestion:{feature:"embedding_ingestion",label:"Embedding ingestion",baseCredits:1,allowedPlans:["pro","business","admin","superadmin"],...i(1)},hybrid_retrieval:{feature:"hybrid_retrieval",label:"Hybrid retrieval",baseCredits:1,allowedPlans:["free","demo","pro","business","admin","superadmin"],...i(1)},export_generation:{feature:"export_generation",label:"Export generation",baseCredits:5,allowedPlans:["free","demo","pro","business","admin","superadmin"],...i(5)}};function k(a){return h.includes(a)?a:"ai_chat"===a?"ai_question":"dataset_analysis"===a||"standard_analysis"===a||"data_insight"===a||"dashboard_generation"===a||"multi_dataset_analysis"===a||"dataset_upload"===a||"file_upload"===a||"retail_analysis"===a?"standard_upload_analysis":"forecast_analysis"===a?"forecast":"report_download"===a?"existing_report_download":"mcp_tool_invocation"===a?"hybrid_retrieval":"standard_upload_analysis"}function l(a,b={}){let c=j[k(a)],d=Math.max(1,b.modelMultiplier??1),e=Math.ceil((c.baseCredits+c.variableCredits(b))*d);return Math.max(0,Math.min(c.maxReservationCredits,e))}function m(a,b){let c="admin"===a||"superadmin"===a?a:(0,d.EF)(a).tier;return j[k(b)].allowedPlans.includes(c)}},710846:a=>{a.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},744870:a=>{a.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},781630:a=>{a.exports=require("http")},903295:a=>{a.exports=require("next/dist/server/app-render/after-task-async-storage.external.js")},977598:a=>{a.exports=require("node:crypto")},986439:a=>{a.exports=require("next/dist/shared/lib/no-fallback-error.external")}};var b=require("../../../../webpack-runtime.js");b.C(a);var c=b.X(0,[7376,7063,5690,2908,4288,6778,1829,7374,4862,4530,7985,62,5519,9852],()=>b(b.s=289981));module.exports=c})();
