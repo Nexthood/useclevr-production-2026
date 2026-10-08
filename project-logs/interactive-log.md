@@ -19354,3 +19354,55 @@ Fix two production issues without weakening auth: (a) `POST /api/usy/chat` retur
 - AI-agent learning: when a decorative cycling indicator is swapped for a state-driven value, the swap removes the interval effect; restoring it first (git log -S) preserves the original timing shape instead of inventing a parallel mechanism.
 - Follow-up tasks: none assigned.
 - Not committed or pushed per instruction.
+
+## 2026-10-08 — Usy minimize and restore presentation state
+
+- User goal: add a minimize control immediately to the left of the existing Usy close button so users can hide the full panel, keep the floating avatar visible, and restore the same conversation without touching AI Assistant behavior, backend routing, billing, language detection, or dataset analysis; do not commit or push.
+- Root cause/current architecture: `HelpChatbox` already keeps Usy conversation state (`messages`, contact draft, language, query, usage, and contact-message state) outside the `open` rendering branch, so hiding the panel does not reset the conversation; only the UI lacked a distinct minimize action and restore path.
+- What changed
+  - `src/components/ui/help-chatbox.tsx`: imports the Lucide `Minus` icon, adds `isMinimized` presentation state, stores the transcript scroll offset in refs during minimize, restores that offset on avatar reopen when compatible, and clears timeout-based focus/restore work on effect cleanup.
+  - `src/components/ui/help-chatbox.tsx`: adds a matching round minus button directly left of the existing X close button with `aria-label="Minimize Usy"` and the same size, styling, hover, focus, and dark-theme treatment as close.
+  - `requirements.md` and `CHANGELOG.md`: document the current Usy minimize/restore behavior.
+- State flow: Minimize records `transcriptRef.current.scrollTop`, sets `isMinimized`, and sets `open` false. The floating avatar reopens the same mounted component state, clears `isMinimized`, sets `open` true, and restores the saved transcript scroll top before focusing the input. The X close path still only sets `open` false.
+- Verification
+  - `pnpm exec eslint src/components/ui/help-chatbox.tsx` exits with 0 errors and two pre-existing warnings in that file (`capabilities` unused at module scope and `index` unused in `ActionButton`).
+  - `pnpm exec tsc --noEmit --pretty false` exits clean.
+  - `pnpm test:usy-guest-mode`, `pnpm test:usy-contact-message-step`, `pnpm test:usy-contact-handoff`, `pnpm test:usy-product-knowledge`, and `pnpm test:usy-billing-knowledge` pass.
+  - `pnpm lint:secrets`, `pnpm lint:changelog`, and `pnpm lint:project-records` pass; `lint:project-records` needs approved sandbox escape because Node cannot spawn `git` in the sandbox (`spawnSync git EPERM`).
+- Problems marked
+  - blocker: none.
+  - risk: browser-only visual validation is source-level in this turn; no repository screenshot harness is available for Usy.
+  - improvement: none assigned.
+  - observation: the Usy multilingual badge rotation remains tied to `open`, cleans up interval/timeout on close/minimize, and restarts normally on restore.
+- User learning: Usy now supports a desktop-chat-style minimize action while preserving messages, context, and presentation continuity.
+- AI-agent learning: Usy and the Dataset AI Assistant stay separate by keeping this change inside `HelpChatbox` presentation state only and avoiding assistant routes, persistence, and shared chat state.
+- Follow-up tasks: none assigned.
+- Instruction sources: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- Not committed or pushed per instruction.
+
+## 2026-10-08 — Next.js security advisory patch upgrade
+
+- User goal: fix the GitHub Actions security validation failure during `pnpm validate:types` by upgrading vulnerable Next.js to the patched release, keep the approved `braces` residual allowlist exactly as before, avoid adding Next.js advisories to the allowlist, avoid application behavior changes, and do not commit or push.
+- What changed
+  - `package.json`: pins `next` from `16.3.6` to `16.3.8`.
+  - `pnpm-lock.yaml`: resolves Next.js, `@next/env`, and peer snapshots to `16.3.8`.
+  - No source files, Usy files, AI Assistant files, Retail, Profitability, Risk Intelligence, Stripe, dataset logic, workspace settings, or audit allowlist files changed.
+- Findings
+  - Before the update, `pnpm list next --depth 0` resolved `next@16.3.6`.
+  - `pnpm audit:allowlist` reported one approved high `braces` residual (`GHSA-vfj7-8cjw-p6xm`) and six unapproved Next.js advisories patched by `>=16.3.8`: `GHSA-3w37-wq28-93x7`, `GHSA-4jqv-mc3x-m676`, `GHSA-39w2-rjm5-chcv`, `GHSA-f87g-xv8r-7p7x`, `GHSA-mcj8-r9mp-w47p`, and `GHSA-cjq9-62q9-8jv4`.
+  - After the update, `pnpm list next --depth 0` resolves `next@16.3.8`, and `pnpm audit:allowlist` reports no unapproved advisories.
+- Verification
+  - `pnpm install --frozen-lockfile` passes.
+  - `pnpm validate:types` passes.
+  - `pnpm exec tsc --noEmit --pretty false` passes.
+  - `pnpm audit:allowlist` passes with only the approved `braces` residual.
+  - `pnpm lint:secrets`, `pnpm lint:changelog`, and `pnpm lint:project-records` pass.
+- Problems marked
+  - blocker: none.
+  - risk: none; this is a patch-level dependency update inside the existing supported Payload peer range (`>=16.3.3 <17.0.0`).
+  - improvement: none assigned.
+- User learning: the security gate now clears patched Next.js advisories through dependency upgrade instead of allowlisting.
+- AI-agent learning: when audit output lists patched versions for framework advisories, update the dependency and preserve only residual advisories with no patched release.
+- Follow-up tasks: none assigned.
+- Instruction sources: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, and `gemini-behavior.config.ts`.
+- Not committed or pushed per instruction.

@@ -4,6 +4,26 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-08
+- **Goal**: Fix the GitHub Actions security validation failure by upgrading Next.js to the patched `16.3.8` release, keep the existing approved `braces` residual advisory handling unchanged, avoid adding patched Next.js advisories to the allowlist, avoid application behavior changes, and do not commit or push.
+- **Durable change**: `package.json` pins `next` at `16.3.8`, and `pnpm-lock.yaml` resolves Next.js, `@next/env`, and peer dependency snapshots to `16.3.8`. No application source files or audit allowlist files changed.
+- **Trace**: before the update, `pnpm list next --depth 0` resolved `next@16.3.6`; `pnpm audit:allowlist` reported six unapproved Next.js advisories patched by `>=16.3.8` (`GHSA-3w37-wq28-93x7`, `GHSA-4jqv-mc3x-m676`, `GHSA-39w2-rjm5-chcv`, `GHSA-f87g-xv8r-7p7x`, `GHSA-mcj8-r9mp-w47p`, and `GHSA-cjq9-62q9-8jv4`) plus the approved `braces` residual. After the update, `pnpm list next --depth 0` resolves `next@16.3.8`, and the audit allowlist reports no unapproved advisories while preserving the approved high `braces` residual (`GHSA-vfj7-8cjw-p6xm`).
+- **Verification**: `pnpm install --frozen-lockfile`, `pnpm validate:types`, `pnpm exec tsc --noEmit --pretty false`, `pnpm audit:allowlist`, `pnpm lint:secrets`, `pnpm lint:changelog`, and `pnpm lint:project-records` pass. Nothing committed or pushed.
+- **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
+- **Activity summary**: [Activity log](../../project-logs/activity-log.md)
+
+## Previous Interaction
+
+- **Date**: 2026-10-08
+- **Goal**: Add a Usy minimize control immediately beside the existing close button so the full panel hides while the floating avatar remains available, then restore the same Usy conversation from the avatar without clearing messages, context, contact state, or scroll position where compatible. Keep Usy separate from the Dataset AI Assistant and avoid backend, routing, billing, language-detection, dataset-analysis, and unrelated UI changes. Do not commit or push.
+- **Durable change**: `src/components/ui/help-chatbox.tsx` adds a Lucide minus button with the same button chrome as the X close control, `aria-label="Minimize Usy"`, and minimal local presentation state (`isMinimized` plus scroll refs). Minimize stores the current transcript scroll top, sets the panel closed, and leaves all Usy conversation state in the component intact. The floating avatar clears minimized state, reopens the same panel state, restores the saved transcript scroll top when available, and focuses the input. The X close button still uses the existing close behavior. `requirements.md` and `CHANGELOG.md` record the current product behavior.
+- **Trace**: Usy conversation data already lives in `HelpChatbox` state outside the `{open && ...}` panel branch, so closing or minimizing unmounts only the panel markup and does not clear `messages`, `contactDraft`, `awaitMessageInput`, `contactMessage`, `currentUsyLanguage`, `usage`, or the typed query. The multilingual badge interval remains dependent on `open`, cleans up on minimize, and starts normally when the panel restores. No Dataset AI Assistant files, routes, persistence, or shared chat state changed.
+- **Verification**: `pnpm exec eslint src/components/ui/help-chatbox.tsx` exits with 0 errors and two pre-existing warnings in that file; `pnpm exec tsc --noEmit --pretty false` exits clean; `pnpm test:usy-guest-mode`, `pnpm test:usy-contact-message-step`, `pnpm test:usy-contact-handoff`, `pnpm test:usy-product-knowledge`, and `pnpm test:usy-billing-knowledge` pass; `pnpm lint:secrets`, `pnpm lint:changelog`, and `pnpm lint:project-records` pass, with `lint:project-records` run outside the sandbox because Node cannot spawn `git` inside the sandbox (`spawnSync git EPERM`). Nothing committed or pushed.
+- **Detailed record**: [Interactive log](../../project-logs/interactive-log.md)
+- **Activity summary**: [Activity log](../../project-logs/activity-log.md)
+
+## Previous Interaction
+
 - **Date**: 2026-10-07
 - **Goal**: Remove the remaining visible rounded rectangular outer frame around the UseClevr topbar Search icon while keeping the Search icon in the same position, preserving the existing clickable area, and retaining open/close behavior, keyboard shortcut, accessibility labels, ref handling, and all search functionality; change only the Search trigger styling and do not commit or push.
 - **Durable change**: `src/components/ui/search-popup.tsx` makes the Search trigger an explicit 44px topbar icon button with transparent normal-state chrome: `h-11 w-11`, `border-0`, `bg-transparent`, `p-0`, `shadow-none`, and `outline-none`. Hover stays the same subtle topbar behavior (`hover:bg-muted/50 hover:text-foreground`) with no glow, translate, or scale classes. The modal state, click handler, `Ctrl/⌘ K` shortcut, focus restoration, `aria-label`, `title`, and `searchButtonRef` stay unchanged.
