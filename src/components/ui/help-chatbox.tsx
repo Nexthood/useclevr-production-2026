@@ -26,7 +26,8 @@ const placeholderMap = {
   french: "Demandez à Usy des infos sur UseClevr ou de l'aide...",
   spanish: "Pregunta a Usy sobre UseClevr o pide ayuda...",
   hungarian: "Kérdezd Usyt a UseClevrről, vagy kérj segítséget...",
-  romanian: "Întreabă Usy despre UseClevr sau cere ajutor..."
+  romanian: "Întreabă Usy despre UseClevr sau cere ajutor...",
+  swedish: "Fråga Usy om UseClevr eller be om hjälp..."
 } as const satisfies Record<SupportedUsyLanguage, string>;
 
 const quickActionMap = {
@@ -36,7 +37,8 @@ const quickActionMap = {
   french: "Expliquer les crédits AI",
   spanish: "Explicar créditos AI",
   hungarian: "AI kreditek magyarázata",
-  romanian: "Explică creditele AI"
+  romanian: "Explică creditele AI",
+  swedish: "Förklara AI-krediter"
 } as const satisfies Record<SupportedUsyLanguage, string>;
 
 const contactMessageLabels = {
@@ -95,6 +97,14 @@ const contactMessageLabels = {
     cancel: "Anulează",
     tooShort: "Scrie te rugăm cel puțin 10 caractere.",
     counterLabel: "Numărul de caractere al mesajului",
+  },
+  swedish: {
+    label: "Meddelande",
+    placeholder: "Beskriv ditt ärende...",
+    continue: "Fortsätt",
+    cancel: "Avbryt",
+    tooShort: "Skriv minst 10 tecken.",
+    counterLabel: "Meddelandets teckenantal",
   }
 } as const satisfies Record<SupportedUsyLanguage, {
   label: string;
@@ -140,6 +150,7 @@ const usyLanguageBadges = {
   spanish: { flag: "🇪🇸", label: "Español" },
   hungarian: { flag: "🇭🇺", label: "Magyar" },
   romanian: { flag: "🇷🇴", label: "Română" },
+  swedish: { flag: "🇸🇪", label: "Svenska" },
 } as const satisfies Record<SupportedUsyLanguage, { flag: string; label: string }>;
 
 function SuggestionChip({
@@ -337,6 +348,12 @@ const contactSubmitLabels = {
     submittedFailed: "Solicitarea de contact nu a putut fi trimisă acum. Cererea ta este pregătită — răspunde cu \"trimite\" ca să reîncerci.",
     confirm: "Confirmă",
     cancel: "Anulează",
+  },
+  swedish: {
+    submitted: "Din kontaktförfrågan har skickats. Teamet svarar dig.",
+    submittedFailed: "Kontaktförfrågan kunde inte skickas just nu. Din förfrågan är fortfarande förberedd — svara \"skicka\" för att försöka igen.",
+    confirm: "Bekräfta",
+    cancel: "Avbryt",
   }
 } as const satisfies Record<SupportedUsyLanguage, {
   submitted: string;

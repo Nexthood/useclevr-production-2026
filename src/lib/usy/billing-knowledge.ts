@@ -99,6 +99,7 @@ export function buildUsyHistoricalUnlockAnswer(language: SupportedUsyLanguage, c
     spanish: `Cuando termina una suscripción Pro o Business, tus datos de UseClevr permanecen seguros: tus datasets, análisis e informes se conservan — la cancelación nunca borra tus datos. Los datasets históricos se reabren automáticamente al reactivar tu suscripción. También puedes recuperar el acceso a tus datos históricos conservados con un pago único (no una suscripción): Pro Historical Data Access cuesta ${proPrice} único y Business Historical Data Access ${businessPrice} único, al precio regional fijo. El unlock restablece solo el acceso a tus datos históricos — no las funciones Pro o Business, capacidad de subidas ni créditos de IA. Reactiva una suscripción Pro o Business para funciones premium.`,
     hungarian: `A Pro vagy Business előfizetés vége után a UseClevr-adataid biztonságban maradnak: a dataset-eid, elemzéseid és jelentéseid megmaradnak — a lemondás soha nem törli az adataidat. A historikus dataset-ek automatikusan megnyílnak, ha újraaktiválod az előfizetésedet. A megőrzött historikus adataidhoz egyszeri fizetéssel is visszavásárolhatod a hozzáférést (nem előfizetés): Pro Historical Data Access ${proPrice} egyszeri, Business Historical Data Access ${businessPrice} egyszeri, rögzített regionális áron. Az unlock csak a historikus adataidhoz ad hozzáférést — nem állítja vissza a Pro vagy Business funkciókat, a feltöltési keretet vagy az AI-krediteket. Premium funkciókért aktiváld újra a Pro vagy Business előfizetést.`,
     romanian: `După încheierea unui abonament Pro sau Business, datele tale UseClevr rămân în siguranță: dataset-urile, analizele și rapoartele tale sunt păstrate — anularea nu îți șterge niciodată datele. Dataset-urile istorice se redeschid automat la reactivarea abonamentului. Poți răscumpăra accesul la datele istorice păstrate cu o plată unică (nu un abonament): Pro Historical Data Access costă ${proPrice} unic și Business Historical Data Access ${businessPrice} unic, la prețul regional fix. Deblocarea restabilește doar accesul la datele istorice — nu funcțiile Pro sau Business, capacitatea de încărcare sau creditele AI. Reactivă un abonament Pro sau Business pentru funcționabilitate premium.`,
+    swedish: `Efter att en Pro- eller Business-prenumeration upphör förblir dina UseClevr-data säkra: dina datasets, analyser och rapporter bevaras — uppsägning raderar aldrig dina data. Historiska datasets öppnas automatiskt igen när du återaktiverar din prenumeration. Du kan också återfå tillgång till dina bevarade historiska data med en engångsbetalning (inte en prenumeration): Pro Historical Data Access kostar ${proPrice} engångsvis och Business Historical Data Access ${businessPrice} engångsvis, till det fasta regionala priset. Upplåsningen ger bara tillgång till dina historiska data — den återställer inte Pro- eller Business-funktioner, uppladdningskapacitet eller AI-krediter. Återaktivera en Pro- eller Business-prenumeration för premiumfunktioner.`,
   };
   return copy[language];
 }
@@ -317,6 +318,29 @@ const billingCopy: BillingCopy = {
     overviewUnknown:
       "Nu pot vedea starea actuală a planului și a creditelor. Îți poți verifica planul, creditele și opțiunile de cumpărare în setările de facturare. Creditele cumpărate nu expiră, supraviețuiesc downgrade-urilor și schimbărilor de plan și se consumă după cele incluse.",
   },
+  swedish: {
+    topUpFree: "Kreditpåfyllningar är bara tillgängliga i Pro- och Business-planerna. På Free kan du inte köpa fler krediter — uppgradera till Pro eller Business för att köpa krediter.",
+    topUpPaid: "Du kan när som helst köpa fler krediter via faktureringsinställningarna (Add Credits).",
+    topUpUnknown: "Kreditpåfyllningar är tillgängliga i Pro- och Business-planerna. Dina aktuella alternativ visas i faktureringsinställningarna.",
+    refund:
+      "Återbetalningar är inte självbetjänade. Återbetalningsärenden granskas centralt av UseClevr. Jag kan aldrig lova utfallet av en återbetalning och jag bekräftar aldrig återbetalningsbeslut. Uppsägning och återbetalning är olika processer: uppsägning håller Pro eller Business aktivt till slutet av den redan betalda faktureringsperioden, medan en återbetalning återkallar en betalning. Abonnementsstatus och faktura-/betalningsstatus är åtskilda: en återbetald prenumerationsfaktura avslutar inte automatiskt prenumerationen. Så länge prenumerationen fortfarande är aktiv förblir du Pro eller Business tills den faktiskt upphör, och dina köpta krediter bevaras. För ett återbetalningsärende, kontakta Billing-teamet via supporten.",
+    cancellation:
+      "En normal uppsägning håller Pro eller Business aktivt till slutet av den redan betalda faktureringsperioden. Därefter övergår kontot till Free: inkluderade krediter återställs till Free-tilldelningen, medan köpta krediter bevaras, inte upphör och förblir användbara. Uppsägning och återbetalning är olika processer — återbetalningsärenden granskas centralt av UseClevr.",
+    downgrade:
+      "Om ditt konto blir Free bevaras dina köpta krediter: de upphör inte, de överlever nedgraderingar och planbyten och du kan fortsätta använda dem tills de tar slut. Du kan inte köpa nya påfyllningar på Free — en uppgradering till Pro eller Business återaktiverar köpen.",
+    zeroCreditsFree:
+      "Dina användbara krediter är slut. Uppgradera till Pro eller Business för fler inkluderade krediter — kreditpåfyllningar kan köpas först efter uppgraderingen.",
+    zeroCreditsPaid:
+      "Dina användbara krediter är slut. Använd Add Credits i faktureringen — köpta krediter upphör inte.",
+    zeroCreditsUnknown:
+      "Jag kan inte se ditt aktuella kreditsaldo. Öppna faktureringen för att granska dina krediter och alternativ.",
+    overviewFree:
+      "Du använder Free: du kan inte köpa kreditpåfyllningar. Dina köpta krediter bevaras, upphör inte, förblir användbara tills de tar slut, och inkluderade krediter förbrukas alltid före köpta krediter.",
+    overviewPaid:
+      "Du kan köpa fler kreditpåfyllningar när som helst. Köpta krediter upphör inte, överlever nedgraderingar och planbyten och förbrukas efter dina inkluderade krediter.",
+    overviewUnknown:
+      "Jag kan inte se ditt aktuella plan- och kreditläge. Du kan granska plan, krediter och köpalternativ i faktureringsinställningarna. Köpta krediter upphör inte, överlever nedgraderingar och planbyten och förbrukas efter inkluderade krediter.",
+  },
 } as const;
 
 
@@ -353,6 +377,8 @@ const subscriptionStatusCopy: Record<SupportedUsyLanguage, string> = {
     "Az előfizetés állapota és a számla/fizetés állapota különválik: az előfizetési szinted határozza meg, mely csomagfunkciók és inkluzív kreditek aktívak, míg a számla egy fizetési eseményt rögzít, például kifizetve vagy visszatérítve. Az inkluzív csomagkrediteket és a megvásárolt/feltöltött krediteket külön vezetjük, és az inkluzív kreditek fogyognak először. Egy visszatérített előfizetési számla nem mondja fel automatikusan az előfizetést: amíg az előfizetés aktív, Pro vagy Business maradsz, amíg tényleg le nem jár. Csak a fiókodban látható állapotot mondom meg, és nem találok ki számlázási eseményeket.",
   romanian:
     "Starea abonamentului și starea facturii/plății sunt separate: nivelul abonamentului tău decide ce funcții de plan și credite incluse sunt active, în timp ce o factură înregistrează un eveniment de plată, precum plătită sau rambursată. Creditele incluse în plan și creditele cumpărate/reîncărcabile se urmăresc separat, iar cele incluse se consumă înaintea celor cumpărate. O factură de abonament rambursată nu anulează automat abonamentul: cât timp abonamentul rămâne activ, rămâi Pro sau Business până când se încheie efectiv. Menționez doar starea vizibilă în contul tău și nu inventez evenimente de facturare.",
+  swedish:
+    "Abonnementsstatus och faktura-/betalningsstatus är åtskilda: din abonnementsnivå avgör vilka planfunktioner och inkluderade krediter som är aktiva, medan en faktura registrerar en betalningshändelse, till exempel betald eller återbetald. Inkluderade plankrediter och köpta/påfyllda krediter hanteras separat, och inkluderade krediter förbrukas före köpta krediter. En återbetald prenumerationsfaktura avslutar inte automatiskt prenumerationen: så länge prenumerationen är aktiv förblir du Pro eller Business tills den faktiskt upphör. Jag anger bara den status som är synlig i ditt konto och hittar inte på faktureringshändelser.",
 };
 
 export function buildUsySubscriptionStatusAnswer(_usage: UsyUsageContext | null | undefined, language: SupportedUsyLanguage): string {
@@ -384,6 +410,7 @@ export function buildUsyPurchasedRulesAnswer(language: SupportedUsyLanguage): st
     spanish: "Los créditos incluidos se consumen antes que los créditos comprados. Los créditos comprados no caducan y sobreviven a degradaciones y cambios de plan.",
     hungarian: "Az inkluzív kreditek a megvásároltak előtt fogyannak el. A megvásárolt kreditek nem járnak le, és túlélik a leminősítést és a csomagváltást.",
     romanian: "Creditele incluse sunt consumate înaintea celor cumpărate. Creditele cumpărate nu expiră și supraviețuiesc downgrade-urilor și schimbărilor de plan.",
+    swedish: "Inkluderade krediter förbrukas före köpta krediter. Köpta krediter upphör inte och överlever nedgraderingar och planbyten.",
   };
   return purchasedRules[language];
 }
@@ -396,6 +423,7 @@ const creditCountLocales: Record<SupportedUsyLanguage, string> = {
   spanish: "es-ES",
   hungarian: "hu-HU",
   romanian: "ro-RO",
+  swedish: "sv-SE",
 };
 
 /**

@@ -72,6 +72,20 @@ function testGuestPublicQuestionsSucceed() {
   assert.equal(sales.intent, "contact_request")
 }
 
+function testSwedishGuestPublicQuestions() {
+  const capabilities = buildUsyReply({ question: "Vad kan UseClevr göra?", context: guestContext() })
+  assert.equal(capabilities.language, "swedish")
+  assert.equal(capabilities.intent, "product_information")
+  assert.match(capabilities.answer, /UseClevr är för företagsägare/)
+  assert.match(capabilities.answer, /Nästa steg:/)
+
+  const credits = buildUsyReply({ question: "Hur fungerar AI-krediter?", context: guestContext() })
+  assert.equal(credits.language, "swedish")
+  assert.equal(credits.intent, "account_help")
+  assert.match(credits.answer, /AI-krediter styr de ingående AI-åtgärder/)
+  assert.match(credits.answer, /Plankrediter: Free 2, Pro 500\/månad/, "swedish credit answer derives plan facts from configuration")
+}
+
 // ---------------------------------------------------------------------------
 // Guest: private account questions get a deterministic sign-in requirement
 // ---------------------------------------------------------------------------
@@ -119,6 +133,13 @@ function testGuestPersonalQuestionsStayLocalized() {
   const french = buildUsyReply({ question: "Où puis-je voir mes factures ?", context: guestContext() })
   assert.equal(french.language, "french")
   assert.match(french.answer, /Veuillez vous connecter/)
+}
+
+function testSwedishGuestPersonalQuestionsRequireSignIn() {
+  const reply = buildUsyReply({ question: "Hur många krediter har jag?", context: guestContext() })
+  assert.equal(reply.language, "swedish")
+  assert.match(reply.answer, /Logga in för att se information om ditt konto/)
+  assert.doesNotMatch(reply.answer, /\d+ credits available/, "no invented balance reaches a Swedish guest")
 }
 
 function testGuestNeverReceivesPrivateUsageData() {
@@ -233,9 +254,11 @@ function testRouteStripsAccountDataForGuests() {
   )
 }
 
+testSwedishGuestPublicQuestions()
 testGuestPublicQuestionsSucceed()
 testGuestPersonalQuestionsRequireSignIn()
 testGuestPersonalQuestionsStayLocalized()
+testSwedishGuestPersonalQuestionsRequireSignIn()
 testGuestNeverReceivesPrivateUsageData()
 testAuthenticatedPathPreserved()
 testIdentityComesOnlyFromServerSession()
