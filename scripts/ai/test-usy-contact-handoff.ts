@@ -598,6 +598,32 @@ function testAuthenticatedSubmissionPayload() {
 // Secrets stay server-side only (source assertions)
 // ---------------------------------------------------------------------------
 
+function testSwedishSubmissionPayload() {
+  const parsed = validateUsyContactPayload({
+    category: "billing",
+    message: "Korrigera momsen på faktura 4471, tack.",
+    senderName: "Erik Larsson",
+    replyEmail: "erik@example.se",
+    language: "swedish",
+    confirmed: true,
+  });
+  assert.equal(parsed.success, true, "swedish is a valid handoff language");
+  if (!parsed.success) return;
+
+  const payload = buildConfirmedUsyContactPayload(parsed.data, { timestamp: "2026-09-20T12:00:00.000Z" });
+  assert.equal(payload.language, "swedish", "the handoff keeps the Swedish language tag");
+  assert.equal(payload.category, "billing", "swedish billing requests keep their department");
+  assert.equal(payload.userId, undefined, "guest Swedish handoff carries no user id");
+  assert.equal(payload.company, undefined, "omitted company stays out of the swedish payload");
+
+  const fingerprint = fingerprintUsyContactSubmission("user:sv", payload);
+  assert.notEqual(
+    fingerprintUsyContactSubmission("user:sv", { ...payload, language: "english" }),
+    fingerprint,
+    "a language change produces a different fingerprint",
+  );
+}
+
 function testNoWebhookSecretExposedClientSide() {
   const chatbox = readProjectFile("src/components/ui/help-chatbox.tsx");
   assert.doesNotMatch(chatbox, /USY_CONTACT|webhookSecret|webhookUrl|n8n/i, "the chat UI never touches webhook config");
@@ -640,6 +666,7 @@ testDepartmentRoutingInPayload();
 testGuestSubmissionPayload();
 testWebhookPayloadCarriesExactTypedMessage();
 testAuthenticatedSubmissionPayload();
+testSwedishSubmissionPayload();
 testNoWebhookSecretExposedClientSide();
 
 console.warn("Usy contact handoff tests passed");

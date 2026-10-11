@@ -28,7 +28,7 @@ export const usyContactPayloadSchema = z.object({
   senderName: z.string().trim().min(2, "Name is required.").max(120, "Name is too long."),
   company: z.string().trim().max(120, "Company is too long.").optional().or(z.literal("")),
   replyEmail: z.string().trim().email("A valid reply email is required.").max(254),
-  language: z.enum(["english", "german", "dutch", "french", "spanish", "hungarian", "romanian"]),
+  language: z.enum(["english", "german", "dutch", "french", "spanish", "hungarian", "romanian", "swedish"]),
   confirmed: z.literal(true),
 });
 
@@ -68,11 +68,11 @@ export function validateUsyContactPayload(input: unknown) {
 export function detectContactCategory(message: string): UsyContactCategory | null {
   const normalized = normalizeUsyText(message);
   const categoryKeywords: Array<[UsyContactCategory, string[]]> = [
-    ["executive", ["executive", "ceo", "founder", "vezetoseg", "felsovezetes", "directie", "direction executive", "direction exécutive", "conducere executiva"]],
+    ["executive", ["executive", "ceo", "founder", "vezetoseg", "felsovezetes", "directie", "direction executive", "direction exécutive", "conducere executiva", "vd"]],
     ["management", ["management", "manager", "leiding", "vezetoseg", "conducere", "geschaftsfuhrung", "geschaeftsfuehrung", "direction"]],
-    ["billing", ["billing", "invoice", "invoices", "subscription", "payment", "stripe", "factuur", "factura", "rechnung", "szamla", "számla", "abonament", "facturation", "facture", "abonnement", "paiement"]],
-    ["technical_support", ["technical", "support", "it", "bug", "error", "broken", "upload failed", "troubleshoot", "technisch", "technik", "suport", "tamogatas", "támogatás", "technique", "erreur", "bogue", "depannage", "dépannage"]],
-    ["sales", ["sales", "pricing", "demo", "upgrade", "plan", "quote", "verkauf", "vertrieb", "sales", "verkoop", "ventas", "ertekesites", "értékesítés", "vanzari", "vânzări", "vente", "ventes", "tarifs", "devis"]],
+    ["billing", ["billing", "invoice", "invoices", "subscription", "payment", "stripe", "factuur", "factura", "rechnung", "szamla", "számla", "abonament", "facturation", "facture", "abonnement", "paiement", "faktura", "fakturan", "fakturor", "betalning", "betalningen", "prenumeration", "prenumerationen", "fakturering", "abonnemang"]],
+    ["technical_support", ["technical", "support", "it", "bug", "error", "broken", "upload failed", "troubleshoot", "technisch", "technik", "suport", "tamogatas", "támogatás", "technique", "erreur", "bogue", "depannage", "dépannage", "teknisk support", "tekniska", "felsokning", "felsökning", "fungerar inte", "funkar inte", "uppladdning misslyckades"]],
+    ["sales", ["sales", "pricing", "demo", "upgrade", "plan", "quote", "verkauf", "vertrieb", "sales", "verkoop", "ventas", "ertekesites", "értékesítés", "vanzari", "vânzări", "vente", "ventes", "tarifs", "devis", "försäljning", "forsaljning", "prisplan", "priser", "offert", "försäljare"]],
   ];
 
   return categoryKeywords.find(([, keywords]) => keywords.some((keyword) => matchesKeyword(normalized, keyword)))?.[0] ?? null;
@@ -81,19 +81,19 @@ export function detectContactCategory(message: string): UsyContactCategory | nul
 export function isContactRequest(message: string) {
   const normalized = normalizeUsyText(message);
   const contactVerb = /\b(contact|speak|talk|connect|reach|message|email|call|support ticket|human|agent|representative)\b/.test(normalized) ||
-    /\b(kontakt|kontaktiere|kontaktieren|sprechen|spreek|contact|contacter|parler|joindre|message|email|appeler|humain|agent|representant|représentant|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez)\b/.test(normalized);
+    /\b(kontakt|kontaktiere|kontaktieren|sprechen|spreek|contact|contacter|parler|joindre|message|email|appeler|humain|agent|representant|représentant|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez|kontakta|kontaktar|prata med|komma i kontakt)\b/.test(normalized);
   const department = /\b(sales|billing|management|executive|technical support|it support|support)\b/.test(normalized);
-  return contactVerb || (department && /\b(help|request|need|want|please|with|about)\b/.test(normalized));
+  return contactVerb || (department && /\b(help|request|need|want|please|with|about|behover|hjalp|vill)\b/.test(normalized));
 }
 
 export function isConfirmation(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(yes|confirm|confirmed|send|submit|ok|okay|please send|go ahead|ja|senden|bestatigen|bestaetigen|bestatig|bestaetig|verstuur|versturen|bevestig|bevestigen|envoyer|confirmer|oui|envoie|envoyez|enviar|confirmar|si|sí|igen|kuldd|küldd|kuld|küld|megerositem|megerősítem|da|trimite|confirma|confirmă)\b/.test(normalized);
+  return /^(yes|confirm|confirmed|send|submit|ok|okay|please send|go ahead|ja|senden|bestatigen|bestaetigen|bestatig|bestaetig|verstuur|versturen|bevestig|bevestigen|envoyer|confirmer|oui|envoie|envoyez|enviar|confirmar|si|sí|igen|kuldd|küldd|kuld|küld|megerositem|megerősítem|da|trimite|confirma|confirmă|skicka|skicka den|bekrafta|bekräfta|genomfor|genomför)\b/.test(normalized);
 }
 
 export function isCancellation(message: string) {
   const normalized = normalizeUsyText(message);
-  return /^(no|cancel|stop|do not send|dont send|don't send|nein|abbrechen|annuleer|annuleren|annuler|non|arreter|arrêter|cancelar|nem|megse|mégse|nu|opreste|oprește)\b/.test(normalized);
+  return /^(no|cancel|stop|do not send|dont send|don't send|nein|abbrechen|annuleer|annuleren|annuler|non|arreter|arrêter|cancelar|nem|megse|mégse|nu|opreste|oprește|nej|avbryt|stoppa|svara inte)\b/.test(normalized);
 }
 
 export function mergeContactDraft(
@@ -104,10 +104,10 @@ export function mergeContactDraft(
   const extractedEmail = message.match(emailPattern)?.[0];
   const category = detectContactCategory(message);
   const name = extractField(message, [
-    /(?:my name is|i am|i'm|name is|ich bin|mein name ist|ik ben|je m'appelle|mon nom est|mi nombre es|soy|nevem|a nevem|mă numesc|ma numesc)\s+([^.,;\n]+)/i,
+    /(?:my name is|i am|i'm|name is|ich bin|mein name ist|ik ben|je m'appelle|mon nom est|mi nombre es|soy|nevem|a nevem|mă numesc|ma numesc|mitt namn är|mitt namn ar|jag heter|jag är|jag ar)\s+([^.,;\n]+)/i,
   ]);
   const company = extractField(message, [
-    /(?:company is|company:|from company|for company|firma|unternehmen|bedrijf|entreprise|societe|société|empresa|ceg|cég|compania)\s+([^.,;\n]+)/i,
+    /(?:company is|company:|from company|for company|firma|unternehmen|bedrijf|entreprise|societe|société|empresa|ceg|cég|compania|företaget heter|företaget är|företag:|bolaget)\s+([^.,;\n]+)/i,
   ]);
   const trimmed = message.trim();
   const previousMessageCheck = validateContactMessage(previous?.message);
@@ -238,6 +238,20 @@ export function buildContactSummary(draft: Required<Pick<UsyContactDraft, "categ
       "Răspunde cu \"trimite\" sau \"confirmă\" ca să o trimit, ori \"oprește\" ca să oprești.",
     ].filter(Boolean).join("\n");
   }
+  if (draft.language === "swedish") {
+    return [
+      "Bekräfta den här kontaktförfrågan innan jag skickar den:",
+      "",
+      `Avdelning: ${department}`,
+      `Namn: ${draft.senderName}`,
+      draft.company ? `Företag: ${draft.company}` : null,
+      `Svarsmail: ${draft.replyEmail}`,
+      `Språk: ${draft.language}`,
+      `Meddelande: ${draft.message}`,
+      "",
+      "Svara med \"skicka\" eller \"bekräfta\" för att skicka den, eller \"avbryt\" för att avbryta.",
+    ].filter(Boolean).join("\n");
+  }
   return [
     "Please confirm before I send this contact request:",
     "",
@@ -271,6 +285,9 @@ export function buildContactDepartmentPrompt(language: SupportedUsyLanguage) {
   if (language === "romanian") {
     return "Cu ce echipă vrei să iei legătura? Alege Sales, Technical Support, Billing, Management sau Executive Management.";
   }
+  if (language === "swedish") {
+    return "Vilket team vill du kontakta? Välj Sales, Technical Support, Billing, Management eller Executive Management.";
+  }
   return "Which team would you like to contact? Pick Sales, Technical Support, Billing, Management, or Executive Management.";
 }
 
@@ -281,6 +298,7 @@ export function buildContactMessagePrompt(language: SupportedUsyLanguage) {
   if (language === "french") return "Veuillez décrire votre demande.";
   if (language === "hungarian") return "Kérlek, írd le a kérésedet.";
   if (language === "romanian") return "Te rugăm să descrii cererea ta.";
+  if (language === "swedish") return "Beskriv ditt ärende.";
   return "Please describe your request.";
 }
 
@@ -292,6 +310,7 @@ export function buildContactMessageProblemAnswer(problem: UsyContactMessageProbl
     if (language === "french") return "Votre demande est trop longue. Veuillez la limiter à 500 caractères maximum.";
     if (language === "hungarian") return "A kérésed túl hosszú. Kérlek, legfeljebb 500 karakterben írd le.";
     if (language === "romanian") return "Cererea ta este prea lungă. Te rugăm să o limitezi la maximum 500 de caractere.";
+    if (language === "swedish") return "Ditt meddelande är för långt. Håll det till maximalt 500 tecken.";
     return "Your message is too long. Please keep it to 500 characters or fewer.";
   }
   if (problem === "too_short") {
@@ -301,6 +320,7 @@ export function buildContactMessageProblemAnswer(problem: UsyContactMessageProbl
     if (language === "french") return "Votre demande est un peu courte. Veuillez la décrire en au moins 10 caractères.";
     if (language === "hungarian") return "A kérésed kicsit rövid. Kérlek, írd le a kérésedet legalább 10 karakterben.";
     if (language === "romanian") return "Cererea ta este puțin prea scurtă. Te rugăm să descrii cererea cu cel puțin 10 caractere.";
+    if (language === "swedish") return "Ditt meddelande är lite för kort. Beskriv ditt ärende med minst 10 tecken.";
     return "Your message is a bit short. Please describe your request with at least 10 characters.";
   }
   return buildContactMessagePrompt(language);
@@ -324,6 +344,9 @@ export function buildContactDetailsPrompt(language: SupportedUsyLanguage) {
   }
   if (language === "romanian") {
     return "Mulțumesc. Trimite datele tale de contact ca echipa să îți poată răspunde. Trimite numele tău și emailul pentru răspuns. Compania este opțională.";
+  }
+  if (language === "swedish") {
+    return "Tack. Ange dina kontaktuppgifter så att teamet kan svara. Skicka ditt namn och din svarsmail. Företag är valfritt.";
   }
   return "Thanks. Please provide your contact details so the team can reply. Please send your name and your reply email. Company is optional.";
 }
@@ -527,7 +550,7 @@ function extractField(message: string, patterns: RegExp[]) {
 // One-shot combined inputs ("Contact billing. Message: …") keep their request
 // text without the 120-character field cap or first-line limit, so the webhook
 // payload carries the full request; the 10–500 message rule still applies.
-const contactMessageMarkerPattern = /(?:message is|message:|request is|request:|about|regarding|because|issue is|problem is|anliegen:|anfrage:|nachricht:|verzoek:|bericht:|mensaje:|solicitud:|problema:|uzenet:|üzenet:|keres:|kérés:|cerere:|mesaj:|problema este)\s+([\s\S]+)/i;
+const contactMessageMarkerPattern = /(?:message is|message:|request is|request:|about|regarding|because|issue is|problem is|anliegen:|anfrage:|nachricht:|verzoek:|bericht:|mensaje:|solicitud:|problema:|uzenet:|üzenet:|keres:|kérés:|cerere:|mesaj:|problema este|meddelande:|meddelandet är|ärende:|ärendet är|arende:|problemet är|det gäller)\s+([\s\S]+)/i;
 
 function extractContactMessage(message: string) {
   const match = message.match(contactMessageMarkerPattern);
@@ -540,7 +563,7 @@ function isOnlyCollectionMessage(message: string) {
   const normalized = normalizeUsyText(message);
   // A bare department label or a contact-intent phrase is a selection step,
   // never the request itself.
-  return /^(contact|speak|talk|connect|reach|message|email|call|i need|i want|i would like|i d like|can i|please|bitte kontaktiere|kontakt|kontaktiere|ich mochte|ich will|ich brauche|spreek|ik wil|ik heb een vraag|contactar|hablar|quiero|necesito|me gustaria|beszelni|kapcsolat|szeretnem|szeretnek|vorbesc|contactez|as vrea|as dori|vreau|sales|technical support|it support|support|billing|management|executive management|executive)\b/.test(normalized);
+  return /^(contact|speak|talk|connect|reach|message|email|call|i need|i want|i would like|i d like|can i|please|bitte kontaktiere|kontakt|kontaktiere|ich mochte|ich will|ich brauche|spreek|ik wil|ik heb een vraag|contactar|hablar|quiero|necesito|me gustaria|beszelni|kapcsolat|szeretnem|szeretnek|vorbesc|contactez|as vrea|as dori|vreau|kontakta|jag vill|jag behover|jag behöver|jag skulle vilja|skulle vilja|prata med|sales|technical support|it support|support|billing|management|executive management|executive)\b/.test(normalized);
 }
 
 function matchesKeyword(normalized: string, keyword: string) {

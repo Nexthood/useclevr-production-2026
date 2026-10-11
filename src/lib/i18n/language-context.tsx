@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { translateText } from './translation-service'
 
-export type Language = 'en' | 'de' | 'fr' | 'hu' | 'ro'
+export type Language = 'en' | 'de' | 'fr' | 'hu' | 'ro' | 'sv'
 
 interface LanguageContextType {
   language: Language
@@ -48,6 +48,13 @@ const translations = {
     reports: 'Rapoarte',
     loading: 'Se încarcă...',
   },
+  sv: {
+    dashboard: 'Instrumentpanel',
+    settings: 'Inställningar',
+    datasets: 'Datasets',
+    reports: 'Rapporter',
+    loading: 'Laddar...',
+  },
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
@@ -57,7 +64,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('language') as Language
-    if (saved && ['en', 'de', 'fr', 'hu', 'ro'].includes(saved)) {
+    if (saved && ['en', 'de', 'fr', 'hu', 'ro', 'sv'].includes(saved)) {
       setLanguage(saved)
     }
   }, [])

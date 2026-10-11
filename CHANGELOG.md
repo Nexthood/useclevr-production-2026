@@ -2,6 +2,8 @@
 
 ### Added
 
+- Usy now understands Swedish and answers every supported topic, including billing, planning, and contact requests, in Swedish.
+- The dashboard language selector now offers Swedish alongside the existing languages.
 - Usy now understands French and answers every supported topic, including billing, planning, and contact requests, in French.
 - The dashboard language selector now offers French alongside the existing languages.
 - Cancelling a subscription now moves the account to the Free plan while all existing datasets, reports, and analyses stay safe in UseClevr.
@@ -12,7 +14,7 @@
 ### Fixed
 
 - Show a Usy minimize control beside close so users can hide the panel and reopen their current conversation from the floating avatar.
-- The Usy header badge rotates through all seven supported languages again, cycling continuously from English through to Romanian.
+- The Usy header badge rotates through all eight supported languages, cycling continuously from English through Swedish.
 - The top-bar search button now shows the same subtle, stationary hover highlight as the other top-bar icons, with no glow or movement on hover.
 - Risk Intelligence now includes datasets connected through ClevrSync from Google Sheets when their retail data supports the same deterministic rules, so connected and uploaded datasets with equivalent data receive the same risk eligibility.
 - Risk Intelligence now lets users explicitly choose among eligible datasets, including connected Google Sheets Retail datasets, and clears stale selections instead of falling back to another dataset.

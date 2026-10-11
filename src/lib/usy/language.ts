@@ -45,6 +45,18 @@ export function detectUsyLanguage(question: string): SupportedUsyLanguage {
   ) {
     return "french";
   }
+  // Swedish relies on lexemes, not å/ä/ö characters: those vowels overlap with
+  // German and Hungarian, so only Swedish-specific words and phrases decide.
+  if (
+    /\b(svenska|svensk|swedish|sprak|talar|pratar|krediter|faktura|fakturor|fakturering|betalning|prenumeration|prenumerationen|abonnemang|uppsagning|uppsagningen|uppladdning|uppladdningar|ansluta|anslutning|anslutningar|kontakta|kontaktar|avsluta|losenord|hemlighet|felsokning|hjalp|filformat)\b/.test(
+      normalized,
+    ) ||
+    /\b(vad kan|hur kan|hur fungerar|vad kostar|vad hander|vad ar|vad innehaller|kan jag|jag vill|jag behover|jag heter|hur manga|hur mycket|ladda upp|laddar upp|lasa upp|las upp|laser jag|vilka sprak|vilket sprak|visa mig|kan du visa|ge mig|historisk data|historiska data|mina krediter|mina data|min prenumeration|mitt abonnemang|mina datasets|mina fakturor|saga upp)\b/.test(
+      normalized,
+    )
+  ) {
+    return "swedish";
+  }
   if (
     /[áéíóöőúüű]/i.test(question) ||
     /\b(magyar|magyarazd|magyarázd|mit tud|mi az|kinek|hogyan tudok|tudok|beszelsz|beszélsz|nyelv|feltoltes|feltöltés|szamla|számla|kredit|adat|adatkeszlet|adatkészlet|keszlet|készlet|arbevetel|árbevétel|bevetel|bevétel|arres|árrés|tamogatas|támogatás)\b/.test(
@@ -74,5 +86,6 @@ export function languageName(language: SupportedUsyLanguage) {
     spanish: "Spanish",
     hungarian: "Hungarian",
     romanian: "Romanian",
+    swedish: "Swedish",
   }[language];
 }

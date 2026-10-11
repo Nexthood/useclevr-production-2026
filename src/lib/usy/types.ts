@@ -5,7 +5,8 @@ export type SupportedUsyLanguage =
   | "french"
   | "spanish"
   | "hungarian"
-  | "romanian";
+  | "romanian"
+  | "swedish";
 
 export type UsyContactCategory =
   | "sales"

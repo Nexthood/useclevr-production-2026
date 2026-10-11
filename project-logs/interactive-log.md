@@ -1,3 +1,45 @@
+## 2026-10-11 — Swedish as the eighth fully supported Usy language
+
+1. Interaction title
+   Add Swedish (Svenska, `swedish`) as the 8th fully supported Usy language through the existing canonical Usy language architecture, with full localization of detection, answers, actions, contact flow, billing knowledge, guest mode, API validation, chat UI surfaces, and the dashboard language selector, and with the multilingual badge rotating all eight languages in the required order; no parallel localization system, no commit, no push.
+
+2. What was the user goal
+   Extend the canonical `SupportedUsyLanguage` set from seven to eight languages by adding Swedish consistently everywhere the existing architecture requires it, add robust Swedish detection without breaking EN/DE/NL/FR/ES/HU/RO detection, translate all deterministic Usy areas into natural professional Swedish, verify the restored badge rotation through the canonical `supportedUsyLanguages` array (preserving the 2-second rotation, fade animation, minimize/restore, and close behavior), extend the existing Usy tests, and update requirements, changelog, and project records. Respect all product boundaries (no changes to the main AI Assistant, Retail, Profitability, Accountancy analysis, Risk Intelligence, Stripe pricing, dataset analysis, ClevrSync architecture, authentication, or unrelated UI).
+
+3. What changed
+   - `src/lib/usy/types.ts`: `"swedish"` joins the `SupportedUsyLanguage` union.
+   - `src/lib/usy/language.ts`: word-based Swedish detection block placed after French and before Hungarian so the Hungarian/Romanian diacritic character classes can no longer capture Swedish words containing ä/ö; `languageName` maps `swedish` → "Swedish".
+   - `src/lib/usy/knowledge-base.ts`: `supportedUsyLanguages` grows to eight entries in rotation order and `supportedUsyLanguageLabel` lists all eight.
+   - `src/lib/usy/actions.ts`: full Swedish `UsyActionButton` label set ("Öppna ...", "Kontakta ...").
+   - `src/lib/usy/contact.ts`: contact payload schema accepts `"swedish"`; Swedish contact category keywords, contact verbs, confirm words ("skicka", "bekräfta"), cancel words ("nej", "avbryt"), name/company extraction, message markers, collection guards, department/message/details prompts, too-short/too-long answers, and the Swedish confirmation summary.
+   - `src/lib/usy/router.ts`: Swedish intent keywords across all product intents (languages, capabilities, file formats, uploads, upload trouble, datasets, dashboard, top-ups, refunds, subscription status, downgrade, historical unlock, cancellation, credits, plans, billing, reports, retail, accountancy, account, support, ClevrSync, AI activity), Swedish stop words, restricted/admin-only/personal-data/AI-assistant routing signals, Pro-price interception with `/månad`, credit costs, plan facts, ClevrSync tier answers, upload limit answer, follow-up chips, intent answers, business terms, and common copy in Swedish.
+   - `src/lib/usy/billing-knowledge.ts`: Swedish copy for top-ups, refunds, cancellation, downgrade, zero-credit guidance, billing overview, subscription-status, purchased-credit rules, Historical Data Unlock with canonical regional prices, and `sv-SE` credit/dataset count formatting.
+   - `src/app/api/usy/chat/route.ts`: the chat request schema accepts `"swedish"` in the contact draft language.
+   - `src/components/ui/help-chatbox.tsx`: Swedish placeholder, quick action ("Förklara AI-krediter"), contact message labels, submit labels, and the 🇸🇪 Svenska badge entry.
+   - `src/lib/i18n/language-context.tsx`, `src/lib/i18n/translation-service.ts`, `src/components/ui/language-selector.tsx`: `sv` joins the dashboard language selector set with Swedish core translations.
+   - `scripts/ai/test-usy-billing-knowledge.ts`, `test-usy-guest-mode.ts`, `test-usy-contact-message-step.ts`, `test-usy-contact-handoff.ts`, `test-usy-secretariat.ts`: Swedish cases through the existing suites (billing routing/pricing, guest sign-in gate, localized message step, handoff payload, quick actions, restricted information, realistic detection matrix).
+   - `scripts/ai/test-usy-product-knowledge.ts`: filled with the canonical 8-language set test, badge order/rotation assertions, the 24-case language detection regression matrix (7 existing languages unchanged + 10 Swedish questions), Swedish guest mode, restricted answers, and localized UI surface checks.
+   - `requirements.md`, `CHANGELOG.md`, `project-logs/interactive-log.md`, `project-logs/activity-log.md`, `docs/AI-interaction/interaction-status.md`: current-state records updated.
+
+4. Root causes (per behavior)
+   - No Swedish registration existed in the seven-language canonical set, so `Record<SupportedUsyLanguage, ...>` literal tables, the chat/contact schemas, the badge table, and the dashboard selector all lacked Swedish coverage.
+   - Detection previously had no Swedish branch; å/ä/ö alone are ambiguous because the pre-existing Hungarian and German matchers already use ä/ö/ü/å-adjacent signals, so detection relies on Swedish-specific lexemes ("krediter", "prenumeration", "abonnemang", "kan jag", "vad kostar", "ladda upp", "avsluta", "faktura", "sprak", "talar", "filformat") that never collide with the seven existing languages.
+
+5. Problems marked
+   - risk: none remaining; the 7-language regression matrix in `test-usy-product-knowledge.ts` pins every pre-existing language.
+   - observation: realistic Swedish questions containing the shared product word "lager" (warehouse/stock) still resolve to German through the pre-existing German keyword — an accepted trade-off of the lexeme architecture, unchanged by this work.
+   - observation: `pnpm run test:usy-secretariat` does not exist in package.json; the secretariat test runs as `pnpm exec tsx scripts/ai/test-usy-secretariat.ts`, matching the requested command.
+
+6. User learning
+   Swedish is the 8th canonical Usy language; the badge, schemas, detection, and answers all derive from the single `supportedUsyLanguages`/`SupportedUsyLanguage` source of truth, so no parallel list exists.
+
+7. AI-agent learning
+   Long localized `Record<SupportedUsyLanguage, ...>` literals must gain the new union member in one coherent edit; partial unions surface as immediate `tsc` `satisfies Record<SupportedUsyLanguage, ...>` errors, which is the fastest completeness check.
+
+8. Instruction sources
+   - AGENTS.md
+   - ai-chat-behavior.config.ts
+   - gemini-behavior.config.ts
 ## 2026-10-07 — CI security audit dependency upgrade
 
 1. Interaction title

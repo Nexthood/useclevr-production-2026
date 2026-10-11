@@ -22,9 +22,10 @@ export const supportedUsyLanguages: SupportedUsyLanguage[] = [
   "spanish",
   "hungarian",
   "romanian",
+  "swedish",
 ];
 
-export const supportedUsyLanguageLabel = "English, German, Dutch, French, Spanish, Hungarian, and Romanian";
+export const supportedUsyLanguageLabel = "English, German, Dutch, French, Spanish, Hungarian, Romanian, and Swedish";
 
 export const usyContactCategories: UsyContactCategory[] = [
   "sales",

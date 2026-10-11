@@ -323,7 +323,10 @@ Text rules for this file:
 - Show the AI Assistant provider state for each response, including Local AI active, Cloud fallback active, Offline mode active, local provider unavailable, and provider unavailable.
 - Route existing AI Assistant chat through the same Hybrid AI provider routing, dataset-aware context builder, fallback rules, Local only cloud blocking, and provider status display as Hybrid AI Chat.
 - Allow AI Assistant users to ask general questions without a selected dataset and use summarized dataset context automatically when a dataset is selected.
-- Let Usy answer spontaneous UseClevr questions in English, German, Dutch, French, Spanish, Hungarian, and Romanian, replying in the detected user language when possible.
+- Let Usy answer spontaneous UseClevr questions in English, German, Dutch, French, Spanish, Hungarian, Romanian, and Swedish, replying in the detected user language when possible.
+- Detect Swedish questions through word-based Swedish lexemes rather than å/ä/ö characters alone, because those vowels overlap with German and Hungarian.
+- Answer Swedish questions for product capabilities, uploads, plans, prices, AI credits, ClevrSync, language support, cancellation, and historical-data retention with the same deterministic content as the other supported languages.
+- Accept Swedish in the Usy contact payload schema and reply to Swedish contact-flow prompts, summaries, confirmations, and cancellations in Swedish.
 - Show a compact Usy header badge that cycles through supported languages and explains that Usy replies in the language the user writes.
 - Give Usy UseClevr-aware fallback answers for uploads, datasets, AI credits, plan limits, Retail analysis, Accountancy analysis, invoice processing, receipt processing, reports, downloads, billing, subscriptions, Business Profile, troubleshooting, and upgrade flow when no live AI provider answers.
 - Keep Usy focused on UseClevr business-data workflows and answer unrelated general-chat topics with a polite same-language redirect to UseClevr uploads, credits, reports, billing, and analytics.
@@ -501,7 +504,7 @@ Text rules for this file:
 - Show review flags for missing details that lower AI confidence.
 - Show business completion in the topbar.
 - Link incomplete business fields to Business Profile.
-- Offer English, German, French, Hungarian, and Romanian from the dashboard language selector.
+- Offer English, German, French, Hungarian, Romanian, and Swedish from the dashboard language selector.
 - Persist language preference across sessions.
 
 ## Accountancy

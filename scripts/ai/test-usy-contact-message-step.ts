@@ -322,6 +322,16 @@ function testServerRejectsInvalidContactPayloads() {
   });
   assert.equal(unsupportedLanguage.success, false, "unsupported language rejected");
 
+  const swedishLanguage = validateUsyContactPayload({
+    category: "billing",
+    message: validMessage,
+    senderName: "Alex Rivera",
+    replyEmail: "alex@example.com",
+    language: "swedish",
+    confirmed: true,
+  });
+  assert.equal(swedishLanguage.success, true, "swedish is a supported language");
+
   const frenchLanguage = validateUsyContactPayload({
     category: "billing",
     message: validMessage,
@@ -550,6 +560,7 @@ function testMessageStepLocalizedAcrossSupportedLanguages() {
     { language: "spanish", promptPattern: /describe tu solicitud/i, problemPattern: /al menos 10 caracteres/ },
     { language: "hungarian", promptPattern: /írd le a kérésedet/i, problemPattern: /legalább 10 karakter/ },
     { language: "romanian", promptPattern: /descrii cererea ta/i, problemPattern: /cel puțin 10 caractere/ },
+    { language: "swedish", promptPattern: /Beskriv ditt ärende/, problemPattern: /minst 10 tecken/ },
   ];
 
   for (const item of cases) {
@@ -607,6 +618,25 @@ function testCancelWorksFromMessageStep() {
   assert.equal(normalMessageNotCancelled.contactDraft?.message, "No worries, but my invoice number 4471 shows the wrong VAT total.");
 }
 
+function testSwedishMessageStepFlow() {
+  const initial = buildUsyReply({ question: "Kontakta fakturering", context: guestContext() });
+  assert.equal(initial.contactDraft?.category, "billing", "Swedish billing keyword routes the department");
+  assert.equal(initial.messageInput, true, "department selection opens the message step");
+  assert.match(initial.answer, /Beskriv ditt ärende/);
+
+  const tooShort = buildUsyReply({ question: "Faktura", context: guestContext(), contactDraft: initial.contactDraft });
+  assert.match(tooShort.answer, /minst 10 tecken/, "Swedish message validation stays localized");
+  assert.equal(tooShort.contactDraft?.message, undefined);
+
+  const valid = buildUsyReply({
+    question: "Vänligen korrigera momsen på faktura 4471.",
+    context: guestContext(),
+    contactDraft: initial.contactDraft,
+  });
+  assert.equal(valid.contactDraft?.language, "swedish");
+  assert.match(valid.answer, /kontaktuppgifter/, "the flow proceeds to Swedish contact details");
+}
+
 function readProjectFile(path: string) {
   return readFileSync(resolve(repoRoot, path), "utf8");
 }
@@ -627,6 +657,7 @@ testFinalHandoffPayload();
 testIdentityComesFromServerSessionOnly();
 testExistingHandoffReusedWithoutParallelEmailLogic();
 testMessageStepLocalizedAcrossSupportedLanguages();
+testSwedishMessageStepFlow();
 testGermanMessageStepFlow();
 testCancelWorksFromMessageStep();
 

@@ -32,7 +32,7 @@ function contextFor(tier: string | null, overrides: Partial<UsyContext["usage"]>
   }
 }
 
-const languages: SupportedUsyLanguage[] = ["english", "german", "dutch", "french", "spanish", "hungarian", "romanian"]
+const languages: SupportedUsyLanguage[] = ["english", "german", "dutch", "french", "spanish", "hungarian", "romanian", "swedish"]
 
 function testFreeCannotPurchaseTopUps() {
   for (const language of languages) {
@@ -70,7 +70,7 @@ function testPurchasedCreditsNeverExpire() {
     const rules = buildUsyPurchasedRulesAnswer(language)
     assert.match(
       rules,
-      /do not expire|verfallen nicht|vervallen niet|n'expirent pas|no caducan|nem járnak le|nu expiră/,
+      /do not expire|verfallen nicht|vervallen niet|n'expirent pas|no caducan|nem járnak le|nu expiră|upphör inte/,
       `${language}: purchased credits never expire`,
     )
   }
@@ -81,12 +81,12 @@ function testPurchasedCreditsSurviveDowngrade() {
     const answer = buildUsyDowngradeAnswer(contextFor("free").usage, language)
     assert.match(
       answer,
-      /preserved|erhalten|bewaard|conservés|conservan|megmaradnak|păstrează/,
+      /preserved|erhalten|bewaard|conservés|conservan|megmaradnak|păstrează|bevaras/,
       `${language}: purchased credits survive a downgrade`,
     )
     assert.match(
       answer,
-      /until|bis|tot|jusqu|hasta|amíg|până/,
+      /until|bis|tot|jusqu|hasta|amíg|până|tills de tar slut/,
       `${language}: purchased credits remain usable until exhausted`,
     )
   }
@@ -104,7 +104,7 @@ function testIncludedBeforePurchased() {
     const rules = buildUsyPurchasedRulesAnswer(language)
     assert.match(
       rules,
-      /Included credits are consumed before purchased credits|Enthaltene Credits werden vor gekauften|Inbegrepen credits worden vóór|Les crédits inclus sont consommés avant|Los créditos incluidos se consumen antes|Az inkluzív kreditek a megvásároltak előtt|Creditele incluse sunt consumate înaintea/,
+      /Included credits are consumed before purchased credits|Enthaltene Credits werden vor gekauften|Inbegrepen credits worden vóór|Les crédits inclus sont consommés avant|Los créditos incluidos se consumen antes|Az inkluzív kreditek a megvásároltak előtt|Creditele incluse sunt consumate înaintea|Inkluderade krediter förbrukas före/,
       `${language}: included credits are consumed before purchased credits`,
     )
   }
@@ -115,12 +115,12 @@ function testCancellationKeepsPaidPlanUntilPeriodEnd() {
     const answer = buildUsyCancellationAnswer(contextFor("pro").usage, language)
     assert.match(
       answer,
-      /end of the already-paid billing period|bereits bezahlten Abrechnungsperiode|reeds betaalde factuurperiode|fin de la période déjà payée|periodo ya pagado|már kifizetett számlázási időszak|perioadei deja plătite/,
+      /end of the already-paid billing period|bereits bezahlten Abrechnungsperiode|reeds betaalde factuurperiode|fin de la période déjà payée|periodo ya pagado|már kifizetett számlázási időszak|perioadei deja plătite|betalda faktureringsperioden/,
       `${language}: cancellation keeps the paid plan until period end`,
     )
     assert.match(
       answer,
-      /different operations|unterschiedliche Vorgänge|verschillende handelingen|opérations différentes|operaciones distintas|különböző műveletek|operațiuni diferite/,
+      /different operations|unterschiedliche Vorgänge|verschillende handelingen|opérations différentes|operaciones distintas|különböző műveletek|operațiuni diferite|olika processer/,
       `${language}: cancellation and refund are distinct operations`,
     )
   }
@@ -136,12 +136,12 @@ function testRefundAnswersNeverPromiseApproval() {
     )
     assert.match(
       answer,
-      /reviewed centrally|zentral von UseClevr geprüft|centraal door UseClevr beoordeeld|examinées centralement par UseClevr|las revisa centralmente|központilag a UseClevr bírálja|analizate central de UseClevr/,
+      /reviewed centrally|zentral von UseClevr geprüft|centraal door UseClevr beoordeeld|examinées centralement par UseClevr|las revisa centralmente|központilag a UseClevr bírálja|analizate central de UseClevr|granskas centralt/,
       `${language}: refund requests are reviewed centrally by UseClevr`,
     )
     assert.match(
       answer,
-      /different operations|unterschiedliche Vorgänge|verschillende handelingen|opérations différentes|operaciones distintas|különböző műveletek|operațiuni diferite/,
+      /different operations|unterschiedliche Vorgänge|verschillende handelingen|opérations différentes|operaciones distintas|különböző műveletek|operațiuni diferite|olika processer/,
       `${language}: cancellation and refund are distinct operations`,
     )
   }
@@ -214,11 +214,11 @@ function testConsistencyAcrossLanguages() {
     assert.match(paidTopUp, /Add Credits/i, `${language}: paid top-up answer names Add Credits`)
 
     const downgrade = buildUsyDowngradeAnswer(contextFor("free").usage, language)
-    assert.match(downgrade, /do not expire|verfallen nicht|verlopen niet|n'expirent pas|no expiran|nem járnak le|nu expiră/, `${language}: purchased credits do not expire`)
-    assert.match(downgrade, /Pro or Business|Pro oder Business|Pro of Business|Pro ou Business|Pro o Business|Pro vagy Business|Pro sau Business/, `${language}: purchasing requires Pro/Business`)
+    assert.match(downgrade, /do not expire|verfallen nicht|verlopen niet|n'expirent pas|no expiran|nem járnak le|nu expiră|upphör inte/, `${language}: purchased credits do not expire`)
+    assert.match(downgrade, /Pro or Business|Pro oder Business|Pro of Business|Pro ou Business|Pro o Business|Pro vagy Business|Pro sau Business|Pro eller Business/, `${language}: purchasing requires Pro/Business`)
 
     const cancellation = buildUsyCancellationAnswer(contextFor("pro").usage, language)
-    assert.match(cancellation, /different|unterschiedliche|verschillende|différentes|distintas|különböző|diferite/, `${language}: cancellation ≠ refund`)
+    assert.match(cancellation, /different|unterschiedliche|verschillende|différentes|distintas|különböző|diferite|olika processer/, `${language}: cancellation ≠ refund`)
   }
 }
 
@@ -246,6 +246,34 @@ function testFrenchBillingAnswersUseCanonicalPricingAndRouting() {
   assert.match(unlock.answer, /ne restaure pas les fonctions Pro ou Business/)
 
   const directUnlock = buildUsyHistoricalUnlockAnswer("french", "CAD")
+  assert.match(directUnlock, /C\$40/)
+  assert.match(directUnlock, /C\$210/)
+}
+
+function testSwedishBillingAnswersUseCanonicalPricingAndRouting() {
+  const context = contextFor("pro")
+  const topUp = buildUsyReply({ question: "Kan jag köpa fler krediter på Pro?", context })
+  assert.equal(topUp.language, "swedish")
+  assert.equal(topUp.intent, "account_help")
+  assert.match(topUp.answer, /Add Credits/)
+
+  const plans = buildUsyReply({ question: "Vad innehåller Business?", context })
+  assert.equal(plans.language, "swedish")
+  assert.equal(plans.intent, "billing")
+  assert.match(plans.answer, /Pro kostar €40\/månad/)
+  assert.match(plans.answer, /Business kostar €420\/månad/)
+  assert.match(plans.answer, /1\s?500/)
+  assert.doesNotMatch(plans.answer, /5,000|5000|5\.000|250 datsets/i)
+
+  const unlock = buildUsyReply({ question: "Hur återfår jag min historiska data efter uppsägning?", context: { ...context, currency: "GBP" } })
+  assert.equal(unlock.language, "swedish")
+  assert.equal(unlock.intent, "billing")
+  assert.match(unlock.answer, /engångsbetalning/)
+  assert.match(unlock.answer, /£22/)
+  assert.match(unlock.answer, /£112/)
+  assert.match(unlock.answer, /återställer inte Pro- eller Business-funktioner/)
+
+  const directUnlock = buildUsyHistoricalUnlockAnswer("swedish", "CAD")
   assert.match(directUnlock, /C\$40/)
   assert.match(directUnlock, /C\$210/)
 }
@@ -313,6 +341,7 @@ function testNoStaleBusinessNumbersAcrossLanguages() {
     "Câte credite include Business?",
     "Hány kreditet tartalmaz a Business?",
     "Hoeveel credits bevat Business?",
+    "Vad innehåller Business?",
     "Compare Free vs Pro vs Business",
   ]
   for (const question of questions) {
@@ -325,7 +354,7 @@ function testNoStaleBusinessNumbersAcrossLanguages() {
       /5,000|5000|5\.000|up to 250|250 Datasets|250 datasets|250 datensets|250 datsets/i,
       `${question} must not answer with stale Business numbers`,
     )
-    assert.match(reply.answer, /1,?500|1\.500/, `${question} must surface the 1,500 Business credits`)
+    assert.match(reply.answer, /1,?500|1\.500|1\s?500/, `${question} must surface the 1,500 Business credits`)
   }
 }
 
@@ -346,7 +375,8 @@ const tests = [
   { name: "Plan comparison answers include all three plans with the new limits", fn: testPlanComparisonAnswer },
   { name: "No business/plan answer across languages states 5,000 credits or 250 datasets", fn: testNoStaleBusinessNumbersAcrossLanguages },
   { name: "French billing answers route and use canonical regional pricing", fn: testFrenchBillingAnswersUseCanonicalPricingAndRouting },
-  { name: "Answers stay deterministic and consistent across EN, DE, NL, FR, ES, HU, RO", fn: testConsistencyAcrossLanguages },
+  { name: "Swedish billing answers route and use canonical regional pricing", fn: testSwedishBillingAnswersUseCanonicalPricingAndRouting },
+  { name: "Answers stay deterministic and consistent across EN, DE, NL, FR, ES, HU, RO, SV", fn: testConsistencyAcrossLanguages },
 ]
 
 void (async () => {
