@@ -90,7 +90,8 @@ export default function proxy(request: NextRequest) {
     pathname !== "/api/chatgpt/oauth/jwks" &&
     pathname !== "/api/chatgpt/oauth/token" &&
     pathname !== "/.well-known/oauth-authorization-server" &&
-    pathname !== "/.well-known/oauth-protected-resource"
+    pathname !== "/.well-known/oauth-protected-resource" &&
+    pathname !== "/.well-known/openai-apps-challenge"
   ) {
     const response = new NextResponse("Not Found", { status: 404 })
     applyRuntimeSecurityHeaders(response.headers, {
