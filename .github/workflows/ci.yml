@@ -36,6 +36,7 @@ jobs:
         pnpm validate:dist
         pnpm lint:package
         pnpm audit:allowlist
+        pnpm test:chatgpt
         pnpm test:all
         pnpm build
       needs_postgres: true

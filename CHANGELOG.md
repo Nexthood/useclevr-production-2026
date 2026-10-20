@@ -13,6 +13,8 @@
 
 ### Fixed
 
+- Bind ChatGPT account linking to verified client callbacks and reject repeated or concurrent use of an authorization code.
+
 - Show a Usy minimize control beside close so users can hide the panel and reopen their current conversation from the floating avatar.
 - The Usy header badge rotates through all eight supported languages, cycling continuously from English through Swedish.
 - The top-bar search button now shows the same subtle, stationary hover highlight as the other top-bar icons, with no glow or movement on hover.
@@ -56,6 +58,12 @@
 - Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
+
+- Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
+- Provide submission source assets and publisher metadata for reproducible UseClevr upload packages.
+- Check submission publisher names, public-client authentication, and listing URLs locally before packaging.
+
+- Serve a public domain verification response so OpenAI can verify the UseClevr app and connector hosts.
 
 - Add a hermetic test-schema bootstrap for the Risk ClevrSync parity suite so the bare CI PostgreSQL database provisions only the relations that suite exercises, keeping local runs no-op.
 - Add Stripe market-price checkout regression tests that reproduce and block the UK GBP price-mismatch checkout failure and pin Pro UK Monthly to £35.

@@ -14,6 +14,8 @@ moving work between states.
 
 ## Label: deployment
 
+- T-1086. Serve the OpenAI domain challenge as exact public plain text without authentication or redirects on the app and MCP hosts. (labels: mcp, deployment, testing; commit: 7eda8504)
+
 - T-1066. The dashboard World Map aggregates the same row scope as the KPI row: semantic-KPI datasets feed the map every stored row through one shared scope selector instead of the default 30-day window, fallback-KPI datasets keep the range-filtered scope on both sides, and a regression suite pins the 220-row/42-row fingerprint with map totals equal to KPI totals. (labels: dashboard, data, metrics; commit: worktree)
 - T-1062. Usy contact handoff 502s expose their exact outbound cause: safe structured diagnostics classify DNS/connection/TLS/timeout/HTTP failures server-side without logging secrets or customer data. (labels: ai, deployment, observability; commit: worktree)
 - T-1061. The Usy → n8n contact handoff keeps repository configuration on the published production webhook path: regression tests ban the n8n manual-test path from runtime source and env examples and pin HTTP 200 `{"ok":true}` as a successful handoff. (labels: ai, deployment, quality; commit: worktree)
@@ -50,6 +52,9 @@ moving work between states.
 - T-1010. Detect strict accountancy ledger schemas during generated-report model resolution so standard uploads with debit, credit, and account or journal evidence route to ledger reporting. (labels: reports, data, testing; commit: 3e747a47)
 
 ## Label: mcp
+
+- T-1087. Validate CIMD metadata and client-bound redirects, consume authorization codes atomically, and verify the OAuth-to-MCP flow against isolated test data. (labels: mcp, auth, security, testing; commit: worktree)
+- T-1088. Reconcile the UseClevr submission publisher and readiness records, isolate OAuth and MCP tests in disposable PostgreSQL, and prepare four source commit groups without publishing artifacts. (labels: mcp, auth, security, testing, docs; commit: worktree)
 
 - T-1053. ChatGPT MCP authentication and scope failures include the MCP challenge metadata that ChatGPT uses to start OAuth account linking. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1052. ChatGPT MCP account linking uses OAuth 2.1 authorization, consent, PKCE, signed access-token validation, scope enforcement, and tenant-isolation regression coverage. (labels: mcp, auth, security, testing; commit: worktree)

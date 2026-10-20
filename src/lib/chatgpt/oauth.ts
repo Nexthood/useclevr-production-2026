@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth/auth";
 import { config } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { chatGptMcpOAuthCodes, type McpTokenScope } from "@/lib/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import {
   createHash,
   createHmac,
@@ -26,6 +26,8 @@ const AUTHORIZATION_CODE_SECONDS = 10 * 60;
 const CONSENT_TOKEN_SECONDS = 10 * 60;
 const CLOCK_SKEW_SECONDS = 60;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9._~-]{43,128}$/;
+const PKCE_CHALLENGE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const MAX_CLIENT_METADATA_BYTES = 64 * 1024;
 
 type AuthorizationRequest = {
   responseType: "code";
@@ -122,7 +124,7 @@ export function getProtectedResourceMetadata(request: NextRequest) {
   };
 }
 
-export function validateAuthorizationRequest(request: NextRequest): AuthorizationRequest {
+export async function validateAuthorizationRequest(request: NextRequest): Promise<AuthorizationRequest> {
   const params = request.nextUrl.searchParams;
   const responseType = params.get("response_type");
   if (responseType !== "code") {
@@ -140,7 +142,7 @@ export function validateAuthorizationRequest(request: NextRequest): Authorizatio
   }
 
   const codeChallenge = requireParam(params, "code_challenge");
-  if (!codeChallenge || params.get("code_challenge_method") !== "S256") {
+  if (!PKCE_CHALLENGE_PATTERN.test(codeChallenge) || params.get("code_challenge_method") !== "S256") {
     throw new ChatGptOAuthError("invalid_request", "PKCE S256 is required.");
   }
 
@@ -149,13 +151,16 @@ export function validateAuthorizationRequest(request: NextRequest): Authorizatio
     throw new ChatGptOAuthError("invalid_target", "OAuth resource does not match this MCP server.");
   }
 
+  const scopes = parseRequestedScopes(params.get("scope"));
+  await validateCimdClient(clientId, redirectUri);
+
   return {
     responseType: "code",
     clientId,
     redirectUri,
     codeChallenge,
     codeChallengeMethod: "S256",
-    scopes: parseRequestedScopes(params.get("scope")),
+    scopes,
     state: params.has("state") ? params.get("state") || "" : undefined,
     stateParam: readRawQueryParam(request.nextUrl.search, "state"),
     resource,
@@ -225,6 +230,8 @@ export function verifyConsentToken(token: string, userId: string): Authorization
 }
 
 export async function createChatGptAuthorizationCode(userId: string, authorization: AuthorizationRequest) {
+  // Recheck the client-bound callback before granting the signed consent request.
+  await validateCimdClient(authorization.clientId, authorization.redirectUri);
   const db = getDb();
   if (!db) {
     throw new ChatGptOAuthError("server_error", "Database unavailable.", 500);
@@ -277,9 +284,17 @@ export async function consumeChatGptAuthorizationCode(input: {
     throw new ChatGptOAuthError("invalid_grant", "PKCE verification failed.");
   }
 
-  await db.update(chatGptMcpOAuthCodes)
+  const consumed = await db.update(chatGptMcpOAuthCodes)
     .set({ usedAt: new Date() })
-    .where(eq(chatGptMcpOAuthCodes.id, storedCode.id));
+    .where(and(
+      eq(chatGptMcpOAuthCodes.id, storedCode.id),
+      isNull(chatGptMcpOAuthCodes.usedAt),
+      gt(chatGptMcpOAuthCodes.expiresAt, new Date()),
+    ))
+    .returning();
+  if (consumed.length !== 1) {
+    throw new ChatGptOAuthError("invalid_grant", "Authorization code is invalid or expired.");
+  }
 
   return {
     userId: storedCode.userId,
@@ -562,6 +577,92 @@ function isAllowedClientId(clientId: string) {
   if (process.env.NODE_ENV === "production") return false;
   return clientId.startsWith("https://chatgpt.com/") ||
     clientId.startsWith("https://chat.openai.com/");
+}
+
+async function validateCimdClient(clientId: string, redirectUri: string) {
+  if (!isAllowedClientId(clientId) || !isAllowedRedirectUri(redirectUri)) {
+    throw new ChatGptOAuthError("unauthorized_client", "OAuth client or redirect URI is not allowed.");
+  }
+
+  let clientUrl: URL;
+  try {
+    clientUrl = new URL(clientId);
+  } catch {
+    throw new ChatGptOAuthError("invalid_client", "CIMD client_id must be an HTTPS metadata URL.");
+  }
+  // This integration trusts only OpenAI's client origins, including when an ID is
+  // explicitly allowlisted. Never fetch arbitrary or private client-controlled URLs.
+  if (
+    !["https://chatgpt.com", "https://chat.openai.com"].includes(clientUrl.origin) ||
+    clientUrl.username || clientUrl.password || clientUrl.search || clientUrl.hash ||
+    clientUrl.pathname === "/"
+  ) {
+    throw new ChatGptOAuthError("invalid_client", "CIMD metadata URL is not allowed.");
+  }
+
+  let metadata: Record<string, unknown>;
+  try {
+    const response = await fetch(clientId, {
+      headers: { Accept: "application/json" },
+      redirect: "manual",
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (
+      response.status !== 200 ||
+      !/^application\/(?:[\w.-]+\+)?json(?:\s*;|$)/i.test(response.headers.get("content-type") || "") ||
+      Number(response.headers.get("content-length") || 0) > MAX_CLIENT_METADATA_BYTES ||
+      !response.body
+    ) {
+      await response.body?.cancel();
+      throw new Error("Invalid metadata response");
+    }
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        size += chunk.value.byteLength;
+        if (size > MAX_CLIENT_METADATA_BYTES) {
+          await reader.cancel();
+          throw new Error("Metadata response exceeds size limit");
+        }
+        chunks.push(chunk.value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    const value: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid metadata JSON");
+    metadata = value as Record<string, unknown>;
+  } catch {
+    throw new ChatGptOAuthError("invalid_client", "CIMD metadata could not be retrieved or validated.");
+  }
+
+  if (
+    metadata.client_id !== clientId ||
+    typeof metadata.client_name !== "string" || !metadata.client_name.trim() ||
+    !Array.isArray(metadata.redirect_uris) || metadata.redirect_uris.length === 0 ||
+    !metadata.redirect_uris.every((uri) => typeof uri === "string")
+  ) {
+    throw new ChatGptOAuthError("invalid_client", "CIMD client metadata is invalid.");
+  }
+  if (!metadata.redirect_uris.includes(redirectUri)) {
+    throw new ChatGptOAuthError("invalid_request", "OAuth redirect URI is not registered by this CIMD client.");
+  }
+  // OpenAI publishes both the plural methods and a legacy singular preference.
+  // Select our supported public-client method from the plural intersection.
+  const methods = metadata.token_endpoint_auth_methods_supported ??
+    [metadata.token_endpoint_auth_method ?? "none"];
+  if (
+    !Array.isArray(methods) || !methods.every((method) => typeof method === "string") || !methods.includes("none") ||
+    (metadata.grant_types !== undefined && (!Array.isArray(metadata.grant_types) || !metadata.grant_types.includes("authorization_code"))) ||
+    (metadata.response_types !== undefined && (!Array.isArray(metadata.response_types) || !metadata.response_types.includes("code")))
+  ) {
+    throw new ChatGptOAuthError("invalid_client", "CIMD client does not support public authorization code exchange.");
+  }
 }
 
 function isAllowedRedirectUri(redirectUri: string) {

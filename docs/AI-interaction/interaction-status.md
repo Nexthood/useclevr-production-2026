@@ -4,6 +4,37 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-20
+- **Goal**: Create four approved local ChatGPT integration commits on a dedicated branch without publishing.
+- **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
+- **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
+- **CIMD evidence**: The support report describes the exact historical 1.0.2 archive. The source validator checks identity and OAuth-summary consistency without contacting OpenAI. Edited sources do not certify that archive or resolve portal state.
+- **Domain baseline**: Integration branch `integration/chatgpt-2026-10-20` starts at verified upstream `05816e35` in `/tmp/useclevr-chatgpt-integration-20261020`; local `main` stays at `eab70041`. The domain route/proxy remain upstream implementation and are excluded from the four groups. No main merge/rebase occurs.
+- **Validation**: Local OAuth/MCP and safety tests, TypeScript, secret scan, TODO/package/workflow checks pass. Final validation details and exact commit groups are recorded in `chatgpt-integration-commit-groups.md`.
+- **Operator checks**: Verify publisher identity, reviewer email-proof login, demo access, privacy disclosures, portal CIMD save, production allowlists, domain verification, and tool scan in a separately authorized task.
+- **Artifacts and commits**: Four local source groups exclude both ZIPs, the historical validation JSON, credentials, and duplicate domain implementation. The original worktree and private backup preserve all pending files. No push, deployment, or OpenAI submission occurs; Git history records the four local hashes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Diagnose the reported CIMD/predefined-client-ID portal save mismatch using the exact 1.0.2 ZIP and official OpenAI documentation.
+- **Evidence**: ZIP integrity and file equality pass; one canonical CIMD OAuth configuration has no client credentials or alternative overlay. Public discovery returns HTTP 200, supports CIMD and public-client token exchange with PKCE S256, and agrees on issuer/resource. MCP advertises discovery in an expected unauthenticated HTTP 401 response.
+- **Limit**: The portal's stored registration and failed save request are unavailable. Persistent registration and a portal validation defect are hypotheses, not established root causes.
+- **Next step**: The operator collects the failed save request's registration mode, HTTP status, and request ID without secrets, then sends the prepared support report to OpenAI for saved-state inspection or validation repair.
+- **Report**: `docs/AI-interaction/openai-cimd-portal-support-report.txt`.
+- **Scope**: No package, OAuth-route, client-ID, or client-mode change; no support message is sent.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Serve the OpenAI domain challenge publicly as exact plain text without authentication or redirects.
+- **Current change**: Add the App Router GET handler and permit its exact path in the MCP host allowlist; record requirements, release notes, and T-1086.
+- **Verification**: Local curl checks return HTTP 200, text/plain, the exact 43-byte proof without newline, and no redirect on localhost and app/MCP/MCP-test host headers. Unrelated MCP paths return 404; protected APIs return 401. Focused ESLint passes with parser project discovery disabled for the hidden well-known directory.
+- **Observation at 2026-10-19 local verification**: The public app challenge URL returns HTTP 404 at that check. This observation does not establish current deployment status; the source implementation is present in cached `origin/main`. No deployment check is performed in the local finalization task.
+- **Records**: `project-logs/interactive-log.md`, `project-logs/activity-log.md`.
+
+## Previous Interaction
+
 - **Date**: 2026-10-11
 - **Goal**: Add Swedish as the 8th fully supported Usy language through the existing canonical Usy language architecture, without creating a parallel localization system, without touching the main AI Assistant architecture, Retail, Profitability, Accountancy analysis, Risk Intelligence, Stripe pricing/configuration, dataset analysis, ClevrSync architecture, authentication, or unrelated UI, and without committing or pushing.
 - **Durable change**: `src/lib/usy/types.ts` adds `"swedish"` to `SupportedUsyLanguage`; `src/lib/usy/language.ts` adds word-based Swedish detection (Swedish-specific lexemes and phrases, positioned after French and before Hungarian so ä/ö overlap with German/Hungarian cannot steal Swedish); `src/lib/usy/knowledge-base.ts` extends `supportedUsyLanguages` (8 entries in rotation order) and the language label; `src/lib/usy/actions.ts`, `src/lib/usy/contact.ts`, `src/lib/usy/router.ts`, and `src/lib/usy/billing-knowledge.ts` add the full Swedish surface (intents, billing/tier knowledge, contact flow, prompts, summaries, confirm/cancel lexicons, `sv-SE` counts); `src/app/api/usy/chat/route.ts` accepts `"swedish"`; `src/components/ui/help-chatbox.tsx` adds the Swedish placeholder, quick action, contact message labels, submit labels, and the 🇸🇪 Svenska badge; `src/lib/i18n/language-context.tsx`, `src/lib/i18n/translation-service.ts`, and `src/components/ui/language-selector.tsx` add `sv`. Tests extend the existing Usy suites, and `test-usy-product-knowledge.ts` pins the canonical 8-language order, badge rotation source, and the 7-language regression matrix. `requirements.md` and `CHANGELOG.md` record the current behavior.

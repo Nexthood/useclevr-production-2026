@@ -1,0 +1,42 @@
+{
+  "displayName": "UseClevr",
+  "shortDescription": "Analyze UseClevr datasets",
+  "longDescription": "Connect ChatGPT to datasets in your UseClevr account. List datasets, inspect trusted KPIs and semantic diagnostics, ask business questions about your data, and upload CSV or Excel files into the existing UseClevr analysis workflow.",
+  "developerName": "Atlas Mega Ventures",
+  "category": "Data & Analytics",
+  "capabilities": ["Read", "Write"],
+  "websiteURL": "https://useclevr.com",
+  "privacyPolicyURL": "https://app.useclevr.com/privacy",
+  "termsOfServiceURL": "https://app.useclevr.com/terms",
+  "supportURL": "https://app.useclevr.com/contact",
+  "logo": "./assets/logo.png",
+  "composerIcon": "./assets/composer-icon.svg",
+  "mcpEndpoint": "https://app.useclevr.com/api/chatgpt/mcp",
+  "oauth": {
+    "protectedResourceMetadata": "https://app.useclevr.com/.well-known/oauth-protected-resource",
+    "authorizationServerMetadata": "https://app.useclevr.com/.well-known/oauth-authorization-server",
+    "authorizationEndpoint": "https://app.useclevr.com/api/chatgpt/oauth/authorize",
+    "tokenEndpoint": "https://app.useclevr.com/api/chatgpt/oauth/token",
+    "jwksEndpoint": "https://app.useclevr.com/api/chatgpt/oauth/jwks",
+    "clientMode": "cimd",
+    "tokenEndpointAuthMethod": "none",
+    "scopes": ["dataset:read", "dataset:write"]
+  },
+  "tools": [
+    {
+      "name": "useclevr_list_datasets",
+      "scope": "dataset:read",
+      "behavior": "Lists datasets owned by the connected UseClevr user."
+    },
+    {
+      "name": "useclevr_analyze_dataset",
+      "scope": "dataset:read",
+      "behavior": "Returns trusted KPIs, insights, warnings, semantic diagnostics, and optional computed question results for an owned dataset."
+    },
+    {
+      "name": "useclevr_upload_dataset",
+      "scope": "dataset:read dataset:write",
+      "behavior": "Uploads CSV, XLSX, or XLS files to the connected UseClevr account and runs the existing analysis workflow."
+    }
+  ]
+}
