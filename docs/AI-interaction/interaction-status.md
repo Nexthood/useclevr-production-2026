@@ -5,6 +5,46 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-20
+- **Goal**: Prepare release/agent-trust-passport in /tmp/useclevr-passport-release-20261020 from locally available origin/main 79553d7d and cherry-pick f03eaf7e.
+- **Conflicts**: Resolve five package/task/interaction-record conflicts by retaining upstream commands and complete records, adding the passport content, and keeping nextTaskNumber at 1092.
+- **PASS**: TypeScript, 12 disposable passport fixture groups, 11 governance consistency unit groups, deployment configuration, TODO/changelog/package checks, production build, and distribution packaging. The initial sandbox font-download failure clears on a network-enabled retry.
+- **Build limits**: Credentials are isolated and the database endpoint is a closed local port; expected PostgreSQL connection refusal and compilation warnings do not establish database-backed runtime readiness.
+- **Scope**: Exactly 27 passport paths; implementation bytes match f03eaf7e. CI/CD files remain unchanged. The original main HEAD, index, and 31 uncommitted file hashes remain intact.
+- **Pending**: T-1091 browser acceptance; production-scale migration lock/timing, schema compatibility, recovery verification, and database-backed runtime checks.
+- **Restrictions**: Complete the authorized cherry-pick only. No additional commit, push, deployment, production migration, or CI/CD automation change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create one local commit containing only T-1091 Agent Trust Passport changes.
+- **Scope**: Passport UI/APIs, schema and migration source, trace attribution, disposable tests, test command, requirements, release note, and passport-only interaction records. Unrelated shared-file changes stay unstaged.
+- **Validation evidence**: Twelve passport fixture groups and eleven governance consistency unit groups pass; implementation TypeScript and Eclipse Mode checks pass. Commit preparation reviews staged paths and runs secret scanning and repository hooks.
+- **Browser acceptance**: PENDING under active T-1091. No authenticated browser journey runs; browser automation tooling is unavailable in the acceptance session. Full historical-record preservation and existing governance UI behavior remain unverified in a browser.
+- **Restrictions**: One local commit is authorized. No push, deployment, or production database migration. Preserve unrelated working-tree changes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: T-1091 final browser acceptance in the existing local AI Governance interface, using test accounts only.
+- **Browser result**: BLOCKED, not passed. No browser automation tool is exposed; Playwright and Puppeteer packages are unavailable. Browser binaries exist, but no authenticated browser flow or local development server runs.
+- **Supporting PASS**: Twelve passport fixture groups cover API creation/editing, field validation, trace linkage, historical null attribution, and cross-user denial. Eleven existing governance consistency unit groups pass with database exports mocked to null and inherited credentials excluded.
+- **Evidence limits**: Mocked-session API tests and static rendering do not establish browser form persistence, UI-generated trace association, byte-for-byte historical record preservation, or functioning governance controls/navigation.
+- **Remaining blocker**: Run all six browser checks in a browser-capable local session with an isolated database and two test-account logins. T-1091 is active until this acceptance completes.
+- **Restrictions**: No deployment, production migration, real database access, commit, or push. Product implementation and unrelated changes remain untouched; only local records and TODO state change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Continue and complete the unfinished Agent Trust Passport task, T-1091.
+- **Behavior**: Owners manage one durable analyst identity, human owner declaration, purpose, scope, descriptive risk/lifecycle, and paginated trace references. Superadmins inspect across accounts with owner-only edits. Historical traces remain unassigned; Eclipse Mode creates no trace.
+- **Fix**: Use async main in both passport test entrypoints for the ES6 target and explicitly type cross-origin header fixtures.
+- **Validation**: All 12 boundary/database groups pass against fresh network-disabled Docker PostgreSQL. TypeScript, Eclipse Mode, and package metadata pass. Focused ESLint reports zero errors with existing trace warnings and ignored test-script notices.
+- **Scope**: T-1091 is complete in the local working tree. No commit, push, production build, deployment, or browser acceptance check occurs. Existing ChatGPT integration work remains in the shared tree.
+- **Records**: See project-logs/interactive-log.md and project-logs/activity-log.md for the continuation evidence.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
 - **Goal**: Create four approved local ChatGPT integration commits on a dedicated branch without publishing.
 - **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
 - **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.

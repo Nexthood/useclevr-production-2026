@@ -1,3 +1,27 @@
+## 2026-10-20 — T-1091 isolated release preparation
+
+- Apply f03eaf7e on release/agent-trust-passport from locally available origin/main 79553d7d in a separate worktree; resolve five shared-record/package conflicts while retaining upstream content.
+- Pass TypeScript, 12 passport fixture groups, 11 governance unit groups, deployment-config checks, TODO/changelog/package checks, production build, and distribution packaging with isolated credentials.
+- Retain pending browser acceptance and migration/runtime rehearsal requirements; preserve original main, index, and all 31 uncommitted file hashes. Complete only the authorized cherry-pick; no push, deployment, production migration, or CI/CD changes.
+
+## 2026-10-20 — T-1091 local commit preparation
+
+- Isolate Agent Trust Passport implementation, fixture tests, migration source, trace linkage, requirements, release note, and acceptance records for one local commit.
+- Keep browser acceptance pending in active T-1091; preserve unrelated changes and exclude temporary artifacts and real credentials.
+- Reuse verified 12 passport groups and 11 governance unit groups; run staged review, secret scanning, and repository commit hooks. No push, deployment, or production migration is authorized.
+
+## 2026-10-20 — T-1091 browser acceptance remains pending
+
+- Record browser acceptance as BLOCKED: no exposed browser automation tool or installed automation package; no authenticated local UI journey runs.
+- Pass 12 passport boundary/database groups with disposable fixture users and 11 existing governance consistency unit groups with database access disabled.
+- Return T-1091 to the active queue; retain local-only restrictions and unrelated working-tree changes.
+
+## 2026-10-20 — Agent Trust Passport completion
+
+- Complete T-1091 local validation: owner-scoped metadata, stable identity, descriptive lifecycle and risk, trace references, migration replay, and Eclipse Mode privacy.
+- Fix passport test entrypoints for the ES6 TypeScript target and type cross-origin header fixtures.
+- Verify all 12 passport test groups, TypeScript, Eclipse Mode, package metadata, and focused ESLint with zero errors; keep changes uncommitted and unpublished.
+
 ## 2026-10-20 — Four local ChatGPT integration commits
 
 - Create integration/chatgpt-2026-10-20 from verified upstream 05816e35 in a separate worktree; preserve the original files and a private backup.

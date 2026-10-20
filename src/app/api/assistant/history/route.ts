@@ -1,3 +1,4 @@
+import { CLEVR_ANALYST_KEY } from "@/lib/ai-governance/agent-passport-service"
 import { requireSession } from "@/lib/auth/require-session"
 import { createTrace, getUserTraces } from "@/lib/ai/ai-trace"
 import { ghostModeTraceMessage, normalizeGhostMode } from "@/lib/ai/ghost-mode"
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
     }
 
     const trace = await createTrace({
+      agentKey: CLEVR_ANALYST_KEY,
       userId: auth.userId,
       datasetId: body.datasetId,
       prompt: body.prompt,

@@ -1,5 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { getAiGovernanceSnapshot } from "@/lib/ai-governance/governance-service"
+import { PASSPORT_NOTICE } from "@/lib/ai-governance/agent-passport-service"
+import { AgentPassportEditor, AgentPassportTraces } from "./agent-passport-editor"
 import {
   Activity,
   AlertTriangle,
@@ -145,6 +147,16 @@ function OverviewSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
   return (
     <div className="space-y-4">
       <OverviewStatusStrip snapshot={snapshot} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Agent Trust Passport</CardTitle>
+          <CardDescription>{PASSPORT_NOTICE}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p>{!snapshot.agentPassports.available ? "Passport details are temporarily unavailable." : snapshot.agentPassports.ownPassport ? "Clevr AI Analyst · " + snapshot.agentPassports.ownPassport.ownerName + " · " + snapshot.agentPassports.ownPassport.lifecycle : "Passport not configured"}</p>
+          <Link className="font-medium underline underline-offset-4" href="/app/ai-governance/transparency#agent-passports">View and manage passport</Link>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-[5.5fr_6.5fr]">
         <ReadinessCard snapshot={snapshot} />
@@ -289,6 +301,8 @@ function ControlMatrix({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
 
 function TransparencySection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
   return (
+    <div className="space-y-4">
+    <AgentPassportsSection snapshot={snapshot} />
     <div className="grid gap-4 xl:grid-cols-[5fr_7fr]">
       <AiGeneratedExample snapshot={snapshot} />
       <Card className="border-border bg-card shadow-sm">
@@ -312,6 +326,35 @@ function TransparencySection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
         </CardContent>
       </Card>
     </div>
+    </div>
+  )
+}
+
+function AgentPassportsSection({ snapshot }: { snapshot: AiGovernanceSnapshot }) {
+  const passports = snapshot.agentPassports
+  return (
+    <section id="agent-passports" className="space-y-4" aria-label="Agent Trust Passports">
+      <Card>
+        <CardHeader>
+          <CardTitle>Clevr AI Analyst — Agent Trust Passport</CardTitle>
+          <CardDescription>One durable analyst identity for your account across provider and model changes.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {passports.available ? <AgentPassportEditor key={passports.ownPassport?.id || "new"} passport={passports.ownPassport} notice={PASSPORT_NOTICE} /> : <p role="status">Passport details are temporarily unavailable. Refresh to retry.</p>}
+        </CardContent>
+      </Card>
+      {passports.items.map((passport) => <Card key={passport.id}>
+        <CardHeader><CardTitle>{passport.agentKey === "clevr-ai-analyst" ? "Clevr AI Analyst" : passport.agentKey}</CardTitle><CardDescription>Passport metadata and existing trace references</CardDescription></CardHeader>
+        <CardContent className="space-y-4">
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            {Object.entries({ "Passport ID": passport.id, "Owner account": passport.userId, "Human owner": passport.ownerName, "Purpose": passport.purpose, "Declared scope": passport.declaredScope, "Owner-declared risk": passport.riskClass, "Lifecycle (descriptive)": passport.lifecycle, "Created": passport.createdAt, "Updated": passport.updatedAt }).map(([label, value]) => <div key={label} className="min-w-0"><dt className="font-medium">{label}</dt><dd className="whitespace-pre-wrap break-words text-muted-foreground">{value}</dd></div>)}
+          </dl>
+          <p className="text-sm text-muted-foreground">{PASSPORT_NOTICE}</p>
+          <AgentPassportTraces passportId={passport.id} />
+        </CardContent>
+      </Card>)}
+      {passports.items.length === 100 && <p className="text-sm text-muted-foreground">Showing the 100 most recent passports.</p>}
+    </section>
   )
 }
 

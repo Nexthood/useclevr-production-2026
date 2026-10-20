@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   customType,
   doublePrecision,
   foreignKey,
@@ -15,6 +16,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 const vectorJson = customType<{ data: number[] | null; driverData: number[] | null }>({
   dataType() {
@@ -1530,11 +1532,40 @@ export const referralAttributions = pgTable(
 );
 
 // AI interaction trace table - logs every user-AI interaction
+export const aiAgentRiskClasses = ["unclassified", "low", "medium", "high"] as const;
+export const aiAgentLifecycleStates = ["draft", "active", "retired"] as const;
+
+export const aiAgentPassports = pgTable(
+  "AiAgentPassport",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    agentKey: varchar("agentKey", { length: 100 }).notNull(),
+    ownerName: varchar("ownerName", { length: 160 }).notNull(),
+    purpose: varchar("purpose", { length: 2000 }).notNull(),
+    declaredScope: varchar("declaredScope", { length: 4000 }).notNull(),
+    riskClass: varchar("riskClass", { length: 20 }).notNull().default("unclassified").$type<(typeof aiAgentRiskClasses)[number]>(),
+    lifecycle: varchar("lifecycle", { length: 20 }).notNull().default("draft").$type<(typeof aiAgentLifecycleStates)[number]>(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    userFk: foreignKey({ columns: [table.userId], foreignColumns: [users.id], name: "AiAgentPassport_userId_fkey" }).onDelete("cascade"),
+    agentUnique: uniqueIndex("AiAgentPassport_userId_agentKey_key").on(table.userId, table.agentKey),
+    riskCheck: check("AiAgentPassport_riskClass_check", sql`${table.riskClass} IN ('unclassified', 'low', 'medium', 'high')`),
+    lifecycleCheck: check("AiAgentPassport_lifecycle_check", sql`${table.lifecycle} IN ('draft', 'active', 'retired')`),
+    ownerCheck: check("AiAgentPassport_ownerName_check", sql`length(trim(${table.ownerName})) > 0`),
+    purposeCheck: check("AiAgentPassport_purpose_check", sql`length(trim(${table.purpose})) > 0`),
+    scopeCheck: check("AiAgentPassport_declaredScope_check", sql`length(trim(${table.declaredScope})) > 0`),
+  }),
+);
+
 export const aiInteractionTraces = pgTable(
   "AiInteractionTrace",
   {
     id: text("id").primaryKey(),
     userId: text("userId").notNull(),
+    agentPassportId: text("agentPassportId"),
     datasetId: text("datasetId"),
     prompt: text("prompt").notNull(),
     response: text("response").notNull(),
@@ -1556,6 +1587,8 @@ export const aiInteractionTraces = pgTable(
       foreignColumns: [users.id],
       name: "AiInteractionTrace_userId_fkey",
     }).onDelete("cascade"),
+    passportFk: foreignKey({ columns: [table.agentPassportId], foreignColumns: [aiAgentPassports.id], name: "AiInteractionTrace_agentPassportId_fkey" }).onDelete("set null"),
+    passportIdx: index("AiInteractionTrace_agentPassportId_createdAt_idx").on(table.agentPassportId, table.createdAt),
     userIdIdx: index("AiInteractionTrace_userId_idx").on(table.userId),
     createdAtIdx: index("AiInteractionTrace_createdAt_idx").on(table.createdAt),
     providerNameIdx: index("AiInteractionTrace_providerName_idx").on(table.providerName),
