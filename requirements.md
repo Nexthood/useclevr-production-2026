@@ -14,6 +14,8 @@ Text rules for this file:
 - Bind ChatGPT authorization requests to the allowlisted client's metadata and registered callback; permit exactly one successful exchange per unexpired authorization code.
 - Run ChatGPT OAuth and MCP integration tests through a disposable PostgreSQL runner that excludes existing database configuration and provider credentials; execute both suites in source CI.
 
+- Serve the OpenAI domain verification challenge at `/.well-known/openai-apps-challenge` with HTTP 200 and the exact configured plain-text proof, without authentication or redirects, on the app and MCP hosts.
+
 - Store application data in Neon PostgreSQL.
 - Store Payload content and administrator-authentication tables in the same PostgreSQL database.
 - Use ephemeral PostgreSQL containers for local and CI validation.

@@ -5,11 +5,14 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-20
-- **Goal**: Validate ChatGPT account linking and isolate its OAuth/MCP regression tests.
+- **Goal**: Create four approved local ChatGPT integration commits on a dedicated branch without publishing.
 - **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
 - **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
 - **CIMD evidence**: The support report describes the exact historical 1.0.2 archive. The source validator checks identity and OAuth-summary consistency without contacting OpenAI. Edited sources do not certify that archive or resolve portal state.
-- **Validation**: Three safety checks, 27 OAuth-to-MCP checks, and the existing MCP suite pass locally; TypeScript and focused source checks pass.
+- **Domain baseline**: Integration branch `integration/chatgpt-2026-10-20` starts at verified upstream `05816e35` in `/tmp/useclevr-chatgpt-integration-20261020`; local `main` stays at `eab70041`. The domain route/proxy remain upstream implementation and are excluded from the four groups. No main merge/rebase occurs.
+- **Validation**: Local OAuth/MCP and safety tests, TypeScript, secret scan, TODO/package/workflow checks pass. Final validation details and exact commit groups are recorded in `chatgpt-integration-commit-groups.md`.
+- **Operator checks**: Verify publisher identity, reviewer email-proof login, demo access, privacy disclosures, portal CIMD save, production allowlists, domain verification, and tool scan in a separately authorized task.
+- **Artifacts and commits**: Four local source groups exclude both ZIPs, the historical validation JSON, credentials, and duplicate domain implementation. The original worktree and private backup preserve all pending files. No push, deployment, or OpenAI submission occurs; Git history records the four local hashes.
 
 ## Previous Interaction
 
@@ -20,6 +23,15 @@ Update this file after every completed AI interaction.
 - **Next step**: The operator collects the failed save request's registration mode, HTTP status, and request ID without secrets, then sends the prepared support report to OpenAI for saved-state inspection or validation repair.
 - **Report**: `docs/AI-interaction/openai-cimd-portal-support-report.txt`.
 - **Scope**: No package, OAuth-route, client-ID, or client-mode change; no support message is sent.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Serve the OpenAI domain challenge publicly as exact plain text without authentication or redirects.
+- **Current change**: Add the App Router GET handler and permit its exact path in the MCP host allowlist; record requirements, release notes, and T-1086.
+- **Verification**: Local curl checks return HTTP 200, text/plain, the exact 43-byte proof without newline, and no redirect on localhost and app/MCP/MCP-test host headers. Unrelated MCP paths return 404; protected APIs return 401. Focused ESLint passes with parser project discovery disabled for the hidden well-known directory.
+- **Observation at 2026-10-19 local verification**: The public app challenge URL returns HTTP 404 at that check. This observation does not establish current deployment status; the source implementation is present in cached `origin/main`. No deployment check is performed in the local finalization task.
+- **Records**: `project-logs/interactive-log.md`, `project-logs/activity-log.md`.
 
 ## Previous Interaction
 

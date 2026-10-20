@@ -63,6 +63,8 @@
 - Provide submission source assets and publisher metadata for reproducible UseClevr upload packages.
 - Check submission publisher names, public-client authentication, and listing URLs locally before packaging.
 
+- Serve a public domain verification response so OpenAI can verify the UseClevr app and connector hosts.
+
 - Add a hermetic test-schema bootstrap for the Risk ClevrSync parity suite so the bare CI PostgreSQL database provisions only the relations that suite exercises, keeping local runs no-op.
 - Add Stripe market-price checkout regression tests that reproduce and block the UK GBP price-mismatch checkout failure and pin Pro UK Monthly to £35.
 - Add a Stripe market price audit script that compares configured market Price IDs against the approved currency, amount, and billing interval matrix.

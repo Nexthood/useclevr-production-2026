@@ -1,3 +1,10 @@
+## 2026-10-20 — Four local ChatGPT integration commits
+
+1. Goal: Commit the four approved ChatGPT integration groups locally without discarding work or publishing.
+2. Current outcome: The dedicated integration worktree uses verified upstream 05816e35; the original main worktree remains unchanged, and a private backup preserves all 35 pending/artifact files. Each staged diff is checked against its approved manifest before normal-hook commits.
+3. Risks: Publisher verification, portal connection saving, reviewer access, and production configuration remain operator checks. Git commit history records the four local commit hashes; no main merge/rebase, push, deployment, or OpenAI submission occurs.
+4. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-10-20 — Disposable ChatGPT OAuth and MCP validation
 
 1. Goal: Finalize account-linking security without existing databases or provider credentials.
@@ -16,7 +23,10 @@
 
 ## 2026-10-20 — CIMD submission consistency and commit preparation
 
+1. Goal: Prepare four reviewable source groups while preserving the portal investigation.
 2. Validation: The source validator checks publisher names, listing URLs, demo URL syntax, and CIMD/public-client consistency. Its success does not establish portal saving. The support report retains the historical 1.0.2 ZIP fingerprint.
+3. Baseline: Pending domain implementation exactly matches cached origin/main and stays outside new commits.
+4. Destination: docs/AI-interaction/chatgpt-integration-commit-groups.md lists the four local source commit groups, exact files, validation, and operator checks. The original worktree and private backup preserve all pending work; local main is not merged or rebased. No push, deployment, archive generation, or submission occurs.
 
 ## 2026-10-19 — CIMD portal connection audit
 
@@ -29,6 +39,18 @@
 7. Follow-up: The operator adds portal identifiers and redacted failure details to the prepared support report and submits it manually.
 8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
 9. Destinations: docs/AI-interaction/openai-cimd-portal-support-report.txt and the three interaction records. Package bytes and OAuth route implementations remain unchanged.
+
+## 2026-10-19 — Public OpenAI domain verification
+
+1. Interaction title: Public OpenAI domain challenge.
+2. User goal: Serve the supplied domain proof through an unauthenticated GET response at the exact challenge path.
+3. Current change: `src/app/.well-known/openai-apps-challenge/route.ts` returns HTTP 200 and exact plain text without a newline; `src/proxy.ts` permits only this additional well-known path on the MCP hosts. Requirements, release notes, and T-1086 record the implementation.
+4. Problems: blocker — the public app URL returns HTTP 404 because the route is not deployed; observation — local curl checks return HTTP 200 with the exact 43-byte response, text/plain, and no redirect for localhost, app, MCP, and MCP-test host headers; unrelated MCP paths return 404 and protected APIs return 401.
+5. User learning: Deploy the source change before running domain verification in the OpenAI dashboard.
+6. AI-agent learning: The MCP host allowlist must permit the exact challenge path independently of the route handler. Local Next.js startup writes generated agent guidance and type references; those incidental edits are excluded from this change.
+7. Follow-up: Deployment remains an operator action; this request includes no commit, push, or publication.
+8. Instruction sources: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`, and `project-prompts/ai-memory-collection-post-interaction.md`.
+9. Destinations: Route, exact proxy exception, requirements, release notes, regular TODO records, and the three interaction records.
 
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 

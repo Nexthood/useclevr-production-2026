@@ -1,3 +1,8 @@
+## 2026-10-20 — Four local ChatGPT integration commits
+
+- Create integration/chatgpt-2026-10-20 from verified upstream 05816e35 in a separate worktree; preserve the original files and a private backup.
+- Review each staged group against the approved file manifest and record four local commits with normal validation hooks; keep archives, secrets, and upstream domain implementation outside the groups.
+
 ## 2026-10-20 — Disposable ChatGPT OAuth and MCP validation
 
 - Run the existing OAuth security work through fresh PostgreSQL clusters with private Unix sockets, separate databases, synthetic fixtures, and generated in-memory keys.
@@ -12,12 +17,20 @@
 ## 2026-10-20 — CIMD submission consistency and commit preparation
 
 - Validate matching publisher names, listing URLs, and CIMD public-client metadata locally; retain the support report as evidence about the exact historical 1.0.2 ZIP.
+- Record four approved local source commit groups on the integration branch; exclude duplicate domain implementation and preserve the original worktree. No push, deployment, or submission occurs.
 
 ## 2026-10-19 — CIMD portal connection audit
 
 - Verify the exact 1.0.2 ZIP, its canonical CIMD declaration, absence of duplicate fields and alternate manifests, and agreement with the live OAuth discovery.
 - Distinguish the reported predefined-client-ID validation from unverified persisted portal state; prepare a support report with the required reproduction evidence.
 - Keep the upload package and OAuth implementations unchanged; the operator submits the report manually.
+
+## 2026-10-19 — Public OpenAI domain verification
+
+- Serve the exact plain-text proof through the App Router and permit its exact path on MCP hosts.
+- Verify local HTTP 200, text/plain, exact 43-byte body, no redirect, MCP host routing, unrelated-path 404, and protected-API 401 with curl.
+- Record public `https://app.useclevr.com/.well-known/openai-apps-challenge` HTTP 404; deployment is required for the live endpoint.
+- Keep all MCP/OAuth implementations and existing upload packages unchanged; no commit, push, or publication.
 
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
