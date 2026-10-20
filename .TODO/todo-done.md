@@ -91,6 +91,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1091. Verify Agent Trust Passport creation, declared fields, edit/reload persistence, stable identity, Assistant UI trace linkage, historical fixture-row preservation, cross-account denial, governance navigation, linked-trace viewing, and compliance export with synthetic accounts and disposable PostgreSQL; reconcile acceptance evidence with the source-equivalent release branch. (labels: ai, auth, testing; commit: worktree)
+
 - T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)
 - T-999. Risk Intelligence and Dataset Library management controls select and delete multiple datasets through one confirmed bulk action while preserving single-dataset deletion, active-dataset recovery, and retryable partial-failure handling. (labels: workflow, data, ui, testing; commit: c4c05f3c)
 - T-703. Add pre-commit hooks (lint:todos, lint:changelog, lint:secrets, lint:package) and pre-push hooks (types, dist validate, lint, workflows). Verified fully implemented. (labels: workflow, ci-build; commit: worktree)

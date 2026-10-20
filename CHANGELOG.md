@@ -2,7 +2,7 @@
 
 ### Added
 
-- Let users manage an Agent Trust Passport in AI Governance to record their analyst's human owner, purpose, scope, declared risk, lifecycle, and linked activity.
+- Let users declare their analyst's human owner, purpose, scope, risk, and lifecycle in an Agent Trust Passport and inspect linked analysis activity in AI Governance.
 - Usy now understands Swedish and answers every supported topic, including billing, planning, and contact requests, in Swedish.
 - The dashboard language selector now offers Swedish alongside the existing languages.
 - Usy now understands French and answers every supported topic, including billing, planning, and contact requests, in French.

@@ -5,6 +5,27 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-20
+- **Goal**: Finalize release/agent-trust-passport with one local commit containing only T-1091 documentation and task records.
+- **Browser acceptance**: PASS from the preceding browser session: creation, declared fields, edit/reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row equality, cross-account denial, all eleven governance sections, linked-trace viewing, and compliance export. Headless Chrome uses two synthetic accounts, a Pro fixture, a synthetic revenue dataset, and disposable network-disabled PostgreSQL. The Assistant returns total revenue 300 and its trace references the passport.
+- **Evidence scope**: The browser session tests the earlier checkout; it does not run in this release worktree. All eighteen implementation/test paths in release commit c43643e8 match the browser-tested implementation f03eaf7e. The release worktree also contains the separate PostgreSQL runtime/migration evidence below. Prior browser evidence is recorded at /tmp/useclevr-browser-Zj7SLQ/acceptance.json; this finalization does not rerun browser tests.
+- **Release records**: Move T-1091 from TODO-next to TODO-done, reconcile acceptance and runtime evidence, and clarify the existing passport release note. Validate staged documentation, task metadata, secrets, package metadata, and whitespace through the repository commit gate.
+- **Limits**: The browser session records an Assistant generated-timestamp hydration warning. Production schema compatibility, migration contention/recovery, and external-provider connectivity are unverified. Local acceptance completion does not certify production deployment readiness.
+- **Preservation and restrictions**: Preserve the unstaged next-env.d.ts edit and untracked temporary artifacts. Create exactly one local documentation commit; no push, deployment, production migration, or CI/CD change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Final local runtime and migration verification of T-1091 in the release worktree only.
+- **PASS runtime**: Real application PostgreSQL connections persist passport creation/editing, all declared fields, stable new-trace linkage, owner isolation, and read-only superadmin inspection. Historical content checksums remain unchanged; Eclipse Mode writes no trace. Session identities are synthetic and handlers run in-process.
+- **PASS governance**: Settings, owner-scoped audit/provider monitoring, overrides, and snapshot/privacy/risk/compliance/reports work with PostgreSQL; eleven existing consistency groups pass.
+- **Migration measurements**: PostgreSQL 17.11; synthetic 1,000-row first apply/replay 9.40/1.32 ms; 100,000-row first apply/replay 154.38/1.36 ms. Rows/checksums, nullable attribution, foreign-key validation, and index validity pass. These are single local measurements.
+- **Observed locking**: An active reader blocks AccessExclusiveLock; test-only 400 ms timeout fails with 55P03 after 410.44 ms. An uncommitted migration blocks reads until commit; test-only statement timeout fails with 57014 after 401.16 ms. Rollback and post-commit recovery pass. Production predeploy has no explicit lock/statement timeout.
+- **BLOCKED browser**: No browser automation tool or installed Playwright/Puppeteer package. Browser acceptance stays pending under T-1091. Production schema compatibility, full predeploy duration, backup/recovery, and production contention remain unverified.
+- **Isolation and changes**: Fresh network-disabled PostgreSQL, private worktree socket, synthetic records, no inherited credentials. Container/cluster removed. Only related records and untracked local rehearsal artifacts change; no additional commit, push, deployment, production migration, or original-checkout access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
 - **Goal**: Prepare release/agent-trust-passport in /tmp/useclevr-passport-release-20261020 from locally available origin/main 79553d7d and cherry-pick f03eaf7e.
 - **Conflicts**: Resolve five package/task/interaction-record conflicts by retaining upstream commands and complete records, adding the passport content, and keeping nextTaskNumber at 1092.
 - **PASS**: TypeScript, 12 disposable passport fixture groups, 11 governance consistency unit groups, deployment configuration, TODO/changelog/package checks, production build, and distribution packaging. The initial sandbox font-download failure clears on a network-enabled retry.

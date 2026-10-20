@@ -1,3 +1,15 @@
+## 2026-10-20 — T-1091 release documentation finalization
+
+- Reconcile the preceding passing Chrome acceptance with release/agent-trust-passport: eighteen implementation/test paths match the tested passport implementation; retain the release-worktree PostgreSQL runtime and migration evidence.
+- Complete T-1091 in the regular task queues, clarify its existing release note, and prepare one local documentation/task-record commit with repository validation hooks.
+- Preserve the unstaged generated type-reference edit and temporary artifacts; change no application code or CI/CD configuration and perform no push, deployment, or production migration. Production migration readiness and the observed Assistant timestamp hydration warning remain explicit limitations.
+
+## 2026-10-20 — T-1091 final local PostgreSQL runtime verification
+
+- Pass real-database passport CRUD, editable-field persistence, trace association, historical checksum preservation, cross-owner isolation, and existing governance reads/writes; pass eleven governance consistency groups.
+- Rehearse migration 0037 on 1,000 and 100,000 synthetic traces: first apply 9.40/154.38 ms; replay 1.32/1.36 ms. Observe AccessExclusiveLock contention, transactional rollback, and read recovery after commit.
+- Remove the disposable network-disabled PostgreSQL container and cluster data. Keep browser acceptance BLOCKED and production schema/timing/recovery unverified; create no commit, push, deployment, or production migration and leave the original checkout untouched.
+
 ## 2026-10-20 — T-1091 isolated release preparation
 
 - Apply f03eaf7e on release/agent-trust-passport from locally available origin/main 79553d7d in a separate worktree; resolve five shared-record/package conflicts while retaining upstream content.
