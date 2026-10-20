@@ -7,6 +7,7 @@ Update this file after every completed AI interaction.
 - **Date**: 2026-10-20
 - **Goal**: Validate ChatGPT account linking and isolate its OAuth/MCP regression tests.
 - **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
+- **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
 - **Validation**: Three safety checks, 27 OAuth-to-MCP checks, and the existing MCP suite pass locally; TypeScript and focused source checks pass.
 
 ## Previous Interaction

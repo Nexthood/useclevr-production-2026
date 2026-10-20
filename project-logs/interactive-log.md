@@ -7,6 +7,13 @@
 5. Boundaries: Local fixtures do not certify production configuration, portal saving, or reviewer access.
 6. Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route learning into the testing guide, requirements, changelog, TODOs, and interaction records.
 
+## 2026-10-20 — OpenAI publisher and source package reconciliation
+
+1. Goal: Reconcile Atlas Mega Ventures / UseClevr and submission readiness.
+2. Current behavior: UseClevr names the product; Atlas Mega Ventures names the intended publisher and author. The operator confirms affiliation and verified OpenAI identity. The existing demo URL, reviewer email-proof login, privacy disclosures, attachment behavior, and annotations require operator verification.
+3. Artifacts: Root ZIPs and validation JSON remain intact and ignored. Edited sources do not certify historical upload bytes.
+4. Evidence: Official OpenAI submission documentation supports the identity distinction; package instructions and checklist state the remaining checks.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 1. Interaction title

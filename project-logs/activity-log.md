@@ -4,6 +4,11 @@
 - Exclude inherited database/provider configuration and environment-file loaders; reject direct entrypoint execution and database overrides; run both suites in source CI.
 - Validate real email-proof login, consent, CIMD, PKCE, atomic code consumption, bearer checks, and tenant isolation locally.
 
+## 2026-10-20 — OpenAI publisher and source package reconciliation
+
+- Use UseClevr as the product and Atlas Mega Ventures as the package author and intended publisher; require the operator to verify affiliation and selected OpenAI identity.
+- Document the existing demo link, required reviewer email-proof access, and outstanding submission checks; keep historical ZIPs and validation JSON intact and Git-ignored.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 - implemented: `swedish` joins the canonical `SupportedUsyLanguage` union and the ordered `supportedUsyLanguages` array (`english, german, dutch, french, spanish, hungarian, romanian, swedish`) behind the existing label constant, actions registry, chat/contact zod schemas, chatbox surface maps (placeholder, quick action, contact labels, submit labels), and the 🇸🇪 Svenska badge entry — no parallel lists
