@@ -9,6 +9,14 @@ Text rules for this file:
 - Avoid vague phrases that hide the actor or the required action.
 - Avoid past-state comparison unless it prevents a concrete risk.
 
+## AI Governance
+
+- Let each signed-in account create and edit one Clevr AI Analyst passport with a human owner name, purpose, declared scope, owner-declared risk, and descriptive lifecycle.
+- Keep the passport identity stable across provider, model, and lifecycle changes; reject identity reassignment and cross-account edits.
+- Link new analyst traces to the signed-in owner's configured passport; leave historical traces unassigned and exclude Eclipse Mode requests from trace storage.
+- Let owners inspect their passport metadata and paginated trace references; let superadmins inspect all owners' passports without editing another owner's passport.
+- State that passport lifecycle and risk declarations do not enforce runtime restrictions, grant permissions, verify identity, or constitute security certification.
+
 ## Infrastructure
 
 - Bind ChatGPT authorization requests to the allowlisted client's metadata and registered callback; permit exactly one successful exchange per unexpired authorization code.

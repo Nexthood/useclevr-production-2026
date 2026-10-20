@@ -1,3 +1,4 @@
+import { CLEVR_ANALYST_KEY } from "@/lib/ai-governance/agent-passport-service"
 import { z } from "zod";
 
 import {
@@ -125,6 +126,7 @@ export async function POST(request: Request) {
         route: result.route,
       });
       const trace = ghostMode ? null : await createTrace({
+        agentKey: CLEVR_ANALYST_KEY,
         userId,
         prompt: latestQuestion || prompt,
         response: result.text,
@@ -341,6 +343,7 @@ export async function POST(request: Request) {
         route: result.route,
       });
       const trace = ghostMode ? null : await createTrace({
+        agentKey: CLEVR_ANALYST_KEY,
         userId,
         prompt: latestQuestion || prompt,
         response: result.text,

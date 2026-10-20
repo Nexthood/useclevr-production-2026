@@ -52,6 +52,37 @@
 8. Instruction sources: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`, and `project-prompts/ai-memory-collection-post-interaction.md`.
 9. Destinations: Route, exact proxy exception, requirements, release notes, regular TODO records, and the three interaction records.
 
+## 2026-10-20 — T-1091 local commit preparation
+
+1. Goal: Isolate and commit only Agent Trust Passport implementation, tests, migration source, trace linkage, requirements, release note, and task records.
+2. Scope: Select passport-only content from shared package metadata and documentation; exclude ChatGPT OAuth, submission, domain-verification, CI, archives, and unrelated TODO records. Preserve unrelated working-tree bytes.
+3. Validation evidence: All 12 passport fixture groups and 11 existing governance consistency unit groups pass in the preceding acceptance check. TypeScript and Eclipse Mode checks pass in the implementation check. Commit preparation checks staged paths, whitespace, secret scanning, and the repository pre-commit gate.
+4. Limitation: Browser acceptance remains pending under active T-1091. No authenticated UI journey, complete historical-record comparison, full production build, deployment, or production migration is certified.
+5. User authorization: Create one local conventional commit; do not push, deploy, or run production database migrations.
+6. Learning and follow-up: Stage shared records by content to isolate passport work. T-1091 requires a browser-capable local environment, isolated database, and two test-account sessions.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require these three interaction records and the active acceptance task.
+
+## 2026-10-20 — T-1091 final browser acceptance limitation
+
+1. Goal: Verify six Agent Trust Passport acceptance areas through the existing local governance interface with test accounts only.
+2. Browser result: BLOCKED, not passed. This session exposes no browser automation tool. Playwright, playwright-core, @playwright/test, Puppeteer, and puppeteer-core do not resolve; no Playwright browser cache exists. Chrome and Firefox binaries exist, but no browser session or authenticated UI flow is exercised. No local development server is started.
+3. Supporting results: PASS for all 12 passport boundary/database groups using synthetic users and mocked sessions against a fresh network-disabled Docker PostgreSQL database. Tests cover creation, owner edits, field validation/defaults, lifecycle changes, new trace association, historical null attribution, cross-owner denial, and paginated metadata. This does not establish unchanged historical record content or browser request wiring.
+4. Governance result: PASS for 11 existing consistency unit groups with inherited credentials excluded and database exports mocked to null. Provider monitoring, privacy posture, risk, failure categories, and compliance facts pass; live interface navigation and controls remain unverified.
+5. Changes: Return T-1091 to the active queue for browser acceptance and update the three required interaction records. Product implementation and unrelated changes remain untouched.
+6. Blocker and follow-up: T-1091 requires a browser-capable local session with an isolated development database and two test-account logins. The operator must exercise form persistence, real UI trace creation, historical record comparison, cross-user navigation/API denial, and existing governance navigation and controls. Browser acceptance must not inherit PASS from API or static-render tests.
+7. Restrictions: No deployment, production migration, real account/database access, commit, or Git push occurs. Only the disposable fixture schema receives migrations.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route this finding to TODO-next and the interaction records.
+
+## 2026-10-20 — Agent Trust Passport continuation (T-1091)
+
+1. Goal: Continue the unfinished local implementation identified by T-1091 in the active queue.
+2. Current behavior: AI Governance exposes owner-scoped passport creation and editing, stable analyst identity, descriptive risk and lifecycle, and paginated trace references. Superadmins inspect all owners' passports; edits remain owner-only. Historical traces stay unassigned and Eclipse Mode creates no trace.
+3. Changes: Wrap the two passport test entrypoints in async main functions to match the project's ES6 target; type cross-origin test headers explicitly. Format the new passport files and move T-1091 to the completed queue. Requirements, release notes, migration, and trace documentation describe the implemented feature.
+4. Verification: All 12 passport boundary/database test groups pass using fresh network-disabled Docker PostgreSQL; TypeScript and Eclipse Mode checks pass. Focused ESLint reports zero errors, with existing trace warnings and ignored test-script notices. Package metadata validation passes.
+5. Problems: The filesystem sandbox blocks Docker access; approved execution permits disposable database validation. Full production build, browser interaction, and deployment verification are outside this local completion. No commit, push, deployment, or external database access occurs.
+6. Learning: New TypeScript test entrypoints must respect the configured ES6 target; async main supports dynamic imports without changing application compiler settings. The continuation selects the unfinished queue task because the latest CIMD diagnostic deliverable is already recorded as complete.
+7. Instruction sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require this record, the activity summary, interaction status, and completed TODO entry.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 1. Interaction title

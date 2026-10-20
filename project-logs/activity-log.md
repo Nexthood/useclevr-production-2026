@@ -32,6 +32,24 @@
 - Record public `https://app.useclevr.com/.well-known/openai-apps-challenge` HTTP 404; deployment is required for the live endpoint.
 - Keep all MCP/OAuth implementations and existing upload packages unchanged; no commit, push, or publication.
 
+## 2026-10-20 — T-1091 local commit preparation
+
+- Isolate Agent Trust Passport implementation, fixture tests, migration source, trace linkage, requirements, release note, and acceptance records for one local commit.
+- Keep browser acceptance pending in active T-1091; preserve unrelated changes and exclude temporary artifacts and real credentials.
+- Reuse verified 12 passport groups and 11 governance unit groups; run staged review, secret scanning, and repository commit hooks. No push, deployment, or production migration is authorized.
+
+## 2026-10-20 — T-1091 browser acceptance remains pending
+
+- Record browser acceptance as BLOCKED: no exposed browser automation tool or installed automation package; no authenticated local UI journey runs.
+- Pass 12 passport boundary/database groups with disposable fixture users and 11 existing governance consistency unit groups with database access disabled.
+- Return T-1091 to the active queue; retain local-only restrictions and unrelated working-tree changes.
+
+## 2026-10-20 — Agent Trust Passport completion
+
+- Complete T-1091 local validation: owner-scoped metadata, stable identity, descriptive lifecycle and risk, trace references, migration replay, and Eclipse Mode privacy.
+- Fix passport test entrypoints for the ES6 TypeScript target and type cross-origin header fixtures.
+- Verify all 12 passport test groups, TypeScript, Eclipse Mode, package metadata, and focused ESLint with zero errors; keep changes uncommitted and unpublished.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 - implemented: `swedish` joins the canonical `SupportedUsyLanguage` union and the ordered `supportedUsyLanguages` array (`english, german, dutch, french, spanish, hungarian, romanian, swedish`) behind the existing label constant, actions registry, chat/contact zod schemas, chatbox surface maps (placeholder, quick action, contact labels, submit labels), and the 🇸🇪 Svenska badge entry — no parallel lists

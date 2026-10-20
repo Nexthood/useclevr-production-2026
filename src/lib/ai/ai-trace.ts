@@ -2,9 +2,11 @@ import { getDb } from "@/lib/db"
 import { aiInteractionTraces } from "@/lib/db/schema"
 import { desc, eq, and, gte, lte, like, or, sql, count } from "drizzle-orm"
 import { normalizeGhostMode } from "@/lib/ai/ghost-mode"
+import { resolveTracePassport } from "@/lib/ai-governance/agent-passport-service"
 
 export interface CreateTraceInput {
   userId: string
+  agentKey?: string
   datasetId?: string | null
   prompt: string
   response: string
@@ -20,6 +22,7 @@ export interface CreateTraceInput {
 
 export interface TraceRecord {
   id: string
+  agentPassportId: string | null
   userId: string
   datasetId: string | null
   prompt: string
@@ -85,6 +88,7 @@ export async function createTrace(input: CreateTraceInput): Promise<TraceRecord 
     const id = `trace_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
     const trace = {
       id,
+      agentPassportId: await resolveTracePassport(input.userId, input.agentKey),
       userId: input.userId,
       datasetId: input.datasetId || null,
       prompt: sanitizeTraceText(input.prompt, TRACE_TEXT_LIMIT),

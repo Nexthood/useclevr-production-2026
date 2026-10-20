@@ -35,6 +35,35 @@ Update this file after every completed AI interaction.
 
 ## Previous Interaction
 
+- **Date**: 2026-10-20
+- **Goal**: Create one local commit containing only T-1091 Agent Trust Passport changes.
+- **Scope**: Passport UI/APIs, schema and migration source, trace attribution, disposable tests, test command, requirements, release note, and passport-only interaction records. Unrelated shared-file changes stay unstaged.
+- **Validation evidence**: Twelve passport fixture groups and eleven governance consistency unit groups pass; implementation TypeScript and Eclipse Mode checks pass. Commit preparation reviews staged paths and runs secret scanning and repository hooks.
+- **Browser acceptance**: PENDING under active T-1091. No authenticated browser journey runs; browser automation tooling is unavailable in the acceptance session. Full historical-record preservation and existing governance UI behavior remain unverified in a browser.
+- **Restrictions**: One local commit is authorized. No push, deployment, or production database migration. Preserve unrelated working-tree changes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: T-1091 final browser acceptance in the existing local AI Governance interface, using test accounts only.
+- **Browser result**: BLOCKED, not passed. No browser automation tool is exposed; Playwright and Puppeteer packages are unavailable. Browser binaries exist, but no authenticated browser flow or local development server runs.
+- **Supporting PASS**: Twelve passport fixture groups cover API creation/editing, field validation, trace linkage, historical null attribution, and cross-user denial. Eleven existing governance consistency unit groups pass with database exports mocked to null and inherited credentials excluded.
+- **Evidence limits**: Mocked-session API tests and static rendering do not establish browser form persistence, UI-generated trace association, byte-for-byte historical record preservation, or functioning governance controls/navigation.
+- **Remaining blocker**: Run all six browser checks in a browser-capable local session with an isolated database and two test-account logins. T-1091 is active until this acceptance completes.
+- **Restrictions**: No deployment, production migration, real database access, commit, or push. Product implementation and unrelated changes remain untouched; only local records and TODO state change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Continue and complete the unfinished Agent Trust Passport task, T-1091.
+- **Behavior**: Owners manage one durable analyst identity, human owner declaration, purpose, scope, descriptive risk/lifecycle, and paginated trace references. Superadmins inspect across accounts with owner-only edits. Historical traces remain unassigned; Eclipse Mode creates no trace.
+- **Fix**: Use async main in both passport test entrypoints for the ES6 target and explicitly type cross-origin header fixtures.
+- **Validation**: All 12 boundary/database groups pass against fresh network-disabled Docker PostgreSQL. TypeScript, Eclipse Mode, and package metadata pass. Focused ESLint reports zero errors with existing trace warnings and ignored test-script notices.
+- **Scope**: T-1091 is complete in the local working tree. No commit, push, production build, deployment, or browser acceptance check occurs. Existing ChatGPT integration work remains in the shared tree.
+- **Records**: See project-logs/interactive-log.md and project-logs/activity-log.md for the continuation evidence.
+
+## Previous Interaction
+
 - **Date**: 2026-10-11
 - **Goal**: Add Swedish as the 8th fully supported Usy language through the existing canonical Usy language architecture, without creating a parallel localization system, without touching the main AI Assistant architecture, Retail, Profitability, Accountancy analysis, Risk Intelligence, Stripe pricing/configuration, dataset analysis, ClevrSync architecture, authentication, or unrelated UI, and without committing or pushing.
 - **Durable change**: `src/lib/usy/types.ts` adds `"swedish"` to `SupportedUsyLanguage`; `src/lib/usy/language.ts` adds word-based Swedish detection (Swedish-specific lexemes and phrases, positioned after French and before Hungarian so ä/ö overlap with German/Hungarian cannot steal Swedish); `src/lib/usy/knowledge-base.ts` extends `supportedUsyLanguages` (8 entries in rotation order) and the language label; `src/lib/usy/actions.ts`, `src/lib/usy/contact.ts`, `src/lib/usy/router.ts`, and `src/lib/usy/billing-knowledge.ts` add the full Swedish surface (intents, billing/tier knowledge, contact flow, prompts, summaries, confirm/cancel lexicons, `sv-SE` counts); `src/app/api/usy/chat/route.ts` accepts `"swedish"`; `src/components/ui/help-chatbox.tsx` adds the Swedish placeholder, quick action, contact message labels, submit labels, and the 🇸🇪 Svenska badge; `src/lib/i18n/language-context.tsx`, `src/lib/i18n/translation-service.ts`, and `src/components/ui/language-selector.tsx` add `sv`. Tests extend the existing Usy suites, and `test-usy-product-knowledge.ts` pins the canonical 8-language order, badge rotation source, and the 7-language regression matrix. `requirements.md` and `CHANGELOG.md` record the current behavior.

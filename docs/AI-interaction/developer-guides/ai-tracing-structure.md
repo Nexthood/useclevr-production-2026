@@ -11,6 +11,15 @@ Use this guide when AI prompts, assistant routes, trace storage, feedback, expor
 ## Product Trace Structure
 
 - AI Assistant requests create non-blocking interaction traces.
+- Analyst routes supply the server-owned `clevr-ai-analyst` key. Trace creation resolves
+  `agentPassportId` from the trace owner's configured passport, independently of provider,
+  model, declared risk, and descriptive lifecycle. Request payloads cannot select a passport.
+- Historical traces retain a null passport reference. Eclipse Mode requests create no trace.
+  Passport trace listings filter both passport identity and trace owner and return paginated
+  metadata without prompt or response content; superadmins can inspect across owners.
+- Run `pnpm test:agent-passport` to validate passport APIs, rendered controls, ownership,
+  trace linkage, and migration replay against a fresh disposable PostgreSQL database.
+  The runner excludes inherited database credentials and provider configuration.
 - Traces store user, prompt, answer, provider, model, prompt version, latency, token count, error state, and feedback when available.
 - Trace storage redacts email-like values, provider keys, tokens, webhook secrets, and credential-like assignments before prompts, answers, and errors are persisted.
 - Users can review, search, re-run, export, and rate their own AI history.
