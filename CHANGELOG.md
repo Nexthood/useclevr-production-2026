@@ -61,6 +61,7 @@
 
 - Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
 - Provide submission source assets and publisher metadata for reproducible UseClevr upload packages.
+- Check submission publisher names, public-client authentication, and listing URLs locally before packaging.
 
 - Add a hermetic test-schema bootstrap for the Risk ClevrSync parity suite so the bare CI PostgreSQL database provisions only the relations that suite exercises, keeping local runs no-op.
 - Add Stripe market-price checkout regression tests that reproduce and block the UK GBP price-mismatch checkout failure and pin Pro UK Monthly to £35.

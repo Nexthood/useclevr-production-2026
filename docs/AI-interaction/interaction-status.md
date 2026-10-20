@@ -8,7 +8,18 @@ Update this file after every completed AI interaction.
 - **Goal**: Validate ChatGPT account linking and isolate its OAuth/MCP regression tests.
 - **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
 - **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
+- **CIMD evidence**: The support report describes the exact historical 1.0.2 archive. The source validator checks identity and OAuth-summary consistency without contacting OpenAI. Edited sources do not certify that archive or resolve portal state.
 - **Validation**: Three safety checks, 27 OAuth-to-MCP checks, and the existing MCP suite pass locally; TypeScript and focused source checks pass.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Diagnose the reported CIMD/predefined-client-ID portal save mismatch using the exact 1.0.2 ZIP and official OpenAI documentation.
+- **Evidence**: ZIP integrity and file equality pass; one canonical CIMD OAuth configuration has no client credentials or alternative overlay. Public discovery returns HTTP 200, supports CIMD and public-client token exchange with PKCE S256, and agrees on issuer/resource. MCP advertises discovery in an expected unauthenticated HTTP 401 response.
+- **Limit**: The portal's stored registration and failed save request are unavailable. Persistent registration and a portal validation defect are hypotheses, not established root causes.
+- **Next step**: The operator collects the failed save request's registration mode, HTTP status, and request ID without secrets, then sends the prepared support report to OpenAI for saved-state inspection or validation repair.
+- **Report**: `docs/AI-interaction/openai-cimd-portal-support-report.txt`.
+- **Scope**: No package, OAuth-route, client-ID, or client-mode change; no support message is sent.
 
 ## Previous Interaction
 

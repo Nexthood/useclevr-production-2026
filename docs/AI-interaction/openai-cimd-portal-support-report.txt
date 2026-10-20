@@ -1,0 +1,34 @@
+Subject: Suspected portal OAuth registration-mode mismatch: CIMD requires predefined client ID
+
+Observed: 2026-10-19 18:41 UTC
+App: UseClevr / Atlas Mega Ventures
+Package: useclevr-openai-plugin-1.0.2.zip
+SHA-256: 6b992d98e4017b01372954ed379e5d214b67eadc1371b8d46346cd867029611c
+MCP endpoint: https://app.useclevr.com/api/chatgpt/mcp
+
+Steps reported by the operator: Domain verification succeeds. The MCP connection panel displays client.mode = cimd. Selecting Connect fails while saving MCP details.
+Exact error: MCP details save failed: OAuth client ID is required when using pre-defined OAuth client credentials.
+
+Independently verified:
+- The ZIP is intact, contains nine files, and exactly matches the local submission directory.
+- The canonical mcp.json contains one server and auth.type = oauth with client = {"mode":"cimd"}. There is no clientId, clientSecret, provided mode, or alternate MCP/app manifest. JSON fields and archive entries are unique.
+- listing-metadata.json contains only an additional human-readable OAuth summary: clientMode = cimd and tokenEndpointAuthMethod = none. It is not referenced as an executable configuration.
+- Public authorization-server and protected-resource discovery return HTTP 200 without redirects.
+- Authorization-server metadata advertises client_id_metadata_document_supported = true, token_endpoint_auth_methods_supported = ["none"], and PKCE S256. The issuer and protected-resource authorization server agree.
+- An unauthenticated GET to the MCP endpoint returns HTTP 401 with the correct protected-resource metadata challenge. This does not establish that an authenticated OAuth flow completes successfully.
+
+Expected: Save and connect using CIMD without requiring a manually supplied predefined client ID or secret.
+Actual: The error applies a predefined-client ID requirement despite the displayed and packaged CIMD mode.
+
+Assessment: No contradictory executable package configuration is found. The reported behavior indicates a mode mismatch in portal save validation. The evidence does not distinguish persisted client registration from a UI/request-mapping or backend-validation defect; the stored portal record and failed save request are not available to this investigation.
+
+Request to support: Inspect the effective saved registration mode and client-registration lock for this connection. Compare them with the uploaded CIMD mode and the failing save request. If stale predefined settings remain, reset or migrate that connection to CIMD without changing the OAuth provider routes. Otherwise investigate CIMD save validation.
+
+Operator attachments to add: plugin/app ID and selected organization/project; failure timestamp with timezone; screenshot showing CIMD and the error; failed save request URL, HTTP status, and response/request ID if present. Include only relevant registration-mode fields, with credentials, cookies, bearer tokens, and authorization codes removed.
+
+Official references:
+https://developers.openai.com/plugins/build/plugins#use-automatic-oauth-client-registration
+https://developers.openai.com/plugins/deploy/submission#configure-authentication-for-submission
+https://developers.openai.com/plugins/build/auth
+
+This report is prepared for manual submission and is not sent to OpenAI by this investigation.

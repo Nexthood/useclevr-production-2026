@@ -14,6 +14,22 @@
 3. Artifacts: Root ZIPs and validation JSON remain intact and ignored. Edited sources do not certify historical upload bytes.
 4. Evidence: Official OpenAI submission documentation supports the identity distinction; package instructions and checklist state the remaining checks.
 
+## 2026-10-20 — CIMD submission consistency and commit preparation
+
+2. Validation: The source validator checks publisher names, listing URLs, demo URL syntax, and CIMD/public-client consistency. Its success does not establish portal saving. The support report retains the historical 1.0.2 ZIP fingerprint.
+
+## 2026-10-19 — CIMD portal connection audit
+
+1. Interaction title: Inspect the OpenAI CIMD save failure.
+2. User goal: Audit the exact 1.0.2 ZIP against official documentation without changing client mode or OAuth routes.
+3. Current findings: The nine-file ZIP matches the submission directory and declares one canonical CIMD OAuth configuration without client credentials or overlays. The additional listing summary agrees with CIMD/public-client exchange. Both public discovery endpoints return HTTP 200; MCP returns an expected unauthenticated HTTP 401 challenge.
+4. Problems: blocker — the operator reports a predefined-client-ID validation error while the portal displays CIMD; observation — OpenAI documents persistent client registrations and locked credential changes; uncertainty — saved portal state and the failed save request are unavailable, so stale registration and a portal validation defect remain distinct hypotheses.
+5. User learning: Inspect the failed save request and saved connection mode; ask OpenAI support to reset stale registration or investigate CIMD validation. A package re-upload does not establish that saved client settings change.
+6. AI-agent learning: CIMD omits manually configured client credentials; token authentication method none means no client secret, while ChatGPT still supplies its metadata URL as client_id during OAuth.
+7. Follow-up: The operator adds portal identifiers and redacted failure details to the prepared support report and submits it manually.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+9. Destinations: docs/AI-interaction/openai-cimd-portal-support-report.txt and the three interaction records. Package bytes and OAuth route implementations remain unchanged.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 1. Interaction title

@@ -9,6 +9,16 @@
 - Use UseClevr as the product and Atlas Mega Ventures as the package author and intended publisher; require the operator to verify affiliation and selected OpenAI identity.
 - Document the existing demo link, required reviewer email-proof access, and outstanding submission checks; keep historical ZIPs and validation JSON intact and Git-ignored.
 
+## 2026-10-20 — CIMD submission consistency and commit preparation
+
+- Validate matching publisher names, listing URLs, and CIMD public-client metadata locally; retain the support report as evidence about the exact historical 1.0.2 ZIP.
+
+## 2026-10-19 — CIMD portal connection audit
+
+- Verify the exact 1.0.2 ZIP, its canonical CIMD declaration, absence of duplicate fields and alternate manifests, and agreement with the live OAuth discovery.
+- Distinguish the reported predefined-client-ID validation from unverified persisted portal state; prepare a support report with the required reproduction evidence.
+- Keep the upload package and OAuth implementations unchanged; the operator submits the report manually.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 - implemented: `swedish` joins the canonical `SupportedUsyLanguage` union and the ordered `supportedUsyLanguages` array (`english, german, dutch, french, spanish, hungarian, romanian, swedish`) behind the existing label constant, actions registry, chat/contact zod schemas, chatbox surface maps (placeholder, quick action, contact labels, submit labels), and the 🇸🇪 Svenska badge entry — no parallel lists
