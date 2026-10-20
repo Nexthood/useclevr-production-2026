@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const authorization = validateAuthorizationRequest(request);
+    const authorization = await validateAuthorizationRequest(request);
     const user = await getChatGptConsentUser();
     if (!user) {
       return NextResponse.redirect(buildLoginRedirect(request));

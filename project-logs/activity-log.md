@@ -1,3 +1,9 @@
+## 2026-10-20 — Disposable ChatGPT OAuth and MCP validation
+
+- Run the existing OAuth security work through fresh PostgreSQL clusters with private Unix sockets, separate databases, synthetic fixtures, and generated in-memory keys.
+- Exclude inherited database/provider configuration and environment-file loaders; reject direct entrypoint execution and database overrides; run both suites in source CI.
+- Validate real email-proof login, consent, CIMD, PKCE, atomic code consumption, bearer checks, and tenant isolation locally.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 - implemented: `swedish` joins the canonical `SupportedUsyLanguage` union and the ordered `supportedUsyLanguages` array (`english, german, dutch, french, spanish, hungarian, romanian, swedish`) behind the existing label constant, actions registry, chat/contact zod schemas, chatbox surface maps (placeholder, quick action, contact labels, submit labels), and the 🇸🇪 Svenska badge entry — no parallel lists

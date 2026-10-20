@@ -1,3 +1,12 @@
+## 2026-10-20 — Disposable ChatGPT OAuth and MCP validation
+
+1. Goal: Finalize account-linking security without existing databases or provider credentials.
+2. Implementation: The runner creates private Unix-socket PostgreSQL clusters through native binaries or network-disabled Docker. Each suite receives an empty database and an environment allowlist. Direct entrypoints fail without the runner. The bootstrap applies current defaults, constraints, indexes, and foreign keys. Source CI runs both suites.
+3. Findings: Local validation uses Docker because native server binaries are unavailable. The runner waits for the final PostgreSQL server and restores private socket-directory permissions after bootstrap. TypeScript uses the database-union-compatible returning overload.
+4. Verification: Three safety checks, 27 OAuth-to-MCP checks, and the existing MCP suite pass. The commit plan records additional validation.
+5. Boundaries: Local fixtures do not certify production configuration, portal saving, or reviewer access.
+6. Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route learning into the testing guide, requirements, changelog, TODOs, and interaction records.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 1. Interaction title

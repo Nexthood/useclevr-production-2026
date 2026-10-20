@@ -4,6 +4,13 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-20
+- **Goal**: Validate ChatGPT account linking and isolate its OAuth/MCP regression tests.
+- **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
+- **Validation**: Three safety checks, 27 OAuth-to-MCP checks, and the existing MCP suite pass locally; TypeScript and focused source checks pass.
+
+## Previous Interaction
+
 - **Date**: 2026-10-11
 - **Goal**: Add Swedish as the 8th fully supported Usy language through the existing canonical Usy language architecture, without creating a parallel localization system, without touching the main AI Assistant architecture, Retail, Profitability, Accountancy analysis, Risk Intelligence, Stripe pricing/configuration, dataset analysis, ClevrSync architecture, authentication, or unrelated UI, and without committing or pushing.
 - **Durable change**: `src/lib/usy/types.ts` adds `"swedish"` to `SupportedUsyLanguage`; `src/lib/usy/language.ts` adds word-based Swedish detection (Swedish-specific lexemes and phrases, positioned after French and before Hungarian so ä/ö overlap with German/Hungarian cannot steal Swedish); `src/lib/usy/knowledge-base.ts` extends `supportedUsyLanguages` (8 entries in rotation order) and the language label; `src/lib/usy/actions.ts`, `src/lib/usy/contact.ts`, `src/lib/usy/router.ts`, and `src/lib/usy/billing-knowledge.ts` add the full Swedish surface (intents, billing/tier knowledge, contact flow, prompts, summaries, confirm/cancel lexicons, `sv-SE` counts); `src/app/api/usy/chat/route.ts` accepts `"swedish"`; `src/components/ui/help-chatbox.tsx` adds the Swedish placeholder, quick action, contact message labels, submit labels, and the 🇸🇪 Svenska badge; `src/lib/i18n/language-context.tsx`, `src/lib/i18n/translation-service.ts`, and `src/components/ui/language-selector.tsx` add `sv`. Tests extend the existing Usy suites, and `test-usy-product-knowledge.ts` pins the canonical 8-language order, badge rotation source, and the 7-language regression matrix. `requirements.md` and `CHANGELOG.md` record the current behavior.

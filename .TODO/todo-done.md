@@ -51,6 +51,8 @@ moving work between states.
 
 ## Label: mcp
 
+- T-1087. Validate CIMD metadata and client-bound redirects, consume authorization codes atomically, and verify the OAuth-to-MCP flow against isolated test data. (labels: mcp, auth, security, testing; commit: worktree)
+
 - T-1053. ChatGPT MCP authentication and scope failures include the MCP challenge metadata that ChatGPT uses to start OAuth account linking. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1052. ChatGPT MCP account linking uses OAuth 2.1 authorization, consent, PKCE, signed access-token validation, scope enforcement, and tenant-isolation regression coverage. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1051. Expose authorized UseClevr dataset analysis to ChatGPT through a minimal Apps SDK MCP integration that reuses the existing analysis engine and preserves tenant isolation. (labels: mcp, ai, security, testing; commit: worktree)
