@@ -91,6 +91,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1093. Commit the reviewed production release safety controls, migration safeguards, regression tests, release documentation, and task records in one local commit while preserving unrelated worktree changes. (labels: deployment, security, testing, workflow; commit: worktree)
+- T-1092. Remove automated beta-to-main promotion, require a pre-existing protected production environment and exact-SHA publication, bound and test migration 0037 and complete predeploy execution against disposable PostgreSQL, fail safely with redacted diagnostics, and document release approval, Railway checks, and rollback. (labels: deployment, security, testing, workflow; commit: worktree)
 - T-1091. Verify Agent Trust Passport creation, declared fields, edit/reload persistence, stable identity, Assistant UI trace linkage, historical fixture-row preservation, cross-account denial, governance navigation, linked-trace viewing, and compliance export with synthetic accounts and disposable PostgreSQL; reconcile acceptance evidence with the source-equivalent release branch. (labels: ai, auth, testing; commit: worktree)
 
 - T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)

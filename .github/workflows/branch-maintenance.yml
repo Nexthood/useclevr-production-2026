@@ -1,4 +1,4 @@
-name: Sync Beta And Publish Dist
+name: Publish Approved Production Dist
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   AUTH_SECRET: ${{ format('{0}:{1}', github.sha, github.run_id) }}
@@ -25,9 +25,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify-approval-policy:
+    name: Verify production approval policy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Reject unprotected production environments
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            if (context.ref !== 'refs/heads/main') throw new Error('Production publication requires main.');
+            const { verifyProductionApproval } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/health/production-approval-policy.mjs`);
+            await verifyProductionApproval(github, context.repo);
+
   publish-dist:
     name: Publish dist deployment folder
+    needs: verify-approval-policy
+    environment: useclevr-web / production
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
 
     services:
       postgres:
@@ -55,9 +80,16 @@ jobs:
       - name: Checkout main source for build
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: main
+          ref: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
+
+      - name: Recheck production protection after approval
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const { verifyProductionApproval } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/health/production-approval-policy.mjs`);
+            await verifyProductionApproval(github, context.repo);
 
       - name: Enable corepack and install pnpm
         shell: bash

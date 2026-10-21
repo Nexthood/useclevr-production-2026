@@ -19,6 +19,10 @@ Text rules for this file:
 
 ## Infrastructure
 
+- Require human review for production source promotion and protected approval before publishing the exact production source revision; reject missing or unenforceable approval protection.
+- Keep beta test publication and release PR preparation independent of production approval; beta automation performs no source merge or production dispatch.
+- Bound migration connection, lock, statement, transaction, idle, and cleanup durations on a dedicated connection; abort deployment on failure without retrying or exposing private error content.
+
 - Bind ChatGPT authorization requests to the allowlisted client's metadata and registered callback; permit exactly one successful exchange per unexpired authorization code.
 - Run ChatGPT OAuth and MCP integration tests through a disposable PostgreSQL runner that excludes existing database configuration and provider credentials; execute both suites in source CI.
 

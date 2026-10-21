@@ -4,13 +4,13 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
-- **Date**: 2026-10-20
-- **Goal**: Finalize release/agent-trust-passport with one local commit containing only T-1091 documentation and task records.
-- **Browser acceptance**: PASS from the preceding browser session: creation, declared fields, edit/reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row equality, cross-account denial, all eleven governance sections, linked-trace viewing, and compliance export. Headless Chrome uses two synthetic accounts, a Pro fixture, a synthetic revenue dataset, and disposable network-disabled PostgreSQL. The Assistant returns total revenue 300 and its trace references the passport.
-- **Evidence scope**: The browser session tests the earlier checkout; it does not run in this release worktree. All eighteen implementation/test paths in release commit c43643e8 match the browser-tested implementation f03eaf7e. The release worktree also contains the separate PostgreSQL runtime/migration evidence below. Prior browser evidence is recorded at /tmp/useclevr-browser-Zj7SLQ/acceptance.json; this finalization does not rerun browser tests.
-- **Release records**: Move T-1091 from TODO-next to TODO-done, reconcile acceptance and runtime evidence, and clarify the existing passport release note. Validate staged documentation, task metadata, secrets, package metadata, and whitespace through the repository commit gate.
-- **Limits**: The browser session records an Assistant generated-timestamp hydration warning. Production schema compatibility, migration contention/recovery, and external-provider connectivity are unverified. Local acceptance completion does not certify production deployment readiness.
-- **Preservation and restrictions**: Preserve the unstaged next-env.d.ts edit and untracked temporary artifacts. Create exactly one local documentation commit; no push, deployment, production migration, or CI/CD change.
+- **Date**: 2026-10-21
+- **Goal**: Commit approved release safety controls in one local commit from the isolated Agent Trust Passport release worktree.
+- **Reviewed scope**: Beta workflows keep builds, smoke tests, `dist-test`, and PR creation while removing automatic merge and production dispatch. Production publication checks human environment protections before and after approval and uses the exact workflow SHA. Migration execution has bounded timeouts, safe rollback/error handling, redacted diagnostics, and no retries. Related tests, Railway guidance, requirements, changelog, and project records are included.
+- **Verification**: Workflow safety tests/lint, TypeScript, disposable PostgreSQL 17.11 migration and schema-sync tests, PostgreSQL 16 fallback simulation, 12 passport groups, 38 historical-unlock tests, 11 governance consistency groups, and repository metadata checks pass.
+- **Release blocker**: The current GitHub production environment has no reviewer or branch policy and permits administrator bypass. Actual production PostgreSQL version, Railway effective configuration, hosted approval enforcement, backup/PITR, and restore readiness remain unverified under T-1094. Production remains NO-GO.
+- **Commit**: Create one local commit with the requested message after the project pre-commit checks pass. The commit contains only the approved safety files; unrelated `next-env.d.ts` and `tmp/` stay uncommitted.
+- **Restrictions**: No push, merge, deployment, production data access, or migration.
 
 ## Previous Interaction
 

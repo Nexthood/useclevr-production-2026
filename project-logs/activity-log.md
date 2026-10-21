@@ -1,3 +1,14 @@
+## 2026-10-21 — T-1093 local release safety commit
+
+- Review and stage only the approved workflow, migration, test, documentation, and task-record changes; exclude unrelated `next-env.d.ts` and `tmp/`.
+- Pass the commit hooks and create one local conventional commit. Keep production NO-GO until T-1094 verifies GitHub and Railway settings, the actual database version, and recovery readiness.
+
+## 2026-10-21 — T-1092 production release safety
+
+- Remove automatic beta promotion and dispatch while retaining beta builds, `dist-test`, and release PR preparation; gate exact-SHA production publication on a pre-existing, fail-closed GitHub environment policy.
+- Bound migration connection, lock, statement, transaction, idle, and cleanup work; preserve original errors, rollback, safe diagnostics, and no-retry behavior. Test migration 0037 and full schema sync on disposable PostgreSQL 17.11, including the PostgreSQL 16 watchdog branch.
+- Pass workflow, TypeScript, migration, passport, historical-unlock, TODO, secret, package, changelog, and project-record checks. Production remains NO-GO: the configured GitHub environment is unprotected, and Railway settings, production PostgreSQL version, and recovery readiness require operator verification. Keep all changes local and uncommitted.
+
 ## 2026-10-20 — T-1091 release documentation finalization
 
 - Reconcile the preceding passing Chrome acceptance with release/agent-trust-passport: eighteen implementation/test paths match the tested passport implementation; retain the release-worktree PostgreSQL runtime and migration evidence.

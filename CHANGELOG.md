@@ -60,6 +60,7 @@
 
 ### Dev
 
+- Require human approval for production publication and bound database migrations so failures abort promotion without exposing private diagnostics.
 - Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
 - Provide submission source assets and publisher metadata for reproducible UseClevr upload packages.
 - Check submission publisher names, public-client authentication, and listing URLs locally before packaging.
