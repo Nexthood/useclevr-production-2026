@@ -9,8 +9,8 @@ A human release owner verifies test acceptance and manually merges the reviewed 
 The production publisher checks GitHub protection metadata before entering the environment
 `useclevr-web / production`. The environment must already exist with all of these controls:
 
-- Required reviewers are named individual human accounts; bot accounts and teams are rejected.
-- Prevent self-review is enabled and administrator bypass is disabled.
+- The sole required reviewer is the individual GitHub user `Nexthood`; teams, bots, other users, and additional reviewers are rejected.
+- Prevent self-review is disabled and administrator bypass is disabled. GitHub still requires an explicit approval from `Nexthood` for every production publisher job; the configured administrator may approve a deployment they initiated.
 - Selected deployment branches contain exactly one branch rule, `main`, and no tag rule.
 - The repository plan supports required reviewers. Public repositories support these rules on
   current GitHub plans; private repositories require the applicable paid plan.

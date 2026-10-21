@@ -1,3 +1,11 @@
+## 2026-10-21 — T-1093 single-administrator approval compatibility
+
+1. Goal: Accept the verified production GitHub environment without weakening mandatory deployment approval.
+2. GitHub metadata: The sole required reviewer is user `Nexthood`; `prevent_self_review` is false; administrator bypass is false; the sole allowed branch policy is `main`.
+3. Change: Make the release policy accept only that exact reviewer/configuration. Continue rejecting missing reviewers, other reviewer identities, additional reviewers, enabled self-review prevention, administrator bypass, missing/broad branch rules, and inaccessible environment metadata. Preserve the protected publisher job and explicit GitHub environment approval.
+4. Verification: Workflow regression and lint pass. Migration safety tests pass on disposable PostgreSQL 17.11, including migration 0037 failure/replay, full schema-sync apply/replay, and the simulated PostgreSQL 16 watchdog path. Secret scan, TODO validation, formatting, and documentation links pass. No production data or database access.
+5. Restrictions: Do not stage or commit; no push, merge, or deployment. Preserve unrelated worktree state.
+
 ## 2026-10-21 — T-1093 local commit of release safety controls
 
 1. Goal: Review and commit the approved release safety changes in `/tmp/useclevr-passport-release-20261020` as one local commit, excluding unrelated `next-env.d.ts` and `tmp/`.

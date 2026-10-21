@@ -79,8 +79,8 @@ export async function runWorkflowSafetyTests() {
     protection_rules: [
       {
         type: "required_reviewers",
-        prevent_self_review: true,
-        reviewers: [{ type: "User", reviewer: { type: "User" } }],
+        prevent_self_review: false,
+        reviewers: [{ type: "User", reviewer: { type: "User", login: "Nexthood" } }],
       },
     ],
     deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
@@ -110,10 +110,16 @@ export async function runWorkflowSafetyTests() {
       e.can_admins_bypass = true;
     },
     (e) => {
+      e.protection_rules[0].prevent_self_review = true;
+    },
+    (e) => {
+      delete e.protection_rules[0].prevent_self_review;
+    },
+    (e) => {
       e.protection_rules = [];
     },
     (e) => {
-      e.protection_rules[0].prevent_self_review = false;
+      e.protection_rules.push(structuredClone(e.protection_rules[0]));
     },
     (e) => {
       e.protection_rules[0].reviewers = [];
@@ -123,6 +129,15 @@ export async function runWorkflowSafetyTests() {
     },
     (e) => {
       e.protection_rules[0].reviewers[0].type = "Team";
+    },
+    (e) => {
+      e.protection_rules[0].reviewers[0].reviewer.login = "AnotherUser";
+    },
+    (e) => {
+      e.protection_rules[0].reviewers.push({
+        type: "User",
+        reviewer: { type: "User", login: "AnotherUser" },
+      });
     },
     (e) => {
       e.deployment_branch_policy = null;

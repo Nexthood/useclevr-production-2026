@@ -1,3 +1,8 @@
+## 2026-10-21 — T-1093 single-administrator approval compatibility
+
+- Match the verified GitHub environment: sole `Nexthood` user reviewer, self-review setting false, administrator bypass false, and only `main`; keep the protected publisher job's mandatory approval.
+- Pass workflow regression/lint for exact reviewer and branch policy, fail-closed cases, and retained production environment approval. Pass migration safety suite on disposable PostgreSQL 17.11, secret/TODO checks, formatting, and documentation links. Do not commit.
+
 ## 2026-10-21 — T-1093 local release safety commit
 
 - Review and stage only the approved workflow, migration, test, documentation, and task-record changes; exclude unrelated `next-env.d.ts` and `tmp/`.

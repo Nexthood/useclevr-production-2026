@@ -6,19 +6,24 @@ export async function verifyProductionApproval(github, repository) {
     ...repository,
     environment_name: productionEnvironment,
   });
-  const rule = environment.protection_rules?.find((item) => item.type === "required_reviewers");
-  const humanReviewers = rule?.reviewers;
+  const reviewerRules = environment.protection_rules?.filter(
+    (item) => item.type === "required_reviewers",
+  );
+  const rule = reviewerRules?.length === 1 ? reviewerRules[0] : undefined;
+  const reviewers = rule?.reviewers;
   if (
     environment.name !== productionEnvironment ||
     environment.can_admins_bypass !== false ||
-    rule?.prevent_self_review !== true ||
-    !humanReviewers?.length ||
-    !humanReviewers.every((item) => item.type === "User" && item.reviewer?.type === "User") ||
+    rule?.prevent_self_review !== false ||
+    reviewers?.length !== 1 ||
+    reviewers[0].type !== "User" ||
+    reviewers[0].reviewer?.type !== "User" ||
+    reviewers[0].reviewer?.login !== "Nexthood" ||
     environment.deployment_branch_policy?.protected_branches !== false ||
     environment.deployment_branch_policy?.custom_branch_policies !== true
   ) {
     throw new Error(
-      "Production publication is blocked: require human reviewers, prevent self-review, disable admin bypass, and restrict deployment to main.",
+      "Production publication is blocked: require Nexthood as the sole user reviewer, allow self-review, disable admin bypass, and restrict deployment to main.",
     );
   }
   const { data: policies } = await github.rest.repos.listDeploymentBranchPolicies({

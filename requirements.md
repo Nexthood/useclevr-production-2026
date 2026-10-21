@@ -19,7 +19,7 @@ Text rules for this file:
 
 ## Infrastructure
 
-- Require human review for production source promotion and protected approval before publishing the exact production source revision; reject missing or unenforceable approval protection.
+- Require an explicit production environment approval from the sole `Nexthood` user reviewer before publishing the exact production source revision; allow self-review, disable administrator bypass, allow only `main`, and reject missing or unenforceable approval protection.
 - Keep beta test publication and release PR preparation independent of production approval; beta automation performs no source merge or production dispatch.
 - Bound migration connection, lock, statement, transaction, idle, and cleanup durations on a dedicated connection; abort deployment on failure without retrying or exposing private error content.
 

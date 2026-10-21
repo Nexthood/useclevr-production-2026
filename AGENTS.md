@@ -267,7 +267,8 @@ fix on beta → CI builds → publish to dist-test → Railway deploys → verif
    beta acceptance and manually merges the reviewed PR; neither beta workflow merges or dispatches production.
 9. **Production approval** — `branch-maintenance.yml` verifies the protected `useclevr-web / production`
    environment, waits for human approval, and publishes the exact run SHA to `dist`. The environment
-   requires individual human reviewers, no self-review, no administrator bypass, and only `main`.
+   requires exactly the `Nexthood` user reviewer, allows self-review, disables administrator bypass,
+   and allows only `main`. GitHub still requires explicit approval for every publisher job.
    Missing or unverifiable protection blocks publication. Follow `docs/Developer_Guides/RELEASE_SAFETY.md`.
 
 ### Constraints

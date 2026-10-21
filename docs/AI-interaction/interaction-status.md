@@ -5,12 +5,11 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-21
-- **Goal**: Commit approved release safety controls in one local commit from the isolated Agent Trust Passport release worktree.
-- **Reviewed scope**: Beta workflows keep builds, smoke tests, `dist-test`, and PR creation while removing automatic merge and production dispatch. Production publication checks human environment protections before and after approval and uses the exact workflow SHA. Migration execution has bounded timeouts, safe rollback/error handling, redacted diagnostics, and no retries. Related tests, Railway guidance, requirements, changelog, and project records are included.
-- **Verification**: Workflow safety tests/lint, TypeScript, disposable PostgreSQL 17.11 migration and schema-sync tests, PostgreSQL 16 fallback simulation, 12 passport groups, 38 historical-unlock tests, 11 governance consistency groups, and repository metadata checks pass.
-- **Release blocker**: The current GitHub production environment has no reviewer or branch policy and permits administrator bypass. Actual production PostgreSQL version, Railway effective configuration, hosted approval enforcement, backup/PITR, and restore readiness remain unverified under T-1094. Production remains NO-GO.
-- **Commit**: Create one local commit with the requested message after the project pre-commit checks pass. The commit contains only the approved safety files; unrelated `next-env.d.ts` and `tmp/` stay uncommitted.
-- **Restrictions**: No push, merge, deployment, production data access, or migration.
+- **Goal**: Make the committed release policy accept the verified single-administrator GitHub environment while retaining mandatory deployment approval.
+- **GitHub settings**: The environment has exactly the `Nexthood` user reviewer; `prevent_self_review` is false; administrator bypass is false; and the sole deployment branch is `main`.
+- **Policy change**: Require exactly that reviewer and those settings. Reject missing, additional, or different reviewers; missing or enabled self-review; administrator bypass; and any branch policy other than `main`. Keep GitHub's required-reviewer environment on the protected production publisher job.
+- **Verification**: Workflow safety tests/lint pass; migration safety suite passes on disposable PostgreSQL 17.11; secret/TODO checks, targeted formatting, and documentation links pass. No production data is accessed.
+- **Restrictions**: Do not stage or commit; no push, merge, or deployment. Preserve unrelated `next-env.d.ts` and `tmp/`.
 
 ## Previous Interaction
 
