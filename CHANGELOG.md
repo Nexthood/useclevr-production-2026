@@ -60,6 +60,7 @@
 
 ### Dev
 
+- Patch release dependencies and check connector and rich-text compatibility so security validation covers the installed application without skipping advisories.
 - Include public verification routes in typed lint checks and reference canonical billing prices in formatter guidance so release validation completes.
 - Accept the configured production reviewer while keeping GitHub environment approval mandatory.
 - Require human approval for production publication and bound database migrations so failures abort promotion without exposing private diagnostics.

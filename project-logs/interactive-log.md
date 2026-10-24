@@ -1,3 +1,14 @@
+## 2026-10-24 — Resume dependency security update (T-1095)
+
+1. Goal: Resume the interrupted CI dependency security update in release/agent-trust-passport, validate it, and commit/push through normal hooks without merge or deployment.
+2. Inspection: The release worktree starts at 3637dada with unstaged dependency, lockfile, task metadata, and compatibility-test changes. The user calls this T-1094; existing records assign dependency work to T-1095 and reserve T-1094 for hosted release approval evidence. Keep both task identities intact. The original main checkout has a saved HEAD/index/status/file-hash snapshot and receives no edits.
+3. Changes: Use Next.js 16.4.1, DOMPurify 3.4.17, markdown-it 14.3.3, Zod 4.6.6, body-parser 2.4.0, Happy DOM 21.0.4, ip-address 10.7.4, fast-uri 3.1.9, and Undici 6.29.1/7.30.1. The Happy DOM advisory requires 21.0.4; Zod's advisory requires 4.6.6, including transitive consumers. Keep Undici consumers on their existing major. Compatibility tests exercise populated Payload MCP record schemas and Lexical HTML import.
+4. Evidence: Frozen install, raw audit (zero vulnerabilities), unchanged audit gate, two compatibility tests, TypeScript, deployment configuration, release checks, documentation links, full ChatGPT and application CI suites, production build, and distribution packaging pass. ESLint reports zero errors and 452 warnings. Build compilation reports warnings and generates all 97 static pages.
+5. Boundaries: No T-1091 browser acceptance, passport development, audit suppression, hook bypass, merge, deployment, production credentials, or production database operation. Route completion into the task queue and these three interaction records after validation.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+7. Environment learning: The host has PostgreSQL clients without initdb. The cached postgres:17-bookworm image supplies `/usr/lib/postgresql/17/bin/initdb` (17.11). The temporary runner uses the standard image entrypoint, mounts a private socket at `/var/run/postgresql`, disables container networking, and passes generated test credentials. Each run removes its disposable container. No PostgreSQL installation or production connection is required.
+8. Outcome routing: Move T-1095 into `.TODO/todo-done.md`, retain T-1094 as separate active release-approval work, and validate mandatory records through normal commit and push hooks.
+
 ## 2026-10-24 — T-1093 release validation corrections and publication
 
 1. Goal: Commit the two release validation corrections and four mandatory records on `release/agent-trust-passport`, then push only that branch through normal hooks.

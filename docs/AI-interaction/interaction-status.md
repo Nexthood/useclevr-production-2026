@@ -5,6 +5,17 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-24
+- **Goal**: Resume interrupted dependency security fixes and publish the validated release/agent-trust-passport branch through normal hooks.
+- **Task identity**: Existing T-1095 tracks dependencies; T-1094 tracks separate hosted release approval evidence. Preserve both IDs.
+- **Change**: Patch direct and transitive dependencies, retain Undici major boundaries, and test Payload MCP schema and Lexical HTML compatibility.
+- **Verified**: Frozen install, raw audit with zero vulnerabilities, unchanged CI audit gate, two compatibility tests, TypeScript, and focused regressions pass. ESLint reports zero errors and 452 warnings.
+- **Validation**: Full ChatGPT and application CI suites, documentation links, production build, and distribution packaging pass with disposable PostgreSQL 17.11. The cached PostgreSQL 17 image provides `/usr/lib/postgresql/17/bin/initdb`; the host contains client tools only. The temporary runner uses a private Unix socket and disables container networking.
+- **Records**: T-1095 moves to the completed queue; commit and push use the normal project hooks on release/agent-trust-passport.
+- **Boundary**: Preserve original main checkout and unrelated work. No T-1091 browser acceptance, passport development, hook bypass, audit suppression, merge, deployment, or production access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
 - **Goal**: Commit and push the Agent Trust Passport release branch with exactly two validation corrections and four required project records through normal Git hooks.
 - **Corrections**: Reference canonical historical-unlock pricing in the formatter comment; include tracked `.well-known` routes in the ESLint TypeScript project.
 - **Verification**: All 38 historical-unlock tests and the full pre-push hook pass, including ESLint, TypeScript, pricing, deployment configuration, secret checks, production build, and packaging. Build-time auth is temporary; database references target a closed loopback port. Expected connection refusals do not establish database runtime readiness.

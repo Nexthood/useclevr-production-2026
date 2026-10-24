@@ -1,3 +1,10 @@
+## 2026-10-24 — Resume dependency security update (T-1095)
+
+- Continue interrupted dependency and lockfile changes in the existing release worktree; preserve the original main checkout and the separate T-1094 approval task.
+- Verify frozen installation, zero audit vulnerabilities, two dependency compatibility cases, TypeScript, and focused regressions. ESLint reports zero errors and 452 warnings.
+- Verify full ChatGPT and application CI suites, documentation links, production build, and distribution packaging on disposable PostgreSQL 17.11 from the cached image; use private Unix sockets and disabled container networking.
+- Complete T-1095 validation and run commit/push through normal hooks on release/agent-trust-passport. Keep T-1094 approval evidence separate; no production access, merge, or deployment.
+
 ## 2026-10-24 — T-1093 release validation corrections
 
 - Reference canonical historical-unlock pricing in the formatter comment and include `.well-known` TypeScript routes in the ESLint project.
