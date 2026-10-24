@@ -1,3 +1,8 @@
+## 2026-10-24 — Typed lint release blocker
+
+- Include well-known application routes in ESLint's TypeScript project and verify the public verification route passes typed lint.
+- Complete T-1096 in a separate commit; retain route behavior and all security gates.
+
 ## 2026-10-24 — Billing comment release gate
 
 - Replace numeric currency examples in one billing-format comment; pricing validation passes with no price or behavior change.

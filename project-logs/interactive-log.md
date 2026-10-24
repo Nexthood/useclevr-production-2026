@@ -1,3 +1,12 @@
+## 2026-10-24 — Typed lint release blocker (T-1096)
+
+1. Goal: Resolve the verified typed lint error preventing the required pre-push gate from completing.
+2. Finding: ESLint parses the public OpenAI verification route, but TypeScript's wildcard project inclusion omits its dot-prefixed parent directory.
+3. Change: Explicitly include src/app/.well-known/**/*.ts in tsconfig.eslint.json. Do not exclude the route or change verification response behavior.
+4. Verification: The route passes typed ESLint. T-1095 separately tests compatible dependency updates; Passport's 13 groups and ChatGPT's 27 OAuth checks, MCP integration, and three safety checks pass.
+5. Scope: Separate tooling commit; no security allowlist change, deployment, or production access.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: typed lint configuration, completed task, changelog, and three interaction records.
+
 ## 2026-10-24 — Billing comment release gate (T-1094)
 
 1. Goal: Resolve the verified pricing-comment release blocker without changing product prices or billing behavior.

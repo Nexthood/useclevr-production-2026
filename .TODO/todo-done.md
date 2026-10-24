@@ -94,6 +94,7 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1096. Include well-known application routes in typed lint checks so the required release gate validates the public verification route. (labels: quality, testing; commit: worktree)
 - T-1094. Remove numeric price examples from the billing-format comment so required pricing validation passes without changing billing behavior. (labels: quality, billing, testing; commit: worktree)
 - T-1091. Verify Agent Trust Passport creation, declared fields, edits, reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row preservation, cross-account denial, governance section navigation, linked-trace viewing, and compliance export through headless Chrome with two synthetic accounts and disposable local PostgreSQL. (labels: ai, auth, testing; commit: worktree)
 
