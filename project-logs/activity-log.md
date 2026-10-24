@@ -1,3 +1,17 @@
+## 2026-10-24 — Usy Agent Trust Passport integration (T-1098)
+
+- Explain Passport metadata and limits in all eight Usy languages; link to the owner's authenticated Transparency section.
+- Disambiguate the product name from human-agent contact requests and validate both flows.
+- Pass six Usy suites, including 18 billing cases and Passport role/language/navigation regressions; TypeScript and focused ESLint pass (zero errors; existing unused-import and ignored-test-file warnings).
+- Fast-forward local main to origin/main at d2025da3; retain both upstream and local records and a named stash backup.
+- Retain the three legitimate task-identification records; scope the commit to this integration and required product/session records. No push, Railway authentication, or manual deployment occurs.
+
+## 2026-10-24 — Continuation task identification
+
+- Confirm clean HEAD 10954748 and completed rebase and Usy Swedish-language records.
+- Request the intended task identity; no active Usy task or matching available skill identifies remaining work.
+- Update interaction records only; no product edit, commit, push, or deployment occurs.
+
 ## 2026-10-24 — Passport CI dependency remediation
 
 - Preserve all 111 original-worktree files and work only on fix/passport-proxy-origin.

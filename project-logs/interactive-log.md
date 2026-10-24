@@ -1,3 +1,22 @@
+## 2026-10-24 — Usy Agent Trust Passport integration (T-1098)
+
+1. Goal: Finalize Usy Passport knowledge, confirm the Transparency navigation action, validate regressions, commit scoped changes, and synchronize local main safely.
+2. Changes: Usy explains stable analyst identity, human ownership, purpose, scope, declared risk, descriptive lifecycle, trace linkage, and certification boundaries in all eight supported languages. The localized navigation action opens the owner's Passport section under AI Governance → Transparency and requires sign-in. Product-name matching prevents “agent” from starting the contact flow; explicit contact requests and active drafts retain their flow.
+3. Verification: Product knowledge covers five questions across four roles, eight localized answers, navigation metadata and target guards, and contact-flow boundaries. Guest, billing (18 cases), contact-message, contact-handoff, and Secretariat suites pass. TypeScript and focused ESLint pass (zero errors; existing unused-import and ignored-test-file warnings); TODO, changelog, package, and whitespace checks pass.
+4. Record review: The three initial pending files contain this session's task-identification records, not uncommitted Passport implementation. Retain those legitimate audit entries and add this integration result. Requirements and release notes describe the current user behavior.
+5. Synchronization: Fetch origin and fast-forward local main from 10954748 to d2025da3. Restore the three records from a named stash, retaining both sides of append conflicts. Keep the stash as a backup. Dependencies synchronize from the upstream lockfile without manifest edits.
+6. Boundaries and follow-up: No unrelated work is deleted. No push, Railway authentication, manual deployment, production access, or browser acceptance run occurs. Commit scope contains only Usy integration, regressions, requirements, release notes, TODO metadata, and session records.
+7. Learning and instruction sources: Passport product names require disambiguation from human-agent contact keywords. AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route this result into these records and T-1098.
+
+## 2026-10-24 — Continuation task identification
+
+1. Goal: Identify the task referenced by “continue last task Usy skills.”
+2. Findings: HEAD is 10954748 and the worktree is clean before record updates. The latest rebase and the latest Usy Swedish-language task are recorded as complete. No active Usy task appears in the queue.
+3. Observation: The request can refer to the Usy assistant or to using skills for the latest task. The agent requests task identification; no implementation or validation result is inferred from earlier records.
+4. Follow-up: The user identifies the intended task and remaining outcome. Product edits, commits, pushes, and deployments require an identified task scope.
+5. Learning: Read task records together with current Git state before selecting continuation work. No matching Usy skill appears in the available skill catalog.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: the three required interaction records.
+
 ## 2026-10-24 — Passport CI dependency remediation and beta PR (T-1095, T-1097)
 
 1. Goal: Fix CI dependency advisories and publish the Passport branch for beta review; stop T-1093 and all Railway authentication attempts.

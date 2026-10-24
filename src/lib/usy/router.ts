@@ -14,6 +14,7 @@ import {
 } from "@/lib/usy/billing-knowledge";
 import {
   getPlanSummary,
+  usyAgentPassportAnswers,
   supportedUsyLanguageLabel,
   usyClevrSyncFacts,
   usyCreditCostFacts,
@@ -59,6 +60,7 @@ type ProductIntentId =
   | "reports"
   | "retail"
   | "accountancy"
+  | "agent-passport"
   | "governance"
   | "integrations"
   | "account"
@@ -161,6 +163,7 @@ const usyIntentByProductIntent: Record<ProductIntentId, UsyIntent> = {
   reports: "product_information",
   retail: "product_information",
   accountancy: "product_information",
+  "agent-passport": "product_information",
   governance: "security_request",
   integrations: "product_information",
   account: "account_help",
@@ -193,6 +196,14 @@ const businessTerms = [
 ];
 
 const productIntents: ProductIntentRule[] = [
+  {
+    id: "agent-passport",
+    keywords: ["agent trust passport", "agent passport", "trust passport", "passport", "ai governance transparency"],
+    minScore: 3,
+    answer: () => usyAgentPassportAnswers.english,
+    followUps: [],
+    actions: ["OPEN_AGENT_PASSPORT"],
+  },
   {
     id: "languages",
     keywords: ["languages", "which languages", "speak german", "spreek je nederlands", "parles français", "parles tu francais", "parles-tu francais", "parlez-vous francais", "parlez francais", "hablas español", "beszélsz magyarul", "vorbești română", "vilka sprak", "vilka sprak talar du", "vilka sprak pratar du", "talar du svenska", "pratar du svenska", "sprak talar du", "talar svenska"],
@@ -1023,7 +1034,8 @@ export function buildUsyReply(input: {
 
   const existingContactDraft = input.contactDraft;
   const hasCompleteContactDraft = existingContactDraft && missingContactFields(existingContactDraft).length === 0;
-  const isExplicitContactRequest = isContactRequest(question);
+  // The product name is not a request to speak to a human agent.
+  const isExplicitContactRequest = isContactRequest(question.replace(/\bagent(?:\s+trust)?\s+passport\b/gi, "passport"));
   
   if (existingContactDraft && hasCompleteContactDraft && !isExplicitContactRequest && !existingContactDraft.awaitingConfirmation) {
     // User has a complete contact draft but is asking a normal product question
@@ -1875,6 +1887,7 @@ function buildUploadLimitAnswer(context: UsyContext, language: SupportedUsyLangu
 }
 
 function nextStepForIntent(intentId: string, context: UsyContext, language: SupportedUsyLanguage) {
+  if (intentId === "agent-passport") return getLocalizedActionButton("OPEN_AGENT_PASSPORT", language).label + ".";
   if (language !== "english") {
     if (intentId === "plans" || intentId === "billing" || intentId === "top-ups" || intentId === "refunds" || intentId === "subscription-status" || intentId === "cancellation" || intentId === "downgrade" || intentId === "historical-unlock") return localizedCommon("nextBilling", language);
     if (intentId === "credits") return localizedCommon("nextGeneric", language);
@@ -2361,6 +2374,7 @@ function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) 
 }
 
 function localizedIntentAnswer(intentId: string, context: UsyContext, language: SupportedUsyLanguage) {
+  if (intentId === "agent-passport") return usyAgentPassportAnswers[language];
   if (language === "english") return null;
   const plans = getPlanSummary();
   const uploadFormats = usyProductFacts.uploadFormats.join(", ");

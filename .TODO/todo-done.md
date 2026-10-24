@@ -69,6 +69,8 @@ moving work between states.
 
 ## Label: ai
 
+- T-1098. Explain Agent Trust Passport in all eight Usy languages, open the authenticated owner Transparency section, retain contact-flow boundaries, and validate role, navigation, language, and Usy regressions. (labels: ai, ui, testing; commit: worktree)
+
 
 - T-1076. BYOK requires an added and enabled AI provider before activation: the AI mode card shows "Provider required" with Add-provider guidance, mode saves reject provider-less BYOK, every analysis/assistant/report route returns the specific BYOK provider-required error instead of a generic background failure, cloud fallback runs only when explicitly enabled, and provider keys stay out of responses, errors, and logs, pinned by dedicated regression tests. (labels: ai, api, ui, testing; commit: worktree)
 - T-1074. Usy ClevrSync knowledge serves the final connector state: Google Sheets is the only available connector according to the plan entitlement, CSV and Excel are described as normal direct uploads, every tier and all six languages state that OneDrive and SharePoint are not part of the product, and the required connector, Excel-upload, and Google Sheets questions route to product knowledge instead of the contact request flow or upload troubleshooting, pinned by 22 product-knowledge regression tests. (labels: ai, ui, testing; commit: worktree)

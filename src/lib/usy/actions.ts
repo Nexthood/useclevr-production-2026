@@ -18,6 +18,7 @@ export type UsyActionId =
   | "OPEN_AI_ASSISTANT"
   | "OPEN_RETAIL"
   | "OPEN_ACCOUNTANCY"
+  | "OPEN_AGENT_PASSPORT"
   | "OPEN_AI_GOVERNANCE"
   | "OPEN_SUPPORT"
   | "CONTACT_SALES"
@@ -118,6 +119,11 @@ export const usyActionRegistry: Record<UsyActionId, UsyAction> = {
     route: "/app/accountancy",
     requiresAuth: true,
   },
+  OPEN_AGENT_PASSPORT: {
+    id: "OPEN_AGENT_PASSPORT",
+    route: "/app/ai-governance/transparency#agent-passports",
+    requiresAuth: true,
+  },
   OPEN_AI_GOVERNANCE: {
     id: "OPEN_AI_GOVERNANCE",
     route: "/app/admin/ai-governance",
@@ -176,6 +182,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "Open AI Assistant",
     OPEN_RETAIL: "Open retail",
     OPEN_ACCOUNTANCY: "Open accountancy",
+    OPEN_AGENT_PASSPORT: "Open Agent Trust Passport",
     OPEN_AI_GOVERNANCE: "Open AI governance",
     OPEN_SUPPORT: "Open support",
     CONTACT_SALES: "Contact Sales",
@@ -201,6 +208,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "AI Assistant öffnen",
     OPEN_RETAIL: "Retail öffnen",
     OPEN_ACCOUNTANCY: "Accountancy öffnen",
+    OPEN_AGENT_PASSPORT: "Agent Trust Passport öffnen",
     OPEN_AI_GOVERNANCE: "AI Governance öffnen",
     OPEN_SUPPORT: "Support öffnen",
     CONTACT_SALES: "Sales kontaktieren",
@@ -226,6 +234,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "Ouvrir AI Assistant",
     OPEN_RETAIL: "Ouvrir Retail",
     OPEN_ACCOUNTANCY: "Ouvrir Accountancy",
+    OPEN_AGENT_PASSPORT: "Ouvrir Agent Trust Passport",
     OPEN_AI_GOVERNANCE: "Ouvrir AI Governance",
     OPEN_SUPPORT: "Ouvrir le support",
     CONTACT_SALES: "Contacter Sales",
@@ -251,6 +260,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "Abrir AI Assistant",
     OPEN_RETAIL: "Abrir retail",
     OPEN_ACCOUNTANCY: "Abrir accountancy",
+    OPEN_AGENT_PASSPORT: "Abrir Agent Trust Passport",
     OPEN_AI_GOVERNANCE: "Abrir AI governance",
     OPEN_SUPPORT: "Abrir soporte",
     CONTACT_SALES: "Contactar Ventas",
@@ -276,6 +286,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "Deschide AI Assistant",
     OPEN_RETAIL: "Deschide retail",
     OPEN_ACCOUNTANCY: "Deschide accountancy",
+    OPEN_AGENT_PASSPORT: "Deschide Agent Trust Passport",
     OPEN_AI_GOVERNANCE: "Deschide AI governance",
     OPEN_SUPPORT: "Deschide suportul",
     CONTACT_SALES: "Contactează Vânzări",
@@ -301,6 +312,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "AI Assistant megnyitása",
     OPEN_RETAIL: "Retail megnyitása",
     OPEN_ACCOUNTANCY: "Accountancy megnyitása",
+    OPEN_AGENT_PASSPORT: "Agent Trust Passport megnyitása",
     OPEN_AI_GOVERNANCE: "AI Governance megnyitása",
     OPEN_SUPPORT: "Support megnyitása",
     CONTACT_SALES: "Sales kapcsolat",
@@ -326,6 +338,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "AI Assistant openen",
     OPEN_RETAIL: "Retail openen",
     OPEN_ACCOUNTANCY: "Accountancy openen",
+    OPEN_AGENT_PASSPORT: "Agent Trust Passport openen",
     OPEN_AI_GOVERNANCE: "AI governance openen",
     OPEN_SUPPORT: "Support openen",
     CONTACT_SALES: "Contact Sales",
@@ -351,6 +364,7 @@ const actionLabels: Record<SupportedUsyLanguage, Record<UsyActionId, string>> = 
     OPEN_AI_ASSISTANT: "Öppna AI Assistant",
     OPEN_RETAIL: "Öppna Retail",
     OPEN_ACCOUNTANCY: "Öppna Accountancy",
+    OPEN_AGENT_PASSPORT: "Öppna Agent Trust Passport",
     OPEN_AI_GOVERNANCE: "Öppna AI Governance",
     OPEN_SUPPORT: "Öppna support",
     CONTACT_SALES: "Kontakta Sales",
@@ -378,6 +392,7 @@ const actionTypes: Record<UsyActionId, "navigation" | "contact" | "conversation"
   OPEN_AI_ASSISTANT: "navigation",
   OPEN_RETAIL: "navigation",
   OPEN_ACCOUNTANCY: "navigation",
+  OPEN_AGENT_PASSPORT: "navigation",
   OPEN_AI_GOVERNANCE: "navigation",
   OPEN_SUPPORT: "navigation",
   CONTACT_SALES: "contact",
