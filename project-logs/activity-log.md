@@ -1,3 +1,10 @@
+## 2026-10-24 — Finalize Passport proxy-origin release
+
+- Isolate the reviewed origin guard, regression tests, schema diagnostic, and related documentation from unrelated working-tree edits.
+- Pass 13 Passport groups, auth redirects, owner-scope, Eclipse Mode, TypeScript, focused lint, formatting, docs, pre-commit hooks, and deployment-config checks. Retain authentication, ownership, and tenant isolation.
+- Record the blocked beta push: required pricing validation flags an existing billing comment; baseline CI also fails dependency audit. Obtain scope authorization before modifying those unrelated files. No push or deployment occurs.
+- Keep production schema verification under T-1093; make no direct Railway deployment or production data changes.
+
 ## 2026-10-24 — Resolve the paused main rebase
 
 - Complete both replayed commits onto 79553d7d; retain Agent Trust Passport and ChatGPT OAuth/MCP source, dependencies, scripts, and configuration.

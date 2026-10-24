@@ -14,6 +14,7 @@
 
 ### Fixed
 
+- Let signed-in users create and edit their Agent Trust Passports through HTTPS application proxies while enforcing account ownership and cross-origin protection.
 - Bind ChatGPT account linking to verified client callbacks and reject repeated or concurrent use of an authorization code.
 
 - Show a Usy minimize control beside close so users can hide the panel and reopen their current conversation from the floating avatar.

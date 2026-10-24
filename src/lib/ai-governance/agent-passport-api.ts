@@ -14,12 +14,31 @@ export function passportApiError(error: unknown) {
   );
 }
 
-// Cookie-authenticated mutations must originate from the same application.
+function configuredPassportOrigin() {
+  const configured =
+    process.env.AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (!configured) return null;
+  try {
+    const url = new URL(configured);
+    const localHttp =
+      url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    if (url.username || url.password || (url.protocol !== "https:" && !localHttp)) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+// TLS-terminating proxies can give Request.url an internal HTTP origin. Only a
+// browser same-origin request from the server-configured app origin may use that
+// fallback; forwarded headers never establish a trusted origin.
 export function rejectCrossOriginPassportWrite(request: Request) {
   const origin = request.headers.get("origin");
+  const fetchSite = request.headers.get("sec-fetch-site");
+  const configuredSameOrigin = fetchSite === "same-origin" && origin === configuredPassportOrigin();
   if (
-    (origin && origin !== new URL(request.url).origin) ||
-    request.headers.get("sec-fetch-site") === "cross-site"
+    (origin && origin !== new URL(request.url).origin && !configuredSameOrigin) ||
+    fetchSite === "cross-site"
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

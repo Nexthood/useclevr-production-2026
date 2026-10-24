@@ -176,6 +176,8 @@ moving work between states.
 
 ## Label: auth
 
+- T-1092. Accept authenticated Passport writes from the configured public app origin through the proxy, enforce browser same-origin metadata and owner-only writes, and provide a read-only migration schema checker. (labels: auth, ai, security, testing; commit: worktree)
+
 - T-1027. Authentication uses the patched Auth.js beta dependency pair so email-password credentials, JWT sessions, protected-route checks, email verification, logout, and Superadmin role handling stay on the existing architecture without critical Auth.js advisories. (labels: auth, security, testing; commit: 23650724)
 - T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)
 - T-908. Prefer the Railway social sign-in environment names for Google and LinkedIn provider setup, keep legacy provider names as fallback aliases, and suppress stale OAuth configuration query errors after provider status loads. (labels: auth, deployment, ui; commit: 000129bf)

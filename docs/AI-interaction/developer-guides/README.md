@@ -6,6 +6,7 @@ Use this folder for implementation guidance, repo behavior, and agent operating 
 
 - [AI agent guide](ai-agent-guide.md)
 - [AI tracing structure](ai-tracing-structure.md)
+- [Agent Passport authorization and schema checks](agent-passport-operations.md)
 - [Bookkeeping developer guide](bookkeeping-developer-guide.md)
 - [AI interaction workflow guide](interaction-workflow-guide.md)
 - [Post-interaction hook](post-interaction-hook.md)

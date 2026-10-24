@@ -5,6 +5,17 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-24
+- **Goal**: Finalize and publish the Passport proxy-origin fix through required GitHub release checks.
+- **Scope**: Isolated release worktree includes the origin guard, regression tests, catalog-only checker, and related documentation/task records; preserve the original shared worktree.
+- **Security**: Retain valid sessions, exact configured-origin fallback with same-origin browser metadata, session-derived ownership, and tenant-scoped writes. Forwarded headers grant no trust.
+- **Validation**: All 13 Passport groups, auth redirects, customer-data owner scope, Eclipse Mode, TypeScript, focused ESLint, and source formatting checks pass. Normal commit/push hooks remain required for publication.
+- **Release status**: The fix is committed on fix/passport-proxy-origin. Required pre-push TypeScript and deployment-config checks pass; pricing lint blocks the beta push on an existing billing comment. Production packaging does not run. No push, PR, workflow, or deployment starts for this fix.
+- **Prerequisites**: Baseline CI run 40107094640 also fails dependency audit with 3 critical and 8 high advisories. Ask the user to authorize these changes outside Passport scope; do not bypass checks. T-1093 separately requires Railway access for production schema verification.
+- **Boundary**: No direct Railway deployment or production data/configuration change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
 - **Goal**: Complete the paused main rebase while retaining Agent Trust Passport and ChatGPT OAuth/MCP.
 - **Outcome**: Both commits replay onto 79553d7d. Eleven conflict resolutions retain both implementations, scripts, dependencies, distinct records, completed acceptance, and TODO counter 1092. Five overlapping ChatGPT log sections are consolidated.
 - **Validation**: TypeScript, package/TODO/workflow/changelog/secret checks, Eclipse Mode, 12 Passport groups, three safety checks, 27 OAuth checks, MCP integration, submission-source validation, and whitespace checks pass. Application source and configuration match original combined tip 76a57330. Browser acceptance and production builds are not rerun.

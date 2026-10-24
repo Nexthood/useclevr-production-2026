@@ -35,6 +35,8 @@ moving work between states.
 
 ## Label: auth
 
+- T-1093. The operator restores private Railway access for production service useclevr app at https://app.useclevr.com, verifies runtime and predeploy database authentication, and runs the read-only Passport schema checker to record migration 0037 status; local configured credentials return PostgreSQL 28P01. (labels: auth, ai, deployment, testing)
+
 
 ## Deferred
 

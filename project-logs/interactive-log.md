@@ -1,3 +1,13 @@
+## 2026-10-24 — Finalize Passport proxy-origin release (T-1092)
+
+1. Goal: Publish the Agent Trust Passport origin fix through GitHub release checks without direct Railway deployment or production data changes.
+2. Scope: Isolate the origin guard, proxy/security regressions, read-only schema diagnostic, requirements, release note, operations guide, task records, and this interaction's records. Preserve the original worktree and its unrelated log deletion.
+3. Behavior: Require a valid session, match the configured public origin with same-origin browser metadata for proxy fallback, ignore forwarded headers as trust authority, and enforce session-selected ownership and tenant-scoped writes.
+4. Validation: All 13 Passport groups, auth redirects, customer-data owner scope, Eclipse Mode, TypeScript, focused ESLint, and source formatting checks pass. Normal commit/push hooks remain required for publication. Tests use a disposable network-disabled database with external credentials excluded.
+5. Release: The local fix/passport-proxy-origin commit passes all pre-commit hooks. The beta push runs normal pre-push hooks: TypeScript and deployment configuration pass; pricing validation rejects an existing EUR price example in a billing component comment. No push occurs, so no release workflow or deployment starts. Production packaging does not run after the failed lint gate. No direct Railway deployment or production database query/write occurs.
+6. Follow-up: The user must authorize prerequisite changes outside Passport scope before release can proceed. The pricing example also exists on remote main. Baseline CI run 40107094640 fails dependency audit with 3 critical and 8 high advisories. T-1093 separately tracks production schema and credential verification; Railway authentication is unavailable locally.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: three interaction records, operations guide, regular task queues, requirements, and changelog.
+
 ## 2026-10-24 — Resolve the paused main rebase
 
 1. Goal: Resolve the paused rebase safely, retain both integrations and unrelated changes, continue every replay, and validate locally.
