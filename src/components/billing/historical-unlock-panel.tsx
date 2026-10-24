@@ -100,7 +100,7 @@ export function HistoricalUnlockPanel({
 
 /**
  * Fixed regional price formatting with the exact UseClevr presentation per
- * supported currency ($29 / €25 / £22 / C$40 style). No locale-dependent
+ * supported currency using its fixed symbol. No locale-dependent
  * currency symbol swaps — the unlock price text is always deterministic.
  */
 export function formatFixedRegionalPrice(amount: number, currency: string): string {

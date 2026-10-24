@@ -1,3 +1,12 @@
+## 2026-10-24 — Billing comment release gate (T-1094)
+
+1. Goal: Resolve the verified pricing-comment release blocker without changing product prices or billing behavior.
+2. Change: Replace numeric currency examples in the historical unlock formatting comment with a description of fixed currency symbols; application code and prices remain untouched.
+3. Verification: Pricing validation passes; the source diff contains one comment-line edit. Allocate T-1095 for compatible dependency security updates and non-deploying branch publication.
+4. Scope: The user authorizes verified release prerequisites only, separate commits, normal hooks, and a push to fix/passport-proxy-origin. No beta/main push, release PR, automatic deployment, or production data access.
+5. Follow-up: T-1095 investigates the reproduced 3 critical and 8 high audit findings and tests Passport and ChatGPT OAuth/MCP compatibility.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: TODO queues, changelog, and three interaction records.
+
 ## 2026-10-24 — Finalize Passport proxy-origin release (T-1092)
 
 1. Goal: Publish the Agent Trust Passport origin fix through GitHub release checks without direct Railway deployment or production data changes.

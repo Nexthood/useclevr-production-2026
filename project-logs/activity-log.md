@@ -1,3 +1,8 @@
+## 2026-10-24 — Billing comment release gate
+
+- Replace numeric currency examples in one billing-format comment; pricing validation passes with no price or behavior change.
+- Complete T-1094 and track compatible dependency remediation and non-deploying fix-branch publication under T-1095.
+
 ## 2026-10-24 — Finalize Passport proxy-origin release
 
 - Isolate the reviewed origin guard, regression tests, schema diagnostic, and related documentation from unrelated working-tree edits.
