@@ -1,3 +1,67 @@
+## 2026-10-24 — Resume dependency security update (T-1095)
+
+- Continue interrupted dependency and lockfile changes in the existing release worktree; preserve the original main checkout and the separate T-1094 approval task.
+- Verify frozen installation, zero audit vulnerabilities, two dependency compatibility cases, TypeScript, and focused regressions. ESLint reports zero errors and 452 warnings.
+- Verify full ChatGPT and application CI suites, documentation links, production build, and distribution packaging on disposable PostgreSQL 17.11 from the cached image; use private Unix sockets and disabled container networking.
+- Complete T-1095 validation and run commit/push through normal hooks on release/agent-trust-passport. Keep T-1094 approval evidence separate; no production access, merge, or deployment.
+
+## 2026-10-24 — T-1093 release validation corrections
+
+- Reference canonical historical-unlock pricing in the formatter comment and include `.well-known` TypeScript routes in the ESLint project.
+- Pass all 38 historical-unlock tests and the complete pre-push hook, including production build and packaging, with temporary auth and a closed loopback database endpoint. Scope the release commit to the two corrections and four mandatory records; run commit and push hooks normally.
+
+## 2026-10-21 — T-1093 single-administrator approval compatibility
+
+- Match the verified GitHub environment: sole `Nexthood` user reviewer, self-review setting false, administrator bypass false, and only `main`; keep the protected publisher job's mandatory approval.
+- Pass workflow regression/lint for exact reviewer and branch policy, fail-closed cases, and retained production environment approval. Pass migration safety suite on disposable PostgreSQL 17.11, secret/TODO checks, formatting, and documentation links. Do not commit.
+
+## 2026-10-21 — T-1093 local release safety commit
+
+- Review and stage only the approved workflow, migration, test, documentation, and task-record changes; exclude unrelated `next-env.d.ts` and `tmp/`.
+- Pass the commit hooks and create one local conventional commit. Keep production NO-GO until T-1094 verifies GitHub and Railway settings, the actual database version, and recovery readiness.
+
+## 2026-10-21 — T-1092 production release safety
+
+- Remove automatic beta promotion and dispatch while retaining beta builds, `dist-test`, and release PR preparation; gate exact-SHA production publication on a pre-existing, fail-closed GitHub environment policy.
+- Bound migration connection, lock, statement, transaction, idle, and cleanup work; preserve original errors, rollback, safe diagnostics, and no-retry behavior. Test migration 0037 and full schema sync on disposable PostgreSQL 17.11, including the PostgreSQL 16 watchdog branch.
+- Pass workflow, TypeScript, migration, passport, historical-unlock, TODO, secret, package, changelog, and project-record checks. Production remains NO-GO: the configured GitHub environment is unprotected, and Railway settings, production PostgreSQL version, and recovery readiness require operator verification. Keep all changes local and uncommitted.
+
+## 2026-10-20 — T-1091 release documentation finalization
+
+- Reconcile the preceding passing Chrome acceptance with release/agent-trust-passport: eighteen implementation/test paths match the tested passport implementation; retain the release-worktree PostgreSQL runtime and migration evidence.
+- Complete T-1091 in the regular task queues, clarify its existing release note, and prepare one local documentation/task-record commit with repository validation hooks.
+- Preserve the unstaged generated type-reference edit and temporary artifacts; change no application code or CI/CD configuration and perform no push, deployment, or production migration. Production migration readiness and the observed Assistant timestamp hydration warning remain explicit limitations.
+
+## 2026-10-20 — T-1091 final local PostgreSQL runtime verification
+
+- Pass real-database passport CRUD, editable-field persistence, trace association, historical checksum preservation, cross-owner isolation, and existing governance reads/writes; pass eleven governance consistency groups.
+- Rehearse migration 0037 on 1,000 and 100,000 synthetic traces: first apply 9.40/154.38 ms; replay 1.32/1.36 ms. Observe AccessExclusiveLock contention, transactional rollback, and read recovery after commit.
+- Remove the disposable network-disabled PostgreSQL container and cluster data. Keep browser acceptance BLOCKED and production schema/timing/recovery unverified; create no commit, push, deployment, or production migration and leave the original checkout untouched.
+
+## 2026-10-20 — T-1091 isolated release preparation
+
+- Apply f03eaf7e on release/agent-trust-passport from locally available origin/main 79553d7d in a separate worktree; resolve five shared-record/package conflicts while retaining upstream content.
+- Pass TypeScript, 12 passport fixture groups, 11 governance unit groups, deployment-config checks, TODO/changelog/package checks, production build, and distribution packaging with isolated credentials.
+- Retain pending browser acceptance and migration/runtime rehearsal requirements; preserve original main, index, and all 31 uncommitted file hashes. Complete only the authorized cherry-pick; no push, deployment, production migration, or CI/CD changes.
+
+## 2026-10-20 — T-1091 local commit preparation
+
+- Isolate Agent Trust Passport implementation, fixture tests, migration source, trace linkage, requirements, release note, and acceptance records for one local commit.
+- Keep browser acceptance pending in active T-1091; preserve unrelated changes and exclude temporary artifacts and real credentials.
+- Reuse verified 12 passport groups and 11 governance unit groups; run staged review, secret scanning, and repository commit hooks. No push, deployment, or production migration is authorized.
+
+## 2026-10-20 — T-1091 browser acceptance remains pending
+
+- Record browser acceptance as BLOCKED: no exposed browser automation tool or installed automation package; no authenticated local UI journey runs.
+- Pass 12 passport boundary/database groups with disposable fixture users and 11 existing governance consistency unit groups with database access disabled.
+- Return T-1091 to the active queue; retain local-only restrictions and unrelated working-tree changes.
+
+## 2026-10-20 — Agent Trust Passport completion
+
+- Complete T-1091 local validation: owner-scoped metadata, stable identity, descriptive lifecycle and risk, trace references, migration replay, and Eclipse Mode privacy.
+- Fix passport test entrypoints for the ES6 TypeScript target and type cross-origin header fixtures.
+- Verify all 12 passport test groups, TypeScript, Eclipse Mode, package metadata, and focused ESLint with zero errors; keep changes uncommitted and unpublished.
+
 ## 2026-10-20 — Four local ChatGPT integration commits
 
 - Create integration/chatgpt-2026-10-20 from verified upstream 05816e35 in a separate worktree; preserve the original files and a private backup.

@@ -9,7 +9,19 @@ Text rules for this file:
 - Avoid vague phrases that hide the actor or the required action.
 - Avoid past-state comparison unless it prevents a concrete risk.
 
+## AI Governance
+
+- Let each signed-in account create and edit one Clevr AI Analyst passport with a human owner name, purpose, declared scope, owner-declared risk, and descriptive lifecycle.
+- Keep the passport identity stable across provider, model, and lifecycle changes; reject identity reassignment and cross-account edits.
+- Link new analyst traces to the signed-in owner's configured passport; leave historical traces unassigned and exclude Eclipse Mode requests from trace storage.
+- Let owners inspect their passport metadata and paginated trace references; let superadmins inspect all owners' passports without editing another owner's passport.
+- State that passport lifecycle and risk declarations do not enforce runtime restrictions, grant permissions, verify identity, or constitute security certification.
+
 ## Infrastructure
+
+- Require an explicit production environment approval from the sole `Nexthood` user reviewer before publishing the exact production source revision; allow self-review, disable administrator bypass, allow only `main`, and reject missing or unenforceable approval protection.
+- Keep beta test publication and release PR preparation independent of production approval; beta automation performs no source merge or production dispatch.
+- Bound migration connection, lock, statement, transaction, idle, and cleanup durations on a dedicated connection; abort deployment on failure without retrying or exposing private error content.
 
 - Bind ChatGPT authorization requests to the allowlisted client's metadata and registered callback; permit exactly one successful exchange per unexpired authorization code.
 - Run ChatGPT OAuth and MCP integration tests through a disposable PostgreSQL runner that excludes existing database configuration and provider credentials; execute both suites in source CI.

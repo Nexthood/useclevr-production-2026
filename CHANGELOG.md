@@ -2,6 +2,7 @@
 
 ### Added
 
+- Let users declare their analyst's human owner, purpose, scope, risk, and lifecycle in an Agent Trust Passport and inspect linked analysis activity in AI Governance.
 - Usy now understands Swedish and answers every supported topic, including billing, planning, and contact requests, in Swedish.
 - The dashboard language selector now offers Swedish alongside the existing languages.
 - Usy now understands French and answers every supported topic, including billing, planning, and contact requests, in French.
@@ -59,6 +60,10 @@
 
 ### Dev
 
+- Patch release dependencies and check connector and rich-text compatibility so security validation covers the installed application without skipping advisories.
+- Include public verification routes in typed lint checks and reference canonical billing prices in formatter guidance so release validation completes.
+- Accept the configured production reviewer while keeping GitHub environment approval mandatory.
+- Require human approval for production publication and bound database migrations so failures abort promotion without exposing private diagnostics.
 - Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
 - Provide submission source assets and publisher metadata for reproducible UseClevr upload packages.
 - Check submission publisher names, public-client authentication, and listing URLs locally before packaging.

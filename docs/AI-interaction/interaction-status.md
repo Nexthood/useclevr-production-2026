@@ -4,6 +4,85 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-24
+- **Goal**: Resume interrupted dependency security fixes and publish the validated release/agent-trust-passport branch through normal hooks.
+- **Task identity**: Existing T-1095 tracks dependencies; T-1094 tracks separate hosted release approval evidence. Preserve both IDs.
+- **Change**: Patch direct and transitive dependencies, retain Undici major boundaries, and test Payload MCP schema and Lexical HTML compatibility.
+- **Verified**: Frozen install, raw audit with zero vulnerabilities, unchanged CI audit gate, two compatibility tests, TypeScript, and focused regressions pass. ESLint reports zero errors and 452 warnings.
+- **Validation**: Full ChatGPT and application CI suites, documentation links, production build, and distribution packaging pass with disposable PostgreSQL 17.11. The cached PostgreSQL 17 image provides `/usr/lib/postgresql/17/bin/initdb`; the host contains client tools only. The temporary runner uses a private Unix socket and disables container networking.
+- **Records**: T-1095 moves to the completed queue; commit and push use the normal project hooks on release/agent-trust-passport.
+- **Boundary**: Preserve original main checkout and unrelated work. No T-1091 browser acceptance, passport development, hook bypass, audit suppression, merge, deployment, or production access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Commit and push the Agent Trust Passport release branch with exactly two validation corrections and four required project records through normal Git hooks.
+- **Corrections**: Reference canonical historical-unlock pricing in the formatter comment; include tracked `.well-known` routes in the ESLint TypeScript project.
+- **Verification**: All 38 historical-unlock tests and the full pre-push hook pass, including ESLint, TypeScript, pricing, deployment configuration, secret checks, production build, and packaging. Build-time auth is temporary; database references target a closed loopback port. Expected connection refusals do not establish database runtime readiness.
+- **Scope**: Work only in the restored release worktree. No hook bypass, product-price or application-functionality change, original-checkout edit, merge, deployment, or production database operation.
+
+## Previous Interaction
+
+- **Date**: 2026-10-21
+- **Goal**: Make the committed release policy accept the verified single-administrator GitHub environment while retaining mandatory deployment approval.
+- **GitHub settings**: The environment has exactly the `Nexthood` user reviewer; `prevent_self_review` is false; administrator bypass is false; and the sole deployment branch is `main`.
+- **Policy change**: Require exactly that reviewer and those settings. Reject missing, additional, or different reviewers; missing or enabled self-review; administrator bypass; and any branch policy other than `main`. Keep GitHub's required-reviewer environment on the protected production publisher job.
+- **Verification**: Workflow safety tests/lint pass; migration safety suite passes on disposable PostgreSQL 17.11; secret/TODO checks, targeted formatting, and documentation links pass. No production data is accessed.
+- **Restrictions**: Do not stage or commit; no push, merge, or deployment. Preserve unrelated `next-env.d.ts` and `tmp/`.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Final local runtime and migration verification of T-1091 in the release worktree only.
+- **PASS runtime**: Real application PostgreSQL connections persist passport creation/editing, all declared fields, stable new-trace linkage, owner isolation, and read-only superadmin inspection. Historical content checksums remain unchanged; Eclipse Mode writes no trace. Session identities are synthetic and handlers run in-process.
+- **PASS governance**: Settings, owner-scoped audit/provider monitoring, overrides, and snapshot/privacy/risk/compliance/reports work with PostgreSQL; eleven existing consistency groups pass.
+- **Migration measurements**: PostgreSQL 17.11; synthetic 1,000-row first apply/replay 9.40/1.32 ms; 100,000-row first apply/replay 154.38/1.36 ms. Rows/checksums, nullable attribution, foreign-key validation, and index validity pass. These are single local measurements.
+- **Observed locking**: An active reader blocks AccessExclusiveLock; test-only 400 ms timeout fails with 55P03 after 410.44 ms. An uncommitted migration blocks reads until commit; test-only statement timeout fails with 57014 after 401.16 ms. Rollback and post-commit recovery pass. Production predeploy has no explicit lock/statement timeout.
+- **BLOCKED browser**: No browser automation tool or installed Playwright/Puppeteer package. Browser acceptance stays pending under T-1091. Production schema compatibility, full predeploy duration, backup/recovery, and production contention remain unverified.
+- **Isolation and changes**: Fresh network-disabled PostgreSQL, private worktree socket, synthetic records, no inherited credentials. Container/cluster removed. Only related records and untracked local rehearsal artifacts change; no additional commit, push, deployment, production migration, or original-checkout access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Prepare release/agent-trust-passport in /tmp/useclevr-passport-release-20261020 from locally available origin/main 79553d7d and cherry-pick f03eaf7e.
+- **Conflicts**: Resolve five package/task/interaction-record conflicts by retaining upstream commands and complete records, adding the passport content, and keeping nextTaskNumber at 1092.
+- **PASS**: TypeScript, 12 disposable passport fixture groups, 11 governance consistency unit groups, deployment configuration, TODO/changelog/package checks, production build, and distribution packaging. The initial sandbox font-download failure clears on a network-enabled retry.
+- **Build limits**: Credentials are isolated and the database endpoint is a closed local port; expected PostgreSQL connection refusal and compilation warnings do not establish database-backed runtime readiness.
+- **Scope**: Exactly 27 passport paths; implementation bytes match f03eaf7e. CI/CD files remain unchanged. The original main HEAD, index, and 31 uncommitted file hashes remain intact.
+- **Pending**: T-1091 browser acceptance; production-scale migration lock/timing, schema compatibility, recovery verification, and database-backed runtime checks.
+- **Restrictions**: Complete the authorized cherry-pick only. No additional commit, push, deployment, production migration, or CI/CD automation change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create one local commit containing only T-1091 Agent Trust Passport changes.
+- **Scope**: Passport UI/APIs, schema and migration source, trace attribution, disposable tests, test command, requirements, release note, and passport-only interaction records. Unrelated shared-file changes stay unstaged.
+- **Validation evidence**: Twelve passport fixture groups and eleven governance consistency unit groups pass; implementation TypeScript and Eclipse Mode checks pass. Commit preparation reviews staged paths and runs secret scanning and repository hooks.
+- **Browser acceptance**: PENDING under active T-1091. No authenticated browser journey runs; browser automation tooling is unavailable in the acceptance session. Full historical-record preservation and existing governance UI behavior remain unverified in a browser.
+- **Restrictions**: One local commit is authorized. No push, deployment, or production database migration. Preserve unrelated working-tree changes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: T-1091 final browser acceptance in the existing local AI Governance interface, using test accounts only.
+- **Browser result**: BLOCKED, not passed. No browser automation tool is exposed; Playwright and Puppeteer packages are unavailable. Browser binaries exist, but no authenticated browser flow or local development server runs.
+- **Supporting PASS**: Twelve passport fixture groups cover API creation/editing, field validation, trace linkage, historical null attribution, and cross-user denial. Eleven existing governance consistency unit groups pass with database exports mocked to null and inherited credentials excluded.
+- **Evidence limits**: Mocked-session API tests and static rendering do not establish browser form persistence, UI-generated trace association, byte-for-byte historical record preservation, or functioning governance controls/navigation.
+- **Remaining blocker**: Run all six browser checks in a browser-capable local session with an isolated database and two test-account logins. T-1091 is active until this acceptance completes.
+- **Restrictions**: No deployment, production migration, real database access, commit, or push. Product implementation and unrelated changes remain untouched; only local records and TODO state change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Continue and complete the unfinished Agent Trust Passport task, T-1091.
+- **Behavior**: Owners manage one durable analyst identity, human owner declaration, purpose, scope, descriptive risk/lifecycle, and paginated trace references. Superadmins inspect across accounts with owner-only edits. Historical traces remain unassigned; Eclipse Mode creates no trace.
+- **Fix**: Use async main in both passport test entrypoints for the ES6 target and explicitly type cross-origin header fixtures.
+- **Validation**: All 12 boundary/database groups pass against fresh network-disabled Docker PostgreSQL. TypeScript, Eclipse Mode, and package metadata pass. Focused ESLint reports zero errors with existing trace warnings and ignored test-script notices.
+- **Scope**: T-1091 is complete in the local working tree. No commit, push, production build, deployment, or browser acceptance check occurs. Existing ChatGPT integration work remains in the shared tree.
+- **Records**: See project-logs/interactive-log.md and project-logs/activity-log.md for the continuation evidence.
+
+## Previous Interaction
+
 - **Date**: 2026-10-20
 - **Goal**: Create four approved local ChatGPT integration commits on a dedicated branch without publishing.
 - **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
