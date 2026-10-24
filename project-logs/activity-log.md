@@ -1,3 +1,128 @@
+## 2026-10-24 — Passport CI dependency remediation
+
+- Preserve all 111 original-worktree files and work only on fix/passport-proxy-origin.
+- Lock patched Zod 4.6.7 and Happy DOM 21.0.4 throughout the graph; audit reports zero vulnerabilities with the existing gate unchanged.
+- Pass the full test:all suite with disposable PostgreSQL, real MCP/Lexical compatibility, 13 Passport groups, isolated OAuth/MCP, TypeScript, and focused security regressions.
+- Retarget PR #409 to beta without auto-merge; require normal publication hooks and exclude deployment and production access.
+
+## 2026-10-24 — Passport publication review
+
+- Resume the isolated Passport release branch, confirm the comment-only pricing fix, and stop T-1093 Railway authentication attempts.
+- Preserve main source hashes and all temporary artifacts; publish explicit tracked release paths only.
+- Pass 13 Passport groups and release checks; retain security blockers and require normal push hooks for the beta review PR.
+
+## 2026-10-24 — Compatible dependency security updates
+
+- Resolve 19 audit findings with compatible updates; retain two unapproved high findings for MCP Zod 3 and Lexical Happy DOM 20 without changing the allowlist.
+- Pass Passport, ChatGPT OAuth/MCP, billing, auth, owner-scope, privacy, upload, Hybrid AI, CSV, transparency, TypeScript, and peer checks.
+- Document exact audit evidence and retain T-1095 for major-migration approval; publish only the fix branch after normal hooks with no deployment.
+
+## 2026-10-24 — Typed lint release blocker
+
+- Include well-known application routes in ESLint's TypeScript project and verify the public verification route passes typed lint.
+- Complete T-1096 in a separate commit; retain route behavior and all security gates.
+
+## 2026-10-24 — Billing comment release gate
+
+- Replace numeric currency examples in one billing-format comment; pricing validation passes with no price or behavior change.
+- Complete T-1094 and track compatible dependency remediation and non-deploying fix-branch publication under T-1095.
+
+## 2026-10-24 — Finalize Passport proxy-origin release
+
+- Isolate the reviewed origin guard, regression tests, schema diagnostic, and related documentation from unrelated working-tree edits.
+- Pass 13 Passport groups, auth redirects, owner-scope, Eclipse Mode, TypeScript, focused lint, formatting, docs, pre-commit hooks, and deployment-config checks. Retain authentication, ownership, and tenant isolation.
+- Record the blocked beta push: required pricing validation flags an existing billing comment; baseline CI also fails dependency audit. Obtain scope authorization before modifying those unrelated files. No push or deployment occurs.
+- Keep production schema verification under T-1093; make no direct Railway deployment or production data changes.
+
+## 2026-10-24 — Resolve the paused main rebase
+
+- Complete both replayed commits onto 79553d7d; retain Agent Trust Passport and ChatGPT OAuth/MCP source, dependencies, scripts, and configuration.
+- Resolve the initial five conflicts and six additional conflicts; consolidate five overlapping ChatGPT log sections and retain the expanded CIMD report and upstream commit-preparation guide.
+- Pass TypeScript, package/TODO/workflow/changelog/secret checks, Eclipse Mode, 12 Passport groups, three OAuth safety checks, 27 OAuth flow checks, MCP integration, submission-source validation, and whitespace checks.
+- Stage only conflict-resolution paths. Amend the final replayed commit with deduplication and required session records; run validators manually because the pre-commit record gate requires an unrelated changelog edit.
+- Keep all changes local; no push, deployment, or Railway configuration edit occurs.
+
+## 2026-10-24 — Last-task continuation check
+
+- Recheck HEAD and TODO-done for the repeated continuation request; request task identity between Agent Trust Passport and ChatGPT/CIMD integration.
+- Confirm T-1091 browser acceptance is complete in the latest records and task queue; implementation commit is f03eaf7e.
+- Request the next task identity; preserve pending changes. No tests, product changes, commit, push, deployment, or production access occurs.
+
+## 2026-10-20 — T-1091 local browser acceptance
+
+- Pass real Chrome creation, declared-field, edit/reload, identity, Assistant trace-linkage, historical fixture equality, and cross-account denial checks with synthetic accounts and disposable PostgreSQL.
+- Verify all eleven governance sections, linked-trace viewing, and compliance export; move T-1091 to TODO-done.
+- Use credential-free local services; stop local processes, remove the database container, and restore the generated type-reference edit. Preserve unrelated changes; no commit, push, deployment, or production access occurs.
+- Retain evidence in /tmp/useclevr-browser-Zj7SLQ/acceptance.json. The Assistant timestamp hydration warning and external-provider connectivity remain outside these functional assertions.
+
+## 2026-10-20 — Four local ChatGPT integration commits
+
+- Create integration/chatgpt-2026-10-20 from verified upstream 05816e35 in a separate worktree; preserve the original files and a private backup.
+- Review each staged group against the approved file manifest and record four local commits with normal validation hooks; keep archives, secrets, and upstream domain implementation outside the groups.
+
+## 2026-10-20 — Disposable ChatGPT OAuth and MCP validation
+
+- Run the existing OAuth security work through fresh PostgreSQL clusters with private Unix sockets, separate databases, synthetic fixtures, and generated in-memory keys.
+- Exclude inherited database/provider configuration and environment-file loaders; reject direct entrypoint execution and database overrides; run both suites in source CI.
+- Validate real email-proof login, consent, CIMD, PKCE, atomic code consumption, bearer checks, and tenant isolation locally.
+
+## 2026-10-20 — OpenAI publisher and source package reconciliation
+
+- Use UseClevr as the product and Atlas Mega Ventures as the package author and intended publisher; require the operator to verify affiliation and selected OpenAI identity.
+- Document the existing demo link, required reviewer email-proof access, and outstanding submission checks; keep historical ZIPs and validation JSON intact and Git-ignored.
+
+## 2026-10-20 — CIMD submission consistency and commit preparation
+
+- Validate matching publisher names, listing URLs, and CIMD public-client metadata locally; retain the support report as evidence about the exact historical 1.0.2 ZIP.
+- Record four approved local source commit groups on the integration branch; exclude duplicate domain implementation and preserve the original worktree. No push, deployment, or submission occurs.
+
+## 2026-10-19 — CIMD portal connection audit
+
+- Verify the exact 1.0.2 ZIP, its canonical CIMD declaration, absence of duplicate fields and alternate manifests, and agreement with the live OAuth discovery.
+- Distinguish the reported predefined-client-ID validation from unverified persisted portal state; prepare a support report with the required reproduction evidence.
+- Keep the upload package and OAuth implementations unchanged; the operator submits the report manually.
+
+## 2026-10-19 — Public OpenAI domain verification
+
+- Serve the exact plain-text proof through the App Router and permit its exact path on MCP hosts.
+- Verify local HTTP 200, text/plain, exact 43-byte body, no redirect, MCP host routing, unrelated-path 404, and protected-API 401 with curl.
+- Record public `https://app.useclevr.com/.well-known/openai-apps-challenge` HTTP 404; deployment is required for the live endpoint.
+- Keep all MCP/OAuth implementations and existing upload packages unchanged; no commit, push, or publication.
+
+## 2026-10-20 — T-1091 local commit preparation
+
+- Isolate Agent Trust Passport implementation, fixture tests, migration source, trace linkage, requirements, release note, and acceptance records for one local commit.
+- Keep browser acceptance pending in active T-1091; preserve unrelated changes and exclude temporary artifacts and real credentials.
+- Reuse verified 12 passport groups and 11 governance unit groups; run staged review, secret scanning, and repository commit hooks. No push, deployment, or production migration is authorized.
+
+## 2026-10-20 — T-1091 browser acceptance remains pending
+
+- Record browser acceptance as BLOCKED: no exposed browser automation tool or installed automation package; no authenticated local UI journey runs.
+- Pass 12 passport boundary/database groups with disposable fixture users and 11 existing governance consistency unit groups with database access disabled.
+- Return T-1091 to the active queue; retain local-only restrictions and unrelated working-tree changes.
+
+## 2026-10-20 — Agent Trust Passport completion
+
+- Complete T-1091 local validation: owner-scoped metadata, stable identity, descriptive lifecycle and risk, trace references, migration replay, and Eclipse Mode privacy.
+- Fix passport test entrypoints for the ES6 TypeScript target and type cross-origin header fixtures.
+- Verify all 12 passport test groups, TypeScript, Eclipse Mode, package metadata, and focused ESLint with zero errors; keep changes uncommitted and unpublished.
+
+## 2026-10-20 — Temporary fresh-identity CIMD diagnostic package
+
+- Create `/tmp/useclevr-cimd-diagnostic-vjdhubg3/useclevr-mcp-cimd-1.0.0.zip` from the exact 1.0.2 archive with matching portable/Codex identities and unchanged MCP bytes.
+- Validate archive integrity, structure, JSON, referenced assets, source hash, and the bundled package checks; retain the original package and production files untouched.
+
+## 2026-10-20 — CIMD portal save failure diagnosis
+
+- Treat the user's pushed integration branch as the current task state; stop commit preparation and retain the no-commit/push/deploy/delete boundary.
+- Compare production CIMD discovery and strict PKCE rejection with the tested source; no observed mismatch explains predefined-client portal validation.
+- Prepare the existing support report for inspection of saved registration, save-request mapping, and CIMD backend validation; preserve uncertainty until portal records are available.
+
+## 2026-10-20 — ChatGPT integration continuation verification
+
+- Verify the pending submission sources, TODO management, whitespace, three safety tests, 27 OAuth-to-MCP checks, and MCP integration suite; all pass.
+- Keep the four-group commit plan as the handoff; source changes remain unstaged and unpublished under the recorded task scope.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 - implemented: `swedish` joins the canonical `SupportedUsyLanguage` union and the ordered `supportedUsyLanguages` array (`english, german, dutch, french, spanish, hungarian, romanian, swedish`) behind the existing label constant, actions registry, chat/contact zod schemas, chatbox surface maps (placeholder, quick action, contact labels, submit labels), and the 🇸🇪 Svenska badge entry — no parallel lists

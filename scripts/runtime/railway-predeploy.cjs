@@ -363,6 +363,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0034_dataset_source.sql"),
   readMigrationStatement("src/lib/db/migrations/0035_referral_automation.sql"),
   readMigrationStatement("src/lib/db/migrations/0036_historical_data_unlock.sql"),
+  readMigrationStatement("src/lib/db/migrations/0037_agent_trust_passport.sql"),
 ];
 
 const constraints = [

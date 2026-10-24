@@ -1,0 +1,87 @@
+Subject: UseClevr CIMD connection blocked by predefined OAuth client-ID save validation
+
+Hello OpenAI Support,
+
+Please investigate a registration-mode mismatch when connecting the UseClevr MCP server in the plugin submission portal.
+
+Product / publisher: UseClevr / Atlas Mega Ventures
+MCP endpoint: https://app.useclevr.com/api/chatgpt/mcp
+Authorization server: https://app.useclevr.com
+Operator-reported failure: 2026-10-19 18:41 UTC; the operator reports the same error during the current investigation.
+
+Reproduction reported by the operator:
+1. Open the uploaded plugin's MCP connection panel. Domain verification succeeds and the panel displays CIMD.
+2. Select Connect.
+3. Saving MCP details fails with this exact message:
+   "MCP details save failed: OAuth client ID is required when using pre-defined OAuth client credentials."
+
+The executable mcp.json configuration is:
+{
+  "mcpServers": {
+    "useclevr": {
+      "type": "streamable-http",
+      "url": "https://app.useclevr.com/api/chatgpt/mcp",
+      "extensions": {
+        "com.openai": {
+          "auth": {
+            "type": "oauth",
+            "client": { "mode": "cimd" },
+            "authorizationServerBase": "https://app.useclevr.com",
+            "authorizationUrl": "https://app.useclevr.com/api/chatgpt/oauth/authorize",
+            "tokenUrl": "https://app.useclevr.com/api/chatgpt/oauth/token",
+            "resource": "https://app.useclevr.com/api/chatgpt/mcp",
+            "baseScopes": ["dataset:read"],
+            "defaultScopes": ["dataset:read", "dataset:write"]
+          }
+        }
+      }
+    }
+  }
+}
+
+No manually assigned client ID or secret belongs to this CIMD configuration. The extra listing summary also declares CIMD and public-client token authentication (none).
+
+Production evidence collected on 2026-10-20:
+- At 15:34:54 UTC, GET /.well-known/oauth-authorization-server returns HTTP 200 without a redirect. Railway request ID: Ddem-gkJTjOTwoFn8u2xcg (this is not an OpenAI request ID).
+- The response advertises client_id_metadata_document_supported: true, token_endpoint_auth_methods_supported: ["none"], code_challenge_methods_supported: ["S256"], and authorization_response_iss_parameter_supported: true. Issuer, authorization endpoint, token endpoint, and scopes match the source configuration.
+- No registration_endpoint is advertised: this is a CIMD-only server, not a DCR server. Current OpenAI authentication documentation describes CIMD without a registration step.
+- At 15:35:15 UTC, an unauthenticated authorization request using https://chatgpt.com/oauth/client.json, the standard ChatGPT callback, and a deliberately malformed S256 challenge returns HTTP 400 with {"error":"invalid_request","error_description":"PKCE S256 is required."}. Railway request ID: j2_PFvvqTB2S372UBhdwDg. This matches the tested source's stricter challenge validation; no login, authorization grant, or token exchange occurs.
+- These observations establish agreement on discovery and challenge validation, not complete deployed-source equality, production allowlist completeness, or a successful production account-linking flow.
+
+Existing evidence reused without rerunning completed tests:
+- The 2026-10-19 archive audit finds nine files, unique JSON fields, and one canonical CIMD declaration, with no alternate executable configuration or predefined credentials.
+- Historical upload: useclevr-openai-plugin-1.0.2.zip; SHA-256: 6b992d98e4017b01372954ed379e5d214b67eadc1371b8d46346cd867029611c. This fingerprint identifies that archive; it does not certify a different uploaded version or current source equality.
+- The prior public protected-resource discovery returns HTTP 200, and unauthenticated MCP access returns HTTP 401 with its discovery challenge.
+- Isolated safety, OAuth-to-MCP, and MCP integration tests pass. They do not exercise the submission portal.
+
+Expected: Save CIMD registration without applying predefined-client credential requirements, then start the authorization-code flow using ChatGPT's metadata document URL as client_id.
+Actual: Portal save validation requires a predefined client ID despite the packaged and displayed CIMD mode.
+
+Please inspect and correct the effective registration mode for this existing connection:
+1. Compare the imported client.mode, the save request's registration selection, and the persisted connection's mode/registration lock.
+2. If the saved connection is predefined or retains a predefined registration lock, migrate/reset only its OAuth registration to CIMD and clear the conflicting predefined requirement. Preserve the plugin, domain verification, and submission data; do not delete the app.
+3. If the UI sends predefined mode while displaying CIMD, correct the request mapping/imported state.
+4. If both request and saved mode are CIMD, correct the backend validation/fallback path so missing DCR discovery does not select predefined-client validation for a CIMD-capable server.
+5. Confirm which case applies and provide the effective saved mode and expected reconnect procedure.
+
+We cannot inspect your stored connection or failed save request from our repository. A conflicting saved registration is a hypothesis, not a confirmed finding. The precise choice between saved state, frontend mapping, and backend validation requires those records.
+
+Please do not require a fabricated predefined client ID, a client secret, or a nonfunctional DCR registration endpoint as a workaround. The provider implements CIMD public-client authorization-code exchange with PKCE S256.
+
+Official references:
+https://developers.openai.com/plugins/build/plugins#use-automatic-oauth-client-registration
+https://developers.openai.com/plugins/deploy/submission#configure-authentication-for-submission
+https://developers.openai.com/plugins/build/auth
+
+The operator can supply the app/MCP connection ID, selected organization/project, current failure timestamp, screenshot, and redacted save request URL/status/body/OpenAI request ID privately. These values are unavailable to the repository investigation. Please identify the matching UseClevr connection under the submitting account.
+
+Thank you.
+
+Operator diagnostic procedure (not sent automatically):
+- Open browser DevTools > Network before selecting Connect and inspect the failing save request. Record actual registration field names/values; do not assume the portal uses the package field names internally.
+- Reopen MCPs > UseClevr and compare the displayed saved mode against the request. The panel is not an advanced OAuth editor; another ZIP upload does not establish that an existing registration lock changes.
+- If the request selects predefined registration, attach that mismatch to support. If it selects CIMD, ask support to compare the persisted record and backend validation branch. A missing mode requires inspection of the portal's defaulting path.
+- Redact cookies, authorization headers, secrets, bearer tokens, and authorization codes; do not share an unredacted HAR.
+- After OpenAI corrects the registration, retry Connect on the same existing app. If a distinct UseClevr invalid_client or redirect error appears, compare that connection's displayed metadata URL and callback with production allowlists as a separate provider issue.
+
+Prepared for manual submission only. No message, commit, push, deployment, or deletion is performed.

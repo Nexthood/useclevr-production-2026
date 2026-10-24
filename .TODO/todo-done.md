@@ -14,6 +14,8 @@ moving work between states.
 
 ## Label: deployment
 
+- T-1086. Serve the OpenAI domain challenge as exact public plain text without authentication or redirects on the app and MCP hosts. (labels: mcp, deployment, testing; commit: 7eda8504)
+
 - T-1066. The dashboard World Map aggregates the same row scope as the KPI row: semantic-KPI datasets feed the map every stored row through one shared scope selector instead of the default 30-day window, fallback-KPI datasets keep the range-filtered scope on both sides, and a regression suite pins the 220-row/42-row fingerprint with map totals equal to KPI totals. (labels: dashboard, data, metrics; commit: worktree)
 - T-1062. Usy contact handoff 502s expose their exact outbound cause: safe structured diagnostics classify DNS/connection/TLS/timeout/HTTP failures server-side without logging secrets or customer data. (labels: ai, deployment, observability; commit: worktree)
 - T-1061. The Usy → n8n contact handoff keeps repository configuration on the published production webhook path: regression tests ban the n8n manual-test path from runtime source and env examples and pin HTTP 200 `{"ok":true}` as a successful handoff. (labels: ai, deployment, quality; commit: worktree)
@@ -51,6 +53,11 @@ moving work between states.
 
 ## Label: mcp
 
+- T-1090. Create and validate a separate temporary CIMD diagnostic plugin archive with the useclevr-mcp-cimd identity from the original 1.0.2 package. (labels: mcp, testing, auth; commit: worktree)
+- T-1089. Document the CIMD save-validation mismatch, compare production OAuth behavior, and prepare the OpenAI support request. (labels: mcp, auth, docs; commit: worktree)
+- T-1087. Validate CIMD metadata and client-bound redirects, consume authorization codes atomically, and verify the OAuth-to-MCP flow against isolated test data. (labels: mcp, auth, security, testing; commit: worktree)
+- T-1088. Reconcile the UseClevr submission publisher and readiness records, isolate OAuth and MCP tests in disposable PostgreSQL, and prepare four source commit groups without publishing artifacts. (labels: mcp, auth, security, testing, docs; commit: worktree)
+
 - T-1053. ChatGPT MCP authentication and scope failures include the MCP challenge metadata that ChatGPT uses to start OAuth account linking. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1052. ChatGPT MCP account linking uses OAuth 2.1 authorization, consent, PKCE, signed access-token validation, scope enforcement, and tenant-isolation regression coverage. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1051. Expose authorized UseClevr dataset analysis to ChatGPT through a minimal Apps SDK MCP integration that reuses the existing analysis engine and preserves tenant isolation. (labels: mcp, ai, security, testing; commit: worktree)
@@ -61,6 +68,7 @@ moving work between states.
 - T-836. Store Payload News cover media through S3-compatible durable storage and apply the Media and MCP API-key migration. (labels: content, upload, data; commit: worktree)
 
 ## Label: ai
+
 
 - T-1076. BYOK requires an added and enabled AI provider before activation: the AI mode card shows "Provider required" with Add-provider guidance, mode saves reject provider-less BYOK, every analysis/assistant/report route returns the specific BYOK provider-required error instead of a generic background failure, cloud fallback runs only when explicitly enabled, and provider keys stay out of responses, errors, and logs, pinned by dedicated regression tests. (labels: ai, api, ui, testing; commit: worktree)
 - T-1074. Usy ClevrSync knowledge serves the final connector state: Google Sheets is the only available connector according to the plan entitlement, CSV and Excel are described as normal direct uploads, every tier and all six languages state that OneDrive and SharePoint are not part of the product, and the required connector, Excel-upload, and Google Sheets questions route to product knowledge instead of the contact request flow or upload troubleshooting, pinned by 22 product-knowledge regression tests. (labels: ai, ui, testing; commit: worktree)
@@ -85,6 +93,10 @@ moving work between states.
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
 
 ## Label: workflow
+
+- T-1096. Include well-known application routes in typed lint checks so the required release gate validates the public verification route. (labels: quality, testing; commit: worktree)
+- T-1094. Remove numeric price examples from the billing-format comment so required pricing validation passes without changing billing behavior. (labels: quality, billing, testing; commit: worktree)
+- T-1091. Verify Agent Trust Passport creation, declared fields, edits, reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row preservation, cross-account denial, governance section navigation, linked-trace viewing, and compliance export through headless Chrome with two synthetic accounts and disposable local PostgreSQL. (labels: ai, auth, testing; commit: worktree)
 
 - T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)
 - T-999. Risk Intelligence and Dataset Library management controls select and delete multiple datasets through one confirmed bulk action while preserving single-dataset deletion, active-dataset recovery, and retryable partial-failure handling. (labels: workflow, data, ui, testing; commit: c4c05f3c)
@@ -165,6 +177,8 @@ moving work between states.
 - T-920. Extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status. (labels: ui, ai, auth, monitoring; commit: worktree)
 
 ## Label: auth
+
+- T-1092. Accept authenticated Passport writes from the configured public app origin through the proxy, enforce browser same-origin metadata and owner-only writes, and provide a read-only migration schema checker. (labels: auth, ai, security, testing; commit: worktree)
 
 - T-1027. Authentication uses the patched Auth.js beta dependency pair so email-password credentials, JWT sessions, protected-route checks, email verification, logout, and Superadmin role handling stay on the existing architecture without critical Auth.js advisories. (labels: auth, security, testing; commit: 23650724)
 - T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)
@@ -528,6 +542,8 @@ moving work between states.
 - T-601. Add an API route access matrix — created `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md` covering access classifications, expected helpers, ownership checks, rate limits, and audit tracking. (labels: api, faq, performance, docs; commit: 5b62cb31)
 
 ## Label: security
+
+- T-1095. Enforce patched Zod and Happy DOM throughout the dependency graph, verify MCP schema validation and Lexical persistence, and pass the security audit without changing its allowlist. (labels: security, quality, testing; commit: worktree)
 
 - T-1071. Upload and document ingestion verifies server-side what every file really is: one central validator checks the normalized filename, the full extension chain, magic bytes, and declared MIME before any parser runs, blocking double-extension HTML phishing files like `Payment Slip.pdf.html` on the standard, simple, Accountancy, Pre-bookkeeping, bank, receipt, PDF, ClevrSync, MCP, and dataset-file ingestion paths, with safe structured `UNSAFE_FILE_TYPE` and `FILE_TYPE_MISMATCH` errors, security rejection logging, and formula-injection-neutral CSV exports. (labels: security, upload, data, testing; commit: worktree)
 - T-1056. Patch the blocking dependency advisories for Next.js, Sharp, js-yaml, and Hono without changing application behavior or approved residual allowlist entries. (labels: security, ci-build, testing; commit: worktree)

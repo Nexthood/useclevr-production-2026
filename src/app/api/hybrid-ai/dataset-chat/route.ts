@@ -1,3 +1,4 @@
+import { CLEVR_ANALYST_KEY } from "@/lib/ai-governance/agent-passport-service"
 import { generateText } from "ai";
 import { z } from "zod";
 
@@ -1379,6 +1380,7 @@ async function createDatasetChatTrace(input: {
 }) {
   if (input.ghostMode) return null;
   return createTrace({
+    agentKey: CLEVR_ANALYST_KEY,
     userId: input.userId,
     datasetId: input.datasetId,
     prompt: input.prompt,

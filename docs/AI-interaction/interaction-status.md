@@ -4,6 +4,182 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-24
+- **Goal**: Fix dependency CI advisories and publish fix/passport-proxy-origin for review against beta.
+- **Security**: Lock Zod 4.6.7 and Happy DOM 21.0.4 throughout the graph. Audit reports zero known vulnerabilities; the unchanged audit gate passes.
+- **Verification**: Real Payload MCP/Lexical compatibility, 13 Passport groups, 27 OAuth checks, MCP integration, three fixture-safety checks, TypeScript, and focused security tests pass. The full test:all suite passes with a fresh network-disabled PostgreSQL fixture; normal push hooks remain required.
+- **Preservation**: Hash all 111 existing original-worktree files; edit only the separate Passport worktree.
+- **Publication**: Existing PR #409 targets beta with auto-merge disabled; publication is pending normal hooks.
+- **Boundary**: Do not resume T-1093, authenticate Railway, request credentials, delete user files, modify production data, merge, or deploy.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Resolve verified Passport release blockers with compatible updates and separate commits.
+- **Billing result**: T-1094 changes one comment line only; pricing validation passes. Commit 2f28d5ac contains this fix.
+- **Typed lint**: T-1096 explicitly includes well-known routes in the typed lint project; the affected route passes without exclusions.
+- **Dependency task**: T-1095 compatible updates reduce the audit to zero critical, two high, and zero moderate/low findings. Happy DOM 20 and MCP Zod 3 remain pending major-migration approval. Passport and ChatGPT OAuth/MCP regressions pass.
+- **Dependency validation**: Compatible updates pass Passport, ChatGPT OAuth/MCP, historical unlock, auth, owner-scope, Eclipse Mode, Hybrid AI, upload, CSV, transparency, TypeScript, and peer checks. The unchanged audit gate fails on the two recorded high advisories; T-1095 remains active.
+- **Publication rule**: Push only fix/passport-proxy-origin using normal Git hooks. Do not push beta/main, open a release PR, trigger deployment, or access production data.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Finalize and publish the Passport proxy-origin fix through required GitHub release checks.
+- **Scope**: Isolated release worktree includes the origin guard, regression tests, catalog-only checker, and related documentation/task records; preserve the original shared worktree.
+- **Security**: Retain valid sessions, exact configured-origin fallback with same-origin browser metadata, session-derived ownership, and tenant-scoped writes. Forwarded headers grant no trust.
+- **Validation**: All 13 Passport groups, auth redirects, customer-data owner scope, Eclipse Mode, TypeScript, focused ESLint, and source formatting checks pass. Normal commit/push hooks remain required for publication.
+- **Release status**: The fix is committed on fix/passport-proxy-origin. Required pre-push TypeScript and deployment-config checks pass; pricing lint blocks the beta push on an existing billing comment. Production packaging does not run. No push, PR, workflow, or deployment starts for this fix.
+- **Prerequisites**: Baseline CI run 40107094640 also fails dependency audit with 3 critical and 8 high advisories. Ask the user to authorize these changes outside Passport scope; do not bypass checks. T-1093 separately requires Railway access for production schema verification.
+- **Boundary**: No direct Railway deployment or production data/configuration change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Complete the paused main rebase while retaining Agent Trust Passport and ChatGPT OAuth/MCP.
+- **Outcome**: Both commits replay onto 79553d7d. Eleven conflict resolutions retain both implementations, scripts, dependencies, distinct records, completed acceptance, and TODO counter 1092. Five overlapping ChatGPT log sections are consolidated.
+- **Validation**: TypeScript, package/TODO/workflow/changelog/secret checks, Eclipse Mode, 12 Passport groups, three safety checks, 27 OAuth checks, MCP integration, submission-source validation, and whitespace checks pass. Application source and configuration match original combined tip 76a57330. Browser acceptance and production builds are not rerun.
+- **Commit scope**: Stage only conflict paths. Fold deduplication and session records into the final replayed commit; use manual validators because the pre-commit record gate requires an unrelated changelog edit.
+- **Boundary**: No push, force-push, deployment, Railway configuration edit, or external database access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Identify and resume the last task.
+- **Finding**: T-1091 Agent Trust Passport browser acceptance is complete according to the latest records and TODO-done. Local commit f03eaf7e contains the implementation. This session does not rerun acceptance.
+- **Next action**: The user identifies the next task; the latest record contains no unfinished step.
+- **Continuation recheck**: HEAD is f03eaf7e, staging is empty, and T-1091 is in TODO-done. Ask the user to identify Agent Trust Passport or ChatGPT/CIMD integration as the intended task.
+- **Scope**: Update interaction records only. Preserve all product and unrelated worktree changes; no commit, push, deployment, branch synchronization, or production access occurs.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Complete the remaining T-1091 Agent Trust Passport browser acceptance after local commit f03eaf7e.
+- **Result**: PASS for browser creation, declared fields, edit/reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row equality, and cross-account denial. All eleven governance sections, linked-trace viewing, and compliance export pass.
+- **Environment**: Headless Chrome through the DevTools protocol; two synthetic accounts in isolated browser contexts; a Pro fixture and synthetic revenue dataset; fresh network-disabled Docker PostgreSQL; localhost Next.js with inherited credentials and environment files excluded. The real authentication handler consumes synthetic verified-login proofs.
+- **Evidence**: /tmp/useclevr-browser-Zj7SLQ/acceptance.json and /tmp/useclevr-passport-browser.mjs. T-1091 is in TODO-done. These checks cover fixture history and local functionality; external-provider connectivity, production data preservation, and warning-free rendering are not certified. The Assistant emits a generated-timestamp hydration warning.
+- **Boundary**: No new commit, push, deployment, production migration, or real account access. Local processes stop and the disposable database container is removed. Unrelated worktree changes remain intact.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create four approved local ChatGPT integration commits on a dedicated branch without publishing.
+- **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
+- **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
+- **CIMD evidence**: The support report describes the exact historical 1.0.2 archive. The source validator checks identity and OAuth-summary consistency without contacting OpenAI. Edited sources do not certify that archive or resolve portal state.
+- **Domain baseline**: Integration branch `integration/chatgpt-2026-10-20` starts at verified upstream `05816e35` in `/tmp/useclevr-chatgpt-integration-20261020`; local `main` stays at `eab70041`. The domain route/proxy remain upstream implementation and are excluded from the four groups. No main merge/rebase occurs.
+- **Validation**: Local OAuth/MCP and safety tests, TypeScript, secret scan, TODO/package/workflow checks pass. Final validation details and exact commit groups are recorded in `chatgpt-integration-commit-groups.md`.
+- **Operator checks**: Verify publisher identity, reviewer email-proof login, demo access, privacy disclosures, portal CIMD save, production allowlists, domain verification, and tool scan in a separately authorized task.
+- **Artifacts and commits**: Four local source groups exclude both ZIPs, the historical validation JSON, credentials, and duplicate domain implementation. The original worktree and private backup preserve all pending files. No push, deployment, or OpenAI submission occurs; Git history records the four local hashes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Diagnose the reported CIMD/predefined-client-ID portal save mismatch using the exact 1.0.2 ZIP and official OpenAI documentation.
+- **Evidence**: ZIP integrity and file equality pass; one canonical CIMD OAuth configuration has no client credentials or alternative overlay. Public discovery returns HTTP 200, supports CIMD and public-client token exchange with PKCE S256, and agrees on issuer/resource. MCP advertises discovery in an expected unauthenticated HTTP 401 response.
+- **Limit**: The portal's stored registration and failed save request are unavailable. Persistent registration and a portal validation defect are hypotheses, not established root causes.
+- **Next step**: The operator collects the failed save request's registration mode, HTTP status, and request ID without secrets, then sends the prepared support report to OpenAI for saved-state inspection or validation repair.
+- **Report**: `docs/AI-interaction/openai-cimd-portal-support-report.txt`.
+- **Scope**: No package, OAuth-route, client-ID, or client-mode change; no support message is sent.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Serve the OpenAI domain challenge publicly as exact plain text without authentication or redirects.
+- **Current change**: Add the App Router GET handler and permit its exact path in the MCP host allowlist; record requirements, release notes, and T-1086.
+- **Verification**: Local curl checks return HTTP 200, text/plain, the exact 43-byte proof without newline, and no redirect on localhost and app/MCP/MCP-test host headers. Unrelated MCP paths return 404; protected APIs return 401. Focused ESLint passes with parser project discovery disabled for the hidden well-known directory.
+- **Observation at 2026-10-19 local verification**: The public app challenge URL returns HTTP 404 at that check. This observation does not establish current deployment status; the source implementation is present in cached `origin/main`. No deployment check is performed in the local finalization task.
+- **Records**: `project-logs/interactive-log.md`, `project-logs/activity-log.md`.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create one local commit containing only T-1091 Agent Trust Passport changes.
+- **Scope**: Passport UI/APIs, schema and migration source, trace attribution, disposable tests, test command, requirements, release note, and passport-only interaction records. Unrelated shared-file changes stay unstaged.
+- **Validation evidence**: Twelve passport fixture groups and eleven governance consistency unit groups pass; implementation TypeScript and Eclipse Mode checks pass. Commit preparation reviews staged paths and runs secret scanning and repository hooks.
+- **Browser acceptance**: PENDING under active T-1091. No authenticated browser journey runs; browser automation tooling is unavailable in the acceptance session. Full historical-record preservation and existing governance UI behavior remain unverified in a browser.
+- **Restrictions**: One local commit is authorized. No push, deployment, or production database migration. Preserve unrelated working-tree changes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: T-1091 final browser acceptance in the existing local AI Governance interface, using test accounts only.
+- **Browser result**: BLOCKED, not passed. No browser automation tool is exposed; Playwright and Puppeteer packages are unavailable. Browser binaries exist, but no authenticated browser flow or local development server runs.
+- **Supporting PASS**: Twelve passport fixture groups cover API creation/editing, field validation, trace linkage, historical null attribution, and cross-user denial. Eleven existing governance consistency unit groups pass with database exports mocked to null and inherited credentials excluded.
+- **Evidence limits**: Mocked-session API tests and static rendering do not establish browser form persistence, UI-generated trace association, byte-for-byte historical record preservation, or functioning governance controls/navigation.
+- **Remaining blocker**: Run all six browser checks in a browser-capable local session with an isolated database and two test-account logins. T-1091 is active until this acceptance completes.
+- **Restrictions**: No deployment, production migration, real database access, commit, or push. Product implementation and unrelated changes remain untouched; only local records and TODO state change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Continue and complete the unfinished Agent Trust Passport task, T-1091.
+- **Behavior**: Owners manage one durable analyst identity, human owner declaration, purpose, scope, descriptive risk/lifecycle, and paginated trace references. Superadmins inspect across accounts with owner-only edits. Historical traces remain unassigned; Eclipse Mode creates no trace.
+- **Fix**: Use async main in both passport test entrypoints for the ES6 target and explicitly type cross-origin header fixtures.
+- **Validation**: All 12 boundary/database groups pass against fresh network-disabled Docker PostgreSQL. TypeScript, Eclipse Mode, and package metadata pass. Focused ESLint reports zero errors with existing trace warnings and ignored test-script notices.
+- **Scope**: T-1091 is complete in the local working tree. No commit, push, production build, deployment, or browser acceptance check occurs. Existing ChatGPT integration work remains in the shared tree.
+- **Records**: See project-logs/interactive-log.md and project-logs/activity-log.md for the continuation evidence.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create a separate temporary plugin ZIP to diagnose fresh-identity CIMD portal behavior.
+- **Artifact**: `/tmp/useclevr-cimd-diagnostic-vjdhubg3/useclevr-mcp-cimd-1.0.0.zip`; validation.json and the extracted copy remain beside it.
+- **Identity**: Set useclevr-mcp-cimd/1.0.0 in the portable root manifest and add the requested matching Codex compatibility manifest because root identity is authoritative for the source format.
+- **Validation**: ZIP integrity, single root, safe unique paths, JSON, identities, assets, and bundled validator pass. Original MCP bytes and every other original non-manifest file remain identical. Original ZIP hash is unchanged.
+- **Boundary**: T-1090 covers this local artifact. No production/plugin-source edits, commit, push, deployment, publication, or upload occurs. Portal behavior remains untested.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Diagnose the OpenAI portal's predefined-client-ID requirement for the CIMD MCP connection.
+- **User correction**: The four commits exist on integration/chatgpt-2026-10-20. Commit preparation is stopped; the agent must not recreate commits or commit, push, deploy, or delete anything.
+- **Production evidence**: At 15:34:54 UTC, OAuth discovery returns HTTP 200 with CIMD, none, and S256. At 15:35:15 UTC, malformed PKCE returns the hardened source's HTTP 400. No difference is observed in these behaviors; complete deployment equality and successful production linking are unverified.
+- **Diagnosis**: The reported save error selects predefined-client validation despite CIMD configuration. No verified repository fix explains that mismatch. A conflicting saved registration is unconfirmed; failed save-request fields and the persisted portal record distinguish saved state, frontend mapping, and backend validation.
+- **Action**: The operator captures redacted save evidence and sends `openai-cimd-portal-support-report.txt`; OpenAI corrects the effective registration to CIMD or the incorrect validation branch. No fabricated client credentials or DCR endpoint belong in the package.
+- **Validation scope**: Reuse completed archive and integration evidence. Only targeted production reads and required record checks run in this task. T-1089 covers the diagnostic/support deliverable.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Resume local ChatGPT integration preparation from the recorded handoff.
+- **Verification**: Submission source validation, TODO management, whitespace, three safety tests, 27 OAuth-to-MCP checks, and the MCP integration suite pass. Docker tests use approved local daemon access. TypeScript and full builds are not rerun in this continuation.
+- **Handoff**: The four source groups remain ready for baseline selection in `chatgpt-integration-commit-groups.md`. Operator submission checks remain unverified; all source work stays unstaged and unpublished under the recorded scope.
+- **Records**: `project-logs/interactive-log.md` and `project-logs/activity-log.md` record this continuation.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Prepare the pending ChatGPT integration for four clean source commits without committing or publishing.
+- **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
+- **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
+- **CIMD evidence**: The support report describes the exact historical 1.0.2 archive. The source validator checks identity and OAuth-summary consistency without contacting OpenAI. Edited sources do not certify that archive or resolve portal state.
+- **Domain baseline**: Local `main` is `eab70041`; cached `origin/main` is `05816e35`. The challenge route and proxy exactly match upstream commits `f779f89a` and `7eda8504`; exclude duplicate implementation from new commits. No branch synchronization or deployment occurs.
+- **Validation**: Local OAuth/MCP and safety tests, TypeScript, secret scan, TODO/package/workflow checks pass. Final validation details and exact commit groups are recorded in `chatgpt-integration-commit-groups.md`.
+- **Operator checks**: Verify publisher identity, reviewer email-proof login, demo access, privacy disclosures, portal CIMD save, production allowlists, domain verification, and tool scan in a separately authorized task.
+- **Artifacts**: Both ZIPs and the old validation JSON stay intact and Git-ignored. Nothing is staged, committed, pushed, deployed, or submitted.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Diagnose the reported CIMD/predefined-client-ID portal save mismatch using the exact 1.0.2 ZIP and official OpenAI documentation.
+- **Evidence**: ZIP integrity and file equality pass; one canonical CIMD OAuth configuration has no client credentials or alternative overlay. Public discovery returns HTTP 200, supports CIMD and public-client token exchange with PKCE S256, and agrees on issuer/resource. MCP advertises discovery in an expected unauthenticated HTTP 401 response.
+- **Limit**: The portal's stored registration and failed save request are unavailable. Persistent registration and a portal validation defect are hypotheses, not established root causes.
+- **Next step**: The operator collects the failed save request's registration mode, HTTP status, and request ID without secrets, then sends the prepared support report to OpenAI for saved-state inspection or validation repair.
+- **Report**: `docs/AI-interaction/openai-cimd-portal-support-report.txt`.
+- **Scope**: No package, OAuth-route, client-ID, or client-mode change; no support message is sent.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Serve the OpenAI domain challenge publicly as exact plain text without authentication or redirects.
+- **Current change**: Add the App Router GET handler and permit its exact path in the MCP host allowlist; record requirements, release notes, and T-1086.
+- **Verification**: Local curl checks return HTTP 200, text/plain, the exact 43-byte proof without newline, and no redirect on localhost and app/MCP/MCP-test host headers. Unrelated MCP paths return 404; protected APIs return 401. Focused ESLint passes with parser project discovery disabled for the hidden well-known directory.
+- **Observation at 2026-10-19 local verification**: The public app challenge URL returns HTTP 404 at that check. This observation does not establish current deployment status; the source implementation is present in cached `origin/main`. No deployment check is performed in the local finalization task.
+- **Records**: `project-logs/interactive-log.md`, `project-logs/activity-log.md`.
+
+## Previous Interaction
+
 - **Date**: 2026-10-11
 - **Goal**: Add Swedish as the 8th fully supported Usy language through the existing canonical Usy language architecture, without creating a parallel localization system, without touching the main AI Assistant architecture, Retail, Profitability, Accountancy analysis, Risk Intelligence, Stripe pricing/configuration, dataset analysis, ClevrSync architecture, authentication, or unrelated UI, and without committing or pushing.
 - **Durable change**: `src/lib/usy/types.ts` adds `"swedish"` to `SupportedUsyLanguage`; `src/lib/usy/language.ts` adds word-based Swedish detection (Swedish-specific lexemes and phrases, positioned after French and before Hungarian so ä/ö overlap with German/Hungarian cannot steal Swedish); `src/lib/usy/knowledge-base.ts` extends `supportedUsyLanguages` (8 entries in rotation order) and the language label; `src/lib/usy/actions.ts`, `src/lib/usy/contact.ts`, `src/lib/usy/router.ts`, and `src/lib/usy/billing-knowledge.ts` add the full Swedish surface (intents, billing/tier knowledge, contact flow, prompts, summaries, confirm/cancel lexicons, `sv-SE` counts); `src/app/api/usy/chat/route.ts` accepts `"swedish"`; `src/components/ui/help-chatbox.tsx` adds the Swedish placeholder, quick action, contact message labels, submit labels, and the 🇸🇪 Svenska badge; `src/lib/i18n/language-context.tsx`, `src/lib/i18n/translation-service.ts`, and `src/components/ui/language-selector.tsx` add `sv`. Tests extend the existing Usy suites, and `test-usy-product-knowledge.ts` pins the canonical 8-language order, badge rotation source, and the 7-language regression matrix. `requirements.md` and `CHANGELOG.md` record the current behavior.

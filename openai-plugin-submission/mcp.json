@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "useclevr": {
+      "type": "streamable-http",
+      "url": "https://app.useclevr.com/api/chatgpt/mcp",
+      "extensions": {
+        "com.openai": {
+          "auth": {
+            "type": "oauth",
+            "client": {
+              "mode": "cimd"
+            },
+            "authorizationServerBase": "https://app.useclevr.com",
+            "authorizationUrl": "https://app.useclevr.com/api/chatgpt/oauth/authorize",
+            "tokenUrl": "https://app.useclevr.com/api/chatgpt/oauth/token",
+            "resource": "https://app.useclevr.com/api/chatgpt/mcp",
+            "baseScopes": [
+              "dataset:read"
+            ],
+            "defaultScopes": [
+              "dataset:read",
+              "dataset:write"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

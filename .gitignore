@@ -59,3 +59,7 @@ Thumbs.db
 
 # Local ChatGPT OAuth private key
 chatgpt-mcp-oauth-private.pem
+
+# Historical OpenAI upload artifacts stay local; commit submission sources only.
+/useclevr-openai-plugin-*.zip
+/useclevr-openai-plugin-*-validation.json
