@@ -5,6 +5,14 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-24
+- **Goal**: Publish fix/passport-proxy-origin and create a review PR targeting beta under T-1097.
+- **Preservation**: Keep all main files and local test/cache artifacts intact; use the existing isolated worktree.
+- **Validation**: Thirteen Passport groups and release:check pass; normal pre-push checks and security audit remain required.
+- **Boundary**: Stop T-1093 Railway authentication attempts. Do not merge, enable auto-merge, deploy, or access production data. A review PR does not waive the audit gate.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
 - **Goal**: Resolve verified Passport release blockers with compatible updates and separate commits.
 - **Billing result**: T-1094 changes one comment line only; pricing validation passes. Commit 2f28d5ac contains this fix.
 - **Typed lint**: T-1096 explicitly includes well-known routes in the typed lint project; the affected route passes without exclusions.

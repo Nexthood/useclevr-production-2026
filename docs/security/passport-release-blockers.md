@@ -2,8 +2,9 @@
 
 The `fix/passport-proxy-origin` branch contains the reviewed Passport proxy-origin
 fix and separate release prerequisite commits. Publish this branch without
-pushing `beta`, `main`, `dist-test`, or `dist`; opening a release PR or dispatching
-a release workflow requires a separate deployment instruction.
+pushing `beta`, `main`, `dist-test`, or `dist`. The operator authorizes a review
+pull request targeting `beta`; the agent must not merge it, enable auto-merge,
+dispatch a release workflow, authenticate Railway, or modify production data.
 
 ## Compatible dependency updates
 
@@ -61,3 +62,11 @@ application routes; it does not exclude the public verification route. The
 normal pre-push hook must run TypeScript, deployment-config validation, full lint,
 and production packaging before publication. No production data or runtime
 configuration is used for these checks.
+
+## Worktree separation
+
+The agent publishes tracked changes from the clean `fix/passport-proxy-origin`
+worktree. The shared main worktree contains 14 source/document paths and 98
+temporary entries under `tmp/` at inspection. Node compile caches, tsx caches,
+disposable test fixtures, and the nested release worktree remain local. The agent
+must not stage main, remove user files, or copy temporary artifacts into the PR.

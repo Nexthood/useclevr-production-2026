@@ -19,6 +19,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1097. Publish the validated Passport proxy-origin branch and open a review PR targeting beta; preserve main and exclude local test/cache artifacts from publication. (labels: workflow, auth, testing)
+
 - T-1095. Complete dependency security remediation for MCP Zod 3 and Lexical Happy DOM 20 after explicit major-migration approval; retain the failing audit gate until both high advisories are resolved. (labels: security, quality, testing)
 - T-1057. Restore the production Accountancy upload, review, Business Profile, categorization, export, and visible upload-choice workflow for CSV, Excel, and PDF files. (labels: workflow, upload, testing, business)
 - T-849. Run the complete new-user acceptance journey through signup, CSV upload, verified KPIs and charts, dataset-specific AI answers, report review, support, and plan selection; fix every blocker that requires developer intervention. (labels: workflow, testing, upload, ai, dashboard)

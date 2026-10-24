@@ -1,3 +1,9 @@
+## 2026-10-24 — Passport publication review
+
+- Resume the isolated Passport release branch, confirm the comment-only pricing fix, and stop T-1093 Railway authentication attempts.
+- Preserve main source hashes and all temporary artifacts; publish explicit tracked release paths only.
+- Pass 13 Passport groups and release checks; retain security blockers and require normal push hooks for the beta review PR.
+
 ## 2026-10-24 — Compatible dependency security updates
 
 - Resolve 19 audit findings with compatible updates; retain two unapproved high findings for MCP Zod 3 and Lexical Happy DOM 20 without changing the allowlist.

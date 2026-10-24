@@ -1,3 +1,12 @@
+## 2026-10-24 — Passport publication to beta review (T-1097)
+
+1. Goal: Publish fix/passport-proxy-origin and create a review PR targeting beta; stop T-1093 authentication attempts.
+2. Findings: c14ef5dc contains the proxy-origin fix. The branch already exists remotely at 638f6513. Commit 2f28d5ac changes only the numeric billing-comment example; prices and billing code are unchanged.
+3. Preservation: Inspect 14 source/document paths and 98 temporary entries on main; record source hashes privately under /tmp and leave all main files untouched. Use the existing clean release worktree and stage explicit tracked paths only.
+4. Verification: All 13 Passport boundary/database groups and release:check pass. Disposable PostgreSQL runs without external credentials. Required pre-push checks and the unchanged audit gate supply publication evidence.
+5. Boundary: No Railway authentication, production access, merge, auto-merge, workflow dispatch, or deployment. Existing security advisories remain release blockers; a review PR does not waive checks.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: release blocker guide, task queue, and three interaction records.
+
 ## 2026-10-24 — Compatible security prerequisite updates (T-1095)
 
 1. Goal: Resolve verified dependency blockers without breaking changes, preserve Passport and ChatGPT OAuth/MCP, and publish only the fix branch with normal Git hooks.
