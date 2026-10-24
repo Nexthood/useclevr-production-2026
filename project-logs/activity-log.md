@@ -1,3 +1,9 @@
+## 2026-10-24 — Compatible dependency security updates
+
+- Resolve 19 audit findings with compatible updates; retain two unapproved high findings for MCP Zod 3 and Lexical Happy DOM 20 without changing the allowlist.
+- Pass Passport, ChatGPT OAuth/MCP, billing, auth, owner-scope, privacy, upload, Hybrid AI, CSV, transparency, TypeScript, and peer checks.
+- Document exact audit evidence and retain T-1095 for major-migration approval; publish only the fix branch after normal hooks with no deployment.
+
 ## 2026-10-24 — Typed lint release blocker
 
 - Include well-known application routes in ESLint's TypeScript project and verify the public verification route passes typed lint.

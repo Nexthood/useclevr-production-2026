@@ -1,3 +1,13 @@
+## 2026-10-24 — Compatible security prerequisite updates (T-1095)
+
+1. Goal: Resolve verified dependency blockers without breaking changes, preserve Passport and ChatGPT OAuth/MCP, and publish only the fix branch with normal Git hooks.
+2. Change: Update Next.js 16, DOMPurify 3, application Zod 4, and compatible request-parsing/network/tooling dependencies through manifests and the generated lockfile. Keep Payload aligned at 3.90.2; retain major-specific Undici ranges. Document exact residual advisories in docs/security/passport-release-blockers.md.
+3. Audit: The reproduced baseline has 3 critical, 8 high, 6 moderate, and 4 low findings. Compatible updates resolve 19 findings; zero critical and two high remain, with no moderate/low findings. The unchanged audit gate fails on MCP Zod 3 and Lexical Happy DOM 20. Explicit major-migration approval is pending; no allowlist change occurs.
+4. Verification: Pass 13 Passport groups, 27 OAuth checks, MCP integration, three fixture-safety checks, 38 historical unlock checks, auth redirects, owner scope, Eclipse Mode, Hybrid AI gates, upload security, CSV edge cases, AI transparency, TypeScript, and peer checks. Normal pre-push lint/build checks remain required before publication.
+5. Environment: Relocate the isolated worktree to the source repository's ignored tmp/passport-release directory for disk capacity. Use short private fixture paths to meet Unix socket limits. Tests use disposable network-disabled PostgreSQL and exclude external credentials.
+6. Follow-up: Keep T-1095 active for the two unapproved major migrations and release security gate. Push only fix/passport-proxy-origin; do not open a release PR or trigger deployment. T-1093 separately tracks production schema verification.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: audit guide, task queue, changelog, and three interaction records.
+
 ## 2026-10-24 — Typed lint release blocker (T-1096)
 
 1. Goal: Resolve the verified typed lint error preventing the required pre-push gate from completing.

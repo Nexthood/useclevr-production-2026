@@ -9,6 +9,7 @@ Update this file after every completed AI interaction.
 - **Billing result**: T-1094 changes one comment line only; pricing validation passes. Commit 2f28d5ac contains this fix.
 - **Typed lint**: T-1096 explicitly includes well-known routes in the typed lint project; the affected route passes without exclusions.
 - **Dependency task**: T-1095 compatible updates reduce the audit to zero critical, two high, and zero moderate/low findings. Happy DOM 20 and MCP Zod 3 remain pending major-migration approval. Passport and ChatGPT OAuth/MCP regressions pass.
+- **Dependency validation**: Compatible updates pass Passport, ChatGPT OAuth/MCP, historical unlock, auth, owner-scope, Eclipse Mode, Hybrid AI, upload, CSV, transparency, TypeScript, and peer checks. The unchanged audit gate fails on the two recorded high advisories; T-1095 remains active.
 - **Publication rule**: Push only fix/passport-proxy-origin using normal Git hooks. Do not push beta/main, open a release PR, trigger deployment, or access production data.
 
 ## Previous Interaction

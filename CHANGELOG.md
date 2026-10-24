@@ -61,6 +61,7 @@
 
 ### Dev
 
+- Patch compatible application and tooling dependencies to reduce remote execution and denial-of-service exposure.
 - Include public verification routes in typed lint checks so release validation covers their code.
 - Remove numeric price examples from billing comments so release validation checks pass.
 - Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
