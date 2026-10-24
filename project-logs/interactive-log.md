@@ -1,3 +1,12 @@
+## 2026-10-24 — Explicit main push attempt
+
+1. Goal: Run the user's explicit `git push origin main` instruction for commit 717cc462 with normal hooks.
+2. Outcome: The push stops in the required production-build hook. The build reports Killed and exit 137; the push process exits 143. No upload occurs. Local main remains one commit ahead of the fetched origin/main and the worktree is clean before this record update.
+3. Validation: TypeScript, deployment-config sync, package, TODO, workflow, secret, and pricing checks pass. Full ESLint reports zero errors and 452 warnings. Production compilation does not complete; workflow auto-fix after the build does not run.
+4. Observation and follow-up: Exit 137 indicates forced termination; memory pressure is a likely cause, not a verified diagnosis. Retry the normal push when build resources are available. Do not bypass hooks or terminate unrelated processes.
+5. Boundaries: The explicit user instruction authorizes this main push attempt. No Railway authentication, manual deployment, unrelated deletion, extra commit, or hook modification occurs. These three push-attempt records remain local.
+6. Instruction sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require the interactive log, activity log, and interaction status.
+
 ## 2026-10-24 — Usy Agent Trust Passport integration (T-1098)
 
 1. Goal: Finalize Usy Passport knowledge, confirm the Transparency navigation action, validate regressions, commit scoped changes, and synchronize local main safely.

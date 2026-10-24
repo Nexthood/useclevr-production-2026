@@ -1,3 +1,10 @@
+## 2026-10-24 — Explicit main push attempt
+
+- Run `git push origin main` for 717cc462 with normal pre-push hooks under explicit user authorization.
+- Pass TypeScript, config sync, metadata, workflow, secret, pricing, and lint checks; full ESLint has zero errors and 452 warnings.
+- Stop before upload when production compilation reports Killed and exit 137. Keep main one commit ahead of origin/main; retain local push-attempt records.
+- Keep hooks enabled; do not authenticate Railway, deploy manually, delete unrelated work, or terminate unrelated processes.
+
 ## 2026-10-24 — Usy Agent Trust Passport integration (T-1098)
 
 - Explain Passport metadata and limits in all eight Usy languages; link to the owner's authenticated Transparency section.
