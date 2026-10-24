@@ -2,6 +2,7 @@
 
 ### Added
 
+- Let users declare their analyst's human owner, purpose, scope, risk, and lifecycle in an Agent Trust Passport and inspect linked analysis activity in AI Governance.
 - Usy now understands Swedish and answers every supported topic, including billing, planning, and contact requests, in Swedish.
 - The dashboard language selector now offers Swedish alongside the existing languages.
 - Usy now understands French and answers every supported topic, including billing, planning, and contact requests, in French.
@@ -12,6 +13,8 @@
 - Locked historical datasets stay visible with their names, sizes, and dates, and reopen automatically the moment the subscription reactivates.
 
 ### Fixed
+
+- Bind ChatGPT account linking to verified client callbacks and reject repeated or concurrent use of an authorization code.
 
 - Show a Usy minimize control beside close so users can hide the panel and reopen their current conversation from the floating avatar.
 - The Usy header badge rotates through all eight supported languages, cycling continuously from English through Swedish.
@@ -56,6 +59,16 @@
 - Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
+
+- Patch release dependencies and check connector and rich-text compatibility so security validation covers the installed application without skipping advisories.
+- Include public verification routes in typed lint checks and reference canonical billing prices in formatter guidance so release validation completes.
+- Accept the configured production reviewer while keeping GitHub environment approval mandatory.
+- Require human approval for production publication and bound database migrations so failures abort promotion without exposing private diagnostics.
+- Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
+- Provide submission source assets and publisher metadata for reproducible UseClevr upload packages.
+- Check submission publisher names, public-client authentication, and listing URLs locally before packaging.
+
+- Serve a public domain verification response so OpenAI can verify the UseClevr app and connector hosts.
 
 - Add a hermetic test-schema bootstrap for the Risk ClevrSync parity suite so the bare CI PostgreSQL database provisions only the relations that suite exercises, keeping local runs no-op.
 - Add Stripe market-price checkout regression tests that reproduce and block the UK GBP price-mismatch checkout failure and pin Pro UK Monthly to £35.

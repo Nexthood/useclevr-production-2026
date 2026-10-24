@@ -1,3 +1,164 @@
+## 2026-10-24 — Resume dependency security update (T-1095)
+
+1. Goal: Resume the interrupted CI dependency security update in release/agent-trust-passport, validate it, and commit/push through normal hooks without merge or deployment.
+2. Inspection: The release worktree starts at 3637dada with unstaged dependency, lockfile, task metadata, and compatibility-test changes. The user calls this T-1094; existing records assign dependency work to T-1095 and reserve T-1094 for hosted release approval evidence. Keep both task identities intact. The original main checkout has a saved HEAD/index/status/file-hash snapshot and receives no edits.
+3. Changes: Use Next.js 16.4.1, DOMPurify 3.4.17, markdown-it 14.3.3, Zod 4.6.6, body-parser 2.4.0, Happy DOM 21.0.4, ip-address 10.7.4, fast-uri 3.1.9, and Undici 6.29.1/7.30.1. The Happy DOM advisory requires 21.0.4; Zod's advisory requires 4.6.6, including transitive consumers. Keep Undici consumers on their existing major. Compatibility tests exercise populated Payload MCP record schemas and Lexical HTML import.
+4. Evidence: Frozen install, raw audit (zero vulnerabilities), unchanged audit gate, two compatibility tests, TypeScript, deployment configuration, release checks, documentation links, full ChatGPT and application CI suites, production build, and distribution packaging pass. ESLint reports zero errors and 452 warnings. Build compilation reports warnings and generates all 97 static pages.
+5. Boundaries: No T-1091 browser acceptance, passport development, audit suppression, hook bypass, merge, deployment, production credentials, or production database operation. Route completion into the task queue and these three interaction records after validation.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+7. Environment learning: The host has PostgreSQL clients without initdb. The cached postgres:17-bookworm image supplies `/usr/lib/postgresql/17/bin/initdb` (17.11). The temporary runner uses the standard image entrypoint, mounts a private socket at `/var/run/postgresql`, disables container networking, and passes generated test credentials. Each run removes its disposable container. No PostgreSQL installation or production connection is required.
+8. Outcome routing: Move T-1095 into `.TODO/todo-done.md`, retain T-1094 as separate active release-approval work, and validate mandatory records through normal commit and push hooks.
+
+## 2026-10-24 — T-1093 release validation corrections and publication
+
+1. Goal: Commit the two release validation corrections and four mandatory records on `release/agent-trust-passport`, then push only that branch through normal hooks.
+2. Findings and changes: The pricing validator scans comments. The historical-unlock panel receives canonical amounts through `getHistoricalUnlockDisplayPrice` and `HISTORICAL_UNLOCK_TIERS`; the formatter comment references that source. The tracked challenge route belongs to the release. An explicit `.well-known` include in `tsconfig.eslint.json` gives the route typed lint coverage.
+3. Verification: All 38 historical-unlock tests pass. ESLint, TypeScript, pricing, deployment configuration, secret checks, production build, packaging, and the complete pre-push hook pass with isolated build-time values. The build tolerates connection refusal at a closed loopback database port; this establishes build readiness, not database-backed runtime acceptance.
+4. Problems and learning: CI supplies disposable database and generated auth values. The local build uses a clean environment, temporary auth, and loopback-only database references. The pre-commit hook requires the changelog and all three interaction records alongside the corrections.
+5. Scope and follow-up: Stage exactly six authorized files. Keep production readiness evidence under T-1093 and the release safety checklist. No product-price, OAuth, MCP, or original-checkout changes; no merge, deployment, production credentials, or production database operations.
+6. Instruction sources and destinations: Follow `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`, and `project-prompts/ai-memory-collection-post-interaction.md`. Store session detail here, the compact summary in the activity log, and current verification in interaction status.
+
+## 2026-10-21 — T-1093 single-administrator approval compatibility
+
+1. Goal: Accept the verified production GitHub environment without weakening mandatory deployment approval.
+2. GitHub metadata: The sole required reviewer is user `Nexthood`; `prevent_self_review` is false; administrator bypass is false; the sole allowed branch policy is `main`.
+3. Change: Make the release policy accept only that exact reviewer/configuration. Continue rejecting missing reviewers, other reviewer identities, additional reviewers, enabled self-review prevention, administrator bypass, missing/broad branch rules, and inaccessible environment metadata. Preserve the protected publisher job and explicit GitHub environment approval.
+4. Verification: Workflow regression and lint pass. Migration safety tests pass on disposable PostgreSQL 17.11, including migration 0037 failure/replay, full schema-sync apply/replay, and the simulated PostgreSQL 16 watchdog path. Secret scan, TODO validation, formatting, and documentation links pass. No production data or database access.
+5. Restrictions: Do not stage or commit; no push, merge, or deployment. Preserve unrelated worktree state.
+
+## 2026-10-21 — T-1093 local commit of release safety controls
+
+1. Goal: Review and commit the approved release safety changes in `/tmp/useclevr-passport-release-20261020` as one local commit, excluding unrelated `next-env.d.ts` and `tmp/`.
+2. Review: The staged scope contains only production and beta workflow controls, migration timeout/error handling, workflow and disposable PostgreSQL tests, Railway/release safety guides, requirements/changelog updates, and matching TODO/interaction records. The GitHub environment currently fails the new policy checks; production remains blocked pending operator configuration and verification.
+3. Verification: Focused workflow, migration, TypeScript, passport, governance, and historical-unlock tests pass. The pre-commit checklist and commit-message hook pass; the final staged path list excludes unrelated files and secret scanning passes.
+4. Result and restrictions: Create one local commit for the approved safety controls. No push, merge, deployment, or production database access. Preserve unrelated worktree files.
+
+## 2026-10-21 — T-1092 production release safety controls
+
+1. Goal: Remove automatic beta-to-main promotion, require a human-protected production environment and exact-SHA release, bound Railway predeploy database work, test failure recovery, and document operator release and rollback steps without production access or publication.
+2. Workflow changes: `beta-maintenance.yml` keeps beta build, smoke test, `dist-test` publication, and PR creation while removing auto-merge and production dispatch. `auto-merge.yml` only formats eligible beta-to-main PR titles. The production workflow reads environment policy before approval, uses `useclevr-web / production`, checks out `github.sha` in both jobs, and rechecks policy after approval. Policy validation fails closed unless named human reviewers, self-review prevention, no administrator bypass, and only `main` are configured.
+3. Migration changes: Keep migrations out of the image build. The predeploy runner uses a single connection with a 10-second connect bound, 3-second lock timeout, 60-second statement timeout, 120-second transaction deadline, 30-second idle transaction timeout, and 5-second cleanup bound. It checks its connected PostgreSQL version, applies PostgreSQL 17+ native transaction timeout or cancels the connection on PostgreSQL 12–16, attempts rollback without replacing the original failure, does not retry, and reports safe codes only. Unsupported versions and missing database configuration fail nonzero.
+4. Verification: workflow safety tests, workflow lint, TypeScript, secret/TODO/package/changelog checks, project records, and historical-unlock regressions pass. Disposable PostgreSQL 17.11 runs migration 0037 lock contention/rollback, apply/replay, statement/transaction/idle deadlines, simulated PostgreSQL 16 cancellation, sanitized SQL failure, and full schema-sync apply/replay. All 5 passport boundary groups and 7 real-database groups pass. The network-disabled containers and temporary clusters are removed by their test runners.
+5. Blockers: GitHub currently reports the production environment without reviewers or branch policy and with administrator bypass enabled. Repository plan supports required reviewers, but this live configuration is unprotected. Production PostgreSQL version, hosted workflow-token enforcement, Railway effective configuration, backup/PITR, and restore readiness remain unverified under the no-production-access restriction. Production remains NO-GO until T-1093 evidence is recorded.
+6. Restrictions and preservation: Work stays in `/tmp/useclevr-passport-release-20261020` at `d28bcfb0`. No stage, commit, push, merge, deploy, production connection, or production migration occurs. Preserve unrelated `next-env.d.ts` and `tmp/` worktree state; no application functionality files change.
+
+## 2026-10-20 — T-1091 release documentation finalization
+
+1. Goal: Finalize release/agent-trust-passport in /tmp/useclevr-passport-release-20261020 with one local documentation/task-record commit.
+2. Inspection: HEAD c43643e8 contains the passport implementation over baseline 79553d7d. The worktree contains three T-1091 runtime/migration record edits, an unstaged generated next-env.d.ts edit, and untracked temporary artifacts. No files are initially staged.
+3. Browser evidence: The preceding Chrome session passes creation, all declared fields, edits/reload persistence, immutable identity, Assistant UI trace attribution, complete historical fixture-row equality, cross-account denial, governance navigation, linked-trace viewing, and compliance export. Two synthetic accounts, a Pro fixture, a two-row revenue dataset, and disposable network-disabled PostgreSQL isolate the test. The Assistant returns total 300 and the trace references the passport. Prior evidence is /tmp/useclevr-browser-Zj7SLQ/acceptance.json.
+4. Evidence boundary: The browser session runs in the earlier checkout, not this release worktree. Git comparison confirms all eighteen implementation/test paths from c43643e8 match f03eaf7e. Retain the separate release-worktree runtime and migration rehearsal records. This request performs no new browser run or original-checkout access.
+5. Changes and validation: Move T-1091 to TODO-done; reconcile the three interaction records and clarify the existing passport release note. Stage only the two task files, release note, and three interaction records. Review staged paths and run repository pre-commit validation and whitespace checks.
+6. Risks and learning: The Assistant timestamp hydration warning, production schema compatibility, migration contention/recovery, and external-provider connectivity remain explicit limitations. Source-equivalent local browser evidence establishes functional acceptance, not production migration readiness. Preserve next-env.d.ts and temporary artifacts outside the commit.
+7. Restrictions and sources: One local commit only; no push, deployment, production migration, or CI/CD edit. AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require the three records and regular task queues.
+
+## 2026-10-20 — T-1091 final local PostgreSQL runtime verification
+
+1. Goal: Verify passport runtime behavior and migration 0037 entirely inside the release worktree, with no production access or additional commit.
+2. Isolation: A fresh PostgreSQL 17.11 container runs with networking disabled, no published ports, and a private worktree Unix socket. An environment allowlist excludes inherited credentials. Prerequisite governance tables use current schema metadata; only migration 0037 is applied as a migration. Synthetic users and records are the only test data. The container and cluster data are removed after verification.
+3. PASS: Real application database connections persist passport creation and all editable fields, stable new-trace association across lifecycle/model changes, owner-scoped list/read/edit operations, and read-only superadmin inspection. Historical content checksums remain unchanged, null attribution remains null, and Eclipse Mode writes no trace. The session boundary is synthetic; handlers execute in-process without a browser or live HTTP server.
+4. PASS: Existing governance settings save/load, owner-scoped audit/provider monitoring, override persistence, and combined snapshot/privacy/risk/compliance/reports operate against real PostgreSQL. All eleven existing governance consistency groups also pass.
+5. Rehearsal: For 1,000 mixed synthetic traces (2,228,224 bytes including existing indexes), the transaction containing migration 0037 takes 9.40 ms and replay takes 1.32 ms. For 100,000 traces (213,245,952 bytes), first apply takes 154.38 ms and replay takes 1.36 ms. Checksums, row counts, nullable references, validated foreign key, and valid index pass. These single local measurements do not predict production timing.
+6. Locking: An open read transaction blocks migration at AccessExclusiveLock; a test-only 400 ms lock timeout returns 55P03 after 410.44 ms and rollback removes partial DDL. An uncommitted migration retains AccessExclusiveLock and blocks reads; the test-only statement timeout returns 57014 after 401.16 ms. Reads succeed after commit. Production predeploy holds its larger migration transaction through commit and has no explicit lock/statement timeout.
+7. BLOCKED: Browser acceptance cannot run with this session's available tools; Playwright/Puppeteer packages are unavailable. Actual browser/session behavior, production schema drift, full predeploy transaction duration, backup/recovery, and production-scale contention remain unverified. T-1091 stays active for browser acceptance.
+8. Records and restrictions: Only related interaction records and untracked worktree-local runtime artifacts change. No source fix, commit, push, deployment, production migration, or original-checkout access occurs. AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require these three records.
+
+## 2026-10-20 — T-1091 isolated release preparation
+
+1. Goal: Prepare the passport release on release/agent-trust-passport in /tmp/useclevr-passport-release-20261020 from locally available origin/main at 79553d7d; apply only source commit f03eaf7e.
+2. Conflict resolution: Retain all upstream ChatGPT test commands and add the passport suite; set nextTaskNumber to 1092; prepend passport records while retaining all upstream interaction records. The five conflicts are resolved without changing CI/CD automation.
+3. Verification: TypeScript passes, all 12 passport fixture groups pass against fresh network-disabled Docker PostgreSQL, and all 11 governance consistency unit groups pass with database exports mocked to null. Deployment configuration, TODO, changelog, and package checks pass. The production build and distribution packaging exit successfully.
+4. Build environment: An explicit allowlist excludes inherited application credentials. A closed local database endpoint prevents existing database access. The build logs an expected PostgreSQL connection refusal and compilation warnings. The sandbox font download failure requires a network-enabled retry; no source change addresses that environment failure.
+5. Scope: The release diff contains the same 27 intended passport paths. Passport source bytes match f03eaf7e; upstream functionality and documentation remain present. Original main HEAD, index, and the 31 uncommitted file hashes remain unchanged.
+6. Remaining risks: T-1091 browser acceptance is pending. Production migration timing, index/foreign-key locking, existing-schema compatibility, and recovery readiness require a representative staging rehearsal. Production build success does not establish database-backed runtime behavior.
+7. Authorization: Complete only the authorized cherry-pick. No additional commit, push, deployment, production migration, or CI/CD edit is authorized.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route this release-preparation record into these three interaction records; the original checkout remains untouched.
+
+## 2026-10-20 — T-1091 local commit preparation
+
+1. Goal: Isolate and commit only Agent Trust Passport implementation, tests, migration source, trace linkage, requirements, release note, and task records.
+2. Scope: Select passport-only content from shared package metadata and documentation; exclude ChatGPT OAuth, submission, domain-verification, CI, archives, and unrelated TODO records. Preserve unrelated working-tree bytes.
+3. Validation evidence: All 12 passport fixture groups and 11 existing governance consistency unit groups pass in the preceding acceptance check. TypeScript and Eclipse Mode checks pass in the implementation check. Commit preparation checks staged paths, whitespace, secret scanning, and the repository pre-commit gate.
+4. Limitation: Browser acceptance remains pending under active T-1091. No authenticated UI journey, complete historical-record comparison, full production build, deployment, or production migration is certified.
+5. User authorization: Create one local conventional commit; do not push, deploy, or run production database migrations.
+6. Learning and follow-up: Stage shared records by content to isolate passport work. T-1091 requires a browser-capable local environment, isolated database, and two test-account sessions.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require these three interaction records and the active acceptance task.
+
+## 2026-10-20 — T-1091 final browser acceptance limitation
+
+1. Goal: Verify six Agent Trust Passport acceptance areas through the existing local governance interface with test accounts only.
+2. Browser result: BLOCKED, not passed. This session exposes no browser automation tool. Playwright, playwright-core, @playwright/test, Puppeteer, and puppeteer-core do not resolve; no Playwright browser cache exists. Chrome and Firefox binaries exist, but no browser session or authenticated UI flow is exercised. No local development server is started.
+3. Supporting results: PASS for all 12 passport boundary/database groups using synthetic users and mocked sessions against a fresh network-disabled Docker PostgreSQL database. Tests cover creation, owner edits, field validation/defaults, lifecycle changes, new trace association, historical null attribution, cross-owner denial, and paginated metadata. This does not establish unchanged historical record content or browser request wiring.
+4. Governance result: PASS for 11 existing consistency unit groups with inherited credentials excluded and database exports mocked to null. Provider monitoring, privacy posture, risk, failure categories, and compliance facts pass; live interface navigation and controls remain unverified.
+5. Changes: Return T-1091 to the active queue for browser acceptance and update the three required interaction records. Product implementation and unrelated changes remain untouched.
+6. Blocker and follow-up: T-1091 requires a browser-capable local session with an isolated development database and two test-account logins. The operator must exercise form persistence, real UI trace creation, historical record comparison, cross-user navigation/API denial, and existing governance navigation and controls. Browser acceptance must not inherit PASS from API or static-render tests.
+7. Restrictions: No deployment, production migration, real account/database access, commit, or Git push occurs. Only the disposable fixture schema receives migrations.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route this finding to TODO-next and the interaction records.
+
+## 2026-10-20 — Agent Trust Passport continuation (T-1091)
+
+1. Goal: Continue the unfinished local implementation identified by T-1091 in the active queue.
+2. Current behavior: AI Governance exposes owner-scoped passport creation and editing, stable analyst identity, descriptive risk and lifecycle, and paginated trace references. Superadmins inspect all owners' passports; edits remain owner-only. Historical traces stay unassigned and Eclipse Mode creates no trace.
+3. Changes: Wrap the two passport test entrypoints in async main functions to match the project's ES6 target; type cross-origin test headers explicitly. Format the new passport files and move T-1091 to the completed queue. Requirements, release notes, migration, and trace documentation describe the implemented feature.
+4. Verification: All 12 passport boundary/database test groups pass using fresh network-disabled Docker PostgreSQL; TypeScript and Eclipse Mode checks pass. Focused ESLint reports zero errors, with existing trace warnings and ignored test-script notices. Package metadata validation passes.
+5. Problems: The filesystem sandbox blocks Docker access; approved execution permits disposable database validation. Full production build, browser interaction, and deployment verification are outside this local completion. No commit, push, deployment, or external database access occurs.
+6. Learning: New TypeScript test entrypoints must respect the configured ES6 target; async main supports dynamic imports without changing application compiler settings. The continuation selects the unfinished queue task because the latest CIMD diagnostic deliverable is already recorded as complete.
+7. Instruction sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require this record, the activity summary, interaction status, and completed TODO entry.
+
+## 2026-10-20 — Four local ChatGPT integration commits
+
+1. Goal: Commit the four approved ChatGPT integration groups locally without discarding work or publishing.
+2. Current outcome: The dedicated integration worktree uses verified upstream 05816e35; the original main worktree remains unchanged, and a private backup preserves all 35 pending/artifact files. Each staged diff is checked against its approved manifest before normal-hook commits.
+3. Risks: Publisher verification, portal connection saving, reviewer access, and production configuration remain operator checks. Git commit history records the four local commit hashes; no main merge/rebase, push, deployment, or OpenAI submission occurs.
+4. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-10-20 — Disposable ChatGPT OAuth and MCP validation
+
+1. Goal: Finalize account-linking security without existing databases or provider credentials.
+2. Implementation: The runner creates private Unix-socket PostgreSQL clusters through native binaries or network-disabled Docker. Each suite receives an empty database and an environment allowlist. Direct entrypoints fail without the runner. The bootstrap applies current defaults, constraints, indexes, and foreign keys. Source CI runs both suites.
+3. Findings: Local validation uses Docker because native server binaries are unavailable. The runner waits for the final PostgreSQL server and restores private socket-directory permissions after bootstrap. TypeScript uses the database-union-compatible returning overload.
+4. Verification: Three safety checks, 27 OAuth-to-MCP checks, and the existing MCP suite pass. The commit plan records additional validation.
+5. Boundaries: Local fixtures do not certify production configuration, portal saving, or reviewer access.
+6. Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route learning into the testing guide, requirements, changelog, TODOs, and interaction records.
+
+## 2026-10-20 — OpenAI publisher and source package reconciliation
+
+1. Goal: Reconcile Atlas Mega Ventures / UseClevr and submission readiness.
+2. Current behavior: UseClevr names the product; Atlas Mega Ventures names the intended publisher and author. The operator confirms affiliation and verified OpenAI identity. The existing demo URL, reviewer email-proof login, privacy disclosures, attachment behavior, and annotations require operator verification.
+3. Artifacts: Root ZIPs and validation JSON remain intact and ignored. Edited sources do not certify historical upload bytes.
+4. Evidence: Official OpenAI submission documentation supports the identity distinction; package instructions and checklist state the remaining checks.
+
+## 2026-10-20 — CIMD submission consistency and commit preparation
+
+1. Goal: Prepare four reviewable source groups while preserving the portal investigation.
+2. Validation: The source validator checks publisher names, listing URLs, demo URL syntax, and CIMD/public-client consistency. Its success does not establish portal saving. The support report retains the historical 1.0.2 ZIP fingerprint.
+3. Baseline: Pending domain implementation exactly matches cached origin/main and stays outside new commits.
+4. Destination: docs/AI-interaction/chatgpt-integration-commit-groups.md lists the four local source commit groups, exact files, validation, and operator checks. The original worktree and private backup preserve all pending work; local main is not merged or rebased. No push, deployment, archive generation, or submission occurs.
+
+## 2026-10-19 — CIMD portal connection audit
+
+1. Interaction title: Inspect the OpenAI CIMD save failure.
+2. User goal: Audit the exact 1.0.2 ZIP against official documentation without changing client mode or OAuth routes.
+3. Current findings: The nine-file ZIP matches the submission directory and declares one canonical CIMD OAuth configuration without client credentials or overlays. The additional listing summary agrees with CIMD/public-client exchange. Both public discovery endpoints return HTTP 200; MCP returns an expected unauthenticated HTTP 401 challenge.
+4. Problems: blocker — the operator reports a predefined-client-ID validation error while the portal displays CIMD; observation — OpenAI documents persistent client registrations and locked credential changes; uncertainty — saved portal state and the failed save request are unavailable, so stale registration and a portal validation defect remain distinct hypotheses.
+5. User learning: Inspect the failed save request and saved connection mode; ask OpenAI support to reset stale registration or investigate CIMD validation. A package re-upload does not establish that saved client settings change.
+6. AI-agent learning: CIMD omits manually configured client credentials; token authentication method none means no client secret, while ChatGPT still supplies its metadata URL as client_id during OAuth.
+7. Follow-up: The operator adds portal identifiers and redacted failure details to the prepared support report and submits it manually.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+9. Destinations: docs/AI-interaction/openai-cimd-portal-support-report.txt and the three interaction records. Package bytes and OAuth route implementations remain unchanged.
+
+## 2026-10-19 — Public OpenAI domain verification
+
+1. Interaction title: Public OpenAI domain challenge.
+2. User goal: Serve the supplied domain proof through an unauthenticated GET response at the exact challenge path.
+3. Current change: `src/app/.well-known/openai-apps-challenge/route.ts` returns HTTP 200 and exact plain text without a newline; `src/proxy.ts` permits only this additional well-known path on the MCP hosts. Requirements, release notes, and T-1086 record the implementation.
+4. Problems: blocker — the public app URL returns HTTP 404 because the route is not deployed; observation — local curl checks return HTTP 200 with the exact 43-byte response, text/plain, and no redirect for localhost, app, MCP, and MCP-test host headers; unrelated MCP paths return 404 and protected APIs return 401.
+5. User learning: Deploy the source change before running domain verification in the OpenAI dashboard.
+6. AI-agent learning: The MCP host allowlist must permit the exact challenge path independently of the route handler. Local Next.js startup writes generated agent guidance and type references; those incidental edits are excluded from this change.
+7. Follow-up: Deployment remains an operator action; this request includes no commit, push, or publication.
+8. Instruction sources: `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`, and `project-prompts/ai-memory-collection-post-interaction.md`.
+9. Destinations: Route, exact proxy exception, requirements, release notes, regular TODO records, and the three interaction records.
+
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 
 1. Interaction title

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
+import { assertChatGptTestEnvironment } from "./chatgpt-test-environment.mjs";
+import { prepareChatGptTestDatabase } from "./chatgpt-test-db";
+
+assertChatGptTestEnvironment("mcp");
+let applicationPool: { end(): Promise<void> } | undefined;
+let callbackOrigin: string | undefined;
 
 const MCP_WWW_AUTHENTICATE_META_KEY = "mcp/www_authenticate";
 const CHATGPT_CIMD_CLIENT_ID = "https://chatgpt.com/oauth/client.json";
@@ -14,10 +20,28 @@ process.env.CHATGPT_MCP_OAUTH_ISSUER = "https://app.useclevr.com";
 process.env.CHATGPT_MCP_RESOURCE_URL = CHATGPT_MCP_RESOURCE;
 process.env.CHATGPT_MCP_ALLOWED_CLIENT_IDS = CHATGPT_CIMD_CLIENT_ID;
 process.env.CHATGPT_MCP_ALLOWED_REDIRECT_URIS = CHATGPT_REDIRECT_URI;
-process.env.AUTH_SECRET ||= "test-chatgpt-mcp-auth-secret";
-process.env.NEXTAUTH_SECRET ||= "test-chatgpt-mcp-auth-secret";
+process.env.AUTH_SECRET = randomBytes(48).toString("base64url");
+process.env.NEXTAUTH_SECRET = process.env.AUTH_SECRET;
+
+// Keep client metadata retrieval isolated while preserving the local callback
+// server used by the HTTP redirect test below.
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (input, init) => {
+  if (String(input) === CHATGPT_CIMD_CLIENT_ID) {
+    return Promise.resolve(Response.json({
+      client_id: CHATGPT_CIMD_CLIENT_ID,
+      client_name: "ChatGPT integration fixture",
+      redirect_uris: [CHATGPT_REDIRECT_URI],
+      token_endpoint_auth_methods_supported: ["none", "private_key_jwt"],
+    }));
+  }
+  const url = new URL(String(input));
+  assert.ok(callbackOrigin && url.origin === callbackOrigin, "Unexpected outbound HTTP request in isolated MCP test");
+  return originalFetch(input, init);
+};
 
 async function main() {
+  await prepareChatGptTestDatabase("mcp");
   const [
     { GET: getAuthorizationServer },
     { GET: getProtectedResource },
@@ -52,6 +76,8 @@ async function main() {
     import("next/server"),
     import("drizzle-orm"),
   ]);
+
+  applicationPool = (getDb() as unknown as { $client: { end(): Promise<void> } }).$client;
 
   const proxyResponse = proxy(
     new NextRequest("https://mcp-test.useclevr.com/api/chatgpt/mcp", {
@@ -124,7 +150,7 @@ async function main() {
       ["resource", CHATGPT_MCP_RESOURCE],
     ].map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join("&")}&state=${rawState}`,
   );
-  const parsedAuthorization = validateAuthorizationRequest(new NextRequest(authorizationRequestUrl));
+  const parsedAuthorization = await validateAuthorizationRequest(new NextRequest(authorizationRequestUrl));
   assert.equal(parsedAuthorization.clientId, CHATGPT_CIMD_CLIENT_ID);
   assert.equal(parsedAuthorization.redirectUri, CHATGPT_REDIRECT_URI);
   assert.equal(parsedAuthorization.resource, CHATGPT_MCP_RESOURCE);
@@ -172,7 +198,7 @@ async function main() {
 
   const wrongPkceMethodUrl = new URL(authorizationRequestUrl);
   wrongPkceMethodUrl.searchParams.set("code_challenge_method", "plain");
-  assert.throws(() => validateAuthorizationRequest(new NextRequest(wrongPkceMethodUrl)), /PKCE S256/);
+  await assert.rejects(() => validateAuthorizationRequest(new NextRequest(wrongPkceMethodUrl)), /PKCE S256/);
 
   const unauthorizedGet = await getMcp(
     new NextRequest("https://app.useclevr.com/api/chatgpt/mcp", {
@@ -520,7 +546,7 @@ async function main() {
   }
 
   console.log("ChatGPT MCP OAuth integration test passed.");
-  process.exit(0);
+
 }
 
 function assertMcpAuthChallenge(response: Response, body: unknown, expectedError: string) {
@@ -572,7 +598,8 @@ async function assertPost303RedirectUsesGet() {
   try {
     const address = server.address();
     assert.ok(address && typeof address === "object", "mock callback server must bind a port.");
-    const response = await fetch(`http://127.0.0.1:${address.port}/start`, {
+    callbackOrigin = `http://127.0.0.1:${address.port}`;
+    const response = await fetch(`${callbackOrigin}/start`, {
       method: "POST",
       body: "consent=approved",
       redirect: "follow",
@@ -583,13 +610,17 @@ async function assertPost303RedirectUsesGet() {
     assert.equal(requests[1]?.method, "GET");
     assert.equal(requests[1]?.url, "/callback?ok=1");
   } finally {
+    callbackOrigin = undefined;
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve());
     });
   }
 }
 
-main().catch((error) => {
+main().finally(async () => {
+  globalThis.fetch = originalFetch;
+  await applicationPool?.end();
+}).catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });

@@ -263,8 +263,13 @@ fix on beta → CI builds → publish to dist-test → Railway deploys → verif
    gh pr create --base main --head beta --title "fix: <description>"
    ```
 
-8. **Auto-merge** — `auto-merge.yml` formats the title, enables auto-merge when CI passes.
-9. **`main` trigger** — `branch-maintenance.yml` syncs `beta` ← `main` and publishes to production `dist`.
+8. **Human merge approval** — `auto-merge.yml` formats the title only. The release owner verifies
+   beta acceptance and manually merges the reviewed PR; neither beta workflow merges or dispatches production.
+9. **Production approval** — `branch-maintenance.yml` verifies the protected `useclevr-web / production`
+   environment, waits for human approval, and publishes the exact run SHA to `dist`. The environment
+   requires exactly the `Nexthood` user reviewer, allows self-review, disables administrator bypass,
+   and allows only `main`. GitHub still requires explicit approval for every publisher job.
+   Missing or unverifiable protection blocks publication. Follow `docs/Developer_Guides/RELEASE_SAFETY.md`.
 
 ### Constraints
 

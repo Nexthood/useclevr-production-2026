@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { getGovernancePassports } from "./agent-passport-service"
 
 import {
   getAiMode,
@@ -103,13 +104,14 @@ export type GovernanceProviderRuntime = {
 
 export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
   try {
-    const [providers, settings, auditEntries, traces, overrideStats, allowUseclevrCloudFallback] = await Promise.all([
+    const [providers, settings, auditEntries, traces, overrideStats, allowUseclevrCloudFallback, agentPassports] = await Promise.all([
       safeListProviders(user.id),
       safeGetGovernanceSettings(user.id),
       safeListAudit(user, 100),
       safeListTraces(user, 50),
       safeGetOverrideStats(user),
       getUseClevrCloudFallbackAllowed(user.id).catch(() => true),
+      getGovernancePassports(user),
     ])
 
     return buildGovernanceSnapshot({
@@ -119,6 +121,7 @@ export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
       traces,
       overrideStats,
       allowUseclevrCloudFallback,
+      agentPassports,
     })
   } catch (error) {
     logGovernanceDataError("snapshot-build", error)
@@ -129,11 +132,13 @@ export async function getAiGovernanceSnapshot(user: AiGovernanceUser) {
       traces: [],
       overrideStats: emptyOverrideStats(),
       allowUseclevrCloudFallback: true,
+      agentPassports: { available: false, items: [], ownPassport: null },
     })
   }
 }
 
 function buildGovernanceSnapshot(input: {
+  agentPassports: Awaited<ReturnType<typeof getGovernancePassports>>
   providers: PublicAiProviderConfig[]
   settings: AiGovernanceSettings
   auditEntries: Awaited<ReturnType<typeof listAiRequestAuditLogs>>
@@ -162,6 +167,7 @@ function buildGovernanceSnapshot(input: {
 
   return {
     generatedAt: new Date().toISOString(),
+    agentPassports: input.agentPassports,
     settings: input.settings,
     providers: providerStats,
     audit: auditStats,
@@ -734,6 +740,7 @@ function buildReports(
 function toTraceSummary(trace: Awaited<ReturnType<typeof safeListTraces>>[number]) {
   return {
     id: trace.id,
+    agentPassportId: trace.agentPassportId,
     datasetId: trace.datasetId,
     prompt: trace.prompt,
     response: trace.response,

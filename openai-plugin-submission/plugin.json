@@ -1,0 +1,106 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "useclevr",
+  "version": "1.0.2",
+  "description": "Analyze UseClevr datasets from ChatGPT with account-scoped dataset listing, KPI analysis, and CSV or Excel upload.",
+  "author": {
+    "name": "Atlas Mega Ventures",
+    "email": "start@useclevr.com",
+    "url": "https://app.useclevr.com"
+  },
+  "homepage": "https://app.useclevr.com",
+  "license": "Proprietary",
+  "keywords": [
+    "business-intelligence",
+    "analytics",
+    "datasets",
+    "csv",
+    "excel"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "UseClevr",
+        "shortDescription": "Analyze UseClevr datasets",
+        "longDescription": "UseClevr connects ChatGPT to datasets in the authenticated user's UseClevr account. It can list available datasets, return trusted KPIs and semantic diagnostics, answer dataset questions, and upload CSV or Excel files into the existing UseClevr analysis workflow.",
+        "developerName": "Atlas Mega Ventures",
+        "category": "Data & Analytics",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://useclevr.com",
+        "privacyPolicyURL": "https://app.useclevr.com/privacy",
+        "termsOfServiceURL": "https://app.useclevr.com/terms",
+        "supportURL": "https://app.useclevr.com/contact",
+        "defaultPrompt": [
+          "Use UseClevr to list my available datasets.",
+          "Use UseClevr to analyze my latest retail dataset.",
+          "Use UseClevr to answer a KPI question about one of my datasets."
+        ],
+        "brandColor": "#0F766E",
+        "composerIcon": "./assets/composer-icon.svg",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "demo_recording_url": "https://drive.google.com/file/d/1nX5SxF1xE9DO_1WPql5OeVGAuaLQ35HK/view?usp=drive_link",
+        "test_cases": {
+          "positive": [
+            {
+              "description": "List datasets available to the connected UseClevr account.",
+              "prompt": "Use UseClevr to list my available datasets and show the dashboard link for each one.",
+              "tools_triggered": "useclevr_list_datasets",
+              "expected_behavior": "The plugin returns only datasets owned by the connected reviewer account, including dataset id, name, row count, column count, analysis status, and openInUseClevrUrl values. It must not show datasets from any other user."
+            },
+            {
+              "description": "Analyze a known review dataset and summarize trusted KPIs.",
+              "prompt": "Use UseClevr to analyze the sample retail dataset in my account and summarize revenue, profit, margin, risks, and recommended actions.",
+              "tools_triggered": "useclevr_list_datasets, useclevr_analyze_dataset",
+              "expected_behavior": "The plugin finds the reviewer sample retail dataset, calls analysis for that dataset id, and returns grounded KPIs, executive summary, risks, opportunities, recommended actions, semantic diagnostics, warnings, and the UseClevr dashboard link."
+            },
+            {
+              "description": "Answer a specific question against an owned dataset.",
+              "prompt": "Use UseClevr to answer: which customer or segment contributed the most revenue in my sample dataset?",
+              "tools_triggered": "useclevr_list_datasets, useclevr_analyze_dataset",
+              "expected_behavior": "The plugin analyzes only an owned dataset and returns a computed questionResult when supported. If the dataset lacks required fields, it returns a clear data-backed limitation instead of inventing an answer."
+            },
+            {
+              "description": "Upload a small CSV file and run the existing UseClevr analysis workflow.",
+              "prompt": "Use UseClevr to upload this small CSV as a standard dataset and tell me when the analysis is ready.",
+              "tools_triggered": "useclevr_upload_dataset",
+              "expected_behavior": "The plugin uploads the attached sample CSV to the connected review account, returns the new dataset id, rows processed, columns detected, analysis status, preview rows, usage details, and a UseClevr dashboard link."
+            },
+            {
+              "description": "Analyze the dataset created by the upload test.",
+              "prompt": "Use UseClevr to analyze the dataset I just uploaded and list any blocked or ambiguous metrics.",
+              "tools_triggered": "useclevr_analyze_dataset",
+              "expected_behavior": "The plugin analyzes the uploaded dataset owned by the reviewer account and returns availableMetrics, blockedMetrics, ambiguousMetrics, diagnostics, warnings, and source-backed KPI values where available."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Reject access to a dataset id that is not owned by the connected account.",
+              "prompt": "Use UseClevr to analyze dataset id not-owned-by-this-user.",
+              "expected_behavior": "The plugin must not reveal whether another user's dataset exists. It should return an access-denied or not-found response such as 'Dataset not found or access denied.'"
+            },
+            {
+              "description": "Reject unsupported or oversized upload attempts.",
+              "prompt": "Use UseClevr to upload this executable file as a dataset.",
+              "expected_behavior": "The plugin should refuse or fail safely because only CSV, XLSX, or XLS dataset uploads are supported. It must not execute file contents or accept unsupported file types."
+            },
+            {
+              "description": "Do not fabricate metrics when required evidence is missing.",
+              "prompt": "Use UseClevr to calculate gross margin for a dataset that has no COGS or expense column.",
+              "expected_behavior": "The plugin should report that gross margin is blocked by missing required evidence instead of inventing values. It should include the missing semantic fields or a clear limitation."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "The UseClevr ChatGPT plugin does not sell products or process payments inside ChatGPT. Billing, subscriptions, and purchases remain outside the MCP tool flow."
+      },
+      "publication": {
+        "release_notes": "Initial public submission package for the existing UseClevr ChatGPT MCP integration. Includes one OAuth-protected remote MCP server with dataset listing, dataset analysis, and dataset upload tools."
+      }
+    }
+  }
+}

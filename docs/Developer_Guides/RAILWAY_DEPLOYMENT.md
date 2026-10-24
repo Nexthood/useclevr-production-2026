@@ -11,6 +11,10 @@
 
 Railway deploys generated production output from the `dist` branch.
 
+Operators follow [Production release safety](RELEASE_SAFETY.md) for required human approvals,
+migration timeouts, service metadata verification, and rollback/recovery. Beta workflows publish
+test output and prepare a PR; humans approve the merge and protected production publication.
+
 Railway test deploy review uses the `beta` source branch and `dist-test` deployment branch. Keep
 test deploy checks away from `main`, `dist`, and the live app unless a task explicitly changes scope.
 
@@ -29,7 +33,8 @@ source branches.
 - Branch: `dist`
 - Root directory: `/dist`
 - Config file path: `/server-config/railway.json`
-- Builder: Railpack
+- Builder: verify the effective Railway builder and Dockerfile selection against service metadata;
+  the repository configuration declares Railpack and generated output includes a Dockerfile.
 
 Leave Railway dashboard build, pre-deploy, and start command overrides empty unless debugging a
 temporary incident. The config file owns those commands.
@@ -45,14 +50,11 @@ flowchart TD
   TestBuild --> DistTestBranch[dist-test branch /dist]
 
   Config[dist-root/server-config/railway.json] --> ServerConfig[server-config/railway.json]
-  Railpack[dist-root/railpack.json] --> RailpackRoot[railpack.json at deployment root]
 
   DistBranch --> ProdRailway[Production Railway service]
   DistTestBranch --> TestRailway[Test Railway service]
   ServerConfig --> ProdRailway
   ServerConfig --> TestRailway
-  RailpackRoot --> ProdRailway
-  RailpackRoot --> TestRailway
 ```
 
 GitHub Actions builds the app from `main`, publishes generated output to `/dist` on the `dist`
@@ -64,8 +66,8 @@ and lets the dedicated Railway test service deploy from that branch.
 `dist-root/server-config/railway.json` controls deploy with a prebuilt `/dist`. The build command
 outputs `"echo prebuilt"` since GitHub Actions publishes generated output directly to `/dist`.
 
-`dist-root/railpack.json` declares the Node.js provider and skips dependency installation — the
-standalone bundle includes all production modules in `dist/node_modules/`.
+The standalone bundle includes all production modules in `dist/node_modules/`. Image builds run no
+database migration; Railway's predeploy command owns database changes.
 
 The generated output intentionally does not include `pnpm-workspace.yaml`, `railway.json`, or
 `vercel.json`.
@@ -89,7 +91,7 @@ Railway config uses:
 
 ```bash
 node ./scripts/runtime/railway-predeploy.cjs
-node .next/standalone/server.js
+node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs
 ```
 
 The predeploy command runs an idempotent additive schema sync for generated deployments. It creates
@@ -100,7 +102,9 @@ standalone server after the schema sync completes.
 
 Generated Railway output also stores a regular-file copy of the required Next.js runtime build
 directory under `next-build-extra/`. The predeploy helper restores that copy when the published pnpm
-store is incomplete, then applies database changes when `DATABASE_URL` or `DIRECT_URL` is present.
+store is incomplete. Missing database configuration fails predeploy. The dedicated migration
+connection has bounded execution, no automatic retries, and safe failure diagnostics; see the
+[migration contract](RELEASE_SAFETY.md#migration-contract).
 
 ## Railway CLI
 
@@ -112,7 +116,6 @@ pnpm railway:link -- --project <project-id-or-name> --environment <environment-i
 pnpm railway:status
 pnpm railway inspect
 pnpm railway:logs
-pnpm railway:cleanup
 pnpm railway:cleanup -- --keep-success
 ```
 

@@ -14,6 +14,8 @@ moving work between states.
 
 ## Label: deployment
 
+- T-1086. Serve the OpenAI domain challenge as exact public plain text without authentication or redirects on the app and MCP hosts. (labels: mcp, deployment, testing; commit: 7eda8504)
+
 - T-1066. The dashboard World Map aggregates the same row scope as the KPI row: semantic-KPI datasets feed the map every stored row through one shared scope selector instead of the default 30-day window, fallback-KPI datasets keep the range-filtered scope on both sides, and a regression suite pins the 220-row/42-row fingerprint with map totals equal to KPI totals. (labels: dashboard, data, metrics; commit: worktree)
 - T-1062. Usy contact handoff 502s expose their exact outbound cause: safe structured diagnostics classify DNS/connection/TLS/timeout/HTTP failures server-side without logging secrets or customer data. (labels: ai, deployment, observability; commit: worktree)
 - T-1061. The Usy → n8n contact handoff keeps repository configuration on the published production webhook path: regression tests ban the n8n manual-test path from runtime source and env examples and pin HTTP 200 `{"ok":true}` as a successful handoff. (labels: ai, deployment, quality; commit: worktree)
@@ -51,6 +53,9 @@ moving work between states.
 
 ## Label: mcp
 
+- T-1087. Validate CIMD metadata and client-bound redirects, consume authorization codes atomically, and verify the OAuth-to-MCP flow against isolated test data. (labels: mcp, auth, security, testing; commit: worktree)
+- T-1088. Reconcile the UseClevr submission publisher and readiness records, isolate OAuth and MCP tests in disposable PostgreSQL, and prepare four source commit groups without publishing artifacts. (labels: mcp, auth, security, testing, docs; commit: worktree)
+
 - T-1053. ChatGPT MCP authentication and scope failures include the MCP challenge metadata that ChatGPT uses to start OAuth account linking. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1052. ChatGPT MCP account linking uses OAuth 2.1 authorization, consent, PKCE, signed access-token validation, scope enforcement, and tenant-isolation regression coverage. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1051. Expose authorized UseClevr dataset analysis to ChatGPT through a minimal Apps SDK MCP integration that reuses the existing analysis engine and preserves tenant isolation. (labels: mcp, ai, security, testing; commit: worktree)
@@ -85,6 +90,12 @@ moving work between states.
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
 
 ## Label: workflow
+
+- T-1095. Patch release dependencies and transitive security findings, verify connector and rich-text compatibility, run CI suites on disposable PostgreSQL 17.11, and package the release through normal validation hooks. (labels: security, testing, ci-build; commit: worktree)
+
+- T-1093. Commit the reviewed production release safety controls, migration safeguards, regression tests, release documentation, and task records in one local commit while preserving unrelated worktree changes. (labels: deployment, security, testing, workflow; commit: worktree)
+- T-1092. Remove automated beta-to-main promotion, require a pre-existing protected production environment and exact-SHA publication, bound and test migration 0037 and complete predeploy execution against disposable PostgreSQL, fail safely with redacted diagnostics, and document release approval, Railway checks, and rollback. (labels: deployment, security, testing, workflow; commit: worktree)
+- T-1091. Verify Agent Trust Passport creation, declared fields, edit/reload persistence, stable identity, Assistant UI trace linkage, historical fixture-row preservation, cross-account denial, governance navigation, linked-trace viewing, and compliance export with synthetic accounts and disposable PostgreSQL; reconcile acceptance evidence with the source-equivalent release branch. (labels: ai, auth, testing; commit: worktree)
 
 - T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)
 - T-999. Risk Intelligence and Dataset Library management controls select and delete multiple datasets through one confirmed bulk action while preserving single-dataset deletion, active-dataset recovery, and retryable partial-failure handling. (labels: workflow, data, ui, testing; commit: c4c05f3c)

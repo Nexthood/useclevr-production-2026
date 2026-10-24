@@ -4,6 +4,116 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-24
+- **Goal**: Resume interrupted dependency security fixes and publish the validated release/agent-trust-passport branch through normal hooks.
+- **Task identity**: Existing T-1095 tracks dependencies; T-1094 tracks separate hosted release approval evidence. Preserve both IDs.
+- **Change**: Patch direct and transitive dependencies, retain Undici major boundaries, and test Payload MCP schema and Lexical HTML compatibility.
+- **Verified**: Frozen install, raw audit with zero vulnerabilities, unchanged CI audit gate, two compatibility tests, TypeScript, and focused regressions pass. ESLint reports zero errors and 452 warnings.
+- **Validation**: Full ChatGPT and application CI suites, documentation links, production build, and distribution packaging pass with disposable PostgreSQL 17.11. The cached PostgreSQL 17 image provides `/usr/lib/postgresql/17/bin/initdb`; the host contains client tools only. The temporary runner uses a private Unix socket and disables container networking.
+- **Records**: T-1095 moves to the completed queue; commit and push use the normal project hooks on release/agent-trust-passport.
+- **Boundary**: Preserve original main checkout and unrelated work. No T-1091 browser acceptance, passport development, hook bypass, audit suppression, merge, deployment, or production access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Commit and push the Agent Trust Passport release branch with exactly two validation corrections and four required project records through normal Git hooks.
+- **Corrections**: Reference canonical historical-unlock pricing in the formatter comment; include tracked `.well-known` routes in the ESLint TypeScript project.
+- **Verification**: All 38 historical-unlock tests and the full pre-push hook pass, including ESLint, TypeScript, pricing, deployment configuration, secret checks, production build, and packaging. Build-time auth is temporary; database references target a closed loopback port. Expected connection refusals do not establish database runtime readiness.
+- **Scope**: Work only in the restored release worktree. No hook bypass, product-price or application-functionality change, original-checkout edit, merge, deployment, or production database operation.
+
+## Previous Interaction
+
+- **Date**: 2026-10-21
+- **Goal**: Make the committed release policy accept the verified single-administrator GitHub environment while retaining mandatory deployment approval.
+- **GitHub settings**: The environment has exactly the `Nexthood` user reviewer; `prevent_self_review` is false; administrator bypass is false; and the sole deployment branch is `main`.
+- **Policy change**: Require exactly that reviewer and those settings. Reject missing, additional, or different reviewers; missing or enabled self-review; administrator bypass; and any branch policy other than `main`. Keep GitHub's required-reviewer environment on the protected production publisher job.
+- **Verification**: Workflow safety tests/lint pass; migration safety suite passes on disposable PostgreSQL 17.11; secret/TODO checks, targeted formatting, and documentation links pass. No production data is accessed.
+- **Restrictions**: Do not stage or commit; no push, merge, or deployment. Preserve unrelated `next-env.d.ts` and `tmp/`.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Final local runtime and migration verification of T-1091 in the release worktree only.
+- **PASS runtime**: Real application PostgreSQL connections persist passport creation/editing, all declared fields, stable new-trace linkage, owner isolation, and read-only superadmin inspection. Historical content checksums remain unchanged; Eclipse Mode writes no trace. Session identities are synthetic and handlers run in-process.
+- **PASS governance**: Settings, owner-scoped audit/provider monitoring, overrides, and snapshot/privacy/risk/compliance/reports work with PostgreSQL; eleven existing consistency groups pass.
+- **Migration measurements**: PostgreSQL 17.11; synthetic 1,000-row first apply/replay 9.40/1.32 ms; 100,000-row first apply/replay 154.38/1.36 ms. Rows/checksums, nullable attribution, foreign-key validation, and index validity pass. These are single local measurements.
+- **Observed locking**: An active reader blocks AccessExclusiveLock; test-only 400 ms timeout fails with 55P03 after 410.44 ms. An uncommitted migration blocks reads until commit; test-only statement timeout fails with 57014 after 401.16 ms. Rollback and post-commit recovery pass. Production predeploy has no explicit lock/statement timeout.
+- **BLOCKED browser**: No browser automation tool or installed Playwright/Puppeteer package. Browser acceptance stays pending under T-1091. Production schema compatibility, full predeploy duration, backup/recovery, and production contention remain unverified.
+- **Isolation and changes**: Fresh network-disabled PostgreSQL, private worktree socket, synthetic records, no inherited credentials. Container/cluster removed. Only related records and untracked local rehearsal artifacts change; no additional commit, push, deployment, production migration, or original-checkout access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Prepare release/agent-trust-passport in /tmp/useclevr-passport-release-20261020 from locally available origin/main 79553d7d and cherry-pick f03eaf7e.
+- **Conflicts**: Resolve five package/task/interaction-record conflicts by retaining upstream commands and complete records, adding the passport content, and keeping nextTaskNumber at 1092.
+- **PASS**: TypeScript, 12 disposable passport fixture groups, 11 governance consistency unit groups, deployment configuration, TODO/changelog/package checks, production build, and distribution packaging. The initial sandbox font-download failure clears on a network-enabled retry.
+- **Build limits**: Credentials are isolated and the database endpoint is a closed local port; expected PostgreSQL connection refusal and compilation warnings do not establish database-backed runtime readiness.
+- **Scope**: Exactly 27 passport paths; implementation bytes match f03eaf7e. CI/CD files remain unchanged. The original main HEAD, index, and 31 uncommitted file hashes remain intact.
+- **Pending**: T-1091 browser acceptance; production-scale migration lock/timing, schema compatibility, recovery verification, and database-backed runtime checks.
+- **Restrictions**: Complete the authorized cherry-pick only. No additional commit, push, deployment, production migration, or CI/CD automation change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create one local commit containing only T-1091 Agent Trust Passport changes.
+- **Scope**: Passport UI/APIs, schema and migration source, trace attribution, disposable tests, test command, requirements, release note, and passport-only interaction records. Unrelated shared-file changes stay unstaged.
+- **Validation evidence**: Twelve passport fixture groups and eleven governance consistency unit groups pass; implementation TypeScript and Eclipse Mode checks pass. Commit preparation reviews staged paths and runs secret scanning and repository hooks.
+- **Browser acceptance**: PENDING under active T-1091. No authenticated browser journey runs; browser automation tooling is unavailable in the acceptance session. Full historical-record preservation and existing governance UI behavior remain unverified in a browser.
+- **Restrictions**: One local commit is authorized. No push, deployment, or production database migration. Preserve unrelated working-tree changes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: T-1091 final browser acceptance in the existing local AI Governance interface, using test accounts only.
+- **Browser result**: BLOCKED, not passed. No browser automation tool is exposed; Playwright and Puppeteer packages are unavailable. Browser binaries exist, but no authenticated browser flow or local development server runs.
+- **Supporting PASS**: Twelve passport fixture groups cover API creation/editing, field validation, trace linkage, historical null attribution, and cross-user denial. Eleven existing governance consistency unit groups pass with database exports mocked to null and inherited credentials excluded.
+- **Evidence limits**: Mocked-session API tests and static rendering do not establish browser form persistence, UI-generated trace association, byte-for-byte historical record preservation, or functioning governance controls/navigation.
+- **Remaining blocker**: Run all six browser checks in a browser-capable local session with an isolated database and two test-account logins. T-1091 is active until this acceptance completes.
+- **Restrictions**: No deployment, production migration, real database access, commit, or push. Product implementation and unrelated changes remain untouched; only local records and TODO state change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Continue and complete the unfinished Agent Trust Passport task, T-1091.
+- **Behavior**: Owners manage one durable analyst identity, human owner declaration, purpose, scope, descriptive risk/lifecycle, and paginated trace references. Superadmins inspect across accounts with owner-only edits. Historical traces remain unassigned; Eclipse Mode creates no trace.
+- **Fix**: Use async main in both passport test entrypoints for the ES6 target and explicitly type cross-origin header fixtures.
+- **Validation**: All 12 boundary/database groups pass against fresh network-disabled Docker PostgreSQL. TypeScript, Eclipse Mode, and package metadata pass. Focused ESLint reports zero errors with existing trace warnings and ignored test-script notices.
+- **Scope**: T-1091 is complete in the local working tree. No commit, push, production build, deployment, or browser acceptance check occurs. Existing ChatGPT integration work remains in the shared tree.
+- **Records**: See project-logs/interactive-log.md and project-logs/activity-log.md for the continuation evidence.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create four approved local ChatGPT integration commits on a dedicated branch without publishing.
+- **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
+- **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
+- **CIMD evidence**: The support report describes the exact historical 1.0.2 archive. The source validator checks identity and OAuth-summary consistency without contacting OpenAI. Edited sources do not certify that archive or resolve portal state.
+- **Domain baseline**: Integration branch `integration/chatgpt-2026-10-20` starts at verified upstream `05816e35` in `/tmp/useclevr-chatgpt-integration-20261020`; local `main` stays at `eab70041`. The domain route/proxy remain upstream implementation and are excluded from the four groups. No main merge/rebase occurs.
+- **Validation**: Local OAuth/MCP and safety tests, TypeScript, secret scan, TODO/package/workflow checks pass. Final validation details and exact commit groups are recorded in `chatgpt-integration-commit-groups.md`.
+- **Operator checks**: Verify publisher identity, reviewer email-proof login, demo access, privacy disclosures, portal CIMD save, production allowlists, domain verification, and tool scan in a separately authorized task.
+- **Artifacts and commits**: Four local source groups exclude both ZIPs, the historical validation JSON, credentials, and duplicate domain implementation. The original worktree and private backup preserve all pending files. No push, deployment, or OpenAI submission occurs; Git history records the four local hashes.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Diagnose the reported CIMD/predefined-client-ID portal save mismatch using the exact 1.0.2 ZIP and official OpenAI documentation.
+- **Evidence**: ZIP integrity and file equality pass; one canonical CIMD OAuth configuration has no client credentials or alternative overlay. Public discovery returns HTTP 200, supports CIMD and public-client token exchange with PKCE S256, and agrees on issuer/resource. MCP advertises discovery in an expected unauthenticated HTTP 401 response.
+- **Limit**: The portal's stored registration and failed save request are unavailable. Persistent registration and a portal validation defect are hypotheses, not established root causes.
+- **Next step**: The operator collects the failed save request's registration mode, HTTP status, and request ID without secrets, then sends the prepared support report to OpenAI for saved-state inspection or validation repair.
+- **Report**: `docs/AI-interaction/openai-cimd-portal-support-report.txt`.
+- **Scope**: No package, OAuth-route, client-ID, or client-mode change; no support message is sent.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Serve the OpenAI domain challenge publicly as exact plain text without authentication or redirects.
+- **Current change**: Add the App Router GET handler and permit its exact path in the MCP host allowlist; record requirements, release notes, and T-1086.
+- **Verification**: Local curl checks return HTTP 200, text/plain, the exact 43-byte proof without newline, and no redirect on localhost and app/MCP/MCP-test host headers. Unrelated MCP paths return 404; protected APIs return 401. Focused ESLint passes with parser project discovery disabled for the hidden well-known directory.
+- **Observation at 2026-10-19 local verification**: The public app challenge URL returns HTTP 404 at that check. This observation does not establish current deployment status; the source implementation is present in cached `origin/main`. No deployment check is performed in the local finalization task.
+- **Records**: `project-logs/interactive-log.md`, `project-logs/activity-log.md`.
+
+## Previous Interaction
+
 - **Date**: 2026-10-11
 - **Goal**: Add Swedish as the 8th fully supported Usy language through the existing canonical Usy language architecture, without creating a parallel localization system, without touching the main AI Assistant architecture, Retail, Profitability, Accountancy analysis, Risk Intelligence, Stripe pricing/configuration, dataset analysis, ClevrSync architecture, authentication, or unrelated UI, and without committing or pushing.
 - **Durable change**: `src/lib/usy/types.ts` adds `"swedish"` to `SupportedUsyLanguage`; `src/lib/usy/language.ts` adds word-based Swedish detection (Swedish-specific lexemes and phrases, positioned after French and before Hungarian so ä/ö overlap with German/Hungarian cannot steal Swedish); `src/lib/usy/knowledge-base.ts` extends `supportedUsyLanguages` (8 entries in rotation order) and the language label; `src/lib/usy/actions.ts`, `src/lib/usy/contact.ts`, `src/lib/usy/router.ts`, and `src/lib/usy/billing-knowledge.ts` add the full Swedish surface (intents, billing/tier knowledge, contact flow, prompts, summaries, confirm/cancel lexicons, `sv-SE` counts); `src/app/api/usy/chat/route.ts` accepts `"swedish"`; `src/components/ui/help-chatbox.tsx` adds the Swedish placeholder, quick action, contact message labels, submit labels, and the 🇸🇪 Svenska badge; `src/lib/i18n/language-context.tsx`, `src/lib/i18n/translation-service.ts`, and `src/components/ui/language-selector.tsx` add `sv`. Tests extend the existing Usy suites, and `test-usy-product-knowledge.ts` pins the canonical 8-language order, badge rotation source, and the 7-language regression matrix. `requirements.md` and `CHANGELOG.md` record the current behavior.

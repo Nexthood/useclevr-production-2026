@@ -1,3 +1,4 @@
+import { CLEVR_ANALYST_KEY } from "@/lib/ai-governance/agent-passport-service"
 /**
  * Analysis API Route
  *
@@ -1048,6 +1049,7 @@ try {
     if (traceUserId && !isGhostMode) {
       const latencyMs = Date.now() - requestStart
       const trace = await createTrace({
+        agentKey: CLEVR_ANALYST_KEY,
         userId: traceUserId,
         datasetId: traceDatasetId,
         prompt: question,
@@ -1156,6 +1158,7 @@ try {
     if (traceUserId && !isGhostMode) {
       const latencyMs = Date.now() - requestStart
       createTrace({
+        agentKey: CLEVR_ANALYST_KEY,
         userId: traceUserId,
         datasetId: traceDatasetId,
         prompt: traceQuestion,

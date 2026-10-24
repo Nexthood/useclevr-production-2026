@@ -1,20 +1,12 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const { Client } = require("pg");
-
-try {
-  require("./load-env.cjs");
-} catch {
-  // Railway normally provides env vars directly.
-}
-
-const databaseUrl = (process.env.DIRECT_URL || process.env.DATABASE_URL || "").trim();
-
-const shouldUseSsl =
-  databaseUrl.includes("sslmode=require") ||
-  databaseUrl.includes("sslmode=verify-full") ||
-  databaseUrl.includes("neon.tech") ||
-  databaseUrl.includes("railway.app");
+const {
+  MIGRATION_LIMITS,
+  runMigration,
+  safeFailure,
+  safetyError,
+} = require("./migration-safety.cjs");
 
 const statements = [
   `CREATE TABLE IF NOT EXISTS "AppSetting" (
@@ -363,6 +355,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0034_dataset_source.sql"),
   readMigrationStatement("src/lib/db/migrations/0035_referral_automation.sql"),
   readMigrationStatement("src/lib/db/migrations/0036_historical_data_unlock.sql"),
+  readMigrationStatement("src/lib/db/migrations/0037_agent_trust_passport.sql"),
 ];
 
 const constraints = [
@@ -492,84 +485,92 @@ function restoreNextBuildDir() {
   }
 }
 
-async function main() {
+async function main({
+  env = process.env,
+  createClient = (options) => new Client(options),
+  restoreRuntime = restoreNextBuildDir,
+  migrate = applySchemaSync,
+  log = (...args) => console.log(...args),
+} = {}) {
+  const databaseUrl = (env.DIRECT_URL || env.DATABASE_URL || "").trim();
+  if (!databaseUrl) throw safetyError("MIGRATION_DATABASE_REQUIRED");
+  const shouldUseSsl =
+    databaseUrl.includes("sslmode=require") ||
+    databaseUrl.includes("sslmode=verify-full") ||
+    databaseUrl.includes("neon.tech") ||
+    databaseUrl.includes("railway.app");
   console.log("Railway predeploy starting...");
 
   // Restore next/dist/build/ before any database work — this ensures the Next.js
   // runtime files are present in the pnpm store even if CI publishing dropped them.
-  restoreNextBuildDir();
-
-  console.log("DATABASE_URL present:", Boolean(process.env.DATABASE_URL));
-  console.log("DIRECT_URL present:", Boolean(process.env.DIRECT_URL));
-
-  if (!databaseUrl) {
-    console.log("No database URL — skipping schema sync.");
-    return;
-  }
-
-  const client = new Client({
+  restoreRuntime();
+  const client = createClient({
     connectionString: databaseUrl,
+    connectionTimeoutMillis: MIGRATION_LIMITS.connectionTimeoutMillis,
     ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined,
   });
+  await runMigration(client, migrate, { log });
+  log("Railway predeploy schema sync complete.");
+}
 
-  await client.connect();
+async function applySchemaSync(client) {
+  for (const statement of statements) {
+    await client.query(statement);
+  }
 
-  try {
-    await client.query("BEGIN");
+  for (const statement of migrationStatements) {
+    await client.query(statement);
+  }
 
-    for (const statement of statements) {
-      await client.query(statement);
+  for (const constraint of constraints) {
+    const sourceTableExists = await tableExists(client, constraint.table);
+    const targetTableExists = await tableExists(client, constraint.targetTable || "User");
+    const alreadyExists = await constraintExists(client, constraint.name);
+
+    if (sourceTableExists && targetTableExists && !alreadyExists) {
+      await client.query(constraint.sql);
+    }
+  }
+
+  // Apply auto-updatedAt triggers
+  {
+    const fnName = "update_updatedat_column";
+    const fnExists = await functionExists(client, fnName);
+
+    if (!fnExists) {
+      await client.query(updateTriggerFn);
+      console.log(`Created function ${fnName}`);
     }
 
-    for (const statement of migrationStatements) {
-      await client.query(statement);
-    }
+    for (const tableName of updateTriggerTables) {
+      const tName = tableName;
+      const triggerName = `trg_${tName}_updatedat`;
+      const tblExists = await tableExists(client, tName);
+      const trgExists = await triggerExists(client, triggerName, tName);
 
-    for (const constraint of constraints) {
-      const sourceTableExists = await tableExists(client, constraint.table);
-      const targetTableExists = await tableExists(client, constraint.targetTable || "User");
-      const alreadyExists = await constraintExists(client, constraint.name);
-
-      if (sourceTableExists && targetTableExists && !alreadyExists) {
-        await client.query(constraint.sql);
+      if (tblExists && !trgExists) {
+        await client.query(
+          `CREATE TRIGGER "${triggerName}" BEFORE UPDATE ON "public"."${tName}" FOR EACH ROW EXECUTE FUNCTION update_updatedat_column()`,
+        );
+        console.log(`Created trigger ${triggerName} on ${tName}`);
       }
     }
-
-    // Apply auto-updatedAt triggers
-    {
-      const fnName = "update_updatedat_column";
-      const fnExists = await functionExists(client, fnName);
-
-      if (!fnExists) {
-        await client.query(updateTriggerFn);
-        console.log(`Created function ${fnName}`);
-      }
-
-      for (const tableName of updateTriggerTables) {
-        const tName = tableName;
-        const triggerName = `trg_${tName}_updatedat`;
-        const tblExists = await tableExists(client, tName);
-        const trgExists = await triggerExists(client, triggerName, tName);
-
-        if (tblExists && !trgExists) {
-          await client.query(
-            `CREATE TRIGGER "${triggerName}" BEFORE UPDATE ON "public"."${tName}" FOR EACH ROW EXECUTE FUNCTION update_updatedat_column()`,
-          );
-          console.log(`Created trigger ${triggerName} on ${tName}`);
-        }
-      }
-    }
-
-    await client.query("COMMIT");
-    console.log("Railway predeploy schema sync complete.");
-  } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("Railway predeploy schema sync failed:");
-    console.error(error instanceof Error ? error.stack || error.message : error);
-    process.exit(1);
-  } finally {
-    await client.end();
   }
 }
 
-main();
+if (require.main === module) {
+  // Tests import this module without loading any environment files or runtime data.
+  try {
+    require("./load-env.cjs");
+  } catch {
+    console.error("Railway predeploy environment loading failed.");
+    process.exitCode = 1;
+  }
+  if (!process.exitCode)
+    main().catch((error) => {
+      console.error("Railway predeploy schema sync failed", safeFailure(error));
+      process.exitCode = 1;
+    });
+}
+
+module.exports = { main, applySchemaSync };
