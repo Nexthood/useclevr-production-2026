@@ -1,3 +1,13 @@
+## 2026-10-24 — Passport CI dependency remediation and beta PR (T-1095, T-1097)
+
+1. Goal: Fix CI dependency advisories and publish the Passport branch for beta review; stop T-1093 and all Railway authentication attempts.
+2. Preservation: Inspect branches and worktrees; record SHA-256 hashes for all 111 existing original-worktree files. Make changes only in the separate Passport worktree.
+3. Changes: Enforce Zod >=4.6.6 <5 and Happy DOM >=21.0.4 <22; regenerate the pnpm lockfile to Zod 4.6.7 and Happy DOM 21.0.4. Use Zod 4 for dashboard MCP schemas and add real MCP/Lexical compatibility checks to test:all.
+4. Security: The registry audit reports zero known vulnerabilities; the unchanged CI audit gate passes with no residual advisories. Pass 13 Passport groups, 27 OAuth checks, MCP integration, three isolation checks, TypeScript, auth redirects, owner scope, upload security, and Eclipse Mode.
+5. Publication: PR #409 targets beta with auto-merge disabled. Normal commit and push hooks remain required. The full test:all suite passes against a fresh network-disabled PostgreSQL fixture with synthetic credentials.
+6. Boundary: No user-file deletion, production data change, Railway authentication, merge, release dispatch, or deployment.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: security guide, regular TODOs, changelog, and the three interaction records.
+
 ## 2026-10-24 — Passport publication to beta review (T-1097)
 
 1. Goal: Publish fix/passport-proxy-origin and create a review PR targeting beta; stop T-1093 authentication attempts.

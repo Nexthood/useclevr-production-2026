@@ -543,6 +543,8 @@ moving work between states.
 
 ## Label: security
 
+- T-1095. Enforce patched Zod and Happy DOM throughout the dependency graph, verify MCP schema validation and Lexical persistence, and pass the security audit without changing its allowlist. (labels: security, quality, testing; commit: worktree)
+
 - T-1071. Upload and document ingestion verifies server-side what every file really is: one central validator checks the normalized filename, the full extension chain, magic bytes, and declared MIME before any parser runs, blocking double-extension HTML phishing files like `Payment Slip.pdf.html` on the standard, simple, Accountancy, Pre-bookkeeping, bank, receipt, PDF, ClevrSync, MCP, and dataset-file ingestion paths, with safe structured `UNSAFE_FILE_TYPE` and `FILE_TYPE_MISMATCH` errors, security rejection logging, and formula-injection-neutral CSV exports. (labels: security, upload, data, testing; commit: worktree)
 - T-1056. Patch the blocking dependency advisories for Next.js, Sharp, js-yaml, and Hono without changing application behavior or approved residual allowlist entries. (labels: security, ci-build, testing; commit: worktree)
 - T-1049. Dependency security remediation keeps CI audit enforcement active while patched transitive packages resolve to available safe versions and temporary residual entries document only advisories without compatible stable fixes. (labels: security, ci-build, testing; commit: worktree)

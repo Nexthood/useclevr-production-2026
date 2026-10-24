@@ -61,6 +61,8 @@
 
 ### Dev
 
+- Patch connector validation and rich-text processing dependencies, and test their compatibility before release.
+
 - Patch compatible application and tooling dependencies to reduce remote execution and denial-of-service exposure.
 - Include public verification routes in typed lint checks so release validation covers their code.
 - Remove numeric price examples from billing comments so release validation checks pass.

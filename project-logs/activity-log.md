@@ -1,3 +1,10 @@
+## 2026-10-24 — Passport CI dependency remediation
+
+- Preserve all 111 original-worktree files and work only on fix/passport-proxy-origin.
+- Lock patched Zod 4.6.7 and Happy DOM 21.0.4 throughout the graph; audit reports zero vulnerabilities with the existing gate unchanged.
+- Pass the full test:all suite with disposable PostgreSQL, real MCP/Lexical compatibility, 13 Passport groups, isolated OAuth/MCP, TypeScript, and focused security regressions.
+- Retarget PR #409 to beta without auto-merge; require normal publication hooks and exclude deployment and production access.
+
 ## 2026-10-24 — Passport publication review
 
 - Resume the isolated Passport release branch, confirm the comment-only pricing fix, and stop T-1093 Railway authentication attempts.

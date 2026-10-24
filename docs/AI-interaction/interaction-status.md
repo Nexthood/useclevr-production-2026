@@ -5,10 +5,12 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-24
-- **Goal**: Publish fix/passport-proxy-origin and create a review PR targeting beta under T-1097.
-- **Preservation**: Keep all main files and local test/cache artifacts intact; use the existing isolated worktree.
-- **Validation**: Thirteen Passport groups and release:check pass; normal pre-push checks and security audit remain required.
-- **Boundary**: Stop T-1093 Railway authentication attempts. Do not merge, enable auto-merge, deploy, or access production data. A review PR does not waive the audit gate.
+- **Goal**: Fix dependency CI advisories and publish fix/passport-proxy-origin for review against beta.
+- **Security**: Lock Zod 4.6.7 and Happy DOM 21.0.4 throughout the graph. Audit reports zero known vulnerabilities; the unchanged audit gate passes.
+- **Verification**: Real Payload MCP/Lexical compatibility, 13 Passport groups, 27 OAuth checks, MCP integration, three fixture-safety checks, TypeScript, and focused security tests pass. The full test:all suite passes with a fresh network-disabled PostgreSQL fixture; normal push hooks remain required.
+- **Preservation**: Hash all 111 existing original-worktree files; edit only the separate Passport worktree.
+- **Publication**: Existing PR #409 targets beta with auto-merge disabled; publication is pending normal hooks.
+- **Boundary**: Do not resume T-1093, authenticate Railway, request credentials, delete user files, modify production data, merge, or deploy.
 
 ## Previous Interaction
 

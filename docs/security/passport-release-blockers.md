@@ -1,72 +1,49 @@
-# Agent Trust Passport release blocker verification
+# Agent Trust Passport release security verification
 
-The `fix/passport-proxy-origin` branch contains the reviewed Passport proxy-origin
-fix and separate release prerequisite commits. Publish this branch without
-pushing `beta`, `main`, `dist-test`, or `dist`. The operator authorizes a review
-pull request targeting `beta`; the agent must not merge it, enable auto-merge,
-dispatch a release workflow, authenticate Railway, or modify production data.
+The `fix/passport-proxy-origin` branch contains the Passport proxy-origin fix and
+validated dependency updates. Publish only this branch and use the review pull
+request targeting `beta`. The agent must not merge, enable auto-merge, dispatch a
+release workflow, authenticate Railway, or modify production data.
 
-## Compatible dependency updates
+## Patched dependency graph
 
-The 2026-10-24 audit reports 3 critical, 8 high, 6 moderate, and 4 low findings
-before remediation. Compatible updates reduce the result to 0 critical, 2 high,
-0 moderate, and 0 low findings: 19 reported findings are resolved. The remaining
-Zod advisory also loses its application Zod 4 dependency paths.
+| Dependency | Locked release | Enforced requirement |
+| --- | --- | --- |
+| Zod | 4.6.7 | At least 4.6.6, within major 4 |
+| Happy DOM | 21.0.4 | At least 21.0.4, within major 21 |
 
-| Dependency | Compatible patched requirement |
-| --- | --- |
-| Next.js | 16.4.1 |
-| DOMPurify | 3.4.17 |
-| Application Zod | 4.6.6 or later within major 4; installed 4.6.7 |
-| Body Parser | 2.4.0 or later within major 2 |
-| Markdown-it | 14.3.3 or later within major 14 |
-| Undici | 6.29.1 or later within major 6; 7.30.1 or later within major 7 |
-| Fast URI | 3.1.9 |
-| IP Address | 10.7.4 or later within major 10 |
+Workspace overrides apply these requirements to transitive dependencies, including
+Payload MCP, the MCP SDK, and Lexical headless. Application MCP tool schemas import
+Zod 4. Payload packages stay aligned at 3.90.2. The pnpm-generated lockfile contains
+one Zod release and one Happy DOM release.
 
-The package manifest and pnpm workspace overrides select compatible releases;
-pnpm regenerates the lockfile. Keep the Payload package family at 3.90.2. Do not
-force every Undici consumer onto a different major version.
+The patched thresholds address [the Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)
+and [the Happy DOM advisory](https://github.com/advisories/GHSA-834v-8h66-3h79).
+`pnpm audit --audit-level=low` reports zero known vulnerabilities.
+`pnpm audit:allowlist` passes with zero approved residual advisories and zero
+unapproved advisories. The audit allowlist and required security checks are unchanged.
 
-## Remaining release blockers
+## Compatibility verification
 
-- [Zod GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5):
-  `@payloadcms/plugin-mcp` requires Zod 3, and its peer dependency context retains
-  Zod 3.25.76 for the MCP SDK and JSON-schema converter. The advisory lists 4.6.6
-  as patched. The current published Payload MCP plugin still requires Zod 3.
-  Obtain explicit major-migration approval and verify MCP schema conversion
-  before changing that contract. The application's Zod 4 dependency is patched.
-- [Happy DOM GHSA-834v-8h66-3h79](https://github.com/advisories/GHSA-834v-8h66-3h79):
-  the Payload Lexical headless dependency retains Happy DOM 20.11.6. The published
-  fix requires 21.0.4; the parent dependency specifies major 20. Obtain explicit
-  major-migration approval and test headless rich-text behavior before overriding
-  that contract.
+`pnpm test:security-dependencies` exercises real Payload MCP tool registration and
+SDK discovery through in-memory transports. It verifies required fields, invalid
+argument rejection, synthetic collection reads and creation, and access-control
+options. Lexical uses its supported DOM wrapper with patched Happy DOM to import
+formatted HTML, serialize and restore editor state, and export formatted HTML.
+These checks run in `test:all` and require no application database or private keys.
 
-The existing audit allowlist remains unchanged. `pnpm audit` and
-`pnpm audit:allowlist` return nonzero for these two high findings. A successful
-feature-branch push does not establish release eligibility. Do not merge or
-deploy while the required security gate fails.
+The full `test:all` suite passes against disposable PostgreSQL.
+All 13 Passport boundary/database groups, 27 OAuth checks, MCP integration, three
+fixture-safety checks, TypeScript, auth redirects, customer-data owner scope,
+Eclipse Mode, and upload security pass. Database integration fixtures use fresh
+network-disabled containers and exclude external credentials. The normal pre-push
+hook requires TypeScript, deployment-config validation, full lint, and production
+packaging. Packaging builds local artifacts; publication does not deploy them.
 
-## Verification
+## Worktree preservation
 
-The updated graph passes all 13 Passport boundary/database groups, 27 ChatGPT
-OAuth checks, ChatGPT MCP integration, three fixture-safety checks, 38 historical
-unlock checks, auth redirects, customer-data owner scope, Eclipse Mode, Hybrid AI
-feature gates, upload security, CSV edge cases, AI transparency, and TypeScript.
-The dependency graph has no peer dependency issues. PostgreSQL tests use fresh
-network-disabled containers and exclude external credentials.
-
-The billing correction changes one comment line; actual product prices and
-billing behavior are unchanged. Typed lint explicitly includes well-known
-application routes; it does not exclude the public verification route. The
-normal pre-push hook must run TypeScript, deployment-config validation, full lint,
-and production packaging before publication. No production data or runtime
-configuration is used for these checks.
-
-## Worktree separation
-
-The agent publishes tracked changes from the clean `fix/passport-proxy-origin`
-worktree. The shared main worktree contains 14 source/document paths and 98
-temporary entries under `tmp/` at inspection. Node compile caches, tsx caches,
-disposable test fixtures, and the nested release worktree remain local. The agent
-must not stage main, remove user files, or copy temporary artifacts into the PR.
+The agent publishes tracked changes from the separate Passport worktree. A private
+SHA-256 manifest covers all 111 existing local files in the original worktree.
+Keep these files, temporary fixtures, and caches intact and outside the PR. Stage
+only explicit release-worktree paths. Production runtime and schema verification
+remain outside this publication task.
