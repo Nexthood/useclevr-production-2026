@@ -1,3 +1,8 @@
+## 2026-10-24 — T-1093 release validation corrections
+
+- Reference canonical historical-unlock pricing in the formatter comment and include `.well-known` TypeScript routes in the ESLint project.
+- Pass all 38 historical-unlock tests and the complete pre-push hook, including production build and packaging, with temporary auth and a closed loopback database endpoint. Scope the release commit to the two corrections and four mandatory records; run commit and push hooks normally.
+
 ## 2026-10-21 — T-1093 single-administrator approval compatibility
 
 - Match the verified GitHub environment: sole `Nexthood` user reviewer, self-review setting false, administrator bypass false, and only `main`; keep the protected publisher job's mandatory approval.

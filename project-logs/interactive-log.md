@@ -1,3 +1,12 @@
+## 2026-10-24 — T-1093 release validation corrections and publication
+
+1. Goal: Commit the two release validation corrections and four mandatory records on `release/agent-trust-passport`, then push only that branch through normal hooks.
+2. Findings and changes: The pricing validator scans comments. The historical-unlock panel receives canonical amounts through `getHistoricalUnlockDisplayPrice` and `HISTORICAL_UNLOCK_TIERS`; the formatter comment references that source. The tracked challenge route belongs to the release. An explicit `.well-known` include in `tsconfig.eslint.json` gives the route typed lint coverage.
+3. Verification: All 38 historical-unlock tests pass. ESLint, TypeScript, pricing, deployment configuration, secret checks, production build, packaging, and the complete pre-push hook pass with isolated build-time values. The build tolerates connection refusal at a closed loopback database port; this establishes build readiness, not database-backed runtime acceptance.
+4. Problems and learning: CI supplies disposable database and generated auth values. The local build uses a clean environment, temporary auth, and loopback-only database references. The pre-commit hook requires the changelog and all three interaction records alongside the corrections.
+5. Scope and follow-up: Stage exactly six authorized files. Keep production readiness evidence under T-1093 and the release safety checklist. No product-price, OAuth, MCP, or original-checkout changes; no merge, deployment, production credentials, or production database operations.
+6. Instruction sources and destinations: Follow `AGENTS.md`, `.kilo/agent/changelog.md`, `ai-chat-behavior.config.ts`, `gemini-behavior.config.ts`, and `project-prompts/ai-memory-collection-post-interaction.md`. Store session detail here, the compact summary in the activity log, and current verification in interaction status.
+
 ## 2026-10-21 — T-1093 single-administrator approval compatibility
 
 1. Goal: Accept the verified production GitHub environment without weakening mandatory deployment approval.

@@ -4,6 +4,14 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-24
+- **Goal**: Commit and push the Agent Trust Passport release branch with exactly two validation corrections and four required project records through normal Git hooks.
+- **Corrections**: Reference canonical historical-unlock pricing in the formatter comment; include tracked `.well-known` routes in the ESLint TypeScript project.
+- **Verification**: All 38 historical-unlock tests and the full pre-push hook pass, including ESLint, TypeScript, pricing, deployment configuration, secret checks, production build, and packaging. Build-time auth is temporary; database references target a closed loopback port. Expected connection refusals do not establish database runtime readiness.
+- **Scope**: Work only in the restored release worktree. No hook bypass, product-price or application-functionality change, original-checkout edit, merge, deployment, or production database operation.
+
+## Previous Interaction
+
 - **Date**: 2026-10-21
 - **Goal**: Make the committed release policy accept the verified single-administrator GitHub environment while retaining mandatory deployment approval.
 - **GitHub settings**: The environment has exactly the `Nexthood` user reviewer; `prevent_self_review` is false; administrator bypass is false; and the sole deployment branch is `main`.

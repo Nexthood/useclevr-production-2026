@@ -60,6 +60,7 @@
 
 ### Dev
 
+- Include public verification routes in typed lint checks and reference canonical billing prices in formatter guidance so release validation completes.
 - Accept the configured production reviewer while keeping GitHub environment approval mandatory.
 - Require human approval for production publication and bound database migrations so failures abort promotion without exposing private diagnostics.
 - Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
