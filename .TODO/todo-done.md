@@ -94,6 +94,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1096. Include well-known application routes in typed lint checks so the required release gate validates the public verification route. (labels: quality, testing; commit: worktree)
+- T-1094. Remove numeric price examples from the billing-format comment so required pricing validation passes without changing billing behavior. (labels: quality, billing, testing; commit: worktree)
 - T-1091. Verify Agent Trust Passport creation, declared fields, edits, reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row preservation, cross-account denial, governance section navigation, linked-trace viewing, and compliance export through headless Chrome with two synthetic accounts and disposable local PostgreSQL. (labels: ai, auth, testing; commit: worktree)
 
 - T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)
@@ -175,6 +177,8 @@ moving work between states.
 - T-920. Extend admin and superadmin Usy into UseClevr Company Brain Lite for platform customers, plans, credits, uploads, errors, AI traces, billing settings, discount rules, MCP tokens, failed analyses, user issues, and platform status. (labels: ui, ai, auth, monitoring; commit: worktree)
 
 ## Label: auth
+
+- T-1092. Accept authenticated Passport writes from the configured public app origin through the proxy, enforce browser same-origin metadata and owner-only writes, and provide a read-only migration schema checker. (labels: auth, ai, security, testing; commit: worktree)
 
 - T-1027. Authentication uses the patched Auth.js beta dependency pair so email-password credentials, JWT sessions, protected-route checks, email verification, logout, and Superadmin role handling stay on the existing architecture without critical Auth.js advisories. (labels: auth, security, testing; commit: 23650724)
 - T-909. Simplify MVP authentication to email-password, email verification, password reset, and demo login by removing Google and LinkedIn OAuth providers, UI buttons, status routes, environment checks, and unused social-login dependencies. (labels: auth, ui, security; commit: worktree)
@@ -538,6 +542,8 @@ moving work between states.
 - T-601. Add an API route access matrix — created `docs/Developer_Guides/API_ROUTE_ACCESS_MATRIX.md` covering access classifications, expected helpers, ownership checks, rate limits, and audit tracking. (labels: api, faq, performance, docs; commit: 5b62cb31)
 
 ## Label: security
+
+- T-1095. Enforce patched Zod and Happy DOM throughout the dependency graph, verify MCP schema validation and Lexical persistence, and pass the security audit without changing its allowlist. (labels: security, quality, testing; commit: worktree)
 
 - T-1071. Upload and document ingestion verifies server-side what every file really is: one central validator checks the normalized filename, the full extension chain, magic bytes, and declared MIME before any parser runs, blocking double-extension HTML phishing files like `Payment Slip.pdf.html` on the standard, simple, Accountancy, Pre-bookkeeping, bank, receipt, PDF, ClevrSync, MCP, and dataset-file ingestion paths, with safe structured `UNSAFE_FILE_TYPE` and `FILE_TYPE_MISMATCH` errors, security rejection logging, and formula-injection-neutral CSV exports. (labels: security, upload, data, testing; commit: worktree)
 - T-1056. Patch the blocking dependency advisories for Next.js, Sharp, js-yaml, and Hono without changing application behavior or approved residual allowlist entries. (labels: security, ci-build, testing; commit: worktree)

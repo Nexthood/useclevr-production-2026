@@ -13,6 +13,7 @@ Text rules for this file:
 
 - Let each signed-in account create and edit one Clevr AI Analyst passport with a human owner name, purpose, declared scope, owner-declared risk, and descriptive lifecycle.
 - Keep the passport identity stable across provider, model, and lifecycle changes; reject identity reassignment and cross-account edits.
+- Accept Passport writes through the application proxy only with a valid session and a matching request origin, or the configured public app origin with browser same-origin metadata; reject cross-site requests and ignore forwarded headers as origin authority.
 - Link new analyst traces to the signed-in owner's configured passport; leave historical traces unassigned and exclude Eclipse Mode requests from trace storage.
 - Let owners inspect their passport metadata and paginated trace references; let superadmins inspect all owners' passports without editing another owner's passport.
 - State that passport lifecycle and risk declarations do not enforce runtime restrictions, grant permissions, verify identity, or constitute security certification.

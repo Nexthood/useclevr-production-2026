@@ -99,6 +99,60 @@ async function main() {
     400,
   );
   check("mutations reject cross-origin requests and malformed JSON");
+  const savedAuthUrl = process.env.AUTH_URL;
+  try {
+    process.env.AUTH_URL = "https://app.example.test";
+    const internalUrl = "http://0.0.0.0:8080/api/ai-governance/passports";
+    const proxiedHeaders = {
+      origin: "https://app.example.test",
+      "sec-fetch-site": "same-origin",
+      "content-type": "application/json",
+    };
+    for (const [method, send] of [
+      ["POST", (request: Request) => collection.POST(request)],
+      ["PATCH", (request: Request) => detail.PATCH(request, context)],
+    ] as const) {
+      const sendWith = (headers: Record<string, string>) =>
+        send(new Request(internalUrl, { method, headers, body: JSON.stringify(valid) }));
+      // A valid ordinary-user session reaches the service; this fixture has no DB.
+      assert.equal((await sendWith(proxiedHeaders)).status, 503);
+      for (const headers of [
+        { ...proxiedHeaders, origin: "https://evil.example.test" },
+        { ...proxiedHeaders, origin: "null" },
+        { ...proxiedHeaders, origin: "https://app.example.test:444" },
+        { ...proxiedHeaders, origin: "http://app.example.test" },
+        { ...proxiedHeaders, "sec-fetch-site": "same-site" },
+        { ...proxiedHeaders, "sec-fetch-site": "cross-site" },
+        { origin: proxiedHeaders.origin },
+        {
+          ...proxiedHeaders,
+          origin: "https://evil.example.test",
+          "x-forwarded-host": "evil.example.test",
+          "x-forwarded-proto": "https",
+        },
+      ])
+        assert.equal((await sendWith(headers)).status, 403);
+      for (const configured of [
+        "not-a-url",
+        "http://app.example.test",
+        "https://fixture:fixture@app.example.test",
+        "https://other.example.test",
+      ]) {
+        process.env.AUTH_URL = configured;
+        assert.equal((await sendWith(proxiedHeaders)).status, 403);
+      }
+      process.env.AUTH_URL = "https://app.example.test";
+      signedIn = false;
+      assert.equal((await sendWith(proxiedHeaders)).status, 401);
+      signedIn = true;
+    }
+  } finally {
+    if (savedAuthUrl === undefined) delete process.env.AUTH_URL;
+    else process.env.AUTH_URL = savedAuthUrl;
+  }
+  check(
+    "proxied writes require the configured public origin, same-origin browser metadata, and a session",
+  );
   const html = renderToStaticMarkup(
     createElement(AgentPassportEditor, { passport: null, notice: service.PASSPORT_NOTICE }),
   );

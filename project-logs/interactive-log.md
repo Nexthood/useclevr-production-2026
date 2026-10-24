@@ -1,3 +1,60 @@
+## 2026-10-24 — Passport CI dependency remediation and beta PR (T-1095, T-1097)
+
+1. Goal: Fix CI dependency advisories and publish the Passport branch for beta review; stop T-1093 and all Railway authentication attempts.
+2. Preservation: Inspect branches and worktrees; record SHA-256 hashes for all 111 existing original-worktree files. Make changes only in the separate Passport worktree.
+3. Changes: Enforce Zod >=4.6.6 <5 and Happy DOM >=21.0.4 <22; regenerate the pnpm lockfile to Zod 4.6.7 and Happy DOM 21.0.4. Use Zod 4 for dashboard MCP schemas and add real MCP/Lexical compatibility checks to test:all.
+4. Security: The registry audit reports zero known vulnerabilities; the unchanged CI audit gate passes with no residual advisories. Pass 13 Passport groups, 27 OAuth checks, MCP integration, three isolation checks, TypeScript, auth redirects, owner scope, upload security, and Eclipse Mode.
+5. Publication: PR #409 targets beta with auto-merge disabled. Normal commit and push hooks remain required. The full test:all suite passes against a fresh network-disabled PostgreSQL fixture with synthetic credentials.
+6. Boundary: No user-file deletion, production data change, Railway authentication, merge, release dispatch, or deployment.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: security guide, regular TODOs, changelog, and the three interaction records.
+
+## 2026-10-24 — Passport publication to beta review (T-1097)
+
+1. Goal: Publish fix/passport-proxy-origin and create a review PR targeting beta; stop T-1093 authentication attempts.
+2. Findings: c14ef5dc contains the proxy-origin fix. The branch already exists remotely at 638f6513. Commit 2f28d5ac changes only the numeric billing-comment example; prices and billing code are unchanged.
+3. Preservation: Inspect 14 source/document paths and 98 temporary entries on main; record source hashes privately under /tmp and leave all main files untouched. Use the existing clean release worktree and stage explicit tracked paths only.
+4. Verification: All 13 Passport boundary/database groups and release:check pass. Disposable PostgreSQL runs without external credentials. Required pre-push checks and the unchanged audit gate supply publication evidence.
+5. Boundary: No Railway authentication, production access, merge, auto-merge, workflow dispatch, or deployment. Existing security advisories remain release blockers; a review PR does not waive checks.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: release blocker guide, task queue, and three interaction records.
+
+## 2026-10-24 — Compatible security prerequisite updates (T-1095)
+
+1. Goal: Resolve verified dependency blockers without breaking changes, preserve Passport and ChatGPT OAuth/MCP, and publish only the fix branch with normal Git hooks.
+2. Change: Update Next.js 16, DOMPurify 3, application Zod 4, and compatible request-parsing/network/tooling dependencies through manifests and the generated lockfile. Keep Payload aligned at 3.90.2; retain major-specific Undici ranges. Document exact residual advisories in docs/security/passport-release-blockers.md.
+3. Audit: The reproduced baseline has 3 critical, 8 high, 6 moderate, and 4 low findings. Compatible updates resolve 19 findings; zero critical and two high remain, with no moderate/low findings. The unchanged audit gate fails on MCP Zod 3 and Lexical Happy DOM 20. Explicit major-migration approval is pending; no allowlist change occurs.
+4. Verification: Pass 13 Passport groups, 27 OAuth checks, MCP integration, three fixture-safety checks, 38 historical unlock checks, auth redirects, owner scope, Eclipse Mode, Hybrid AI gates, upload security, CSV edge cases, AI transparency, TypeScript, and peer checks. Normal pre-push lint/build checks remain required before publication.
+5. Environment: Relocate the isolated worktree to the source repository's ignored tmp/passport-release directory for disk capacity. Use short private fixture paths to meet Unix socket limits. Tests use disposable network-disabled PostgreSQL and exclude external credentials.
+6. Follow-up: Keep T-1095 active for the two unapproved major migrations and release security gate. Push only fix/passport-proxy-origin; do not open a release PR or trigger deployment. T-1093 separately tracks production schema verification.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: audit guide, task queue, changelog, and three interaction records.
+
+## 2026-10-24 — Typed lint release blocker (T-1096)
+
+1. Goal: Resolve the verified typed lint error preventing the required pre-push gate from completing.
+2. Finding: ESLint parses the public OpenAI verification route, but TypeScript's wildcard project inclusion omits its dot-prefixed parent directory.
+3. Change: Explicitly include src/app/.well-known/**/*.ts in tsconfig.eslint.json. Do not exclude the route or change verification response behavior.
+4. Verification: The route passes typed ESLint. T-1095 separately tests compatible dependency updates; Passport's 13 groups and ChatGPT's 27 OAuth checks, MCP integration, and three safety checks pass.
+5. Scope: Separate tooling commit; no security allowlist change, deployment, or production access.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: typed lint configuration, completed task, changelog, and three interaction records.
+
+## 2026-10-24 — Billing comment release gate (T-1094)
+
+1. Goal: Resolve the verified pricing-comment release blocker without changing product prices or billing behavior.
+2. Change: Replace numeric currency examples in the historical unlock formatting comment with a description of fixed currency symbols; application code and prices remain untouched.
+3. Verification: Pricing validation passes; the source diff contains one comment-line edit. Allocate T-1095 for compatible dependency security updates and non-deploying branch publication.
+4. Scope: The user authorizes verified release prerequisites only, separate commits, normal hooks, and a push to fix/passport-proxy-origin. No beta/main push, release PR, automatic deployment, or production data access.
+5. Follow-up: T-1095 investigates the reproduced 3 critical and 8 high audit findings and tests Passport and ChatGPT OAuth/MCP compatibility.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: TODO queues, changelog, and three interaction records.
+
+## 2026-10-24 — Finalize Passport proxy-origin release (T-1092)
+
+1. Goal: Publish the Agent Trust Passport origin fix through GitHub release checks without direct Railway deployment or production data changes.
+2. Scope: Isolate the origin guard, proxy/security regressions, read-only schema diagnostic, requirements, release note, operations guide, task records, and this interaction's records. Preserve the original worktree and its unrelated log deletion.
+3. Behavior: Require a valid session, match the configured public origin with same-origin browser metadata for proxy fallback, ignore forwarded headers as trust authority, and enforce session-selected ownership and tenant-scoped writes.
+4. Validation: All 13 Passport groups, auth redirects, customer-data owner scope, Eclipse Mode, TypeScript, focused ESLint, and source formatting checks pass. Normal commit/push hooks remain required for publication. Tests use a disposable network-disabled database with external credentials excluded.
+5. Release: The local fix/passport-proxy-origin commit passes all pre-commit hooks. The beta push runs normal pre-push hooks: TypeScript and deployment configuration pass; pricing validation rejects an existing EUR price example in a billing component comment. No push occurs, so no release workflow or deployment starts. Production packaging does not run after the failed lint gate. No direct Railway deployment or production database query/write occurs.
+6. Follow-up: The user must authorize prerequisite changes outside Passport scope before release can proceed. The pricing example also exists on remote main. Baseline CI run 40107094640 fails dependency audit with 3 critical and 8 high advisories. T-1093 separately tracks production schema and credential verification; Railway authentication is unavailable locally.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: three interaction records, operations guide, regular task queues, requirements, and changelog.
+
 ## 2026-10-24 — Resolve the paused main rebase
 
 1. Goal: Resolve the paused rebase safely, retain both integrations and unrelated changes, continue every replay, and validate locally.

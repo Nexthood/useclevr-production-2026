@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db"
 import { datasets } from "@/lib/db/schema"
 import { and, eq } from "drizzle-orm"
 import type { PayloadRequest } from "payload"
-import { z, type ZodRawShape } from "zod/v3"
+import { z, type ZodRawShape } from "zod"
 
 const datasetIdInput = z.object({
   datasetId: z.string().min(1).describe("The dataset ID returned by listDashboardDatasets."),

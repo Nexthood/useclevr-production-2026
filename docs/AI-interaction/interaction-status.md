@@ -5,6 +5,37 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-24
+- **Goal**: Fix dependency CI advisories and publish fix/passport-proxy-origin for review against beta.
+- **Security**: Lock Zod 4.6.7 and Happy DOM 21.0.4 throughout the graph. Audit reports zero known vulnerabilities; the unchanged audit gate passes.
+- **Verification**: Real Payload MCP/Lexical compatibility, 13 Passport groups, 27 OAuth checks, MCP integration, three fixture-safety checks, TypeScript, and focused security tests pass. The full test:all suite passes with a fresh network-disabled PostgreSQL fixture; normal push hooks remain required.
+- **Preservation**: Hash all 111 existing original-worktree files; edit only the separate Passport worktree.
+- **Publication**: Existing PR #409 targets beta with auto-merge disabled; publication is pending normal hooks.
+- **Boundary**: Do not resume T-1093, authenticate Railway, request credentials, delete user files, modify production data, merge, or deploy.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Resolve verified Passport release blockers with compatible updates and separate commits.
+- **Billing result**: T-1094 changes one comment line only; pricing validation passes. Commit 2f28d5ac contains this fix.
+- **Typed lint**: T-1096 explicitly includes well-known routes in the typed lint project; the affected route passes without exclusions.
+- **Dependency task**: T-1095 compatible updates reduce the audit to zero critical, two high, and zero moderate/low findings. Happy DOM 20 and MCP Zod 3 remain pending major-migration approval. Passport and ChatGPT OAuth/MCP regressions pass.
+- **Dependency validation**: Compatible updates pass Passport, ChatGPT OAuth/MCP, historical unlock, auth, owner-scope, Eclipse Mode, Hybrid AI, upload, CSV, transparency, TypeScript, and peer checks. The unchanged audit gate fails on the two recorded high advisories; T-1095 remains active.
+- **Publication rule**: Push only fix/passport-proxy-origin using normal Git hooks. Do not push beta/main, open a release PR, trigger deployment, or access production data.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Finalize and publish the Passport proxy-origin fix through required GitHub release checks.
+- **Scope**: Isolated release worktree includes the origin guard, regression tests, catalog-only checker, and related documentation/task records; preserve the original shared worktree.
+- **Security**: Retain valid sessions, exact configured-origin fallback with same-origin browser metadata, session-derived ownership, and tenant-scoped writes. Forwarded headers grant no trust.
+- **Validation**: All 13 Passport groups, auth redirects, customer-data owner scope, Eclipse Mode, TypeScript, focused ESLint, and source formatting checks pass. Normal commit/push hooks remain required for publication.
+- **Release status**: The fix is committed on fix/passport-proxy-origin. Required pre-push TypeScript and deployment-config checks pass; pricing lint blocks the beta push on an existing billing comment. Production packaging does not run. No push, PR, workflow, or deployment starts for this fix.
+- **Prerequisites**: Baseline CI run 40107094640 also fails dependency audit with 3 critical and 8 high advisories. Ask the user to authorize these changes outside Passport scope; do not bypass checks. T-1093 separately requires Railway access for production schema verification.
+- **Boundary**: No direct Railway deployment or production data/configuration change.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
 - **Goal**: Complete the paused main rebase while retaining Agent Trust Passport and ChatGPT OAuth/MCP.
 - **Outcome**: Both commits replay onto 79553d7d. Eleven conflict resolutions retain both implementations, scripts, dependencies, distinct records, completed acceptance, and TODO counter 1092. Five overlapping ChatGPT log sections are consolidated.
 - **Validation**: TypeScript, package/TODO/workflow/changelog/secret checks, Eclipse Mode, 12 Passport groups, three safety checks, 27 OAuth checks, MCP integration, submission-source validation, and whitespace checks pass. Application source and configuration match original combined tip 76a57330. Browser acceptance and production builds are not rerun.

@@ -1,3 +1,39 @@
+## 2026-10-24 — Passport CI dependency remediation
+
+- Preserve all 111 original-worktree files and work only on fix/passport-proxy-origin.
+- Lock patched Zod 4.6.7 and Happy DOM 21.0.4 throughout the graph; audit reports zero vulnerabilities with the existing gate unchanged.
+- Pass the full test:all suite with disposable PostgreSQL, real MCP/Lexical compatibility, 13 Passport groups, isolated OAuth/MCP, TypeScript, and focused security regressions.
+- Retarget PR #409 to beta without auto-merge; require normal publication hooks and exclude deployment and production access.
+
+## 2026-10-24 — Passport publication review
+
+- Resume the isolated Passport release branch, confirm the comment-only pricing fix, and stop T-1093 Railway authentication attempts.
+- Preserve main source hashes and all temporary artifacts; publish explicit tracked release paths only.
+- Pass 13 Passport groups and release checks; retain security blockers and require normal push hooks for the beta review PR.
+
+## 2026-10-24 — Compatible dependency security updates
+
+- Resolve 19 audit findings with compatible updates; retain two unapproved high findings for MCP Zod 3 and Lexical Happy DOM 20 without changing the allowlist.
+- Pass Passport, ChatGPT OAuth/MCP, billing, auth, owner-scope, privacy, upload, Hybrid AI, CSV, transparency, TypeScript, and peer checks.
+- Document exact audit evidence and retain T-1095 for major-migration approval; publish only the fix branch after normal hooks with no deployment.
+
+## 2026-10-24 — Typed lint release blocker
+
+- Include well-known application routes in ESLint's TypeScript project and verify the public verification route passes typed lint.
+- Complete T-1096 in a separate commit; retain route behavior and all security gates.
+
+## 2026-10-24 — Billing comment release gate
+
+- Replace numeric currency examples in one billing-format comment; pricing validation passes with no price or behavior change.
+- Complete T-1094 and track compatible dependency remediation and non-deploying fix-branch publication under T-1095.
+
+## 2026-10-24 — Finalize Passport proxy-origin release
+
+- Isolate the reviewed origin guard, regression tests, schema diagnostic, and related documentation from unrelated working-tree edits.
+- Pass 13 Passport groups, auth redirects, owner-scope, Eclipse Mode, TypeScript, focused lint, formatting, docs, pre-commit hooks, and deployment-config checks. Retain authentication, ownership, and tenant isolation.
+- Record the blocked beta push: required pricing validation flags an existing billing comment; baseline CI also fails dependency audit. Obtain scope authorization before modifying those unrelated files. No push or deployment occurs.
+- Keep production schema verification under T-1093; make no direct Railway deployment or production data changes.
+
 ## 2026-10-24 — Resolve the paused main rebase
 
 - Complete both replayed commits onto 79553d7d; retain Agent Trust Passport and ChatGPT OAuth/MCP source, dependencies, scripts, and configuration.

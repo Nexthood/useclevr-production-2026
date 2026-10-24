@@ -14,6 +14,7 @@
 
 ### Fixed
 
+- Let signed-in users create and edit their Agent Trust Passports behind HTTPS application proxies with account ownership and cross-origin protection enforced.
 - Bind ChatGPT account linking to verified client callbacks and reject repeated or concurrent use of an authorization code.
 
 - Show a Usy minimize control beside close so users can hide the panel and reopen their current conversation from the floating avatar.
@@ -60,6 +61,11 @@
 
 ### Dev
 
+- Patch connector validation and rich-text processing dependencies, and test their compatibility before release.
+
+- Patch compatible application and tooling dependencies to reduce remote execution and denial-of-service exposure.
+- Include public verification routes in typed lint checks so release validation covers their code.
+- Remove numeric price examples from billing comments so release validation checks pass.
 - Run ChatGPT account-linking and connector regression checks against disposable PostgreSQL with isolated credentials in local validation and CI.
 - Provide submission source assets and publisher metadata for reproducible UseClevr upload packages.
 - Check submission publisher names, public-client authentication, and listing URLs locally before packaging.

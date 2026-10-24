@@ -3,6 +3,7 @@ import { readFileSync, realpathSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { mock } from "node:test";
+import { spawnSync } from "node:child_process";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 
@@ -56,11 +57,16 @@ async function main() {
     purpose: "Explain owned datasets",
     declaredScope: "Owned datasets only",
   };
-  const url = "https://app.example.test/api/ai-governance/passports";
+  process.env.AUTH_URL = "https://app.example.test";
+  const url = "http://0.0.0.0:8080/api/ai-governance/passports";
   const request = (method: string, body: unknown) =>
     new Request(url, {
       method,
-      headers: { origin: "https://app.example.test", "content-type": "application/json" },
+      headers: {
+        origin: "https://app.example.test",
+        "sec-fetch-site": "same-origin",
+        "content-type": "application/json",
+      },
       body: JSON.stringify(body),
     });
   const context = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -84,8 +90,24 @@ async function main() {
       new URL("../../src/lib/db/migrations/0037_agent_trust_passport.sql", import.meta.url),
       "utf8",
     );
+    const inspectSchema = () =>
+      spawnSync(process.execPath, ["scripts/ai-governance/check-agent-passport-schema.mjs"], {
+        env: process.env,
+        encoding: "utf8",
+        timeout: 15000,
+      });
+    const absent = inspectSchema();
+    assert.equal(absent.status, 1, absent.stderr);
+    assert.equal(JSON.parse(absent.stdout).schemaObjectsPresent, false);
     await pool.query(migration);
     await pool.query(migration);
+    const applied = inspectSchema();
+    assert.equal(applied.status, 0, applied.stderr);
+    assert.deepEqual(JSON.parse(applied.stdout), {
+      migration: "0037",
+      schemaObjectsPresent: true,
+      missing: [],
+    });
     check("migration applies idempotently to an empty disposable schema");
 
     const traceInput = {

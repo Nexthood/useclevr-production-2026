@@ -5,7 +5,12 @@
     "**/*.ts",
     "**/*.tsx",
     "**/*.js",
-    "**/*.mjs"
+    "**/*.mjs",
+    "src/app/.well-known/**/*.ts"
   ],
-  "exclude": ["node_modules", "dist", ".next"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next"
+  ]
 }

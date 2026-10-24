@@ -19,6 +19,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1097. Publish the validated Passport proxy-origin branch and open a review PR targeting beta; preserve main and exclude local test/cache artifacts from publication. (labels: workflow, auth, testing)
+
 - T-1057. Restore the production Accountancy upload, review, Business Profile, categorization, export, and visible upload-choice workflow for CSV, Excel, and PDF files. (labels: workflow, upload, testing, business)
 - T-849. Run the complete new-user acceptance journey through signup, CSV upload, verified KPIs and charts, dataset-specific AI answers, report review, support, and plan selection; fix every blocker that requires developer intervention. (labels: workflow, testing, upload, ai, dashboard)
 - T-850. Implement the lightweight CSV privacy shield with sensitive-column detection, a clear warning, optional stable-placeholder anonymization, anonymized AI input, and a compact privacy report. (labels: ai, data, security, upload)
@@ -34,6 +36,8 @@ moving work between states.
 - T-862. Prepare the release-candidate checklist for beta and dist-test: health, smoke journey, docs, TODO, changelog, and secret scan. (labels: deployment, testing, workflow)
 
 ## Label: auth
+
+- T-1093. The operator restores private Railway access for production service useclevr app at https://app.useclevr.com, verifies runtime and predeploy database authentication, and runs the read-only Passport schema checker to record migration 0037 status; local configured credentials return PostgreSQL 28P01. (labels: auth, ai, deployment, testing)
 
 
 ## Deferred
