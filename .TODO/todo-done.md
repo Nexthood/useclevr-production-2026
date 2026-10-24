@@ -53,6 +53,8 @@ moving work between states.
 
 ## Label: mcp
 
+- T-1090. Create and validate a separate temporary CIMD diagnostic plugin archive with the useclevr-mcp-cimd identity from the original 1.0.2 package. (labels: mcp, testing, auth; commit: worktree)
+- T-1089. Document the CIMD save-validation mismatch, compare production OAuth behavior, and prepare the OpenAI support request. (labels: mcp, auth, docs; commit: worktree)
 - T-1087. Validate CIMD metadata and client-bound redirects, consume authorization codes atomically, and verify the OAuth-to-MCP flow against isolated test data. (labels: mcp, auth, security, testing; commit: worktree)
 - T-1088. Reconcile the UseClevr submission publisher and readiness records, isolate OAuth and MCP tests in disposable PostgreSQL, and prepare four source commit groups without publishing artifacts. (labels: mcp, auth, security, testing, docs; commit: worktree)
 
@@ -66,6 +68,7 @@ moving work between states.
 - T-836. Store Payload News cover media through S3-compatible durable storage and apply the Media and MCP API-key migration. (labels: content, upload, data; commit: worktree)
 
 ## Label: ai
+
 
 - T-1076. BYOK requires an added and enabled AI provider before activation: the AI mode card shows "Provider required" with Add-provider guidance, mode saves reject provider-less BYOK, every analysis/assistant/report route returns the specific BYOK provider-required error instead of a generic background failure, cloud fallback runs only when explicitly enabled, and provider keys stay out of responses, errors, and logs, pinned by dedicated regression tests. (labels: ai, api, ui, testing; commit: worktree)
 - T-1074. Usy ClevrSync knowledge serves the final connector state: Google Sheets is the only available connector according to the plan entitlement, CSV and Excel are described as normal direct uploads, every tier and all six languages state that OneDrive and SharePoint are not part of the product, and the required connector, Excel-upload, and Google Sheets questions route to product knowledge instead of the contact request flow or upload troubleshooting, pinned by 22 product-knowledge regression tests. (labels: ai, ui, testing; commit: worktree)
@@ -90,6 +93,8 @@ moving work between states.
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
 
 ## Label: workflow
+
+- T-1091. Verify Agent Trust Passport creation, declared fields, edits, reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row preservation, cross-account denial, governance section navigation, linked-trace viewing, and compliance export through headless Chrome with two synthetic accounts and disposable local PostgreSQL. (labels: ai, auth, testing; commit: worktree)
 
 - T-1055. Complete Usy Secretariat routing, language, refusal, contact confirmation, and focused regression coverage against the current acceptance criteria. (labels: workflow, ai, security, testing; commit: worktree)
 - T-999. Risk Intelligence and Dataset Library management controls select and delete multiple datasets through one confirmed bulk action while preserving single-dataset deletion, active-dataset recovery, and retryable partial-failure handling. (labels: workflow, data, ui, testing; commit: c4c05f3c)

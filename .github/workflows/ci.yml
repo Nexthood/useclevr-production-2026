@@ -37,6 +37,7 @@ jobs:
         pnpm lint:package
         pnpm audit:allowlist
         pnpm test:chatgpt
+        pnpm test:agent-passport
         pnpm test:all
         pnpm build
       needs_postgres: true

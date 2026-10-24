@@ -1,3 +1,24 @@
+## 2026-10-24 — Resolve the paused main rebase
+
+- Complete both replayed commits onto 79553d7d; retain Agent Trust Passport and ChatGPT OAuth/MCP source, dependencies, scripts, and configuration.
+- Resolve the initial five conflicts and six additional conflicts; consolidate five overlapping ChatGPT log sections and retain the expanded CIMD report and upstream commit-preparation guide.
+- Pass TypeScript, package/TODO/workflow/changelog/secret checks, Eclipse Mode, 12 Passport groups, three OAuth safety checks, 27 OAuth flow checks, MCP integration, submission-source validation, and whitespace checks.
+- Stage only conflict-resolution paths. Amend the final replayed commit with deduplication and required session records; run validators manually because the pre-commit record gate requires an unrelated changelog edit.
+- Keep all changes local; no push, deployment, or Railway configuration edit occurs.
+
+## 2026-10-24 — Last-task continuation check
+
+- Recheck HEAD and TODO-done for the repeated continuation request; request task identity between Agent Trust Passport and ChatGPT/CIMD integration.
+- Confirm T-1091 browser acceptance is complete in the latest records and task queue; implementation commit is f03eaf7e.
+- Request the next task identity; preserve pending changes. No tests, product changes, commit, push, deployment, or production access occurs.
+
+## 2026-10-20 — T-1091 local browser acceptance
+
+- Pass real Chrome creation, declared-field, edit/reload, identity, Assistant trace-linkage, historical fixture equality, and cross-account denial checks with synthetic accounts and disposable PostgreSQL.
+- Verify all eleven governance sections, linked-trace viewing, and compliance export; move T-1091 to TODO-done.
+- Use credential-free local services; stop local processes, remove the database container, and restore the generated type-reference edit. Preserve unrelated changes; no commit, push, deployment, or production access occurs.
+- Retain evidence in /tmp/useclevr-browser-Zj7SLQ/acceptance.json. The Assistant timestamp hydration warning and external-provider connectivity remain outside these functional assertions.
+
 ## 2026-10-20 — Four local ChatGPT integration commits
 
 - Create integration/chatgpt-2026-10-20 from verified upstream 05816e35 in a separate worktree; preserve the original files and a private backup.
@@ -49,6 +70,22 @@
 - Complete T-1091 local validation: owner-scoped metadata, stable identity, descriptive lifecycle and risk, trace references, migration replay, and Eclipse Mode privacy.
 - Fix passport test entrypoints for the ES6 TypeScript target and type cross-origin header fixtures.
 - Verify all 12 passport test groups, TypeScript, Eclipse Mode, package metadata, and focused ESLint with zero errors; keep changes uncommitted and unpublished.
+
+## 2026-10-20 — Temporary fresh-identity CIMD diagnostic package
+
+- Create `/tmp/useclevr-cimd-diagnostic-vjdhubg3/useclevr-mcp-cimd-1.0.0.zip` from the exact 1.0.2 archive with matching portable/Codex identities and unchanged MCP bytes.
+- Validate archive integrity, structure, JSON, referenced assets, source hash, and the bundled package checks; retain the original package and production files untouched.
+
+## 2026-10-20 — CIMD portal save failure diagnosis
+
+- Treat the user's pushed integration branch as the current task state; stop commit preparation and retain the no-commit/push/deploy/delete boundary.
+- Compare production CIMD discovery and strict PKCE rejection with the tested source; no observed mismatch explains predefined-client portal validation.
+- Prepare the existing support report for inspection of saved registration, save-request mapping, and CIMD backend validation; preserve uncertainty until portal records are available.
+
+## 2026-10-20 — ChatGPT integration continuation verification
+
+- Verify the pending submission sources, TODO management, whitespace, three safety tests, 27 OAuth-to-MCP checks, and MCP integration suite; all pass.
+- Keep the four-group commit plan as the handoff; source changes remain unstaged and unpublished under the recorded task scope.
 
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 

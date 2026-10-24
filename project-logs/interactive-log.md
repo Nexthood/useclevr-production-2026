@@ -1,3 +1,33 @@
+## 2026-10-24 — Resolve the paused main rebase
+
+1. Goal: Resolve the paused rebase safely, retain both integrations and unrelated changes, continue every replay, and validate locally.
+2. Outcome: Replay the Passport and ChatGPT commits onto 79553d7d. Preserve both test runners and all package dependencies/configuration; retain TODO counter 1092, completed browser acceptance, both sets of distinct records, the expanded support report, and the upstream commit-preparation guide. Consolidate five duplicated ChatGPT log sections. Application source and configuration match original combined tip 76a57330.
+3. Validation: TypeScript, package/TODO/workflow/changelog/secret checks, Eclipse Mode, all 12 Passport groups, three safety checks, 27 OAuth flow checks, MCP integration, submission-source validation, and whitespace checks pass. Integration runners use fresh network-disabled PostgreSQL containers with inherited credentials excluded; sandbox Docker failures require approved execution. Browser acceptance and production builds are not rerun.
+4. Problems and learning: Rebase ours is the upstream/replayed state. Retain the newer isolated ChatGPT test runner when reconciling scripts. Inspect auto-merged logs for duplicated sections. The pre-commit record gate requires an unrelated changelog edit; amend the final replayed commit with only conflict paths and use manually executed validators.
+5. Boundaries and follow-up: No push, force-push, deployment, Railway configuration edit, or external database access occurs. No new follow-up task is required.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: the two session logs and interaction status.
+
+## 2026-10-24 — Last-task continuation check
+
+The repeated continuation request confirms local HEAD f03eaf7e, an empty staging area, and T-1091 in TODO-done. The task identity remains unresolved; ask whether the user means Agent Trust Passport or ChatGPT/CIMD integration.
+
+1. Goal: Identify and resume the last task requested by the user.
+2. Findings: T-1091 Agent Trust Passport browser acceptance is complete in the task queue and latest session records. Local commit f03eaf7e contains the implementation; acceptance records report passing browser checks. This session does not rerun those checks.
+3. Observation: The latest record identifies no remaining task step. The user must identify the next task before work continues. The shared worktree contains unrelated pending changes.
+4. Action: Update the three required interaction records. No product edit, commit, push, deployment, branch synchronization, or production access occurs.
+5. Learning: Read the newest session entries and task state together before selecting continuation work; completed acceptance does not authorize unrelated queued work.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-10-20 — T-1091 local browser acceptance
+
+1. Goal: Continue the remaining Agent Trust Passport browser acceptance after local implementation commit f03eaf7e.
+2. Result: PASS for creation, declared fields, edits and reload persistence, stable identity, new Assistant UI trace attribution, complete historical fixture-row equality, cross-account denial, and existing governance navigation and controls. The Assistant answers a two-row synthetic revenue question with total 300; the database trace references the passport and View linked traces displays that reference. All eleven governance sections load; compliance export returns an attachment. A second authenticated account sees no foreign passport and receives HTTP 404 for foreign GET and PATCH requests.
+3. Environment: Headless Chrome uses the DevTools protocol and a temporary profile. The localhost Next.js server receives an environment allowlist with environment-file loading disabled. Fresh network-disabled Docker PostgreSQL holds synthetic accounts, a verified-login proof fixture, a Pro profile, synthetic dataset, and historical trace. No production account, database, provider credential, deployment, commit, or push is used. Local processes stop and the container is removed.
+4. Problems: Sandbox socket restrictions require approved execution. Fixture table/index generation and hydration timing require runner corrections. Tests assert persisted fields instead of a transient save message. The Assistant emits a generated-timestamp hydration warning; these functional checks do not certify warning-free rendering or external-provider connectivity.
+5. Learning: Browser acceptance can use installed Chrome and Node's WebSocket client without Playwright. Wait for React handlers before submitting forms; use two isolated browser contexts and compare the entire historical fixture row.
+6. Evidence and destinations: /tmp/useclevr-passport-browser.mjs and /tmp/useclevr-browser-Zj7SLQ/acceptance.json hold the temporary runner and passing summary. T-1091 moves to TODO-done; the activity log and interaction status record completion. Restore only the generated next-env.d.ts change from this run; preserve unrelated worktree changes.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-10-20 — Four local ChatGPT integration commits
 
 1. Goal: Commit the four approved ChatGPT integration groups locally without discarding work or publishing.
@@ -82,6 +112,33 @@
 5. Problems: The filesystem sandbox blocks Docker access; approved execution permits disposable database validation. Full production build, browser interaction, and deployment verification are outside this local completion. No commit, push, deployment, or external database access occurs.
 6. Learning: New TypeScript test entrypoints must respect the configured ES6 target; async main supports dynamic imports without changing application compiler settings. The continuation selects the unfinished queue task because the latest CIMD diagnostic deliverable is already recorded as complete.
 7. Instruction sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require this record, the activity summary, interaction status, and completed TODO entry.
+
+## 2026-10-20 — Temporary fresh-identity CIMD diagnostic package
+
+1. Goal: Create a separate diagnostic ZIP from the exact UseClevr 1.0.2 archive without changing the original package or production files.
+2. Artifact: `/tmp/useclevr-cimd-diagnostic-vjdhubg3/useclevr-mcp-cimd-1.0.0.zip`; extracted copy and validation.json remain beside it. ZIP SHA-256: aa36c00afcaa4bc7b9c23970241ebbf354d8cd3f1a24f5916e714866a7e6c9bf.
+3. Identity: The source uses a portable root manifest and contains no Codex overlay. The copy changes root name/version to useclevr-mcp-cimd/1.0.0 and adds the requested matching .codex-plugin/plugin.json compatibility manifest. Official OpenAI packaging guidance makes the portable root identity authoritative.
+4. Validation: ZIP integrity, one top-level plugin directory, unique safe paths, JSON keys, matching identities, assets, and the bundled package validator pass. All original files except the root identity manifest remain byte-identical, including MCP URL and CIMD configuration; the source ZIP hash is unchanged. T-1090 records this deliverable.
+5. Limits: This local package does not establish portal acceptance or resolve the registration error. Nothing is committed, pushed, deployed, published, or uploaded.
+6. Sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require this record, the activity summary, and interaction status.
+
+## 2026-10-20 — CIMD portal save failure diagnosis
+
+1. Goal: Investigate the CIMD/predefined-client save mismatch using existing evidence and targeted production reads.
+2. Current task state: The user confirms four integration commits on integration/chatgpt-2026-10-20 and stops commit preparation. The agent must not recreate commits or commit, push, deploy, or delete anything.
+3. Findings: Official OpenAI docs require CIMD without packaged credentials and describe saved registration locks. Production discovery matches CIMD/public-client/S256 configuration; malformed PKCE returns the hardened source's HTTP 400. Complete deployed-source equality and production account linking remain unverified.
+4. Assessment: No verified repository defect explains the portal's predefined-client save validation. Saved predefined registration, frontend mapping, and backend fallback/validation remain distinct hypotheses until the failed save request and persisted connection are available.
+5. Action: Update the existing support request with production timestamps/request IDs, exact configuration, conditional portal corrections, and a redacted evidence procedure. Reuse completed archive/integration tests; do not rerun them. T-1089 records this local diagnostic deliverable.
+6. Sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require the support report, TODO record, activity summary, and interaction status.
+
+## 2026-10-20 — ChatGPT integration continuation verification
+
+1. Goal: Resume the recorded source-preparation task within its local, unpublished scope.
+2. Findings: The four-group commit plan records completed implementation and operator-only submission checks. The pending worktree remains unstaged.
+3. Verification: The submission source validator, TODO management, whitespace check, three safety tests, 27 OAuth-to-MCP checks, and MCP integration suite pass. Docker requires approved access outside the filesystem sandbox.
+4. Limits: This verification does not establish portal readiness or production configuration. Full builds and TypeScript are not rerun during this continuation.
+5. Follow-up: The operator selects the upstream baseline for the recorded commit groups and verifies the listed submission requirements.
+6. Sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require this record, the activity summary, and interaction status.
 
 ## 2026-10-11 — Swedish as the eighth fully supported Usy language
 

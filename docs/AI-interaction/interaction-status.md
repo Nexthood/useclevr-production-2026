@@ -4,6 +4,33 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-24
+- **Goal**: Complete the paused main rebase while retaining Agent Trust Passport and ChatGPT OAuth/MCP.
+- **Outcome**: Both commits replay onto 79553d7d. Eleven conflict resolutions retain both implementations, scripts, dependencies, distinct records, completed acceptance, and TODO counter 1092. Five overlapping ChatGPT log sections are consolidated.
+- **Validation**: TypeScript, package/TODO/workflow/changelog/secret checks, Eclipse Mode, 12 Passport groups, three safety checks, 27 OAuth checks, MCP integration, submission-source validation, and whitespace checks pass. Application source and configuration match original combined tip 76a57330. Browser acceptance and production builds are not rerun.
+- **Commit scope**: Stage only conflict paths. Fold deduplication and session records into the final replayed commit; use manual validators because the pre-commit record gate requires an unrelated changelog edit.
+- **Boundary**: No push, force-push, deployment, Railway configuration edit, or external database access.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Identify and resume the last task.
+- **Finding**: T-1091 Agent Trust Passport browser acceptance is complete according to the latest records and TODO-done. Local commit f03eaf7e contains the implementation. This session does not rerun acceptance.
+- **Next action**: The user identifies the next task; the latest record contains no unfinished step.
+- **Continuation recheck**: HEAD is f03eaf7e, staging is empty, and T-1091 is in TODO-done. Ask the user to identify Agent Trust Passport or ChatGPT/CIMD integration as the intended task.
+- **Scope**: Update interaction records only. Preserve all product and unrelated worktree changes; no commit, push, deployment, branch synchronization, or production access occurs.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Complete the remaining T-1091 Agent Trust Passport browser acceptance after local commit f03eaf7e.
+- **Result**: PASS for browser creation, declared fields, edit/reload persistence, stable identity, Assistant UI trace linkage, complete historical fixture-row equality, and cross-account denial. All eleven governance sections, linked-trace viewing, and compliance export pass.
+- **Environment**: Headless Chrome through the DevTools protocol; two synthetic accounts in isolated browser contexts; a Pro fixture and synthetic revenue dataset; fresh network-disabled Docker PostgreSQL; localhost Next.js with inherited credentials and environment files excluded. The real authentication handler consumes synthetic verified-login proofs.
+- **Evidence**: /tmp/useclevr-browser-Zj7SLQ/acceptance.json and /tmp/useclevr-passport-browser.mjs. T-1091 is in TODO-done. These checks cover fixture history and local functionality; external-provider connectivity, production data preservation, and warning-free rendering are not certified. The Assistant emits a generated-timestamp hydration warning.
+- **Boundary**: No new commit, push, deployment, production migration, or real account access. Local processes stop and the disposable database container is removed. Unrelated worktree changes remain intact.
+
+## Previous Interaction
+
 - **Date**: 2026-10-20
 - **Goal**: Create four approved local ChatGPT integration commits on a dedicated branch without publishing.
 - **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
@@ -61,6 +88,64 @@ Update this file after every completed AI interaction.
 - **Validation**: All 12 boundary/database groups pass against fresh network-disabled Docker PostgreSQL. TypeScript, Eclipse Mode, and package metadata pass. Focused ESLint reports zero errors with existing trace warnings and ignored test-script notices.
 - **Scope**: T-1091 is complete in the local working tree. No commit, push, production build, deployment, or browser acceptance check occurs. Existing ChatGPT integration work remains in the shared tree.
 - **Records**: See project-logs/interactive-log.md and project-logs/activity-log.md for the continuation evidence.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Create a separate temporary plugin ZIP to diagnose fresh-identity CIMD portal behavior.
+- **Artifact**: `/tmp/useclevr-cimd-diagnostic-vjdhubg3/useclevr-mcp-cimd-1.0.0.zip`; validation.json and the extracted copy remain beside it.
+- **Identity**: Set useclevr-mcp-cimd/1.0.0 in the portable root manifest and add the requested matching Codex compatibility manifest because root identity is authoritative for the source format.
+- **Validation**: ZIP integrity, single root, safe unique paths, JSON, identities, assets, and bundled validator pass. Original MCP bytes and every other original non-manifest file remain identical. Original ZIP hash is unchanged.
+- **Boundary**: T-1090 covers this local artifact. No production/plugin-source edits, commit, push, deployment, publication, or upload occurs. Portal behavior remains untested.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Diagnose the OpenAI portal's predefined-client-ID requirement for the CIMD MCP connection.
+- **User correction**: The four commits exist on integration/chatgpt-2026-10-20. Commit preparation is stopped; the agent must not recreate commits or commit, push, deploy, or delete anything.
+- **Production evidence**: At 15:34:54 UTC, OAuth discovery returns HTTP 200 with CIMD, none, and S256. At 15:35:15 UTC, malformed PKCE returns the hardened source's HTTP 400. No difference is observed in these behaviors; complete deployment equality and successful production linking are unverified.
+- **Diagnosis**: The reported save error selects predefined-client validation despite CIMD configuration. No verified repository fix explains that mismatch. A conflicting saved registration is unconfirmed; failed save-request fields and the persisted portal record distinguish saved state, frontend mapping, and backend validation.
+- **Action**: The operator captures redacted save evidence and sends `openai-cimd-portal-support-report.txt`; OpenAI corrects the effective registration to CIMD or the incorrect validation branch. No fabricated client credentials or DCR endpoint belong in the package.
+- **Validation scope**: Reuse completed archive and integration evidence. Only targeted production reads and required record checks run in this task. T-1089 covers the diagnostic/support deliverable.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Resume local ChatGPT integration preparation from the recorded handoff.
+- **Verification**: Submission source validation, TODO management, whitespace, three safety tests, 27 OAuth-to-MCP checks, and the MCP integration suite pass. Docker tests use approved local daemon access. TypeScript and full builds are not rerun in this continuation.
+- **Handoff**: The four source groups remain ready for baseline selection in `chatgpt-integration-commit-groups.md`. Operator submission checks remain unverified; all source work stays unstaged and unpublished under the recorded scope.
+- **Records**: `project-logs/interactive-log.md` and `project-logs/activity-log.md` record this continuation.
+
+## Previous Interaction
+
+- **Date**: 2026-10-20
+- **Goal**: Prepare the pending ChatGPT integration for four clean source commits without committing or publishing.
+- **OAuth and tests**: The disposable runner creates private PostgreSQL clusters and separate suite databases, excludes inherited credentials, and runs OAuth/MCP tests before the general CI tests. The guard tests reject direct entrypoints and database overrides. See `developer-guides/chatgpt-integration-testing.md`.
+- **Publisher**: UseClevr is the product; Atlas Mega Ventures is the intended publisher and author. Package metadata agrees; the operator confirms affiliation and verified identity in OpenAI.
+- **CIMD evidence**: The support report describes the exact historical 1.0.2 archive. The source validator checks identity and OAuth-summary consistency without contacting OpenAI. Edited sources do not certify that archive or resolve portal state.
+- **Domain baseline**: Local `main` is `eab70041`; cached `origin/main` is `05816e35`. The challenge route and proxy exactly match upstream commits `f779f89a` and `7eda8504`; exclude duplicate implementation from new commits. No branch synchronization or deployment occurs.
+- **Validation**: Local OAuth/MCP and safety tests, TypeScript, secret scan, TODO/package/workflow checks pass. Final validation details and exact commit groups are recorded in `chatgpt-integration-commit-groups.md`.
+- **Operator checks**: Verify publisher identity, reviewer email-proof login, demo access, privacy disclosures, portal CIMD save, production allowlists, domain verification, and tool scan in a separately authorized task.
+- **Artifacts**: Both ZIPs and the old validation JSON stay intact and Git-ignored. Nothing is staged, committed, pushed, deployed, or submitted.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Diagnose the reported CIMD/predefined-client-ID portal save mismatch using the exact 1.0.2 ZIP and official OpenAI documentation.
+- **Evidence**: ZIP integrity and file equality pass; one canonical CIMD OAuth configuration has no client credentials or alternative overlay. Public discovery returns HTTP 200, supports CIMD and public-client token exchange with PKCE S256, and agrees on issuer/resource. MCP advertises discovery in an expected unauthenticated HTTP 401 response.
+- **Limit**: The portal's stored registration and failed save request are unavailable. Persistent registration and a portal validation defect are hypotheses, not established root causes.
+- **Next step**: The operator collects the failed save request's registration mode, HTTP status, and request ID without secrets, then sends the prepared support report to OpenAI for saved-state inspection or validation repair.
+- **Report**: `docs/AI-interaction/openai-cimd-portal-support-report.txt`.
+- **Scope**: No package, OAuth-route, client-ID, or client-mode change; no support message is sent.
+
+## Previous Interaction
+
+- **Date**: 2026-10-19
+- **Goal**: Serve the OpenAI domain challenge publicly as exact plain text without authentication or redirects.
+- **Current change**: Add the App Router GET handler and permit its exact path in the MCP host allowlist; record requirements, release notes, and T-1086.
+- **Verification**: Local curl checks return HTTP 200, text/plain, the exact 43-byte proof without newline, and no redirect on localhost and app/MCP/MCP-test host headers. Unrelated MCP paths return 404; protected APIs return 401. Focused ESLint passes with parser project discovery disabled for the hidden well-known directory.
+- **Observation at 2026-10-19 local verification**: The public app challenge URL returns HTTP 404 at that check. This observation does not establish current deployment status; the source implementation is present in cached `origin/main`. No deployment check is performed in the local finalization task.
+- **Records**: `project-logs/interactive-log.md`, `project-logs/activity-log.md`.
 
 ## Previous Interaction
 
