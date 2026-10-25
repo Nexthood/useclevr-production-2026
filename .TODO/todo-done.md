@@ -98,7 +98,9 @@ moving work between states.
 
 ## Label: workflow
 
-- T-1100. Validate the existing Usy Passport routing fix, confirm French response contracts, and publish fix/usy-passport-routing for review against beta. (labels: workflow, ai, testing; commit: worktree)
+- T-1101. Route clear Usy product questions during contact collection through existing knowledge in all eight languages, preserve drafts across topic switches, and verify contact, billing, and support regressions without publication. (labels: ai, workflow, testing; commit: worktree)
+
+- T-1100. Validate the existing Usy Passport routing fix, confirm French response contracts, and publish fix/usy-passport-routing for review against beta. (labels: workflow, ai, testing; commit: 0160828b)
 
 - T-1096. Include well-known application routes in typed lint checks so the required release gate validates the public verification route. (labels: quality, testing; commit: worktree)
 - T-1094. Remove numeric price examples from the billing-format comment so required pricing validation passes without changing billing behavior. (labels: quality, billing, testing; commit: worktree)

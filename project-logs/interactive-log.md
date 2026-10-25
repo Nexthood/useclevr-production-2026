@@ -1,3 +1,42 @@
+## 2026-10-25 — Publish validated Usy topic switching (T-1101)
+
+1. Goal: Commit the verified topic-switching fix, tests, and required records; push fix/usy-passport-routing, open a beta review PR, and wait for GitHub CI.
+2. Scope: The pending implementation and 192-case multilingual matrix match the verified change. Include requirements, release notes, task metadata, and the related session records; preserve all prior entries.
+3. Validation: Reuse six passing Usy suites, all 18 billing cases, TypeScript, focused ESLint (zero errors, two existing warnings), TODO, changelog, secret, and whitespace checks from the completed implementation task.
+4. Publication rule: The user explicitly permits skipping Husky because local validation passes. GitHub CI remains required and must complete; no check override, merge, manual deployment, or Railway access is authorized.
+5. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: scoped commit and the three interaction records.
+
+## 2026-10-25 — Usy topic switching during contact collection (T-1101)
+
+1. Goal: Answer product questions during incomplete contact flows in all eight languages, preserve drafts, validate regressions, and report before committing; deployment and Railway access are prohibited.
+2. Changes: The existing router recognizes informational and navigation requests before contact-message collection, uses its ordinary knowledge path without collection state, and includes the saved draft in knowledge responses. Exact product topics reuse existing intent keywords; department names remain contact selections. Product knowledge, translations, authorization, and navigation have one routing source.
+3. Verification: The new regression fails on the original department selector and passes with the fix. The matrix covers 192 draft/question/context combinations across eight languages, two contexts, two product topics, and six draft states. Additional cases cover other product/billing topics, repeated switches, message resumption, explicit contact in eight languages, localized cancellation, and confirmation of the original message.
+4. Results: Product knowledge, contact-message, contact-handoff, guest, Secretariat, and all 18 billing cases pass. TypeScript passes. Focused ESLint reports zero errors and two existing warnings. Secretariat requires sandbox escalation for the tsx IPC socket.
+5. Learning: Returning a product answer without contactDraft causes the UI to clear saved state. Answer selection and draft preservation must be verified together, including empty, partial, complete, and awaiting-confirmation drafts.
+6. Destinations and boundaries: Record behavior in requirements.md and CHANGELOG.md; complete T-1101 with commit: worktree. Preserve pending records from earlier turns. No commit, push, deployment, Railway access, external endpoint test, or unrelated product change occurs. Browser interaction is not exercised in this task.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Update the three interaction records.
+
+## 2026-10-25 — Verify deployed Usy Passport routing
+
+1. Goal: Verify PR #412, branch inclusion, published commits, and live Passport routing without Railway authentication or production changes.
+2. Evidence: PR #412 merges into beta as e635d6c9. Main 1ae5220d contains routing implementation 3cb091fa through PR #411. Commit 0160828b adds French tests and records; it has no runtime changes and awaits main through open PR #413.
+3. Publication: Production run 40170171409 builds 1ae5220d and publishes artifact 11a6e121; GitHub hosting status reports success. Test run 40173913419 publishes beta e635d6c9 as dcbc7486; hosting reports success. Runtime health responses do not attest a source SHA.
+4. Live behavior: Both hosts return HTTP 200, product_information, and OPEN_AGENT_PASSPORT for a fresh Passport question. Test initially returns contact_request before the new test artifact becomes active. Both health endpoints report healthy app/database.
+5. Cause: Production returns the department selector when an incomplete contactDraft without a category accompanies the Passport question. A real Contact support sequence retains its category and consumes the Passport question as a contact message. Cancel clears the draft; the next Passport question returns product information. The UI retains drafts in component state and resends them; the router processes incomplete drafts before product intent.
+6. Limit: These requests reproduce draft-dependent behavior; they do not inspect the user's browser state or authenticate a dashboard role. No contact request is submitted.
+7. Next action: Cancel the active contact flow and ask again. A focused product change must define topic switching for incomplete drafts and add regression coverage. PR #413 remains the release step for the test-only commit, not a prerequisite for current runtime routing.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: three interaction records only; preserve existing pending changes.
+
+## 2026-10-25 — Publish Usy Passport beta review (T-1100)
+
+1. Goal: Continue T-1100 by publishing the validated feature branch and opening its beta review PR.
+2. Result: Remote fix/usy-passport-routing contains 0160828b. PR #412 targets beta, remains open, and has auto-merge disabled. GitHub run 40173408470 passes docs checks; source/build validation is running.
+3. Validation: Normal pre-push hooks pass TypeScript, deployment config, metadata, secrets, pricing, full ESLint (zero errors, 452 warnings), production build, packaging, and workflow checks.
+4. Problems: Two attempts stop during page-data collection because build configuration is missing or the synthetic auth value is shorter than 32 characters. The successful attempt uses synthetic loopback database configuration and a valid-length test auth value. Payload logs a refused loopback database connection; the build and push exit successfully.
+5. Learning: Check the runtime secret resolver before assigning synthetic build configuration; it requires at least 32 characters. Production credentials are unnecessary for this publication check.
+6. Follow-up: Review PR #412 and its CI results. No merge, manual deployment, or Railway authentication occurs. Keep this interaction's records local.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: regular TODO completion and the three interaction records.
+
 ## 2026-10-25 — Finalize Usy Passport routing for beta (T-1100)
 
 1. Goal: Validate and publish fix/usy-passport-routing as a pull request targeting beta; the user prohibits manual deployment and Railway authentication.

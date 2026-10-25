@@ -462,6 +462,111 @@ function productProductIntent(response: ReturnType<typeof buildUsyReply>) {
   return response.intent === "getting_started" && /\.csv/i.test(response.answer);
 }
 
+function testTopicSwitchingPreservesContactDrafts() {
+  const questions: Array<[SupportedUsyLanguage, string]> = [
+    ["english", "Agent Trust Passport tell me more"],
+    ["german", "Erzähl mir mehr über Agent Trust Passport"],
+    ["dutch", "Vertel me meer over Agent Trust Passport"],
+    ["french", "Dis-moi plus sur Agent Trust Passport"],
+    ["spanish", "Cuéntame más sobre Agent Trust Passport"],
+    ["hungarian", "Mesélj az Agent Trust Passportról"],
+    ["romanian", "Spune-mi mai multe despre Agent Trust Passport"],
+    ["swedish", "Berätta mer om Agent Trust Passport"],
+    ["english", "Which file formats can I upload?"],
+    ["german", "Welche Dateiformate kann ich hochladen?"],
+    ["dutch", "Welke bestandsformaten kan ik uploaden?"],
+    ["french", "Quels formats de fichiers puis-je téléverser ?"],
+    ["spanish", "¿Qué formatos de archivo puedo subir?"],
+    ["hungarian", "Milyen fájlformátumokat tudok feltölteni?"],
+    ["romanian", "Ce formate de fișiere pot încărca?"],
+    ["swedish", "Vilka filformat kan jag ladda upp?"],
+  ];
+  for (const [language, question] of questions) {
+    for (const context of [guestContext(), baseContext]) {
+      const drafts: UsyContactDraft[] = [
+        {},
+        { language: "english" },
+        { language, category: "technical_support" },
+        { language, category: "billing", message: "Please correct the VAT on invoice 4471." },
+        { language, category: "sales", senderName: "Alex Rivera", replyEmail: "alex@example.com" },
+        { language, category: "billing", message: "Please correct the VAT on invoice 4471.", senderName: "Alex Rivera", replyEmail: "alex@example.com", awaitingConfirmation: true },
+      ];
+      const fresh = buildUsyReply({ question, context });
+      assert.notEqual(fresh.intent, "unknown");
+      assert.notEqual(fresh.intent, "contact_request");
+      assert.equal(fresh.language, language);
+      for (const draft of drafts) {
+        const saved = structuredClone(draft);
+        const reply = buildUsyReply({ question, context, contactDraft: draft });
+        assert.equal(reply.answer, fresh.answer, `${language}: reuse the canonical product answer`);
+        assert.equal(reply.intent, fresh.intent);
+        assert.deepEqual(reply.actionButtons, fresh.actionButtons);
+        assert.equal(reply.language, language, "answer language follows the new question, not the draft");
+        assert.deepEqual(reply.contactDraft, saved, "keep every draft field unchanged");
+        assert.deepEqual(draft, saved, "do not mutate the input draft");
+        assert.notEqual(reply.messageInput, true, "show the normal question input after switching topics");
+        assert.equal(reply.action, undefined, "product questions never submit or cancel contact");
+        assert.notEqual(reply.intent, "contact_request");
+      }
+    }
+  }
+}
+
+function testProductTopicsBeyondPassportAndContactResumption() {
+  const draft: UsyContactDraft = { category: "billing", language: "english" };
+  for (const question of [
+    "Which file formats can I upload?", "What is UseClevr?", "What are your pricing plans?",
+    "How do AI credits work?", "What is a KPI?", "What is the Pro monthly price?",
+    "Explain my dashboard", "Agent Trust Passport", "How do I generate a report?",
+  ]) {
+    const fresh = buildUsyReply({ question, context: baseContext });
+    const reply = buildUsyReply({ question, context: baseContext, contactDraft: draft });
+    assert.notEqual(fresh.intent, "unknown", question);
+    assert.equal(reply.answer, fresh.answer, question);
+    assert.deepEqual(reply.contactDraft, draft, question);
+    assert.equal(reply.contactDraft?.message, undefined, "never collect a product question as the contact message");
+  }
+  const completeDraft: UsyContactDraft = {
+    ...draft,
+    message: "Please correct the VAT on invoice 4471.",
+    senderName: "Alex Rivera",
+    replyEmail: "alex@example.com",
+  };
+  const repeated = buildUsyReply({ question: "Which file formats can I upload?", context: baseContext, contactDraft: completeDraft });
+  const nextTopic = buildUsyReply({ question: "How do AI credits work?", context: baseContext, contactDraft: repeated.contactDraft });
+  assert.deepEqual(nextTopic.contactDraft, completeDraft, "successive topic switches retain a completed draft too");
+
+  for (const question of [
+    "Contact support about Agent Trust Passport", "Kontaktiere Support zum Agentenpass",
+    "Contact support over mijn paspoort", "Contacter le support pour mon passeport",
+    "Contactar soporte sobre el pasaporte", "Kapcsolat az útlevél ügyében",
+    "Contactez suport pentru pașaport", "Kontakta support om agentpass",
+  ]) {
+    const contact = buildUsyReply({ question, context: guestContext(), contactDraft: { category: "technical_support", language: "english" } });
+    assert.equal(contact.intent, "contact_request", "explicit localized contact requests stay in collection");
+    assert.equal(contact.contactDraft?.category, "technical_support");
+  }
+  for (const question of ["cancel", "abbrechen", "annuleren", "annuler", "cancelar", "mégse", "oprește", "avbryt"]) {
+    const cancelled = buildUsyReply({ question, context: guestContext(), contactDraft: draft });
+    assert.equal(cancelled.action, "clear_contact", "localized cancellation clears a retained draft");
+    assert.equal(cancelled.contactDraft, null);
+  }
+  const switched = buildUsyReply({ question: "What is Agent Trust Passport?", context: guestContext(), contactDraft: draft });
+  const resumed = buildUsyReply({ question: "Please correct the VAT on invoice 4471.", context: guestContext(), contactDraft: switched.contactDraft });
+  assert.equal(resumed.intent, "contact_request");
+  assert.equal(resumed.contactDraft?.category, "billing");
+  assert.equal(resumed.contactDraft?.message, "Please correct the VAT on invoice 4471.");
+  const details = buildUsyReply({ question: "My name is Alex Rivera, alex@example.com", context: guestContext(), contactDraft: resumed.contactDraft });
+  assert.equal(details.contactDraft?.awaitingConfirmation, true);
+  const switchedAgain = buildUsyReply({ question: "Explain Agent Trust Passport", context: guestContext(), contactDraft: details.contactDraft });
+  const confirmed = buildUsyReply({ question: "confirm", context: guestContext(), contactDraft: switchedAgain.contactDraft });
+  assert.equal(confirmed.action, "submit_contact");
+  assert.equal(confirmed.contactDraft?.message, resumed.contactDraft?.message);
+  const cancelled = buildUsyReply({ question: "cancel", context: guestContext(), contactDraft: switchedAgain.contactDraft });
+  assert.equal(cancelled.action, "clear_contact");
+  assert.equal(cancelled.contactDraft, null);
+}
+
 // ---------------------------------------------------------------------------
 // Final n8n handoff payload keeps the structured contract
 // ---------------------------------------------------------------------------
@@ -653,6 +758,8 @@ testContactFieldRequirements();
 testGuestContactFlowReachesConfirmation();
 testAuthenticatedContactKeepsMessageRequirement();
 testProductQuestionsStillWorkDuringContactFlow();
+testTopicSwitchingPreservesContactDrafts();
+testProductTopicsBeyondPassportAndContactResumption();
 testFinalHandoffPayload();
 testIdentityComesFromServerSessionOnly();
 testExistingHandoffReusedWithoutParallelEmailLogic();
