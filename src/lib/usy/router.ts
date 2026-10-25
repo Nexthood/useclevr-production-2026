@@ -29,6 +29,7 @@ import {
   buildContactMessageProblemAnswer,
   buildContactMessagePrompt,
   buildContactSummary,
+  detectContactCategory,
   isCancellation,
   isConfirmation,
   isContactRequest,
@@ -988,6 +989,16 @@ export function buildUsyReply(input: {
   context: UsyContext;
   contactDraft?: UsyContactDraft | null;
 }): UsyChatResponse {
+  const reply = routeUsyReply(input);
+  // Knowledge and security answers pause collection without discarding the
+  // draft. Only an explicit cancellation or a successful handoff clears it.
+  if (input.contactDraft && reply.contactDraft === undefined) {
+    return { ...reply, contactDraft: input.contactDraft };
+  }
+  return reply;
+}
+
+function routeUsyReply(input: Parameters<typeof buildUsyReply>[0]): UsyChatResponse {
   const question = input.question.trim();
   const context = input.context;
   const language = detectUsyLanguage(question);
@@ -1043,26 +1054,16 @@ export function buildUsyReply(input: {
   const hasCompleteContactDraft = existingContactDraft && missingContactFields(existingContactDraft).length === 0;
   const isExplicitContactRequest = isContactRequest(question);
   
-  if (existingContactDraft && hasCompleteContactDraft && !isExplicitContactRequest && !existingContactDraft.awaitingConfirmation) {
-    // User has a complete contact draft but is asking a normal product question
-    // Try to answer the product question instead of forcing contact flow
-    const intent = detectProductIntent(normalized, context.role);
-    if (intent) {
-      return knowledgeAnswer(
-        `${localizedIntentAnswer(intent.id, context, language) ?? intent.answer(context)}\n\n${localizedCommon("nextStep", language)} ${nextStepForIntent(intent.id, context, language)}`,
-        intent.followUps,
-        usyIntentByProductIntent[intent.id],
-        language,
-        intent.actions,
-      );
+  if (
+    existingContactDraft && !isExplicitContactRequest &&
+    (isProductTopicQuestion(normalized, context.role) || (hasCompleteContactDraft && !existingContactDraft.awaitingConfirmation))
+  ) {
+    // Re-enter the ordinary router without collection state so every topic,
+    // language, authorization guard, and navigation action has one owner.
+    const reply = buildUsyReply({ question, context });
+    if (reply.intent !== "unknown" && reply.intent !== "contact_request") {
+      return reply;
     }
-    
-    const term = businessTerms.find((entry) => entry.keywords.some((keyword) => normalized.includes(normalizeUsyText(keyword))));
-    if (term) {
-      return knowledgeAnswer(`${localizedTermAnswer(term.id, language) ?? term.answer} ${localizedCommon("termSuffix", language)}`, ["Ask AI Assistant", "Upload data", "Explain dashboard", "Generate report"], "product_information", language, ["OPEN_AI_ASSISTANT", "OPEN_UPLOAD"]);
-    }
-
-    // If no product intent found, continue with contact flow but preserve draft
   }
 
   if (existingContactDraft || (isExplicitContactRequest && !isDataConnectionQuestion(normalized))) {
@@ -1404,6 +1405,25 @@ function detectProductIntent(normalized: string, role: UsyRole) {
     }))
     .filter(({ intent, score }) => intent.id !== "agent-passport" && score >= (intent.minScore ?? 2))
     .sort((a, b) => b.score - a.score)[0]?.intent ?? null;
+}
+
+function isProductTopicQuestion(normalized: string, role: UsyRole) {
+  const text = normalized.replace(/[?-]/g, " ").replace(/\s+/g, " ").trim();
+  // Informational questions and navigation requests in the eight Usy languages.
+  // Department names alone remain contact selections; incident descriptions
+  // remain available as contact messages.
+  const questionForm = /^(?:please )?(?:what|which|how|where|can i|can you|could i|does|do i|is there|explain|tell me|show me|open)\b/.test(text) ||
+    /^(?:bitte )?(?:was|wie|wo|welche\w*|kann ich|kannst du|erklar\w*|erzahl\w*|zeig\w*|offne)\b/.test(text) ||
+    /^(?:wat|hoe|waar|welke|kan ik|kun je|leg uit|vertel|toon)\b/.test(text) ||
+    /^(?:qu est ce que|c est quoi|comment|ou|quel\w*|puis je|peux tu|combien|explique\w*|dis moi|montre\w*|ouvrir)\b/.test(text) ||
+    /^(?:que|como|donde|cual\w*|puedo|cuanto\w*|explica\w*|cuentame|muestra\w*|abrir)\b/.test(text) ||
+    /^(?:mi|mit|mik|milyen|hogyan|hol|mennyi|lehet|tudok|meselj|magyaraz\w*|mutasd|nyisd)\b/.test(text) ||
+    /^(?:ce|cum|unde|care|cate|cat|pot|explica\w*|spune mi|arata\w*|deschide)\b/.test(text) ||
+    /^(?:vad|hur|var|vilk\w*|kan jag|kan du|forklara|beratta|visa|oppna)\b/.test(text) ||
+    /\btell me more$/.test(text);
+  if (questionForm) return true;
+  const intent = detectProductIntent(normalized, role);
+  return !detectContactCategory(text) && Boolean(intent?.keywords.some((keyword) => normalizeUsyText(keyword) === text));
 }
 
 function scoreIntent(normalized: string, tokens: Set<string>, intent: ProductIntentRule) {

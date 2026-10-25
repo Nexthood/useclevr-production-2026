@@ -1,3 +1,30 @@
+## 2026-10-25 — Publish validated Usy topic switching (T-1101)
+
+- Publish the verified router fix, multilingual regressions, requirements, release notes, and required records on fix/usy-passport-routing for beta review.
+- Reuse passing local validation and apply the user's explicit Husky exemption; require GitHub CI completion.
+- Keep merge, Railway access, and manual deployment outside the publication task.
+
+## 2026-10-25 — Usy contact-flow topic switching (T-1101)
+
+- Answer clear product questions through the existing eight-language router and return the unchanged contact draft for resumption.
+- Verify 192 topic/draft/context combinations plus explicit contact, billing, message resumption, repeated switching, localized cancellation, and confirmation.
+- Pass six Usy suites, all 18 billing cases, and TypeScript; focused ESLint reports zero errors and two existing warnings.
+- Update requirements, release notes, and regular task completion; report the uncommitted result without publication or Railway access.
+
+## 2026-10-25 — Verify deployed Usy Passport routing
+
+- Confirm PR #412 on beta and runtime implementation on main through PR #411; French test commit 0160828b awaits open PR #413.
+- Trace production source 1ae5220d to published artifact 11a6e121 and beta source e635d6c9 to test artifact dcbc7486; hosting statuses report success.
+- Verify fresh Passport questions on both hosts; reproduce production contact-flow capture with an incomplete draft and verify cancellation restores product routing.
+- Limit edits to required records; submit no contact request and perform no merge, configuration change, secret access, or Railway authentication.
+
+## 2026-10-25 — Publish Usy Passport beta review (T-1100)
+
+- Publish 0160828b through normal hooks and open PR #412 against beta with auto-merge disabled.
+- Pass TypeScript, config, metadata, secrets, pricing, ESLint (zero errors, 452 warnings), production build, packaging, and workflow checks using synthetic build configuration.
+- Report docs CI passing and source/build validation running under GitHub run 40173408470; retain local interaction records.
+- Keep production credentials, Railway authentication, manual deployment, and merge outside this task.
+
 ## 2026-10-25 — Finalize Usy Passport routing for beta (T-1100)
 
 - Validate existing routing commit 3cb091fa and add French response contracts across all four roles.
