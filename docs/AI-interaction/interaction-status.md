@@ -5,6 +5,45 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-25
+- **Goal**: Publish the validated T-1101 fix on fix/usy-passport-routing, open a beta PR, and wait for GitHub CI.
+- **Scope**: Verified router change, multilingual tests, requirements, release notes, regular task metadata, and related interaction records.
+- **Validation**: Reuse six passing Usy suites, 192 topic-switch combinations, all 18 billing cases, TypeScript, focused lint (zero errors, two existing warnings), and record/secret/whitespace checks.
+- **Authorization**: The user permits skipping Husky after local validation; GitHub checks remain mandatory.
+- **Boundary**: No merge, manual deployment, Railway access, unrelated functionality change, or CI bypass.
+
+## Previous Interaction
+
+- **Date**: 2026-10-25
+- **Goal**: Fix Usy topic switching during incomplete contact collection (T-1101).
+- **Behavior**: Clear product questions use the existing knowledge router in all eight languages. Responses retain the unchanged contact draft; product questions do not become contact messages. Department choices, explicit contact requests, message resumption, cancellation, and confirmation retain their contact flow.
+- **Coverage**: 192 draft/topic/context combinations, other product and billing topics, repeated switching, localized contact/cancellation, and confirmation of the saved message.
+- **Validation**: Six Usy suites pass, including all 18 billing cases; TypeScript passes. Focused ESLint reports zero errors and two existing warnings. The new regression reproduces the original department selector before the fix.
+- **Records**: requirements.md, CHANGELOG.md, regular TODO completion, and the three interaction records describe the tested behavior.
+- **Boundary**: Changes remain uncommitted for review. No push, deployment, Railway access, external endpoint test, or unrelated product edit. Browser interaction is not exercised.
+
+## Previous Interaction
+
+- **Date**: 2026-10-25
+- **Goal**: Verify deployment and explain continued Passport contact-flow responses.
+- **Branches**: PR #412 merges into beta as e635d6c9. Main 1ae5220d includes runtime fix 3cb091fa through PR #411; test-only 0160828b awaits open PR #413.
+- **Publication**: Successful production run 40170171409 publishes 11a6e121 from 1ae5220d. Test run 40173913419 publishes dcbc7486 from e635d6c9; hosting reports success. Public health does not attest runtime SHA.
+- **Live evidence**: Both hosts answer a fresh Passport question with product_information and OPEN_AGENT_PASSPORT. Production enters contact selection with an incomplete uncategorized draft; a categorized draft consumes the question as a contact message. Cancel clears the draft and restores the Passport answer.
+- **Next action**: Cancel the active contact flow; define and test product-topic switching for incomplete drafts as a focused follow-up. PR #413 is the remaining main release step for French regression checks.
+- **Boundary**: Synthetic public requests only; no contact submission, source implementation, merge, configuration/secret change, Railway authentication, or unrelated edit. Preserve existing local records.
+
+## Previous Interaction
+
+- **Date**: 2026-10-25
+- **Goal**: Complete T-1100 publication and report beta review status.
+- **Publication**: Feature branch fix/usy-passport-routing contains 0160828b; [PR #412](https://github.com/Nexthood/useclevr-production-2026/pull/412) targets beta and has auto-merge disabled.
+- **Validation**: Normal push hooks pass TypeScript, deployment config, metadata, secrets, pricing, ESLint (zero errors, 452 warnings), production build, packaging, and workflow checks.
+- **Configuration**: Synthetic loopback database and valid-length test auth values satisfy build validation. Payload logs a refused loopback connection; the build exits successfully.
+- **CI**: Docs checks pass; source/build validation is running under GitHub run 40173408470.
+- **Boundary**: No merge, manual deployment, production credential access, or Railway authentication. This interaction's records remain local.
+
+## Previous Interaction
+
+- **Date**: 2026-10-25
 - **Goal**: Finalize existing Usy Passport routing on fix/usy-passport-routing and request review against beta (T-1100).
 - **Changes**: Add French response contracts across guest, user, admin, and superadmin roles; retain implementation 3cb091fa.
 - **Behavior**: French Passport questions receive French knowledge and localized navigation; explicit support requests enter contact, while errors receive technical guidance. Passport navigation requires authentication.
