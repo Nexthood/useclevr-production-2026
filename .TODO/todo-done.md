@@ -69,6 +69,8 @@ moving work between states.
 
 ## Label: ai
 
+- T-1099. Route multilingual Passport questions to accurate product knowledge and authenticated navigation; distinguish explicit human contact and technical problems. (labels: ai, testing, security; commit: worktree)
+
 - T-1098. Explain Agent Trust Passport in all eight Usy languages, open the authenticated owner Transparency section, retain contact-flow boundaries, and validate role, navigation, language, and Usy regressions. (labels: ai, ui, testing; commit: worktree)
 
 

@@ -1,3 +1,11 @@
+## 2026-10-24 — Multilingual Usy Passport routing (T-1099)
+
+- Route Passport names and ownership questions to deterministic eight-language product knowledge; distinguish human-contact requests and technical problems.
+- Explain account identity persistence, business accountability, declared risk/lifecycle labels, creation, trace references, and compliance limits.
+- Reproduce the pre-717cc462 failure; confirm successful publication runs and the current live endpoint's correct exact-question response without Railway authentication.
+- Pass six Usy suites, TypeScript, focused ESLint (zero errors, two existing warnings), dependency security, secret, TODO, changelog, and package checks.
+- Commit scoped changes on fix/usy-passport-routing from verified main; no push or manual deployment occurs. Public responses do not identify the running source SHA.
+
 ## 2026-10-24 — Explicit main push attempt
 
 - Run `git push origin main` for 717cc462 with normal pre-push hooks under explicit user authorization.

@@ -16,6 +16,8 @@
 
 ### Fixed
 
+- Answer multilingual Passport and AI-agent ownership questions with product guidance and direct navigation, and distinguish technical problems from human-contact requests.
+
 - Let signed-in users create and edit their Agent Trust Passports behind HTTPS application proxies with account ownership and cross-origin protection enforced.
 - Bind ChatGPT account linking to verified client callbacks and reject repeated or concurrent use of an authorization code.
 

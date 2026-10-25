@@ -198,7 +198,14 @@ const businessTerms = [
 const productIntents: ProductIntentRule[] = [
   {
     id: "agent-passport",
-    keywords: ["agent trust passport", "agent passport", "trust passport", "passport", "ai governance transparency"],
+    keywords: [
+      "agent trust passport", "agent passport", "trust passport", "passport", "passports", "ai governance transparency",
+      "ai agent ownership", "ai agent identity", "analyst identity", "agent accountability", "agent risk classification", "agent lifecycle",
+      "agentenpass", "agentenpasses", "ki agenten eigentum", "verantwortung fur ki agenten",
+      "paspoort", "paspoorten", "eigenaarschap van ai agenten", "passeport", "passeports", "responsabilite des agents ia",
+      "pasaporte", "pasaportes", "propiedad de agentes de ia", "utlevel", "utlevelet", "utlevelem", "passportrol", "passportot", "passporthoz", "passportra", "passportban", "ai ugynok tulajdonosa",
+      "pasaport", "pasaportul", "pasaportului", "responsabilitatea agentilor ai", "agentpass", "agentpasset", "agarskap for ai agenter",
+    ],
     minScore: 3,
     answer: () => usyAgentPassportAnswers.english,
     followUps: [],
@@ -1034,8 +1041,7 @@ export function buildUsyReply(input: {
 
   const existingContactDraft = input.contactDraft;
   const hasCompleteContactDraft = existingContactDraft && missingContactFields(existingContactDraft).length === 0;
-  // The product name is not a request to speak to a human agent.
-  const isExplicitContactRequest = isContactRequest(question.replace(/\bagent(?:\s+trust)?\s+passport\b/gi, "passport"));
+  const isExplicitContactRequest = isContactRequest(question);
   
   if (existingContactDraft && hasCompleteContactDraft && !isExplicitContactRequest && !existingContactDraft.awaitingConfirmation) {
     // User has a complete contact draft but is asking a normal product question
@@ -1140,6 +1146,14 @@ export function buildUsyReply(input: {
       contactDraft: completeDraft,
       intent: "contact_request",
     };
+  }
+
+  const passportIntent = detectPassportIntent(normalized);
+  if (passportIntent && /\b(broken|error|fails?|failed|not working|cannot open|can t open|funktioniert nicht|fehler|werkt niet|erreur|ne fonctionne pas|no funciona|nem mukodik|nu functioneaza|fungerar inte)\b/.test(normalized)) {
+    return knowledgeAnswer(
+      localizedIntentAnswer("support", context, language) ?? productIntents.find((entry) => entry.id === "support")!.answer(context),
+      ["Contact support"], "technical_support", language, ["OPEN_AGENT_PASSPORT", "CONTACT_SUPPORT"],
+    );
   }
 
   if (requiresAiAssistant(normalized)) {
@@ -1371,14 +1385,24 @@ function asksForPersonalAccountData(normalized: string) {
   return personalSignals.some((signal) => normalized.includes(normalizeUsyText(signal)));
 }
 
+function detectPassportIntent(normalized: string) {
+  const intent = productIntents.find((entry) => entry.id === "agent-passport")!;
+  // Match whole feature phrases; partial scoring can confuse generic identity,
+  // risk, and lifecycle questions with this specific product feature.
+  const featureText = normalized.replace(/[?.-]/g, " ").replace(/\s+/g, " ").trim();
+  return intent.keywords.some((keyword) => (` ${featureText} `).includes(` ${normalizeUsyText(keyword)} `)) ? intent : null;
+}
+
 function detectProductIntent(normalized: string, role: UsyRole) {
+  const passport = detectPassportIntent(normalized);
+  if (passport) return passport;
   const tokens = new Set(normalized.split(" ").filter((token) => token.length > 1));
   return productIntents
     .map((intent) => ({
       intent,
       score: intent.roles && !intent.roles.includes(role) ? 0 : scoreIntent(normalized, tokens, intent),
     }))
-    .filter(({ intent, score }) => score >= (intent.minScore ?? 2))
+    .filter(({ intent, score }) => intent.id !== "agent-passport" && score >= (intent.minScore ?? 2))
     .sort((a, b) => b.score - a.score)[0]?.intent ?? null;
 }
 

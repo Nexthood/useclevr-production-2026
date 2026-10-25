@@ -5,6 +5,17 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-10-24
+- **Goal**: Fix multilingual Usy Passport intent precedence and accurate feature explanations (T-1099).
+- **Root cause**: Bare agent/human vocabulary triggers contact_request before product routing; the existing product-name exemption handles only Passport phrases.
+- **Behavior**: Complete Passport phrases and translated names receive deterministic product knowledge and authenticated navigation. Explicit contact and active drafts retain their workflow; Passport errors receive technical guidance. Eight languages remain EN, DE, NL, FR, ES, HU, RO, SV.
+- **Evidence**: Pre-717cc462 source reproduces the exact failure. Verified origin/main dede8604 includes 717cc462; GitHub publication runs succeed and the live endpoint answers the exact question correctly. The public response contains no runtime source SHA.
+- **Validation**: Six Usy suites, TypeScript, focused ESLint (zero errors, two existing warnings), dependency security, secret, TODO, changelog, and package checks pass. Passport API authorization is unchanged.
+- **Git**: Commit scoped changes on fix/usy-passport-routing; no push, Railway authentication, or manual deployment occurs.
+- **Records**: requirements.md, CHANGELOG.md, regular TODO completion, interactive log, and activity log describe current behavior and evidence.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
 - **Goal**: Execute the user's explicit `git push origin main` instruction for 717cc462.
 - **Outcome**: No upload. The required production build reports Killed and exit 137; the push exits 143. Local main remains one commit ahead of origin/main.
 - **Passing checks**: TypeScript, config sync, package, TODO, workflow, secret, pricing, and full ESLint (zero errors, 452 warnings).
