@@ -1,3 +1,15 @@
+## 2026-10-24 — Multilingual Usy Passport intent routing (T-1099)
+
+1. Goal: Route Passport product questions, navigation, explicit human contact, and technical problems accurately in Usy's eight configured languages.
+2. Changes: Require a request phrase for human-agent contact; match complete Passport phrases and translated names before generic product scoring; retain contact drafts and explicit department contact. Expand deterministic knowledge with business accountability, account-persistent identity, creation location, owner-declared risk and lifecycle labels, and no automatic compliance guarantee. Passport API authorization and navigation destinations stay outside this change.
+3. Findings: The pre-717cc462 router reproduces “Agent Trust Passport tell me more” as contact_request because bare “agent” triggers contact before product routing. Current main dede8604 includes 717cc462 and matches fetched origin/main. Its phrase-specific exemption handles the exact question but misroutes “Explain AI agent ownership” and human-identity questions. French is the eighth language; the interface detects the question language automatically rather than exposing a Usy language selector.
+4. Deployment evidence: GitHub publication runs 40131856912 (717cc462) and 40132160164 (dede8604) succeed. The live public Usy endpoint returns the Passport explanation and OPEN_AGENT_PASSPORT for the exact question. This verifies the deployed feature behavior; the response does not expose the running source SHA.
+5. Validation: Product/multilingual knowledge, contact-message, contact-handoff, guest, Secretariat, and all 18 billing cases pass. Tests cover translated synonyms, mixed-language questions, four roles, identity/certification/compliance boundaries, risk/lifecycle labels, technical problems, explicit contacts, dataset analysis, restricted information, and unknown fallback. TypeScript and dependency security tests pass; focused ESLint has zero errors and two existing warnings. TODO, changelog, package, and secret checks pass.
+6. Problems: No implementation blocker. Runtime SHA attestation is unavailable through the public Usy response. No browser navigation acceptance is performed; action registry, route anchor, and authentication guards have regression coverage.
+7. Learning and destinations: Human identity nouns alone do not establish contact intent. Store the routing requirement in requirements.md, release behavior in CHANGELOG.md, and task completion in the regular TODO queue. No additional task is assigned.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+9. Git boundary: Work on fix/usy-passport-routing from verified main; commit only scoped changes with normal hooks. No push, Railway authentication, or manual deployment occurs.
+
 ## 2026-10-24 — Explicit main push attempt
 
 1. Goal: Run the user's explicit `git push origin main` instruction for commit 717cc462 with normal hooks.

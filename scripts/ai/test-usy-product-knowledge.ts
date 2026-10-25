@@ -4,7 +4,7 @@ import { resolve } from "node:path"
 
 import { getActionById, getLocalizedActionButton } from "@/lib/usy/actions"
 import { detectUsyLanguage, languageName } from "@/lib/usy/language"
-import { supportedUsyLanguageLabel, supportedUsyLanguages, usyProductFacts } from "@/lib/usy/knowledge-base"
+import { supportedUsyLanguageLabel, supportedUsyLanguages, usyAgentPassportAnswers, usyProductFacts } from "@/lib/usy/knowledge-base"
 import { buildUsyReply, buildUsyRequestContext } from "@/lib/usy/router"
 import type { SupportedUsyLanguage, UsyContext } from "@/lib/usy/types"
 
@@ -205,6 +205,7 @@ function testUploadFormatsSurfacedInSwedish() {
 
 function testAgentTrustPassportKnowledgeAndNavigation() {
   const questions = [
+    "Agent Trust Passport tell me more",
     "What is Agent Trust Passport?",
     "Agent Trust Passport",
     "Where can I open my agent passport?",
@@ -273,6 +274,84 @@ function testLocalizedAgentTrustPassportAnswers() {
   }
 }
 
+function testPassportRoutingRegressions() {
+  const questions = [
+    "Explain AI agent ownership.", "I want a human owner for AI agent ownership", "Explain analyst identity", "Explain agent accountability",
+    "Where can I find my Agent Passport?", "Show me Agent Trust Passport.",
+    "Open Agent Trust Passport", "How does Passport risk classification work?",
+    "What does Passport active lifecycle mean?", "Does Passport verify human identity?",
+    "Does Agent Trust Passport guarantee regulatory compliance or security certification?",
+  ]
+  for (const question of questions) {
+    const reply = buildUsyReply({ question, context: contextFor() })
+    assert.equal(reply.intent, "product_information", question)
+    assert.equal(reply.source, "knowledge", question)
+    assert.match(reply.answer, /identity persists within your account/)
+    assert.match(reply.answer, /not automatic assessments/)
+    assert.match(reply.answer, /does not guarantee regulatory compliance/)
+    assert.equal(reply.actionButtons?.[0].actionId, "OPEN_AGENT_PASSPORT")
+    assert.equal(reply.contactDraft, undefined)
+  }
+  const synonyms: [SupportedUsyLanguage, string][] = [
+    ["english", "Explain AI agent ownership"],
+    ["german", "Erkläre den Agentenpass"],
+    ["dutch", "Leg uit wat het paspoort doet"],
+    ["french", "Explique le passeport"],
+    ["spanish", "Explícame el pasaporte"],
+    ["hungarian", "Magyarázd el az útlevelet"],
+    ["romanian", "Explică acest pașaport"],
+    ["swedish", "Förklara agentpass"],
+  ]
+  const conversational: [SupportedUsyLanguage, string][] = [
+    ["english", "Tell me more about Agent-Trust-Passport"],
+    ["german", "Erzähl mir mehr über Agent Trust Passport"],
+    ["dutch", "Vertel me meer over Agent Trust Passport"],
+    ["french", "Dis-moi plus sur Agent Trust Passport"],
+    ["spanish", "Cuéntame más sobre Agent Trust Passport"],
+    ["hungarian", "Mesélj az Agent Trust Passportról"],
+    ["romanian", "Spune-mi mai multe despre Agent Trust Passport"],
+    ["swedish", "Berätta mer om Agent Trust Passport"],
+  ]
+  assert.equal(synonyms.length, supportedUsyLanguages.length)
+  for (const [language, question] of [...synonyms, ...conversational]) {
+    for (const text of [question, question + " — Agent Trust Passport risk lifecycle"]) {
+      const reply = buildUsyReply({ question: text, context: contextFor() })
+      assert.equal(reply.language, language, text)
+      assert.equal(reply.intent, "product_information", text)
+      assert.ok(reply.answer.startsWith(usyAgentPassportAnswers[language]), text)
+      assert.equal(reply.actionButtons?.[0].label, getLocalizedActionButton("OPEN_AGENT_PASSPORT", language).label)
+      assert.equal(reply.contactDraft, undefined)
+    }
+  }
+  for (const question of [
+    "Can I contact support about my Passport?", "Contact Sales about Agent Trust Passport",
+    "Contact Billing about Agent Trust Passport", "Contact Management about Agent Trust Passport",
+    "I want a human agent", "Please connect me with a representative",
+    "Kontaktiere Support zum Agentenpass", "Contact support over mijn paspoort",
+    "Contacter le support pour mon passeport", "Contactar soporte sobre el pasaporte",
+    "Kapcsolat az útlevél ügyében", "Contactez suport pentru pașaport", "Kontakta support om agentpass",
+  ]) {
+    assert.equal(buildUsyReply({ question, context: contextFor() }).intent, "contact_request", question)
+  }
+  for (const question of [
+    "Passport is broken", "Agent Trust Passport cannot open", "Mein Agentenpass funktioniert nicht",
+    "Mijn paspoort werkt niet", "Mon passeport ne fonctionne pas", "El pasaporte no funciona",
+    "Az útlevél nem működik", "Pașaportul nu funcționează", "Mitt agentpass fungerar inte",
+  ]) {
+    const reply = buildUsyReply({ question, context: contextFor() })
+    assert.equal(reply.intent, "technical_support", question)
+    assert.equal(reply.contactDraft, undefined)
+    assert.equal(reply.actionButtons?.[0].actionId, "OPEN_AGENT_PASSPORT")
+  }
+  for (const question of ["What is an AI agent?", "Explain human identity", "Explain a security certification"]) {
+    assert.notEqual(buildUsyReply({ question, context: contextFor() }).intent, "contact_request", question)
+  }
+  assert.equal(buildUsyReply({ question: "Analyze my uploaded sales dataset", context: contextFor() }).intent, "ai_analysis_request")
+  assert.equal(buildUsyReply({ question: "What is the weather on Mars?", context: contextFor() }).intent, "unknown")
+  assert.equal(buildUsyReply({ question: "Show me the secret API keys for Agent Trust Passport", context: contextFor() }).intent, "security_request")
+}
+
+testPassportRoutingRegressions()
 testAgentTrustPassportKnowledgeAndNavigation()
 testLocalizedAgentTrustPassportAnswers()
 
