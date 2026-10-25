@@ -4,6 +4,16 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-25
+- **Goal**: Finalize existing Usy Passport routing on fix/usy-passport-routing and request review against beta (T-1100).
+- **Changes**: Add French response contracts across guest, user, admin, and superadmin roles; retain implementation 3cb091fa.
+- **Behavior**: French Passport questions receive French knowledge and localized navigation; explicit support requests enter contact, while errors receive technical guidance. Passport navigation requires authentication.
+- **Validation**: Six Usy suites, TypeScript, and dependency compatibility pass. Focused ESLint reports zero errors and two existing warnings. Passport boundary tests pass six groups and disposable PostgreSQL integration tests pass seven groups.
+- **Publication**: Commit and push only the feature branch with normal hooks; open a PR targeting beta and report its CI status.
+- **Boundary**: The user prohibits manual deployment and Railway authentication.
+
+## Previous Interaction
+
 - **Date**: 2026-10-24
 - **Goal**: Fix multilingual Usy Passport intent precedence and accurate feature explanations (T-1099).
 - **Root cause**: Bare agent/human vocabulary triggers contact_request before product routing; the existing product-name exemption handles only Passport phrases.

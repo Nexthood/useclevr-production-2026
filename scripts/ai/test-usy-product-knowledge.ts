@@ -274,6 +274,40 @@ function testLocalizedAgentTrustPassportAnswers() {
   }
 }
 
+function testFrenchPassportResponseContract() {
+  for (const role of ["public", "user", "admin", "superadmin"] as const) {
+    const context = buildUsyRequestContext({
+      audience: role === "public" ? "public" : "dashboard",
+      role,
+      route: role === "public" ? "/" : "/app",
+      isAuthenticated: role !== "public",
+    })
+    const reply = buildUsyReply({ question: "Dis-moi plus sur Agent Trust Passport", context })
+    assert.equal(reply.language, "french")
+    assert.equal(reply.intent, "product_information")
+    assert.equal(reply.source, "knowledge")
+    assert.match(reply.answer, /L’identité persiste dans votre compte/)
+    assert.match(reply.answer, /sans lire ni modifier votre passeport/)
+    assert.match(reply.answer, /sans évaluation automatique/)
+    assert.match(reply.answer, /ne garantit pas la conformité réglementaire/)
+    assert.equal(reply.contactDraft, undefined)
+    assert.deepEqual(reply.actionButtons?.map((button) => [button.actionId, button.label]), [
+      ["OPEN_AGENT_PASSPORT", "Ouvrir Agent Trust Passport"],
+    ])
+    const contact = buildUsyReply({ question: "Contacter le support pour mon passeport", context })
+    assert.equal(contact.language, "french")
+    assert.equal(contact.intent, "contact_request")
+    assert.equal(contact.contactDraft?.language, "french")
+    const problem = buildUsyReply({ question: "Mon passeport ne fonctionne pas", context })
+    assert.equal(problem.language, "french")
+    assert.equal(problem.intent, "technical_support")
+    assert.equal(problem.contactDraft, undefined)
+    assert.deepEqual(problem.actionButtons?.map((button) => button.label), [
+      "Ouvrir Agent Trust Passport", "Contacter le support",
+    ])
+  }
+}
+
 function testPassportRoutingRegressions() {
   const questions = [
     "Explain AI agent ownership.", "I want a human owner for AI agent ownership", "Explain analyst identity", "Explain agent accountability",
@@ -351,6 +385,7 @@ function testPassportRoutingRegressions() {
   assert.equal(buildUsyReply({ question: "Show me the secret API keys for Agent Trust Passport", context: contextFor() }).intent, "security_request")
 }
 
+testFrenchPassportResponseContract()
 testPassportRoutingRegressions()
 testAgentTrustPassportKnowledgeAndNavigation()
 testLocalizedAgentTrustPassportAnswers()
