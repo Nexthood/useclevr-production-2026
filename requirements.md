@@ -11,6 +11,10 @@ Text rules for this file:
 
 ## AI Governance
 
+- Usy explains Agent Trust Passport in all eight supported languages and links guests and signed-in users to AI Governance → Transparency through an authenticated navigation action; Usy does not read or edit passport records.
+- Usy routes Passport names and ownership synonyms in EN, DE, NL, FR, ES, HU, RO, and SV to deterministic product knowledge; bare AI-agent and human-identity vocabulary does not initiate human contact. Explicit contact requests and active contact drafts retain the contact workflow; Passport errors receive technical guidance.
+- Usy explains account-persistent analyst identity, business accountability, owner-declared risk and lifecycle labels, creation and trace references, and the absence of automatic compliance guarantees.
+
 - Let each signed-in account create and edit one Clevr AI Analyst passport with a human owner name, purpose, declared scope, owner-declared risk, and descriptive lifecycle.
 - Keep the passport identity stable across provider, model, and lifecycle changes; reject identity reassignment and cross-account edits.
 - Accept Passport writes through the application proxy only with a valid session and a matching request origin, or the configured public app origin with browser same-origin metadata; reject cross-site requests and ignore forwarded headers as origin authority.

@@ -1,3 +1,55 @@
+## 2026-10-25 — Finalize Usy Passport routing for beta (T-1100)
+
+1. Goal: Validate and publish fix/usy-passport-routing as a pull request targeting beta; the user prohibits manual deployment and Railway authentication.
+2. Changes: Retain routing implementation 3cb091fa. Add French response-contract assertions for public, user, admin, and superadmin roles, localized navigation, account-persistent identity, owner declarations, compliance limits, explicit contact, and technical guidance.
+3. Findings: GitHub compares the existing branch as four commits ahead of beta with no commits behind. PR #411 targets main and is merged; beta requires its own review PR. French is one of eight supported languages and is detected from the question.
+4. Validation: Six Usy suites pass, including all 18 billing cases; the added French contract passes. TypeScript and dependency compatibility checks pass. Focused ESLint reports zero errors and two existing warnings. Passport boundary tests pass six groups and disposable PostgreSQL integration tests pass seven groups.
+5. Problems: No routing implementation blocker. GitHub access and the Secretariat test IPC socket require sandbox escalation. No browser or deployed endpoint acceptance is performed in this task.
+6. Learning: Verify existing branch commits and target-base differences before adding behavior. Keep this task scoped to validation, review publication, and CI reporting.
+7. Destinations: Store regression checks in scripts/ai/test-usy-product-knowledge.ts, test benefit in CHANGELOG.md, and task completion in the regular TODO queue. Existing requirements describe the validated behavior.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+9. Publication: Commit validation changes with normal hooks and push only fix/usy-passport-routing; open its review PR against beta. No manual deployment or Railway authentication is authorized.
+
+## 2026-10-24 — Multilingual Usy Passport intent routing (T-1099)
+
+1. Goal: Route Passport product questions, navigation, explicit human contact, and technical problems accurately in Usy's eight configured languages.
+2. Changes: Require a request phrase for human-agent contact; match complete Passport phrases and translated names before generic product scoring; retain contact drafts and explicit department contact. Expand deterministic knowledge with business accountability, account-persistent identity, creation location, owner-declared risk and lifecycle labels, and no automatic compliance guarantee. Passport API authorization and navigation destinations stay outside this change.
+3. Findings: The pre-717cc462 router reproduces “Agent Trust Passport tell me more” as contact_request because bare “agent” triggers contact before product routing. Current main dede8604 includes 717cc462 and matches fetched origin/main. Its phrase-specific exemption handles the exact question but misroutes “Explain AI agent ownership” and human-identity questions. French is the eighth language; the interface detects the question language automatically rather than exposing a Usy language selector.
+4. Deployment evidence: GitHub publication runs 40131856912 (717cc462) and 40132160164 (dede8604) succeed. The live public Usy endpoint returns the Passport explanation and OPEN_AGENT_PASSPORT for the exact question. This verifies the deployed feature behavior; the response does not expose the running source SHA.
+5. Validation: Product/multilingual knowledge, contact-message, contact-handoff, guest, Secretariat, and all 18 billing cases pass. Tests cover translated synonyms, mixed-language questions, four roles, identity/certification/compliance boundaries, risk/lifecycle labels, technical problems, explicit contacts, dataset analysis, restricted information, and unknown fallback. TypeScript and dependency security tests pass; focused ESLint has zero errors and two existing warnings. TODO, changelog, package, and secret checks pass.
+6. Problems: No implementation blocker. Runtime SHA attestation is unavailable through the public Usy response. No browser navigation acceptance is performed; action registry, route anchor, and authentication guards have regression coverage.
+7. Learning and destinations: Human identity nouns alone do not establish contact intent. Store the routing requirement in requirements.md, release behavior in CHANGELOG.md, and task completion in the regular TODO queue. No additional task is assigned.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+9. Git boundary: Work on fix/usy-passport-routing from verified main; commit only scoped changes with normal hooks. No push, Railway authentication, or manual deployment occurs.
+
+## 2026-10-24 — Explicit main push attempt
+
+1. Goal: Run the user's explicit `git push origin main` instruction for commit 717cc462 with normal hooks.
+2. Outcome: The push stops in the required production-build hook. The build reports Killed and exit 137; the push process exits 143. No upload occurs. Local main remains one commit ahead of the fetched origin/main and the worktree is clean before this record update.
+3. Validation: TypeScript, deployment-config sync, package, TODO, workflow, secret, and pricing checks pass. Full ESLint reports zero errors and 452 warnings. Production compilation does not complete; workflow auto-fix after the build does not run.
+4. Observation and follow-up: Exit 137 indicates forced termination; memory pressure is a likely cause, not a verified diagnosis. Retry the normal push when build resources are available. Do not bypass hooks or terminate unrelated processes.
+5. Boundaries: The explicit user instruction authorizes this main push attempt. No Railway authentication, manual deployment, unrelated deletion, extra commit, or hook modification occurs. These three push-attempt records remain local.
+6. Instruction sources and destinations: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md require the interactive log, activity log, and interaction status.
+
+## 2026-10-24 — Usy Agent Trust Passport integration (T-1098)
+
+1. Goal: Finalize Usy Passport knowledge, confirm the Transparency navigation action, validate regressions, commit scoped changes, and synchronize local main safely.
+2. Changes: Usy explains stable analyst identity, human ownership, purpose, scope, declared risk, descriptive lifecycle, trace linkage, and certification boundaries in all eight supported languages. The localized navigation action opens the owner's Passport section under AI Governance → Transparency and requires sign-in. Product-name matching prevents “agent” from starting the contact flow; explicit contact requests and active drafts retain their flow.
+3. Verification: Product knowledge covers five questions across four roles, eight localized answers, navigation metadata and target guards, and contact-flow boundaries. Guest, billing (18 cases), contact-message, contact-handoff, and Secretariat suites pass. TypeScript and focused ESLint pass (zero errors; existing unused-import and ignored-test-file warnings); TODO, changelog, package, and whitespace checks pass.
+4. Record review: The three initial pending files contain this session's task-identification records, not uncommitted Passport implementation. Retain those legitimate audit entries and add this integration result. Requirements and release notes describe the current user behavior.
+5. Synchronization: Fetch origin and fast-forward local main from 10954748 to d2025da3. Restore the three records from a named stash, retaining both sides of append conflicts. Keep the stash as a backup. Dependencies synchronize from the upstream lockfile without manifest edits.
+6. Boundaries and follow-up: No unrelated work is deleted. No push, Railway authentication, manual deployment, production access, or browser acceptance run occurs. Commit scope contains only Usy integration, regressions, requirements, release notes, TODO metadata, and session records.
+7. Learning and instruction sources: Passport product names require disambiguation from human-agent contact keywords. AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md route this result into these records and T-1098.
+
+## 2026-10-24 — Continuation task identification
+
+1. Goal: Identify the task referenced by “continue last task Usy skills.”
+2. Findings: HEAD is 10954748 and the worktree is clean before record updates. The latest rebase and the latest Usy Swedish-language task are recorded as complete. No active Usy task appears in the queue.
+3. Observation: The request can refer to the Usy assistant or to using skills for the latest task. The agent requests task identification; no implementation or validation result is inferred from earlier records.
+4. Follow-up: The user identifies the intended task and remaining outcome. Product edits, commits, pushes, and deployments require an identified task scope.
+5. Learning: Read task records together with current Git state before selecting continuation work. No matching Usy skill appears in the available skill catalog.
+6. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. Destinations: the three required interaction records.
+
 ## 2026-10-24 — Passport CI dependency remediation and beta PR (T-1095, T-1097)
 
 1. Goal: Fix CI dependency advisories and publish the Passport branch for beta review; stop T-1093 and all Railway authentication attempts.

@@ -2,6 +2,8 @@
 
 ### Added
 
+- Explain Agent Trust Passport through Usy and let users open their passport in AI Governance → Transparency.
+
 - Let users manage an Agent Trust Passport in AI Governance to record their analyst's human owner, purpose, scope, declared risk, lifecycle, and linked activity.
 - Usy now understands Swedish and answers every supported topic, including billing, planning, and contact requests, in Swedish.
 - The dashboard language selector now offers Swedish alongside the existing languages.
@@ -13,6 +15,8 @@
 - Locked historical datasets stay visible with their names, sizes, and dates, and reopen automatically the moment the subscription reactivates.
 
 ### Fixed
+
+- Answer multilingual Passport and AI-agent ownership questions with product guidance and direct navigation, and distinguish technical problems from human-contact requests.
 
 - Let signed-in users create and edit their Agent Trust Passports behind HTTPS application proxies with account ownership and cross-origin protection enforced.
 - Bind ChatGPT account linking to verified client callbacks and reject repeated or concurrent use of an authorization code.
@@ -60,6 +64,8 @@
 - Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
+
+- Check French Passport explanations, navigation labels, and support routing across guest and signed-in roles to catch response regressions.
 
 - Patch connector validation and rich-text processing dependencies, and test their compatibility before release.
 

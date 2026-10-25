@@ -80,10 +80,14 @@ export function detectContactCategory(message: string): UsyContactCategory | nul
 
 export function isContactRequest(message: string) {
   const normalized = normalizeUsyText(message);
-  const contactVerb = /\b(contact|speak|talk|connect|reach|message|email|call|support ticket|human|agent|representative)\b/.test(normalized) ||
-    /\b(kontakt|kontaktiere|kontaktieren|sprechen|spreek|contact|contacter|parler|joindre|message|email|appeler|humain|agent|representant|représentant|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez|kontakta|kontaktar|prata med|komma i kontakt)\b/.test(normalized);
+  const contactVerb = /\b(contact|speak|talk|connect|reach|message|email|call|support ticket)\b/.test(normalized) ||
+    /\b(kontakt|kontaktiere|kontaktieren|sprechen|spreek|contact|contacter|parler|joindre|message|email|appeler|hablar|contactar|beszelni|kapcsolat|vorbesc|contactez|kontakta|kontaktar|prata med|komma i kontakt)\b/.test(normalized);
   const department = /\b(sales|billing|management|executive|technical support|it support|support)\b/.test(normalized);
-  return contactVerb || (department && /\b(help|request|need|want|please|with|about|behover|hjalp|vill)\b/.test(normalized));
+  // Identity and ownership vocabulary describes AI products too. A human
+  // recipient requires a request phrase; a bare "agent" is not contact intent.
+  const humanRequest = /^(human|agent|representative|humain|representant)$/.test(normalized) ||
+    /\b(?:need|want|request|ask for|get me|find me) (?:to speak to |to talk to |a |an )?(?:human(?: agent| representative)?|agent|representative)(?=$|[?.]| (?:please|about|for|to|who)\b)/.test(normalized);
+  return contactVerb || humanRequest || (department && /\b(help|request|need|want|please|with|about|behover|hjalp|vill)\b/.test(normalized));
 }
 
 export function isConfirmation(message: string) {

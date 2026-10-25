@@ -14,6 +14,7 @@ import {
 } from "@/lib/usy/billing-knowledge";
 import {
   getPlanSummary,
+  usyAgentPassportAnswers,
   supportedUsyLanguageLabel,
   usyClevrSyncFacts,
   usyCreditCostFacts,
@@ -59,6 +60,7 @@ type ProductIntentId =
   | "reports"
   | "retail"
   | "accountancy"
+  | "agent-passport"
   | "governance"
   | "integrations"
   | "account"
@@ -161,6 +163,7 @@ const usyIntentByProductIntent: Record<ProductIntentId, UsyIntent> = {
   reports: "product_information",
   retail: "product_information",
   accountancy: "product_information",
+  "agent-passport": "product_information",
   governance: "security_request",
   integrations: "product_information",
   account: "account_help",
@@ -193,6 +196,21 @@ const businessTerms = [
 ];
 
 const productIntents: ProductIntentRule[] = [
+  {
+    id: "agent-passport",
+    keywords: [
+      "agent trust passport", "agent passport", "trust passport", "passport", "passports", "ai governance transparency",
+      "ai agent ownership", "ai agent identity", "analyst identity", "agent accountability", "agent risk classification", "agent lifecycle",
+      "agentenpass", "agentenpasses", "ki agenten eigentum", "verantwortung fur ki agenten",
+      "paspoort", "paspoorten", "eigenaarschap van ai agenten", "passeport", "passeports", "responsabilite des agents ia",
+      "pasaporte", "pasaportes", "propiedad de agentes de ia", "utlevel", "utlevelet", "utlevelem", "passportrol", "passportot", "passporthoz", "passportra", "passportban", "ai ugynok tulajdonosa",
+      "pasaport", "pasaportul", "pasaportului", "responsabilitatea agentilor ai", "agentpass", "agentpasset", "agarskap for ai agenter",
+    ],
+    minScore: 3,
+    answer: () => usyAgentPassportAnswers.english,
+    followUps: [],
+    actions: ["OPEN_AGENT_PASSPORT"],
+  },
   {
     id: "languages",
     keywords: ["languages", "which languages", "speak german", "spreek je nederlands", "parles français", "parles tu francais", "parles-tu francais", "parlez-vous francais", "parlez francais", "hablas español", "beszélsz magyarul", "vorbești română", "vilka sprak", "vilka sprak talar du", "vilka sprak pratar du", "talar du svenska", "pratar du svenska", "sprak talar du", "talar svenska"],
@@ -1130,6 +1148,14 @@ export function buildUsyReply(input: {
     };
   }
 
+  const passportIntent = detectPassportIntent(normalized);
+  if (passportIntent && /\b(broken|error|fails?|failed|not working|cannot open|can t open|funktioniert nicht|fehler|werkt niet|erreur|ne fonctionne pas|no funciona|nem mukodik|nu functioneaza|fungerar inte)\b/.test(normalized)) {
+    return knowledgeAnswer(
+      localizedIntentAnswer("support", context, language) ?? productIntents.find((entry) => entry.id === "support")!.answer(context),
+      ["Contact support"], "technical_support", language, ["OPEN_AGENT_PASSPORT", "CONTACT_SUPPORT"],
+    );
+  }
+
   if (requiresAiAssistant(normalized)) {
     return knowledgeAnswer(localizedCommon("aiAssistant", language), ["Open AI Assistant", "Choose a dataset", "Generate a report", "Upload data"], "ai_analysis_request", language, ["OPEN_AI_ASSISTANT", "OPEN_DATASETS"]);
   }
@@ -1359,14 +1385,24 @@ function asksForPersonalAccountData(normalized: string) {
   return personalSignals.some((signal) => normalized.includes(normalizeUsyText(signal)));
 }
 
+function detectPassportIntent(normalized: string) {
+  const intent = productIntents.find((entry) => entry.id === "agent-passport")!;
+  // Match whole feature phrases; partial scoring can confuse generic identity,
+  // risk, and lifecycle questions with this specific product feature.
+  const featureText = normalized.replace(/[?.-]/g, " ").replace(/\s+/g, " ").trim();
+  return intent.keywords.some((keyword) => (` ${featureText} `).includes(` ${normalizeUsyText(keyword)} `)) ? intent : null;
+}
+
 function detectProductIntent(normalized: string, role: UsyRole) {
+  const passport = detectPassportIntent(normalized);
+  if (passport) return passport;
   const tokens = new Set(normalized.split(" ").filter((token) => token.length > 1));
   return productIntents
     .map((intent) => ({
       intent,
       score: intent.roles && !intent.roles.includes(role) ? 0 : scoreIntent(normalized, tokens, intent),
     }))
-    .filter(({ intent, score }) => score >= (intent.minScore ?? 2))
+    .filter(({ intent, score }) => intent.id !== "agent-passport" && score >= (intent.minScore ?? 2))
     .sort((a, b) => b.score - a.score)[0]?.intent ?? null;
 }
 
@@ -1875,6 +1911,7 @@ function buildUploadLimitAnswer(context: UsyContext, language: SupportedUsyLangu
 }
 
 function nextStepForIntent(intentId: string, context: UsyContext, language: SupportedUsyLanguage) {
+  if (intentId === "agent-passport") return getLocalizedActionButton("OPEN_AGENT_PASSPORT", language).label + ".";
   if (language !== "english") {
     if (intentId === "plans" || intentId === "billing" || intentId === "top-ups" || intentId === "refunds" || intentId === "subscription-status" || intentId === "cancellation" || intentId === "downgrade" || intentId === "historical-unlock") return localizedCommon("nextBilling", language);
     if (intentId === "credits") return localizedCommon("nextGeneric", language);
@@ -2361,6 +2398,7 @@ function localizeFollowUps(followUps: string[], language: SupportedUsyLanguage) 
 }
 
 function localizedIntentAnswer(intentId: string, context: UsyContext, language: SupportedUsyLanguage) {
+  if (intentId === "agent-passport") return usyAgentPassportAnswers[language];
   if (language === "english") return null;
   const plans = getPlanSummary();
   const uploadFormats = usyProductFacts.uploadFormats.join(", ");

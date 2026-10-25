@@ -1,3 +1,39 @@
+## 2026-10-25 — Finalize Usy Passport routing for beta (T-1100)
+
+- Validate existing routing commit 3cb091fa and add French response contracts across all four roles.
+- Pass six Usy suites, TypeScript, and dependency compatibility; focused ESLint reports zero errors and two existing warnings.
+- Publish fix/usy-passport-routing through normal commit/push hooks and request review against beta; report GitHub CI status.
+- Limit this task to review publication; no manual deployment or Railway authentication is authorized.
+
+## 2026-10-24 — Multilingual Usy Passport routing (T-1099)
+
+- Route Passport names and ownership questions to deterministic eight-language product knowledge; distinguish human-contact requests and technical problems.
+- Explain account identity persistence, business accountability, declared risk/lifecycle labels, creation, trace references, and compliance limits.
+- Reproduce the pre-717cc462 failure; confirm successful publication runs and the current live endpoint's correct exact-question response without Railway authentication.
+- Pass six Usy suites, TypeScript, focused ESLint (zero errors, two existing warnings), dependency security, secret, TODO, changelog, and package checks.
+- Commit scoped changes on fix/usy-passport-routing from verified main; no push or manual deployment occurs. Public responses do not identify the running source SHA.
+
+## 2026-10-24 — Explicit main push attempt
+
+- Run `git push origin main` for 717cc462 with normal pre-push hooks under explicit user authorization.
+- Pass TypeScript, config sync, metadata, workflow, secret, pricing, and lint checks; full ESLint has zero errors and 452 warnings.
+- Stop before upload when production compilation reports Killed and exit 137. Keep main one commit ahead of origin/main; retain local push-attempt records.
+- Keep hooks enabled; do not authenticate Railway, deploy manually, delete unrelated work, or terminate unrelated processes.
+
+## 2026-10-24 — Usy Agent Trust Passport integration (T-1098)
+
+- Explain Passport metadata and limits in all eight Usy languages; link to the owner's authenticated Transparency section.
+- Disambiguate the product name from human-agent contact requests and validate both flows.
+- Pass six Usy suites, including 18 billing cases and Passport role/language/navigation regressions; TypeScript and focused ESLint pass (zero errors; existing unused-import and ignored-test-file warnings).
+- Fast-forward local main to origin/main at d2025da3; retain both upstream and local records and a named stash backup.
+- Retain the three legitimate task-identification records; scope the commit to this integration and required product/session records. No push, Railway authentication, or manual deployment occurs.
+
+## 2026-10-24 — Continuation task identification
+
+- Confirm clean HEAD 10954748 and completed rebase and Usy Swedish-language records.
+- Request the intended task identity; no active Usy task or matching available skill identifies remaining work.
+- Update interaction records only; no product edit, commit, push, or deployment occurs.
+
 ## 2026-10-24 — Passport CI dependency remediation
 
 - Preserve all 111 original-worktree files and work only on fix/passport-proxy-origin.

@@ -4,6 +4,55 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-10-25
+- **Goal**: Finalize existing Usy Passport routing on fix/usy-passport-routing and request review against beta (T-1100).
+- **Changes**: Add French response contracts across guest, user, admin, and superadmin roles; retain implementation 3cb091fa.
+- **Behavior**: French Passport questions receive French knowledge and localized navigation; explicit support requests enter contact, while errors receive technical guidance. Passport navigation requires authentication.
+- **Validation**: Six Usy suites, TypeScript, and dependency compatibility pass. Focused ESLint reports zero errors and two existing warnings. Passport boundary tests pass six groups and disposable PostgreSQL integration tests pass seven groups.
+- **Publication**: Commit and push only the feature branch with normal hooks; open a PR targeting beta and report its CI status.
+- **Boundary**: The user prohibits manual deployment and Railway authentication.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Fix multilingual Usy Passport intent precedence and accurate feature explanations (T-1099).
+- **Root cause**: Bare agent/human vocabulary triggers contact_request before product routing; the existing product-name exemption handles only Passport phrases.
+- **Behavior**: Complete Passport phrases and translated names receive deterministic product knowledge and authenticated navigation. Explicit contact and active drafts retain their workflow; Passport errors receive technical guidance. Eight languages remain EN, DE, NL, FR, ES, HU, RO, SV.
+- **Evidence**: Pre-717cc462 source reproduces the exact failure. Verified origin/main dede8604 includes 717cc462; GitHub publication runs succeed and the live endpoint answers the exact question correctly. The public response contains no runtime source SHA.
+- **Validation**: Six Usy suites, TypeScript, focused ESLint (zero errors, two existing warnings), dependency security, secret, TODO, changelog, and package checks pass. Passport API authorization is unchanged.
+- **Git**: Commit scoped changes on fix/usy-passport-routing; no push, Railway authentication, or manual deployment occurs.
+- **Records**: requirements.md, CHANGELOG.md, regular TODO completion, interactive log, and activity log describe current behavior and evidence.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Execute the user's explicit `git push origin main` instruction for 717cc462.
+- **Outcome**: No upload. The required production build reports Killed and exit 137; the push exits 143. Local main remains one commit ahead of origin/main.
+- **Passing checks**: TypeScript, config sync, package, TODO, workflow, secret, pricing, and full ESLint (zero errors, 452 warnings).
+- **Follow-up**: Retry the normal push when sufficient build resources are available. Forced termination is observed; memory pressure is an unverified explanation. Hooks remain enabled.
+- **Worktree**: Clean before this update; the three required push-attempt records remain local and uncommitted.
+- **Boundary**: No Railway authentication, manual deployment, unrelated deletion, extra commit, or hook bypass.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Finalize Agent Trust Passport knowledge and navigation in Usy; commit legitimate changes and synchronize local main.
+- **Behavior**: Eight-language Passport explanations cover declared metadata, stable identity, linked new traces, Eclipse Mode, and non-certification boundaries. The navigation action opens `/app/ai-governance/transparency#agent-passports`; sign-in remains required and no admin role is required.
+- **Regression results**: Product knowledge, guest mode, billing (18 cases), contact-message, contact-handoff, and Secretariat pass. Tests cover four roles, eight languages, target navigation, and explicit/active contact flows. TypeScript and focused ESLint pass (zero errors; existing unused-import and ignored-test-file warnings); TODO, changelog, package, and whitespace checks pass.
+- **Record review**: The three initial pending files are legitimate task-identification audit records. Retain their entries together with upstream records and this task's evidence.
+- **Git**: Fast-forward local main from 10954748 to origin/main at d2025da3; retain a named stash backup and both sets of session records. Commit only this integration and required records; no push occurs.
+- **Boundary**: No unrelated deletion, Railway authentication, manual deployment, production access, or browser acceptance rerun.
+
+## Previous Interaction
+
+- **Date**: 2026-10-24
+- **Goal**: Identify the task referenced by “continue last task Usy skills.”
+- **Finding**: HEAD 10954748 has a clean worktree before record updates. The latest rebase and Usy Swedish-language task are recorded as complete; no active Usy task identifies remaining work.
+- **Next action**: The user clarifies whether the request concerns Usy or using skills for the latest task and specifies the remaining outcome.
+- **Scope**: Interaction records only. No product change, commit, push, deployment, or test rerun.
+
+## Previous Interaction
+
 - **Date**: 2026-10-24
 - **Goal**: Fix dependency CI advisories and publish fix/passport-proxy-origin for review against beta.
 - **Security**: Lock Zod 4.6.7 and Happy DOM 21.0.4 throughout the graph. Audit reports zero known vulnerabilities; the unchanged audit gate passes.
