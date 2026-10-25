@@ -1,3 +1,15 @@
+## 2026-10-25 — Finalize Usy Passport routing for beta (T-1100)
+
+1. Goal: Validate and publish fix/usy-passport-routing as a pull request targeting beta; the user prohibits manual deployment and Railway authentication.
+2. Changes: Retain routing implementation 3cb091fa. Add French response-contract assertions for public, user, admin, and superadmin roles, localized navigation, account-persistent identity, owner declarations, compliance limits, explicit contact, and technical guidance.
+3. Findings: GitHub compares the existing branch as four commits ahead of beta with no commits behind. PR #411 targets main and is merged; beta requires its own review PR. French is one of eight supported languages and is detected from the question.
+4. Validation: Six Usy suites pass, including all 18 billing cases; the added French contract passes. TypeScript and dependency compatibility checks pass. Focused ESLint reports zero errors and two existing warnings. Passport boundary tests pass six groups and disposable PostgreSQL integration tests pass seven groups.
+5. Problems: No routing implementation blocker. GitHub access and the Secretariat test IPC socket require sandbox escalation. No browser or deployed endpoint acceptance is performed in this task.
+6. Learning: Verify existing branch commits and target-base differences before adding behavior. Keep this task scoped to validation, review publication, and CI reporting.
+7. Destinations: Store regression checks in scripts/ai/test-usy-product-knowledge.ts, test benefit in CHANGELOG.md, and task completion in the regular TODO queue. Existing requirements describe the validated behavior.
+8. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+9. Publication: Commit validation changes with normal hooks and push only fix/usy-passport-routing; open its review PR against beta. No manual deployment or Railway authentication is authorized.
+
 ## 2026-10-24 — Multilingual Usy Passport intent routing (T-1099)
 
 1. Goal: Route Passport product questions, navigation, explicit human contact, and technical problems accurately in Usy's eight configured languages.

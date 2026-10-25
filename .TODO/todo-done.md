@@ -69,7 +69,7 @@ moving work between states.
 
 ## Label: ai
 
-- T-1099. Route multilingual Passport questions to accurate product knowledge and authenticated navigation; distinguish explicit human contact and technical problems. (labels: ai, testing, security; commit: worktree)
+- T-1099. Route multilingual Passport questions to accurate product knowledge and authenticated navigation; distinguish explicit human contact and technical problems. (labels: ai, testing, security; commit: 3cb091fa)
 
 - T-1098. Explain Agent Trust Passport in all eight Usy languages, open the authenticated owner Transparency section, retain contact-flow boundaries, and validate role, navigation, language, and Usy regressions. (labels: ai, ui, testing; commit: worktree)
 
@@ -97,6 +97,8 @@ moving work between states.
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
 
 ## Label: workflow
+
+- T-1100. Validate the existing Usy Passport routing fix, confirm French response contracts, and publish fix/usy-passport-routing for review against beta. (labels: workflow, ai, testing; commit: worktree)
 
 - T-1096. Include well-known application routes in typed lint checks so the required release gate validates the public verification route. (labels: quality, testing; commit: worktree)
 - T-1094. Remove numeric price examples from the billing-format comment so required pricing validation passes without changing billing behavior. (labels: quality, billing, testing; commit: worktree)

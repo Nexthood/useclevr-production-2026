@@ -65,6 +65,8 @@
 
 ### Dev
 
+- Check French Passport explanations, navigation labels, and support routing across guest and signed-in roles to catch response regressions.
+
 - Patch connector validation and rich-text processing dependencies, and test their compatibility before release.
 
 - Patch compatible application and tooling dependencies to reduce remote execution and denial-of-service exposure.

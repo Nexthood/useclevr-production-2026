@@ -1,3 +1,10 @@
+## 2026-10-25 — Finalize Usy Passport routing for beta (T-1100)
+
+- Validate existing routing commit 3cb091fa and add French response contracts across all four roles.
+- Pass six Usy suites, TypeScript, and dependency compatibility; focused ESLint reports zero errors and two existing warnings.
+- Publish fix/usy-passport-routing through normal commit/push hooks and request review against beta; report GitHub CI status.
+- Limit this task to review publication; no manual deployment or Railway authentication is authorized.
+
 ## 2026-10-24 — Multilingual Usy Passport routing (T-1099)
 
 - Route Passport names and ownership questions to deterministic eight-language product knowledge; distinguish human-contact requests and technical problems.
