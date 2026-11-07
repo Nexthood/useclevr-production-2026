@@ -9,6 +9,21 @@ Text rules for this file:
 - Avoid vague phrases that hide the actor or the required action.
 - Avoid past-state comparison unless it prevents a concrete risk.
 
+## Global Partner Program
+
+- Signed-in partners view their own commercial referral link, partner status, active paying customers, rolling collected net revenue, level progress, commissions, adjustments, and recorded settlements.
+- The application assigns one stable referral code to each account and locks each verified referred account to one attribution; commercial attribution grants no customer referral credit rewards.
+- Only verified collected subscription payments earn commissions during the configured twelve-month eligibility window. Failed payments, out-of-band payments, self-purchases, and unsupported collection shapes do not create commissions.
+- Bronze and Silver earn 15%; Gold, Platinum, and Diamond earn 20%. Silver requires 25 active paying customers, Gold requires 100, Platinum requires $100,000 rolling twelve-month collected net revenue, and Diamond requires $300,000; revenue levels take precedence.
+- Store each earned commission with its payment, configuration version, level, currency, and rate. Apply refunds and chargebacks proportionally to the original earned amount without duplicating losses; preserve settlement history.
+- Keep currency balances separate. Require an evidenced exact exchange rate for non-USD revenue used in level calculations; hold missing or unsupported evidence for review.
+- Superadmins register and approve partners, assign countries and markets, record agreements, review related parties, configure policies, approve commissions, retry held events, export financial statements, and record completed manual settlements with mandatory audit reasons.
+- Keep the program disabled by default. Start twelve-month eligibility at the first successful payment, hold suspended accrual, stop terminated accrual, exclude related-party purchases, apply 30 continuous days of downgrade grace, wait 30 days before approval, require USD 50 or EUR 50 per settlement, and offset post-payout refunds against later earnings in the same currency. Other currencies require an explicit minimum. Recording a settlement does not transfer money.
+- Superadmins recover held historical payments through an audited review of the policy version, level, payment, eligibility, and relationship evidence after reinstatement and hold clearance; recovery creates a pending commission and requires separate approval and settlement.
+- Termination records an immutable effective date and payout hold. Superadmins release the hold with evidence to settle eligible pre-termination earnings; suspended partners, fraud holds, unresolved disputes, and post-termination earnings cannot bypass settlement controls.
+- Configuration changes append prospective versions with the approved program terms; historical unresolved policies require explicit payment review and earned snapshots remain immutable. Candidate changes within a continuous qualification shortfall do not restart downgrade grace.
+- Enforce account ownership, superadmin authorization, write-origin checks, financial idempotency, append-only financial evidence, and immutable earned rates in the application and database.
+
 ## AI Governance
 
 - Usy explains Agent Trust Passport in all eight supported languages and links guests and signed-in users to AI Governance → Transparency through an authenticated navigation action; Usy does not read or edit passport records.

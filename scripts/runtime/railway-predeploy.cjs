@@ -364,6 +364,8 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0035_referral_automation.sql"),
   readMigrationStatement("src/lib/db/migrations/0036_historical_data_unlock.sql"),
   readMigrationStatement("src/lib/db/migrations/0037_agent_trust_passport.sql"),
+  readMigrationStatement("src/lib/db/migrations/0038_global_partner_program.sql"),
+  readMigrationStatement("src/lib/db/migrations/0039_partner_policy_controls.sql"),
 ];
 
 const constraints = [

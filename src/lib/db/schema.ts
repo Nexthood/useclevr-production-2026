@@ -17,6 +17,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+export * from "./partner-schema";
 
 const vectorJson = customType<{ data: number[] | null; driverData: number[] | null }>({
   dataType() {

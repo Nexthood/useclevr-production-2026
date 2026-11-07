@@ -1,5 +1,19 @@
+## 2026-11-07 — Partner policy and release validation (T-1102)
+
+- Verify 17 partner rules, 38 disposable PostgreSQL groups, 27 referral contracts, and five browser groups across desktop/mobile and both themes.
+- Isolate build dependencies, generate disposable authentication values, restore the exact local Next.js dependency after a symlink-related packaging failure, and document disk-backed validation snapshots.
+- Pass isolated production compilation, TypeScript, page generation, and distribution packaging; record the loopback database diagnostic and musl/libvips warning.
+- Complete T-1102 locally with the program disabled; keep commit, push, deployment, and hosted runtime acceptance outside this interaction.
+
+## 2026-11-07 — Global Partner Program local completion (T-1102)
+
+- Complete partner requirements, release notes, operator guidance, shared API requests, and admin search pagination.
+- Verify 15 partner rules, 27 referral contracts, and 25 disposable PostgreSQL integration groups, including held-event replay and settlement isolation.
+- Keep policy decisions unresolved and accrual disabled for owner review; retain all implementation and records locally.
+
 ## 2026-10-25 — Publish validated Usy topic switching (T-1101)
 
+- Publish 890c877f and open PR #414 against beta; GitHub run 40182600200 passes docs and source/build checks. Retain final CI bookkeeping locally.
 - Publish the verified router fix, multilingual regressions, requirements, release notes, and required records on fix/usy-passport-routing for beta review.
 - Reuse passing local validation and apply the user's explicit Husky exemption; require GitHub CI completion.
 - Keep merge, Railway access, and manual deployment outside the publication task.

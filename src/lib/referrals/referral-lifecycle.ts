@@ -10,6 +10,8 @@ import {
   referralEvents,
   referralStats,
   userCredits,
+  partnerAccounts,
+  partnerAttributions,
 } from "@/lib/db/schema"
 import { initializeUserCredits } from "@/lib/billing/credit-engine"
 import { REFERRAL_REWARD_CONFIG } from "@/lib/referrals/referral-config"
@@ -203,21 +205,35 @@ export async function confirmReferralSignup(input: {
       return { confirmed: false, reason: "self_referral" }
     }
 
-    const inserted = await db
+    const inserted = await db.transaction(async (tx) => {
+      // One owner lock serializes partner enrollment with referral classification.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`referral-owner:${owner.ownerUserId}`},0))`)
+      const partner = await tx.query.partnerAccounts.findFirst({ where: eq(partnerAccounts.userId, owner.ownerUserId!) })
+      if (partner) {
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`partner:${partner.id}`},0))`)
+        const currentPartner = await tx.query.partnerAccounts.findFirst({ where: eq(partnerAccounts.id, partner.id) })
+        if (currentPartner?.status === "terminated") return []
+      }
+      const rows = await tx
       .insert(referralAttributions)
       .values({
         id: attributionId(),
         code: owner.code,
-        referrerUserId: owner.ownerUserId,
+        referrerUserId: owner.ownerUserId!,
         referrerEmail: owner.ownerEmail,
         referredUserId: input.referredUserId,
         referredEmail,
         status: "signed_up",
         signupConfirmedAt: new Date(),
-        signupRewardStatus: "pending",
+        signupRewardStatus: partner ? "none" : "pending",
       })
       .onConflictDoNothing({ target: referralAttributions.referredUserId })
       .returning()
+      if (partner && rows[0]) {
+        await tx.insert(partnerAttributions).values({ id: randomUUID(), referralId: rows[0].id, partnerId: partner.id, userId: input.referredUserId, signedUpAt: rows[0].signupConfirmedAt! })
+      }
+      return rows
+    })
 
     if (!inserted[0]) {
       // One referred account belongs to exactly one referrer — the first
@@ -242,7 +258,7 @@ export async function confirmReferralSignup(input: {
     // The reward grant is a separate idempotent transaction. If it fails, the
     // conversion survives (signupRewardStatus stays "pending") and only the
     // reward operation is retried.
-    await grantSignupReward(inserted[0])
+    if (inserted[0].signupRewardStatus === "pending") await grantSignupReward(inserted[0])
 
     return {
       confirmed: true,
@@ -572,6 +588,10 @@ export async function confirmReferralPaidConversion(input: {
     if (!attribution) {
       return { confirmed: false, reason: "no_attribution" }
     }
+
+    // Commercial attribution never also grants customer referral credit rewards.
+    const commercial = await db.query.partnerAttributions.findFirst({ where: eq(partnerAttributions.referralId, attribution.id) })
+    if (commercial) return { confirmed: false, reason: "not_eligible_tier", detail: "Commercial partner attribution uses collected-payment commissions." }
 
     if (attribution.paidConfirmedAt) {
       return { confirmed: false, reason: "already_confirmed" }
@@ -1008,6 +1028,8 @@ export async function decideProReward(input: {
 export async function getOwnerReferralSummary(input: { code: string; ownerUserId: string }) {
   const db = await getDbClient()
   if (!db) return null
+  const owner = await findReferralCodeOwner(input.code)
+  if (owner?.ownerUserId !== input.ownerUserId) return null
 
   const [clickRow] = await db
     .select({ total: count() })

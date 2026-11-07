@@ -1,0 +1,111 @@
+@baseUrl = http://localhost:3000
+@partnerId = replace-with-local-fixture-partner-id
+
+### Own partner statement
+# Expected: 401 without a session, 404 for a non-partner, 200 for the signed-in partner.
+# Keep temporary session cookies local and remove them before saving.
+GET {{baseUrl}}/api/partners?offset=0
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### Superadmin overview and held events
+# Expected: 403 for an ordinary signed-in account; 200 for a superadmin.
+GET {{baseUrl}}/api/admin/partners?q=&offset=0
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### Superadmin partner statement
+GET {{baseUrl}}/api/admin/partners?partnerId={{partnerId}}&offset=0
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### Superadmin complete financial CSV
+# Expected: CSV with currency-specific earned, adjusted, settled, and due minor units.
+GET {{baseUrl}}/api/admin/partners?partnerId={{partnerId}}&export=csv
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+### Reject a cross-site administrative write
+# Expected: 403 for a superadmin session; no state change.
+POST {{baseUrl}}/api/admin/partners
+Origin: https://example.invalid
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "action": "replay",
+  "eventId": "local-fixture-event",
+  "reason": "Local origin-rejection check"
+}
+
+### Retry a held synthetic fixture event after policy or evidence review
+# Mutates the local fixture. Expected: processed, excluded, or held with a review reason.
+POST {{baseUrl}}/api/admin/partners
+Origin: {{baseUrl}}
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "action": "replay",
+  "eventId": "local-fixture-event",
+  "reason": "Review local fixture evidence and retry"
+}
+
+### Save approved v1 terms with accrual disabled
+# Mutates the local fixture. Expected: a new prospective configuration version.
+POST {{baseUrl}}/api/admin/partners
+Origin: {{baseUrl}}
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "action": "config",
+  "reason": "Record approved v1 terms in local fixture with accrual disabled",
+  "config": {
+    "enabled": false,
+    "standardBps": 1500,
+    "premiumBps": 2000,
+    "silverCustomers": 25,
+    "goldCustomers": 100,
+    "platinumUsdMinor": "10000000",
+    "diamondUsdMinor": "30000000",
+    "eligibilityAnchor": "first_payment",
+    "suspendedAccrual": "hold",
+    "terminatedAccrual": "stop",
+    "downgradeGraceDays": 30,
+    "relatedParty": "exclude",
+    "waitingDays": 30,
+    "minimumPayoutMinor": { "USD": "5000", "EUR": "5000" },
+    "postPayoutRefund": "offset"
+  }
+}
+
+### Authorize one held historical payment recovery
+# Mutates the local fixture. Expected: rejected while disabled, suspended, held, or related.
+# An eligible active fixture requires an effective enabled approved policy version.
+# Recovery creates a pending commission; approval and settlement are separate actions.
+POST {{baseUrl}}/api/admin/partners
+Origin: {{baseUrl}}
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "action": "review_event",
+  "eventId": "local-fixture-held-event",
+  "configId": "local-fixture-approved-policy",
+  "level": "bronze",
+  "evidence": "Synthetic invoice, first-payment date, relationship and level review",
+  "reason": "Authorize one reviewed local payment after reinstatement"
+}
+
+### Release an evidenced pre-termination settlement hold
+# Mutates the local fixture. Expected: rejected for suspended or undated terminated accounts.
+# This records a review decision; it does not approve commissions or transfer funds.
+POST {{baseUrl}}/api/admin/partners
+Origin: {{baseUrl}}
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "action": "payout_review",
+  "partnerId": "{{partnerId}}",
+  "release": true,
+  "evidence": "Synthetic ordinary termination; pre-termination earnings reviewed, no fraud or dispute",
+  "reason": "Release reviewed local settlement hold"
+}
