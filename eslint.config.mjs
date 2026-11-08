@@ -14,6 +14,7 @@ export default [
   {
     ignores: [
       "dist/**",
+      "build/**",
       ".next/**",
       ".kilo/**",
       "node_modules/**",

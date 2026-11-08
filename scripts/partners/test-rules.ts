@@ -1,3 +1,4 @@
+import { applicationSchema } from "../../src/lib/partners/application";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
@@ -89,6 +90,7 @@ test("unapproved policies, suspension, termination, and related parties hold or 
     "policy_review",
   );
   assert.equal(accrualHold(ready, "active", "unrelated"), null);
+  assert.equal(accrualHold(ready, "rejected", "unrelated"), "partner_rejected");
   assert.equal(accrualHold(ready, "suspended", "unrelated"), "suspended_hold");
   assert.equal(accrualHold(ready, "terminated", "unrelated"), "terminated_stop");
   assert.equal(accrualHold(ready, "active", "unknown"), "related_party_review");
@@ -121,4 +123,25 @@ test("continuous downgrade grace survives candidate changes and clears on qualif
   assert.equal(resolveLevel("gold", "silver", start, day30, 30), "silver");
   assert.equal(downgradeSince("gold", "gold", start, day30), null);
   assert.equal(downgradeSince("gold", "platinum", start, day30), null);
+});
+
+test("partner applications reject structured and prototype-bearing JSON input", () => {
+  const valid = {
+    name: "Security fixture",
+    country: "NL",
+    market: "Independent retail",
+    experience: "Introduce analytics to independent businesses.",
+    privacyAccepted: true,
+    termsAccepted: true,
+  };
+  const poisoned = JSON.parse(
+    JSON.stringify(valid).slice(0, -1) + ',"__proto__":{"role":"superadmin"}}',
+  );
+  for (const input of [
+    poisoned,
+    { ...valid, name: { toString: "x" } },
+    { ...valid, experience: ["text", { toString: "x" }] },
+  ])
+    assert.equal(applicationSchema.safeParse(input).success, false);
+  assert.equal(Object.prototype.hasOwnProperty.call(Object.prototype, "role"), false);
 });

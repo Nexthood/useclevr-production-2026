@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let verified account holders apply to the Global Partner Program, check review status, and receive referral tools after administrator approval.
+
 - Give commercial partners a dashboard for referrals, levels, payment-based commissions, refunds, and settlements, with audited administration and financial reports.
 
 - Explain Agent Trust Passport through Usy and let users open their passport in AI Governance → Transparency.
@@ -17,6 +19,8 @@
 - Locked historical datasets stay visible with their names, sizes, and dates, and reopen automatically the moment the subscription reactivates.
 
 ### Fixed
+
+- Keep partner customer activity accurate when billing providers send updated cancellation formats.
 
 - Answer product questions during unfinished Usy contact requests while saving the draft so users can resume it without losing their details.
 
@@ -68,6 +72,8 @@
 - Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
+
+- Partner release browser checks now ride through page reloads and fast navigation updates without aborting, so application-state verification stays reliable.
 
 - Check French Passport explanations, navigation labels, and support routing across guest and signed-in roles to catch response regressions.
 

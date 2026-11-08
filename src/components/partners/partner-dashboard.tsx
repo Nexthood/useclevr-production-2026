@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { applicationStatusText, type ApplicationReceipt } from "@/lib/partners/application";
 import type { partnerSummary } from "@/lib/partners/store";
 
 export type PartnerSummary = Awaited<ReturnType<typeof partnerSummary>> & { referralLink?: string };
@@ -109,6 +110,19 @@ export function PartnerPerformance({
           </Button>
         </div>
       )}
+      {applicationStatusText[data.partner.status] && (
+        <p role="status" className="rounded border p-3">
+          {applicationStatusText[data.partner.status]}
+        </p>
+      )}
+      <p className="text-sm">
+        Settlement review:{" "}
+        {data.partner.payoutHold
+          ? "held for administrator review"
+          : "subject to commission approval"}
+        . Eligible balances require a 30-day wait and a minimum of USD 50 or EUR 50 in that
+        currency. Settlements require manual approval.
+      </p>
       <p className="text-sm text-muted-foreground">
         Amounts use each payment’s currency. Commissions require collected payments, an eligible
         agreement, and policy review. Payment rates are fixed when earned.
@@ -239,12 +253,22 @@ export function PartnerDashboard() {
   const [data, setData] = useState<PartnerSummary | null>(null),
     [error, setError] = useState("");
   const [offset, setOffset] = useState(0);
+  const [application, setApplication] = useState<ApplicationReceipt | null>(null);
+  const [canApply, setCanApply] = useState(false);
   useEffect(() => {
     let alive = true;
     fetch(`/api/partners?offset=${offset}`, { cache: "no-store" })
       .then(async (r) => {
         const body = await r.json();
+        if (r.status === 404) {
+          if (alive) setCanApply(true);
+          return;
+        }
         if (!r.ok) throw new Error(body.error);
+        if (body.application) {
+          if (alive) setApplication(body.application);
+          return;
+        }
         if (alive) setData(body);
       })
       .catch((e) => {
@@ -254,6 +278,27 @@ export function PartnerDashboard() {
       alive = false;
     };
   }, [offset]);
+  if (canApply)
+    return (
+      <p>
+        Apply to join the Global Partner Program.{" "}
+        <a className="underline" href="/partners/apply">
+          Start your application
+        </a>
+      </p>
+    );
+  if (application)
+    return (
+      <div className="space-y-3">
+        <h2 className="text-xl font-semibold capitalize">
+          {application.status === "pending" ? "Pending review" : application.status}
+        </h2>
+        <p role="status">{applicationStatusText[application.status]}</p>
+        <a className="underline" href="/app/tickets/new">
+          Contact support
+        </a>
+      </div>
+    );
   if (error)
     return (
       <p role="alert" className="rounded border border-destructive p-4">

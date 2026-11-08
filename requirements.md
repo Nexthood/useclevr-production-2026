@@ -11,6 +11,13 @@ Text rules for this file:
 
 ## Global Partner Program
 
+- Partner activity uses authoritative subscription state even when the billing webhook payload omits legacy period fields.
+
+- Visitors apply through verified account authentication, provide required country, market and experience details, and explicitly acknowledge application privacy and participation terms.
+- The server persists one application per account in the existing partner account and immutable audit history; administrators review, approve or reject with a reason and reviewed agreement.
+- Pending and rejected applicants see their decision state; approved partners access their own referral tools and financial history. Rejected applications cannot reactivate; suspension and termination restrict new referrals.
+- The owner authorizes publication, production migrations and activation separately from local implementation; coordinated release acceptance requires both hosted domains and the full payment-to-settlement journey.
+
 - Signed-in partners view their own commercial referral link, partner status, active paying customers, rolling collected net revenue, level progress, commissions, adjustments, and recorded settlements.
 - The application assigns one stable referral code to each account and locks each verified referred account to one attribution; commercial attribution grants no customer referral credit rewards.
 - Only verified collected subscription payments earn commissions during the configured twelve-month eligibility window. Failed payments, out-of-band payments, self-purchases, and unsupported collection shapes do not create commissions.

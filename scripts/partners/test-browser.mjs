@@ -121,6 +121,8 @@ const statement = {
   nextOffset: null,
 };
 const actions = [];
+let applying = false;
+let applicationReceipt = null;
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://localhost");
   if (url.pathname === "/bundle.js" || url.pathname === "/styles.css") {
@@ -138,6 +140,16 @@ const server = createServer(async (request, response) => {
       for await (const part of request) body += part;
       const action = JSON.parse(body);
       actions.push(action);
+      if (url.pathname === "/api/partners") {
+        applicationReceipt = {
+          status: "pending",
+          name: action.name,
+          createdAt: new Date().toISOString(),
+        };
+        response.statusCode = 201;
+        response.end(JSON.stringify({ application: applicationReceipt }));
+        return;
+      }
       if (action.action === "approve") statement.commissions[0].state = "approved";
       if (action.action === "payout")
         statement.payouts.push({
@@ -148,6 +160,15 @@ const server = createServer(async (request, response) => {
           reference: action.reference,
         });
       response.end(JSON.stringify({ success: true }));
+      return;
+    }
+    if (url.pathname === "/api/partners" && applying) {
+      response.statusCode = applicationReceipt ? 200 : 404;
+      response.end(
+        JSON.stringify(
+          applicationReceipt ? { application: applicationReceipt } : { error: "No application" },
+        ),
+      );
       return;
     }
     const result =
@@ -297,7 +318,7 @@ try {
       await evaluate(
         'Array.from(document.querySelectorAll("button")).find(b=>b.textContent==="View").click()',
       );
-      await waitFor('document.body.innerText.includes("Partner performance")');
+      await waitFor('document.body?.innerText.includes("Partner performance")');
       assert.equal(
         await evaluate(
           'document.body.innerText.includes("Financial review decision") && document.body.innerText.includes("Approve commissions and record settlements")',
@@ -324,10 +345,13 @@ try {
   await evaluate(
     'Array.from(document.querySelectorAll("button")).find(b=>b.textContent==="Approve").click()',
   );
-  await waitFor('document.body.innerText.includes("Saved.")');
+  await waitFor('document.body?.innerText.includes("Saved.")');
   assert.equal(
     actions.some((a) => a.action === "approve" && a.reason === "Synthetic browser approval"),
     true,
+  );
+  await waitFor(
+    'Array.from(document.querySelectorAll("button")).some(b=>b.textContent.includes("Record manual payout") && !b.disabled)',
   );
   await evaluate(
     `(() => { const input = document.querySelector('input[name="reference"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,"fixture-browser-settlement"); input.dispatchEvent(new Event("input",{bubbles:true})); Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Record manual payout")).click(); })()`,
@@ -342,6 +366,48 @@ try {
     "PASS approval and manual settlement forms submit separate, reasoned actions to fixture transport",
   );
   passed++;
+  applying = true;
+  for (const width of [1280, 390]) {
+    await command("Emulation.setDeviceMetricsOverride", {
+      width,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: width < 500,
+    });
+    applicationReceipt = null;
+    await command("Page.navigate", { url: `${origin}/?apply=1` });
+    await waitFor('document.body?.innerText.includes("Submit application")');
+    assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+    assert.equal(
+      await evaluate('document.querySelectorAll("input[type=checkbox]:checked").length'),
+      0,
+    );
+    await evaluate(`(() => {
+      const values = { name: "Browser applicant", country: "NL", market: "Local businesses", experience: "I work with independent retailers on analytics." };
+      for (const [key,value] of Object.entries(values)) { const input = document.querySelector('[name="'+key+'"]'); input.value=value; input.dispatchEvent(new Event("input", {bubbles:true})); }
+      document.querySelectorAll('input[type=checkbox]').forEach(input => input.click());
+      if (!document.querySelector("form").checkValidity()) throw new Error("Invalid fixture fields: "+Array.from(document.querySelectorAll(":invalid")).map(e=>e.name+":"+e.validationMessage).join(", "));
+      document.querySelector("form").requestSubmit();
+    })()`);
+    await waitFor('document.querySelector("h2")?.textContent === "Pending review"');
+    assert.equal(
+      actions.some(
+        (a) => a.privacyAccepted === true && a.termsAccepted === true && a.country === "NL",
+      ),
+      true,
+    );
+    await command("Page.reload");
+    await waitFor('document.querySelector("h2")?.textContent === "Pending review"');
+    assert.equal(await evaluate('document.querySelector("form") === null'), true);
+    applicationReceipt.status = "rejected";
+    await command("Page.reload");
+    await waitFor('document.body?.innerText.includes("Your application was not approved")');
+    assert.equal(await evaluate('document.querySelector("#partner-link") === null'), true);
+    passed++;
+    console.log(
+      `PASS application form, explicit acknowledgments, confirmation, reload and rejection at ${width}px`,
+    );
+  }
   console.log(`${passed} browser acceptance groups passed. Artifacts: ${directory}`);
   console.log(
     "Scope: real components and design-system CSS with synthetic HTTP responses. Full application login, attribution navigation, and production hosting are not exercised.",

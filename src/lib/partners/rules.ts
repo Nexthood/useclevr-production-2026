@@ -147,6 +147,7 @@ export function accrualHold(config: ProgramConfig, status: string, related: stri
     !config.terminatedAccrual
   )
     return "policy_review";
+  if (status === "rejected") return "partner_rejected";
   if (status === "pending") return "partner_not_approved";
   if (status !== "active") {
     const policy = status === "suspended" ? config.suspendedAccrual : config.terminatedAccrual;

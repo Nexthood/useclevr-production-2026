@@ -1,3 +1,23 @@
+## 2026-11-08 — Partner program takeover validation (T-1103)
+
+- Confirm the NextAuth integration-suite blocker is resolved through the existing test-only module hooks and rerun the full partner validation battery with no production source changes.
+- Stabilize the partner browser acceptance harness against reload navigation races; reuse the documented build/snapshot flow after stale-snapshot cleanup, preserving earlier regression evidence.
+- Pass 41 integration groups, 18 rules plus native packaging, 27 referral contracts, Railway authentication, refund lifecycle, seven browser groups, TypeScript, zero-error ESLint, 99-page isolated build, packaging and packaged-runtime checks, and landing calculator/browser verification matching billing configuration.
+- Keep publication, production migration, deployment and activation blocked pending owner release approval; T-1103 stays active.
+
+## 2026-11-08 — Partner release prerequisite review (T-1103)
+
+- Restore ignored Railway project metadata, protect existing credential files, and identify rejected credentials without exposing values or creating infrastructure.
+- Fix scoped Railway authentication and modern subscription cancellation; pass 41 database groups, 18 rules and mocked CLI checks, and review all four dependency advisories.
+- Record missing Stripe events, stale local database credentials, verified healthy production database response, current rollback references and pending production access/backup checks in the partner guide.
+- Keep publication and activation blocked pending prerequisite verification and explicit owner release approval. Preserve both branches and other worktrees.
+
+## 2026-11-08 — Secure partner registration and release validation (T-1103)
+
+- Add verified-account applications, immutable acknowledgments, audited administrator decisions and scoped onboarding through the existing partner infrastructure.
+- Connect both public CTAs, align Business USD pricing, validate 40 database groups and seven browser groups, and pass all 45 isolated regression suites, pricing/billing checks, production packaging, packaged entry/access smoke checks and Alpine image processing.
+- Keep T-1103 active for owner authorization, Railway access restoration and verification of both production domains.
+
 ## 2026-11-07 — Partner policy and release validation (T-1102)
 
 - Verify 17 partner rules, 38 disposable PostgreSQL groups, 27 referral contracts, and five browser groups across desktop/mobile and both themes.

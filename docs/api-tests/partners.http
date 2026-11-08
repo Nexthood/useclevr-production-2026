@@ -2,7 +2,7 @@
 @partnerId = replace-with-local-fixture-partner-id
 
 ### Own partner statement
-# Expected: 401 without a session, 404 for a non-partner, 200 for the signed-in partner.
+# Expected: 401 without a session, 404 for a non-partner, status-only confirmation for pending/rejected applicants, and a scoped statement for approved partners.
 # Keep temporary session cookies local and remove them before saving.
 GET {{baseUrl}}/api/partners?offset=0
 Cookie: authjs.session-token=<paste-local-session-cookie>
@@ -108,4 +108,22 @@ Cookie: authjs.session-token=<paste-local-session-cookie>
   "release": true,
   "evidence": "Synthetic ordinary termination; pre-termination earnings reviewed, no fraud or dispute",
   "reason": "Release reviewed local settlement hold"
+}
+
+
+### Submit a local verified-account application
+# Expected: 201 pending; repeated submission 409; unverified account 403.
+# Local fixture only. Never commit real applicant details or cookies.
+POST {{baseUrl}}/api/partners
+Origin: {{baseUrl}}
+Content-Type: application/json
+Cookie: authjs.session-token=<paste-local-session-cookie>
+
+{
+  "name": "Local synthetic applicant",
+  "country": "NL",
+  "market": "Synthetic retail market",
+  "experience": "Local fixture for verified partner application review.",
+  "privacyAccepted": true,
+  "termsAccepted": true
 }

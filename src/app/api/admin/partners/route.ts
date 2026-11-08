@@ -42,7 +42,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("partner"),
     partnerId: identity,
-    status: z.enum(["active", "suspended", "terminated"]),
+    status: z.enum(["active", "rejected", "suspended", "terminated"]),
     notes: z.string().max(4000),
     country: z.string().regex(/^[A-Z]{2}$/),
     market: z.string().max(200).nullable(),
@@ -229,6 +229,25 @@ export async function POST(request: Request) {
         if (!before) throw new PartnerRuleError("Partner not found.");
         if (before.status === "terminated" && body.status !== "terminated")
           throw new PartnerRuleError("Termination requires a new reviewed agreement.");
+        if (before.status === "rejected" && body.status !== "rejected")
+          throw new PartnerRuleError("A rejected application cannot be reactivated.");
+        if (body.status === "rejected" && !["pending", "rejected"].includes(before.status))
+          throw new PartnerRuleError(
+            "Only pending applications can be rejected; suspend or terminate approved partners.",
+          );
+        if (
+          body.status === "active" &&
+          before.status === "pending" &&
+          body.agreement.startsWith("Application terms ")
+        )
+          throw new PartnerRuleError(
+            "Record a reviewed participation agreement before approving this application.",
+          );
+        if (body.status === "active" && before.status === "pending") {
+          const applicant = await tx.query.users.findFirst({ where: eq(users.id, before.userId) });
+          if (!applicant?.emailVerified)
+            throw new PartnerRuleError("Verified partner account required for approval.");
+        }
         const terminating = body.status === "terminated" && before.status !== "terminated";
         await tx
           .update(partnerAccounts)
@@ -255,6 +274,7 @@ export async function POST(request: Request) {
         if (
           !partner ||
           partner.status === "pending" ||
+          partner.status === "rejected" ||
           partner.status === "suspended" ||
           (partner.status === "terminated" && !partner.terminatedAt)
         )

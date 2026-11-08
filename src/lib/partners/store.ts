@@ -663,7 +663,12 @@ export async function partnerSummary(partnerId: string, admin = false, offset = 
         payoutHold: partner.payoutHold,
         terminatedAt: partner.terminatedAt,
         ...(admin
-          ? { userId: partner.userId, notes: partner.notes, downgradeSince: partner.candidateSince }
+          ? {
+              userId: partner.userId,
+              notes: partner.notes,
+              application: partner.application,
+              downgradeSince: partner.candidateSince,
+            }
           : {}),
       },
       rateBps: rateForLevel(level.level, config),
@@ -673,7 +678,15 @@ export async function partnerSummary(partnerId: string, admin = false, offset = 
       progress: nextLevelProgress(level.level, level.customers, level.revenue, config),
       balances,
       commissions: history,
-      payouts,
+      payouts: admin
+        ? payouts
+        : payouts.map(({ id, currency, amountMinor, reference, createdAt }) => ({
+            id,
+            currency,
+            amountMinor,
+            reference,
+            createdAt,
+          })),
       adjustments,
       offset,
       nextOffset: commissions.length === 50 ? offset + 50 : null,
@@ -769,6 +782,10 @@ export async function recordPayout(
       -coalesce((select sum(a."commissionDeltaMinor") from "PartnerAdjustment" a where a."paymentId"=c."paymentId"),0)
       -coalesce((select sum(i."amountMinor") from "PartnerPayoutItem" i where i."commissionId"=c.id),0))::text as due
     from "PartnerCommission" c where c."partnerId"=${partnerId} and c.currency=${currency} and c.state in ('approved','paid')`);
+  if (await tx.query.partnerPayouts.findFirst({ where: eq(partnerPayouts.reference, reference) }))
+    throw new PartnerRuleError(
+      "Settlement reference is already recorded. Review the existing settlement.",
+    );
   const allocations: { commissionId: string; amountMinor: string }[] = [];
   for (const c of statement.rows) {
     const due = BigInt(String(c.due));
