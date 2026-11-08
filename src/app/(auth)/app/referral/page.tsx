@@ -49,6 +49,10 @@ export default function ReferralCenter() {
     setIsLoading(true)
     try {
       const response = await fetch("/api/referral", { cache: "no-store" })
+      if (response.status === 409) {
+        window.location.assign("/app/partners")
+        return
+      }
       if (response.ok) {
         setSummary(await response.json())
       }

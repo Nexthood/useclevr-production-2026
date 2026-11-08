@@ -95,14 +95,11 @@ const tests: TestCase[] = [
     name: "referral-code ownership cannot be hijacked via cookies",
     run() {
       const route = readProjectFile("src/app/api/referral/route.ts")
-      assert.ok(
-        route.includes("existing.ownerUserId !== userId"),
-        "a cookie code owned by another user must be replaced, not adopted",
-      )
-      assert.ok(
-        route.includes("createReferralCode()"),
-        "a foreign cookie code must be replaced with a fresh code",
-      )
+      assert.ok(route.includes("getAccountReferralCode"), "owner lookup must use the account mapping instead of the cookie")
+      const owner = readProjectFile("src/lib/referrals/owner-code.ts")
+      assert.ok(owner.includes("owner?.ownerUserId !== userId"), "persisted ownership must be checked")
+      assert.ok(owner.includes("pg_advisory_xact_lock"), "concurrent code creation must serialize per account")
+
     },
   },
   {

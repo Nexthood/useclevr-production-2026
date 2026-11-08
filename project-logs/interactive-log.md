@@ -1,4 +1,26 @@
+## 2026-11-07 — Finalize partner policy release validation (T-1102)
+
+1. Goal: Continue the active Global Partner Program policy and isolated release-validation task on feat/global-partner-program-v1.
+2. Changes: Validate existing policy controls, historical recovery, termination settlement review, and continuous downgrade grace. Give the safe-build runner private copied dependencies, disposable generated authentication values, and a source snapshot under ignored build/. Format the integration runner and document build isolation.
+3. Verification: Partner rules pass 17 tests; disposable PostgreSQL passes 38 groups; referral contracts pass 27 tests; real partner/admin components pass five browser groups across desktop/mobile and light/dark themes, including approval and settlement submission. Focused ESLint has zero errors or warnings. Formatting, deployment configuration, TODO, changelog, secret, package, and whitespace checks pass. The corrected isolated production build, TypeScript, 99-page generation, and distribution packaging exit zero.
+4. Problems: The initial dependency symlink lets packaging remove the shared Next.js build directory. Restore the exact Next.js 16.4.1 files from a temporary recovery installation, verify its CLI, and replace the symlink with private dependency copies. Remove failed temporary fixtures. The final build logs its deliberately unreachable loopback database; packaging reports a musl/libvips resolution warning.
+5. Learning: Standalone packaging requires private dependency realpaths because packaging helpers remove and restore dependency directories. Use disk-backed ignored build/ for large validation snapshots. Route this operator learning into the program guide; no shared agent instruction change is required.
+6. Limits and destinations: Complete T-1102 with commit: worktree and update the three interaction records. Browser acceptance uses synthetic HTTP responses; full login and hosted runtime acceptance are not exercised. Keep the program disabled. No commit, push, deployment, Railway authentication, or production access occurs.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-07 — Continue Global Partner Program (T-1102)
+
+1. Goal: Resume the unfinished task identified by the current feature branch, active queue, and uncommitted partner implementation.
+2. Changes: Complete requirements, release notes, operator guidance, and shared REST requests; correct admin search pagination and a type-only import; format partner components and financial storage. Extend PostgreSQL coverage for held FX-event replay, duplicate settlement rejection, and currency isolation.
+3. Verification: Partner rules pass 15 cases, referral automation passes 27, and disposable PostgreSQL passes 25 integration groups. Database checks cover additive migration replay, concurrent attribution and payment delivery, immutable snapshots, refunds, disputes, level transitions, ownership, exports, and customer reward isolation. TypeScript, focused ESLint (zero errors or warnings), deployment configuration, focused Markdown, record, TODO, changelog, secret, and package checks pass. Billing refund lifecycle passes 12 cases and credit top-up webhook contracts pass 68 checks. The billing mock logs its existing absent referral-table stub; real referral behavior is covered by PostgreSQL integration.
+4. Problems: Sandbox restrictions affect pnpm store access, database sockets, and the record checker's Git subprocess; approved execution resolves these checks. No product implementation blocker remains. Browser acceptance and production packaging are not exercised.
+5. Learning: Held-event replay must preserve payment idempotency after evidence arrives; recorded settlements must reject duplicate and cross-currency allocation. A fresh admin search explicitly requests offset zero.
+6. Destinations: Complete T-1102 with commit: worktree; requirements.md, CHANGELOG.md, the program guide, shared API requests, and these three interaction records describe current behavior. Financial activation requires owner policy decisions; defaults keep the program disabled. No commit, push, deployment, Railway authentication, or production access occurs.
+7. Instruction sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and project-prompts/ai-memory-collection-post-interaction.md. No shared instruction change is required.
+
 ## 2026-10-25 — Publish validated Usy topic switching (T-1101)
+
+Publication result: Commit 890c877f is pushed to fix/usy-passport-routing. PR #414 targets beta with auto-merge disabled. GitHub run 40182600200 passes docs and source/production-build validation. No merge, manual deployment, Railway access, or CI bypass occurs. Post-CI bookkeeping remains local.
 
 1. Goal: Commit the verified topic-switching fix, tests, and required records; push fix/usy-passport-routing, open a beta review PR, and wait for GitHub CI.
 2. Scope: The pending implementation and 192-case multilingual matrix match the verified change. Include requirements, release notes, task metadata, and the related session records; preserve all prior entries.

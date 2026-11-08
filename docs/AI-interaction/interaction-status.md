@@ -4,8 +4,29 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-11-07
+- **Goal**: Continue T-1102 policy controls and isolated release validation on feat/global-partner-program-v1.
+- **Result**: Validate approved policy defaults, audited historical recovery, pre-termination settlement controls, and continuous downgrade grace. Complete T-1102 with commit: worktree. The safe-build runner uses private dependency copies, generated disposable authentication values, and ignored build/ snapshots.
+- **Validation**: Partner rules 17/17, disposable PostgreSQL 38/38, referral contracts 27/27, and five browser acceptance groups pass. Focused ESLint reports zero errors or warnings. Formatting, deployment configuration, TODO, changelog, secret, package, and whitespace checks pass. Isolated production compilation, TypeScript, 99-page generation, and distribution packaging exit zero.
+- **Resolved issue**: The initial dependency symlink allows packaging to remove local Next.js build files. Restore exact-version dependency files, verify Next.js 16.4.1, and replace the symlink with private copies. Remove failed temporary fixtures.
+- **Limits**: The build reports its deliberately unreachable loopback database; packaging logs a musl/libvips resolution warning. Browser checks use synthetic HTTP responses; full login and hosted runtime acceptance are not exercised. The program remains disabled; no commit, push, deployment, Railway authentication, or production access occurs.
+- **Sources**: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and the post-interaction memory prompt. Operator learning belongs in the Global Partner Program guide; no shared instruction change.
+
+## Previous Interaction
+
+- **Date**: 2026-11-07
+- **Goal**: Continue and locally complete Global Partner Program implementation T-1102 on feat/global-partner-program-v1.
+- **Result**: Partner reporting, audited administration, payment-based commissions, financial exports, requirements, release notes, operator guidance, and shared API requests are present in the worktree. Admin search starts at the first page.
+- **Validation**: Partner rules 15/15, referral contracts 27/27, and disposable PostgreSQL 25/25 pass. Billing refund lifecycle 12/12 and top-up webhook contracts 68/68 pass. TypeScript, focused lint (zero errors or warnings), deployment configuration, focused Markdown, record, TODO, changelog, secret, and package checks pass.
+- **Policy boundary**: The program defaults to disabled. The owner must set eligibility, status-accrual, related-party, downgrade, waiting-period, minimum-settlement, and post-payout refund policies before dependent financial operations proceed. Settlements record manual payments without moving funds.
+- **Limits**: Browser acceptance and production packaging are not exercised. No commit, push, deployment, Railway authentication, or production access occurs. T-1102 uses commit: worktree.
+- **Sources**: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, and the post-interaction memory prompt; no durable instruction change.
+
+## Previous Interaction
+
 - **Date**: 2026-10-25
 - **Goal**: Publish the validated T-1101 fix on fix/usy-passport-routing, open a beta PR, and wait for GitHub CI.
+- **Result**: Commit 890c877f is pushed; [PR #414](https://github.com/Nexthood/useclevr-production-2026/pull/414) targets beta with auto-merge disabled. GitHub run 40182600200 passes documentation and source/production-build checks. Post-CI bookkeeping remains local.
 - **Scope**: Verified router change, multilingual tests, requirements, release notes, regular task metadata, and related interaction records.
 - **Validation**: Reuse six passing Usy suites, 192 topic-switch combinations, all 18 billing cases, TypeScript, focused lint (zero errors, two existing warnings), and record/secret/whitespace checks.
 - **Authorization**: The user permits skipping Husky after local validation; GitHub checks remain mandatory.

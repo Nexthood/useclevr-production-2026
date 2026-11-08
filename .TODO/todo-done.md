@@ -98,7 +98,8 @@ moving work between states.
 
 ## Label: workflow
 
-- T-1101. Route clear Usy product questions during contact collection through existing knowledge in all eight languages, preserve drafts across topic switches, and verify contact, billing, and support regressions without publication. (labels: ai, workflow, testing; commit: worktree)
+- T-1102. Finalize approved Global Partner Program policies, audited suspension recovery, controlled pre-termination settlements, stable downgrade grace, and isolated release validation; keep the program disabled. (labels: billing, sales, security, testing; commit: worktree)
+- T-1101. Route clear Usy product questions during contact collection through existing knowledge in all eight languages, preserve drafts across topic switches, and verify contact, billing, and support regressions without publication. (labels: ai, workflow, testing; commit: 890c877f)
 
 - T-1100. Validate the existing Usy Passport routing fix, confirm French response contracts, and publish fix/usy-passport-routing for review against beta. (labels: workflow, ai, testing; commit: 0160828b)
 

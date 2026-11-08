@@ -55,6 +55,7 @@ const primaryNavigation: NavigationItem[] = [
   { name: "Accountancy", href: "/app/accountancy", icon: Receipt },
   { name: "Retail", href: "/app/retail", icon: Building2 },
   { name: "Referral", href: "/app/referral", icon: Gift },
+  { name: "Partners", href: "/app/partners", icon: Users },
 ];
 
 const aiNavigation: NavigationItem[] = [
@@ -70,6 +71,7 @@ const adminAiNavigation: NavigationItem[] = [
 
 const adminNavigation: NavigationItem[] = [
   { name: "Customers", href: "/app/admin/customers", icon: Users },
+  { name: "Partners", href: "/app/admin/partners", icon: Users },
   { name: "Customer Levels", href: "/app/admin/levels", icon: Award },
   { name: "Discount Rules", href: "/app/admin/discounts", icon: Tag },
   { name: "Billing Settings", href: "/app/admin/billing-settings", icon: CreditCard },

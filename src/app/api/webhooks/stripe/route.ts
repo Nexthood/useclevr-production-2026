@@ -9,6 +9,7 @@ import { recordReferralRefundForCustomer } from "@/lib/referrals/referral-lifecy
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
+import { handlePartnerStripeEvent } from "@/services/stripe/partner-webhook"
 
 export const runtime = "nodejs"
 
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await handlePartnerStripeEvent(event, stripe)
     if (
       event.type === "checkout.session.completed" &&
       (event.data.object as Stripe.Checkout.Session).mode === "payment"

@@ -51,6 +51,7 @@ This folder covers the current important API areas that already exist in the app
 - analyze
 - business profile and setup
 - billing and checkout
+- [commercial partner reporting and administration](partners.http)
 - Railway smoke checks
 - MCP reachability and Payload MCP API-key calls
 
