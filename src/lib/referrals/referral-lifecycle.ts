@@ -212,7 +212,7 @@ export async function confirmReferralSignup(input: {
       if (partner) {
         await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`partner:${partner.id}`},0))`)
         const currentPartner = await tx.query.partnerAccounts.findFirst({ where: eq(partnerAccounts.id, partner.id) })
-        if (currentPartner?.status === "terminated") return []
+        if (currentPartner && ["terminated", "rejected", "suspended"].includes(currentPartner.status)) return []
       }
       const rows = await tx
       .insert(referralAttributions)

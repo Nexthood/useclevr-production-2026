@@ -73,7 +73,13 @@ async function main() {
   );
   await pool.query(controls);
   await pool.query(controls);
-  console.log("PASS additive migrations 0038/0039 and repeat application");
+  const applications = await readFile(
+    new URL("../../src/lib/db/migrations/0040_partner_applications.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.query(applications);
+  await pool.query(applications);
+  console.log("PASS additive migrations 0038/0039/0040 and repeat application");
   const {
     database,
     ingestPartnerEvent,
@@ -1360,6 +1366,214 @@ async function main() {
         db.transaction((tx) =>
           writeProgramConfig(tx, defaultConfig, "admin", "No backdating", new Date("2020-01-01Z")),
         ),
+      );
+    },
+  );
+  await check(
+    "verified application, duplicate prevention, rejection and approval through APIs",
+    async () => {
+      const input = {
+        name: "Application partner",
+        country: "NL",
+        market: "Dutch businesses",
+        experience: "I introduce analytics to independent retailers.",
+        privacyAccepted: true,
+        termsAccepted: true,
+      };
+      const request = (body: unknown = input, origin = "http://localhost") =>
+        new Request("http://localhost/api/partners", {
+          method: "POST",
+          headers: { origin, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      setSession(null);
+      assert.equal((await owner.POST(request())).status, 401);
+      await db.insert(schema.users).values([
+        { id: "applicant", email: "applicant@example.invalid", emailVerified: new Date() },
+        { id: "unverified-applicant", email: "unverified@example.invalid" },
+        { id: "rejected-applicant", email: "rejected@example.invalid", emailVerified: new Date() },
+        {
+          id: "application-customer",
+          email: "new-customer@example.invalid",
+          emailVerified: new Date(),
+        },
+      ]);
+      setSession({ user: { id: "unverified-applicant", role: "user" } });
+      assert.equal((await owner.POST(request())).status, 403);
+      setSession({ user: { id: "applicant", role: "user" } });
+      assert.equal((await owner.POST(request(input, "https://evil.invalid"))).status, 403);
+      assert.equal((await owner.POST(request({ ...input, privacyAccepted: false }))).status, 400);
+      assert.equal((await owner.POST(request({ ...input, userId: "other" }))).status, 400);
+      const concurrent = await Promise.all([owner.POST(request()), owner.POST(request())]);
+      assert.deepEqual(concurrent.map((r) => r.status).sort(), [201, 409]);
+      assert.equal((await owner.POST(request())).status, 409);
+      assert.equal((await owner.POST(request())).status, 429);
+      const application = await db.query.partnerAccounts.findFirst({
+        where: eq(schema.partnerAccounts.userId, "applicant"),
+      });
+      await assert.rejects(
+        pool.query('update "PartnerAccount" set application=$2::jsonb where id=$1', [
+          application!.id,
+          "{}",
+        ]),
+      );
+      assert.equal(application?.status, "pending");
+      assert.equal(application?.application?.email, "applicant@example.invalid");
+      const pending = await owner.GET(new Request("http://localhost/api/partners"));
+      const pendingBody = await pending.json();
+      assert.equal(pendingBody.application.status, "pending");
+      assert.equal(pendingBody.referralLink, undefined);
+      assert.equal(pendingBody.partner, undefined);
+      const change = {
+        action: "partner",
+        partnerId: application!.id,
+        status: "active",
+        country: "NL",
+        market: "Dutch businesses",
+        notes: "Reviewed identity and participation terms",
+        agreement: "Reviewed application agreement 2026-11-08",
+      };
+      assert.equal(
+        (
+          await admin.POST(
+            new Request("http://localhost/api/admin/partners", {
+              method: "POST",
+              headers: { origin: "http://localhost" },
+              body: JSON.stringify({ ...change, reason: "Unauthorized approval" }),
+            }),
+          )
+        ).status,
+        403,
+      );
+      assert.equal((await adminAction(change)).status, 200);
+      setSession({ user: { id: "applicant", role: "user" } });
+      const approvedBody = await (
+        await owner.GET(new Request("http://localhost/api/partners"))
+      ).json();
+      assert.equal(approvedBody.partner.status, "active");
+      assert.equal(approvedBody.rateBps, 1500);
+      assert.ok(approvedBody.referralLink.includes(application!.code));
+      assert.equal(approvedBody.partner.application, undefined);
+      assert.equal(approvedBody.partner.notes, undefined);
+      const signup = await confirmReferralSignup({
+        attributionCode: application!.code,
+        referredUserId: "application-customer",
+        referredEmail: "new-customer@example.invalid",
+      });
+      assert.equal(signup.confirmed, true);
+      const attr = await db.query.partnerAttributions.findFirst({
+        where: eq(schema.partnerAttributions.userId, "application-customer"),
+      });
+      assert.ok(attr);
+      assert.equal(
+        (
+          await adminAction({
+            action: "related",
+            attributionId: attr.id,
+            classification: "unrelated",
+            evidence: "Independent business customer identity review",
+          })
+        ).status,
+        200,
+      );
+      const f = {
+        userId: "application-customer",
+        partnerId: application!.id,
+        label: "application-journey",
+        ownerId: "applicant",
+        fixtureCode: application!.code,
+      };
+      const receipt = await paid(f, "first", 0);
+      assert.equal(receipt.result.status, "processed");
+      const c = await commissionFor(receipt.evidence.chargeId);
+      assert.equal(c?.amountMinor, "6000");
+      assert.equal((await adminAction({ action: "approve", commissionId: c!.id })).status, 409);
+      const originalNow = Date.now;
+      try {
+        Date.now = () => originalNow() + 31 * day;
+        assert.equal((await adminAction({ action: "approve", commissionId: c!.id })).status, 200);
+        const settlement = {
+          action: "payout",
+          partnerId: application!.id,
+          currency: "USD",
+          amountMinor: "6000",
+          reference: "application-journey-manual-settlement",
+        };
+        assert.equal((await adminAction({ ...settlement, amountMinor: "6001" })).status, 409);
+        assert.equal((await adminAction(settlement)).status, 200);
+        assert.equal((await adminAction(settlement)).status, 409);
+      } finally {
+        Date.now = originalNow;
+      }
+      assert.equal((await adminAction({ ...change, status: "suspended" })).status, 200);
+      setSession({ user: { id: "applicant", role: "user" } });
+      const suspendedBody = await (
+        await owner.GET(new Request("http://localhost/api/partners"))
+      ).json();
+      assert.equal(suspendedBody.referralLink, undefined);
+      await db.insert(schema.users).values({
+        id: "suspended-referral-customer",
+        email: "suspended-referral@example.invalid",
+        emailVerified: new Date(),
+      });
+      assert.equal(
+        (
+          await confirmReferralSignup({
+            attributionCode: application!.code,
+            referredUserId: "suspended-referral-customer",
+            referredEmail: "suspended-referral@example.invalid",
+          })
+        ).confirmed,
+        false,
+      );
+      setSession({ user: { id: "rejected-applicant", role: "user" } });
+      assert.equal((await owner.POST(request())).status, 201);
+      const rejected = await db.query.partnerAccounts.findFirst({
+        where: eq(schema.partnerAccounts.userId, "rejected-applicant"),
+      });
+      assert.equal(
+        (await adminAction({ ...change, partnerId: rejected!.id, status: "rejected" })).status,
+        200,
+      );
+      assert.equal((await adminAction({ ...change, partnerId: rejected!.id })).status, 409);
+      setSession({ user: { id: "rejected-applicant", role: "user" } });
+      assert.equal((await owner.POST(request())).status, 409);
+      assert.equal(
+        (await (await owner.GET(new Request("http://localhost/api/partners"))).json()).application
+          .status,
+        "rejected",
+      );
+      const review = await db.query.partnerAudit.findMany({
+        where: eq(schema.partnerAudit.partnerId, application!.id),
+      });
+      assert.ok(review.some((a) => a.action === "application_submitted"));
+      assert.ok(review.some((a) => a.action === "partner_changed"));
+      assert.ok(review.some((a) => a.action === "manual_payout_recorded"));
+    },
+  );
+  await check(
+    "application body bounds, malformed JSON and media type reject before persistence",
+    async () => {
+      setSession({ user: { id: "unverified-applicant", role: "user" } });
+      for (const [body, contentType, expected] of [
+        ["{", "application/json", 400],
+        ["x".repeat(24001), "application/json", 413],
+        ["{}", "text/plain", 415],
+      ] as const) {
+        const r = await owner.POST(
+          new Request("http://localhost/api/partners", {
+            method: "POST",
+            headers: { origin: "http://localhost", "content-type": contentType },
+            body,
+          }),
+        );
+        assert.equal(r.status, expected);
+      }
+      assert.equal(
+        await db.query.partnerAccounts.findFirst({
+          where: eq(schema.partnerAccounts.userId, "unverified-applicant"),
+        }),
+        undefined,
       );
     },
   );

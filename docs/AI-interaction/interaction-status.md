@@ -4,6 +4,17 @@ Update this file after every completed AI interaction.
 
 ## Current Interaction
 
+- **Date**: 2026-11-08
+- **Goal**: Complete partner applications and coordinated production release readiness across the requested application and landing branches (T-1103).
+- **Result**: Implement verified-account applications on the existing partner account, immutable acknowledgment evidence, audited approval/rejection, restricted referral access and manual settlement conflicts. Connect the landing CTAs and align Business USD pricing.
+- **Validation**: Partner PostgreSQL 40 groups, rules 17 plus native packaging, referral contracts 27 and application browser seven groups pass. Landing static, five calculator groups and responsive browser checks pass. TypeScript, focused ESLint, deployment configuration and documentation links pass. All 45 isolated regression suites, pricing, 68 top-up webhook checks and 18 billing architecture checks pass. Production compilation, TypeScript, 99-page generation, packaging, packaged login/API smoke checks and Alpine Sharp/libvips image generation pass. Initial harness failures remain recorded in the temporary results artifact.
+- **Limits**: Railway CLI is unauthenticated and no project is linked. The dependency audit reports three Moderate and one Low advisory under the existing passing Critical/High gate. Production publication, migrations and activation require explicit owner authorization; both hosted domains, email login and verified live payments remain unverified. T-1103 stays active.
+- **Learning**: Exclude generated build snapshots from compiler/linter scope, retain source tests, include shared synthetic fixtures in isolated regressions, inspect cached musl package metadata and run migrations only through Railway predeploy.
+- **Sources**: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and the post-interaction memory prompt. Operations belong in the partner guide; no shared instruction change.
+
+
+## Previous Interaction (T-1102)
+
 - **Date**: 2026-11-07
 - **Goal**: Continue T-1102 policy controls and isolated release validation on feat/global-partner-program-v1.
 - **Result**: Validate approved policy defaults, audited historical recovery, pre-termination settlement controls, and continuous downgrade grace. Complete T-1102 with commit: worktree. The safe-build runner uses private dependency copies, generated disposable authentication values, and ignored build/ snapshots.

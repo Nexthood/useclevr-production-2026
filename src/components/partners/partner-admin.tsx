@@ -211,6 +211,17 @@ export function PartnerAdmin() {
               Close
             </Button>
           </div>
+          {detail.partner.application && (
+            <div className="space-y-2 text-sm">
+              <h3 className="font-semibold">Application</h3>
+              <p>Verified email: {detail.partner.application.email}</p>
+              <p className="whitespace-pre-wrap">{detail.partner.application.experience}</p>
+              <p>
+                Privacy acknowledgment: {detail.partner.application.privacyVersion} ·{" "}
+                {detail.partner.application.acceptedAt}
+              </p>
+            </div>
+          )}
           <PartnerPerformance
             key={detail.offset}
             data={detail}
@@ -248,6 +259,7 @@ export function PartnerAdmin() {
                   className={field}
                 >
                   <option value="active">Approve / active</option>
+                  <option value="rejected">Reject application</option>
                   <option value="suspended">Suspended</option>
                   <option value="terminated">Terminated</option>
                 </select>

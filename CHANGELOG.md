@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let verified account holders apply to the Global Partner Program, check review status, and receive referral tools after administrator approval.
+
 - Give commercial partners a dashboard for referrals, levels, payment-based commissions, refunds, and settlements, with audited administration and financial reports.
 
 - Explain Agent Trust Passport through Usy and let users open their passport in AI Governance → Transparency.

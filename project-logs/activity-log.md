@@ -1,3 +1,9 @@
+## 2026-11-08 — Secure partner registration and release validation (T-1103)
+
+- Add verified-account applications, immutable acknowledgments, audited administrator decisions and scoped onboarding through the existing partner infrastructure.
+- Connect both public CTAs, align Business USD pricing, validate 40 database groups and seven browser groups, and pass all 45 isolated regression suites, pricing/billing checks, production packaging, packaged entry/access smoke checks and Alpine image processing.
+- Keep T-1103 active for owner authorization, Railway access restoration and verification of both production domains.
+
 ## 2026-11-07 — Partner policy and release validation (T-1102)
 
 - Verify 17 partner rules, 38 disposable PostgreSQL groups, 27 referral contracts, and five browser groups across desktop/mobile and both themes.

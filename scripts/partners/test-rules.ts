@@ -89,6 +89,7 @@ test("unapproved policies, suspension, termination, and related parties hold or 
     "policy_review",
   );
   assert.equal(accrualHold(ready, "active", "unrelated"), null);
+  assert.equal(accrualHold(ready, "rejected", "unrelated"), "partner_rejected");
   assert.equal(accrualHold(ready, "suspended", "unrelated"), "suspended_hold");
   assert.equal(accrualHold(ready, "terminated", "unrelated"), "terminated_stop");
   assert.equal(accrualHold(ready, "active", "unknown"), "related_party_review");

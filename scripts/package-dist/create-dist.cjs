@@ -360,19 +360,6 @@ function readDistSharpVersion(pnpmDir) {
 }
 
 function highestMatchingVersion(versions, range) {
-  const match = range.match(/^(\^|~)?(\d+)\.(\d+)\.(\d+)/);
-  if (!match) return null;
-  const [, , major, minor, patch] = match;
-  const prefix = `${major}.${minor}.`;
-  const candidates = versions
-    .filter((version) => version.startsWith(prefix))
-    .map((version) => Number(version.slice(prefix.length).split("-")[0].split(".")[0] || "0"))
-    .filter((value) => Number.isFinite(value));
-  if (!candidates.length) return null;
-  return `${prefix}${Math.max(...candidates)}`;
-}
-
-function highestMatchingVersion(versions, range) {
   const match = String(range).match(/^(?:\^|~)?(\d+)\.(\d+)\.(\d+)/);
   if (!match) return null;
   const prefix = `${match[1]}.${match[2]}.`;
@@ -394,7 +381,9 @@ function ensureSharpMuslPackages(distNmDir) {
   const sharpPkg = readDistSharpVersion(pnpmDir);
   const sharpMuslVersion = sharpPkg?.optionalDependencies?.["@img/sharp-linuxmusl-x64"];
   if (!sharpPkg || !sharpMuslVersion) {
-    console.log("  Skipping sharp musl packages: installed sharp declares no musl platform package.");
+    console.log(
+      "  Skipping sharp musl packages: installed sharp declares no musl platform package.",
+    );
     return;
   }
 
@@ -410,45 +399,47 @@ function ensureSharpMuslPackages(distNmDir) {
   let libvipsVersion = null;
   for (const pkg of muslPackages) {
     const destEntry = path.join(pnpmDir, pkg.entry);
-    if (fs.existsSync(destEntry)) continue;
+    if (!fs.existsSync(destEntry)) {
+      const scope = pkg.npmName.split("/")[0];
+      const bareName = pkg.npmName.split("/")[1];
+      const tmpDir = fs.mkdtempSync(path.join(pnpmDir, ".tmp-sharp-musl-"));
 
-    const scope = pkg.npmName.split("/")[0];
-    const bareName = pkg.npmName.split("/")[1];
-    const tmpDir = fs.mkdtempSync(path.join(pnpmDir, ".tmp-sharp-musl-"));
+      try {
+        const tarball = path.join(tmpDir, "pkg.tgz");
+        const url = `https://registry.npmjs.org/${pkg.npmName}/-/${bareName}-${pkg.version}.tgz`;
+        execSync(`curl -sfL -o "${tarball}" "${url}"`, { stdio: "ignore" });
+        execSync(`tar xzf "${tarball}" -C "${tmpDir}"`, { stdio: "ignore" });
 
-    try {
-      const tarball = path.join(tmpDir, "pkg.tgz");
-      const url = `https://registry.npmjs.org/${pkg.npmName}/-/${bareName}-${pkg.version}.tgz`;
-      execSync(`curl -sfL -o "${tarball}" "${url}"`, { stdio: "ignore" });
-      execSync(`tar xzf "${tarball}" -C "${tmpDir}"`, { stdio: "ignore" });
+        const pkgDir = path.join(tmpDir, "package");
+        const storePath = path.join(pnpmDir, pkg.entry, "node_modules", scope, bareName);
+        fs.mkdirSync(path.dirname(storePath), { recursive: true });
+        fs.renameSync(pkgDir, storePath);
 
-      const pkgDir = path.join(tmpDir, "package");
-      const storePath = path.join(pnpmDir, pkg.entry, "node_modules", scope, bareName);
-      fs.mkdirSync(path.dirname(storePath), { recursive: true });
-      fs.renameSync(pkgDir, storePath);
-
-      console.log(`  Added missing platform package: ${pkg.npmName}@${pkg.version}`);
-
-      const packageJsonPath = path.join(storePath, "package.json");
-      const installedPkgJson = fs.existsSync(packageJsonPath)
-        ? JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
-        : null;
-      const libvipsRange = installedPkgJson?.optionalDependencies?.["@img/sharp-libvips-linuxmusl-x64"] ||
-        installedPkgJson?.dependencies?.["@img/sharp-libvips-linuxmusl-x64"];
-      if (libvipsRange && !libvipsVersion) {
-        if (/^\d+\.\d+\.\d+$/.test(String(libvipsRange))) {
-          libvipsVersion = String(libvipsRange);
-        } else {
-          const registryRaw = execSync(
-            `curl -sfL "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64"`,
-            { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" },
-          );
-          const registry = JSON.parse(registryRaw);
-          libvipsVersion = highestMatchingVersion(Object.keys(registry.versions || {}), libvipsRange);
-        }
+        console.log(`  Added missing platform package: ${pkg.npmName}@${pkg.version}`);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
       }
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+
+    const storePath = path.join(pnpmDir, pkg.entry, "node_modules", pkg.npmName);
+    const packageJsonPath = path.join(storePath, "package.json");
+    const installedPkgJson = fs.existsSync(packageJsonPath)
+      ? JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+      : null;
+    const libvipsRange =
+      installedPkgJson?.optionalDependencies?.["@img/sharp-libvips-linuxmusl-x64"] ||
+      installedPkgJson?.dependencies?.["@img/sharp-libvips-linuxmusl-x64"];
+    if (libvipsRange && !libvipsVersion) {
+      if (/^\d+\.\d+\.\d+$/.test(String(libvipsRange))) {
+        libvipsVersion = String(libvipsRange);
+      } else {
+        const registryRaw = execSync(
+          `curl -sfL "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64"`,
+          { stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" },
+        );
+        const registry = JSON.parse(registryRaw);
+        libvipsVersion = highestMatchingVersion(Object.keys(registry.versions || {}), libvipsRange);
+      }
     }
   }
 
@@ -460,7 +451,9 @@ function ensureSharpMuslPackages(distNmDir) {
       version: libvipsVersion,
     });
   } else {
-    console.log("  Could not resolve @img/sharp-libvips-linuxmusl-x64 version; skipping libvips fetch.");
+    console.log(
+      "  Could not resolve @img/sharp-libvips-linuxmusl-x64 version; skipping libvips fetch.",
+    );
   }
 
   for (const pkg of muslPackages) {
@@ -634,12 +627,11 @@ restoreNextBuildDir();
 const nextBuildExtra = path.join(distDir, "next-build-extra");
 copyBuildDir(_nextSourceBuildDir, nextBuildExtra);
 
-// Railway uses DOCKERFILE builder (not Railpack). The dist folder contains the complete
-// node_modules from Next.js standalone tracing. No pnpm/npm install needed.
+// The optional container artifact uses the complete standalone dependency tree.
+// Railway owns migrations through its configured preDeployCommand; image builds never migrate.
 const dockerfile = `FROM node:26-alpine
 WORKDIR /app
 COPY . .
-RUN node scripts/runtime/railway-predeploy.cjs
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD node -e "require('http').get('http://localhost:8080/api/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["sh", "-c", "USECLEVR_SERVER_TARGET=railway node -r ./scripts/runtime/load-env.cjs ./scripts/runtime/start-dist.cjs"]

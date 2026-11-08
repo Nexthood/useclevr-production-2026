@@ -40,6 +40,12 @@ export const partnerAccounts = pgTable(
     market: text("market"),
     status: text("status").notNull().default("pending"),
     agreement: text("agreement").notNull(),
+    application: jsonb("application").$type<{
+      email: string;
+      experience: string;
+      privacyVersion: string;
+      acceptedAt: string;
+    }>(),
     notes: text("notes").notNull().default(""),
     level: text("level").$type<PartnerLevel>().notNull().default("bronze"),
     candidateLevel: text("candidateLevel").$type<PartnerLevel>(),
@@ -52,7 +58,7 @@ export const partnerAccounts = pgTable(
   (t) => [
     check(
       "PartnerAccount_status_check",
-      sql`${t.status} in ('pending','active','suspended','terminated')`,
+      sql`${t.status} in ('pending','active','rejected','suspended','terminated')`,
     ),
   ],
 );
