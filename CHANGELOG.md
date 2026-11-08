@@ -73,6 +73,8 @@
 
 ### Dev
 
+- Partner release browser checks now ride through page reloads and fast navigation updates without aborting, so application-state verification stays reliable.
+
 - Check French Passport explanations, navigation labels, and support routing across guest and signed-in roles to catch response regressions.
 
 - Patch connector validation and rich-text processing dependencies, and test their compatibility before release.

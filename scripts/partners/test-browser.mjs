@@ -318,7 +318,7 @@ try {
       await evaluate(
         'Array.from(document.querySelectorAll("button")).find(b=>b.textContent==="View").click()',
       );
-      await waitFor('document.body.innerText.includes("Partner performance")');
+      await waitFor('document.body?.innerText.includes("Partner performance")');
       assert.equal(
         await evaluate(
           'document.body.innerText.includes("Financial review decision") && document.body.innerText.includes("Approve commissions and record settlements")',
@@ -345,7 +345,7 @@ try {
   await evaluate(
     'Array.from(document.querySelectorAll("button")).find(b=>b.textContent==="Approve").click()',
   );
-  await waitFor('document.body.innerText.includes("Saved.")');
+  await waitFor('document.body?.innerText.includes("Saved.")');
   assert.equal(
     actions.some((a) => a.action === "approve" && a.reason === "Synthetic browser approval"),
     true,
@@ -376,7 +376,7 @@ try {
     });
     applicationReceipt = null;
     await command("Page.navigate", { url: `${origin}/?apply=1` });
-    await waitFor('document.body.innerText.includes("Submit application")');
+    await waitFor('document.body?.innerText.includes("Submit application")');
     assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
     assert.equal(
       await evaluate('document.querySelectorAll("input[type=checkbox]:checked").length'),
@@ -401,7 +401,7 @@ try {
     assert.equal(await evaluate('document.querySelector("form") === null'), true);
     applicationReceipt.status = "rejected";
     await command("Page.reload");
-    await waitFor('document.body.innerText.includes("Your application was not approved")');
+    await waitFor('document.body?.innerText.includes("Your application was not approved")');
     assert.equal(await evaluate('document.querySelector("#partner-link") === null'), true);
     passed++;
     console.log(

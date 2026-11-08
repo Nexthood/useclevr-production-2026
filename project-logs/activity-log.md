@@ -1,3 +1,10 @@
+## 2026-11-08 — Partner program takeover validation (T-1103)
+
+- Confirm the NextAuth integration-suite blocker is resolved through the existing test-only module hooks and rerun the full partner validation battery with no production source changes.
+- Stabilize the partner browser acceptance harness against reload navigation races; reuse the documented build/snapshot flow after stale-snapshot cleanup, preserving earlier regression evidence.
+- Pass 41 integration groups, 18 rules plus native packaging, 27 referral contracts, Railway authentication, refund lifecycle, seven browser groups, TypeScript, zero-error ESLint, 99-page isolated build, packaging and packaged-runtime checks, and landing calculator/browser verification matching billing configuration.
+- Keep publication, production migration, deployment and activation blocked pending owner release approval; T-1103 stays active.
+
 ## 2026-11-08 — Partner release prerequisite review (T-1103)
 
 - Restore ignored Railway project metadata, protect existing credential files, and identify rejected credentials without exposing values or creating infrastructure.

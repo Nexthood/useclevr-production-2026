@@ -1,3 +1,13 @@
+## 2026-11-08 — Partner program takeover validation and browser harness stability (T-1103)
+
+1. Goal: Take over the unfinished partner program task, confirm the NextAuth integration blocker is resolved, complete the full local validation process, and preserve all existing work without restarting development.
+2. Changes: Remove transient-change decoding races from the partner browser acceptance harness so reload waits return false instead of reading a null document during navigation; no application or authorization source changes and no test-only authentication surfaces in production code.
+3. Evidence: The reported `headers was called outside a request scope` failure does not reproduce; the pre-existing test-only module resolve hooks keep NextAuth request-scoped behavior intact while route-handler checks exercise real 401/403/origin/rate-limit paths. The working tree contained only the four-line harness stability edit before bookkeeping.
+4. Validation: Pass 41 disposable PostgreSQL integration groups, 18 partner rules plus native packaging, 27 referral-automation contracts, Railway authentication, billing refund lifecycle, seven browser acceptance groups after the stability edit, TypeScript, ESLint with zero errors, isolated production compilation with 99-page generation, distribution packaging, and packaged-runtime startup with anonymous partner/admin API restriction checks. Landing calculator five test groups and responsive browser verification across 320–1440 widths pass; calculator USD/EUR Pro and Business prices match the authoritative billing configuration. All requested negative cases are covered by the recorded integration groups.
+5. Environment finding: The workspace root disk lacked 4 GiB free and /tmp lacked copy capacity for the isolated build; stale and partial snapshot cleanup restored the documented build-directory flow. The earlier /tmp regression evidence was preserved.
+6. Release controls: T-1103 remains active. No push to main or beta, no production migration, deployment or activation occurs; secure Railway reauthentication, production schema/backup/variable verification, provider notification updates and hosted acceptance remain prerequisites per the program guide.
+7. Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and the post-interaction memory prompt. No shared instruction change.
+
 ## 2026-11-08 — Provider access and partner release prerequisites (T-1103)
 
 1. Goal: Restore existing Railway access and verify coordinated release prerequisites without production migrations, merges, deployment or activation.
