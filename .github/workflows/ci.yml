@@ -38,6 +38,7 @@ jobs:
         pnpm audit:allowlist
         pnpm test:chatgpt
         pnpm test:agent-passport
+        pnpm test:railway-auth
         pnpm test:partners:integration
         pnpm test:all
         pnpm build

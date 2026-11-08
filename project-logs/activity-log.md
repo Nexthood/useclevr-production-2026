@@ -1,3 +1,10 @@
+## 2026-11-08 — Partner release prerequisite review (T-1103)
+
+- Restore ignored Railway project metadata, protect existing credential files, and identify rejected credentials without exposing values or creating infrastructure.
+- Fix scoped Railway authentication and modern subscription cancellation; pass 41 database groups, 18 rules and mocked CLI checks, and review all four dependency advisories.
+- Record missing Stripe events, stale local database credentials, verified healthy production database response, current rollback references and pending production access/backup checks in the partner guide.
+- Keep publication and activation blocked pending prerequisite verification and explicit owner release approval. Preserve both branches and other worktrees.
+
 ## 2026-11-08 — Secure partner registration and release validation (T-1103)
 
 - Add verified-account applications, immutable acknowledgments, audited administrator decisions and scoped onboarding through the existing partner infrastructure.

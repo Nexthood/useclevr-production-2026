@@ -30,7 +30,7 @@ if (existsSync(dotenv)) {
 }
 const { env, exit } = require("process");
 
-const API = "https://api.railway.app/graphql/v2";
+const API = "https://backboard.railway.com/graphql/v2";
 
 const RAILWAY_DIR = resolve(".railway");
 const PROJECT_FILE = resolve(RAILWAY_DIR, "project.json");
@@ -49,16 +49,20 @@ async function gql(query, variables = {}) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      ...(env.RAILWAY_API_TOKEN
+        ? { Authorization: `Bearer ${token}` }
+        : { "Project-Access-Token": token }),
     },
     body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(20000),
   });
   const data = await res.json();
-  if (data.errors) {
-    for (const e of data.errors) {
-      console.error("API error:", e.message);
-    }
-    exit(1);
+  if (!res.ok || data.errors?.length) {
+    // Keep authentication errors catchable so read-only scope detection works.
+    const message = data.errors?.map((e) => e.message).join("; ") || `Railway HTTP ${res.status}`;
+    const error = new Error(message.split(token).join("[REDACTED]"));
+    error.name = "RailwayApiError";
+    throw error;
   }
   return data.data;
 }
@@ -114,14 +118,26 @@ function print(data, asJson = false) {
 
 async function cmdLogin() {
   requireToken();
+  if (env.RAILWAY_TOKEN && !env.RAILWAY_API_TOKEN) {
+    const { projectToken } = await gql(`{ projectToken { projectId environmentId } }`);
+    console.log(
+      `Authenticated project ${projectToken.projectId}, environment ${projectToken.environmentId}`,
+    );
+    return;
+  }
   const { me } = await gql(`{ me { id name email } }`);
   console.log(`✅ Authenticated as ${me.name} <${me.email}> (${me.id})`);
 }
 
 async function cmdWhoami() {
+  if (env.RAILWAY_TOKEN && !env.RAILWAY_API_TOKEN) {
+    const { projectToken } = await gql(`{ projectToken { projectId environmentId } }`);
+    console.log(`Project: ${projectToken.projectId}, environment: ${projectToken.environmentId}`);
+    return;
+  }
   const link = readProjectLink();
   if (link) {
-    console.log(`Project: ${link.name} (${link.id})`);
+    console.log(`Project: ${link.name} (${link.projectId})`);
     if (link.environmentName) console.log(`Environment: ${link.environmentName}`);
   }
   const token = getToken();
@@ -139,6 +155,14 @@ async function cmdWhoami() {
 
 async function cmdList() {
   requireToken();
+  if (env.RAILWAY_TOKEN && !env.RAILWAY_API_TOKEN) {
+    const { projectToken } = await gql(`{ projectToken { projectId environmentId } }`);
+    const { project } = await gql(`query($id: String!) { project(id: $id) { id name } }`, {
+      id: projectToken.projectId,
+    });
+    console.log(`${project.id}  ${project.name} (environment ${projectToken.environmentId})`);
+    return;
+  }
   try {
     const { me } = await gql(
       `{ me { id name email projects { edges { node { id name description } } } } }`,
@@ -224,11 +248,11 @@ async function cmdStatus() {
     // Try to get live status from API
     try {
       const { project } = await gql(`{ project(id: "${link.projectId}") { id name description } }`);
-      if (project) {
-        console.log(`Status:  ✅ Connected (${project.name})`);
-      }
+      if (!project) throw new Error("Linked project unavailable");
+      console.log(`Status:  ✅ Connected (${project.name})`);
     } catch {
       console.log("Status:  ⚠️  Cannot verify (offline or token expired)");
+      process.exitCode = 1;
     }
   } else {
     console.log("No project linked. Run: pnpm railway:link");
@@ -425,17 +449,19 @@ async function cmdCleanup(args) {
         continue;
       }
 
-      const toRemove = keepSuccess
-        ? edges.filter(({ node }) => node.status !== "SUCCESS")
-        : edges;
+      const toRemove = keepSuccess ? edges.filter(({ node }) => node.status !== "SUCCESS") : edges;
       const skipped = edges.length - toRemove.length;
 
       if (toRemove.length === 0) {
-        console.log(`  ${svc.name} (${envName}): 0 to remove${skipped > 0 ? ` (${skipped} SUCCESS kept)` : ""}`);
+        console.log(
+          `  ${svc.name} (${envName}): 0 to remove${skipped > 0 ? ` (${skipped} SUCCESS kept)` : ""}`,
+        );
         continue;
       }
 
-      console.log(`  ${svc.name} (${envName}): ${toRemove.length} to remove${skipped > 0 ? ` (${skipped} SUCCESS kept)` : ""}`);
+      console.log(
+        `  ${svc.name} (${envName}): ${toRemove.length} to remove${skipped > 0 ? ` (${skipped} SUCCESS kept)` : ""}`,
+      );
 
       for (const { node } of toRemove) {
         process.stdout.write(".");
@@ -447,7 +473,9 @@ async function cmdCleanup(args) {
     }
   }
 
-  console.log(`\nRemoved ${totalRemoved} deployment(s)${totalSkipped > 0 ? `, skipped ${totalSkipped} SUCCESS deployment(s)` : ""}`);
+  console.log(
+    `\nRemoved ${totalRemoved} deployment(s)${totalSkipped > 0 ? `, skipped ${totalSkipped} SUCCESS deployment(s)` : ""}`,
+  );
 }
 
 async function cmdVariable(args) {
@@ -491,6 +519,26 @@ async function cmdVariable(args) {
       }`,
       { projectId, environmentId, serviceId },
     );
+    if (args.includes("--presence-only")) {
+      console.log(
+        JSON.stringify(
+          Object.fromEntries(
+            Object.entries(variables || {})
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([name, value]) => [
+                name,
+                {
+                  configured: typeof value === "string" && value.trim().length > 0,
+                  sealedOrUnavailable: value === null,
+                },
+              ]),
+          ),
+          null,
+          2,
+        ),
+      );
+      return;
+    }
     console.log(variables);
     return;
   }
@@ -542,6 +590,7 @@ Options:
   -s, --service <id>        Service ID (required)
   -e, --environment <id>    Environment ID (required)
   --skip-deploys            Skip triggering deploys
+  --presence-only          Report variable names and configured/sealed status only (list)
 `);
 }
 

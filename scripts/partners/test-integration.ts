@@ -1578,6 +1578,51 @@ async function main() {
     },
   );
   await check(
+    "modern cancellation webhooks normalize through the pinned Stripe API without commission accrual",
+    async () => {
+      const count = (await db.query.partnerCommissions.findMany()).length;
+      const periodEnd = Math.floor(Date.now() / 1000) + 86400;
+      const retrieved: string[] = [];
+      await handlePartnerStripeEvent(
+        {
+          id: "evt-modern-cancellation",
+          type: "customer.subscription.deleted",
+          api_version: "2026-03-25.dahlia",
+          created: Math.floor(Date.now() / 1000),
+          data: {
+            object: {
+              id: "sub-modern-cancellation",
+              customer: "cus_local",
+              status: "canceled",
+              items: { data: [{ current_period_end: periodEnd }] },
+            },
+          },
+        } as never,
+        {
+          subscriptions: {
+            retrieve: async (subscriptionId: string) => {
+              retrieved.push(subscriptionId);
+              return {
+                id: subscriptionId,
+                customer: "cus_local",
+                status: "canceled",
+                current_period_end: periodEnd,
+              };
+            },
+          },
+        } as never,
+      );
+      assert.deepEqual(retrieved, ["sub-modern-cancellation"]);
+      const subscription = await db.query.partnerSubscriptions.findFirst({
+        where: eq(schema.partnerSubscriptions.id, "sub-modern-cancellation"),
+      });
+      assert.equal(subscription?.status, "canceled");
+      assert.equal(subscription?.canceled, true);
+      assert.equal(subscription?.periodEnd.toISOString(), new Date(periodEnd * 1000).toISOString());
+      assert.equal((await db.query.partnerCommissions.findMany()).length, count);
+    },
+  );
+  await check(
     "new disabled policy version is audited, prospective, and preserves historical commissions",
     async () => {
       const before = await db.query.partnerCommissions.findMany();

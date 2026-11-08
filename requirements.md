@@ -11,6 +11,8 @@ Text rules for this file:
 
 ## Global Partner Program
 
+- Partner activity uses authoritative subscription state even when the billing webhook payload omits legacy period fields.
+
 - Visitors apply through verified account authentication, provide required country, market and experience details, and explicitly acknowledge application privacy and participation terms.
 - The server persists one application per account in the existing partner account and immutable audit history; administrators review, approve or reject with a reason and reviewed agreement.
 - Pending and rejected applicants see their decision state; approved partners access their own referral tools and financial history. Rejected applications cannot reactivate; suspension and termination restrict new referrals.

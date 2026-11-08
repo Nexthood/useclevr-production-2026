@@ -123,7 +123,7 @@ After authorization:
 
 Rollback order: stop public recruitment by restoring the previous landing revision through the same
 manual workflow; disable `PARTNER_PROGRAM_ENABLED` and save a disabled prospective policy version;
-restore the previous known-good Railway deployment if needed. Retain additive columns, application
+restore the previous known-good Railway deployment if needed. Railway rollback also restores custom variables: recheck the runtime gate and keep it disabled after rollback. Retain additive columns, application
 records and immutable financial evidence. Do not drop migrations, delete receipts, or edit earned
 rates. Capture and reconcile Stripe events spanning the disabled interval before reactivation.
 Database restore requires a separate reviewed recovery procedure because restoring a backup can
@@ -152,3 +152,149 @@ For an isolated regression failure caused by fixture/environment setup, correct 
 use `node scripts/partners/run-safe-build.mjs --retry-regression <isolated-snapshot-directory>`.
 It restores shared test fixtures and the two tracked example templates, reruns only failed suites
 with a new disposable database, and retains initial failures in `regression-results.json`.
+
+## Release readiness review — 8 November 2026
+
+**Decision: blocked; do not release or activate.** This review authorizes no production changes.
+The application preparation starts from local commit `ce2ba95b` on
+`feat/global-partner-program-v1`; landing preparation is `d2028ac` on
+`feature/work-with-us-sales-partners`. Both preserve the existing implementation.
+Other worktrees are untouched. Current remote main/beta merge simulations pass without
+checking out, merging, publishing or changing a branch.
+
+### Access and production evidence
+
+| Prerequisite           | Evidence and remaining work                                                                                                                                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Railway reference      | Restore the ignored owner-only `.railway/project.json` from the existing successful provider deployment metadata. The project/environment reference is recovered; authenticated service linkage is still unverified. No infrastructure is created.                                   |
+| Railway authentication | Both existing private credentials fail account authentication and project-token authentication. Tighten their file permissions without changing their contents. Secure owner reauthentication or another existing private backup is required; never paste tokens into chat.          |
+| Production health      | Read-only `https://app.useclevr.com/api/health` reports ready with a healthy database. Anonymous `/api/partners` returns 401. `/partners/apply` and both public Work With Us URLs return 404 before this release. No hosted applicant journey has passed.                            |
+| Database access        | The existing local connection fails with SQLSTATE `28P01`. This proves stale local credentials, not an unhealthy production database. Verify the production schema, migration identity/privileges and recoverable backup through authenticated access before authorizing migrations. |
+| Runtime configuration  | Live Railway variables, sealed settings and the live partner flag remain unverified. Local presence is insufficient evidence of production configuration.                                                                                                                            |
+| Stripe delivery        | The existing live endpoint lacks eight required events listed below. Its current API version is `2026-03-25.dahlia`; preserve that version and all existing event subscriptions. No provider setting is changed.                                                                     |
+| Landing hosting        | Both existing SSH secret names are configured and predate the last successful deployment. Current SSH authentication and Apache behavior have not been retested. The manual workflow has no environment protection rule; retain the explicit owner approval boundary.                |
+
+The local Railway wrapper now uses the documented API endpoint and distinguishes account
+Bearer authentication from project-token authentication. Failed status checks exit nonzero.
+`pnpm test:railway-auth` exercises both scopes, failures, token redaction and variable-presence
+output using isolated mock credentials; CI includes this check.
+After secure authentication, use `pnpm railway variable list --presence-only` with the exact
+existing service/environment options. Never print raw variable values. Sealed values cannot
+be retrieved through the API/CLI and require secure provider/runtime verification.
+See [Railway API authentication](https://docs.railway.com/integrations/api) and
+[sealed variables](https://docs.railway.com/variables).
+
+Verify production `DATABASE_URL` and the migration connection, `AUTH_SECRET` or supported
+`NEXTAUTH_SECRET` fallback, `PAYLOAD_SECRET`, email-provider credentials and sender, Stripe
+secret/signing settings and approved price identifiers. Confirm public authentication/application
+origins resolve to `https://app.useclevr.com`. Existing local auth origins point to older Railway
+hosts, while local Payload/email settings are absent; neither finding establishes the remote
+values. Keep the runtime financial flag and prospective policy disabled until explicit activation
+approval. Do not import the shared local environment wholesale into Railway.
+
+### Stripe notification change prepared for final approval
+
+Add these events to the existing endpoint, preserving its current subscription set:
+
+- `customer.subscription.updated`
+- `charge.dispute.created`
+- `charge.dispute.updated`
+- `charge.dispute.closed`
+- `charge.dispute.funds_withdrawn`
+- `charge.dispute.funds_reinstated`
+- `refund.updated`
+- `refund.failed`
+
+`invoice.payment_succeeded` already provides the payment-success notification;
+`invoice.paid` is an alternative, not an additional blocker.
+The ignored owner-only `.railway/partner-webhook-plan.json` contains the existing endpoint
+reference, original subscription fingerprint and additive desired set. Re-read the endpoint and
+compare the fingerprint before any authorized update. No signing secret is stored in this plan.
+Verify the deployed signing secret matches this endpoint through a genuine signed delivery.
+
+Modern subscription events can omit legacy top-level billing periods. The partner handler now
+retrieves the authoritative subscription through the existing SDK for canceled subscriptions too.
+A disposable database regression covers a modern cancellation event without the legacy field,
+asserts canceled state and period persistence, and checks that no commission is created.
+See [Stripe's period-field change](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end)
+and [subscription retrieval](https://docs.stripe.com/api/subscriptions/retrieve).
+
+### Dependency advisory assessment
+
+The fresh audit reports three Moderate and one Low advisory with no High/Critical findings.
+No dependency version or audit exception is changed. The following conclusions concern reviewed
+partner call paths, not a certification of every CMS or third-party route.
+
+| Package / severity                     | Exposure assessment and remediation status                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@hono/node-server` 1.19.17 / Moderate | [GHSA-rmxm-3fg6-px4f](https://github.com/advisories/GHSA-rmxm-3fg6-px4f) affects protected static serving with double decoding. This is a runtime dependency through Payload MCP. The reviewed SDK transport uses `getRequestListener`; no affected `serveStatic` configuration is found in partner/application source. Version 2.1.3 is available but crosses the SDK's major dependency range; do not force an unsupported override. |
+| `qs` 6.16.0 / Moderate                 | [GHSA-6pq8-jhm2-2vcw](https://github.com/advisories/GHSA-6pq8-jhm2-2vcw) requires comma-array stringify with attacker-controlled structured values. Stripe uses default serialization; Express parses queries. Partner applications accept strict primitive JSON fields and reject prototype/structured payloads. No matching partner trigger is identified. Version 6.16.1 is available for a separately validated dependency update. |
+| `minimatch` 10.2.6 / Moderate          | [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) concerns pattern amplification with higher optimization levels. The installed paths are development lint tooling; partner handlers accept no glob patterns. Version 11.0.1 is available as a major update. No direct partner runtime path is identified.                                                                                                      |
+| `deepmerge` 4.3.1 / Low                | [GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4) concerns poisoning a merged object's prototype. Payload uses this runtime dependency; partner handlers do not invoke it and reject structured/prototype application fields. Broader CMS exposure remains a residual risk. Audit metadata names 4.3.2, but that version is not published in the registry at review time; do not claim an available fix.        |
+
+Source review uses the [installed MCP SDK transport revision](https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/ff07b001194fe60ee9deb2121cf119057565796d/src/server/streamableHttp.ts),
+[Stripe 14 serialization](https://raw.githubusercontent.com/stripe/stripe-node/v14.25.0/src/utils.ts),
+[Stripe 10 serialization](https://raw.githubusercontent.com/stripe/stripe-node/v10.17.0/lib/utils.js),
+and [Payload's merge utility](https://raw.githubusercontent.com/payloadcms/payload/v3.90.2/packages/payload/src/utilities/deepMerge.ts).
+The passing existing dependency gate does not erase these advisories.
+
+### Deployment and recovery constraints
+
+The current successful production source is `f10e7ea5862d6729c1b8f291ce3220df3d6ae47a`;
+its generated distribution is `8aebad0f88e377b095ffb9facd9438755abbbadd`.
+The Railway deployment and GitHub build records agree on that baseline.
+The last successful real landing deployment uses `0ce579c94f6a69b97eecc4056abbff0913a95620`.
+Confirm these references and available provider rollback images again immediately before release;
+they are review-time evidence, not immutable claims about future production state.
+
+The application requires the source/build validation check. A beta push can publish `dist-test`
+and open an automated promotion PR; subsequent automation can promote eligible changes.
+Do not push beta or create a promotion path before release authorization. The landing workflow is
+manual, defaults to dry-run and requires real `deploy` mode with `all` scope after authorization.
+Its allowlist includes Apache routing, recruitment page/assets and sitemap while preserving
+protected server files. No workflow is dispatched during this preparation.
+
+The migration runner wraps its DDL and migrations 0038–0040 in a transaction and rolls back on
+failure. Migration 0040 extends existing accounts, updates status constraints and protects
+application evidence; it does not create parallel partner storage. Integration fixtures verify
+repeated execution and rejection/evidence constraints. Production lock contention, transaction
+duration, existing data compatibility, backup restoration and database privileges remain unverified.
+The runner has no explicit statement/lock timeout: assess the existing production session policy
+and migration window before approving execution. Never run predeploy as a discovery command.
+
+Retain a known-good provider image and the landing revision above. Confirm backup restoration
+capability before migrating. Railway rollback restores both the image and custom variables;
+recheck the runtime gate after rollback and keep it disabled. Image retention depends on the
+account plan and age, so a Git SHA alone is not proof of available rollback.
+See [Railway rollback behavior](https://docs.railway.com/deployments/deployment-actions).
+Do not use deployment cleanup, destructive down migrations or financial-record deletion as recovery.
+Schema additions and immutable evidence remain in place when reverting application code.
+
+Local validation and remaining hosted acceptance are recorded below. T-1103 remains active until
+both public domains and the genuine customer/payment/eligible manual-settlement journey pass.
+
+### Local verification for this preparation
+
+- Pass 41 disposable PostgreSQL integration groups, including modern cancellation normalization,
+  application review, financial eligibility, idempotency, refunds/disputes and settlement failures.
+- Pass 18 partner rules and native packaging checks; reject structured/prototype application input.
+- Pass isolated Railway account/project authentication, failure and secret-redaction tests.
+- Pass isolated billing refund lifecycle and 68 top-up webhook checks on the updated source.
+- Pass production compilation, TypeScript, all 99 generated pages and distribution packaging.
+  Existing compiler warnings and the deliberately unreachable fixture database diagnostic remain
+  visible; all build/packaging exit codes are zero.
+- Pass packaged startup, applicant login return URL and anonymous partner/admin API restrictions
+  with synthetic secrets and an unreachable database.
+- Pass a read-only, network-disabled Alpine container transformation on the new artifact:
+  Node 26.13.0, Sharp 0.35.5, libvips 8.18.7, generated PNG 94 bytes.
+- Preserve the earlier 45-suite regression results in the same isolated snapshot, including initial
+  harness failures and successful targeted reruns. This preparation reruns affected suites and
+  rebuilds the updated artifact; it does not relabel the earlier full run as a new full run.
+- Recheck landing static/calculator contracts and conflict-free source merge simulations.
+  Production login/email, administrator review, referral acquisition, signed live payments,
+  deployed database migration, backups, Apache routing and mature manual settlement remain
+  unverified. Local fixtures do not satisfy those hosted acceptance conditions.
+
+Temporary evidence is in `/tmp/partner-validation-Rn1WNF/readiness-rebuild-results.json` and
+`regression-results.json` in that same snapshot. These temporary files are not durable hosted
+release evidence. The source workflow must still pass for the published candidate after approval.

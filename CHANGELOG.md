@@ -20,6 +20,8 @@
 
 ### Fixed
 
+- Keep partner customer activity accurate when billing providers send updated cancellation formats.
+
 - Answer product questions during unfinished Usy contact requests while saving the draft so users can resume it without losing their details.
 
 - Answer multilingual Passport and AI-agent ownership questions with product guidance and direct navigation, and distinguish technical problems from human-contact requests.

@@ -5,6 +5,17 @@ Update this file after every completed AI interaction.
 ## Current Interaction
 
 - **Date**: 2026-11-08
+- **Goal**: Restore secure Railway access and verify coordinated partner release prerequisites (T-1103), with production changes prohibited until final owner approval.
+- **Result**: Recover the existing project/environment reference locally; correct account/project API authentication, redact credential errors and add presence-only configuration reporting. Fix modern cancellation normalization and document advisory exposure, rollback revisions, missing provider events and remaining access checks in the partner guide.
+- **Validation**: Pass 41 disposable PostgreSQL groups, 18 partner rules plus native packaging and isolated Railway authentication checks; recheck landing contracts and merge compatibility. The updated isolated production build, 99-page generation, packaging, runtime access checks and Alpine Sharp/libvips transformation pass; the guide records their scope. Preserve the previous 45-suite regression evidence and initial harness failures.
+- **Blockers**: Both existing Railway credentials are rejected; owner secure reauthentication is requested. Local database authentication fails while production health reports its database healthy. Production variable, schema, privilege and backup verification remain pending. Eight required Stripe events are absent and an additive update plan remains unapplied. Hosted recruitment routes currently return 404; full hosted financial acceptance remains pending.
+- **Controls**: No secrets exposed or replaced, infrastructure created, push, merge, production migration, deployment or activation. T-1103 remains active. Four residual dependency advisories remain visible; no dependency or audit exception changes.
+- **Learning**: Test both documented authentication scopes, distinguish stale local credentials from live health, retrieve authoritative subscriptions across webhook versions, and recheck runtime flags after a provider rollback restores custom variables.
+- **Sources**: Existing repository instructions, post-interaction memory prompt and primary provider/advisory sources linked in the program guide. No shared instruction change.
+
+## Previous Interaction — Partner application preparation
+
+- **Date**: 2026-11-08
 - **Goal**: Complete partner applications and coordinated production release readiness across the requested application and landing branches (T-1103).
 - **Result**: Implement verified-account applications on the existing partner account, immutable acknowledgment evidence, audited approval/rejection, restricted referral access and manual settlement conflicts. Connect the landing CTAs and align Business USD pricing.
 - **Validation**: Partner PostgreSQL 40 groups, rules 17 plus native packaging, referral contracts 27 and application browser seven groups pass. Landing static, five calculator groups and responsive browser checks pass. TypeScript, focused ESLint, deployment configuration and documentation links pass. All 45 isolated regression suites, pricing, 68 top-up webhook checks and 18 billing architecture checks pass. Production compilation, TypeScript, 99-page generation, packaging, packaged login/API smoke checks and Alpine Sharp/libvips image generation pass. Initial harness failures remain recorded in the temporary results artifact.

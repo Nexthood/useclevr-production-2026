@@ -54,4 +54,4 @@ Reuse inactive number ranges for new non-sequential work when a shorter active I
 
 ## Label: sales
 
-- T-1103. The owner authorizes coordinated publication of verified partner registration, restores Railway access, and completes hosted registration, eligible payment and mature manual-settlement acceptance across both domains. (labels: sales, auth, billing, security, testing, deployment)
+- T-1103. Restore secure Railway access, verify production schema, backups and runtime configuration, prepare missing Stripe notifications, and obtain owner authorization before coordinated publication; complete hosted registration, eligible payment and mature manual-settlement acceptance across both domains. (labels: sales, auth, billing, security, testing, deployment)

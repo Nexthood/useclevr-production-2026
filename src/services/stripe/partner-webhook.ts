@@ -13,10 +13,9 @@ export async function handlePartnerStripeEvent(event: Stripe.Event, stripe: Stri
   if (process.env.PARTNER_PROGRAM_ENABLED !== "true") return;
   const objectId = (event.data.object as { id: string }).id;
   if (event.type.startsWith("customer.subscription.")) {
-    const sub =
-      event.type === "customer.subscription.deleted"
-        ? (event.data.object as Stripe.Subscription)
-        : await stripe.subscriptions.retrieve(objectId);
+    // Webhook versions can remove top-level billing periods (Basil and newer).
+    // Retrieve canceled subscriptions too, using the SDK's pinned API shape.
+    const sub = await stripe.subscriptions.retrieve(objectId);
     const user = await customerUser(stripeId(sub.customer));
     if (user)
       await updatePartnerSubscription({
