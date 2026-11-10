@@ -1,3 +1,21 @@
+## 2026-11-10 — Authorized reseller production release (T-1103)
+
+- Goal: Commit, push and deploy the reseller extension through established production workflows, then verify hosted applications without activating test commissions.
+- Changes: Prepare release/reseller-enterprise-program from current main while carrying all existing reseller changes. Preserve the unrelated untracked workspace file. Owner authorization covers the scoped production release; provider access, migration and hosted acceptance safeguards remain required.
+- Validation: Pass 42 disposable PostgreSQL groups, nine component browser groups, 19 partner rules, native packaging, TypeScript, Railway auth contracts, deployment configuration, 27 referral contracts and landing static/calculator checks. Current public backend reports ready with a healthy database; reseller page returns 404.
+- Blocker: Railway wrapper reports no token and native whoami reports Unauthorized. Browserless login exits without a link; request owner railway login on this machine, without sharing credentials. Verify production project/environment/service identity after login before deployment.
+- Follow-up: T-1103 retains application-first deployment, migration/health checks, landing Actions, authenticated company submission/pending/admin acceptance and existing partner verification.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and the post-interaction memory prompt. No shared agent instruction change.
+
+## 2026-11-10 — Reseller and enterprise applications (T-1104)
+
+- Goal: Extend the Global Partner Program for B2B resellers, enterprise providers and distributors.
+- Changes: Add company application fields, strict server validation, business-email verification and honeypot protection; record review decisions separately from immutable evidence; require reviewed agreement and commercial onboarding evidence for activation. Add migration 0041 to predeploy and extend the existing landing site with reseller content and navigation.
+- Validation: TypeScript, 19 rule tests, 42 disposable PostgreSQL integration groups, nine component browser groups and landing checks pass. Component transports and billing objects are synthetic; hosted company submissions remain unverified.
+- Blocker: Existing Railway status reports no token. No production deployment or migration occurs. Restore secure provider access and complete T-1103 release prerequisites before application-first publication.
+- Learning: Application evidence is immutable; keep mutable review decisions in a separate field. Preserve company-type selection through login. Application approval must leave commercial tools inactive.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md. No shared agent instruction change.
+
 ## 2026-11-08 — Partner program takeover validation and browser harness stability (T-1103)
 
 1. Goal: Take over the unfinished partner program task, confirm the NextAuth integration blocker is resolved, complete the full local validation process, and preserve all existing work without restarting development.

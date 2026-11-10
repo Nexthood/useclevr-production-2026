@@ -298,3 +298,33 @@ both public domains and the genuine customer/payment/eligible manual-settlement 
 Temporary evidence is in `/tmp/partner-validation-Rn1WNF/readiness-rebuild-results.json` and
 `regression-results.json` in that same snapshot. These temporary files are not durable hosted
 release evidence. The source workflow must still pass for the published candidate after approval.
+
+
+## Reseller and enterprise company applications
+
+`/partners/apply?partnershipType=Authorized%20Reseller` selects the company application; other
+supported types are Enterprise Solution Partner, Strategic Distribution Partner and White-Label
+Inquiry. The login callback retains the selection. Existing sales applications remain available
+through the same form. Business email must match the verified account email. Company fields use
+strict server validation, bounded bodies, existing session/origin checks and rate limiting, with
+an empty honeypot required. The existing rate limiter is per process; account uniqueness also
+prevents duplicate persisted applications across processes.
+
+Migration 0041 adds `commercialReview` to the existing partner account and is wired into Railway
+predeploy. Submitted application evidence remains immutable. Superadmins use application review
+to record pending, under_review, approved or rejected with a mandatory audit reason. Approved
+company applications retain pending account status and cannot access referral tools. Activation
+requires approved application review, a separately reviewed agreement and commercial onboarding
+evidence. Rejection remains terminal under existing database controls. Financial review and
+settlement controls continue to apply independently.
+
+The reseller landing page belongs to the existing landing repository. Deploy and verify this
+application extension before publishing its CTAs. The landing workflow targets Spaceship/cPanel,
+uses a manual allowlist and adds resellers.html plus assets/resellers.css. White-label and enterprise
+administration capabilities are discussion opportunities, not generally available features.
+
+On 10 November 2026 `pnpm railway:status` identifies the existing project but reports no token.
+Restore secure Railway access before production publication; credentials must stay outside chat,
+source and logs. Local checks pass TypeScript, 19 rule tests, 42 disposable PostgreSQL groups and
+nine component browser groups. Real production company submission, administrative review, migration
+and hosted release remain unverified under T-1103.

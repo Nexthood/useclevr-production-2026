@@ -667,6 +667,7 @@ export async function partnerSummary(partnerId: string, admin = false, offset = 
               userId: partner.userId,
               notes: partner.notes,
               application: partner.application,
+              commercialReview: partner.commercialReview,
               downgradeSince: partner.candidateSince,
             }
           : {}),

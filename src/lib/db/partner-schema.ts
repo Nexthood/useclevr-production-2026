@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { ProgramConfig, PartnerLevel } from "@/lib/partners/rules";
+import type { BusinessApplication } from "@/lib/partners/application";
 
 // User/code foreign keys are added in SQL to avoid a circular schema import.
 export const referralCodeOwners = pgTable("ReferralCodeOwner", {
@@ -41,10 +42,20 @@ export const partnerAccounts = pgTable(
     status: text("status").notNull().default("pending"),
     agreement: text("agreement").notNull(),
     application: jsonb("application").$type<{
+      partnershipType?: BusinessApplication["partnershipType"];
+      companyName?: string;
+      businessEmail?: string;
+      companyWebsite?: string;
+      industry?: string;
+      existingCustomers?: number;
       email: string;
       experience: string;
       privacyVersion: string;
       acceptedAt: string;
+    }>(),
+    commercialReview: jsonb("commercialReview").$type<{
+      status: "pending" | "under_review" | "approved" | "rejected";
+      evidence?: string;
     }>(),
     notes: text("notes").notNull().default(""),
     level: text("level").$type<PartnerLevel>().notNull().default("bronze"),

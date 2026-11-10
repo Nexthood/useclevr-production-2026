@@ -232,6 +232,8 @@ moving work between states.
 
 ## Label: business
 
+- T-1104. Extend verified partner applications with company details, manual review decisions and separately evidenced commercial activation, with reseller recruitment and regression coverage. (labels: business, sales, security, testing; commit: worktree)
+
 - T-1039. Implement the authoritative business semantics layer that classifies datasets, maps supported concepts, blocks unsupported KPIs, records lineage, and protects dashboard, AI, and report outputs from unsupported business claims. (labels: business, data, metrics, ai, reporting; commit: worktree)
 - T-987. Route Accountancy, Business, Tax, Compliance, and Reporting Business Profile context through one current-tenant loader, and show profile load failures separately from missing field values. (labels: business, reporting, caching; commit: worktree)
 - T-968. Load saved Business Profile data for built-in dashboard accounts without failing on profile table columns that are absent from the deployed database. (labels: business, auth, api, testing; commit: worktree)

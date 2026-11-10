@@ -9,7 +9,7 @@ createRoot(document.getElementById("root")!).render(
   <main className="mx-auto max-w-6xl space-y-5 p-4 text-foreground">
     <h1 className="text-2xl font-semibold">Synthetic partner acceptance</h1>
     {query.has("apply") ? (
-      <PartnerApplication />
+      <PartnerApplication partnershipType={query.get("partnershipType") || undefined} />
     ) : query.has("admin") ? (
       <PartnerAdmin />
     ) : (

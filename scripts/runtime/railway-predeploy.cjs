@@ -367,6 +367,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0038_global_partner_program.sql"),
   readMigrationStatement("src/lib/db/migrations/0039_partner_policy_controls.sql"),
   readMigrationStatement("src/lib/db/migrations/0040_partner_applications.sql"),
+  readMigrationStatement("src/lib/db/migrations/0041_reseller_review.sql"),
 ];
 
 const constraints = [

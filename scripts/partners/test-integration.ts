@@ -79,7 +79,13 @@ async function main() {
   );
   await pool.query(applications);
   await pool.query(applications);
-  console.log("PASS additive migrations 0038/0039/0040 and repeat application");
+  const resellerReview = await readFile(
+    new URL("../../src/lib/db/migrations/0041_reseller_review.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.query(resellerReview);
+  await pool.query(resellerReview);
+  console.log("PASS additive migrations 0038/0039/0040/0041 and repeat application");
   const {
     database,
     ingestPartnerEvent,
@@ -1367,6 +1373,113 @@ async function main() {
           writeProgramConfig(tx, defaultConfig, "admin", "No backdating", new Date("2020-01-01Z")),
         ),
       );
+    },
+  );
+  await check(
+    "company applications preserve evidence and require separate commercial activation",
+    async () => {
+      await db
+        .insert(schema.users)
+        .values({
+          id: "company-applicant",
+          email: "business@example.invalid",
+          emailVerified: new Date(),
+        });
+      setSession({ user: { id: "company-applicant", role: "user" } });
+      const input = {
+        partnershipType: "Authorized Reseller",
+        companyName: "Example Integrators",
+        name: "Example Contact",
+        businessEmail: "business@example.invalid",
+        companyWebsite: "https://example.invalid",
+        country: "NL",
+        industry: "IT services",
+        existingCustomers: 100,
+        experience: "Introduce business analytics to our existing retail customers.",
+        privacyAccepted: true,
+        termsAccepted: true,
+        websiteConfirmation: "",
+      };
+      const submit = (body: unknown) =>
+        owner.POST(
+          new Request("http://localhost/api/partners", {
+            method: "POST",
+            headers: { origin: "http://localhost", "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }),
+        );
+      assert.equal(
+        (await submit({ ...input, businessEmail: "other@example.invalid" })).status,
+        409,
+      );
+      assert.equal((await submit({ ...input, websiteConfirmation: "spam" })).status, 400);
+      assert.equal((await submit(input)).status, 201);
+      const company = await db.query.partnerAccounts.findFirst({
+        where: eq(schema.partnerAccounts.userId, "company-applicant"),
+      });
+      assert.equal(company!.status, "pending");
+      assert.equal(company!.application!.companyName, "Example Integrators");
+      assert.equal(company!.commercialReview!.status, "pending");
+      const original = company!.application;
+      const command = (body: object) =>
+        admin.POST(
+          new Request("http://localhost/api/admin/partners", {
+            method: "POST",
+            headers: { origin: "http://localhost", "Content-Type": "application/json" },
+            body: JSON.stringify({ ...body, reason: "Company due diligence case" }),
+          }),
+        );
+      const activate = {
+        action: "partner",
+        partnerId: company!.id,
+        status: "active",
+        country: "NL",
+        market: "IT services",
+        notes: "Company review",
+        agreement: "Reviewed commercial agreement EXAMPLE",
+      };
+      assert.equal(
+        (
+          await command({
+            action: "application_review",
+            partnerId: company!.id,
+            reviewStatus: "approved",
+          })
+        ).status,
+        403,
+      );
+      setSession({ user: { id: "admin", role: "superadmin" } });
+      assert.equal((await command(activate)).status, 409);
+      for (const reviewStatus of ["under_review", "approved"]) {
+        assert.equal(
+          (await command({ action: "application_review", partnerId: company!.id, reviewStatus }))
+            .status,
+          200,
+        );
+        setSession({ user: { id: "company-applicant", role: "user" } });
+        const receipt = await (
+          await owner.GET(new Request("http://localhost/api/partners"))
+        ).json();
+        assert.equal(receipt.application.status, reviewStatus);
+        assert.equal(receipt.referralLink, undefined);
+        setSession({ user: { id: "admin", role: "superadmin" } });
+      }
+      assert.equal((await command(activate)).status, 409);
+      const reviewed = await db.query.partnerAccounts.findFirst({
+        where: eq(schema.partnerAccounts.id, company!.id),
+      });
+      assert.equal(reviewed!.status, "pending");
+      assert.deepEqual(reviewed!.application, original);
+      assert.equal(
+        (await command({ ...activate, commercialEvidence: "Reviewed onboarding case EXAMPLE-001" }))
+          .status,
+        200,
+      );
+      const active = await db.query.partnerAccounts.findFirst({
+        where: eq(schema.partnerAccounts.id, company!.id),
+      });
+      assert.equal(active!.status, "active");
+      assert.deepEqual(active!.application, original);
     },
   );
   await check(

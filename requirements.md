@@ -11,6 +11,10 @@ Text rules for this file:
 
 ## Global Partner Program
 
+- Established B2B companies submit reseller, enterprise solution, distribution or white-label inquiries through verified-account partner registration, with company, contact, website, industry, customer count and consent evidence.
+- Superadmins review company applications through Pending, Under Review, Approved and Rejected decisions. Application approval leaves commercial tools inactive until a reviewed agreement and explicit onboarding evidence authorize activation.
+- Submitted company evidence remains immutable; separate commercial review decisions and onboarding evidence use existing administrator authorization and audit controls.
+
 - Partner activity uses authoritative subscription state even when the billing webhook payload omits legacy period fields.
 
 - Visitors apply through verified account authentication, provide required country, market and experience details, and explicitly acknowledge application privacy and participation terms.

@@ -40,9 +40,15 @@ const actionSchema = z.discriminatedUnion("action", [
     agreement: z.string().min(1).max(4000),
   }),
   z.object({
+    action: z.literal("application_review"),
+    partnerId: identity,
+    reviewStatus: z.enum(["pending", "under_review", "approved", "rejected"]),
+  }),
+  z.object({
     action: z.literal("partner"),
     partnerId: identity,
     status: z.enum(["active", "rejected", "suspended", "terminated"]),
+    commercialEvidence: z.string().trim().min(10).max(1000).optional(),
     notes: z.string().max(4000),
     country: z.string().regex(/^[A-Z]{2}$/),
     market: z.string().max(200).nullable(),
@@ -221,6 +227,27 @@ export async function POST(request: Request) {
         });
         return { partnerId };
       }
+      if (body.action === "application_review") {
+        await lockPartner(tx, body.partnerId);
+        const before = await tx.query.partnerAccounts.findFirst({
+          where: eq(partnerAccounts.id, body.partnerId),
+        });
+        if (!before?.application?.partnershipType || before.status !== "pending")
+          throw new PartnerRuleError(
+            "Company application review requires a pending company account.",
+          );
+        await tx
+          .update(partnerAccounts)
+          .set({
+            commercialReview: { ...before.commercialReview, status: body.reviewStatus },
+            ...(body.reviewStatus === "rejected" ? { status: "rejected" } : {}),
+          })
+          .where(eq(partnerAccounts.id, body.partnerId));
+        await audit(tx, body.partnerId, auth.userId, "application_reviewed", reason, {
+          before: before.commercialReview?.status,
+          after: body.reviewStatus,
+        });
+      }
       if (body.action === "partner") {
         await lockPartner(tx, body.partnerId);
         const before = await tx.query.partnerAccounts.findFirst({
@@ -248,11 +275,36 @@ export async function POST(request: Request) {
           if (!applicant?.emailVerified)
             throw new PartnerRuleError("Verified partner account required for approval.");
         }
+        if (
+          body.status === "active" &&
+          before.status !== "active" &&
+          before.application?.partnershipType &&
+          (before.commercialReview?.status !== "approved" ||
+            !body.commercialEvidence ||
+            body.agreement.startsWith("Application terms "))
+        )
+          throw new PartnerRuleError(
+            "Approve the company application and record a reviewed commercial agreement and onboarding evidence before activating partner tools.",
+          );
         const terminating = body.status === "terminated" && before.status !== "terminated";
         await tx
           .update(partnerAccounts)
           .set({
             status: body.status,
+            ...(before.application?.partnershipType
+              ? {
+                  commercialReview: {
+                    status:
+                      body.status === "rejected"
+                        ? ("rejected" as const)
+                        : before.commercialReview?.status || ("pending" as const),
+                    ...(before.commercialReview?.evidence
+                      ? { evidence: before.commercialReview.evidence }
+                      : {}),
+                    ...(body.commercialEvidence ? { evidence: body.commercialEvidence } : {}),
+                  },
+                }
+              : {}),
             ...(terminating ? { terminatedAt: new Date(), payoutHold: true } : {}),
             notes: body.notes,
             country: body.country,

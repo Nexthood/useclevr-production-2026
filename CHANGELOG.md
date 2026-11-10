@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let business partners apply with company details, track administrator review, and complete separate commercial onboarding before partner activation.
+
 - Let verified account holders apply to the Global Partner Program, check review status, and receive referral tools after administrator approval.
 
 - Give commercial partners a dashboard for referrals, levels, payment-based commissions, refunds, and settlements, with audited administration and financial reports.
