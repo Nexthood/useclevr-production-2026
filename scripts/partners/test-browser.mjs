@@ -408,6 +408,51 @@ try {
       `PASS application form, explicit acknowledgments, confirmation, reload and rejection at ${width}px`,
     );
   }
+  for (const width of [1280, 320]) {
+    applicationReceipt = null;
+    await command("Emulation.setDeviceMetricsOverride", {
+      width,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: width < 500,
+    });
+    await command("Page.navigate", {
+      url: `${origin}/?apply=1&partnershipType=Authorized%20Reseller&theme=dark`,
+    });
+    await waitFor('document.querySelector("input[name=companyName]") !== null');
+    assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+    assert.equal(
+      await evaluate(
+        'document.body.innerText.includes("15%") || document.body.innerText.includes("20%")',
+      ),
+      false,
+    );
+    assert.equal(await evaluate('document.querySelector("form").checkValidity()'), false);
+    await evaluate(`(() => {
+      const values = { companyName: "Browser Company", name: "Browser Contact", businessEmail: "business@example.invalid", companyWebsite: "https://example.invalid", country: "NL", industry: "IT services", existingCustomers: "75", experience: "Introduce verified analytics to existing retail customers." };
+      for (const [key,value] of Object.entries(values)) { const input=document.querySelector('[name="'+key+'"]'); input.value=value; input.dispatchEvent(new Event("input",{bubbles:true})); }
+      document.querySelectorAll('input[type=checkbox]').forEach(input=>input.click());
+      if (!document.querySelector("form").checkValidity()) throw new Error("Company form invalid");
+      document.querySelector("form").requestSubmit();
+    })()`);
+    await waitFor('document.querySelector("h2")?.textContent === "Pending review"');
+    assert.equal(actions.at(-1).partnershipType, "Authorized Reseller");
+    assert.equal(actions.at(-1).companyName, "Browser Company");
+    assert.equal(actions.at(-1).existingCustomers, 75);
+    assert.equal(actions.at(-1).websiteConfirmation, "");
+    assert.equal(
+      await evaluate("document.querySelector('a[href=\"/app/partners\"]') === null"),
+      true,
+    );
+    applicationReceipt.status = "approved";
+    await command("Page.reload");
+    await waitFor('document.body?.innerText.includes("approved for commercial discussions")');
+    assert.equal(await evaluate('document.querySelector("#partner-link") === null'), true);
+    passed++;
+    console.log(
+      `PASS company form validation, tailored terms, pending confirmation and approval without referral access at ${width}px`,
+    );
+  }
   console.log(`${passed} browser acceptance groups passed. Artifacts: ${directory}`);
   console.log(
     "Scope: real components and design-system CSS with synthetic HTTP responses. Full application login, attribution navigation, and production hosting are not exercised.",

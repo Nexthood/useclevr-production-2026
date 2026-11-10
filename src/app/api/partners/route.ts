@@ -29,7 +29,8 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           application: {
-            status: partner.status,
+            partnershipType: partner.application?.partnershipType,
+            status: partner.commercialReview?.status || partner.status,
             name: partner.name,
             createdAt: partner.createdAt.toISOString(),
           },
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Enter your name, two-letter country code, target market and experience, and accept the privacy notice and program terms.",
+          "Check all required fields, use a two-letter country code and a valid company website, and accept the privacy notice and partnership terms.",
       },
       { status: 400 },
     );
@@ -125,7 +126,23 @@ export async function POST(request: Request) {
         );
       const partnerId = id();
       const acceptedAt = new Date().toISOString();
-      const { name, country, market, experience } = parsed.data;
+      const { name, country, experience } = parsed.data;
+      const business = "partnershipType" in parsed.data ? parsed.data : null;
+      const market = business ? business.industry : (parsed.data as { market: string }).market;
+      if (business && business.businessEmail.toLowerCase() !== user.email!.toLowerCase())
+        throw new PartnerRuleError(
+          "Use the verified account business email. Update and verify your account email before applying.",
+        );
+      const companyDetails = business
+        ? {
+            partnershipType: business.partnershipType,
+            companyName: business.companyName,
+            businessEmail: user.email!,
+            companyWebsite: business.companyWebsite,
+            industry: business.industry,
+            existingCustomers: business.existingCustomers,
+          }
+        : {};
       const [row] = await tx
         .insert(partnerAccounts)
         .values({
@@ -136,7 +153,9 @@ export async function POST(request: Request) {
           country,
           market,
           agreement: `Application terms ${partnerPrivacyVersion}; administrator agreement review required`,
+          ...(business ? { commercialReview: { status: "pending" as const } } : {}),
           application: {
+            ...companyDetails,
             email: user.email!,
             experience,
             privacyVersion: partnerPrivacyVersion,
@@ -151,6 +170,7 @@ export async function POST(request: Request) {
         "application_submitted",
         "Applicant submitted verified account application",
         {
+          ...companyDetails,
           name,
           country,
           market,
@@ -162,7 +182,12 @@ export async function POST(request: Request) {
           acceptedAt,
         },
       );
-      return { status: row.status, name: row.name, createdAt: row.createdAt.toISOString() };
+      return {
+        partnershipType: business?.partnershipType,
+        status: row.status,
+        name: row.name,
+        createdAt: row.createdAt.toISOString(),
+      };
     });
     return NextResponse.json(
       { application },

@@ -145,3 +145,37 @@ test("partner applications reject structured and prototype-bearing JSON input", 
     assert.equal(applicationSchema.safeParse(input).success, false);
   assert.equal(Object.prototype.hasOwnProperty.call(Object.prototype, "role"), false);
 });
+
+test("company applications validate contact, scope, consent and spam protection", () => {
+  const input = {
+    partnershipType: "Authorized Reseller",
+    companyName: "Example IT",
+    name: "Example Contact",
+    businessEmail: "business@example.invalid",
+    companyWebsite: "https://example.invalid",
+    country: "NL",
+    industry: "IT services",
+    existingCustomers: 0,
+    experience: "Introduce analytics to existing business customers.",
+    privacyAccepted: true,
+    termsAccepted: true,
+    websiteConfirmation: "",
+  };
+  assert.equal(applicationSchema.safeParse(input).success, true);
+  for (const change of [
+    { companyName: "" },
+    { businessEmail: "bad" },
+    { companyWebsite: "javascript:alert(1)" },
+    { companyWebsite: "not a URL" },
+    { companyWebsite: "" },
+    { companyWebsite: "https://name:password@example.invalid" },
+    { existingCustomers: -1 },
+    { existingCustomers: 1.5 },
+    { privacyAccepted: false },
+    { websiteConfirmation: "bot" },
+    { partnershipType: "unknown" },
+    { name: "<script>" },
+    { status: "active" },
+  ])
+    assert.equal(applicationSchema.safeParse({ ...input, ...change }).success, false);
+});

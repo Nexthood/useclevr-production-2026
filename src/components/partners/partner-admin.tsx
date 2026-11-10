@@ -5,6 +5,8 @@ import { PartnerPerformance, money, type PartnerSummary } from "./partner-dashbo
 import { defaultConfig, type ProgramConfig } from "@/lib/partners/rules";
 
 type PartnerRow = {
+  application?: { partnershipType?: string; companyName?: string };
+  commercialReview?: { status: string; evidence?: string };
   id: string;
   name: string;
   country: string;
@@ -170,10 +172,16 @@ export function PartnerAdmin() {
           <tbody>
             {overview?.partners.map((p) => (
               <tr key={p.id} className="border-t">
-                <td className="p-2">{p.name}</td>
+                <td className="p-2">
+                  {p.application?.companyName || p.name}
+                  <br />
+                  {p.application?.partnershipType || "Independent Sales Partner"}
+                </td>
                 <td className="p-2">{p.country}</td>
                 <td className="p-2">{p.market || "—"}</td>
-                <td className="p-2">{p.status}</td>
+                <td className="p-2">
+                  {p.commercialReview?.status || p.status} · {p.status}
+                </td>
                 <td className="p-2">
                   <Button
                     variant="outline"
@@ -214,6 +222,21 @@ export function PartnerAdmin() {
           {detail.partner.application && (
             <div className="space-y-2 text-sm">
               <h3 className="font-semibold">Application</h3>
+              {detail.partner.application.partnershipType && (
+                <>
+                  <p>Partnership type: {detail.partner.application.partnershipType}</p>
+                  <p>Company: {detail.partner.application.companyName}</p>
+                  <p>Business email: {detail.partner.application.businessEmail}</p>
+                  <p>Website: {detail.partner.application.companyWebsite}</p>
+                  <p>Industry: {detail.partner.application.industry}</p>
+                  <p>Existing business customers: {detail.partner.application.existingCustomers}</p>
+                  <p>Application decision: {detail.partner.commercialReview?.status}</p>
+                  <p>
+                    Commercial onboarding evidence:{" "}
+                    {detail.partner.commercialReview?.evidence || "Not recorded"}
+                  </p>
+                </>
+              )}
               <p>Verified email: {detail.partner.application.email}</p>
               <p className="whitespace-pre-wrap">{detail.partner.application.experience}</p>
               <p>
@@ -221,6 +244,38 @@ export function PartnerAdmin() {
                 {detail.partner.application.acceptedAt}
               </p>
             </div>
+          )}
+          {detail.partner.application?.partnershipType && detail.partner.status === "pending" && (
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                const v = form(e);
+                act({
+                  action: "application_review",
+                  partnerId: detail.partner.id,
+                  reviewStatus: v.reviewStatus,
+                });
+              }}
+            >
+              <label className="block text-sm">
+                Application review status
+                <select
+                  name="reviewStatus"
+                  defaultValue={detail.partner.commercialReview?.status}
+                  className={field}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="under_review">Under Review</option>
+                  <option value="approved">Approved for commercial discussions</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
+              <p className="text-sm">
+                Approval records the application decision. Activation requires a reviewed agreement
+                and commercial onboarding evidence below.
+              </p>
+              <Button disabled={busy}>Save application decision</Button>
+            </form>
           )}
           <PartnerPerformance
             key={detail.offset}
@@ -245,6 +300,7 @@ export function PartnerAdmin() {
                 partnerId: detail.partner.id,
                 ...v,
                 market: v.market || null,
+                commercialEvidence: v.commercialEvidence || undefined,
               });
             }}
           >
@@ -280,6 +336,14 @@ export function PartnerAdmin() {
                 label="Commission agreement reference"
                 defaultValue={detail.partner.agreement}
               />
+              {detail.partner.application?.partnershipType && (
+                <Input
+                  name="commercialEvidence"
+                  label="Commercial onboarding evidence / case reference"
+                  required={false}
+                  defaultValue={detail.partner.commercialReview?.evidence || ""}
+                />
+              )}
               <Input
                 name="notes"
                 label="Administrative notes"
