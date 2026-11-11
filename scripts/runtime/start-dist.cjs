@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { spawnSync, spawn } = require("node:child_process");
 const fs = require("node:fs");
 
 const port = process.env.PORT || "8080";
@@ -114,7 +114,11 @@ let childServer = null;
 function shutdown(signal) {
   return () => {
     if (childServer) {
-      try { childServer.kill(signal); } catch { /* child may already be gone */ }
+      try {
+        childServer.kill(signal);
+      } catch {
+        /* child may already be gone */
+      }
     }
     // DB connections, AI trace flushes, and background jobs terminate via process exit
     process.exit(0);
@@ -123,10 +127,22 @@ function shutdown(signal) {
 process.on("SIGTERM", shutdown("SIGTERM"));
 process.on("SIGINT", shutdown("SIGINT"));
 
+let contractWorker = null;
+if (
+  process.env.PARTNER_CONTRACTS_ENABLED === "true" &&
+  process.env.PARTNER_CONTRACT_WORKER_ENABLED === "true"
+) {
+  contractWorker = spawn(process.execPath, [path.join(__dirname, "partner-contract-worker.cjs")], {
+    env: process.env,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  contractWorker.on("error", () => console.error("[partner-contract-worker] startup unavailable"));
+}
 const result = spawnSync(process.execPath, [serverPath], {
   env: process.env,
   stdio: "inherit",
 });
 childServer = result;
 
+if (contractWorker) contractWorker.kill("SIGTERM");
 process.exit(result.status ?? 1);

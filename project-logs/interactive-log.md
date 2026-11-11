@@ -1,3 +1,13 @@
+## 2026-11-11 — Partner agreement lifecycle (T-1105)
+
+- Goal: Deliver secure versioned partner agreements and external sequential signatures for review, with production sends disabled pending owner legal/provider approval.
+- Changes: Add separate sales/reseller drafts, commercial schedules, owner checksum approvals, legal identity review, Dropbox Sign and non-binding mock adapters, authenticated callbacks, encrypted PDF/evidence archives, durable jobs/mail, private downloads and admin/participant controls. Migration 0043 adds contract records and an audited executed-agreement activation guard. Completed onboarding links to the agreement portal when enabled.
+- Validation: TypeScript, lint, secrets, TODO/package/project-record checks, deployment configuration, documentation links, 19 partner rules, eight contract unit groups, 42 legacy integration checks and 14 contract integration groups pass. Landing structure/application checks and calculator regression pass. Isolated production build and packaging are the remaining delivery checks.
+- Risk: Actual provider sandbox acceptance requires owner-supplied credentials and authorized test recipients. Counsel/owner must approve exact legal/commercial versions, company signer, provider configuration, retention and budget before binding sends. Migration 0043 intentionally blocks new unsigned activations; existing active partners continue operating.
+- Learning: Archive verified completions of accepted requests after approval revocation; retain the current-approval gate for activation. Reconcile uncertain external sends before retrying. Keep validation databases disposable and synthetic.
+- Follow-up: Complete the documented sandbox and production approval checklist before any signing release; do not merge or deploy signing in this implementation task.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md. No new durable agent instruction.
+
 ## 2026-11-11 — Authorized public partner production release
 
 - Goal: Release backend PR #419 before landing PR #7 and complete production acceptance without commercial activation or test financial activity.

@@ -18,6 +18,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 export * from "./partner-schema";
+export * from "./partner-contract-schema";
 
 const vectorJson = customType<{ data: number[] | null; driverData: number[] | null }>({
   dataType() {

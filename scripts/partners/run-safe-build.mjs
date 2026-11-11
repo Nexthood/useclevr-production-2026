@@ -7,6 +7,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   statfsSync,
   writeFileSync,
 } from "node:fs";
@@ -24,8 +25,11 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 // Prefer disk-backed snapshots. A constrained checkout can use the writable system
 // temporary directory without deleting existing artifacts or sharing dependency files.
 const space = statfsSync(root);
-const buildDirectory =
-  space.bavail * space.bsize >= 4 * 1024 ** 3 ? path.join(root, "build") : os.tmpdir();
+const buildDirectory = process.env.USECLEVR_SAFE_BUILD_DIRECTORY
+  ? path.resolve(process.env.USECLEVR_SAFE_BUILD_DIRECTORY)
+  : space.bavail * space.bsize >= 4 * 1024 ** 3
+    ? path.join(root, "build")
+    : os.tmpdir();
 mkdirSync(buildDirectory, { recursive: true });
 const destination = retry
   ? path.resolve(process.argv[3])
@@ -94,7 +98,7 @@ if (!retry)
     [
       "-a",
       "--reflink=auto",
-      path.join(root, "node_modules"),
+      realpathSync(path.join(root, "node_modules")),
       path.join(destination, "node_modules"),
     ],
     { stdio: "inherit" },

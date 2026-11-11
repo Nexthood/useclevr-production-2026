@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let administrators manage reviewed partner agreements, ordered electronic signatures, private signed copies and delivery retries, with legally approved contracts required before separate commercial activation.
+
 - Let business partners apply with company details, track administrator review, and complete separate commercial onboarding before partner activation.
 
 - Let verified account holders apply to the Global Partner Program, check review status, and receive referral tools after administrator approval.

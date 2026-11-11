@@ -1,3 +1,10 @@
+import {
+  authorizeManualActivation,
+  executedAgreementReference,
+  recordManualActivation,
+} from "@/lib/partners/contracts/activation";
+import { ContractError } from "@/lib/partners/contracts/domain";
+import { contractError } from "@/lib/partners/contracts/http";
 import { PartnerRuleError } from "@/lib/partners/errors";
 import { desc, eq, ilike, or, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -171,6 +178,7 @@ export async function GET(request: Request) {
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {
+    if (error instanceof ContractError) return contractError(error);
     return partnerApiError(error);
   }
 }
@@ -256,7 +264,9 @@ export async function POST(request: Request) {
           where: eq(partnerAccounts.id, body.partnerId),
         });
         if (!before) throw new PartnerRuleError("Partner not found.");
-        const publicApplication = await tx.query.partnerApplications.findFirst({ where: eq(partnerApplications.partnerAccountId, before.id) });
+        const publicApplication = await tx.query.partnerApplications.findFirst({
+          where: eq(partnerApplications.partnerAccountId, before.id),
+        });
         if (before.status === "terminated" && body.status !== "terminated")
           throw new PartnerRuleError("Termination requires a new reviewed agreement.");
         if (before.status === "rejected" && body.status !== "rejected")
@@ -278,8 +288,14 @@ export async function POST(request: Request) {
           if (!applicant?.emailVerified)
             throw new PartnerRuleError("Verified partner account required for approval.");
         }
-        if (body.status === "active" && publicApplication && (publicApplication.status !== "approved" || !publicApplication.onboardedAt))
-          throw new PartnerRuleError("Public partner applications require approval and completed onboarding before activation.");
+        if (
+          body.status === "active" &&
+          publicApplication &&
+          (publicApplication.status !== "approved" || !publicApplication.onboardedAt)
+        )
+          throw new PartnerRuleError(
+            "Public partner applications require approval and completed onboarding before activation.",
+          );
         if (
           body.status === "active" &&
           before.status !== "active" &&
@@ -291,6 +307,16 @@ export async function POST(request: Request) {
           throw new PartnerRuleError(
             "Approve the company application and record a reviewed commercial agreement and onboarding evidence before activating partner tools.",
           );
+        const executed =
+          body.status === "active" && before.status !== "active"
+            ? await authorizeManualActivation(
+                tx,
+                before.id,
+                auth.userId,
+                reason,
+                publicApplication?.id,
+              )
+            : null;
         const terminating = body.status === "terminated" && before.status !== "terminated";
         await tx
           .update(partnerAccounts)
@@ -314,7 +340,7 @@ export async function POST(request: Request) {
             notes: body.notes,
             country: body.country,
             market: body.market,
-            agreement: body.agreement,
+            agreement: executed ? executedAgreementReference(executed) : body.agreement,
             approvedAt: before.approvedAt || (body.status === "active" ? new Date() : null),
           })
           .where(eq(partnerAccounts.id, body.partnerId));
@@ -322,10 +348,7 @@ export async function POST(request: Request) {
           before,
           after: body,
         });
-        if (body.status === "active" && publicApplication) {
-          await tx.update(partnerApplications).set({ status: "active", reviewedBy: auth.userId, reviewedAt: new Date(), updatedAt: new Date() }).where(eq(partnerApplications.id, publicApplication.id));
-          await tx.insert(partnerApplicationAudit).values({ id: id(), applicationId: publicApplication.id, actor: auth.userId, action: "activated", reason });
-        }
+        if (executed) await recordManualActivation(tx, executed, auth.userId, reason);
       }
       if (body.action === "payout_review") {
         await lockPartner(tx, body.partnerId);
@@ -414,6 +437,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof ContractError) return contractError(error);
     return partnerApiError(error);
   }
 }

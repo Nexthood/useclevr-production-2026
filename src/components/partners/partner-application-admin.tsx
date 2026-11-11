@@ -226,37 +226,12 @@ export function PartnerApplicationAdmin() {
                 </label>
               )}
               {row.status === "approved" && row.onboardedAt && (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <label className="text-sm">
-                    Commercial agreement
-                    <textarea
-                      className={`${input} mt-1`}
-                      rows={2}
-                      value={agreement[row.id] || ""}
-                      onChange={(event) =>
-                        setAgreement({ ...agreement, [row.id]: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label className="text-sm">
-                    Review evidence
-                    <textarea
-                      className={`${input} mt-1`}
-                      rows={2}
-                      value={evidence[row.id] || ""}
-                      onChange={(event) =>
-                        setEvidence({ ...evidence, [row.id]: event.target.value })
-                      }
-                    />
-                  </label>
-                  <p className="text-xs text-muted-foreground sm:col-span-2">
-                    Onboarded {new Date(row.onboardedAt).toLocaleString()}. Activation requires
-                    explicit confirmation and commercial evidence.
-                  </p>
-                  <Button disabled={!!busy} onClick={() => action(row, "activate")}>
-                    Authorize partner activation
-                  </Button>
-                </div>
+                <p className="mt-4 text-sm">
+                  Onboarding Complete.{" "}
+                  <a className="underline" href="#contract-management">
+                    Review the agreement and final activation in Contract Management.
+                  </a>
+                </p>
               )}
             </article>
           ))}
