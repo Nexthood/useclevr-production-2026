@@ -15,10 +15,19 @@ export const salesApplicationSchema = z
   })
   .strict();
 export const partnershipTypes = [
+  "Independent Sales Partner",
+  "Referral Partner",
   "Authorized Reseller",
+  "MSP",
+  "System Integrator",
+  "Business Consultancy",
   "Enterprise Solution Partner",
   "Strategic Distribution Partner",
   "White-Label Inquiry",
+] as const;
+const resellerPartnershipTypes = [
+  "Authorized Reseller", "MSP", "System Integrator", "Business Consultancy",
+  "Enterprise Solution Partner", "Strategic Distribution Partner", "White-Label Inquiry",
 ] as const;
 const plainText = (min: number, max: number) =>
   z
@@ -29,7 +38,7 @@ const plainText = (min: number, max: number) =>
     .refine((v) => !/[<>\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(v), "Use plain text.");
 export const resellerApplicationSchema = z
   .object({
-    partnershipType: z.enum(partnershipTypes),
+    partnershipType: z.enum(resellerPartnershipTypes),
     companyName: plainText(2, 200),
     name: plainText(2, 200),
     businessEmail: z.email().max(254),
