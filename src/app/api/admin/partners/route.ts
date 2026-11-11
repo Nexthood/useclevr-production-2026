@@ -9,6 +9,8 @@ import {
   partnerConfigs,
   partnerEvents,
   partnerFxRates,
+  partnerApplications,
+  partnerApplicationAudit,
   users,
 } from "@/lib/db/schema";
 import { validWriteOrigin, partnerApiError } from "@/lib/partners/api";
@@ -254,6 +256,7 @@ export async function POST(request: Request) {
           where: eq(partnerAccounts.id, body.partnerId),
         });
         if (!before) throw new PartnerRuleError("Partner not found.");
+        const publicApplication = await tx.query.partnerApplications.findFirst({ where: eq(partnerApplications.partnerAccountId, before.id) });
         if (before.status === "terminated" && body.status !== "terminated")
           throw new PartnerRuleError("Termination requires a new reviewed agreement.");
         if (before.status === "rejected" && body.status !== "rejected")
@@ -275,6 +278,8 @@ export async function POST(request: Request) {
           if (!applicant?.emailVerified)
             throw new PartnerRuleError("Verified partner account required for approval.");
         }
+        if (body.status === "active" && publicApplication && (publicApplication.status !== "approved" || !publicApplication.onboardedAt))
+          throw new PartnerRuleError("Public partner applications require approval and completed onboarding before activation.");
         if (
           body.status === "active" &&
           before.status !== "active" &&
@@ -317,6 +322,10 @@ export async function POST(request: Request) {
           before,
           after: body,
         });
+        if (body.status === "active" && publicApplication) {
+          await tx.update(partnerApplications).set({ status: "active", reviewedBy: auth.userId, reviewedAt: new Date(), updatedAt: new Date() }).where(eq(partnerApplications.id, publicApplication.id));
+          await tx.insert(partnerApplicationAudit).values({ id: id(), applicationId: publicApplication.id, actor: auth.userId, action: "activated", reason });
+        }
       }
       if (body.action === "payout_review") {
         await lockPartner(tx, body.partnerId);

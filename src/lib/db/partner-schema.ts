@@ -244,6 +244,53 @@ export const partnerAudit = pgTable("PartnerAudit", {
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const partnerApplications = pgTable("PartnerProgramApplication", {
+  id: text("id").primaryKey(),
+  program: text("program").notNull(),
+  category: text("category").notNull(),
+  fullName: text("fullName").notNull(),
+  email: text("email").notNull(),
+  country: text("country").notNull(),
+  companyName: text("companyName"),
+  experience: text("experience").notNull(),
+  privacyAcceptedAt: timestamp("privacyAcceptedAt", { withTimezone: true }).notNull(),
+  privacyVersion: text("privacyVersion").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  reviewedBy: text("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt", { withTimezone: true }),
+  linkedUserId: text("linkedUserId"),
+  partnerAccountId: text("partnerAccountId"),
+  onboardedAt: timestamp("onboardedAt", { withTimezone: true }),
+  invitationHash: text("invitationHash"),
+  invitationExpiresAt: timestamp("invitationExpiresAt", { withTimezone: true }),
+  invitationUsedAt: timestamp("invitationUsedAt", { withTimezone: true }),
+  rejectionReason: text("rejectionReason"),
+});
+export const partnerApplicationAudit = pgTable("PartnerProgramApplicationAudit", {
+  id: text("id").primaryKey(),
+  applicationId: text("applicationId").notNull(),
+  actor: text("actor").notNull(),
+  action: text("action").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+export const partnerApplicationEmails = pgTable("PartnerProgramApplicationEmail", {
+  id: text("id").primaryKey(),
+  applicationId: text("applicationId").notNull(),
+  kind: text("kind").notNull(),
+  recipient: text("recipient"),
+  status: text("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: timestamp("nextAttemptAt", { withTimezone: true }).defaultNow().notNull(),
+  sentAt: timestamp("sentAt", { withTimezone: true }),
+  providerId: text("providerId"),
+  lastErrorCode: text("lastErrorCode"),
+  payload: jsonb("payload").$type<Record<string, string>>(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // One explicit review authorizes one historical payment; Stripe evidence remains immutable.
 export const partnerEventReviews = pgTable("PartnerEventReview", {
   eventId: text("eventId")

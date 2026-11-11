@@ -85,7 +85,13 @@ async function main() {
   );
   await pool.query(resellerReview);
   await pool.query(resellerReview);
-  console.log("PASS additive migrations 0038/0039/0040/0041 and repeat application");
+  const publicApplicationsMigration = await readFile(
+    new URL("../../src/lib/db/migrations/0042_public_partner_applications.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.query(publicApplicationsMigration);
+  await pool.query(publicApplicationsMigration);
+  console.log("PASS additive migrations 0038/0039/0040/0041/0042 and repeat application");
   const {
     database,
     ingestPartnerEvent,
@@ -105,8 +111,105 @@ async function main() {
     await import("../../src/services/stripe/partner-webhook");
   const { setSession } = await import("./mock-auth.mjs");
   const admin = await import("../../src/app/api/admin/partners/route");
+  const publicApplicationApi = await import("../../src/app/api/partner-applications/route");
+  const partnerApplicationAdminApi = await import("../../src/app/api/admin/partner-applications/route");
+  const onboardingApi = await import("../../src/app/api/partner-applications/onboard/route");
   const owner = await import("../../src/app/api/partners/route");
   const db = database();
+  await (async () => {
+    process.env.AUTH_SECRET = "integration-test-only-partner-secret";
+    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+    process.env.RESEND_API_KEY = "integration-test-resend-key";
+    process.env.PARTNER_ADMIN_EMAIL = "partner-admin@example.invalid";
+    const sent: string[] = [];
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const payload = JSON.parse(String(init?.body || "{}")) as { text?: string };
+      sent.push(payload.text || "");
+      return Response.json({ id: `email-${sent.length}` }, { status: 200 });
+    }) as typeof fetch;
+    setSession(null);
+    const submit = async (program: string, category: string, email: string) => publicApplicationApi.POST(new Request("http://localhost:3000/api/partner-applications", {
+      method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json", "x-real-ip": `198.51.100.${email.startsWith("sales") ? 1 : 2}` },
+      body: JSON.stringify({ program, category, fullName: "Test Partner", email: `${email}@example.invalid`, country: "US", companyName: "Test Company", experience: "We support organizations with business reporting and technology adoption.", privacyAccepted: true, website: "", formStartedAt: Date.now() - 5000 }),
+    }));
+    const salesResponse = await submit("work_with_us", "Referral Partner", "sales-applicant");
+    assert.equal(salesResponse.status, 201, await salesResponse.text());
+    const duplicate = await submit("work_with_us", "Referral Partner", "sales-applicant");
+    assert.equal(duplicate.status, 409);
+    const resellerResponse = await submit("reseller_enterprise", "MSP", "reseller-applicant");
+    assert.equal(resellerResponse.status, 201, await resellerResponse.text());
+    assert.equal((await db.query.partnerApplications.findMany()).length, 2);
+    assert.equal((await db.query.partnerAccounts.findMany()).length, 0, "public applications must not create partner accounts or customer subscriptions");
+    assert.equal((await db.query.partnerApplicationEmails.findMany({ where: eq(schema.partnerApplicationEmails.status, "sent") })).length, 4);
+    const applicant = await db.query.partnerApplications.findFirst({ where: eq(schema.partnerApplications.email, "sales-applicant@example.invalid") });
+    assert.equal(applicant?.status, "pending");
+    setSession(null);
+    assert.equal((await partnerApplicationAdminApi.GET(new Request("http://localhost:3000/api/admin/partner-applications"))).status, 401);
+    setSession({ user: { id: "local-admin", role: "superadmin" } });
+    const adminList = await partnerApplicationAdminApi.GET(new Request("http://localhost:3000/api/admin/partner-applications?status=pending"));
+    assert.equal(adminList.status, 200);
+    const visible = await adminList.json() as { applications: { id: string }[] };
+    assert.ok(visible.applications.some((item) => item.id === applicant?.id));
+    const receipt = await db.query.partnerApplicationEmails.findFirst({ where: eq(schema.partnerApplicationEmails.applicationId, applicant!.id) });
+    assert.ok(receipt);
+    await db.update(schema.partnerApplicationEmails).set({ status: "pending", attempts: 0, sentAt: null, providerId: null }).where(eq(schema.partnerApplicationEmails.id, receipt.id));
+    const deliveryFetch = globalThis.fetch;
+    const { deliverApplicationEmail } = await import("../../src/lib/partners/public-applications");
+    try {
+      globalThis.fetch = (async () => Response.json({ error: "Synthetic provider failure" }, { status: 503 })) as typeof fetch;
+      for (let attempt = 0; attempt < 5; attempt++) await deliverApplicationEmail(receipt.id);
+    } finally { globalThis.fetch = deliveryFetch; }
+    assert.equal((await db.query.partnerApplicationEmails.findFirst({ where: eq(schema.partnerApplicationEmails.id, receipt.id) }))?.status, "failed");
+    const retried = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: applicant!.id, action: "retry_email" }) }));
+    assert.equal(retried.status, 200);
+    assert.equal((await db.query.partnerApplicationEmails.findFirst({ where: eq(schema.partnerApplicationEmails.id, receipt.id) }))?.status, "sent");
+    const underReview = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: applicant!.id, action: "under_review" }) }));
+    assert.equal(underReview.status, 200);
+    assert.equal((await db.query.partnerApplications.findFirst({ where: eq(schema.partnerApplications.id, applicant!.id) }))?.status, "under_review");
+    const approve = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: applicant!.id, action: "approve", confirm: true }) }));
+    assert.equal(approve.status, 200, await approve.text());
+    const invite = sent.at(-1)?.match(/\/partners\/onboard\?token=([A-Za-z0-9_-]+)/)?.[1];
+    assert.ok(invite, "approval notification includes an invitation");
+    const prematureActivation = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: applicant!.id, action: "activate", confirm: true, agreement: "Reviewed commercial agreement", commercialEvidence: "Reviewed partner onboarding" }) }));
+    assert.equal(prematureActivation.status, 409);
+    await db.insert(schema.users).values({ id: "public-partner-user", email: "sales-applicant@example.invalid", emailVerified: new Date(), name: "Test Partner" });
+    setSession({ user: { id: "public-partner-user", email: "sales-applicant@example.invalid", role: "user" } });
+    const onboard = await onboardingApi.POST(new Request("http://localhost:3000/api/partner-applications/onboard", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ token: invite, accepted: true }) }));
+    assert.equal(onboard.status, 200, await onboard.text());
+    const completed = await db.query.partnerApplications.findFirst({ where: eq(schema.partnerApplications.id, applicant!.id) });
+    assert.equal(completed?.status, "approved");
+    assert.ok(completed?.onboardedAt);
+    assert.equal((await db.query.partnerAccounts.findFirst({ where: eq(schema.partnerAccounts.userId, "public-partner-user") }))?.status, "pending");
+    const replay = await onboardingApi.POST(new Request("http://localhost:3000/api/partner-applications/onboard", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ token: invite, accepted: true }) }));
+    assert.equal(replay.status, 403);
+    const resellerApplicant = await db.query.partnerApplications.findFirst({ where: eq(schema.partnerApplications.email, "reseller-applicant@example.invalid") });
+    setSession({ user: { id: "local-admin", role: "superadmin" } });
+    const reject = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: resellerApplicant!.id, action: "reject", confirm: true, reason: "Internal review note" }) }));
+    assert.equal(reject.status, 200);
+    assert.equal(sent.at(-1)?.includes("Internal review note"), false, "internal rejection reason is never included in applicant email");
+    assert.equal((await db.query.partnerSubscriptions.findMany()).length, 0);
+    assert.equal((await db.query.partnerCommissions.findMany()).length, 0);
+    assert.ok((await db.query.partnerApplicationAudit.findMany({ where: eq(schema.partnerApplicationAudit.applicationId, applicant!.id) })).length >= 3);
+    const accountsBeforeMigration = await db.query.partnerAccounts.findMany();
+    const applicationsBeforeMigration = await db.query.partnerApplications.findMany();
+    await pool.query(publicApplicationsMigration);
+    await pool.query(publicApplicationsMigration);
+    assert.deepEqual(await db.query.partnerAccounts.findMany(), accountsBeforeMigration, "redeployment must preserve onboarded partner accounts");
+    assert.deepEqual(await db.query.partnerApplications.findMany(), applicationsBeforeMigration, "redeployment must not reimport linked public applications");
+    await db.insert(schema.users).values({ id: "legacy-partner-user", email: "legacy-partner@example.invalid", emailVerified: new Date(), name: "Legacy Partner" });
+    await db.insert(schema.partnerAccounts).values({ id: "legacy-partner-account", userId: "legacy-partner-user", code: await getAccountReferralCode("legacy-partner-user", "legacy-partner@example.invalid"), name: "Legacy Partner", country: "US", market: "US", status: "active", agreement: "Existing reviewed agreement", application: { email: "legacy-partner@example.invalid", experience: "Existing partner application evidence", privacyVersion: "2026-11-08", acceptedAt: new Date().toISOString() } });
+    const legacyAccountsBeforeMigration = await db.query.partnerAccounts.findMany();
+    await pool.query(publicApplicationsMigration);
+    await pool.query(publicApplicationsMigration);
+    assert.deepEqual(await db.query.partnerAccounts.findMany(), legacyAccountsBeforeMigration, "legacy import must not change existing partner accounts");
+    const imported = await db.query.partnerApplications.findFirst({ where: eq(schema.partnerApplications.id, "legacy-legacy-partner-account") });
+    assert.equal(imported?.status, "active");
+    assert.equal(imported?.partnerAccountId, "legacy-partner-account");
+    assert.equal((await db.query.partnerApplications.findMany()).length, applicationsBeforeMigration.length + 1);
+    assert.equal((await db.query.partnerApplicationAudit.findMany({ where: eq(schema.partnerApplicationAudit.applicationId, imported!.id) })).length, 1);
+    console.log("PASS migration 0042 redeployment after public onboarding and idempotent legacy import preserve accounts and evidence");
+    console.log("PASS anonymous dual-program application, duplicate prevention, delivery, admin approval, single-use onboarding and inactive partner state");
+  })();
   let passed = 1;
   async function check(name: string, fn: () => Promise<void>) {
     await fn();
@@ -135,7 +238,7 @@ async function main() {
       );
       assert.equal(new Set(codes).size, 1);
       code = codes[0];
-      assert.equal((await db.query.referralCodeOwners.findMany()).length, 1);
+      assert.ok(await db.query.referralCodeOwners.findFirst({ where: eq(schema.referralCodeOwners.userId, "partner-user") }));
     },
   );
   const config = {

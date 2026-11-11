@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PartnerPerformance, money, type PartnerSummary } from "./partner-dashboard";
 import { defaultConfig, type ProgramConfig } from "@/lib/partners/rules";
+import { PartnerApplicationAdmin } from "./partner-application-admin";
 
 type PartnerRow = {
   application?: { partnershipType?: string; companyName?: string };
@@ -113,6 +114,7 @@ export function PartnerAdmin() {
   };
   return (
     <div className="space-y-5">
+      <PartnerApplicationAdmin />
       <label className="block text-sm font-medium">
         Audit reason for changes
         <input
