@@ -1,3 +1,12 @@
+## 2026-11-11 — Public partner application admin delivery controls
+
+- Goal: Resume the account-free partner application workflow from the existing backend and landing pull requests.
+- Changes: Show delivery status, attempts, sent time and error code in each application's details. Offer Retry delivery for failed emails; send the existing authenticated retry action and refresh the application list. Keep approval and activation confirmation controls.
+- Observation: Backend PR #419 has passing source/build and docs checks at its initial revision. Landing PR #7 is open and has no reported checks. Static landing validation, calculator regression, public application validation and all 19 partner rule tests pass locally. Full TypeScript compilation, secret scanning and whitespace checks pass.
+- Risk: Production acceptance of anonymous submission, email delivery and onboarding requires the coordinated backend-first release. This continuation does not establish hosted readiness.
+- Learning: The retry API resets failed deliveries; pending deliveries must not offer a manual retry button.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md. No new shared instruction.
+
 ## 2026-11-10 — Authorized reseller production release (T-1103)
 
 - Goal: Commit, push and deploy the reseller extension through established production workflows, then verify hosted applications without activating test commissions.
