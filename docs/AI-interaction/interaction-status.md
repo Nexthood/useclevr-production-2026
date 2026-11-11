@@ -2,6 +2,14 @@
 
 Update this file after every completed AI interaction.
 
+## 2026-11-11 — Authorized public partner production release
+
+- Goal: Release backend PR #419 before landing PR #7 and complete production acceptance without commercial activation or test financial activity.
+- Fix: Migration 0042 excludes accounts already linked to a public application from legacy import. A regression reproduces the former uniqueness failure after public onboarding; corrected repeated migrations preserve accounts, application evidence and one legacy audit event.
+- Validation: The complete 42-group disposable PostgreSQL suite passes with the added onboarding/redeployment and legacy-account regressions. Commission calculations use synthetic local fixtures only.
+- Release: Production authorization covers merges, existing GitHub build/deploy workflows and safe QA applications. Railway CLI is unauthenticated; use GitHub-connected deployment status. The existing QA browser session is expired and the owner is asked only to sign in there for authenticated acceptance.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-11 — Public partner application admin delivery controls
 
 - Goal: Resume the account-free partner application workflow from the existing backend and landing pull requests.

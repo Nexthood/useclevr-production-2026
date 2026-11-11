@@ -150,6 +150,22 @@ async function main() {
     assert.equal(adminList.status, 200);
     const visible = await adminList.json() as { applications: { id: string }[] };
     assert.ok(visible.applications.some((item) => item.id === applicant?.id));
+    const receipt = await db.query.partnerApplicationEmails.findFirst({ where: eq(schema.partnerApplicationEmails.applicationId, applicant!.id) });
+    assert.ok(receipt);
+    await db.update(schema.partnerApplicationEmails).set({ status: "pending", attempts: 0, sentAt: null, providerId: null }).where(eq(schema.partnerApplicationEmails.id, receipt.id));
+    const deliveryFetch = globalThis.fetch;
+    const { deliverApplicationEmail } = await import("../../src/lib/partners/public-applications");
+    try {
+      globalThis.fetch = (async () => Response.json({ error: "Synthetic provider failure" }, { status: 503 })) as typeof fetch;
+      for (let attempt = 0; attempt < 5; attempt++) await deliverApplicationEmail(receipt.id);
+    } finally { globalThis.fetch = deliveryFetch; }
+    assert.equal((await db.query.partnerApplicationEmails.findFirst({ where: eq(schema.partnerApplicationEmails.id, receipt.id) }))?.status, "failed");
+    const retried = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: applicant!.id, action: "retry_email" }) }));
+    assert.equal(retried.status, 200);
+    assert.equal((await db.query.partnerApplicationEmails.findFirst({ where: eq(schema.partnerApplicationEmails.id, receipt.id) }))?.status, "sent");
+    const underReview = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: applicant!.id, action: "under_review" }) }));
+    assert.equal(underReview.status, 200);
+    assert.equal((await db.query.partnerApplications.findFirst({ where: eq(schema.partnerApplications.id, applicant!.id) }))?.status, "under_review");
     const approve = await partnerApplicationAdminApi.POST(new Request("http://localhost:3000/api/admin/partner-applications", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ id: applicant!.id, action: "approve", confirm: true }) }));
     assert.equal(approve.status, 200, await approve.text());
     const invite = sent.at(-1)?.match(/\/partners\/onboard\?token=([A-Za-z0-9_-]+)/)?.[1];
@@ -174,6 +190,24 @@ async function main() {
     assert.equal((await db.query.partnerSubscriptions.findMany()).length, 0);
     assert.equal((await db.query.partnerCommissions.findMany()).length, 0);
     assert.ok((await db.query.partnerApplicationAudit.findMany({ where: eq(schema.partnerApplicationAudit.applicationId, applicant!.id) })).length >= 3);
+    const accountsBeforeMigration = await db.query.partnerAccounts.findMany();
+    const applicationsBeforeMigration = await db.query.partnerApplications.findMany();
+    await pool.query(publicApplicationsMigration);
+    await pool.query(publicApplicationsMigration);
+    assert.deepEqual(await db.query.partnerAccounts.findMany(), accountsBeforeMigration, "redeployment must preserve onboarded partner accounts");
+    assert.deepEqual(await db.query.partnerApplications.findMany(), applicationsBeforeMigration, "redeployment must not reimport linked public applications");
+    await db.insert(schema.users).values({ id: "legacy-partner-user", email: "legacy-partner@example.invalid", emailVerified: new Date(), name: "Legacy Partner" });
+    await db.insert(schema.partnerAccounts).values({ id: "legacy-partner-account", userId: "legacy-partner-user", code: await getAccountReferralCode("legacy-partner-user", "legacy-partner@example.invalid"), name: "Legacy Partner", country: "US", market: "US", status: "active", agreement: "Existing reviewed agreement", application: { email: "legacy-partner@example.invalid", experience: "Existing partner application evidence", privacyVersion: "2026-11-08", acceptedAt: new Date().toISOString() } });
+    const legacyAccountsBeforeMigration = await db.query.partnerAccounts.findMany();
+    await pool.query(publicApplicationsMigration);
+    await pool.query(publicApplicationsMigration);
+    assert.deepEqual(await db.query.partnerAccounts.findMany(), legacyAccountsBeforeMigration, "legacy import must not change existing partner accounts");
+    const imported = await db.query.partnerApplications.findFirst({ where: eq(schema.partnerApplications.id, "legacy-legacy-partner-account") });
+    assert.equal(imported?.status, "active");
+    assert.equal(imported?.partnerAccountId, "legacy-partner-account");
+    assert.equal((await db.query.partnerApplications.findMany()).length, applicationsBeforeMigration.length + 1);
+    assert.equal((await db.query.partnerApplicationAudit.findMany({ where: eq(schema.partnerApplicationAudit.applicationId, imported!.id) })).length, 1);
+    console.log("PASS migration 0042 redeployment after public onboarding and idempotent legacy import preserve accounts and evidence");
     console.log("PASS anonymous dual-program application, duplicate prevention, delivery, admin approval, single-use onboarding and inactive partner state");
   })();
   let passed = 1;

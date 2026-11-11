@@ -95,6 +95,9 @@ FROM (
   FROM "PartnerAccount" p JOIN "User" u ON u.id=p."userId" WHERE p.application IS NOT NULL
 ) p
 WHERE p.rn=1
+AND NOT EXISTS (
+  SELECT 1 FROM "PartnerProgramApplication" a WHERE a."partnerAccountId" = p."id"
+)
 ON CONFLICT ("id") DO NOTHING;
 INSERT INTO "PartnerProgramApplicationAudit" ("id","applicationId","actor","action","reason")
 SELECT 'legacy-audit-' || a."id", a."id", 'migration:0042', 'migrated_existing_application', 'Imported into unified partner administration'
