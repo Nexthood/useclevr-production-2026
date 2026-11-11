@@ -306,11 +306,12 @@ export function verifyDropboxCallback(
       event_hash: string;
       event_metadata?: {
         reported_for_account_id?: string;
-        reported_for_app_id?: string;
+        reported_for_app_id?: string | null;
         related_signature_id?: string;
       };
     };
-    signature_request?: { signature_request_id: string };
+    signature_request?: { signature_request_id: string; client_id?: string | null };
+    client_id?: string | null;
     account?: { account_id: string };
   };
   try {
@@ -339,9 +340,17 @@ export function verifyDropboxCallback(
   )
     throw new ContractError("invalid_callback_signature", 401);
   const account = e.event_metadata?.reported_for_account_id || body.account?.account_id;
+  // App callbacks can identify the app on the request rather than event metadata.
+  // The full-payload HMAC authenticates every field; reject conflicting app IDs.
+  const apps = [
+    e.event_metadata?.reported_for_app_id,
+    body.signature_request?.client_id,
+    body.client_id,
+  ].filter((id) => id != null);
   if (
     account !== process.env.DROPBOX_SIGN_ACCOUNT_ID ||
-    e.event_metadata?.reported_for_app_id !== process.env.DROPBOX_SIGN_CLIENT_ID
+    !apps.length ||
+    apps.some((id) => id !== process.env.DROPBOX_SIGN_CLIENT_ID)
   )
     throw new ContractError("callback_account_mismatch", 401);
   const reference = body.signature_request?.signature_request_id;

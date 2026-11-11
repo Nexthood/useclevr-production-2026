@@ -219,6 +219,31 @@ async function main() {
       header = createHmac("sha256", key).update(json).digest("base64");
     assert.equal(verifyDropboxCallback(json, header).reference, "request");
     assert.throws(() => verifyDropboxCallback(json.replace("request", "tamper"), header));
+    const appPayload = {
+      ...body,
+      event: {
+        ...body.event,
+        event_metadata: { reported_for_account_id: "account", reported_for_app_id: null },
+      },
+      signature_request: { ...body.signature_request, client_id: "app" },
+    };
+    const signedCallback = (payload: unknown) => {
+      const json = JSON.stringify(payload);
+      return verifyDropboxCallback(json, createHmac("sha256", key).update(json).digest("base64"));
+    };
+    assert.equal(signedCallback(appPayload).reference, "request");
+    assert.throws(() =>
+      signedCallback({
+        ...appPayload,
+        signature_request: { ...appPayload.signature_request, client_id: "another" },
+      }),
+    );
+    assert.throws(() =>
+      signedCallback({
+        ...body,
+        signature_request: { ...body.signature_request, client_id: "another" },
+      }),
+    );
     process.env.DROPBOX_SIGN_CLIENT_ID = "another";
     assert.throws(() => verifyDropboxCallback(json, header));
   });
