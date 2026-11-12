@@ -30,7 +30,14 @@ Use TEST → COMMIT → PUSH → GITHUB ACTIONS → RAILWAY → VERIFY for the e
 
 The beta publisher defaults to test-only publication. Its beta-to-main promotion job requires an explicit manual dispatch with `promote_to_production=true`; a normal beta push does not create/merge a release PR or dispatch production. Check for an existing beta-to-main PR before a test push because its separate PR automation can promote a ready release PR.
 
-The beta publisher adds a non-secret contract validation marker to the generated bundle. Predeploy and startup require the identified beta Railway environment and force contract management, binding sends and the contract worker off, with signing mode `draft`. The health response includes `x-useclevr-test-revision` and `x-useclevr-contract-signing: disabled` for this test bundle. This validation release cannot perform actual provider signing; changing that policy requires separate recipient and sandbox-signing authorization. Production artifacts contain no test marker.
+The beta publisher adds a non-secret contract validation marker to the generated bundle. Predeploy and startup require the identified TEST service UUID and its environment UUID, and force contract management, binding sends and the contract worker off, with signing mode `draft`. The verified service references are:
+
+| Field | Reference |
+| --- | --- |
+| TEST service | `22dcb858-f0c0-426a-bc85-69766813372e` |
+| Runtime environment | `7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e` |
+
+Railway labels this project environment production, while its GitHub deployment has `production_environment=false` and status context `useclevr-web - useclevr TEST`. This service-specific binding prevents a production web service from starting the test artifact. The validation artifact skips hosted database migrations because hosted database isolation is unverified; disposable CI checks validate migrations instead. The health response includes `x-useclevr-test-revision` and `x-useclevr-contract-signing: disabled` for this test bundle. This validation release cannot perform actual provider signing; changing that policy requires separate recipient and sandbox-signing authorization. Production artifacts contain no test marker.
 
 CI database isolation is established by disposable PostgreSQL service containers. The existing workflow does not receive Railway runtime database/provider variables, and its health check cannot prove that the hosted database differs from production. Report that exact limitation separately. Do not expose secret values, infer configured QA recipients from CI fixtures, or require local CLI login to complete supported build/deploy verification.
 

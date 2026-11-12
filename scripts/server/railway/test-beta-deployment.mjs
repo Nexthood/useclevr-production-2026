@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 
 const require = createRequire(import.meta.url);
@@ -34,7 +35,8 @@ try {
   mkdirSync(path.join(directory, "data-config"));
   const marker = path.join(directory, "data-config", "partner-contract-test-deploy.json");
   const policy = {
-    environmentId: "d34d75b1-0d5c-45fa-b4e0-f2533c22a827",
+    environmentId: "7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e",
+    serviceId: "22dcb858-f0c0-426a-bc85-69766813372e",
     sourceRevision: "a".repeat(40),
   };
   writeFileSync(marker, JSON.stringify(policy));
@@ -42,8 +44,15 @@ try {
     applyTestDeploymentPolicy(directory, { RAILWAY_ENVIRONMENT_ID: "production-fixture" }),
   );
   assert.throws(() => applyTestDeploymentPolicy(directory, {}));
+  assert.throws(() =>
+    applyTestDeploymentPolicy(directory, {
+      RAILWAY_ENVIRONMENT_ID: policy.environmentId,
+      RAILWAY_SERVICE_ID: "different-service-fixture",
+    }),
+  );
   const environment = {
     RAILWAY_ENVIRONMENT_ID: policy.environmentId,
+    RAILWAY_SERVICE_ID: policy.serviceId,
     PARTNER_CONTRACTS_ENABLED: "true",
     PARTNER_CONTRACT_SIGNING_MODE: "dropbox_live",
     PARTNER_CONTRACT_LIVE_ENABLED: "true",
@@ -55,6 +64,35 @@ try {
   assert.equal(environment.PARTNER_CONTRACT_LIVE_ENABLED, "false");
   assert.equal(environment.PARTNER_CONTRACT_WORKER_ENABLED, "false");
   assert.equal(environment.USECLEVR_TEST_SOURCE_REVISION, policy.sourceRevision);
+  const predeploy = spawnSync(
+    process.execPath,
+    [
+      "-e",
+      `
+      const Module = require('node:module');
+      const load = Module._load;
+      Module._load = function(id, ...args) {
+        if (id === 'pg') return { Client: class { constructor() { throw new Error('Unexpected database access'); } } };
+        return load.call(this, id, ...args);
+      };
+      require(process.argv[1]);
+    `,
+      require.resolve("../../runtime/railway-predeploy.cjs"),
+    ],
+    {
+      cwd: directory,
+      env: {
+        PATH: process.env.PATH,
+        RAILWAY_ENVIRONMENT_ID: policy.environmentId,
+        RAILWAY_SERVICE_ID: policy.serviceId,
+      },
+      encoding: "utf8",
+      timeout: 10000,
+    },
+  );
+  assert.ifError(predeploy.error);
+  assert.equal(predeploy.status, 0, predeploy.stderr);
+  assert.match(predeploy.stdout, /Hosted migrations skipped/);
   writeFileSync(marker, JSON.stringify({ ...policy, sourceRevision: "invalid" }));
   assert.throws(() => applyTestDeploymentPolicy(directory, environment));
   console.info(

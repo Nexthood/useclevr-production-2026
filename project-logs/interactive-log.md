@@ -1,3 +1,11 @@
+## 2026-11-12 — Verified Railway TEST service binding (T-1105)
+
+- Finding: Actions source/regression/build run 43199185566 and dist-test publisher 43199180826 pass for cbd5f736; production promotion is skipped and no beta-to-main PR exists. Generated artifact ae92d768 receives Railway TEST status failure.
+- Correction: The historical beta environment reference is stale. Current GitHub deployment 7734510291 has production_environment=false and status context useclevr-web - useclevr TEST. Its target identifies the current TEST service and environment; their non-secret UUIDs are recorded in the deployment guide. The environment label production does not identify the production web service. Provider runtime logs are unavailable through the existing Actions surface, so the exact Railway failure log is not claimed.
+- Changes: Bind the test artifact to the verified TEST service and environment UUIDs. Skip hosted migrations in this validation artifact because database separation cannot be proved through the current workflow. Add a regression that fails on any predeploy database construction; keep contract management, live sends and the worker disabled. Normal unmarked artifacts keep their existing migration behavior.
+- Follow-up: Retest, commit, push beta and PR #420, then verify Actions publication, Railway TEST status and exact hosted revision. Use no new infrastructure, credentials, production deployment or signing invitations.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-12 — GitHub Actions test deployment continuation (T-1105)
 
 - Goal: Follow TEST → COMMIT → PUSH → GITHUB ACTIONS → RAILWAY → VERIFY for PR #420 using existing beta/dist-test infrastructure; local Railway authentication is not a prerequisite.

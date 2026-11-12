@@ -79,7 +79,7 @@
 
 ### Dev
 
-- Publish test builds without automatic production promotion and verify their revision while partner signing stays disabled.
+- Publish test builds without automatic production promotion, keep partner signing disabled, and skip hosted migrations until database isolation is verified.
 
 - Partner release browser checks now ride through page reloads and fast navigation updates without aborting, so application-state verification stays reliable.
 
