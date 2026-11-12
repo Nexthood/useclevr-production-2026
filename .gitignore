@@ -1,0 +1,43 @@
+# Ignore Next.js build artifacts in the project root only. .next/ inside dist/ is committed
+# for the standalone deployment (Railway copies dist/ contents into the Docker image).
+/.next/
+next-env.d.ts
+/out/
+/build/
+
+# Environment variables (local only)
+.env
+.env.local
+.env.local.neon
+.env.*.local
+
+# Production
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Build artifacts and local caches
+.turbo/
+tsconfig.tsbuildinfo
+
+# Editor & IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+
+# AI local
+.kilo/*
+!.kilo/agent/
+!.kilo/agent/*.md
