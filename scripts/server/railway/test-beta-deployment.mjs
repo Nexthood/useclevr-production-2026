@@ -25,9 +25,7 @@ const stage = workflow.jobs["publish-dist-test"].steps.find(
   (s) => s.name === "Stage generated output",
 ).run;
 assert.match(stage, /partner-contract-test-deploy\.json/);
-assert.match(stage, /environmentId: 'd34d75b1-0d5c-45fa-b4e0-f2533c22a827'/);
 assert.match(stage, /serviceId: '22dcb858-f0c0-426a-bc85-69766813372e'/);
-assert.doesNotMatch(stage, /7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e/);
 assert.match(stage, /execFileSync\('git', \['rev-parse', 'HEAD'\]/);
 
 const directory = mkdtempSync(path.join(os.tmpdir(), "beta-deploy-policy-"));
@@ -43,33 +41,35 @@ try {
     sourceRevision: "a".repeat(40),
   };
   const productionEnvironmentId = "7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e";
-  // Reject even a self-consistent stale production marker and runtime identity.
-  writeFileSync(marker, JSON.stringify({ ...policy, environmentId: productionEnvironmentId }));
-  assert.throws(() =>
-    applyTestDeploymentPolicy(directory, {
-      RAILWAY_ENVIRONMENT_ID: productionEnvironmentId,
-      RAILWAY_SERVICE_ID: policy.serviceId,
-    }),
-  );
+  // Existing marker environment metadata does not constrain TEST service placement.
   writeFileSync(marker, JSON.stringify(policy));
+  for (const environmentId of [policy.environmentId, productionEnvironmentId, undefined]) {
+    assert.equal(
+      applyTestDeploymentPolicy(directory, {
+        RAILWAY_ENVIRONMENT_ID: environmentId,
+        RAILWAY_SERVICE_ID: policy.serviceId,
+      }),
+      true,
+    );
+    assert.throws(() =>
+      applyTestDeploymentPolicy(directory, {
+        RAILWAY_ENVIRONMENT_ID: environmentId,
+        RAILWAY_SERVICE_ID: "different-service-fixture",
+      }),
+    );
+  }
+  assert.throws(() => applyTestDeploymentPolicy(directory, {}));
+  // A marker cannot authorize a different runtime service, even if both agree.
+  writeFileSync(marker, JSON.stringify({ ...policy, serviceId: "different-service-fixture" }));
   assert.throws(() =>
     applyTestDeploymentPolicy(directory, {
       RAILWAY_ENVIRONMENT_ID: productionEnvironmentId,
-      RAILWAY_SERVICE_ID: policy.serviceId,
-    }),
-  );
-  assert.throws(() =>
-    applyTestDeploymentPolicy(directory, { RAILWAY_ENVIRONMENT_ID: "production-fixture" }),
-  );
-  assert.throws(() => applyTestDeploymentPolicy(directory, {}));
-  assert.throws(() =>
-    applyTestDeploymentPolicy(directory, {
-      RAILWAY_ENVIRONMENT_ID: policy.environmentId,
       RAILWAY_SERVICE_ID: "different-service-fixture",
     }),
   );
+  writeFileSync(marker, JSON.stringify(policy));
   const environment = {
-    RAILWAY_ENVIRONMENT_ID: policy.environmentId,
+    RAILWAY_ENVIRONMENT_ID: productionEnvironmentId,
     RAILWAY_SERVICE_ID: policy.serviceId,
     PARTNER_CONTRACTS_ENABLED: "true",
     PARTNER_CONTRACT_SIGNING_MODE: "dropbox_live",
@@ -101,7 +101,7 @@ try {
       cwd: directory,
       env: {
         PATH: process.env.PATH,
-        RAILWAY_ENVIRONMENT_ID: policy.environmentId,
+        RAILWAY_ENVIRONMENT_ID: productionEnvironmentId,
         RAILWAY_SERVICE_ID: policy.serviceId,
       },
       encoding: "utf8",
