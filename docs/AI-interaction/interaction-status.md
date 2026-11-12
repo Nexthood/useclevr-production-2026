@@ -1,3 +1,12 @@
+## 2026-11-12 — Production partner invitation diagnosis (T-1107)
+
+- Goal: Diagnose the production onboarding rejection and preserve invitation, verified-email and activation controls.
+- Findings: Approval and onboarding share the runtime database client. Runtime prefers DATABASE_URL; predeploy prefers DIRECT_URL. The reported error maps to invitation eligibility, while unverified identity and transaction failure use separate errors. Production cause and database identity remain unconfirmed because Railway access is unavailable.
+- Changes: Add invitation security and runtime database precedence regressions to the disposable PostgreSQL integration suite. Record verified findings and required production evidence in docs/validation/partner-onboarding-diagnosis-2026-11-12.md. Apply no speculative runtime correction.
+- Validation: Partner unit tests, all 42 partner PostgreSQL checks, and all 14 contract integration groups pass, including additive migration 0043 checks. Type checking, deployment configuration, auth redirects, secret/TODO scans and the full production build with distribution packaging pass.
+- Blocker: The operator must restore authorized read-only Railway/database access and identify the affected application; hosted end-to-end acceptance also requires a dedicated matching verified test account. No production record, migration, signing setting, service identity or pipeline is changed.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-12 — PR #420 deployment gate clarification
 
 - Current gate: TEST service identity and source revision only; no beta-environment or database-isolation deployment requirement exists.

@@ -57,3 +57,7 @@ Reuse inactive number ranges for new non-sequential work when a shorter active I
 ## Label: sales
 
 - T-1103. Restore secure Railway access, verify production schema, backups and runtime configuration, prepare missing Stripe notifications, and obtain owner authorization before coordinated publication; deploy and verify company applications and the reseller landing page after secure access is restored; complete hosted registration, eligible payment and mature manual-settlement acceptance across both domains. (labels: sales, auth, billing, security, testing, deployment)
+
+## Label: testing
+
+- T-1107. Diagnose production partner invitation rejection, verify deployed database targets with authorized read-only access, and test valid onboarding plus invitation security failures. (labels: testing, auth, security, deployment)
