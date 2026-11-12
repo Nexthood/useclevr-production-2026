@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let administrators manage reviewed partner agreements, ordered electronic signatures, private signed copies and delivery retries, with legally approved contracts required before separate commercial activation.
+
 - Let business partners apply with company details, track administrator review, and complete separate commercial onboarding before partner activation.
 
 - Let verified account holders apply to the Global Partner Program, check review status, and receive referral tools after administrator approval.
@@ -21,6 +23,8 @@
 - Locked historical datasets stay visible with their names, sizes, and dates, and reopen automatically the moment the subscription reactivates.
 
 ### Fixed
+
+- Accept authenticated partner signing updates across supported callback formats while rejecting conflicting application identities.
 
 - Keep partner customer activity accurate when billing providers send updated cancellation formats.
 
@@ -74,6 +78,12 @@
 - Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
+
+- Bind test deployment artifacts to the dedicated TEST service independently of Railway environment placement.
+
+- Retain sanitized historical sandbox diagnostic evidence without adding a deployment gate.
+
+- Publish test builds without automatic production promotion, keep partner signing disabled, and unconditionally skip hosted migrations in TEST artifacts.
 
 - Partner release browser checks now ride through page reloads and fast navigation updates without aborting, so application-state verification stays reliable.
 

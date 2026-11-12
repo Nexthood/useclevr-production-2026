@@ -1,3 +1,96 @@
+## 2026-11-12 — PR #420 deployment gate clarification
+
+- Current gate: TEST service identity and source revision only; no beta-environment or database-isolation deployment requirement exists.
+- Change: Remove unused environment marker metadata and obsolete isolation messages; retain unconditional TEST migration skipping and disabled contract signing/worker.
+- Mapping: GitHub Actions publishes dist-test for useclevr TEST and dist for useclevr app; no deployment, hosted migration or signing is authorized in this task.
+- Historical isolation blockers below describe prior diagnostics, not the current deployment policy. Real provider acceptance still needs approved configuration and recipients.
+
+## 2026-11-12 — PR #420 verified beta target (T-1106)
+
+- Goal: Require the owner-verified beta environment in the publisher marker and runtime policy; commit and push only the PR branch.
+- Change: Bind beta artifacts to environment `d34d75b1-0d5c-45fa-b4e0-f2533c22a827` and TEST service `22dcb858-f0c0-426a-bc85-69766813372e`. Reject production environment `7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e`, including a matching stale marker/runtime pair.
+- Safety: Preserve service and revision checks, disabled contract signing/worker, skipped hosted migrations and explicit production-promotion authorization.
+- Verification: Focused Railway authentication/policy tests and deployment configuration checks pass. The predeploy regression forbids database construction.
+- Blocker: Independent beta database isolation remains unverified. The operator must provide authoritative runtime and migration target isolation evidence before deployment, migrations or signing are authorized.
+- Learning: Owner-verified environment identity corrects the target; service identity and public health do not establish database isolation. No hosted operation or beta push is authorized by this change.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Actions sandbox diagnostic result and cleanup (T-1105)
+
+- Result: Run 43205440582 source 8db3b035 records a fail-closed BLOCKED diagnostic in job 131139303746. Independent source/integration/security/regression/build and documentation jobs pass. The deployed 4f2f43f7 revision confirms signing disabled.
+- Authorization boundary: Neither existing platform access credential nor runtime database/configuration values are delegated to the Actions job. Authoritative beta/production database identifiers remain unavailable. Empty Actions presence does not establish absent hosted configuration. Local Railway CLI login is not required.
+- Migration and recipients: Identify source migration 0043 and its checksum; hosted pending state and QA address count remain unknown. No SQL, migrations, invites, partner activation or hosted financial activity occurs. No address or secret value is disclosed.
+- Cleanup: Remove the temporary diagnostic job and both scripts; restore CI and check names to the verified baseline. Retain the sanitized report at docs/validation/pr420-sandbox-diagnostic-2026-11-12.json and update PR #420 with Actions evidence. The working test deployment remains unchanged.
+- Required next access: An existing approved read-only runtime identity or operator-verified sanitized metadata export must be delegated to Actions before isolation/configuration can be established and migrations considered. No new infrastructure or credentials are created or requested.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Temporary read-only Actions sandbox diagnostic (T-1105)
+
+- Goal: Run a temporary read-only Actions diagnostic, fail closed on unavailable database identities, inspect configuration presence and QA availability without values, publish evidence and remove the diagnostic after verification.
+- Changes: Add a manual, PR-branch-only job to the existing CI workflow with contents read permission and no credential persistence. Pass boolean configuration presence flags; consume an existing CI-delegated platform credential only through the established read-only wrapper if available. Compare hashes of actual database names inside read-only transactions, never connection strings or contents. Missing access remains BLOCKED. Verify the established signing-disabled hosted revision; never interpret service IDs or database health as isolation proof. Record migration 0043 as a source candidate with unknown hosted state, not a proven pending migration. Refuse migrations and disclose no recipient addresses.
+- Evidence: Repository owner is a User; organization inheritance does not apply. Repository and beta/production Actions secret and variable name lists are empty. The runner diagnostic verifies its own context; absence there is not asserted as absent Railway runtime configuration.
+- Validation: Test missing, untrusted and identical database identity rejection; non-boolean presence rejection; fail-closed migration gating; and exact signing-disabled revision verification. Existing CI continues all partner integration/security/regression/build checks independently.
+- Follow-up: Commit/push only the PR branch, dispatch existing CI there, collect its sanitized summary and report, remove temporary job/script and restore workflow metadata. Do not write production, migrate hosted databases, send invitations, activate partners or create hosted financial activity.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Verified Railway TEST service binding (T-1105)
+
+- Finding: Actions source/regression/build run 43199185566 and dist-test publisher 43199180826 pass for cbd5f736; production promotion is skipped and no beta-to-main PR exists. Generated artifact ae92d768 receives Railway TEST status failure.
+- Correction: The historical beta environment reference is stale. Current GitHub deployment 7734510291 has production_environment=false and status context useclevr-web - useclevr TEST. Its target identifies the current TEST service and environment; their non-secret UUIDs are recorded in the deployment guide. The environment label production does not identify the production web service. Provider runtime logs are unavailable through the existing Actions surface, so the exact Railway failure log is not claimed.
+- Changes: Bind the test artifact to the verified TEST service and environment UUIDs. Skip hosted migrations in this validation artifact because database separation cannot be proved through the current workflow. Add a regression that fails on any predeploy database construction; keep contract management, live sends and the worker disabled. Normal unmarked artifacts keep their existing migration behavior.
+- Follow-up: Retest, commit, push beta and PR #420, then verify Actions publication, Railway TEST status and exact hosted revision. Use no new infrastructure, credentials, production deployment or signing invitations.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — GitHub Actions test deployment continuation (T-1105)
+
+- Goal: Follow TEST → COMMIT → PUSH → GITHUB ACTIONS → RAILWAY → VERIFY for PR #420 using existing beta/dist-test infrastructure; local Railway authentication is not a prerequisite.
+- Changes: Gate the existing production-promotion job behind explicit manual authorization. Add a beta-only bundle marker that disables contract management, live signing and the worker before predeploy/start, rejects an unexpected Railway environment, and exposes only source revision/signing-disabled health headers. Add workflow/runtime policy regression coverage to the existing Railway test command.
+- Validation: Pass 42 partner PostgreSQL integration checks, 14 contract lifecycle/security groups, 19 financial rule tests, eight contract unit/security groups, existing beta automation and Railway auth regressions, test deployment policy cases, TypeScript, deployment configuration, commit-record/TODO/changelog/package/secret checks and 168 documentation links. External signing/email calls are intercepted and all financial fixtures use disposable local schemas.
+- Evidence: The last beta publisher job succeeds using the automatic GITHUB_TOKEN; its later promotion job fails. No open beta-to-main PR exists before this test push. GitHub repository/beta secret lists are empty, but the automatic workflow token is available with contents write. No new infrastructure or credentials are required.
+- Limit: Disposable CI PostgreSQL isolation is verifiable. Existing Actions jobs do not receive Railway runtime database/provider variables, so hosted database separation and existing provider/QA-recipient configuration remain separate unverifiable checks through this workflow.
+- Follow-up: Validate, commit and push the test-only revision, inspect both Actions jobs, follow GitHub-connected Railway deployment status and verify the exact hosted revision. Do not send signing invitations or deploy production.
+- Learning: Use existing Actions/GitHub-connected deployment evidence before requesting local provider login. Treat an unsupported runtime inspection as a specific limitation, not a blocker for unrelated CI/CD validation.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md. The user explicitly selects the existing CI/CD path.
+
+## 2026-11-12 — Existing sandbox deployment inventory (T-1105)
+
+- Goal: Inspect existing deployment and secret references before requesting infrastructure; perform no deployments or signing sends.
+- Findings: The documented beta/dist-test service at test.useclevr.com reports HTTP 200 and a healthy database. GitHub exposes useclevr-web / beta and a historical beta Railway environment reference. The existing local PostgreSQL 16 fixture accepts connections on loopback port 55438. Dropbox Sign documents free, non-binding test-mode requests; the adapter supports dropbox_test.
+- Gap: Railway wrapper authentication has no token; native CLI authentication is unauthorized. Hosted database isolation, current service mapping, signing/email/encryption configuration and the two QA mailboxes remain unverified, not established as absent. GitHub beta/repository secret and variable lists are empty; these do not describe Railway runtime secrets.
+- Result: Store the sanitized inventory at /tmp/useclevr-existing-sandbox-inventory-2026-11-12.json. No infrastructure, database, deployment, signature invitation, activation, commission or payout changes occur.
+- Follow-up: Use the established GitHub Actions beta/dist-test deployment path; report unavailable runtime inspection separately. Confirm the actual Atlas QA signer mailboxes and explicit target/recipient authorization before signing acceptance.
+- Learning: A shell-only configuration check cannot establish absent hosted configuration. Reuse confirmed existing services before proposing new infrastructure. Distinguish a healthy database from verified database isolation.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Partner agreement final CI verification (T-1105)
+
+- Goal: Continue the agreement workflow after the callback validation rerun.
+- Result: Backend PR #420 revision 2544c553 passes source/build and documentation CI in run 43084711667. Both backend PR #420 and landing PR #9 remain drafts without reviews. The PR validation record includes the final successful run.
+- Observation: No source fix is required by CI. The next acceptance step requires the owner-controlled Dropbox Sign sandbox environment and authorized partner/company test recipients; production signing still requires the recorded legal/provider approvals.
+- Learning: Distinguish completed synthetic/local and CI acceptance from the actual provider signing ceremony. Store credentials through the test environment secret manager.
+- Follow-up: Obtain the sandbox environment and authorized recipient details, then execute the documented provider acceptance. Keep production signing disabled until its recorded approvals.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md. No new durable agent instruction.
+
+## 2026-11-11 — Partner agreement validation continuation (T-1105)
+
+- Goal: Complete the pending agreement validation and review handoff in backend PR #420 and landing PR #9.
+- Changes: Accept authenticated Dropbox Sign app identifiers from event metadata, the signature request or the callback root; reject conflicting identifiers. Add callback regression cases for request-level identifiers and conflicts.
+- Validation: All eight contract unit/security groups and landing static/calculator checks pass. Backend CI run 43080924296 passes source validation, regression tests, documentation links and 100-page production compilation at revision 861c0841. The callback follow-up passes TypeScript, repository lint (zero errors, 457 warnings), secrets, required commit checks, deployment configuration, documentation links and isolated production compilation, 100-page generation and distribution packaging. The isolated build uses synthetic authentication and an unreachable loopback database; its expected connection diagnostic does not fail the build.
+- Risk: Actual provider sandbox signing requires secure credentials and authorized recipients. The owner must approve exact legal/commercial versions, signer, provider configuration, retention and budget before production signing. Keep both PRs unmerged under the recorded release hold.
+- Learning: App callbacks can identify their app outside event metadata; authenticate the full payload and reject conflicting identifiers across every supported location.
+- Follow-up: Record the completed validation in backend PR #420. Complete the documented provider sandbox and owner approval checklist before production release.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md. No new durable agent instruction.
+
+## 2026-11-11 — Partner agreement lifecycle (T-1105)
+
+- Goal: Deliver secure versioned partner agreements and external sequential signatures for review, with production sends disabled pending owner legal/provider approval.
+- Changes: Add separate sales/reseller drafts, commercial schedules, owner checksum approvals, legal identity review, Dropbox Sign and non-binding mock adapters, authenticated callbacks, encrypted PDF/evidence archives, durable jobs/mail, private downloads and admin/participant controls. Migration 0043 adds contract records and an audited executed-agreement activation guard. Completed onboarding links to the agreement portal when enabled.
+- Validation: TypeScript, lint, secrets, TODO/package/project-record checks, deployment configuration, documentation links, 19 partner rules, eight contract unit groups, 42 legacy integration checks and 14 contract integration groups pass. Landing structure/application checks and calculator regression pass. The validation continuation below records completed isolated production build and packaging checks.
+- Risk: Actual provider sandbox acceptance requires owner-supplied credentials and authorized test recipients. Counsel/owner must approve exact legal/commercial versions, company signer, provider configuration, retention and budget before binding sends. Migration 0043 intentionally blocks new unsigned activations; existing active partners continue operating.
+- Learning: Archive verified completions of accepted requests after approval revocation; retain the current-approval gate for activation. Reconcile uncertain external sends before retrying. Keep validation databases disposable and synthetic.
+- Follow-up: Complete the documented sandbox and production approval checklist before any signing release; do not merge or deploy signing in this implementation task.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md. No new durable agent instruction.
+
 ## 2026-11-11 — Authorized public partner production release
 
 - Goal: Release backend PR #419 before landing PR #7 and complete production acceptance without commercial activation or test financial activity.

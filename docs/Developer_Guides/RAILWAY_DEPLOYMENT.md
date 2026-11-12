@@ -24,6 +24,22 @@ Production and test deploy flows stay isolated:
 Generated deployment branches are output branches. Do not merge `dist` or `dist-test` back into
 source branches.
 
+## Test-only GitHub Actions deployment
+
+Use TEST → COMMIT → PUSH → GITHUB ACTIONS → RAILWAY → VERIFY for the existing test service. Local Railway CLI authentication is optional and must not block the GitHub-connected deployment path. A push to `beta` runs source/integration validation and `beta-maintenance.yml`; that workflow builds, smoke-tests and publishes `dist-test` with the automatically issued `GITHUB_TOKEN` and `contents: write`. No custom Railway deployment secret is required. Empty repository/environment secret lists do not mean the automatic Actions token is missing.
+
+The beta publisher defaults to test-only publication. Its beta-to-main promotion job requires an explicit manual dispatch with `promote_to_production=true`; a normal beta push does not create/merge a release PR or dispatch production. Check for an existing beta-to-main PR before a test push because its separate PR automation can promote a ready release PR.
+
+The beta publisher adds a non-secret contract validation marker with the source revision and TEST service UUID. Predeploy and startup require that exact service and a valid source revision. Railway environment IDs and database-isolation evidence are not deployment gates. Older markers may include environment metadata; the runtime ignores that metadata.
+
+| Field | Reference |
+| --- | --- |
+| TEST service | `22dcb858-f0c0-426a-bc85-69766813372e` |
+
+The existing GitHub Actions → Railway mapping remains `dist-test` → `useclevr TEST` and `dist` → `useclevr app`. TEST artifacts force contract management, binding sends and the contract worker off, with signing mode `draft`. They skip hosted database migrations unconditionally, before any database client is constructed; disposable CI checks validate migrations instead. Production artifacts contain no test marker and retain their existing behavior.
+
+The health response includes `x-useclevr-test-revision` and `x-useclevr-contract-signing: disabled`. Health confirms availability, not database separation. The historical sandbox diagnostic records unavailable identity/configuration evidence for that diagnostic; it is not an active deployment check. Actual provider signing still requires separate approved configuration and recipient authorization. Do not expose secret values or infer configured QA recipients from CI fixtures.
+
 ## Railway Settings
 
 - Branch: `dist`

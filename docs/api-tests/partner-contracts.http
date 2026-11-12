@@ -1,0 +1,44 @@
+# Use only an authorized local/staging account. No production credentials in this file.
+@base = http://localhost:3000
+@application = replace-with-authorized-fixture-application
+@contract = replace-with-authorized-fixture-contract
+
+### Contract administration (real superadmin session cookie required)
+GET {{base}}/api/admin/partner-contracts
+
+### Participant agreements (real verified participant session required)
+GET {{base}}/api/partners/contracts
+
+### Private generated PDF (admin or exact participant session required)
+GET {{base}}/api/partners/contracts/{{contract}}/documents/source
+
+### Private completed PDF
+GET {{base}}/api/partners/contracts/{{contract}}/documents/signed
+
+### Admin execution evidence
+GET {{base}}/api/partners/contracts/{{contract}}/documents/audit
+
+### Queue authoritative reconciliation (superadmin session required)
+POST {{base}}/api/admin/partner-contracts
+Content-Type: application/json
+Origin: {{base}}
+
+{"action":"reconcile","id":"{{contract}}"}
+
+### Prepare a non-binding preview with local draft mode (reviewed identity and schedule required)
+POST {{base}}/api/admin/partner-contracts
+Content-Type: application/json
+Origin: {{base}}
+
+{"action":"prepare","id":"{{application}}"}
+
+### Process bounded pending work (superadmin session required)
+POST {{base}}/api/admin/partner-contracts
+Content-Type: application/json
+Origin: {{base}}
+
+{"action":"run"}
+
+# Legal approvals, provider setup and manual activation are deliberately exercised
+# through the reviewed admin forms or isolated automated tests, never as one-click
+# production fixture commands. See ../Developer_Guides/PARTNER_CONTRACTS.md.

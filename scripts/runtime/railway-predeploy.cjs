@@ -1,6 +1,12 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const { Client } = require("pg");
+if (require("./partner-contract-test-policy.cjs").applyTestDeploymentPolicy()) {
+  console.info(
+    "[partner-contract-test] Hosted migrations skipped by TEST artifact policy. Use disposable CI migration evidence.",
+  );
+  process.exit(0);
+}
 
 try {
   require("./load-env.cjs");
@@ -369,6 +375,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0040_partner_applications.sql"),
   readMigrationStatement("src/lib/db/migrations/0041_reseller_review.sql"),
   readMigrationStatement("src/lib/db/migrations/0042_public_partner_applications.sql"),
+  readMigrationStatement("src/lib/db/migrations/0043_partner_contracts.sql"),
 ];
 
 const constraints = [

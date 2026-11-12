@@ -23,6 +23,8 @@ const publicApiPaths = [
   "/api/mcp",
   "/api/payload/mcp",
   "/api/webhooks/stripe",
+  "/api/webhooks/partner-contracts/dropbox-sign",
+  "/api/internal/partner-contracts/run",
   "/api/payload/cms-users/login",
   "/api/payload/cms-users/refresh-token",
   "/api/payload/cms-users/forgot-password",
