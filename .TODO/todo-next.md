@@ -60,4 +60,4 @@ Reuse inactive number ranges for new non-sequential work when a shorter active I
 
 ## Label: testing
 
-- T-1107. Diagnose production partner invitation rejection, verify deployed database targets with authorized read-only access, and test valid onboarding plus invitation security failures. (labels: testing, auth, security, deployment)
+- T-1107. Give partners distinct invitation errors and a sign-in recovery path, verify the affected production invitation and database targets with authorized read-only access, and complete hosted acceptance with the matching verified account. (labels: testing, auth, security, deployment)

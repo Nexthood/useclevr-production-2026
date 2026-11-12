@@ -1,11 +1,13 @@
 import { featureEnabled } from "@/lib/partners/contracts/domain";
 import { auth } from "@/lib/auth/auth";
+import { onboardingLoginUrl } from "@/lib/partners/onboarding";
 import { PartnerOnboarding } from "@/components/partners/partner-onboarding";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Complete Partner Onboarding | UseClevr",
   robots: { index: false, follow: false },
+  referrer: "no-referrer",
 };
 export default async function PartnerOnboardPage({
   searchParams,
@@ -14,7 +16,6 @@ export default async function PartnerOnboardPage({
 }) {
   const { token = "" } = await searchParams;
   const session = await auth();
-  const callback = `/partners/onboard?token=${encodeURIComponent(token)}`;
   return (
     <main className="mx-auto max-w-2xl px-5 py-14">
       <section className="space-y-5 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
@@ -36,7 +37,8 @@ export default async function PartnerOnboardPage({
             <div className="flex flex-wrap gap-3">
               <a
                 className="inline-flex min-h-12 items-center rounded-xl bg-primary px-5 font-semibold text-primary-foreground"
-                href={`/login?callbackUrl=${encodeURIComponent(callback)}`}
+                href={onboardingLoginUrl(token)}
+                rel="noreferrer"
               >
                 Sign in or create an account
               </a>

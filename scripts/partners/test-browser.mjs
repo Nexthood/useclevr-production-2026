@@ -19,6 +19,12 @@ await new Promise((resolve, reject) => {
     {
       mode: "development",
       optimization: { minimize: false, minimizer: [] },
+      // Match Next's browser process shim when exercising the real Auth.js client.
+      plugins: [
+        new compiledWebpack.webpack.ProvidePlugin({
+          process: "next/dist/build/polyfills/process.js",
+        }),
+      ],
       context: root,
       entry: path.join(root, "scripts/partners/browser-fixture.tsx"),
       output: { path: directory, filename: "bundle.js" },
@@ -121,8 +127,8 @@ const statement = {
   nextOffset: null,
 };
 const actions = [];
-let applying = false;
-let applicationReceipt = null;
+let onboardingError = "incorrect_account";
+let signoutReturn = null;
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://localhost");
   if (url.pathname === "/bundle.js" || url.pathname === "/styles.css") {
@@ -135,19 +141,60 @@ const server = createServer(async (request, response) => {
   }
   if (url.pathname.startsWith("/api/")) {
     response.setHeader("Content-Type", "application/json");
+    if (url.pathname === "/api/admin/partner-applications" && request.method === "GET") {
+      response.end(JSON.stringify({ applications: [] }));
+      return;
+    }
+    if (url.pathname === "/api/admin/partner-contracts" && request.method === "GET") {
+      response.end(JSON.stringify({ enabled: false }));
+      return;
+    }
+    if (url.pathname === "/api/auth/csrf") {
+      response.end(JSON.stringify({ csrfToken: "synthetic-browser-csrf" }));
+      return;
+    }
+    if (url.pathname === "/api/auth/signout" && request.method === "POST") {
+      let body = "";
+      for await (const part of request) body += part;
+      const fields = new URLSearchParams(body);
+      assert.equal(fields.get("csrfToken"), "synthetic-browser-csrf");
+      signoutReturn = fields.get("callbackUrl");
+      response.end(JSON.stringify({ url: signoutReturn }));
+      return;
+    }
+    if (url.pathname === "/api/partner-applications/onboard" && request.method === "POST") {
+      for await (const _part of request) {
+        /* Consume only; invitation tokens are never logged. */
+      }
+      response.statusCode = onboardingError
+        ? onboardingError === "authentication_required"
+          ? 401
+          : 403
+        : 200;
+      const messages = {
+        incorrect_account:
+          "You are signed in with a different account. Sign in with the verified email address that received this invitation.",
+        email_verification_required: "Verify your UseClevr account email before continuing.",
+        authentication_required:
+          "Sign in with the account that received this invitation to continue.",
+      };
+      response.end(
+        JSON.stringify(
+          onboardingError
+            ? { code: onboardingError, error: messages[onboardingError] }
+            : { ok: true },
+        ),
+      );
+      return;
+    }
     if (request.method === "POST") {
       let body = "";
       for await (const part of request) body += part;
       const action = JSON.parse(body);
       actions.push(action);
-      if (url.pathname === "/api/partners") {
-        applicationReceipt = {
-          status: "pending",
-          name: action.name,
-          createdAt: new Date().toISOString(),
-        };
+      if (url.pathname === "/api/partner-applications") {
         response.statusCode = 201;
-        response.end(JSON.stringify({ application: applicationReceipt }));
+        response.end(JSON.stringify({ ok: true, status: "pending" }));
         return;
       }
       if (action.action === "approve") statement.commissions[0].state = "approved";
@@ -160,15 +207,6 @@ const server = createServer(async (request, response) => {
           reference: action.reference,
         });
       response.end(JSON.stringify({ success: true }));
-      return;
-    }
-    if (url.pathname === "/api/partners" && applying) {
-      response.statusCode = applicationReceipt ? 200 : 404;
-      response.end(
-        JSON.stringify(
-          applicationReceipt ? { application: applicationReceipt } : { error: "No application" },
-        ),
-      );
       return;
     }
     const result =
@@ -366,93 +404,119 @@ try {
     "PASS approval and manual settlement forms submit separate, reasoned actions to fixture transport",
   );
   passed++;
-  applying = true;
-  for (const width of [1280, 390]) {
-    await command("Emulation.setDeviceMetricsOverride", {
-      width,
-      height: 900,
-      deviceScaleFactor: 1,
-      mobile: width < 500,
-    });
-    applicationReceipt = null;
-    await command("Page.navigate", { url: `${origin}/?apply=1` });
-    await waitFor('document.body?.innerText.includes("Submit application")');
-    assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
-    assert.equal(
-      await evaluate('document.querySelectorAll("input[type=checkbox]:checked").length'),
-      0,
-    );
-    await evaluate(`(() => {
-      const values = { name: "Browser applicant", country: "NL", market: "Local businesses", experience: "I work with independent retailers on analytics." };
-      for (const [key,value] of Object.entries(values)) { const input = document.querySelector('[name="'+key+'"]'); input.value=value; input.dispatchEvent(new Event("input", {bubbles:true})); }
-      document.querySelectorAll('input[type=checkbox]').forEach(input => input.click());
-      if (!document.querySelector("form").checkValidity()) throw new Error("Invalid fixture fields: "+Array.from(document.querySelectorAll(":invalid")).map(e=>e.name+":"+e.validationMessage).join(", "));
-      document.querySelector("form").requestSubmit();
-    })()`);
-    await waitFor('document.querySelector("h2")?.textContent === "Pending review"');
-    assert.equal(
-      actions.some(
-        (a) => a.privacyAccepted === true && a.termsAccepted === true && a.country === "NL",
-      ),
-      true,
-    );
-    await command("Page.reload");
-    await waitFor('document.querySelector("h2")?.textContent === "Pending review"');
-    assert.equal(await evaluate('document.querySelector("form") === null'), true);
-    applicationReceipt.status = "rejected";
-    await command("Page.reload");
-    await waitFor('document.body?.innerText.includes("Your application was not approved")');
-    assert.equal(await evaluate('document.querySelector("#partner-link") === null'), true);
-    passed++;
-    console.log(
-      `PASS application form, explicit acknowledgments, confirmation, reload and rejection at ${width}px`,
-    );
+  for (const [partnershipType, program] of [
+    ["Independent Sales Partner", "work_with_us"],
+    ["Authorized Reseller", "reseller_enterprise"],
+  ]) {
+    for (const width of [1280, 390]) {
+      await command("Emulation.setDeviceMetricsOverride", {
+        width,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: width < 500,
+      });
+      await command("Page.navigate", {
+        url: origin + "/?apply=1&partnershipType=" + encodeURIComponent(partnershipType),
+      });
+      await waitFor('document.body?.innerText.includes("Submit partner application")');
+      assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+      assert.equal(await evaluate('document.querySelector("form").checkValidity()'), false);
+      assert.equal(
+        await evaluate('document.querySelectorAll("input[type=checkbox]:checked").length'),
+        0,
+      );
+      await evaluate(`(() => {
+        const values = { fullName: "Browser applicant", email: "browser@example.invalid", companyName: "Browser Company", country: "NL", experience: "I work with independent retailers on analytics and reporting." };
+        for (const [key,value] of Object.entries(values)) { const input = document.querySelector('[name="'+key+'"]'); input.value=value; input.dispatchEvent(new Event("input",{bubbles:true})); }
+        document.querySelector('input[name="privacyAccepted"]').click();
+        if (!document.querySelector("form").checkValidity()) throw new Error("Public application fixture is invalid");
+        document.querySelector("form").requestSubmit();
+      })()`);
+      await waitFor('document.body?.innerText.includes("Application received")');
+      assert.equal(actions.at(-1).program, program);
+      assert.equal(actions.at(-1).category, partnershipType);
+      assert.equal(actions.at(-1).privacyAccepted, true);
+      assert.equal(actions.at(-1).country, "NL");
+      assert.equal(actions.at(-1).website, "");
+      assert.equal(await evaluate('document.querySelector("form") === null'), true);
+      assert.equal(await evaluate('document.querySelector("#partner-link") === null'), true);
+      assert.equal(
+        await evaluate(
+          'document.body.innerText.includes("No UseClevr customer account is needed")',
+        ),
+        true,
+      );
+      passed++;
+      console.log(
+        "PASS public " +
+          program +
+          " application validation, privacy consent and confirmation at " +
+          width +
+          "px",
+      );
+    }
   }
-  for (const width of [1280, 320]) {
-    applicationReceipt = null;
-    await command("Emulation.setDeviceMetricsOverride", {
-      width,
-      height: 900,
-      deviceScaleFactor: 1,
-      mobile: width < 500,
-    });
-    await command("Page.navigate", {
-      url: `${origin}/?apply=1&partnershipType=Authorized%20Reseller&theme=dark`,
-    });
-    await waitFor('document.querySelector("input[name=companyName]") !== null');
-    assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+  for (const code of [
+    "incorrect_account",
+    "email_verification_required",
+    "authentication_required",
+  ]) {
+    onboardingError = code;
+    signoutReturn = null;
+    await command("Page.navigate", { url: origin + "/?onboard=1" });
+    await waitFor('document.querySelector("input[type=checkbox]") !== null');
+    await evaluate('document.querySelector("input[type=checkbox]").click()');
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Complete onboarding").click()',
+    );
+    await waitFor('document.querySelector("[role=alert]") !== null');
     assert.equal(
       await evaluate(
-        'document.body.innerText.includes("15%") || document.body.innerText.includes("20%")',
+        'document.body.innerText.includes("verified email address") || document.body.innerText.includes("Verify your UseClevr") || document.body.innerText.includes("Sign in with the account")',
       ),
-      false,
-    );
-    assert.equal(await evaluate('document.querySelector("form").checkValidity()'), false);
-    await evaluate(`(() => {
-      const values = { companyName: "Browser Company", name: "Browser Contact", businessEmail: "business@example.invalid", companyWebsite: "https://example.invalid", country: "NL", industry: "IT services", existingCustomers: "75", experience: "Introduce verified analytics to existing retail customers." };
-      for (const [key,value] of Object.entries(values)) { const input=document.querySelector('[name="'+key+'"]'); input.value=value; input.dispatchEvent(new Event("input",{bubbles:true})); }
-      document.querySelectorAll('input[type=checkbox]').forEach(input=>input.click());
-      if (!document.querySelector("form").checkValidity()) throw new Error("Company form invalid");
-      document.querySelector("form").requestSubmit();
-    })()`);
-    await waitFor('document.querySelector("h2")?.textContent === "Pending review"');
-    assert.equal(actions.at(-1).partnershipType, "Authorized Reseller");
-    assert.equal(actions.at(-1).companyName, "Browser Company");
-    assert.equal(actions.at(-1).existingCustomers, 75);
-    assert.equal(actions.at(-1).websiteConfirmation, "");
-    assert.equal(
-      await evaluate("document.querySelector('a[href=\"/app/partners\"]') === null"),
       true,
     );
-    applicationReceipt.status = "approved";
-    await command("Page.reload");
-    await waitFor('document.body?.innerText.includes("approved for commercial discussions")');
-    assert.equal(await evaluate('document.querySelector("#partner-link") === null'), true);
+    let destination;
+    if (code === "authentication_required") {
+      destination = await evaluate('document.querySelector("a").getAttribute("href")');
+    } else {
+      const label =
+        code === "incorrect_account" ? "Sign in with invited account" : "Verify email and sign in";
+      await evaluate(
+        'Array.from(document.querySelectorAll("button")).find(b => b.textContent === ' +
+          JSON.stringify(label) +
+          ").click()",
+      );
+      await waitFor('location.pathname === "/login"');
+      destination = signoutReturn;
+    }
+    const login = new URL(destination, origin);
+    const callback = new URL(login.searchParams.get("callbackUrl"), origin);
+    assert.equal(login.origin, origin);
+    assert.equal(login.pathname, "/login");
+    assert.equal(callback.pathname, "/partners/onboard");
+    assert.ok(
+      callback.searchParams.get("token") === "synthetic-browser-invitation-32-bytes-only",
+      "recovery preserves the invitation without logging it",
+    );
     passed++;
     console.log(
-      `PASS company form validation, tailored terms, pending confirmation and approval without referral access at ${width}px`,
+      "PASS onboarding recovery for " +
+        code +
+        " preserves the invitation through same-origin sign-in",
     );
   }
+  onboardingError = null;
+  await command("Page.navigate", { url: origin + "/?onboard=1" });
+  await waitFor('document.querySelector("input[type=checkbox]") !== null');
+  await evaluate('document.querySelector("input[type=checkbox]").click()');
+  await evaluate(
+    'Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Complete onboarding").click()',
+  );
+  await waitFor('document.body.innerText.includes("Onboarding complete")');
+  assert.equal(await evaluate('document.body.innerText.includes("remain inactive")'), true);
+  passed++;
+  console.log("PASS onboarding success states separate administrator activation");
   console.log(`${passed} browser acceptance groups passed. Artifacts: ${directory}`);
   console.log(
     "Scope: real components and design-system CSS with synthetic HTTP responses. Full application login, attribution navigation, and production hosting are not exercised.",

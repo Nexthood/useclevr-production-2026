@@ -1,3 +1,12 @@
+## 2026-11-12 — Distinct partner invitation errors and recovery (T-1107)
+
+- Goal: Diagnose the immediate production rejection and give partners safe, actionable invitation failures and authentication recovery.
+- Confirmed defects in the reviewed baseline: Eligibility errors collapse unrelated states; used hashes are cleared; the signed-in form lacks account-switching recovery. The affected production rejection predicate remains unconfirmed without authorized runtime access and an application reference.
+- Changes: Classify invitation failures after authentication/verification, recheck the hash and state under lock, retain only the one-way hash on new completion, add same-origin sign-in/account switching, suppress onboarding referrers, and explain required verification in approval mail. Existing records receive no backfill or migration.
+- Validation: Partner unit suite, 42 partner PostgreSQL checks, 14 contract integration groups, 13 browser groups, auth redirects, types, deployment-config, source ESLint, secret/TODO/Markdown checks and production build with packaging pass. Hosted acceptance remains open.
+- Blocker: Railway reports Unauthorized; the operator must restore read-only runtime/database access, identify the affected application, and authorize a dedicated matching verified account for hosted acceptance. No production signing, records or deployment architecture changes occur.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-12 — Production partner invitation diagnosis (T-1107)
 
 - Goal: Diagnose the production onboarding rejection and preserve invitation, verified-email and activation controls.

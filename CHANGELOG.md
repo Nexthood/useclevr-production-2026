@@ -24,6 +24,8 @@
 
 ### Fixed
 
+- Explain partner invitation failures separately and let partners sign in with the invited account while keeping their onboarding link.
+
 - Accept authenticated partner signing updates across supported callback formats while rejecting conflicting application identities.
 
 - Keep partner customer activity accurate when billing providers send updated cancellation formats.

@@ -822,3 +822,10 @@ Text rules for this file:
 - Expose only locked demo-account dataset metadata and stored analysis through the public test
   connector; never expose uploaded rows or customer-owned datasets.
 - Require a customer-data authorization flow before the ChatGPT MCP app accesses private customer datasets.
+
+## Partner invitation recovery
+
+- Require authentication and a verified database email matching the approved application before partner onboarding.
+- Give authenticated partners separate invalid, expired, used and wrong-account invitation errors; anonymous and unverified callers receive no invitation existence or state information.
+- Preserve the invitation through a same-origin sign-in return path and let partners switch accounts or verify their email before retrying onboarding.
+- Reject used invitations atomically and retain only their one-way token hash for accurate replay errors; never reactivate invitations or backfill existing partner records.

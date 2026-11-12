@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { signOut } from "next-auth/react";
+import { onboardingLoginUrl } from "@/lib/partners/onboarding";
 import { Button } from "@/components/ui/button";
 
 export function PartnerOnboarding({
@@ -12,10 +14,12 @@ export function PartnerOnboarding({
   const [accepted, setAccepted] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [done, setDone] = useState(false);
+    [done, setDone] = useState(false),
+    [recovery, setRecovery] = useState<"signin" | "switch" | "verify" | null>(null);
   async function submit() {
     setBusy(true);
     setError("");
+    setRecovery(null);
     try {
       const response = await fetch("/api/partner-applications/onboard", {
         method: "POST",
@@ -23,11 +27,25 @@ export function PartnerOnboarding({
         body: JSON.stringify({ token, accepted }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Onboarding could not be completed.");
+      if (!response.ok) {
+        if (result.code === "authentication_required") setRecovery("signin");
+        if (result.code === "incorrect_account") setRecovery("switch");
+        if (result.code === "email_verification_required") setRecovery("verify");
+        throw new Error(result.error || "Onboarding could not be completed.");
+      }
       setDone(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Onboarding could not be completed.");
     } finally {
+      setBusy(false);
+    }
+  }
+  async function changeAccount() {
+    setBusy(true);
+    try {
+      await signOut({ callbackUrl: onboardingLoginUrl(token), redirect: true });
+    } catch {
+      setError("Sign-out could not be completed. Please try again.");
       setBusy(false);
     }
   }
@@ -52,13 +70,27 @@ export function PartnerOnboarding({
   return (
     <div className="space-y-5">
       <p className="leading-7 text-muted-foreground">
-        This invitation can be used once and must be completed using the verified email address that
-        received it. Completing onboarding does not activate your partner account.
+        You must be signed in with the verified email address that received this invitation. This
+        invitation can be used once. Completing onboarding does not activate your partner account.
       </p>
       {error && (
         <p role="alert" className="text-destructive">
           {error}
         </p>
+      )}
+      {recovery === "signin" && (
+        <a
+          className="inline-flex min-h-12 items-center font-semibold text-primary"
+          href={onboardingLoginUrl(token)}
+          rel="noreferrer"
+        >
+          Sign in to continue
+        </a>
+      )}
+      {(recovery === "switch" || recovery === "verify") && (
+        <Button disabled={busy} onClick={changeAccount} className="min-h-12 rounded-xl px-6">
+          {recovery === "verify" ? "Verify email and sign in" : "Sign in with invited account"}
+        </Button>
       )}
       <label className="flex items-start gap-3 text-sm leading-6">
         <input
