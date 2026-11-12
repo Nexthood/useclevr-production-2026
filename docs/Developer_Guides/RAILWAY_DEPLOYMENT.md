@@ -24,6 +24,16 @@ Production and test deploy flows stay isolated:
 Generated deployment branches are output branches. Do not merge `dist` or `dist-test` back into
 source branches.
 
+## Test-only GitHub Actions deployment
+
+Use TEST → COMMIT → PUSH → GITHUB ACTIONS → RAILWAY → VERIFY for the existing test service. Local Railway CLI authentication is optional and must not block the GitHub-connected deployment path. A push to `beta` runs source/integration validation and `beta-maintenance.yml`; that workflow builds, smoke-tests and publishes `dist-test` with the automatically issued `GITHUB_TOKEN` and `contents: write`. No custom Railway deployment secret is required. Empty repository/environment secret lists do not mean the automatic Actions token is missing.
+
+The beta publisher defaults to test-only publication. Its beta-to-main promotion job requires an explicit manual dispatch with `promote_to_production=true`; a normal beta push does not create/merge a release PR or dispatch production. Check for an existing beta-to-main PR before a test push because its separate PR automation can promote a ready release PR.
+
+The beta publisher adds a non-secret contract validation marker to the generated bundle. Predeploy and startup require the identified beta Railway environment and force contract management, binding sends and the contract worker off, with signing mode `draft`. The health response includes `x-useclevr-test-revision` and `x-useclevr-contract-signing: disabled` for this test bundle. This validation release cannot perform actual provider signing; changing that policy requires separate recipient and sandbox-signing authorization. Production artifacts contain no test marker.
+
+CI database isolation is established by disposable PostgreSQL service containers. The existing workflow does not receive Railway runtime database/provider variables, and its health check cannot prove that the hosted database differs from production. Report that exact limitation separately. Do not expose secret values, infer configured QA recipients from CI fixtures, or require local CLI login to complete supported build/deploy verification.
+
 ## Railway Settings
 
 - Branch: `dist`

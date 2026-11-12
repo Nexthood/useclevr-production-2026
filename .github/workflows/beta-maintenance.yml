@@ -15,6 +15,11 @@ on:
         description: "Confirm publish to dist-test"
         required: true
         default: "no"
+      promote_to_production:
+        description: "Explicitly authorize beta to main promotion and production deployment"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -134,6 +139,8 @@ jobs:
 
       - name: Stage generated output
         run: |
+          mkdir -p dist/data-config
+          node -e "require('fs').writeFileSync('dist/data-config/partner-contract-test-deploy.json', JSON.stringify({ sourceRevision: require('child_process').execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), environmentId: 'd34d75b1-0d5c-45fa-b4e0-f2533c22a827' }) + '\n')"
           mv dist /tmp/useclevr-dist-output
           cp -a dist-root/. /tmp/useclevr-dist-root
 
@@ -280,6 +287,7 @@ jobs:
   ensure-beta-pr:
     name: Ensure beta to main pull request
     needs: publish-dist-test
+    if: github.event_name == 'workflow_dispatch' && inputs.promote_to_production == true
     runs-on: ubuntu-latest
     permissions:
       contents: read

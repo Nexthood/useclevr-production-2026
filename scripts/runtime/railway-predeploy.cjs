@@ -1,6 +1,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const { Client } = require("pg");
+require("./partner-contract-test-policy.cjs").applyTestDeploymentPolicy();
 
 try {
   require("./load-env.cjs");

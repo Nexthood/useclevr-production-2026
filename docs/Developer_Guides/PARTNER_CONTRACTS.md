@@ -85,6 +85,10 @@ Append-only triggers protect execution audit, callbacks, artifacts and provider 
 
 Rollback disables sending/worker flags, cancels incomplete provider requests as separately authorized, and rolls back application code while retaining all contract tables, documents, keys and audit evidence. Do not drop evidence, remove execution guards or convert executed contracts to drafts. The database activation guard intentionally continues to block unsigned new activations after an application rollback. Recovery requires the corrected contract-aware app or an owner/counsel-approved operational plan; a rollback must not create an unsigned activation bypass.
 
+## Test deployment
+
+The existing beta → dist-test GitHub Actions path supports test deployment without local Railway CLI authentication. Its contract validation bundle forces signing/worker controls off and reports its source revision through health-response headers. This build verifies deployment and anonymous access boundaries; actual sandbox signing requires separate environment/recipient authorization and an approved change to that test-only policy. See [test deployment controls](RAILWAY_DEPLOYMENT.md#test-only-github-actions-deployment).
+
 ## Validation
 
 - `pnpm validate:types`

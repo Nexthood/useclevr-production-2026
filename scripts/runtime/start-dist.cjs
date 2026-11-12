@@ -1,6 +1,7 @@
 const path = require("node:path");
 const { spawnSync, spawn } = require("node:child_process");
 const fs = require("node:fs");
+require("./partner-contract-test-policy.cjs").applyTestDeploymentPolicy();
 
 const port = process.env.PORT || "8080";
 const serverTarget = process.env.USECLEVR_SERVER_TARGET || process.env.SERVER_TARGET || "";
