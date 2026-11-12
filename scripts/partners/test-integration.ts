@@ -308,7 +308,40 @@ async function main() {
       user: { id: "public-partner-user", email: "sales-applicant@example.invalid", role: "user" },
     };
     setSession(null);
-    assert.equal((await onboardingApi.POST(invitationRequest())).status, 401);
+    const anonymous = await onboardingApi.POST(invitationRequest());
+    const anonymousMissing = await onboardingApi.POST(invitationRequest("x".repeat(43)));
+    assert.equal(anonymous.status, 401);
+    assert.equal(anonymousMissing.status, 401);
+    const anonymousBody = await anonymous.json();
+    assert.equal(anonymousBody.code, "authentication_required");
+    assert.deepEqual(
+      await anonymousMissing.json(),
+      anonymousBody,
+      "anonymous errors cannot disclose invitation existence",
+    );
+    const { default: onboardingPage, metadata: onboardingMetadata } =
+      await import("../../src/app/(public)/partners/onboard/page");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const markup = renderToStaticMarkup(
+      await onboardingPage({ searchParams: Promise.resolve({ token: invite }) }),
+    );
+    const loginHref = markup.match(/href="([^"]*login\?callbackUrl=[^"]+)"/)?.[1];
+    assert.ok(loginHref, "anonymous onboarding offers sign-in");
+    const login = new URL(loginHref, "https://app.useclevr.com");
+    assert.equal(login.origin, "https://app.useclevr.com");
+    assert.equal(login.pathname, "/login");
+    const { resolveAuthRedirect } = await import("../../src/lib/auth/redirect-origin");
+    const returned = new URL(
+      resolveAuthRedirect(login.searchParams.get("callbackUrl")!, "https://app.useclevr.com"),
+    );
+    assert.equal(returned.origin, "https://app.useclevr.com");
+    assert.equal(returned.pathname, "/partners/onboard");
+    assert.ok(
+      hashInvitation(returned.searchParams.get("token")!) === persisted.invitationHash,
+      "the emailed token survives the authentication return path",
+    );
+    assert.equal(onboardingMetadata.referrer, "no-referrer");
+    assert.ok(markup.includes("same verified email address"));
     setSession(validSession);
     assert.equal(
       (await onboardingApi.POST(invitationRequest(invite, "https://untrusted.example.invalid")))
@@ -321,7 +354,11 @@ async function main() {
       .where(eq(schema.users.id, "public-partner-user"));
     const unverified = await onboardingApi.POST(invitationRequest());
     assert.equal(unverified.status, 403);
-    assert.match((await unverified.json()).error, /Verify your UseClevr account email/);
+    assert.equal((await unverified.json()).code, "email_verification_required");
+    assert.equal(
+      (await (await onboardingApi.POST(invitationRequest("x".repeat(43)))).json()).code,
+      "email_verification_required",
+    );
     // The database identity must win even when the session claims the invited email.
     await db
       .update(schema.users)
@@ -329,7 +366,7 @@ async function main() {
       .where(eq(schema.users.id, "public-partner-user"));
     const mismatch = await onboardingApi.POST(invitationRequest());
     assert.equal(mismatch.status, 403);
-    assert.match((await mismatch.json()).error, /different verified email/);
+    assert.equal((await mismatch.json()).code, "incorrect_account");
     await db
       .update(schema.users)
       .set({ email: "SALES-APPLICANT@example.invalid" })
@@ -339,6 +376,17 @@ async function main() {
       403,
       "missing invitation is rejected",
     );
+    const originalLookup = db.query.partnerApplications.findFirst;
+    try {
+      db.query.partnerApplications.findFirst = () => {
+        throw new Error("synthetic_lookup_failure");
+      };
+      const unavailable = await onboardingApi.POST(invitationRequest());
+      assert.equal(unavailable.status, 503);
+      assert.equal((await unavailable.json()).code, "onboarding_unavailable");
+    } finally {
+      db.query.partnerApplications.findFirst = originalLookup;
+    }
     const altered = `${invite![0] === "a" ? "b" : "a"}${invite!.slice(1)}`;
     assert.equal(
       (await onboardingApi.POST(invitationRequest(altered))).status,
@@ -349,20 +397,16 @@ async function main() {
       .update(schema.partnerApplications)
       .set({ invitationExpiresAt: new Date(Date.now() - 1000) })
       .where(eq(schema.partnerApplications.id, applicant!.id));
-    assert.equal(
-      (await onboardingApi.POST(invitationRequest())).status,
-      403,
-      "expired invitation is rejected",
-    );
+    const expired = await onboardingApi.POST(invitationRequest());
+    assert.equal(expired.status, 410);
+    assert.equal((await expired.json()).code, "expired_invitation");
     await db
       .update(schema.partnerApplications)
       .set({ invitationExpiresAt: persisted.invitationExpiresAt, invitationUsedAt: new Date() })
       .where(eq(schema.partnerApplications.id, applicant!.id));
-    assert.equal(
-      (await onboardingApi.POST(invitationRequest())).status,
-      403,
-      "used invitation with a retained hash is rejected",
-    );
+    const used = await onboardingApi.POST(invitationRequest());
+    assert.equal(used.status, 409);
+    assert.equal((await used.json()).code, "used_invitation");
     await db
       .update(schema.partnerApplications)
       .set({ invitationUsedAt: null, status: "under_review" })
@@ -392,21 +436,34 @@ async function main() {
     console.log(
       "PASS invitation persistence and DATABASE_URL precedence; reject unauthenticated, unverified, wrong-origin, missing, modified, expired, used, unapproved and mismatched invitations without onboarding writes",
     );
-    const onboard = await onboardingApi.POST(
-      new Request("http://localhost:3000/api/partner-applications/onboard", {
-        method: "POST",
-        headers: { origin: "http://localhost:3000", "content-type": "application/json" },
-        body: JSON.stringify({ token: invite, accepted: true }),
-      }),
+    const concurrent = await Promise.all([
+      onboardingApi.POST(invitationRequest()),
+      onboardingApi.POST(invitationRequest()),
+    ]);
+    assert.deepEqual(
+      concurrent.map((response) => response.status).sort(),
+      [200, 409],
+      "one concurrent completion succeeds and the other is rejected as used",
     );
+    const onboard = concurrent.find((response) => response.status === 200)!;
     assert.equal(onboard.status, 200, await onboard.text());
+    const onboardingAudits = await db.query.partnerApplicationAudit.findMany({
+      where: eq(schema.partnerApplicationAudit.applicationId, applicant!.id),
+    });
+    assert.equal(
+      onboardingAudits.filter((entry) => entry.action === "onboarding_completed").length,
+      1,
+    );
     const completed = await db.query.partnerApplications.findFirst({
       where: eq(schema.partnerApplications.id, applicant!.id),
     });
     assert.equal(completed?.status, "approved");
     assert.ok(completed?.onboardedAt);
     assert.equal(completed?.linkedUserId, "public-partner-user");
-    assert.equal(completed?.invitationHash, null);
+    assert.ok(
+      completed?.invitationHash === persisted.invitationHash,
+      "retain only the hash for accurate replay rejection",
+    );
     assert.ok(completed?.invitationUsedAt);
     console.log(
       "PASS valid unused invitation onboards the correct verified database email case-insensitively",
@@ -426,7 +483,16 @@ async function main() {
         body: JSON.stringify({ token: invite, accepted: true }),
       }),
     );
-    assert.equal(replay.status, 403);
+    assert.equal(replay.status, 409);
+    assert.equal((await replay.json()).code, "used_invitation");
+    // Previously consumed invitations with cleared hashes remain rejected without rewriting records.
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationHash: null })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    const legacyReplay = await onboardingApi.POST(invitationRequest());
+    assert.equal(legacyReplay.status, 403);
+    assert.equal((await legacyReplay.json()).code, "invalid_invitation");
     const resellerApplicant = await db.query.partnerApplications.findFirst({
       where: eq(schema.partnerApplications.email, "reseller-applicant@example.invalid"),
     });
@@ -472,32 +538,28 @@ async function main() {
       applicationsBeforeMigration,
       "redeployment must not reimport linked public applications",
     );
-    await db
-      .insert(schema.users)
-      .values({
-        id: "legacy-partner-user",
+    await db.insert(schema.users).values({
+      id: "legacy-partner-user",
+      email: "legacy-partner@example.invalid",
+      emailVerified: new Date(),
+      name: "Legacy Partner",
+    });
+    await db.insert(schema.partnerAccounts).values({
+      id: "legacy-partner-account",
+      userId: "legacy-partner-user",
+      code: await getAccountReferralCode("legacy-partner-user", "legacy-partner@example.invalid"),
+      name: "Legacy Partner",
+      country: "US",
+      market: "US",
+      status: "active",
+      agreement: "Existing reviewed agreement",
+      application: {
         email: "legacy-partner@example.invalid",
-        emailVerified: new Date(),
-        name: "Legacy Partner",
-      });
-    await db
-      .insert(schema.partnerAccounts)
-      .values({
-        id: "legacy-partner-account",
-        userId: "legacy-partner-user",
-        code: await getAccountReferralCode("legacy-partner-user", "legacy-partner@example.invalid"),
-        name: "Legacy Partner",
-        country: "US",
-        market: "US",
-        status: "active",
-        agreement: "Existing reviewed agreement",
-        application: {
-          email: "legacy-partner@example.invalid",
-          experience: "Existing partner application evidence",
-          privacyVersion: "2026-11-08",
-          acceptedAt: new Date().toISOString(),
-        },
-      });
+        experience: "Existing partner application evidence",
+        privacyVersion: "2026-11-08",
+        acceptedAt: new Date().toISOString(),
+      },
+    });
     const legacyAccountsBeforeMigration = await db.query.partnerAccounts.findMany();
     await pool.query(publicApplicationsMigration);
     await pool.query(publicApplicationsMigration);
