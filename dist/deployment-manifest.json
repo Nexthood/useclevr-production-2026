@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "e58a6a4a1cda255a49b5c69099189e1851d6484b",
+  "sourceBranch": "main",
+  "buildTimestamp": "2026-11-12T20:09:13.103Z",
+  "nodeVersion": "v26.13.1",
+  "healthcheckPath": "/api/health",
+  "railwayRoot": "/dist",
+  "vercelSourceBranch": "main"
+}
