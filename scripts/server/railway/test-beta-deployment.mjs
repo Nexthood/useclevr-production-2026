@@ -25,6 +25,7 @@ const stage = workflow.jobs["publish-dist-test"].steps.find(
   (s) => s.name === "Stage generated output",
 ).run;
 assert.match(stage, /partner-contract-test-deploy\.json/);
+assert.doesNotMatch(stage, /environmentId/);
 assert.match(stage, /serviceId: '22dcb858-f0c0-426a-bc85-69766813372e'/);
 assert.match(stage, /execFileSync\('git', \['rev-parse', 'HEAD'\]/);
 
@@ -36,14 +37,13 @@ try {
   mkdirSync(path.join(directory, "data-config"));
   const marker = path.join(directory, "data-config", "partner-contract-test-deploy.json");
   const policy = {
-    environmentId: "d34d75b1-0d5c-45fa-b4e0-f2533c22a827",
     serviceId: "22dcb858-f0c0-426a-bc85-69766813372e",
     sourceRevision: "a".repeat(40),
   };
-  const productionEnvironmentId = "7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e";
-  // Existing marker environment metadata does not constrain TEST service placement.
+  const productionEnvironmentId = "production-environment-fixture";
+  // Environment-free markers support TEST independently of Railway environment placement.
   writeFileSync(marker, JSON.stringify(policy));
-  for (const environmentId of [policy.environmentId, productionEnvironmentId, undefined]) {
+  for (const environmentId of ["test-environment-fixture", productionEnvironmentId, undefined]) {
     assert.equal(
       applyTestDeploymentPolicy(directory, {
         RAILWAY_ENVIRONMENT_ID: environmentId,
@@ -58,6 +58,15 @@ try {
       }),
     );
   }
+  // Older markers may include environment metadata; it grants no extra authority.
+  writeFileSync(marker, JSON.stringify({ ...policy, environmentId: "legacy-environment-fixture" }));
+  assert.equal(
+    applyTestDeploymentPolicy(directory, {
+      RAILWAY_ENVIRONMENT_ID: productionEnvironmentId,
+      RAILWAY_SERVICE_ID: policy.serviceId,
+    }),
+    true,
+  );
   assert.throws(() => applyTestDeploymentPolicy(directory, {}));
   // A marker cannot authorize a different runtime service, even if both agree.
   writeFileSync(marker, JSON.stringify({ ...policy, serviceId: "different-service-fixture" }));
@@ -110,7 +119,7 @@ try {
   );
   assert.ifError(predeploy.error);
   assert.equal(predeploy.status, 0, predeploy.stderr);
-  assert.match(predeploy.stdout, /Hosted migrations skipped/);
+  assert.match(predeploy.stdout, /Hosted migrations skipped by TEST artifact policy/);
   writeFileSync(marker, JSON.stringify({ ...policy, sourceRevision: "invalid" }));
   assert.throws(() => applyTestDeploymentPolicy(directory, environment));
   console.info(

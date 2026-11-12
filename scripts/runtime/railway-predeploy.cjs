@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const { Client } = require("pg");
 if (require("./partner-contract-test-policy.cjs").applyTestDeploymentPolicy()) {
   console.info(
-    "[partner-contract-test] Hosted migrations skipped; database isolation is unverified. Use disposable CI migration evidence.",
+    "[partner-contract-test] Hosted migrations skipped by TEST artifact policy. Use disposable CI migration evidence.",
   );
   process.exit(0);
 }

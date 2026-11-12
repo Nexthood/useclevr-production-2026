@@ -1,3 +1,10 @@
+## 2026-11-12 — PR #420 deployment gate clarification
+
+- Current gate: TEST service identity and source revision only; no beta-environment or database-isolation deployment requirement exists.
+- Change: Remove unused environment marker metadata and obsolete isolation messages; retain unconditional TEST migration skipping and disabled contract signing/worker.
+- Mapping: GitHub Actions publishes dist-test for useclevr TEST and dist for useclevr app; no deployment, hosted migration or signing is authorized in this task.
+- Historical isolation blockers below describe prior diagnostics, not the current deployment policy. Real provider acceptance still needs approved configuration and recipients.
+
 ## 2026-11-12 — PR #420 verified beta target (T-1106)
 
 - Goal: Require the owner-verified beta environment in the publisher marker and runtime policy; commit and push only the PR branch.

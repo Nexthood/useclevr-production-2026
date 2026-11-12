@@ -79,11 +79,11 @@
 
 ### Dev
 
-- Bind beta deployment artifacts to the verified test environment and reject production targets.
+- Bind test deployment artifacts to the dedicated TEST service independently of Railway environment placement.
 
-- Retain sanitized sandbox isolation and configuration evidence before enabling hosted migrations or signing.
+- Retain sanitized historical sandbox diagnostic evidence without adding a deployment gate.
 
-- Publish test builds without automatic production promotion, keep partner signing disabled, and skip hosted migrations until database isolation is verified.
+- Publish test builds without automatic production promotion, keep partner signing disabled, and unconditionally skip hosted migrations in TEST artifacts.
 
 - Partner release browser checks now ride through page reloads and fast navigation updates without aborting, so application-state verification stays reliable.
 

@@ -19,7 +19,7 @@ function applyTestDeploymentPolicy(directory = process.cwd(), environment = proc
   environment.PARTNER_CONTRACT_WORKER_ENABLED = "false";
   environment.USECLEVR_TEST_SOURCE_REVISION = policy.sourceRevision;
   console.info(
-    `[partner-contract-test] source=${policy.sourceRevision} signing=draft contracts=false live=false worker=false databaseIsolation=unverified`,
+    `[partner-contract-test] source=${policy.sourceRevision} signing=draft contracts=false live=false worker=false migrations=skipped`,
   );
   return true;
 }
