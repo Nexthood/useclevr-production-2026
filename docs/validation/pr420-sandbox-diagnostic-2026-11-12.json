@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "overall_status": "BLOCKED",
+  "mode": "temporary_read_only_actions_diagnostic",
+  "configuration_source": "Presence flags for Actions context; an existing delegated Railway credential, if available, is consumed only by the read-only wrapper and never printed.",
+  "runtime_metadata": {
+    "status": "BLOCKED",
+    "reason": "No existing Railway read-only credential is delegated to this Actions job.",
+    "beta": null,
+    "production": null
+  },
+  "runner_configuration_presence": {
+    "RAILWAY_API_TOKEN": false,
+    "RAILWAY_TOKEN": false,
+    "DATABASE_URL": false,
+    "DIRECT_URL": false,
+    "DROPBOX_SIGN_API_KEY": false,
+    "DROPBOX_SIGN_ACCOUNT_ID": false,
+    "DROPBOX_SIGN_CLIENT_ID": false,
+    "PARTNER_CONTRACT_TEST_RECIPIENTS": false,
+    "PARTNER_CONTRACT_ENCRYPTION_KEY_ID": false,
+    "PARTNER_CONTRACT_ENCRYPTION_KEYS": false,
+    "PARTNER_CONTRACT_OWNER_USER_IDS": false,
+    "PARTNER_CONTRACT_COMPANY_SIGNER_REFS": false,
+    "PARTNER_CONTRACT_PUBLIC_ORIGIN": false,
+    "PARTNER_CONTRACT_WORKER_SECRET": false,
+    "RESEND_API_KEY": false,
+    "EMAIL_FROM": false
+  },
+  "database_isolation": {
+    "status": "BLOCKED",
+    "reason": "Authoritative beta and production database identifiers are unavailable to this job."
+  },
+  "database_identifier_comparison": {
+    "beta": null,
+    "production": null,
+    "authoritative": false
+  },
+  "required_authorization": "An existing approved read-only runtime metadata export or identity must be delegated to Actions before hosted database identity/configuration can be inspected. Local Railway CLI authentication is not required. No credential is created or requested by this job.",
+  "signing": {
+    "disabled_on_verified_test_revision": {
+      "status": "PASS",
+      "reason": "Exact deployed revision reports signing disabled."
+    },
+    "hosted_provider_configuration": {
+      "status": "BLOCKED",
+      "reason": "Actions context is not a Railway runtime configuration export; hosted presence is unverified, not established as absent."
+    },
+    "hosted_email_configuration": {
+      "status": "BLOCKED",
+      "reason": "Actions context is not a Railway runtime configuration export; hosted presence is unverified, not established as absent."
+    },
+    "hosted_encryption_configuration": {
+      "status": "BLOCKED",
+      "reason": "Actions context is not a Railway runtime configuration export; hosted presence is unverified, not established as absent."
+    },
+    "hosted_webhook_configuration": {
+      "status": "BLOCKED",
+      "reason": "Actions context is not a Railway runtime configuration export; hosted presence is unverified, not established as absent."
+    },
+    "webhook_source_contract": "Full JSON Content-Sha256 HMAC plus event hash, account/app binding and replay checks use the provider API key; there is no separate provider webhook-secret variable.",
+    "invitations_sent": 0
+  },
+  "migrations": {
+    "status": "BLOCKED",
+    "source_candidate": {
+      "version": "0043",
+      "file": "src/lib/db/migrations/0043_partner_contracts.sql",
+      "source_sha256": "3d70dc4a6cd7d3cb21b86d732dc8dd193d7f02347988be4f81341d1fcd372d75",
+      "declared_tables": [
+        "PartnerContractTemplate",
+        "PartnerContractProfile",
+        "PartnerContractSchedule",
+        "PartnerContractProviderApproval",
+        "PartnerContract",
+        "PartnerContractArtifact",
+        "PartnerContractAudit",
+        "PartnerContractWebhook",
+        "PartnerContractJob",
+        "PartnerContractDelivery"
+      ],
+      "state": "SOURCE_CANDIDATE_ONLY_HOSTED_STATE_UNKNOWN"
+    },
+    "hosted_pending_versions": null,
+    "reason": "Pending versions require read-only hosted catalog/ledger evidence. Source files and skipped predeploy do not establish the hosted schema state.",
+    "execution_allowed": false,
+    "beta_schema_markers": null,
+    "executed": [],
+    "production_modified": false
+  },
+  "qa_recipients": {
+    "status": "BLOCKED",
+    "distinct_address_count": null,
+    "reason": "The hosted allowlist and signer role bindings are not exported to this job. No mailbox absence, ownership or authorization is inferred.",
+    "addresses_disclosed": false
+  },
+  "hosted_health": {
+    "http_status": 200,
+    "revision": "4f2f43f7f484a8c17f6a0476464d6ac5f19aab1a",
+    "signing": "disabled",
+    "database": "healthy"
+  },
+  "controls": {
+    "allowed_network_operations": [
+      "GET test health",
+      "read-only queries through established Railway wrapper if delegated",
+      "BEGIN READ ONLY and SELECT catalog/identity metadata if delegated"
+    ],
+    "runtime_database_connections_attempted": false,
+    "configuration_mutations": 0,
+    "partner_activations": 0,
+    "commissions_created": 0,
+    "payouts_created": 0,
+    "diagnostic_ref": "feat/partner-contract-lifecycle",
+    "deployment_triggered_by_diagnostic": false
+  },
+  "evidence": {
+    "collected_at": "2026-11-12T11:09:13.759895+00:00",
+    "run_id": 43205440582,
+    "job_id": 131139303746,
+    "source_revision": "8db3b03555f9ae3831abb7d21f78030859bedf5c",
+    "url": "https://github.com/Nexthood/useclevr-production-2026/actions/runs/43205440582/job/131139303746",
+    "job_conclusion": "failure_by_fail_closed_gate",
+    "independent_source_integration_security_regression_build": "PASS",
+    "documentation_checks": "PASS"
+  },
+  "cleanup": {
+    "temporary_job_removed": true,
+    "temporary_scripts_removed": true,
+    "workflow_and_check_names_restored_to_verified_baseline": true,
+    "deployed_test_revision_unchanged": "4f2f43f7f484a8c17f6a0476464d6ac5f19aab1a"
+  },
+  "task_outcomes": {
+    "database_isolation": "BLOCKED: Actions has no delegated read-only runtime credential or authoritative beta/production database identifiers.",
+    "signing_configuration": "PASS: effective hosted signing is disabled. BLOCKED: hosted Dropbox, mail, encryption and webhook variable presence is not exported to Actions.",
+    "hosted_migrations": "BLOCKED: migration 0043 is identified in source; hosted pending versions remain unknown. No migration is allowed or run without isolation evidence.",
+    "qa_recipients": "BLOCKED: hosted allowlist and signer bindings are unavailable. Count and ownership are unknown; no addresses are invented, exposed or contacted.",
+    "tests_report_cleanup": "PASS: diagnostic safety tests, full independent source/integration/security/regression/build and docs checks pass. The sanitized Actions summary and this report are retained; temporary job and scripts are removed."
+  },
+  "security_boundary": "The GitHub deployment integration can publish code with its automatic GITHUB_TOKEN. It does not automatically delegate Railway runtime secret/identity read access. This is an authorization boundary, not proof of missing hosted configuration and not a request for local CLI login.",
+  "post_diagnostic_hosted_verification": {
+    "checked_at": "2026-11-12T11:11:12.070529+00:00",
+    "test_origin": "https://test.useclevr.com",
+    "expected_source_revision": "4f2f43f7f484a8c17f6a0476464d6ac5f19aab1a",
+    "exact_revision_verified": true,
+    "contract_signing_disabled_verified": true,
+    "database_isolation": "Not established by the existing CI/CD runtime interfaces. CI service databases are disposable; hosted readiness alone does not establish separate database identity.",
+    "provider_credentials_and_qa_recipients": "Not exposed by existing Actions workflows or public health interface; no values requested or inferred.",
+    "results": [
+      {
+        "route": "/api/health",
+        "method": "GET",
+        "http_status": 200,
+        "source_revision": "4f2f43f7f484a8c17f6a0476464d6ac5f19aab1a",
+        "contract_signing": "disabled",
+        "health": {
+          "app": "healthy",
+          "database": "healthy",
+          "status": "ready",
+          "timestamp": "2026-11-12T11:11:11.014Z"
+        }
+      },
+      {
+        "route": "/api/admin/partners",
+        "method": "GET",
+        "http_status": 401
+      },
+      {
+        "route": "/api/admin/partner-contracts",
+        "method": "GET",
+        "http_status": 401
+      },
+      {
+        "route": "/api/partners/contracts",
+        "method": "GET",
+        "http_status": 401
+      },
+      {
+        "route": "/api/partners/contracts/qa-access-probe/documents/signed",
+        "method": "GET",
+        "http_status": 401
+      },
+      {
+        "route": "/partners/apply",
+        "method": "GET",
+        "http_status": 200
+      }
+    ],
+    "scope": "Read-only test service requests. No redirect followed. No production request, signing send, activation or financial write."
+  },
+  "alternative_identity_metadata_checked": {
+    "github_test_deployment_id": 7734720836,
+    "payload_keys": [
+      "environmentId"
+    ],
+    "database_identifier_present": false,
+    "interpretation": "An environment identifier is not a database target identifier."
+  }
+}

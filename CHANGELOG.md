@@ -79,7 +79,7 @@
 
 ### Dev
 
-- Record read-only sandbox isolation and configuration checks before enabling hosted migrations or signing.
+- Retain sanitized sandbox isolation and configuration evidence before enabling hosted migrations or signing.
 
 - Publish test builds without automatic production promotion, keep partner signing disabled, and skip hosted migrations until database isolation is verified.
 
