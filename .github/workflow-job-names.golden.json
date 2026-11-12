@@ -27,7 +27,8 @@
       "workflowName": "Validate Source",
       "checkRuns": [
         "Validate source and production build / validate",
-        "docs"
+        "docs",
+        "Temporary PR420 read-only sandbox diagnostic"
       ]
     },
     "refresh-workflow-golden.yml": {

@@ -1,3 +1,12 @@
+## 2026-11-12 — Temporary read-only Actions sandbox diagnostic (T-1105)
+
+- Goal: Run a temporary read-only Actions diagnostic, fail closed on unavailable database identities, inspect configuration presence and QA availability without values, publish evidence and remove the diagnostic after verification.
+- Changes: Add a manual, PR-branch-only job to the existing CI workflow with contents read permission and no credential persistence. Pass boolean configuration presence flags; consume an existing CI-delegated platform credential only through the established read-only wrapper if available. Compare hashes of actual database names inside read-only transactions, never connection strings or contents. Missing access remains BLOCKED. Verify the established signing-disabled hosted revision; never interpret service IDs or database health as isolation proof. Record migration 0043 as a source candidate with unknown hosted state, not a proven pending migration. Refuse migrations and disclose no recipient addresses.
+- Evidence: Repository owner is a User; organization inheritance does not apply. Repository and beta/production Actions secret and variable name lists are empty. The runner diagnostic verifies its own context; absence there is not asserted as absent Railway runtime configuration.
+- Validation: Test missing, untrusted and identical database identity rejection; non-boolean presence rejection; fail-closed migration gating; and exact signing-disabled revision verification. Existing CI continues all partner integration/security/regression/build checks independently.
+- Follow-up: Commit/push only the PR branch, dispatch existing CI there, collect its sanitized summary and report, remove temporary job/script and restore workflow metadata. Do not write production, migrate hosted databases, send invitations, activate partners or create hosted financial activity.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-12 — Verified Railway TEST service binding (T-1105)
 
 - Finding: Actions source/regression/build run 43199185566 and dist-test publisher 43199180826 pass for cbd5f736; production promotion is skipped and no beta-to-main PR exists. Generated artifact ae92d768 receives Railway TEST status failure.

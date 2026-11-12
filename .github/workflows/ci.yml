@@ -53,3 +53,39 @@ jobs:
       - uses: ./.github/actions/setup
 
       - run: pnpm docs:check
+
+  temporary-pr420-diagnostic:
+    name: Temporary PR420 read-only sandbox diagnostic
+    timeout-minutes: 5
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feat/partner-contract-lifecycle'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Test diagnostic safety gates
+        run: node scripts/partners/temporary-sandbox-diagnostic.mjs --self-test
+      - name: Publish sanitized read-only PASS or BLOCKED report
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          PRESENT_RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN != '' || vars.RAILWAY_API_TOKEN != '' }}
+          PRESENT_RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN != '' || vars.RAILWAY_TOKEN != '' }}
+          PRESENT_DATABASE_URL: ${{ secrets.DATABASE_URL != '' || vars.DATABASE_URL != '' }}
+          PRESENT_DIRECT_URL: ${{ secrets.DIRECT_URL != '' || vars.DIRECT_URL != '' }}
+          PRESENT_DROPBOX_SIGN_API_KEY: ${{ secrets.DROPBOX_SIGN_API_KEY != '' || vars.DROPBOX_SIGN_API_KEY != '' }}
+          PRESENT_DROPBOX_SIGN_ACCOUNT_ID: ${{ secrets.DROPBOX_SIGN_ACCOUNT_ID != '' || vars.DROPBOX_SIGN_ACCOUNT_ID != '' }}
+          PRESENT_DROPBOX_SIGN_CLIENT_ID: ${{ secrets.DROPBOX_SIGN_CLIENT_ID != '' || vars.DROPBOX_SIGN_CLIENT_ID != '' }}
+          PRESENT_PARTNER_CONTRACT_TEST_RECIPIENTS: ${{ secrets.PARTNER_CONTRACT_TEST_RECIPIENTS != '' || vars.PARTNER_CONTRACT_TEST_RECIPIENTS != '' }}
+          PRESENT_PARTNER_CONTRACT_ENCRYPTION_KEY_ID: ${{ secrets.PARTNER_CONTRACT_ENCRYPTION_KEY_ID != '' || vars.PARTNER_CONTRACT_ENCRYPTION_KEY_ID != '' }}
+          PRESENT_PARTNER_CONTRACT_ENCRYPTION_KEYS: ${{ secrets.PARTNER_CONTRACT_ENCRYPTION_KEYS != '' || vars.PARTNER_CONTRACT_ENCRYPTION_KEYS != '' }}
+          PRESENT_PARTNER_CONTRACT_OWNER_USER_IDS: ${{ secrets.PARTNER_CONTRACT_OWNER_USER_IDS != '' || vars.PARTNER_CONTRACT_OWNER_USER_IDS != '' }}
+          PRESENT_PARTNER_CONTRACT_COMPANY_SIGNER_REFS: ${{ secrets.PARTNER_CONTRACT_COMPANY_SIGNER_REFS != '' || vars.PARTNER_CONTRACT_COMPANY_SIGNER_REFS != '' }}
+          PRESENT_PARTNER_CONTRACT_PUBLIC_ORIGIN: ${{ secrets.PARTNER_CONTRACT_PUBLIC_ORIGIN != '' || vars.PARTNER_CONTRACT_PUBLIC_ORIGIN != '' }}
+          PRESENT_PARTNER_CONTRACT_WORKER_SECRET: ${{ secrets.PARTNER_CONTRACT_WORKER_SECRET != '' || vars.PARTNER_CONTRACT_WORKER_SECRET != '' }}
+          PRESENT_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY != '' || vars.RESEND_API_KEY != '' }}
+          PRESENT_EMAIL_FROM: ${{ secrets.EMAIL_FROM != '' || vars.EMAIL_FROM != '' }}
+        run: node scripts/partners/temporary-sandbox-diagnostic.mjs
