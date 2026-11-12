@@ -1,3 +1,13 @@
+## 2026-11-12 — PR #420 verified beta target (T-1106)
+
+- Goal: Require the owner-verified beta environment in the publisher marker and runtime policy; commit and push only the PR branch.
+- Change: Bind beta artifacts to environment `d34d75b1-0d5c-45fa-b4e0-f2533c22a827` and TEST service `22dcb858-f0c0-426a-bc85-69766813372e`. Reject production environment `7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e`, including a matching stale marker/runtime pair.
+- Safety: Preserve service and revision checks, disabled contract signing/worker, skipped hosted migrations and explicit production-promotion authorization.
+- Verification: Focused Railway authentication/policy tests and deployment configuration checks pass. The predeploy regression forbids database construction.
+- Blocker: Independent beta database isolation remains unverified. The operator must provide authoritative runtime and migration target isolation evidence before deployment, migrations or signing are authorized.
+- Learning: Owner-verified environment identity corrects the target; service identity and public health do not establish database isolation. No hosted operation or beta push is authorized by this change.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-12 — Actions sandbox diagnostic result and cleanup (T-1105)
 
 - Result: Run 43205440582 source 8db3b035 records a fail-closed BLOCKED diagnostic in job 131139303746. Independent source/integration/security/regression/build and documentation jobs pass. The deployed 4f2f43f7 revision confirms signing disabled.

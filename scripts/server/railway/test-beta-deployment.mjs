@@ -25,6 +25,9 @@ const stage = workflow.jobs["publish-dist-test"].steps.find(
   (s) => s.name === "Stage generated output",
 ).run;
 assert.match(stage, /partner-contract-test-deploy\.json/);
+assert.match(stage, /environmentId: 'd34d75b1-0d5c-45fa-b4e0-f2533c22a827'/);
+assert.match(stage, /serviceId: '22dcb858-f0c0-426a-bc85-69766813372e'/);
+assert.doesNotMatch(stage, /7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e/);
 assert.match(stage, /execFileSync\('git', \['rev-parse', 'HEAD'\]/);
 
 const directory = mkdtempSync(path.join(os.tmpdir(), "beta-deploy-policy-"));
@@ -35,11 +38,26 @@ try {
   mkdirSync(path.join(directory, "data-config"));
   const marker = path.join(directory, "data-config", "partner-contract-test-deploy.json");
   const policy = {
-    environmentId: "7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e",
+    environmentId: "d34d75b1-0d5c-45fa-b4e0-f2533c22a827",
     serviceId: "22dcb858-f0c0-426a-bc85-69766813372e",
     sourceRevision: "a".repeat(40),
   };
+  const productionEnvironmentId = "7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e";
+  // Reject even a self-consistent stale production marker and runtime identity.
+  writeFileSync(marker, JSON.stringify({ ...policy, environmentId: productionEnvironmentId }));
+  assert.throws(() =>
+    applyTestDeploymentPolicy(directory, {
+      RAILWAY_ENVIRONMENT_ID: productionEnvironmentId,
+      RAILWAY_SERVICE_ID: policy.serviceId,
+    }),
+  );
   writeFileSync(marker, JSON.stringify(policy));
+  assert.throws(() =>
+    applyTestDeploymentPolicy(directory, {
+      RAILWAY_ENVIRONMENT_ID: productionEnvironmentId,
+      RAILWAY_SERVICE_ID: policy.serviceId,
+    }),
+  );
   assert.throws(() =>
     applyTestDeploymentPolicy(directory, { RAILWAY_ENVIRONMENT_ID: "production-fixture" }),
   );

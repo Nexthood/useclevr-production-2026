@@ -140,7 +140,7 @@ jobs:
       - name: Stage generated output
         run: |
           mkdir -p dist/data-config
-          node -e "require('fs').writeFileSync('dist/data-config/partner-contract-test-deploy.json', JSON.stringify({ sourceRevision: require('child_process').execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), environmentId: '7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e', serviceId: '22dcb858-f0c0-426a-bc85-69766813372e' }) + '\n')"
+          node -e "require('fs').writeFileSync('dist/data-config/partner-contract-test-deploy.json', JSON.stringify({ sourceRevision: require('child_process').execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), environmentId: 'd34d75b1-0d5c-45fa-b4e0-f2533c22a827', serviceId: '22dcb858-f0c0-426a-bc85-69766813372e' }) + '\n')"
           mv dist /tmp/useclevr-dist-output
           cp -a dist-root/. /tmp/useclevr-dist-root
 
