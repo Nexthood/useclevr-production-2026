@@ -79,6 +79,8 @@
 
 ### Dev
 
+- Add partner invitation regressions for verified email ownership, expiry, reuse and consistent database lookup.
+
 - Bind test deployment artifacts to the dedicated TEST service independently of Railway environment placement.
 
 - Retain sanitized historical sandbox diagnostic evidence without adding a deployment gate.

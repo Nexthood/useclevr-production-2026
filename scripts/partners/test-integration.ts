@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { Pool } from "pg";
 import { getTableConfig, PgDialect } from "drizzle-orm/pg-core";
-import { SQL, eq } from "drizzle-orm";
+import { SQL, eq, sql } from "drizzle-orm";
 
 async function main() {
   // This runner has no configurable production target. Use only the documented disposable container.
@@ -13,7 +13,8 @@ async function main() {
   await adminPool.end();
   const target = `${base}?options=-csearch_path%3D${namespace}`;
   process.env.DATABASE_URL = target;
-  process.env.DIRECT_URL = "";
+  // A different migration URL must never redirect invitation writes or onboarding reads.
+  process.env.DIRECT_URL = "postgresql://unused@127.0.0.1:1/unused_migration_target";
   process.env.NEON_USE_SERVERLESS = "false";
   process.env.NEON_USE_WS_POOL = "false";
   Object.assign(process.env, { NODE_ENV: "test", PARTNER_PROGRAM_ENABLED: "true" });
@@ -117,6 +118,11 @@ async function main() {
   const onboardingApi = await import("../../src/app/api/partner-applications/onboard/route");
   const owner = await import("../../src/app/api/partners/route");
   const db = database();
+  const identity = await db.execute(
+    sql`select current_database() as database, current_schema() as schema`,
+  );
+  assert.equal(identity.rows[0]?.database, "partner_tests");
+  assert.equal(identity.rows[0]?.schema, namespace);
   await (async () => {
     process.env.AUTH_SECRET = "integration-test-only-partner-secret";
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
@@ -273,17 +279,119 @@ async function main() {
       }),
     );
     assert.equal(prematureActivation.status, 409);
-    await db
-      .insert(schema.users)
-      .values({
-        id: "public-partner-user",
-        email: "sales-applicant@example.invalid",
-        emailVerified: new Date(),
-        name: "Test Partner",
-      });
+    await db.insert(schema.users).values({
+      id: "public-partner-user",
+      email: "sales-applicant@example.invalid",
+      emailVerified: new Date(),
+      name: "Test Partner",
+    });
     setSession({
       user: { id: "public-partner-user", email: "sales-applicant@example.invalid", role: "user" },
     });
+    const invitationRequest = (token = invite!, origin = "http://localhost:3000") =>
+      new Request("http://localhost:3000/api/partner-applications/onboard", {
+        method: "POST",
+        headers: { origin, "content-type": "application/json" },
+        body: JSON.stringify({ token, accepted: true }),
+      });
+    const { hashInvitation } = await import("../../src/lib/partners/public-applications");
+    const persisted = await db.query.partnerApplications.findFirst({
+      where: eq(schema.partnerApplications.id, applicant!.id),
+    });
+    assert.ok(
+      persisted?.invitationHash === hashInvitation(invite!),
+      "emailed token matches the stored hash in the runtime database",
+    );
+    assert.ok(persisted.invitationExpiresAt && persisted.invitationExpiresAt > new Date());
+    assert.equal(persisted.invitationUsedAt, null);
+    const validSession = {
+      user: { id: "public-partner-user", email: "sales-applicant@example.invalid", role: "user" },
+    };
+    setSession(null);
+    assert.equal((await onboardingApi.POST(invitationRequest())).status, 401);
+    setSession(validSession);
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest(invite, "https://untrusted.example.invalid")))
+        .status,
+      403,
+    );
+    await db
+      .update(schema.users)
+      .set({ emailVerified: null })
+      .where(eq(schema.users.id, "public-partner-user"));
+    const unverified = await onboardingApi.POST(invitationRequest());
+    assert.equal(unverified.status, 403);
+    assert.match((await unverified.json()).error, /Verify your UseClevr account email/);
+    // The database identity must win even when the session claims the invited email.
+    await db
+      .update(schema.users)
+      .set({ email: "different@example.invalid", emailVerified: new Date() })
+      .where(eq(schema.users.id, "public-partner-user"));
+    const mismatch = await onboardingApi.POST(invitationRequest());
+    assert.equal(mismatch.status, 403);
+    assert.match((await mismatch.json()).error, /different verified email/);
+    await db
+      .update(schema.users)
+      .set({ email: "SALES-APPLICANT@example.invalid" })
+      .where(eq(schema.users.id, "public-partner-user"));
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest("x".repeat(43)))).status,
+      403,
+      "missing invitation is rejected",
+    );
+    const altered = `${invite![0] === "a" ? "b" : "a"}${invite!.slice(1)}`;
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest(altered))).status,
+      403,
+      "modified token is rejected",
+    );
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationExpiresAt: new Date(Date.now() - 1000) })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest())).status,
+      403,
+      "expired invitation is rejected",
+    );
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationExpiresAt: persisted.invitationExpiresAt, invitationUsedAt: new Date() })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest())).status,
+      403,
+      "used invitation with a retained hash is rejected",
+    );
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationUsedAt: null, status: "under_review" })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest())).status,
+      403,
+      "unapproved invitation is rejected",
+    );
+    await db
+      .update(schema.partnerApplications)
+      .set({ status: "approved" })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    const untouched = await db.query.partnerApplications.findFirst({
+      where: eq(schema.partnerApplications.id, applicant!.id),
+    });
+    assert.equal(untouched?.invitationUsedAt, null);
+    assert.equal(untouched?.onboardedAt, null);
+    assert.equal(untouched?.partnerAccountId, null);
+    assert.ok(untouched?.invitationHash === persisted.invitationHash);
+    assert.equal(
+      await db.query.partnerAccounts.findFirst({
+        where: eq(schema.partnerAccounts.userId, "public-partner-user"),
+      }),
+      undefined,
+    );
+    console.log(
+      "PASS invitation persistence and DATABASE_URL precedence; reject unauthenticated, unverified, wrong-origin, missing, modified, expired, used, unapproved and mismatched invitations without onboarding writes",
+    );
     const onboard = await onboardingApi.POST(
       new Request("http://localhost:3000/api/partner-applications/onboard", {
         method: "POST",
@@ -297,6 +405,12 @@ async function main() {
     });
     assert.equal(completed?.status, "approved");
     assert.ok(completed?.onboardedAt);
+    assert.equal(completed?.linkedUserId, "public-partner-user");
+    assert.equal(completed?.invitationHash, null);
+    assert.ok(completed?.invitationUsedAt);
+    console.log(
+      "PASS valid unused invitation onboards the correct verified database email case-insensitively",
+    );
     assert.equal(
       (
         await db.query.partnerAccounts.findFirst({
