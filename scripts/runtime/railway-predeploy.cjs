@@ -376,6 +376,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0041_reseller_review.sql"),
   readMigrationStatement("src/lib/db/migrations/0042_public_partner_applications.sql"),
   readMigrationStatement("src/lib/db/migrations/0043_partner_contracts.sql"),
+  readMigrationStatement("src/lib/db/migrations/0044_partner_invitation_access.sql"),
 ];
 
 const constraints = [

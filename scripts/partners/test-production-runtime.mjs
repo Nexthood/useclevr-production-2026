@@ -62,20 +62,34 @@ try {
   }
   assert.ok(ready, "Packaged runtime must start within 30 seconds");
   const application = await fetch(origin + "/partners/apply", { redirect: "manual" });
-  assert.equal(application.status, 307);
-  const location = new URL(application.headers.get("location"), origin);
-  assert.equal(location.pathname, "/login");
-  assert.equal(location.searchParams.get("callbackUrl"), "/partners/apply");
-  for (const route of ["/api/partners", "/api/admin/partners"]) {
+  assert.equal(application.status, 200);
+  assert.ok((await application.text()).includes("No customer account is required to apply."));
+  const onboarding = await fetch(origin + "/partners/onboard?token=" + "a".repeat(43));
+  assert.equal(onboarding.status, 200);
+  const onboardingHtml = await onboarding.text();
+  assert.ok(onboardingHtml.includes("Send verification code"));
+  assert.ok(onboardingHtml.includes('name="referrer" content="no-referrer"'));
+  const portal = await fetch(origin + "/partner", { redirect: "manual" });
+  assert.equal(portal.status, 307);
+  assert.equal(new URL(portal.headers.get("location"), origin).pathname, "/partner/login");
+  const partnerLogin = await fetch(origin + "/partner/login", { redirect: "manual" });
+  assert.equal(partnerLogin.status, 307);
+  const loginLocation = new URL(partnerLogin.headers.get("location"), origin);
+  assert.equal(loginLocation.pathname, "/login");
+  assert.equal(loginLocation.searchParams.get("callbackUrl"), "/partner");
+  for (const route of ["/api/partners", "/api/partners/profile", "/api/admin/partners"]) {
     const response = await fetch(origin + route);
     assert.equal(response.status, 401);
     assert.equal((await response.json()).error, "Unauthorized");
   }
-  const login = await fetch(origin + "/login?callbackUrl=%2Fpartners%2Fapply");
+  const agreements = await fetch(origin + "/api/partners/contracts");
+  assert.equal(agreements.status, 401);
+  assert.equal((await agreements.json()).error, "Verify your invitation or sign in.");
+  const login = await fetch(origin + "/login?callbackUrl=%2Fpartner");
   assert.equal(login.status, 200);
   assert.ok((await login.text()).includes("Sign"));
   console.log(
-    "PASS packaged production runtime starts, application redirects through login with return URL, login renders, and both partner APIs reject anonymous access",
+    "PASS packaged runtime serves account-free applications and invitation verification, protects partner login returns, and rejects anonymous private API access",
   );
   console.log(
     "Scope: synthetic authentication secrets and deliberately unreachable database; hosted login, health and payment acceptance require authorized deployment.",

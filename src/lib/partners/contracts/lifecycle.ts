@@ -190,6 +190,9 @@ export async function prepareContract(applicationId: string) {
       company: schedule.schedule.company,
       companySigner: schedule.schedule.companySigner,
       terms: schedule.schedule.terms,
+      ...(schedule.schedule.commissionRatesBps
+        ? { commissionRatesBps: schedule.schedule.commissionRatesBps }
+        : {}),
       financialConfigId: schedule.schedule.financialConfigId,
       financialConfigHash: schedule.financialConfigHash,
       effectiveUntil: schedule.schedule.effectiveUntil || null,

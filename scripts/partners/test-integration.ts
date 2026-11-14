@@ -38,6 +38,7 @@ async function main() {
     schema.referralEvents,
     schema.userCredits,
     schema.creditLedger,
+    schema.partnerContracts,
   ]) {
     const config = getTableConfig(table);
     const columns = config.columns.map((c) => {
@@ -92,6 +93,12 @@ async function main() {
   );
   await pool.query(publicApplicationsMigration);
   await pool.query(publicApplicationsMigration);
+  await pool.query(
+    await readFile(
+      new URL("../../src/lib/db/migrations/0044_partner_invitation_access.sql", import.meta.url),
+      "utf8",
+    ),
+  );
   console.log("PASS additive migrations 0038/0039/0040/0041/0042 and repeat application");
   const {
     database,
@@ -325,23 +332,12 @@ async function main() {
     const markup = renderToStaticMarkup(
       await onboardingPage({ searchParams: Promise.resolve({ token: invite }) }),
     );
-    const loginHref = markup.match(/href="([^"]*login\?callbackUrl=[^"]+)"/)?.[1];
-    assert.ok(loginHref, "anonymous onboarding offers sign-in");
-    const login = new URL(loginHref, "https://app.useclevr.com");
-    assert.equal(login.origin, "https://app.useclevr.com");
-    assert.equal(login.pathname, "/login");
-    const { resolveAuthRedirect } = await import("../../src/lib/auth/redirect-origin");
-    const returned = new URL(
-      resolveAuthRedirect(login.searchParams.get("callbackUrl")!, "https://app.useclevr.com"),
-    );
-    assert.equal(returned.origin, "https://app.useclevr.com");
-    assert.equal(returned.pathname, "/partners/onboard");
     assert.ok(
-      hashInvitation(returned.searchParams.get("token")!) === persisted.invitationHash,
-      "the emailed token survives the authentication return path",
+      markup.includes("Send verification code"),
+      "anonymous onboarding offers email verification",
     );
+    assert.ok(!markup.includes('href="/login'), "invitation does not require customer login");
     assert.equal(onboardingMetadata.referrer, "no-referrer");
-    assert.ok(markup.includes("same verified email address"));
     setSession(validSession);
     assert.equal(
       (await onboardingApi.POST(invitationRequest(invite, "https://untrusted.example.invalid")))
@@ -592,6 +588,54 @@ async function main() {
       "PASS anonymous dual-program application, duplicate prevention, delivery, admin approval, single-use onboarding and inactive partner state",
     );
   })();
+  process.env.PARTNER_CONTRACTS_ENABLED = "true";
+  const { hashObject } = await import("../../src/lib/partners/contracts/domain");
+  // Financial fixtures model immutable executed records. Provider and artifact validation
+  // run independently in test-contracts-integration with the full migration and lifecycle.
+  async function signedTerms(
+    partnerId: string,
+    configId: string,
+    rates?: { standard: number; premium: number },
+  ) {
+    const config = await db.query.partnerConfigs.findFirst({
+      where: eq(schema.partnerConfigs.id, configId),
+    });
+    await db.insert(schema.partnerContracts).values({
+      id: `signed-${partnerId}`,
+      applicationId: `financial-${partnerId}`,
+      partnerId,
+      revision: 1,
+      agreementType: "independent_sales",
+      templateId: "fixture",
+      templateVersion: "1",
+      profileId: "fixture",
+      scheduleId: "fixture",
+      commercialTermsVersion: "1",
+      snapshot: {
+        ...(rates ? { commissionRatesBps: rates } : {}),
+        financialConfigId: configId,
+        financialConfigHash: hashObject(config!.config),
+        effectiveUntil: null,
+      } as typeof schema.partnerContracts.$inferInsert.snapshot,
+      mode: "dropbox_live",
+      status: "fully_executed",
+      provider: "dropbox_sign",
+      providerReference: `provider-${partnerId}`,
+      signedArtifactId: "synthetic-signed",
+      signedDocumentChecksum: "synthetic-checksum",
+      auditArtifactId: "synthetic-audit",
+      auditEvidenceChecksum: "synthetic-audit-checksum",
+      providerSnapshot: { complete: true } as NonNullable<
+        typeof schema.partnerContracts.$inferInsert.providerSnapshot
+      >,
+      createdAt: new Date("2020-01-01Z"),
+      executedAt: new Date("2020-01-01Z"),
+      verifiedAt: new Date("2020-01-01Z"),
+      partnerSignedAt: new Date("2020-01-01Z"),
+      companySignedAt: new Date("2020-01-01Z"),
+      expiresAt: new Date("2099-01-01Z"),
+    });
+  }
   let passed = 1;
   async function check(name: string, fn: () => Promise<void>) {
     await fn();
@@ -657,6 +701,7 @@ async function main() {
     status: "active",
     approvedAt: new Date("2020-01-01Z"),
   });
+  await signedTerms("partner", "config-1");
   await check(
     "concurrent verified signup locks one commercial attribution and grants no customer reward",
     async () => {
@@ -1285,7 +1330,11 @@ async function main() {
     effectiveAt: new Date("2021-01-01Z"),
   });
   const day = 86400000;
-  async function fixture(label: string, related = "unrelated") {
+  async function fixture(
+    label: string,
+    related = "unrelated",
+    rates?: { standard: number; premium: number } | false,
+  ) {
     const ownerId = `owner-${label}`,
       userId = `customer-${label}`,
       partnerId = `partner-${label}`;
@@ -1320,6 +1369,7 @@ async function main() {
       relatedParty: related,
       signedUpAt: new Date("2020-01-01Z"),
     });
+    if (rates !== false) await signedTerms(partnerId, "approved-v1", rates);
     return { partnerId, userId, ownerId, fixtureCode, label };
   }
   type Fixture = Awaited<ReturnType<typeof fixture>>;
@@ -1821,7 +1871,7 @@ async function main() {
     },
   );
   await check(
-    "historical unresolved policy requires explicit version/level review without modifying earned snapshots",
+    "historical receipts without effective signed terms remain non-payable after administrative review",
     async () => {
       await db.insert(schema.partnerConfigs).values({
         id: "historical-unresolved",
@@ -1833,8 +1883,11 @@ async function main() {
       const f = await fixture("historical");
       const age = (Date.now() - new Date("2020-07-01Z").getTime()) / day;
       const held = await paid(f, "legacy", age);
-      assert.equal(held.result.reason, "policy_review");
-      assert.equal((await replayPartnerEvent(held.eventId)).reason, "policy_review");
+      assert.equal(held.result.reason, "signed_financial_terms_required");
+      assert.equal(
+        (await replayPartnerEvent(held.eventId)).reason,
+        "signed_financial_terms_required",
+      );
       const review = await reviewPartnerEvent({
         eventId: held.eventId,
         configId: "approved-v1",
@@ -1844,11 +1897,9 @@ async function main() {
         actor: "admin",
         reason: "Historical accrual authorization",
       });
-      assert.equal(review.status, "processed");
-      const c = await commissionFor(held.evidence.chargeId);
-      assert.equal(c?.configId, "approved-v1");
-      assert.equal(c?.rateBps, 1500);
-      assert.equal(c?.state, "pending");
+      assert.equal(review.status, "held");
+      assert.equal(review.reason, "signed_financial_terms_required");
+      assert.equal(await commissionFor(held.evidence.chargeId), undefined);
       assert.equal(
         (
           await db.query.partnerConfigs.findFirst({
@@ -1856,9 +1907,6 @@ async function main() {
           })
         )?.config.eligibilityAnchor,
         null,
-      );
-      await assert.rejects(
-        pool.query('update "PartnerCommission" set "amountMinor"=1 where id=$1', [c!.id]),
       );
       const badVersion = await adminAction({
         action: "config",
@@ -2070,10 +2118,15 @@ async function main() {
         await owner.GET(new Request("http://localhost/api/partners"))
       ).json();
       assert.equal(approvedBody.partner.status, "active");
-      assert.equal(approvedBody.rateBps, 1500);
+      assert.equal(
+        approvedBody.rateBps,
+        null,
+        "unsigned legacy accounts have no advertised commission entitlement",
+      );
       assert.ok(approvedBody.referralLink.includes(application!.code));
       assert.equal(approvedBody.partner.application, undefined);
       assert.equal(approvedBody.partner.notes, undefined);
+      await signedTerms(application!.id, "approved-v1");
       const signup = await confirmReferralSignup({
         attributionCode: application!.code,
         referredUserId: "application-customer",
@@ -2264,6 +2317,40 @@ async function main() {
           .enabled,
         true,
       );
+    },
+  );
+  await check(
+    "unsigned partners hold verified receipts and partner projections isolate commercial records",
+    async () => {
+      // Re-enable the program after the disabled-policy test; each fixture retains its signed terms.
+      await db.transaction((tx) =>
+        writeProgramConfig(tx, approved, "owner", "Synthetic final acceptance policy"),
+      );
+      const f = await fixture("unsigned-final", "unrelated", false);
+      const held = await paid(f, "receipt");
+      assert.equal(held.result.reason, "signed_financial_terms_required");
+      assert.equal(await commissionFor(held.evidence.chargeId), undefined);
+      assert.equal((await partnerSummary(f.partnerId)).rateBps, null);
+      const isolated = await fixture("isolated-final", "unrelated", {
+        standard: 1725,
+        premium: 2375,
+      });
+      const received = await paid(isolated, "custom-rate");
+      assert.equal(received.result.status, "processed");
+      const c = await commissionFor(received.evidence.chargeId);
+      assert.equal(c!.rateBps, 1725);
+      assert.equal(c!.amountMinor, "6900");
+      assert.equal(c!.contractId, `signed-${isolated.partnerId}`);
+      const view = await partnerSummary(isolated.partnerId);
+      assert.equal(view.rateBps, 1725);
+      assert.equal(view.customers.length, 1);
+      assert.equal(view.customers[0].id, `attr-${isolated.label}`);
+      assert.equal(view.verifiedSales, 1);
+      assert.equal(view.convertedCustomers, 1);
+      assert.equal(view.sales.length, 1);
+      assert.ok(!JSON.stringify(view).includes(`${f.userId}@example.invalid`));
+      assert.ok(!Object.hasOwn(view.customers[0], "userId"));
+      assert.ok(!Object.hasOwn(view.customers[0], "email"));
     },
   );
   console.log(

@@ -5,7 +5,7 @@ import {
 } from "@/lib/partners/contracts/activation";
 import { contractError } from "@/lib/partners/contracts/http";
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireSuperAdmin } from "@/lib/auth/require-session";
 import { getDb } from "@/lib/db";
@@ -14,6 +14,7 @@ import {
   partnerApplicationEmails,
   partnerApplications,
   partnerAccounts,
+  partnerOnboardingSessions,
 } from "@/lib/db/schema";
 import { validWriteOrigin } from "@/lib/partners/api";
 import {
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
     : [];
   return NextResponse.json(
     {
-      applications: rows.map((row) => ({
+      applications: rows.map(({ invitationHash: _invitationHash, ...row }) => ({
         ...row,
         audit: history.filter((entry) => entry.applicationId === row.id),
         deliveries: deliveries.filter((entry) => entry.applicationId === row.id),
@@ -99,27 +100,103 @@ export async function POST(request: Request) {
       ),
     });
     await Promise.all(
-      due.map((row) =>
-        db
-          .update(partnerApplicationEmails)
-          .set({
-            status: "pending",
-            attempts: 0,
-            recipient:
-              row.kind === "admin_notice"
-                ? process.env.PARTNER_ADMIN_EMAIL ||
-                  process.env.RESEND_STATUS_TO ||
-                  process.env.ADMIN_AUTH_BYPASS_EMAIL ||
-                  "superadmin@useclevr.com"
-                : row.recipient,
-            nextAttemptAt: new Date(),
-            lastErrorCode: null,
-          })
-          .where(eq(partnerApplicationEmails.id, row.id)),
-      ),
+      due
+        .filter((row) => row.lastErrorCode !== "invitation_renewed")
+        .map((row) =>
+          db
+            .update(partnerApplicationEmails)
+            .set({
+              status: "pending",
+              attempts: 0,
+              recipient:
+                row.kind === "admin_notice"
+                  ? process.env.PARTNER_ADMIN_EMAIL ||
+                    process.env.RESEND_STATUS_TO ||
+                    process.env.ADMIN_AUTH_BYPASS_EMAIL ||
+                    "superadmin@useclevr.com"
+                  : row.recipient,
+              nextAttemptAt: new Date(),
+              lastErrorCode: null,
+            })
+            .where(eq(partnerApplicationEmails.id, row.id)),
+        ),
     );
     await retryApplicationEmails();
     return NextResponse.json({ ok: true });
+  }
+  if (["renew_invitation", "add_note"].includes(body.action)) {
+    const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 1000) : "";
+    if (reason.length < 10 || (body.action === "renew_invitation" && body.confirm !== true))
+      return NextResponse.json(
+        {
+          error:
+            "Enter an internal reason of at least 10 characters and confirm invitation renewal.",
+        },
+        { status: 400 },
+      );
+    try {
+      await db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${`partner-application:${body.id}`},0))`,
+        );
+        const app = await tx.query.partnerApplications.findFirst({
+          where: eq(partnerApplications.id, body.id),
+        });
+        if (!app) throw new Error("application_not_found");
+        if (body.action === "renew_invitation") {
+          if (app.status !== "approved") throw new Error("approved_application_required");
+          const invite = createInvitation();
+          await tx
+            .update(partnerApplications)
+            .set({
+              invitationHash: invite.hash,
+              invitationExpiresAt: new Date(Date.now() + 7 * 86400000),
+              invitationUsedAt: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(partnerApplications.id, app.id));
+          await tx
+            .delete(partnerOnboardingSessions)
+            .where(eq(partnerOnboardingSessions.applicationId, app.id));
+          // Cancel unsent old links and codes so a delayed retry cannot send a revoked invitation.
+          await tx
+            .update(partnerApplicationEmails)
+            .set({ status: "failed", lastErrorCode: "invitation_renewed" })
+            .where(
+              and(
+                eq(partnerApplicationEmails.applicationId, app.id),
+                inArray(partnerApplicationEmails.kind, ["approved", "verification"]),
+                eq(partnerApplicationEmails.status, "pending"),
+              ),
+            );
+          await tx
+            .insert(partnerApplicationEmails)
+            .values({
+              id: randomUUID(),
+              applicationId: app.id,
+              kind: "approved",
+              recipient: app.email,
+              payload: encryptEmailPayload({ invite: invite.token }),
+            });
+        }
+        await tx
+          .insert(partnerApplicationAudit)
+          .values({
+            id: randomUUID(),
+            applicationId: app.id,
+            actor: admin.userId,
+            action: body.action,
+            reason,
+          });
+      });
+      await retryApplicationEmails();
+      return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+    } catch {
+      return NextResponse.json(
+        { error: "The application could not be updated. Refresh and check its status." },
+        { status: 409 },
+      );
+    }
   }
   const allowedActions = ["under_review", "approve", "reject", "activate"];
   if (
@@ -197,14 +274,12 @@ export async function POST(request: Request) {
         )
         .returning();
       if (!rows.length) return false;
-      await tx
-        .insert(partnerApplicationAudit)
-        .values({
-          id: randomUUID(),
-          applicationId: current.id,
-          actor: admin.userId,
-          action: "under_review",
-        });
+      await tx.insert(partnerApplicationAudit).values({
+        id: randomUUID(),
+        applicationId: current.id,
+        actor: admin.userId,
+        action: "under_review",
+      });
     } else if (body.action === "approve") {
       const invitation = createInvitation();
       token = invitation.token;
@@ -227,23 +302,19 @@ export async function POST(request: Request) {
         )
         .returning();
       if (!rows.length) return false;
-      await tx
-        .insert(partnerApplicationEmails)
-        .values({
-          id: randomUUID(),
-          applicationId: current.id,
-          kind: "approved",
-          recipient: current.email,
-          payload: encryptEmailPayload({ invite: token }),
-        });
-      await tx
-        .insert(partnerApplicationAudit)
-        .values({
-          id: randomUUID(),
-          applicationId: current.id,
-          actor: admin.userId,
-          action: "approved",
-        });
+      await tx.insert(partnerApplicationEmails).values({
+        id: randomUUID(),
+        applicationId: current.id,
+        kind: "approved",
+        recipient: current.email,
+        payload: encryptEmailPayload({ invite: token }),
+      });
+      await tx.insert(partnerApplicationAudit).values({
+        id: randomUUID(),
+        applicationId: current.id,
+        actor: admin.userId,
+        action: "approved",
+      });
     } else {
       const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 1000) : "";
       const rows = await tx
@@ -263,23 +334,19 @@ export async function POST(request: Request) {
         )
         .returning();
       if (!rows.length) return false;
-      await tx
-        .insert(partnerApplicationEmails)
-        .values({
-          id: randomUUID(),
-          applicationId: current.id,
-          kind: "rejected",
-          recipient: current.email,
-        });
-      await tx
-        .insert(partnerApplicationAudit)
-        .values({
-          id: randomUUID(),
-          applicationId: current.id,
-          actor: admin.userId,
-          action: "rejected",
-          reason: reason || null,
-        });
+      await tx.insert(partnerApplicationEmails).values({
+        id: randomUUID(),
+        applicationId: current.id,
+        kind: "rejected",
+        recipient: current.email,
+      });
+      await tx.insert(partnerApplicationAudit).values({
+        id: randomUUID(),
+        applicationId: current.id,
+        actor: admin.userId,
+        action: "rejected",
+        reason: reason || null,
+      });
     }
     return true;
   });

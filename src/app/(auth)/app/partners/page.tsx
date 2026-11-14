@@ -2,7 +2,7 @@ import {
   DashboardContent,
   DashboardSubpageLayout,
 } from "@/components/layout/dashboard-subpage-layout";
-import { PartnerDashboard } from "@/components/partners/partner-dashboard";
+import { PartnerPortal } from "@/components/partners/partner-portal";
 export default function PartnersPage() {
   return (
     <DashboardSubpageLayout
@@ -10,7 +10,7 @@ export default function PartnersPage() {
       description="Your customers, partner level, commissions, and settlements."
     >
       <DashboardContent>
-        <PartnerDashboard />
+        <PartnerPortal />
       </DashboardContent>
     </DashboardSubpageLayout>
   );

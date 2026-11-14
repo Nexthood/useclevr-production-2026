@@ -100,6 +100,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1108. Provide public partner registration, invitation email verification, scoped agreement access, signed-agreement credential setup, private commercial portal views and signed-term commission controls; publish the locally validated review branch without deployment. (labels: workflow, auth, billing, security, testing; commit: 26be67d9)
+
 - T-1102. Finalize approved Global Partner Program policies, audited suspension recovery, controlled pre-termination settlements, stable downgrade grace, and isolated release validation; keep the program disabled. (labels: billing, sales, security, testing; commit: worktree)
 - T-1101. Route clear Usy product questions during contact collection through existing knowledge in all eight languages, preserve drafts across topic switches, and verify contact, billing, and support regressions without publication. (labels: ai, workflow, testing; commit: 890c877f)
 

@@ -37,7 +37,9 @@ export function PartnerPerformance({
           </p>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-semibold">{data.rateBps / 100}%</p>
+          <p className="text-2xl font-semibold">
+            {data.rateBps === null ? "Pending signed terms" : `${data.rateBps / 100}%`}
+          </p>
           <p className="text-sm text-muted-foreground">Current commission</p>
         </div>
       </div>

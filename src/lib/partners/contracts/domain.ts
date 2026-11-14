@@ -100,6 +100,13 @@ export const scheduleSchema = z
     company: companySchema,
     companySigner: signerSchema,
     terms: z.object(commercialShape).strict(),
+    commissionRatesBps: z
+      .object({
+        standard: z.number().int().min(0).max(10000),
+        premium: z.number().int().min(0).max(10000),
+      })
+      .strict()
+      .optional(),
     financialConfigId: text(1, 100),
     financialAlignmentConfirmed: z.literal(true),
     effectiveUntil: z.iso.datetime().optional(),
@@ -144,6 +151,7 @@ export type ContractSnapshot = {
   company: z.infer<typeof companySchema>;
   companySigner: z.infer<typeof signerSchema>;
   terms: CommercialSchedule["terms"];
+  commissionRatesBps?: { standard: number; premium: number };
   financialConfigId: string;
   financialConfigHash: string;
   effectiveUntil: string | null;

@@ -1,3 +1,14 @@
+## 2026-11-14 — Partner portal v2 continuation (T-1108)
+
+- Goal: Complete the in-progress public partner registration, scoped invitation verification, agreement access, credentials, portal and signed-term financial controls; publish source for review without deployment.
+- Changes: Validate the inherited implementation on feat/partner-portal-v2. Update the packaged-runtime acceptance script for public applications, invitation-code entry, no-referrer metadata, partner login return URLs and anonymous private-API rejection. Align the program guide with public registration and the separate authenticated application endpoint. Fix the agreement route’s required Request signature after Next.js production validation rejects its optional argument.
+- Verification: Partner unit tests, 43 PostgreSQL checks, 16 contract integration groups, 18 browser groups, TypeScript, changed-source ESLint, auth redirects, 27 referral regressions, mocked Railway auth/policy tests, secret/TODO/changelog/package checks and deployment configuration pass. Isolated production compilation, all 105 pages, packaging and packaged-runtime acceptance pass. Repository-wide lint reports zero errors and 453 warnings; documentation links pass across 170 files. Historical-log Markdown findings match HEAD.
+- Risk: Local fixtures do not verify hosted migration, real email delivery, provider signing or production database health. Owner-approved hosted acceptance stays separate under existing release tasks. No deployment, live signing, payment or hosted migration occurs.
+- Learning: The packaged-runtime script must verify public applicant access while retaining authenticated partner and administrator API boundaries. Local build snapshots can produce synthetic-credential scan findings outside the original test-file allowlist; retain those artifacts under an ignored temporary directory.
+- Publication: Source commit 26be67d9 is published on feat/partner-portal-v2 with [draft PR #423](https://github.com/Nexthood/useclevr-production-2026/pull/423) targeting beta. Completed isolated build, type, deployment-config and lint checks cover the push gate; the duplicate root build is skipped to avoid loading local environment files. No merge or deployment occurs.
+- Follow-up: Retain hosted acceptance under T-1103 and T-1107; owner approval and provider evidence remain required for live signing.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-12 — Distinct partner invitation errors and recovery (T-1107)
 
 - Goal: Diagnose the immediate production rejection and give partners safe, actionable invitation failures and authentication recovery.

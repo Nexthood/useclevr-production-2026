@@ -52,6 +52,7 @@ export const partnerAccounts = pgTable(
       experience: string;
       privacyVersion: string;
       acceptedAt: string;
+      communications?: boolean;
     }>(),
     commercialReview: jsonb("commercialReview").$type<{
       status: "pending" | "under_review" | "approved" | "rejected";
@@ -167,6 +168,7 @@ export const partnerCommissions = pgTable(
     partnerId: text("partnerId")
       .notNull()
       .references(() => partnerAccounts.id),
+    contractId: text("contractId"),
     configId: text("configId")
       .notNull()
       .references(() => partnerConfigs.id),
@@ -253,6 +255,7 @@ export const partnerApplications = pgTable("PartnerProgramApplication", {
   country: text("country").notNull(),
   companyName: text("companyName"),
   experience: text("experience").notNull(),
+  companyWebsite: text("companyWebsite"),
   privacyAcceptedAt: timestamp("privacyAcceptedAt", { withTimezone: true }).notNull(),
   privacyVersion: text("privacyVersion").notNull(),
   status: text("status").notNull().default("pending"),
@@ -306,5 +309,27 @@ export const partnerEventReviews = pgTable("PartnerEventReview", {
   actor: text("actor").notNull(),
   reason: text("reason").notNull(),
   evidence: text("evidence").notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Invitation sessions authorize only partner agreements and credential setup.
+export const partnerOnboardingChallenges = pgTable("PartnerOnboardingChallenge", {
+  applicationId: text("applicationId")
+    .primaryKey()
+    .references(() => partnerApplications.id),
+  invitationHash: text("invitationHash").notNull(),
+  codeHash: text("codeHash").notNull(),
+  expiresAt: timestamp("expiresAt", { withTimezone: true }).notNull(),
+  sentAt: timestamp("sentAt", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+});
+export const partnerOnboardingSessions = pgTable("PartnerOnboardingSession", {
+  tokenHash: text("tokenHash").primaryKey(),
+  applicationId: text("applicationId")
+    .notNull()
+    .references(() => partnerApplications.id),
+  userId: text("userId").notNull(),
+  expiresAt: timestamp("expiresAt", { withTimezone: true }).notNull(),
+  credentialSetAt: timestamp("credentialSetAt", { withTimezone: true }),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
 });

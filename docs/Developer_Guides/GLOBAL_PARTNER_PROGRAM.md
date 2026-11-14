@@ -1,12 +1,12 @@
 # Global Partner Program
 
-Applicants use `/partners/apply` and the existing verified-email login with a return URL. Partners use `/app/partners`; superadmins use `/app/admin/partners`. Customer referral credit rewards remain in the Referral Center. Commercial attribution grants no customer referral credits, including when the partner is pending, rejected, suspended, or terminated.
+Applicants use `/partners/apply` without customer authentication. Approved invitations use `/partners/onboard`, email-code verification and an application-scoped agreement session. Applicants set credentials after provider-confirmed signatures and archived evidence. Partners use `/partner` or `/app/partners`; superadmins use `/app/admin/partners`. Customer referral credit rewards remain in the Referral Center. Commercial attribution grants no customer referral credits, including when the partner is pending, rejected, suspended, or terminated.
 
 ## Financial rules
 
 Verified collected subscription invoices supply the payment evidence. Net revenue excludes tax and reflects invoice discounts. Active subscriptions alone, failed payments, out-of-band collections, and self-purchases cannot earn commissions. Mixed-balance and partial collections require review.
 
-New configuration versions require these v1 levels and rates:
+The default financial policy defines these levels and rates. Owner-approved commercial schedules can specify contract rates in basis points; both rates appear in the signed PDF. Accrual, approval and payout use the policy and rates bound to the executed agreement:
 
 | Level    | Qualification                                       | Rate |
 | -------- | --------------------------------------------------- | ---- |
@@ -59,32 +59,31 @@ docker run --detach --name useclevr-partner-v1-tests --network bridge --publish 
 
 Wait for `docker exec useclevr-partner-v1-tests pg_isready -U postgres -d partner_tests`, then run `pnpm test:partners:integration`. Unit rules run in `test:all`; PostgreSQL integration runs separately. Use [shared REST requests](../api-tests/partners.http) for authenticated endpoint checks against a local application.
 
-Run `node scripts/partners/test-browser.mjs` for real partner/admin components against synthetic HTTP responses in headless Chrome at desktop and mobile widths in both themes. Screenshots stay in its temporary artifact directory. This fixture checks component behavior; it does not exercise application login or production hosting.
+Run `pnpm test:partners:browser` for real partner/admin components against synthetic HTTP responses in headless Chrome at desktop and mobile widths in both themes. Screenshots stay in its temporary artifact directory. This fixture checks component behavior; it does not exercise application login or production hosting.
 
 Run `node scripts/partners/run-safe-build.mjs` for isolated production compilation and packaging in a temporary source copy under the ignored `build/` directory, with a system-temporary-directory fallback when the checkout has less than 4 GiB free. The runner copies dependencies into that directory so standalone tracing and packaging operate on private files. It excludes repository environment files, clears inherited provider configuration, generates disposable authentication values, sets unreachable loopback databases, and keeps the partner program disabled. It does not publish artifacts or deploy. Use `--regression` to run every declared regression suite sequentially before compilation, with a dedicated database on the fixed local fixture and shared synthetic test files. Repository credential files stay excluded; the tracked Railway/local examples are copied only for configuration contract tests and are not loaded as environment.
 
 ## Applicant registration and review
 
-The public Work With Us CTAs use `https://app.useclevr.com/partners/apply`.
-The application page redirects visitors through the existing login/signup verification flow and
-returns them to the application. Applicants provide their name, country, target market and
-experience, and acknowledge the displayed privacy notice and program terms. The server reads
-verified identity and email from the database, validates a bounded JSON request, checks write
-origin and applies the existing per-account request limiter. A unique account constraint and
-transaction lock enforce one application per account across instances and concurrent requests.
-The request limiter is per process; persistent uniqueness remains the cross-instance control.
+The public Work With Us CTAs use `https://app.useclevr.com/partners/apply`. Applicants
+select a program and category, provide contact and company details, describe their experience,
+and accept the privacy notice. No customer account or subscription is required. The server
+validates a bounded JSON request, verifies origin, checks the honeypot and form duration, and
+uses database-backed hourly limits and email/program uniqueness across server instances.
 
-Application details extend `PartnerAccount`; `PartnerAudit` records submission and acknowledgments.
-There is no separate application database. Migration 0040 protects submitted evidence and terminal
-rejection from updates. The confirmation page and partner dashboard display pending/rejected
-status without exposing referral tools. Applicant email and narrative are visible only to superadmins.
+`PartnerProgramApplication` stores submissions; its audit and email outbox retain review and
+delivery evidence. Superadmins review applications at `/app/admin/partners`, approve or reject
+them, add internal notes, and renew approved invitations with a reason and confirmation.
+Approval issues a single-use invitation; email-code verification creates application-scoped
+agreement access and a pending partner account. Both provider-confirmed signatures and archived
+evidence are required for credential setup. Commercial activation requires a separate audited
+administrator decision and the executed-agreement checks.
 
-Superadmins select a pending application at `/app/admin/partners`, review its details, enter a
-reviewed participation agreement reference, and approve or reject with an audit reason. Rejected
-applications cannot reactivate or resubmit. Approved partners can be suspended or terminated;
-rejected, suspended and terminated partners cannot acquire new referral attributions. Suspended
-partners can inspect their own financial history without receiving an active referral link.
-Account support handles questions through the existing ticket workflow.
+The authenticated `POST /api/partners` endpoint also accepts verified existing-account
+applications. Its per-process request limit and account uniqueness apply to that endpoint;
+the public form uses `POST /api/partner-applications` and the database-backed limits above.
+Rejected, suspended and terminated partners cannot acquire new referral attributions. Suspended
+partners can inspect their financial history without an active referral link.
 
 ## Coordinated release and rollback
 
@@ -136,7 +135,7 @@ artifact loads `sharp` and completes an image transformation in the actual Railw
 release acceptance. Treat missing native dependencies as a release blocker.
 
 Run `node scripts/partners/test-production-runtime.mjs <isolated-snapshot-directory>` after
-packaging to verify startup, the applicant login return URL and anonymous API restrictions using
+packaging to verify startup, public applications, invitation verification, the partner login return URL and anonymous API restrictions using
 synthetic secrets and an unreachable database. It does not verify hosted authentication or health.
 The 8 November 2026 dependency audit passes the existing Critical/High gate and reports three
 Moderate advisories (`@hono/node-server`, `qs`, `minimatch`) and one Low advisory (`deepmerge`).
@@ -299,16 +298,17 @@ Temporary evidence is in `/tmp/partner-validation-Rn1WNF/readiness-rebuild-resul
 `regression-results.json` in that same snapshot. These temporary files are not durable hosted
 release evidence. The source workflow must still pass for the published candidate after approval.
 
-
 ## Reseller and enterprise company applications
 
-`/partners/apply?partnershipType=Authorized%20Reseller` selects the company application; other
-supported types are Enterprise Solution Partner, Strategic Distribution Partner and White-Label
-Inquiry. The login callback retains the selection. Existing sales applications remain available
-through the same form. Business email must match the verified account email. Company fields use
-strict server validation, bounded bodies, existing session/origin checks and rate limiting, with
-an empty honeypot required. The existing rate limiter is per process; account uniqueness also
-prevents duplicate persisted applications across processes.
+`/partners/apply?partnershipType=Authorized%20Reseller` selects the public company application.
+The form also supports MSP, System Integrator, Business Consultancy, Enterprise Solution Partner,
+Strategic Distribution Partner and White-Label Inquiry. Applicants provide their business email
+without customer authentication. Approval and invitation email verification establish ownership
+before agreement access. Strict server validation, bounded bodies, origin checks, a honeypot and
+database-backed limits protect public submissions.
+
+Verified existing accounts can also submit company applications through `POST /api/partners`.
+That endpoint derives business email from the verified account and uses per-account rate limits.
 
 Migration 0041 adds `commercialReview` to the existing partner account and is wired into Railway
 predeploy. Submitted application evidence remains immutable. Superadmins use application review
@@ -328,3 +328,19 @@ Restore secure Railway access before production publication; credentials must st
 source and logs. Local checks pass TypeScript, 19 rule tests, 42 disposable PostgreSQL groups and
 nine component browser groups. Real production company submission, administrative review, migration
 and hosted release remain unverified under T-1103.
+
+## Partner program v2 operations
+
+Apply additive migration `0044_partner_invitation_access.sql` through the existing predeploy migration list. The migration adds the optional application website, expiring verification challenges, hashed scoped sessions and nullable commission agreement references. It retains applications, accounts, signatures, audit records and financial records. Receipt and rejection delivery uniqueness remains enforced; invitation, code and account-update deliveries retain individual history.
+
+Superadmins renew approved invitations and add internal notes from Applications. Renewal requires a reason and replaces the invitation hash, revokes scoped sessions and prevents queued old links from delivery. Applicants can verify the replacement without changing their linked identity or existing agreement.
+
+Only application-bound sessions can access that applicant's identity form and source/signed downloads. These cookies grant no customer session, admin role, customer dataset access or commercial activation. Existing verified identities link by normalized email; pre-verification passwords are cleared when the invited email owner establishes verified ownership to prevent pre-registration takeover. Existing verified passwords and OAuth logins remain unchanged.
+
+The agreement portal provides signing initiation through the existing Dropbox Sign email flow. Signature completion remains provider-confirmed and requires both parties. Partner credentials require a verified production execution and readable encrypted artifacts. Superadmin activation remains separate. Draft, mock and provider test agreements do not authorize credentials or commercial activation.
+
+Financial records without an effective production agreement or matching immutable financial configuration remain held. Existing commissions without an agreement reference remain intact and require explicit owner investigation before settlement. Amendments that conflict with an outstanding commission's agreement require review; the engine does not rewrite historical snapshots. Manual settlement records an external payment and does not transfer funds.
+
+Contact profile edits update operational company/contact details and optional program communications only. Signed identity snapshots remain immutable. Required account notifications use the transactional outbox regardless of marketing preferences. Payment instruction changes require the partner team; the portal does not collect bank details.
+
+See [v2 readiness evidence](../validation/partner-program-v2-readiness.md) for local validation and hosted acceptance requirements.

@@ -1,3 +1,4 @@
+import { signedFinancialConfig } from "./agreement-finance";
 import { PartnerRuleError } from "@/lib/partners/errors";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
@@ -331,9 +332,10 @@ async function processPayment(
     where: eq(partnerEventReviews.eventId, eventId),
   });
   if (futureLevel && !review) return "historical_level_review";
-  const configRow = review
-    ? await tx.query.partnerConfigs.findFirst({ where: eq(partnerConfigs.id, review.configId) })
-    : await latestConfig(tx, paidAt);
+  const signed = await signedFinancialConfig(tx, partner.id, paidAt);
+  if (!signed) return "signed_financial_terms_required";
+  if (review && review.configId !== signed.config.id) return "review_conflicts_with_signed_terms";
+  const configRow = signed.config;
   if (!configRow) return "historical_config_missing";
   const config = configRow.config;
   if (!(await latestConfig(tx))?.config.enabled) return "program_disabled";
@@ -435,6 +437,7 @@ async function processPayment(
       paymentId,
       partnerId: partner.id,
       configId: configRow.id,
+      contractId: signed.contractId,
       level: level.level,
       rateBps: bps,
       amountMinor: commission(net, bps).toString(),
@@ -572,7 +575,8 @@ export async function partnerSummary(partnerId: string, admin = false, offset = 
       where: eq(partnerAccounts.id, partnerId),
     });
     if (!partner) throw new PartnerRuleError("Partner not found.");
-    const config = (await latestConfig(tx))?.config || defaultConfig;
+    const signed = await signedFinancialConfig(tx, partnerId);
+    const config = signed?.config.config || (await latestConfig(tx))?.config || defaultConfig;
     const level = await refreshLevel(tx, partnerId, config);
     const commissions = await tx.query.partnerCommissions.findMany({
       where: eq(partnerCommissions.partnerId, partnerId),
@@ -650,6 +654,32 @@ export async function partnerSummary(partnerId: string, admin = false, offset = 
         dueMinor: (BigInt(c.amountMinor) - adjusted - settled).toString(),
       };
     });
+    // Partner projections contain relationship identifiers and commercial facts only.
+    const customerRows = await tx.execute(sql`
+      select a.id, a."signedUpAt", coalesce(p."subscriptionTier",'free') as plan,
+      coalesce((select s.status from "PartnerSubscription" s where s."userId"=a."userId" order by s."periodEnd" desc limit 1),'not_converted') as status,
+      a."relatedParty"='unrelated' and ${partner.status === "active"} as eligible
+      from "PartnerAttribution" a left join "Profile" p on p."userId"=a."userId"
+      where a."partnerId"=${partnerId} order by a."signedUpAt" desc,a.id limit 50 offset ${offset}`);
+    const saleRows = await tx.execute(sql`
+      select p.id,p.currency,p."netMinor"::text as "netMinor",p."paidAt",
+      coalesce((select sum(a."netDeltaMinor") from "PartnerAdjustment" a where a."paymentId"=p.id),0)::text as "adjustmentMinor",
+      coalesce(s.status,'unknown') as "subscriptionStatus"
+      from "PartnerPayment" p left join "PartnerSubscription" s on s.id=p."subscriptionId"
+      where p."partnerId"=${partnerId} order by p."paidAt" desc,p.id limit 50 offset ${offset}`);
+    const trendRows = await tx.execute(sql`
+      select to_char(p."paidAt" at time zone 'UTC','YYYY-MM') as month,p.currency,
+      sum(p."netMinor"-coalesce(a.net,0))::text as revenue,
+      sum(coalesce(c."amountMinor",0)-coalesce(a.commission,0))::text as commission
+      from "PartnerPayment" p left join "PartnerCommission" c on c."paymentId"=p.id
+      left join (select "paymentId",sum("netDeltaMinor") as net,sum("commissionDeltaMinor") as commission from "PartnerAdjustment" group by "paymentId") a on a."paymentId"=p.id
+      where p."partnerId"=${partnerId} group by month,p.currency order by month desc limit 60`);
+    const monthlyReferrals = await tx.execute(
+      sql`select to_char("signedUpAt" at time zone 'UTC','YYYY-MM') as month,count(*)::int as referrals from "PartnerAttribution" where "partnerId"=${partnerId} group by month order by month desc limit 24`,
+    );
+    const totals = await tx.execute(
+      sql`select count(*)::int as sales,count(distinct "attributionId")::int as converted from "PartnerPayment" where "partnerId"=${partnerId}`,
+    );
     return {
       partner: {
         id: partner.id,
@@ -672,9 +702,33 @@ export async function partnerSummary(partnerId: string, admin = false, offset = 
             }
           : {}),
       },
-      rateBps: rateForLevel(level.level, config),
+      rateBps: signed ? rateForLevel(level.level, config) : null,
       activeCustomers: level.customers,
       totalCustomers: Number(countResult.rows[0]?.total || 0),
+      verifiedSales: Number(totals.rows[0]?.sales || 0),
+      convertedCustomers: Number(totals.rows[0]?.converted || 0),
+      customers: customerRows.rows as unknown as {
+        id: string;
+        signedUpAt: string;
+        plan: string;
+        status: string;
+        eligible: boolean;
+      }[],
+      sales: saleRows.rows as unknown as {
+        id: string;
+        currency: string;
+        netMinor: string;
+        paidAt: string;
+        adjustmentMinor: string;
+        subscriptionStatus: string;
+      }[],
+      trends: trendRows.rows as unknown as {
+        month: string;
+        currency: string;
+        revenue: string;
+        commission: string;
+      }[],
+      monthlyReferrals: monthlyReferrals.rows as unknown as { month: string; referrals: number }[],
       rollingUsdMinor: level.revenue.toString(),
       progress: nextLevelProgress(level.level, level.customers, level.revenue, config),
       balances,
@@ -719,7 +773,10 @@ export async function approveCommission(
   const current = await tx.query.partnerCommissions.findFirst({
     where: eq(partnerCommissions.id, commissionId),
   });
-  const config = (await latestConfig(tx))?.config || defaultConfig;
+  const signed = await signedFinancialConfig(tx, c.partnerId, c.earnedAt);
+  if (!signed || c.contractId !== signed.contractId || c.configId !== signed.config.id)
+    throw new PartnerRuleError("Signed commission terms require administrator review.");
+  const config = signed.config.config;
   const partner = await tx.query.partnerAccounts.findFirst({
     where: eq(partnerAccounts.id, c.partnerId),
   });
@@ -764,7 +821,10 @@ export async function recordPayout(
   reason: string,
 ) {
   await lockPartner(tx, partnerId);
-  const config = (await latestConfig(tx))?.config || defaultConfig;
+  const signed = await signedFinancialConfig(tx, partnerId);
+  if (!signed || !(await latestConfig(tx))?.config.enabled)
+    throw new PartnerRuleError("Signed payout terms and an enabled program are required.");
+  const config = signed.config.config;
   const partner = await tx.query.partnerAccounts.findFirst({
     where: eq(partnerAccounts.id, partnerId),
   });
@@ -779,7 +839,7 @@ export async function recordPayout(
   )
     throw new PartnerRuleError("Payout policy or active partner approval is missing.");
   const statement = await tx.execute(sql`
-    select c.id,c.state,c."earnedAt",c."paymentId",(c."amountMinor"
+    select c.id,c.state,c."earnedAt",c."paymentId",c."contractId",c."configId",(c."amountMinor"
       -coalesce((select sum(a."commissionDeltaMinor") from "PartnerAdjustment" a where a."paymentId"=c."paymentId"),0)
       -coalesce((select sum(i."amountMinor") from "PartnerPayoutItem" i where i."commissionId"=c.id),0))::text as due
     from "PartnerCommission" c where c."partnerId"=${partnerId} and c.currency=${currency} and c.state in ('approved','paid')`);
@@ -789,6 +849,8 @@ export async function recordPayout(
     );
   const allocations: { commissionId: string; amountMinor: string }[] = [];
   for (const c of statement.rows) {
+    if (c.contractId !== signed.contractId || c.configId !== signed.config.id)
+      throw new PartnerRuleError("Payout includes commissions requiring signed-term review.");
     const due = BigInt(String(c.due));
     if (due === BigInt(0)) continue;
     if (due < BigInt(0) && config.postPayoutRefund !== "offset")

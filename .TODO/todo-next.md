@@ -19,6 +19,7 @@ moving work between states.
 
 ## Label: workflow
 
+
 - T-1105. Implement versioned partner agreements, provider-backed sequential signatures, private execution evidence, audited contract administration and mandatory executed-agreement activation gates; keep production signing disabled until owner legal and provider approval. (labels: workflow, security, testing, docs)
 
 - T-1097. Publish the validated Passport proxy-origin branch and open a review PR targeting beta; preserve main and exclude local test/cache artifacts from publication. (labels: workflow, auth, testing)
