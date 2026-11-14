@@ -1,3 +1,14 @@
+## 2026-11-14 — Production partner contract readiness (T-1109)
+
+- Goal: Diagnose disabled production contracts, extract exact Railway/Dropbox configuration, repair confirmed blockers and publish a review branch without merge or deployment.
+- Findings: Latest origin/main f5f69a92 contains merged PRs #420–#424. The owner confirms no partner/signing variables; absent PARTNER_CONTRACTS_ENABLED directly raises contract_management_disabled. Provider, webhook, encryption, database and owner approvals are separate downstream gates; hosted state is not independently inspected.
+- Changes: Document exact defaults, service placement, redeployment, provider/callback setup, database/key protection, sandbox/live distinction and staged owner acceptance in docs/Developer_Guides/PARTNER_PRODUCTION_SETUP.md. Add shared credential-free readiness requests. Validate local provider construction and source decryption before recording an external send or reserving budget; local configuration repair leaves generated agreements retryable. Guard browser polling against a temporarily absent document body during navigation.
+- Verification: Pass 19 financial rules, 12 contract unit groups, 43 PostgreSQL checks, 17 contract integration groups, 18 browser groups, auth redirects, 27 referral regressions, mocked Railway checks, types, focused ESLint, edited-guide Markdown, 171 documentation links and deployment configuration. Continuation corrects nullable fixture-email typing and reruns types, financial/unit tests and all 17 contract integration groups. Isolated production compilation, all 105 pages, packaging and packaged-runtime acceptance pass; clean-source lint reports zero errors and 448 warnings. Secret and project-record checks pass.
+- Risk: Provider/email calls use mocks and disposable local databases. Actual hosted schema, key restore, authorized email receipt, Dropbox sandbox/live signing and company authority require owner verification. No signature is fabricated and no activation bypass is introduced.
+- Learning: Feature enablement, provider configuration, recorded owner approvals and explicit commercial activation are distinct controls. A local preflight failure is not an uncertain external request.
+- Follow-up: Publish the validated branch as a draft review PR; retain owner-operated hosted acceptance under T-1103 and T-1107. Review-only publication does not authorize merge or deployment.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-14 — Partner portal v2 continuation (T-1108)
 
 - Goal: Complete the in-progress public partner registration, scoped invitation verification, agreement access, credentials, portal and signed-term financial controls; publish source for review without deployment.

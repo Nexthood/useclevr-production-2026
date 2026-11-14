@@ -11,6 +11,8 @@ Text rules for this file:
 
 ## Global Partner Program
 
+- Contract sending validates local provider credentials and decrypts the source PDF before recording an external send attempt; local configuration failures leave the agreement retryable without consuming the live-send budget, while unknown external creation outcomes require provider reconciliation.
+
 - Approved, verified and onboarded partners supply legal identity, authority and electronic-record consent; superadmins review identity before agreement preparation.
 - Contract management uses separate versioned Independent Sales Partner and Authorized Reseller drafts with owner-approved commercial schedules. Qualified legal review and explicit owner approval gate every production template, schedule and provider configuration.
 - The approved external signature provider requests the partner signature before an authorized Atlas Mega Ventures LLC countersignature; verified completion privately archives the signed PDF and audit evidence, then sends confirmation copies.

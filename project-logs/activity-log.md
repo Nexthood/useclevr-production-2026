@@ -1,3 +1,10 @@
+## 2026-11-14 — Production partner contract readiness (T-1109)
+
+- Trace contract disablement to the unset management flag and document exact Railway/Dropbox setup and staged owner acceptance.
+- Keep local credential/key failures retryable before external send state; cover configuration defaults, sandbox restrictions and portal navigation.
+- Pass focused contract/invitation/authentication/browser checks, correct nullable fixture-email typing, and verify production compilation, 105 pages, packaging and packaged-runtime acceptance.
+- Verify clean-source lint with zero errors and 448 warnings, types, deployment configuration, secrets and 171 documentation links; publish review changes without deployment.
+
 ## 2026-11-14 — Partner portal v2 continuation (T-1108)
 
 - Validate public registration, scoped invitation access, credentials, portal projections and signed financial terms with 43 database checks, 16 contract groups and 18 browser groups.
