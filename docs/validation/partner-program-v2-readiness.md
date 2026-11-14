@@ -2,7 +2,7 @@
 
 ## Scope
 
-Source branch: `feat/partner-portal-v2`, based on merged PRs #420, #421 and #422. Changes remain in the application repository. No merge, deployment, production migration, live signing enablement, environment change or external payment is authorized by this implementation.
+Source branch: `feat/partner-portal-v2`, based on merged PRs #420, #421 and #422. Implementation commit: `26be67d9`; review: [draft PR #423](https://github.com/Nexthood/useclevr-production-2026/pull/423) targeting `beta`. Changes remain in the application repository. No merge, deployment, production migration, live signing enablement, environment change or external payment is authorized by this implementation.
 
 ## Implemented behavior
 

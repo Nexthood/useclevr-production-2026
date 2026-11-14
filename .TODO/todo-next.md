@@ -19,7 +19,6 @@ moving work between states.
 
 ## Label: workflow
 
-- T-1108. Complete public partner registration, invitation email verification, agreement access, partner credentials, scoped dashboard and signed-term commission controls; validate locally and publish a review branch without deployment. (labels: workflow, auth, billing, security, testing)
 
 - T-1105. Implement versioned partner agreements, provider-backed sequential signatures, private execution evidence, audited contract administration and mandatory executed-agreement activation gates; keep production signing disabled until owner legal and provider approval. (labels: workflow, security, testing, docs)
 

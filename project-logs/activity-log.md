@@ -1,7 +1,7 @@
 ## 2026-11-14 — Partner portal v2 continuation (T-1108)
 
 - Validate public registration, scoped invitation access, credentials, portal projections and signed financial terms with 43 database checks, 16 contract groups and 18 browser groups.
-- Update packaged-runtime acceptance and current public-registration guidance; pass isolated production build, packaging, runtime acceptance and repository-wide lint; publish the review branch next.
+- Update packaged-runtime acceptance and current public-registration guidance; pass isolated production build, packaging, runtime acceptance and repository-wide lint. Publish source commit 26be67d9 in [draft PR #423](https://github.com/Nexthood/useclevr-production-2026/pull/423) targeting beta.
 - Keep hosted migration, signing, email and payment acceptance separate from synthetic local evidence.
 
 ## 2026-11-12 — Distinct partner invitation errors and recovery (T-1107)

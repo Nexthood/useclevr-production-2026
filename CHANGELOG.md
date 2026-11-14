@@ -27,7 +27,7 @@
 
 ### Fixed
 
-- Keep applications recoverable during email or storage failures and calculate payable commissions from verified revenue and each partner’s signed commercial terms.
+- Keep applications recoverable during email or storage failures and calculate payable commissions from verified collected subscription revenue and each partner’s signed commercial terms.
 
 - Explain partner invitation failures separately and let partners sign in with the invited account while keeping their onboarding link.
 
