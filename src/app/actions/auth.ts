@@ -342,8 +342,11 @@ export async function verifyEmailOtp(formData: FormData) {
   }
 
   if (purpose === "signup") {
+    const account = await db.query.users.findFirst({ where: eq(users.email, email), columns: { emailVerified: true } });
     await markEmailVerified(email);
-    await confirmReferralAfterVerification(email);
+    // Only first verification confirms a new-account referral. Verified identities cannot
+    // gain retrospective attribution by requesting another signup verification code.
+    if (account && !account.emailVerified) await confirmReferralAfterVerification(email);
   }
 
   return { success: true, proof: result.proof, purpose };

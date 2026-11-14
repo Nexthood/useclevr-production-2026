@@ -1,3 +1,9 @@
+## 2026-11-14 — Partner portal v2 continuation (T-1108)
+
+- Validate public registration, scoped invitation access, credentials, portal projections and signed financial terms with 43 database checks, 16 contract groups and 18 browser groups.
+- Update packaged-runtime acceptance and current public-registration guidance; pass isolated production build, packaging, runtime acceptance and repository-wide lint; publish the review branch next.
+- Keep hosted migration, signing, email and payment acceptance separate from synthetic local evidence.
+
 ## 2026-11-12 — Distinct partner invitation errors and recovery (T-1107)
 
 - Goal: Diagnose the immediate production rejection and give partners safe, actionable invitation failures and authentication recovery.

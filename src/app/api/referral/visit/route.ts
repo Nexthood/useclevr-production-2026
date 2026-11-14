@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
 
   const session = await auth()
   const visitorUserId = session?.user?.id || null
+  if (visitorUserId) return NextResponse.redirect(loginUrl.toString())
 
   const forwardedFor = request.headers.get("x-forwarded-for")
   const result = await recordReferralClick({

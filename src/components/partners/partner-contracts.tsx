@@ -7,6 +7,8 @@ export function PartnerContracts() {
   const [data, setData] = useState<ContractData | null>(null),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState(""),
+    [setup, setSetup] = useState("");
   async function load() {
     const r = await fetch("/api/partners/contracts", { cache: "no-store" });
     const b = await r.json();
@@ -50,6 +52,36 @@ export function PartnerContracts() {
                         ? "Ready for Activation"
                         : "Pending"}
                   </p>
+                  {c.mode === "dropbox_live" && ["generated", "sent"].includes(c.status) && (
+                    <Button
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        setMessage("");
+                        try {
+                          const r = await fetch("/api/partners/contracts/sign", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ contractId: c.id }),
+                          });
+                          const b = await r.json();
+                          if (!r.ok) throw new Error(b.error);
+                          setMessage(b.message);
+                          await load();
+                        } catch (e) {
+                          setMessage(
+                            e instanceof Error
+                              ? e.message
+                              : "Signing is unavailable. Please contact the partner team.",
+                          );
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      Sign agreement
+                    </Button>
+                  )}
                   <div className="flex gap-4 text-sm">
                     {c.sourceAvailable && (
                       <a className="underline" href={contractDocument(c.id, "source")}>
@@ -158,6 +190,60 @@ export function PartnerContracts() {
             </details>
           </section>
         ))}
+      {data?.contracts.some((c) => c.status === "fully_executed" && c.mode === "dropbox_live") && (
+        <section className="space-y-3 border-t pt-5">
+          <h2 className="text-xl font-semibold">Set up partner login</h2>
+          <p>
+            Use your existing login if you already have a verified UseClevr identity. New partners
+            can create a password here. Commercial privileges require administrator activation.
+          </p>
+          <a className="underline" href="/partner/login">
+            Sign in to the partner portal
+          </a>
+          <form
+            className="space-y-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              setSetup("");
+              try {
+                const r = await fetch("/api/partner-applications/credentials", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ password }),
+                });
+                const b = await r.json();
+                if (!r.ok) throw new Error(b.error);
+                setPassword("");
+                setSetup(
+                  b.existingLogin
+                    ? "Use your existing login to enter the partner portal."
+                    : "Password saved. Sign in to the partner portal.",
+                );
+              } catch (e) {
+                setSetup(e instanceof Error ? e.message : "Account setup failed. Please retry.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label className="block">
+              New password
+              <input
+                type="password"
+                autoComplete="new-password"
+                required
+                maxLength={200}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={field}
+              />
+            </label>
+            <Button disabled={busy}>Save partner password</Button>
+          </form>
+          <p role="status">{setup}</p>
+        </section>
+      )}
       <Button
         variant="outline"
         disabled={busy}

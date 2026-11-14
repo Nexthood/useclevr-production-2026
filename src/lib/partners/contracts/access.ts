@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   partnerApplications,
   partnerAccounts,
@@ -20,7 +20,7 @@ export function ownerAllowed(id: string) {
     return false;
   }
 }
-export async function contractView(userId: string, admin = false) {
+export async function contractView(userId: string, admin = false, applicationId?: string) {
   const db = contractDatabase();
   if (!featureEnabled())
     return {
@@ -34,7 +34,12 @@ export async function contractView(userId: string, admin = false) {
     };
   if (admin) await registerCatalog(db);
   const applications = await db.query.partnerApplications.findMany({
-    where: admin ? undefined : eq(partnerApplications.linkedUserId, userId),
+    where: admin
+      ? undefined
+      : and(
+          eq(partnerApplications.linkedUserId, userId),
+          applicationId ? eq(partnerApplications.id, applicationId) : undefined,
+        ),
     orderBy: desc(partnerApplications.createdAt),
     limit: 500,
   });
@@ -155,9 +160,12 @@ export async function privateContractDocument(
   kind: string,
   userId: string,
   admin: boolean,
+  applicationId?: string,
 ) {
   const db = contractDatabase(),
     c = await contractRow(db, id);
+  if (applicationId && c.applicationId !== applicationId)
+    throw new ContractError("document_not_found", 404);
   if (!admin) {
     const app = await db.query.partnerApplications.findFirst({
       where: eq(partnerApplications.id, c.applicationId),

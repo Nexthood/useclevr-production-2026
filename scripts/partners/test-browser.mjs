@@ -82,6 +82,29 @@ const statement = {
   },
   rateBps: 1500,
   activeCustomers: 25,
+  convertedCustomers: 2,
+  verifiedSales: 3,
+  customers: [
+    {
+      id: "relationship-fixture",
+      signedUpAt: "2026-01-01T00:00:00Z",
+      plan: "pro",
+      status: "active",
+      eligible: true,
+    },
+  ],
+  sales: [
+    {
+      id: "sale-fixture",
+      currency: "USD",
+      netMinor: "10000",
+      paidAt: "2026-01-01T00:00:00Z",
+      adjustmentMinor: "1000",
+      subscriptionStatus: "active",
+    },
+  ],
+  trends: [{ month: "2026-01", currency: "USD", revenue: "9000", commission: "1350" }],
+  monthlyReferrals: [{ month: "2026-01", referrals: 1 }],
   totalCustomers: 27,
   rollingUsdMinor: "100000",
   referralLink: "http://localhost/signup?ref=uc-fixture",
@@ -147,6 +170,52 @@ const server = createServer(async (request, response) => {
     }
     if (url.pathname === "/api/admin/partner-contracts" && request.method === "GET") {
       response.end(JSON.stringify({ enabled: false }));
+      return;
+    }
+    if (url.pathname === "/api/partners/contracts") {
+      response.end(
+        JSON.stringify({
+          enabled: true,
+          applications: [],
+          contracts: [],
+          profiles: [],
+          schedules: [],
+        }),
+      );
+      return;
+    }
+    if (url.pathname === "/api/partners/profile") {
+      if (request.method === "PATCH") {
+        for await (const _part of request) {
+        }
+        response.end(JSON.stringify({ saved: true }));
+      } else
+        response.end(
+          JSON.stringify({
+            name: "Synthetic partner",
+            email: "fixture@example.invalid",
+            companyName: "Fixture",
+            companyWebsite: "",
+            communications: true,
+          }),
+        );
+      return;
+    }
+    if (url.pathname === "/api/partner-applications/invitation") {
+      let raw = "";
+      for await (const part of request) raw += part;
+      const b = JSON.parse(raw);
+      assert.equal(b.email, "invited@example.invalid");
+      if (b.action === "request_code") response.end(JSON.stringify({ sent: true }));
+      else if (b.code === "123456") response.end(JSON.stringify({ verified: true }));
+      else {
+        response.statusCode = 400;
+        response.end(
+          JSON.stringify({
+            error: "The verification code is incorrect. Check the six digits in your email.",
+          }),
+        );
+      }
       return;
     }
     if (url.pathname === "/api/auth/csrf") {
@@ -517,6 +586,59 @@ try {
   assert.equal(await evaluate('document.body.innerText.includes("remain inactive")'), true);
   passed++;
   console.log("PASS onboarding success states separate administrator activation");
+  await command("Page.navigate", { url: origin + "/?guest=1" });
+  await waitFor('document.body.innerText.includes("Send verification code")');
+  assert.equal(await evaluate('document.body.innerText.includes("No customer signup")'), true);
+  await evaluate(
+    `(() => { const input=document.querySelector('input[type=email]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,"invited@example.invalid"); input.dispatchEvent(new Event("input",{bubbles:true})); })()`,
+  );
+  await evaluate('document.querySelector("form").requestSubmit()');
+  await waitFor('document.querySelector("input[autocomplete=one-time-code]") !== null');
+  await evaluate(
+    `(() => { const input=document.querySelector('input[autocomplete=one-time-code]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,"000000"); input.dispatchEvent(new Event("input",{bubbles:true})); })()`,
+  );
+  await evaluate('document.querySelector("form").requestSubmit()');
+  await waitFor('document.body.innerText.includes("verification code is incorrect")');
+  await evaluate(
+    `(() => { const input=document.querySelector('input[autocomplete=one-time-code]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,"123456"); input.dispatchEvent(new Event("input",{bubbles:true})); })()`,
+  );
+  await evaluate('document.querySelector("form").requestSubmit()');
+  await waitFor('location.pathname === "/partners/contracts"');
+  passed++;
+  console.log(
+    "PASS account-free invitation code, actionable incorrect-code error and agreement navigation",
+  );
+  for (const width of [1280, 390])
+    for (const theme of ["light", "dark"]) {
+      await command("Emulation.setDeviceMetricsOverride", {
+        width,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: width < 500,
+      });
+      await command("Page.navigate", { url: `${origin}/?portal=1&theme=${theme}` });
+      await waitFor('document.querySelector("nav") !== null');
+      for (const [section, expected] of [
+        ["My Customers", "relationship-fixture"],
+        ["Sales", "sale-fixture"],
+        ["Commissions", "Commission history"],
+        ["My Contracts", "Review your legal identity"],
+        ["Referral Links", "Share your referral link"],
+        ["Performance", "2026-01"],
+        ["Payouts", "Payouts"],
+        ["Profile", "Contact profile"],
+      ]) {
+        await evaluate(
+          `Array.from(document.querySelectorAll("nav button")).find(b=>b.textContent === ${JSON.stringify(section)}).click()`,
+        );
+        await waitFor(`document.body.innerText.includes(${JSON.stringify(expected)})`);
+        assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+      }
+      passed++;
+      console.log(
+        `PASS partner portal navigation, scoped projections and responsive ${width}px ${theme} layout`,
+      );
+    }
   console.log(`${passed} browser acceptance groups passed. Artifacts: ${directory}`);
   console.log(
     "Scope: real components and design-system CSS with synthetic HTTP responses. Full application login, attribution navigation, and production hosting are not exercised.",

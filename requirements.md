@@ -17,27 +17,26 @@ Text rules for this file:
 - Contract, application and activation states remain separate. All new commercial activation requires a fully executed production agreement and an explicit audited administrator decision. Mock/test signatures never authorize activation; existing active accounts remain operational.
 - Private agreement access enforces applicant ownership or superadmin authorization, encrypted storage, immutable evidence, authenticated replay-safe callbacks and bounded idempotent delivery retries. Contract automation creates no commissions, payouts or financial-policy changes.
 
-
-- Established B2B companies submit reseller, enterprise solution, distribution or white-label inquiries through verified-account partner registration, with company, contact, website, industry, customer count and consent evidence.
+- Visitors submit sales, referral, reseller and enterprise applications at `/partners/apply` without a customer account, subscription or payment; the form collects essential contact, company, country, category, description and privacy consent, with an optional website.
 - Superadmins review company applications through Pending, Under Review, Approved and Rejected decisions. Application approval leaves commercial tools inactive until a reviewed agreement and explicit onboarding evidence authorize activation.
 - Submitted company evidence remains immutable; separate commercial review decisions and onboarding evidence use existing administrator authorization and audit controls.
 
 - Partner activity uses authoritative subscription state even when the billing webhook payload omits legacy period fields.
 
-- Visitors apply through verified account authentication, provide required country, market and experience details, and explicitly acknowledge application privacy and participation terms.
-- The server persists one application per account in the existing partner account and immutable audit history; administrators review, approve or reject with a reason and reviewed agreement.
+- Approved applicants verify invitation email ownership with a single-use, expiring email code and receive an application-scoped agreement session; customer and superadmin sessions do not select the invited identity.
+- The server persists one open application per normalized email with audit history and transactional email delivery records; superadmins review, approve, reject, add internal notes and renew invitations with audited reasons.
 - Pending and rejected applicants see their decision state; approved partners access their own referral tools and financial history. Rejected applications cannot reactivate; suspension and termination restrict new referrals.
 - The owner authorizes publication, production migrations and activation separately from local implementation; coordinated release acceptance requires both hosted domains and the full payment-to-settlement journey.
 
 - Signed-in partners view their own commercial referral link, partner status, active paying customers, rolling collected net revenue, level progress, commissions, adjustments, and recorded settlements.
 - The application assigns one stable referral code to each account and locks each verified referred account to one attribution; commercial attribution grants no customer referral credit rewards.
 - Only verified collected subscription payments earn commissions during the configured twelve-month eligibility window. Failed payments, out-of-band payments, self-purchases, and unsupported collection shapes do not create commissions.
-- Bronze and Silver earn 15%; Gold, Platinum, and Diamond earn 20%. Silver requires 25 active paying customers, Gold requires 100, Platinum requires $100,000 rolling twelve-month collected net revenue, and Diamond requires $300,000; revenue levels take precedence.
-- Store each earned commission with its payment, configuration version, level, currency, and rate. Apply refunds and chargebacks proportionally to the original earned amount without duplicating losses; preserve settlement history.
+- The signed agreement identifies the financial policy; optional owner-approved contract rates appear in its PDF and govern commissions. The default policy sets Bronze and Silver to 15% and Gold, Platinum, and Diamond to 20%. Silver requires 25 active paying customers, Gold requires 100, Platinum requires $100,000 rolling twelve-month collected net revenue, and Diamond requires $300,000; revenue levels take precedence.
+- Store each earned commission with its executed agreement, payment, configuration version, level, currency, and rate. Apply refunds and chargebacks proportionally to the original earned amount without duplicating losses; preserve settlement history.
 - Keep currency balances separate. Require an evidenced exact exchange rate for non-USD revenue used in level calculations; hold missing or unsupported evidence for review.
 - Superadmins register and approve partners, assign countries and markets, record agreements, review related parties, configure policies, approve commissions, retry held events, export financial statements, and record completed manual settlements with mandatory audit reasons.
 - Keep the program disabled by default. Start twelve-month eligibility at the first successful payment, hold suspended accrual, stop terminated accrual, exclude related-party purchases, apply 30 continuous days of downgrade grace, wait 30 days before approval, require USD 50 or EUR 50 per settlement, and offset post-payout refunds against later earnings in the same currency. Other currencies require an explicit minimum. Recording a settlement does not transfer money.
-- Superadmins recover held historical payments through an audited review of the policy version, level, payment, eligibility, and relationship evidence after reinstatement and hold clearance; recovery creates a pending commission and requires separate approval and settlement.
+- Superadmins review held historical payments against the signed terms effective when revenue is received; administrative review cannot create entitlement without an effective executed agreement. Eligible recovery creates a pending commission requiring separate approval and settlement.
 - Termination records an immutable effective date and payout hold. Superadmins release the hold with evidence to settle eligible pre-termination earnings; suspended partners, fraud holds, unresolved disputes, and post-termination earnings cannot bypass settlement controls.
 - Configuration changes append prospective versions with the approved program terms; historical unresolved policies require explicit payment review and earned snapshots remain immutable. Candidate changes within a continuous qualification shortfall do not restart downgrade grace.
 - Enforce account ownership, superadmin authorization, write-origin checks, financial idempotency, append-only financial evidence, and immutable earned rates in the application and database.
@@ -825,7 +824,10 @@ Text rules for this file:
 
 ## Partner invitation recovery
 
-- Require authentication and a verified database email matching the approved application before partner onboarding.
-- Give authenticated partners separate invalid, expired, used and wrong-account invitation errors; anonymous and unverified callers receive no invitation existence or state information.
-- Preserve the invitation through a same-origin sign-in return path and let partners switch accounts or verify their email before retrying onboarding.
-- Reject used invitations atomically and retain only their one-way token hash for accurate replay errors; never reactivate invitations or backfill existing partner records.
+- Require the approved invitation and a code sent to its email address before granting application-scoped agreement access; retain authenticated verified-email onboarding as an additional supported entry point.
+- Give invited applicants safe invalid, expired, used, incorrect-code and exhausted-code messages with retry, agreement continuation and partner-team renewal paths.
+- Hash invitation tokens and scoped sessions, authenticate stored verification-code hashes, expire codes after ten minutes, limit each code to five attempts, and consume invitations atomically.
+- Superadmins renew approved invitations with an audit reason; renewal replaces the token hash and revokes existing scoped sessions while retaining the application, linked identity, partner account, signatures and audit history.
+- Applicants establish partner credentials through the existing authentication infrastructure only after a provider-confirmed agreement and its encrypted signed PDF and evidence archive are available. Verified existing passwords and OAuth identities retain their login mechanism.
+- Partners use `/partner` and its existing application equivalent for scoped customers, verified sales, commissions, contracts, referrals, monthly performance, payouts and contact profile. Contact changes do not amend signed legal identity or commercial terms.
+- Suspended or inactive accounts do not receive eligible new commissions; missing signed financial terms, unsupported currencies and unresolved payment evidence remain non-payable review states.

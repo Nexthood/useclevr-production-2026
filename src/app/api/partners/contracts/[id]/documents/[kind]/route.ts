@@ -1,5 +1,4 @@
-import { requireSession } from "@/lib/auth/require-session";
-import { isSuperAdminUserId } from "@/lib/auth/builtin-users";
+import { partnerAgreementIdentity } from "@/lib/partners/invitation-access";
 import { privateContractDocument } from "@/lib/partners/contracts/access";
 import { requireFeature } from "@/lib/partners/contracts/domain";
 import { contractError, privateHeaders } from "@/lib/partners/contracts/http";
@@ -8,17 +7,12 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string; kind: string }> },
 ) {
-  const auth = await requireSession();
-  if (!auth.success) return auth.error;
+  const auth = await partnerAgreementIdentity(_request);
+  if (!auth) return new Response("Unauthorized", { status: 401 });
   try {
     requireFeature();
     const { id, kind } = await params;
-    const f = await privateContractDocument(
-      id,
-      kind,
-      auth.userId,
-      auth.session.user.role === "superadmin" || isSuperAdminUserId(auth.userId),
-    );
+    const f = await privateContractDocument(id, kind, auth.userId, auth.admin, auth.applicationId);
     return new Response(new Uint8Array(f.bytes), {
       headers: {
         ...privateHeaders,
