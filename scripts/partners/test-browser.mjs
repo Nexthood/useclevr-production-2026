@@ -380,7 +380,7 @@ try {
   };
   const waitFor = async (expression) => {
     for (let i = 0; i < 100; i++) {
-      if (await evaluate(expression)) return;
+      if (await evaluate(`document.body !== null && (${expression})`)) return;
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     throw new Error(`Browser condition failed: ${expression}`);

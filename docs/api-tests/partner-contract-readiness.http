@@ -1,0 +1,35 @@
+@baseUrl = http://localhost:3000
+@contractId = replace-with-authorized-local-fixture-contract-id
+
+### Anonymous agreement API
+# Expected: 401. This does not establish feature/provider/database readiness.
+GET {{baseUrl}}/api/partners/contracts
+
+### Authenticated superadmin management/configuration view
+# Expected: 200 with enabled:false when disabled; enabled:true and safe runtime metadata when enabled.
+# Use only an authorized local/test session. Never save a real cookie here.
+GET {{baseUrl}}/api/admin/partner-contracts
+Cookie: authjs.session-token=<private-local-session-cookie>
+
+### Scoped participant agreement view
+# Expected: 404 code contract_management_disabled when disabled, otherwise only this application's records.
+GET {{baseUrl}}/api/partners/contracts
+Cookie: useclevr-partner-invitation=<private-local-invitation-session>
+
+### Participant signed PDF
+# Expected: private/no-store PDF for the authorized exact participant with an available signed artifact.
+# Unrelated identities receive 404. Never persist real agreement responses in this repository.
+GET {{baseUrl}}/api/partners/contracts/{{contractId}}/documents/signed
+Cookie: useclevr-partner-invitation=<private-local-invitation-session>
+
+### Webhook rejects an unsigned local request
+# Expected: 404 contract_management_disabled when off; 401 invalid_callback_signature when enabled.
+# This negative request does not simulate Dropbox confirmation or mark anything signed.
+POST {{baseUrl}}/api/webhooks/partner-contracts/dropbox-sign
+Content-Type: application/json
+
+{}
+
+### Worker rejects missing independent bearer authorization
+# Expected: 404 contract_management_disabled when off; 401 unauthorized when enabled.
+POST {{baseUrl}}/api/internal/partner-contracts/run

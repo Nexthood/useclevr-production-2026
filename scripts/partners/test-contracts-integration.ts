@@ -41,6 +41,7 @@ async function main() {
   for (const table of [
     schema.users,
     schema.accounts,
+    schema.emailVerificationCodes,
     schema.profiles,
     schema.referralStats,
     schema.referralAttributions,
@@ -1033,6 +1034,32 @@ async function main() {
         });
         const bcrypt = (await import("bcryptjs")).default;
         assert.ok(await bcrypt.compare("Synthetic!Login2847#", passwordUser!.password!));
+        // Partner passwords use the existing login-code proof, without customer signup or checkout.
+        const { createAndSendVerificationCode, verifyEmailCode, consumeVerifiedAuthProof } =
+          await import("../../src/lib/auth/email-verification-codes");
+        assert.ok(passwordUser?.email);
+        const loginEmail = passwordUser.email;
+        const loginDelivery = await createAndSendVerificationCode({
+          userId: passwordUser!.id,
+          email: loginEmail,
+          purpose: "login",
+        });
+        assert.ok(loginDelivery.success);
+        assert.match(code, /^\d{6}$/);
+        const loginProof = await verifyEmailCode({
+          email: loginEmail,
+          code,
+          purpose: "login",
+        });
+        assert.ok(loginProof.success);
+        assert.equal(loginProof.userId, passwordUser!.id);
+        const proofInput = {
+          email: loginEmail,
+          proof: loginProof.proof,
+          purpose: "login" as const,
+        };
+        assert.equal(await consumeVerifiedAuthProof(proofInput), true);
+        assert.equal(await consumeVerifiedAuthProof(proofInput), false);
         assert.equal(
           (await db.query.partnerAccounts.findFirst({
             where: eq(schema.partnerAccounts.id, live!.partnerId),
@@ -1093,6 +1120,83 @@ async function main() {
       } finally {
         globalThis.fetch = priorFetch;
         setSession(null);
+      }
+    },
+  );
+  await check(
+    "local configuration failures stay retryable and Dropbox test execution cannot activate partners",
+    async () => {
+      const previous = {
+        mode: process.env.PARTNER_CONTRACT_SIGNING_MODE,
+        live: process.env.PARTNER_CONTRACT_LIVE_ENABLED,
+        key: process.env.DROPBOX_SIGN_API_KEY,
+        keys: process.env.PARTNER_CONTRACT_ENCRYPTION_KEYS,
+        recipients: process.env.PARTNER_CONTRACT_TEST_RECIPIENTS,
+      };
+      try {
+        process.env.PARTNER_CONTRACT_SIGNING_MODE = "dropbox_test";
+        process.env.PARTNER_CONTRACT_LIVE_ENABLED = "false";
+        const f = await fixture();
+        const id = (await prepareContract(f.id)).contractId!;
+        const beforeSends = sendCalls;
+        const generated = async () => {
+          const c = (await db.query.partnerContracts.findFirst({
+            where: eq(schema.partnerContracts.id, id),
+          }))!;
+          assert.equal(c.status, "generated");
+          assert.equal(c.providerReference, null);
+          assert.equal(sendCalls, beforeSends);
+        };
+        delete process.env.DROPBOX_SIGN_API_KEY;
+        await assert.rejects(sendContract(id), /provider_credentials_missing/);
+        await generated();
+        process.env.DROPBOX_SIGN_API_KEY = previous.key!;
+        delete process.env.PARTNER_CONTRACT_ENCRYPTION_KEYS;
+        await assert.rejects(sendContract(id), /document_integrity_check_failed/);
+        await generated();
+        process.env.PARTNER_CONTRACT_ENCRYPTION_KEYS = previous.keys!;
+        process.env.PARTNER_CONTRACT_TEST_RECIPIENTS = `${f.email},company@example.invalid`;
+        await sendContract(id);
+        assert.equal(sendCalls, beforeSends + 1);
+        assert.equal(raw.test_mode, true);
+        raw.is_complete = true;
+        for (const signature of raw.signatures) {
+          signature.status_code = "signed";
+          signature.signed_at = Math.floor(Date.now() / 1000);
+        }
+        await reconcileContract(id);
+        const c = (await db.query.partnerContracts.findFirst({
+          where: eq(schema.partnerContracts.id, id),
+        }))!;
+        assert.equal(c.mode, "dropbox_test");
+        assert.equal(c.status, "fully_executed");
+        assert.ok(c.signedArtifactId && c.auditArtifactId);
+        await assert.rejects(
+          activateExecutedContract(
+            id,
+            "test-owner",
+            "Test execution cannot grant commercial rights",
+            true,
+          ),
+          /fully_executed_production_agreement_required/,
+        );
+        assert.equal(
+          (await db.query.partnerAccounts.findFirst({
+            where: eq(schema.partnerAccounts.id, f.partnerId),
+          }))!.status,
+          "pending",
+        );
+      } finally {
+        for (const [key, value] of Object.entries({
+          PARTNER_CONTRACT_SIGNING_MODE: previous.mode,
+          PARTNER_CONTRACT_LIVE_ENABLED: previous.live,
+          DROPBOX_SIGN_API_KEY: previous.key,
+          PARTNER_CONTRACT_ENCRYPTION_KEYS: previous.keys,
+          PARTNER_CONTRACT_TEST_RECIPIENTS: previous.recipients,
+        })) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
       }
     },
   );

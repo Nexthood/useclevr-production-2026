@@ -27,6 +27,8 @@
 
 ### Fixed
 
+- Keep generated partner agreements retryable when local signing credentials or document keys require configuration repair.
+
 - Keep applications recoverable during email or storage failures and calculate payable commissions from verified collected subscription revenue and each partner’s signed commercial terms.
 
 - Explain partner invitation failures separately and let partners sign in with the invited account while keeping their onboarding link.

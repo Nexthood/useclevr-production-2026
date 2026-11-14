@@ -2,6 +2,8 @@
 
 Status: implementation for review; production signing is disabled by default. The owner must explicitly approve the exact legal templates, commercial schedules and provider configuration following qualified legal review. Do not merge or deploy production signing before those approvals. No provider subscription is purchased by this implementation.
 
+For the exact production variable matrix, staged account/callback setup and owner verification steps, use [Partner production setup](PARTNER_PRODUCTION_SETUP.md).
+
 ## Architecture
 
 Application approval → verified single-use onboarding → partner legal identity and electronic-record consent → administrator identity/authority review → versioned commercial schedule → personalized PDF → external provider invitation → partner signature → authorized Atlas Mega Ventures LLC countersignature → authoritative provider verification → encrypted signed PDF and evidence archive → confirmation copies → eligible for explicit administrator activation.

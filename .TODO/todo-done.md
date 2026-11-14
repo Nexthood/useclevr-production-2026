@@ -100,6 +100,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1109. Audit partner contract configuration and signing controls, keep local signing setup failures retryable, document Railway and Dropbox Sign setup, and publish the locally validated draft review PR without merge or deployment. (labels: workflow, security, auth, testing, docs; commit: af568e8e)
+
 - T-1108. Provide public partner registration, invitation email verification, scoped agreement access, signed-agreement credential setup, private commercial portal views and signed-term commission controls; publish the locally validated review branch without deployment. (labels: workflow, auth, billing, security, testing; commit: 26be67d9)
 
 - T-1102. Finalize approved Global Partner Program policies, audited suspension recovery, controlled pre-termination settlements, stable downgrade grace, and isolated release validation; keep the program disabled. (labels: billing, sales, security, testing; commit: worktree)

@@ -311,6 +311,7 @@ async function reserveLiveSend(db: ContractDb, c: ContractRow) {
 export async function sendContract(contractId: string) {
   const db = contractDatabase();
   let row: ContractRow | null = null;
+  let sourcePdf: Buffer | null = null;
   await db.transaction(async (tx) => {
     await contractLock(tx, contractId);
     const c = await contractRow(tx, contractId);
@@ -319,6 +320,12 @@ export async function sendContract(contractId: string) {
     if (c.mode === "dropbox_live") await liveGates(tx, c);
     if (["sending", "send_uncertain"].includes(c.status))
       throw new ContractError("provider_creation_requires_reconciliation");
+    // Local failures cannot create an external request. Keep the generated agreement
+    // retryable until credentials and its encrypted source document are available.
+    contractProvider(tx, c);
+    if (!c.sourceArtifactId || !c.documentChecksum)
+      throw new ContractError("source_document_missing");
+    sourcePdf = (await readArtifact(tx, c.sourceArtifactId, c.id, c.documentChecksum)).bytes;
     if (c.mode === "dropbox_live") await reserveLiveSend(tx, c);
     const rows = await tx
       .update(partnerContracts)
@@ -330,20 +337,17 @@ export async function sendContract(contractId: string) {
   if (!row) return;
   const c = row as ContractRow;
   try {
-    if (!c.sourceArtifactId || !c.documentChecksum)
-      throw new ContractError("source_document_missing");
-    const pdf = await readArtifact(db, c.sourceArtifactId, c.id, c.documentChecksum);
     const state = await db.transaction(async (tx) => {
       if (c.mode === "dropbox_live") await liveGates(tx, c);
       return contractProvider(tx, c).send({
         contractId: c.id,
         sourceChecksum: c.documentChecksum!,
-        pdf: pdf.bytes,
+        pdf: sourcePdf!,
         snapshot: c.snapshot,
         expiresAt: c.expiresAt,
       });
     });
-    verifySignatures(state, c.snapshot, c.id, c.documentChecksum, c.mode as ContractMode);
+    verifySignatures(state, c.snapshot, c.id, c.documentChecksum!, c.mode as ContractMode);
     await db.transaction(async (tx) => {
       await contractLock(tx, c.id);
       const fresh = await contractRow(tx, c.id);
