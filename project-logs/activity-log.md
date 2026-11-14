@@ -4,6 +4,7 @@
 - Keep local credential/key failures retryable before external send state; cover configuration defaults, sandbox restrictions and portal navigation.
 - Pass focused contract/invitation/authentication/browser checks, correct nullable fixture-email typing, and verify production compilation, 105 pages, packaging and packaged-runtime acceptance.
 - Verify clean-source lint with zero errors and 448 warnings, types, deployment configuration, secrets and 171 documentation links; publish review changes without deployment.
+- Publish source commit af568e8e in [draft PR #425](https://github.com/Nexthood/useclevr-production-2026/pull/425) targeting beta; close T-1109 and retain hosted acceptance under T-1103 and T-1107.
 
 ## 2026-11-14 — Partner portal v2 continuation (T-1108)
 
