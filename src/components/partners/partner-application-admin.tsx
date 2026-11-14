@@ -43,8 +43,8 @@ export function PartnerApplicationAdmin() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [agreement, setAgreement] = useState<Record<string, string>>({});
-  const [evidence, setEvidence] = useState<Record<string, string>>({});
+  const [agreement] = useState<Record<string, string>>({});
+  const [evidence] = useState<Record<string, string>>({});
 
   async function load() {
     const response = await fetch(`/api/admin/partner-applications?status=${filter}`, {
@@ -60,9 +60,9 @@ export function PartnerApplicationAdmin() {
 
   async function action(row: ApplicationRow, actionName: string) {
     const confirmation =
-      ["under_review", "retry_email"].includes(actionName) ||
+      ["under_review", "retry_email", "add_note"].includes(actionName) ||
       window.confirm(
-        `${actionName === "approve" ? "Approve" : actionName === "reject" ? "Reject" : "Activate"} ${row.fullName}’s partner application?`,
+        `${actionName === "approve" ? "Approve" : actionName === "reject" ? "Reject" : actionName === "renew_invitation" ? "Renew invitation for" : "Activate"} ${row.fullName}’s partner application?`,
       );
     if (!confirmation) return;
     setBusy(row.id);
@@ -213,6 +213,34 @@ export function PartnerApplicationAdmin() {
                     </Button>
                   </div>
                 )}
+              </div>
+              {row.status === "approved" && (
+                <Button
+                  className="mt-3"
+                  variant="outline"
+                  disabled={!!busy}
+                  onClick={() => action(row, "renew_invitation")}
+                >
+                  Send new invitation
+                </Button>
+              )}
+              <div className="mt-3 space-y-2">
+                <label className="text-sm">
+                  Internal note or renewal reason
+                  <input
+                    className={input}
+                    value={reasons[row.id] || ""}
+                    maxLength={1000}
+                    onChange={(e) => setReasons({ ...reasons, [row.id]: e.target.value })}
+                  />
+                </label>
+                <Button
+                  variant="outline"
+                  disabled={!!busy || (reasons[row.id] || "").trim().length < 10}
+                  onClick={() => action(row, "add_note")}
+                >
+                  Save internal note
+                </Button>
               </div>
               {["pending", "under_review"].includes(row.status) && (
                 <label className="mt-3 block text-xs text-muted-foreground">

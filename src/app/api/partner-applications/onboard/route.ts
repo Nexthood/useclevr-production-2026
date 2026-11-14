@@ -1,7 +1,8 @@
+import type { BusinessApplication } from "@/lib/partners/application";
 import { featureEnabled } from "@/lib/partners/contracts/domain";
 import { enqueuePreparation } from "@/lib/partners/contracts/records";
 import { randomUUID } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/require-session";
 import { getDb } from "@/lib/db";
@@ -15,9 +16,21 @@ import { hashInvitation } from "@/lib/partners/public-applications";
 import { validWriteOrigin } from "@/lib/partners/api";
 import { getAccountReferralCode } from "@/lib/referrals/owner-code";
 
+import {
+  invitationFailure,
+  onboardingFailures,
+  OnboardingInvitationError,
+  type OnboardingFailureCode,
+} from "@/lib/partners/onboarding";
+
+function failure(code: OnboardingFailureCode) {
+  const { status, error } = onboardingFailures[code];
+  return NextResponse.json({ code, error }, { status, headers: { "Cache-Control": "no-store" } });
+}
+
 export async function POST(request: Request) {
   const auth = await requireSession();
-  if (!auth.success) return auth.error;
+  if (!auth.success) return failure("authentication_required");
   if (!validWriteOrigin(request))
     return NextResponse.json({ error: "Request origin could not be verified." }, { status: 403 });
   const body = await request.json().catch(() => null);
@@ -30,53 +43,30 @@ export async function POST(request: Request) {
   )
     return NextResponse.json({ error: "Invalid onboarding request." }, { status: 400 });
   const db = getDb();
-  if (!db)
-    return NextResponse.json({ error: "Onboarding is temporarily unavailable." }, { status: 503 });
-  const user = await db.query.users.findFirst({ where: eq(users.id, auth.userId) });
-  const verifiedEmail = user?.email;
-  if (!user?.emailVerified || !verifiedEmail)
-    return NextResponse.json(
-      { error: "Verify your UseClevr account email before continuing." },
-      { status: 403 },
-    );
-  const app = await db.query.partnerApplications.findFirst({
-    where: and(
-      eq(partnerApplications.invitationHash, hashInvitation(body.token)),
-      eq(partnerApplications.status, "approved"),
-      isNull(partnerApplications.invitationUsedAt),
-    ),
-  });
-  if (
-    !app ||
-    !app.invitationExpiresAt ||
-    app.invitationExpiresAt < new Date() ||
-    app.email.toLowerCase() !== verifiedEmail.toLowerCase()
-  )
-    return NextResponse.json(
-      { error: "This invitation is invalid, expired, or belongs to a different verified email." },
-      { status: 403 },
-    );
-  const code = await getAccountReferralCode(user.id, verifiedEmail);
+  if (!db) return failure("onboarding_unavailable");
   try {
+    const user = await db.query.users.findFirst({ where: eq(users.id, auth.userId) });
+    const verifiedEmail = user?.email;
+    if (!user?.emailVerified || !verifiedEmail) return failure("email_verification_required");
+    const tokenHash = hashInvitation(body.token);
+    const app = await db.query.partnerApplications.findFirst({
+      where: eq(partnerApplications.invitationHash, tokenHash),
+    });
+    const invalid = invitationFailure(app, tokenHash, verifiedEmail);
+    if (invalid) return failure(invalid);
+    // A successful validation always has a persisted invitation.
+    if (!app) return failure("invalid_invitation");
+    const code = await getAccountReferralCode(user.id, verifiedEmail);
     await db.transaction(async (tx) => {
       await tx.execute(
         (await import("drizzle-orm"))
           .sql`select pg_advisory_xact_lock(hashtextextended(${`partner-application:${app.id}`},0))`,
       );
       const locked = await tx.query.partnerApplications.findFirst({
-        where: and(
-          eq(partnerApplications.id, app.id),
-          eq(partnerApplications.status, "approved"),
-          isNull(partnerApplications.invitationUsedAt),
-        ),
+        where: eq(partnerApplications.id, app.id),
       });
-      if (
-        !locked ||
-        !locked.invitationExpiresAt ||
-        locked.invitationExpiresAt < new Date() ||
-        locked.email.toLowerCase() !== verifiedEmail.toLowerCase()
-      )
-        throw new Error("invitation_unavailable");
+      const unavailable = invitationFailure(locked, tokenHash, verifiedEmail);
+      if (unavailable) throw new OnboardingInvitationError(unavailable);
       const existing = await tx.query.partnerAccounts.findFirst({
         where: eq(partnerAccounts.userId, user.id),
       });
@@ -94,8 +84,7 @@ export async function POST(request: Request) {
           agreement:
             "Partner onboarding completed; commercial agreement pending administrator review.",
           application: {
-            partnershipType:
-              app.category as import("@/lib/partners/application").BusinessApplication["partnershipType"],
+            partnershipType: app.category as BusinessApplication["partnershipType"],
             companyName: app.companyName || "",
             businessEmail: app.email,
             email: app.email,
@@ -112,33 +101,25 @@ export async function POST(request: Request) {
           partnerAccountId: partnerId!,
           onboardedAt: new Date(),
           invitationUsedAt: new Date(),
-          invitationHash: null,
+          // Retain only the one-way hash so a used invitation can be identified and rejected.
+          invitationHash: tokenHash,
           updatedAt: new Date(),
         })
         .where(eq(partnerApplications.id, app.id));
-      await tx
-        .insert(partnerApplicationAudit)
-        .values({
-          id: randomUUID(),
-          applicationId: app.id,
-          actor: user.id,
-          action: "onboarding_completed",
-        });
+      await tx.insert(partnerApplicationAudit).values({
+        id: randomUUID(),
+        applicationId: app.id,
+        actor: user.id,
+        action: "onboarding_completed",
+      });
       if (featureEnabled()) await enqueuePreparation(tx, app.id);
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "invitation_unavailable")
-      return NextResponse.json(
-        { error: "This invitation has already been used or expired." },
-        { status: 409 },
-      );
+    if (error instanceof OnboardingInvitationError) return failure(error.code);
     console.error("[partner-onboarding] completion failed", {
       type: error instanceof Error ? error.name : "unknown",
     });
-    return NextResponse.json(
-      { error: "Onboarding could not be completed. Please contact the partner team." },
-      { status: 503 },
-    );
+    return failure("onboarding_unavailable");
   }
   return NextResponse.json(
     {

@@ -204,6 +204,14 @@ export function ContractManagement() {
                       },
                       terms: Object.fromEntries(commercialFields.map((k) => [k, s(k)])),
                       financialConfigId: data.financialConfig?.id || "",
+                      ...(s("standardRateBps") || s("premiumRateBps")
+                        ? {
+                            commissionRatesBps: {
+                              standard: Number(s("standardRateBps") || -1),
+                              premium: Number(s("premiumRateBps") || -1),
+                            },
+                          }
+                        : {}),
                       financialAlignmentConfirmed: true,
                       ...(s("effectiveUntil")
                         ? { effectiveUntil: new Date(s("effectiveUntil")).toISOString() }
@@ -242,13 +250,33 @@ export function ContractManagement() {
                     <textarea name={k} required minLength={5} maxLength={4000} className={field} />
                   </label>
                 ))}
+                <p className="text-sm sm:col-span-2">
+                  Optional contract rates use basis points (1500 = 15%). Enter both rates to include
+                  them in the signed PDF. Empty fields use the identified financial policy.
+                </p>
+                {[
+                  ["standardRateBps", "Bronze / Silver rate (basis points)"],
+                  ["premiumRateBps", "Gold / Platinum / Diamond rate (basis points)"],
+                ].map(([name, title]) => (
+                  <label className="text-sm" key={name}>
+                    {title}
+                    <input
+                      name={name}
+                      type="number"
+                      min={0}
+                      max={10000}
+                      step={1}
+                      className={field}
+                    />
+                  </label>
+                ))}
                 <label className="text-sm">
                   Schedule eligibility deadline (optional)
                   <input name="effectiveUntil" type="datetime-local" className={field} />
                 </label>
                 <label className="text-sm">
                   <input type="checkbox" required /> I reviewed alignment with the current financial
-                  policy. No rates are changed.
+                  policy and confirm that the written commission terms match the selected rates.
                 </label>
                 <Button disabled={busy || !data.financialConfig}>Save draft schedule</Button>
               </form>

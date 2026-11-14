@@ -2,6 +2,9 @@
 
 ### Added
 
+- Let invited partners verify email, review and sign agreements, establish login credentials, and use a dedicated portal without customer signup or a paid subscription.
+- Give partners private customer, sales, performance, agreement, payout and contact views, and let administrators renew invitations with audited notes.
+
 - Let administrators manage reviewed partner agreements, ordered electronic signatures, private signed copies and delivery retries, with legally approved contracts required before separate commercial activation.
 
 - Let business partners apply with company details, track administrator review, and complete separate commercial onboarding before partner activation.
@@ -23,6 +26,10 @@
 - Locked historical datasets stay visible with their names, sizes, and dates, and reopen automatically the moment the subscription reactivates.
 
 ### Fixed
+
+- Keep applications recoverable during email or storage failures and calculate payable commissions from verified collected subscription revenue and each partner’s signed commercial terms.
+
+- Explain partner invitation failures separately and let partners sign in with the invited account while keeping their onboarding link.
 
 - Accept authenticated partner signing updates across supported callback formats while rejecting conflicting application identities.
 
@@ -79,7 +86,13 @@
 
 ### Dev
 
-- Publish test builds without automatic production promotion, keep partner signing disabled, and skip hosted migrations until database isolation is verified.
+- Add partner invitation regressions for verified email ownership, expiry, reuse and consistent database lookup.
+
+- Bind test deployment artifacts to the dedicated TEST service independently of Railway environment placement.
+
+- Retain sanitized historical sandbox diagnostic evidence without adding a deployment gate.
+
+- Publish test builds without automatic production promotion, keep partner signing disabled, and unconditionally skip hosted migrations in TEST artifacts.
 
 - Partner release browser checks now ride through page reloads and fast navigation updates without aborting, so application-state verification stays reliable.
 

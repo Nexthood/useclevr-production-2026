@@ -19,6 +19,7 @@ moving work between states.
 
 ## Label: workflow
 
+
 - T-1105. Implement versioned partner agreements, provider-backed sequential signatures, private execution evidence, audited contract administration and mandatory executed-agreement activation gates; keep production signing disabled until owner legal and provider approval. (labels: workflow, security, testing, docs)
 
 - T-1097. Publish the validated Passport proxy-origin branch and open a review PR targeting beta; preserve main and exclude local test/cache artifacts from publication. (labels: workflow, auth, testing)
@@ -57,3 +58,7 @@ Reuse inactive number ranges for new non-sequential work when a shorter active I
 ## Label: sales
 
 - T-1103. Restore secure Railway access, verify production schema, backups and runtime configuration, prepare missing Stripe notifications, and obtain owner authorization before coordinated publication; deploy and verify company applications and the reseller landing page after secure access is restored; complete hosted registration, eligible payment and mature manual-settlement acceptance across both domains. (labels: sales, auth, billing, security, testing, deployment)
+
+## Label: testing
+
+- T-1107. Give partners distinct invitation errors and a sign-in recovery path, verify the affected production invitation and database targets with authorized read-only access, and complete hosted acceptance with the matching verified account. (labels: testing, auth, security, deployment)

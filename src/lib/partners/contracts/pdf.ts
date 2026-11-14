@@ -36,6 +36,11 @@ export function agreementText(t: Template, s: ContractSnapshot, id: string) {
     "## Versioned Commercial Schedule",
     `Terms version: ${s.scheduleHash}`,
     `Financial program policy: ${s.financialConfigId}; checksum ${s.financialConfigHash}`,
+    ...(s.commissionRatesBps
+      ? [
+          `Contract commission rates: Bronze and Silver ${s.commissionRatesBps.standard / 100}%; Gold, Platinum and Diamond ${s.commissionRatesBps.premium / 100}%. These contract-specific rates apply to qualifying received net revenue under this schedule.`,
+        ]
+      : []),
     `Schedule effective limit: ${s.effectiveUntil || "As expressly specified in the term and renewal provision"}`,
     ...Object.entries(s.terms).map(
       ([key, value]) =>

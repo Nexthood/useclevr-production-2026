@@ -1,3 +1,67 @@
+## 2026-11-14 — Partner portal v2 continuation (T-1108)
+
+- Goal: Complete the in-progress public partner registration, scoped invitation verification, agreement access, credentials, portal and signed-term financial controls; publish source for review without deployment.
+- Changes: Validate the inherited implementation on feat/partner-portal-v2. Update the packaged-runtime acceptance script for public applications, invitation-code entry, no-referrer metadata, partner login return URLs and anonymous private-API rejection. Align the program guide with public registration and the separate authenticated application endpoint. Fix the agreement route’s required Request signature after Next.js production validation rejects its optional argument.
+- Verification: Partner unit tests, 43 PostgreSQL checks, 16 contract integration groups, 18 browser groups, TypeScript, changed-source ESLint, auth redirects, 27 referral regressions, mocked Railway auth/policy tests, secret/TODO/changelog/package checks and deployment configuration pass. Isolated production compilation, all 105 pages, packaging and packaged-runtime acceptance pass. Repository-wide lint reports zero errors and 453 warnings; documentation links pass across 170 files. Historical-log Markdown findings match HEAD.
+- Risk: Local fixtures do not verify hosted migration, real email delivery, provider signing or production database health. Owner-approved hosted acceptance stays separate under existing release tasks. No deployment, live signing, payment or hosted migration occurs.
+- Learning: The packaged-runtime script must verify public applicant access while retaining authenticated partner and administrator API boundaries. Local build snapshots can produce synthetic-credential scan findings outside the original test-file allowlist; retain those artifacts under an ignored temporary directory.
+- Publication: Source commit 26be67d9 is published on feat/partner-portal-v2 with [draft PR #423](https://github.com/Nexthood/useclevr-production-2026/pull/423) targeting beta. Completed isolated build, type, deployment-config and lint checks cover the push gate; the duplicate root build is skipped to avoid loading local environment files. No merge or deployment occurs.
+- Follow-up: Retain hosted acceptance under T-1103 and T-1107; owner approval and provider evidence remain required for live signing.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Distinct partner invitation errors and recovery (T-1107)
+
+- Goal: Diagnose the immediate production rejection and give partners safe, actionable invitation failures and authentication recovery.
+- Confirmed defects in the reviewed baseline: Eligibility errors collapse unrelated states; used hashes are cleared; the signed-in form lacks account-switching recovery. The affected production rejection predicate remains unconfirmed without authorized runtime access and an application reference.
+- Changes: Classify invitation failures after authentication/verification, recheck the hash and state under lock, retain only the one-way hash on new completion, add same-origin sign-in/account switching, suppress onboarding referrers, and explain required verification in approval mail. Existing records receive no backfill or migration.
+- Validation: Partner unit suite, 42 partner PostgreSQL checks, 14 contract integration groups, 13 browser groups, auth redirects, types, deployment-config, source ESLint, secret/TODO/Markdown checks and production build with packaging pass. Hosted acceptance remains open.
+- Blocker: Railway reports Unauthorized; the operator must restore read-only runtime/database access, identify the affected application, and authorize a dedicated matching verified account for hosted acceptance. No production signing, records or deployment architecture changes occur.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Production partner invitation diagnosis (T-1107)
+
+- Goal: Diagnose the production onboarding rejection and preserve invitation, verified-email and activation controls.
+- Findings: Approval and onboarding share the runtime database client. Runtime prefers DATABASE_URL; predeploy prefers DIRECT_URL. The reported error maps to invitation eligibility, while unverified identity and transaction failure use separate errors. Production cause and database identity remain unconfirmed because Railway access is unavailable.
+- Changes: Add invitation security and runtime database precedence regressions to the disposable PostgreSQL integration suite. Record verified findings and required production evidence in docs/validation/partner-onboarding-diagnosis-2026-11-12.md. Apply no speculative runtime correction.
+- Validation: Partner unit tests, all 42 partner PostgreSQL checks, and all 14 contract integration groups pass, including additive migration 0043 checks. Type checking, deployment configuration, auth redirects, secret/TODO scans and the full production build with distribution packaging pass.
+- Blocker: The operator must restore authorized read-only Railway/database access and identify the affected application; hosted end-to-end acceptance also requires a dedicated matching verified test account. No production record, migration, signing setting, service identity or pipeline is changed.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — PR #420 deployment gate clarification
+
+- Current gate: TEST service identity and source revision only; no beta-environment or database-isolation deployment requirement exists.
+- Change: Remove unused environment marker metadata and obsolete isolation messages; retain unconditional TEST migration skipping and disabled contract signing/worker.
+- Mapping: GitHub Actions publishes dist-test for useclevr TEST and dist for useclevr app; no deployment, hosted migration or signing is authorized in this task.
+- Historical isolation blockers below describe prior diagnostics, not the current deployment policy. Real provider acceptance still needs approved configuration and recipients.
+
+## 2026-11-12 — PR #420 verified beta target (T-1106)
+
+- Goal: Require the owner-verified beta environment in the publisher marker and runtime policy; commit and push only the PR branch.
+- Change: Bind beta artifacts to environment `d34d75b1-0d5c-45fa-b4e0-f2533c22a827` and TEST service `22dcb858-f0c0-426a-bc85-69766813372e`. Reject production environment `7e93cd17-12a0-4a0f-b345-9ef8ae3c6b8e`, including a matching stale marker/runtime pair.
+- Safety: Preserve service and revision checks, disabled contract signing/worker, skipped hosted migrations and explicit production-promotion authorization.
+- Verification: Focused Railway authentication/policy tests and deployment configuration checks pass. The predeploy regression forbids database construction.
+- Blocker: Independent beta database isolation remains unverified. The operator must provide authoritative runtime and migration target isolation evidence before deployment, migrations or signing are authorized.
+- Learning: Owner-verified environment identity corrects the target; service identity and public health do not establish database isolation. No hosted operation or beta push is authorized by this change.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Actions sandbox diagnostic result and cleanup (T-1105)
+
+- Result: Run 43205440582 source 8db3b035 records a fail-closed BLOCKED diagnostic in job 131139303746. Independent source/integration/security/regression/build and documentation jobs pass. The deployed 4f2f43f7 revision confirms signing disabled.
+- Authorization boundary: Neither existing platform access credential nor runtime database/configuration values are delegated to the Actions job. Authoritative beta/production database identifiers remain unavailable. Empty Actions presence does not establish absent hosted configuration. Local Railway CLI login is not required.
+- Migration and recipients: Identify source migration 0043 and its checksum; hosted pending state and QA address count remain unknown. No SQL, migrations, invites, partner activation or hosted financial activity occurs. No address or secret value is disclosed.
+- Cleanup: Remove the temporary diagnostic job and both scripts; restore CI and check names to the verified baseline. Retain the sanitized report at docs/validation/pr420-sandbox-diagnostic-2026-11-12.json and update PR #420 with Actions evidence. The working test deployment remains unchanged.
+- Required next access: An existing approved read-only runtime identity or operator-verified sanitized metadata export must be delegated to Actions before isolation/configuration can be established and migrations considered. No new infrastructure or credentials are created or requested.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-12 — Temporary read-only Actions sandbox diagnostic (T-1105)
+
+- Goal: Run a temporary read-only Actions diagnostic, fail closed on unavailable database identities, inspect configuration presence and QA availability without values, publish evidence and remove the diagnostic after verification.
+- Changes: Add a manual, PR-branch-only job to the existing CI workflow with contents read permission and no credential persistence. Pass boolean configuration presence flags; consume an existing CI-delegated platform credential only through the established read-only wrapper if available. Compare hashes of actual database names inside read-only transactions, never connection strings or contents. Missing access remains BLOCKED. Verify the established signing-disabled hosted revision; never interpret service IDs or database health as isolation proof. Record migration 0043 as a source candidate with unknown hosted state, not a proven pending migration. Refuse migrations and disclose no recipient addresses.
+- Evidence: Repository owner is a User; organization inheritance does not apply. Repository and beta/production Actions secret and variable name lists are empty. The runner diagnostic verifies its own context; absence there is not asserted as absent Railway runtime configuration.
+- Validation: Test missing, untrusted and identical database identity rejection; non-boolean presence rejection; fail-closed migration gating; and exact signing-disabled revision verification. Existing CI continues all partner integration/security/regression/build checks independently.
+- Follow-up: Commit/push only the PR branch, dispatch existing CI there, collect its sanitized summary and report, remove temporary job/script and restore workflow metadata. Do not write production, migrate hosted databases, send invitations, activate partners or create hosted financial activity.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-12 — Verified Railway TEST service binding (T-1105)
 
 - Finding: Actions source/regression/build run 43199185566 and dist-test publisher 43199180826 pass for cbd5f736; production promotion is skipped and no beta-to-main PR exists. Generated artifact ae92d768 receives Railway TEST status failure.

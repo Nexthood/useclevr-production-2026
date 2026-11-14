@@ -19,7 +19,7 @@ import {
   boundedBytes,
   MockSignatureProvider,
 } from "../../src/lib/partners/contracts/provider";
-import { generateAgreementPdf } from "../../src/lib/partners/contracts/pdf";
+import { agreementText, generateAgreementPdf } from "../../src/lib/partners/contracts/pdf";
 import { sealArtifact } from "../../src/lib/partners/contracts/storage";
 async function main() {
   const identity = {
@@ -263,6 +263,31 @@ async function main() {
       PARTNER_CONTRACT_SIGNING_MODE: "draft",
     });
   });
+  check(
+    "contract-specific rates are bounded, signed into the PDF and change the agreement checksum",
+    () => {
+      const rates = { standard: 1725, premium: 2375 };
+      assert.ok(scheduleSchema.safeParse({ ...schedule, commissionRatesBps: rates }).success);
+      assert.equal(
+        scheduleSchema.safeParse({
+          ...schedule,
+          commissionRatesBps: { standard: -1, premium: 2000 },
+        }).success,
+        false,
+      );
+      assert.equal(
+        scheduleSchema.safeParse({
+          ...schedule,
+          commissionRatesBps: { standard: 1500, premium: 10001 },
+        }).success,
+        false,
+      );
+      const custom = { ...snapshot, commissionRatesBps: rates };
+      const text = agreementText(templates[0], custom, "custom-rate-fixture");
+      assert.ok(text.includes("17.25%") && text.includes("23.75%"));
+      assert.notEqual(hashObject(custom), hashObject(snapshot));
+    },
+  );
   await assert.rejects(boundedBytes(new Response("oversized"), 2));
   groups++;
   console.log("PASS bounded provider and webhook response reads");

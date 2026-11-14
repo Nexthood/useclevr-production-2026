@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { Pool } from "pg";
 import { getTableConfig, PgDialect } from "drizzle-orm/pg-core";
-import { SQL, eq } from "drizzle-orm";
+import { SQL, eq, sql } from "drizzle-orm";
 
 async function main() {
   // This runner has no configurable production target. Use only the documented disposable container.
@@ -13,7 +13,8 @@ async function main() {
   await adminPool.end();
   const target = `${base}?options=-csearch_path%3D${namespace}`;
   process.env.DATABASE_URL = target;
-  process.env.DIRECT_URL = "";
+  // A different migration URL must never redirect invitation writes or onboarding reads.
+  process.env.DIRECT_URL = "postgresql://unused@127.0.0.1:1/unused_migration_target";
   process.env.NEON_USE_SERVERLESS = "false";
   process.env.NEON_USE_WS_POOL = "false";
   Object.assign(process.env, { NODE_ENV: "test", PARTNER_PROGRAM_ENABLED: "true" });
@@ -37,6 +38,7 @@ async function main() {
     schema.referralEvents,
     schema.userCredits,
     schema.creditLedger,
+    schema.partnerContracts,
   ]) {
     const config = getTableConfig(table);
     const columns = config.columns.map((c) => {
@@ -91,6 +93,12 @@ async function main() {
   );
   await pool.query(publicApplicationsMigration);
   await pool.query(publicApplicationsMigration);
+  await pool.query(
+    await readFile(
+      new URL("../../src/lib/db/migrations/0044_partner_invitation_access.sql", import.meta.url),
+      "utf8",
+    ),
+  );
   console.log("PASS additive migrations 0038/0039/0040/0041/0042 and repeat application");
   const {
     database,
@@ -117,6 +125,11 @@ async function main() {
   const onboardingApi = await import("../../src/app/api/partner-applications/onboard/route");
   const owner = await import("../../src/app/api/partners/route");
   const db = database();
+  const identity = await db.execute(
+    sql`select current_database() as database, current_schema() as schema`,
+  );
+  assert.equal(identity.rows[0]?.database, "partner_tests");
+  assert.equal(identity.rows[0]?.schema, namespace);
   await (async () => {
     process.env.AUTH_SECRET = "integration-test-only-partner-secret";
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
@@ -273,30 +286,184 @@ async function main() {
       }),
     );
     assert.equal(prematureActivation.status, 409);
-    await db
-      .insert(schema.users)
-      .values({
-        id: "public-partner-user",
-        email: "sales-applicant@example.invalid",
-        emailVerified: new Date(),
-        name: "Test Partner",
-      });
+    await db.insert(schema.users).values({
+      id: "public-partner-user",
+      email: "sales-applicant@example.invalid",
+      emailVerified: new Date(),
+      name: "Test Partner",
+    });
     setSession({
       user: { id: "public-partner-user", email: "sales-applicant@example.invalid", role: "user" },
     });
-    const onboard = await onboardingApi.POST(
+    const invitationRequest = (token = invite!, origin = "http://localhost:3000") =>
       new Request("http://localhost:3000/api/partner-applications/onboard", {
         method: "POST",
-        headers: { origin: "http://localhost:3000", "content-type": "application/json" },
-        body: JSON.stringify({ token: invite, accepted: true }),
-      }),
+        headers: { origin, "content-type": "application/json" },
+        body: JSON.stringify({ token, accepted: true }),
+      });
+    const { hashInvitation } = await import("../../src/lib/partners/public-applications");
+    const persisted = await db.query.partnerApplications.findFirst({
+      where: eq(schema.partnerApplications.id, applicant!.id),
+    });
+    assert.ok(
+      persisted?.invitationHash === hashInvitation(invite!),
+      "emailed token matches the stored hash in the runtime database",
     );
+    assert.ok(persisted.invitationExpiresAt && persisted.invitationExpiresAt > new Date());
+    assert.equal(persisted.invitationUsedAt, null);
+    const validSession = {
+      user: { id: "public-partner-user", email: "sales-applicant@example.invalid", role: "user" },
+    };
+    setSession(null);
+    const anonymous = await onboardingApi.POST(invitationRequest());
+    const anonymousMissing = await onboardingApi.POST(invitationRequest("x".repeat(43)));
+    assert.equal(anonymous.status, 401);
+    assert.equal(anonymousMissing.status, 401);
+    const anonymousBody = await anonymous.json();
+    assert.equal(anonymousBody.code, "authentication_required");
+    assert.deepEqual(
+      await anonymousMissing.json(),
+      anonymousBody,
+      "anonymous errors cannot disclose invitation existence",
+    );
+    const { default: onboardingPage, metadata: onboardingMetadata } =
+      await import("../../src/app/(public)/partners/onboard/page");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const markup = renderToStaticMarkup(
+      await onboardingPage({ searchParams: Promise.resolve({ token: invite }) }),
+    );
+    assert.ok(
+      markup.includes("Send verification code"),
+      "anonymous onboarding offers email verification",
+    );
+    assert.ok(!markup.includes('href="/login'), "invitation does not require customer login");
+    assert.equal(onboardingMetadata.referrer, "no-referrer");
+    setSession(validSession);
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest(invite, "https://untrusted.example.invalid")))
+        .status,
+      403,
+    );
+    await db
+      .update(schema.users)
+      .set({ emailVerified: null })
+      .where(eq(schema.users.id, "public-partner-user"));
+    const unverified = await onboardingApi.POST(invitationRequest());
+    assert.equal(unverified.status, 403);
+    assert.equal((await unverified.json()).code, "email_verification_required");
+    assert.equal(
+      (await (await onboardingApi.POST(invitationRequest("x".repeat(43)))).json()).code,
+      "email_verification_required",
+    );
+    // The database identity must win even when the session claims the invited email.
+    await db
+      .update(schema.users)
+      .set({ email: "different@example.invalid", emailVerified: new Date() })
+      .where(eq(schema.users.id, "public-partner-user"));
+    const mismatch = await onboardingApi.POST(invitationRequest());
+    assert.equal(mismatch.status, 403);
+    assert.equal((await mismatch.json()).code, "incorrect_account");
+    await db
+      .update(schema.users)
+      .set({ email: "SALES-APPLICANT@example.invalid" })
+      .where(eq(schema.users.id, "public-partner-user"));
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest("x".repeat(43)))).status,
+      403,
+      "missing invitation is rejected",
+    );
+    const originalLookup = db.query.partnerApplications.findFirst;
+    try {
+      db.query.partnerApplications.findFirst = () => {
+        throw new Error("synthetic_lookup_failure");
+      };
+      const unavailable = await onboardingApi.POST(invitationRequest());
+      assert.equal(unavailable.status, 503);
+      assert.equal((await unavailable.json()).code, "onboarding_unavailable");
+    } finally {
+      db.query.partnerApplications.findFirst = originalLookup;
+    }
+    const altered = `${invite![0] === "a" ? "b" : "a"}${invite!.slice(1)}`;
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest(altered))).status,
+      403,
+      "modified token is rejected",
+    );
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationExpiresAt: new Date(Date.now() - 1000) })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    const expired = await onboardingApi.POST(invitationRequest());
+    assert.equal(expired.status, 410);
+    assert.equal((await expired.json()).code, "expired_invitation");
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationExpiresAt: persisted.invitationExpiresAt, invitationUsedAt: new Date() })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    const used = await onboardingApi.POST(invitationRequest());
+    assert.equal(used.status, 409);
+    assert.equal((await used.json()).code, "used_invitation");
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationUsedAt: null, status: "under_review" })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    assert.equal(
+      (await onboardingApi.POST(invitationRequest())).status,
+      403,
+      "unapproved invitation is rejected",
+    );
+    await db
+      .update(schema.partnerApplications)
+      .set({ status: "approved" })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    const untouched = await db.query.partnerApplications.findFirst({
+      where: eq(schema.partnerApplications.id, applicant!.id),
+    });
+    assert.equal(untouched?.invitationUsedAt, null);
+    assert.equal(untouched?.onboardedAt, null);
+    assert.equal(untouched?.partnerAccountId, null);
+    assert.ok(untouched?.invitationHash === persisted.invitationHash);
+    assert.equal(
+      await db.query.partnerAccounts.findFirst({
+        where: eq(schema.partnerAccounts.userId, "public-partner-user"),
+      }),
+      undefined,
+    );
+    console.log(
+      "PASS invitation persistence and DATABASE_URL precedence; reject unauthenticated, unverified, wrong-origin, missing, modified, expired, used, unapproved and mismatched invitations without onboarding writes",
+    );
+    const concurrent = await Promise.all([
+      onboardingApi.POST(invitationRequest()),
+      onboardingApi.POST(invitationRequest()),
+    ]);
+    assert.deepEqual(
+      concurrent.map((response) => response.status).sort(),
+      [200, 409],
+      "one concurrent completion succeeds and the other is rejected as used",
+    );
+    const onboard = concurrent.find((response) => response.status === 200)!;
     assert.equal(onboard.status, 200, await onboard.text());
+    const onboardingAudits = await db.query.partnerApplicationAudit.findMany({
+      where: eq(schema.partnerApplicationAudit.applicationId, applicant!.id),
+    });
+    assert.equal(
+      onboardingAudits.filter((entry) => entry.action === "onboarding_completed").length,
+      1,
+    );
     const completed = await db.query.partnerApplications.findFirst({
       where: eq(schema.partnerApplications.id, applicant!.id),
     });
     assert.equal(completed?.status, "approved");
     assert.ok(completed?.onboardedAt);
+    assert.equal(completed?.linkedUserId, "public-partner-user");
+    assert.ok(
+      completed?.invitationHash === persisted.invitationHash,
+      "retain only the hash for accurate replay rejection",
+    );
+    assert.ok(completed?.invitationUsedAt);
+    console.log(
+      "PASS valid unused invitation onboards the correct verified database email case-insensitively",
+    );
     assert.equal(
       (
         await db.query.partnerAccounts.findFirst({
@@ -312,7 +479,16 @@ async function main() {
         body: JSON.stringify({ token: invite, accepted: true }),
       }),
     );
-    assert.equal(replay.status, 403);
+    assert.equal(replay.status, 409);
+    assert.equal((await replay.json()).code, "used_invitation");
+    // Previously consumed invitations with cleared hashes remain rejected without rewriting records.
+    await db
+      .update(schema.partnerApplications)
+      .set({ invitationHash: null })
+      .where(eq(schema.partnerApplications.id, applicant!.id));
+    const legacyReplay = await onboardingApi.POST(invitationRequest());
+    assert.equal(legacyReplay.status, 403);
+    assert.equal((await legacyReplay.json()).code, "invalid_invitation");
     const resellerApplicant = await db.query.partnerApplications.findFirst({
       where: eq(schema.partnerApplications.email, "reseller-applicant@example.invalid"),
     });
@@ -358,32 +534,28 @@ async function main() {
       applicationsBeforeMigration,
       "redeployment must not reimport linked public applications",
     );
-    await db
-      .insert(schema.users)
-      .values({
-        id: "legacy-partner-user",
+    await db.insert(schema.users).values({
+      id: "legacy-partner-user",
+      email: "legacy-partner@example.invalid",
+      emailVerified: new Date(),
+      name: "Legacy Partner",
+    });
+    await db.insert(schema.partnerAccounts).values({
+      id: "legacy-partner-account",
+      userId: "legacy-partner-user",
+      code: await getAccountReferralCode("legacy-partner-user", "legacy-partner@example.invalid"),
+      name: "Legacy Partner",
+      country: "US",
+      market: "US",
+      status: "active",
+      agreement: "Existing reviewed agreement",
+      application: {
         email: "legacy-partner@example.invalid",
-        emailVerified: new Date(),
-        name: "Legacy Partner",
-      });
-    await db
-      .insert(schema.partnerAccounts)
-      .values({
-        id: "legacy-partner-account",
-        userId: "legacy-partner-user",
-        code: await getAccountReferralCode("legacy-partner-user", "legacy-partner@example.invalid"),
-        name: "Legacy Partner",
-        country: "US",
-        market: "US",
-        status: "active",
-        agreement: "Existing reviewed agreement",
-        application: {
-          email: "legacy-partner@example.invalid",
-          experience: "Existing partner application evidence",
-          privacyVersion: "2026-11-08",
-          acceptedAt: new Date().toISOString(),
-        },
-      });
+        experience: "Existing partner application evidence",
+        privacyVersion: "2026-11-08",
+        acceptedAt: new Date().toISOString(),
+      },
+    });
     const legacyAccountsBeforeMigration = await db.query.partnerAccounts.findMany();
     await pool.query(publicApplicationsMigration);
     await pool.query(publicApplicationsMigration);
@@ -416,6 +588,54 @@ async function main() {
       "PASS anonymous dual-program application, duplicate prevention, delivery, admin approval, single-use onboarding and inactive partner state",
     );
   })();
+  process.env.PARTNER_CONTRACTS_ENABLED = "true";
+  const { hashObject } = await import("../../src/lib/partners/contracts/domain");
+  // Financial fixtures model immutable executed records. Provider and artifact validation
+  // run independently in test-contracts-integration with the full migration and lifecycle.
+  async function signedTerms(
+    partnerId: string,
+    configId: string,
+    rates?: { standard: number; premium: number },
+  ) {
+    const config = await db.query.partnerConfigs.findFirst({
+      where: eq(schema.partnerConfigs.id, configId),
+    });
+    await db.insert(schema.partnerContracts).values({
+      id: `signed-${partnerId}`,
+      applicationId: `financial-${partnerId}`,
+      partnerId,
+      revision: 1,
+      agreementType: "independent_sales",
+      templateId: "fixture",
+      templateVersion: "1",
+      profileId: "fixture",
+      scheduleId: "fixture",
+      commercialTermsVersion: "1",
+      snapshot: {
+        ...(rates ? { commissionRatesBps: rates } : {}),
+        financialConfigId: configId,
+        financialConfigHash: hashObject(config!.config),
+        effectiveUntil: null,
+      } as typeof schema.partnerContracts.$inferInsert.snapshot,
+      mode: "dropbox_live",
+      status: "fully_executed",
+      provider: "dropbox_sign",
+      providerReference: `provider-${partnerId}`,
+      signedArtifactId: "synthetic-signed",
+      signedDocumentChecksum: "synthetic-checksum",
+      auditArtifactId: "synthetic-audit",
+      auditEvidenceChecksum: "synthetic-audit-checksum",
+      providerSnapshot: { complete: true } as NonNullable<
+        typeof schema.partnerContracts.$inferInsert.providerSnapshot
+      >,
+      createdAt: new Date("2020-01-01Z"),
+      executedAt: new Date("2020-01-01Z"),
+      verifiedAt: new Date("2020-01-01Z"),
+      partnerSignedAt: new Date("2020-01-01Z"),
+      companySignedAt: new Date("2020-01-01Z"),
+      expiresAt: new Date("2099-01-01Z"),
+    });
+  }
   let passed = 1;
   async function check(name: string, fn: () => Promise<void>) {
     await fn();
@@ -481,6 +701,7 @@ async function main() {
     status: "active",
     approvedAt: new Date("2020-01-01Z"),
   });
+  await signedTerms("partner", "config-1");
   await check(
     "concurrent verified signup locks one commercial attribution and grants no customer reward",
     async () => {
@@ -1109,7 +1330,11 @@ async function main() {
     effectiveAt: new Date("2021-01-01Z"),
   });
   const day = 86400000;
-  async function fixture(label: string, related = "unrelated") {
+  async function fixture(
+    label: string,
+    related = "unrelated",
+    rates?: { standard: number; premium: number } | false,
+  ) {
     const ownerId = `owner-${label}`,
       userId = `customer-${label}`,
       partnerId = `partner-${label}`;
@@ -1144,6 +1369,7 @@ async function main() {
       relatedParty: related,
       signedUpAt: new Date("2020-01-01Z"),
     });
+    if (rates !== false) await signedTerms(partnerId, "approved-v1", rates);
     return { partnerId, userId, ownerId, fixtureCode, label };
   }
   type Fixture = Awaited<ReturnType<typeof fixture>>;
@@ -1645,7 +1871,7 @@ async function main() {
     },
   );
   await check(
-    "historical unresolved policy requires explicit version/level review without modifying earned snapshots",
+    "historical receipts without effective signed terms remain non-payable after administrative review",
     async () => {
       await db.insert(schema.partnerConfigs).values({
         id: "historical-unresolved",
@@ -1657,8 +1883,11 @@ async function main() {
       const f = await fixture("historical");
       const age = (Date.now() - new Date("2020-07-01Z").getTime()) / day;
       const held = await paid(f, "legacy", age);
-      assert.equal(held.result.reason, "policy_review");
-      assert.equal((await replayPartnerEvent(held.eventId)).reason, "policy_review");
+      assert.equal(held.result.reason, "signed_financial_terms_required");
+      assert.equal(
+        (await replayPartnerEvent(held.eventId)).reason,
+        "signed_financial_terms_required",
+      );
       const review = await reviewPartnerEvent({
         eventId: held.eventId,
         configId: "approved-v1",
@@ -1668,11 +1897,9 @@ async function main() {
         actor: "admin",
         reason: "Historical accrual authorization",
       });
-      assert.equal(review.status, "processed");
-      const c = await commissionFor(held.evidence.chargeId);
-      assert.equal(c?.configId, "approved-v1");
-      assert.equal(c?.rateBps, 1500);
-      assert.equal(c?.state, "pending");
+      assert.equal(review.status, "held");
+      assert.equal(review.reason, "signed_financial_terms_required");
+      assert.equal(await commissionFor(held.evidence.chargeId), undefined);
       assert.equal(
         (
           await db.query.partnerConfigs.findFirst({
@@ -1680,9 +1907,6 @@ async function main() {
           })
         )?.config.eligibilityAnchor,
         null,
-      );
-      await assert.rejects(
-        pool.query('update "PartnerCommission" set "amountMinor"=1 where id=$1', [c!.id]),
       );
       const badVersion = await adminAction({
         action: "config",
@@ -1894,10 +2118,15 @@ async function main() {
         await owner.GET(new Request("http://localhost/api/partners"))
       ).json();
       assert.equal(approvedBody.partner.status, "active");
-      assert.equal(approvedBody.rateBps, 1500);
+      assert.equal(
+        approvedBody.rateBps,
+        null,
+        "unsigned legacy accounts have no advertised commission entitlement",
+      );
       assert.ok(approvedBody.referralLink.includes(application!.code));
       assert.equal(approvedBody.partner.application, undefined);
       assert.equal(approvedBody.partner.notes, undefined);
+      await signedTerms(application!.id, "approved-v1");
       const signup = await confirmReferralSignup({
         attributionCode: application!.code,
         referredUserId: "application-customer",
@@ -2088,6 +2317,40 @@ async function main() {
           .enabled,
         true,
       );
+    },
+  );
+  await check(
+    "unsigned partners hold verified receipts and partner projections isolate commercial records",
+    async () => {
+      // Re-enable the program after the disabled-policy test; each fixture retains its signed terms.
+      await db.transaction((tx) =>
+        writeProgramConfig(tx, approved, "owner", "Synthetic final acceptance policy"),
+      );
+      const f = await fixture("unsigned-final", "unrelated", false);
+      const held = await paid(f, "receipt");
+      assert.equal(held.result.reason, "signed_financial_terms_required");
+      assert.equal(await commissionFor(held.evidence.chargeId), undefined);
+      assert.equal((await partnerSummary(f.partnerId)).rateBps, null);
+      const isolated = await fixture("isolated-final", "unrelated", {
+        standard: 1725,
+        premium: 2375,
+      });
+      const received = await paid(isolated, "custom-rate");
+      assert.equal(received.result.status, "processed");
+      const c = await commissionFor(received.evidence.chargeId);
+      assert.equal(c!.rateBps, 1725);
+      assert.equal(c!.amountMinor, "6900");
+      assert.equal(c!.contractId, `signed-${isolated.partnerId}`);
+      const view = await partnerSummary(isolated.partnerId);
+      assert.equal(view.rateBps, 1725);
+      assert.equal(view.customers.length, 1);
+      assert.equal(view.customers[0].id, `attr-${isolated.label}`);
+      assert.equal(view.verifiedSales, 1);
+      assert.equal(view.convertedCustomers, 1);
+      assert.equal(view.sales.length, 1);
+      assert.ok(!JSON.stringify(view).includes(`${f.userId}@example.invalid`));
+      assert.ok(!Object.hasOwn(view.customers[0], "userId"));
+      assert.ok(!Object.hasOwn(view.customers[0], "email"));
     },
   );
   console.log(

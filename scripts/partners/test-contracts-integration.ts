@@ -40,6 +40,7 @@ async function main() {
   const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
   for (const table of [
     schema.users,
+    schema.accounts,
     schema.profiles,
     schema.referralStats,
     schema.referralAttributions,
@@ -144,6 +145,12 @@ async function main() {
       assert.deepEqual(await db.query.partnerAccounts.findMany(), before);
     },
   );
+  const accessMigration = await readFile(
+    new URL("../../src/lib/db/migrations/0044_partner_invitation_access.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.query(accessMigration);
+  await pool.query(accessMigration);
   await db.insert(schema.partnerConfigs).values({
     id: "fixture-policy",
     config: defaultConfig,
@@ -153,7 +160,10 @@ async function main() {
   });
   const originalConfig = hashObject((await db.query.partnerConfigs.findFirst())!.config);
   let sequence = 0;
-  async function fixture(type: "independent_sales" | "authorized_reseller" = "independent_sales") {
+  async function fixture(
+    type: "independent_sales" | "authorized_reseller" = "independent_sales",
+    rates?: { standard: number; premium: number },
+  ) {
     const id = `fixture-${++sequence}`,
       userId = `${id}-user`,
       partnerId = `${id}-partner`,
@@ -226,6 +236,7 @@ async function main() {
           "Synthetic test terms only; no commercial rights or financial policy changes.",
         ]),
       ),
+      ...(rates ? { commissionRatesBps: rates } : {}),
       financialConfigId: "fixture-policy",
       financialAlignmentConfirmed: true,
     });
@@ -578,7 +589,11 @@ async function main() {
       const workerApi = await import("../../src/app/api/internal/partner-contracts/run/route");
       setSession(null);
       assert.equal((await admin.GET()).status, 401);
-      assert.equal((await partner.GET()).status, 401);
+      assert.equal(
+        (await partner.GET(new Request("https://fixture.example.invalid/api/partners/contracts")))
+          .status,
+        401,
+      );
       setSession({ user: { id: "unrelated", role: "user" } });
       assert.equal((await admin.GET()).status, 403);
       assert.equal(
@@ -784,6 +799,301 @@ async function main() {
         }))!.status,
         "active",
       );
+    },
+  );
+  await check(
+    "owner-reviewed contract-specific rates bind to the generated agreement snapshot",
+    async () => {
+      const rates = { standard: 1725, premium: 2375 };
+      const f = await fixture("independent_sales", rates);
+      const c = await prepareContract(f.id);
+      const saved = await db.query.partnerContracts.findFirst({
+        where: eq(schema.partnerContracts.id, c.contractId!),
+      });
+      assert.deepEqual(saved!.snapshot.commissionRatesBps, rates);
+      assert.ok(saved!.documentChecksum);
+    },
+  );
+  await check(
+    "invited email ownership grants scoped agreements without customer signup or session adoption",
+    async () => {
+      process.env.AUTH_SECRET = "synthetic-partner-invitation-test-secret";
+      const { createInvitation } = await import("../../src/lib/partners/public-applications");
+      const { requestInvitationCode, verifyInvitationCode, invitationSession } =
+        await import("../../src/lib/partners/invitation-access");
+      const { establishPartnerCredentials } = await import("../../src/lib/partners/credentials");
+      const { contractView } = await import("../../src/lib/partners/contracts/access");
+      const { setSession } = await import("./mock-auth.mjs");
+      const guestId = "guest-invitation",
+        email = "invited-guest@example.invalid";
+      let invite = createInvitation(),
+        code = "",
+        renewedInvite = "";
+      const priorFetch = globalThis.fetch;
+      globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("api.resend.com/emails")) {
+          const body = JSON.parse(String(init?.body));
+          code = body.text.match(/code is (\d{6})/)?.[1] || "";
+          const link = body.text.match(/\/partners\/onboard\?token=([^\s]+)/);
+          if (link) renewedInvite = decodeURIComponent(link[1]);
+          return Response.json({ id: "synthetic-guest-email" });
+        }
+        return priorFetch(input, init);
+      }) as typeof fetch;
+      try {
+        await db.insert(schema.partnerApplications).values({
+          id: guestId,
+          email,
+          fullName: "Invited Guest",
+          country: "NL",
+          category: "Referral Partner",
+          program: "work_with_us",
+          experience: "Synthetic invited applicant",
+          privacyAcceptedAt: new Date(),
+          privacyVersion: "fixture",
+          status: "approved",
+          reviewedBy: "test-owner",
+          reviewedAt: new Date(),
+          invitationHash: invite.hash,
+          invitationExpiresAt: new Date(Date.now() + 86400000),
+        });
+        setSession({ user: { id: "test-owner", role: "superadmin" } });
+        await assert.rejects(
+          requestInvitationCode(invite.token, "another@example.invalid"),
+          /invalid_invitation/,
+        );
+        await requestInvitationCode(invite.token, email);
+        assert.match(code, /^\d{6}$/);
+        await assert.rejects(requestInvitationCode(invite.token, email), /verification_cooldown/);
+        await assert.rejects(
+          verifyInvitationCode(invite.token, email, code === "000000" ? "111111" : "000000"),
+          /verification_incorrect/,
+        );
+        assert.equal(
+          (await db.query.partnerOnboardingChallenges.findFirst({
+            where: eq(schema.partnerOnboardingChallenges.applicationId, guestId),
+          }))!.attempts,
+          1,
+        );
+        const invitationApi =
+          await import("../../src/app/api/partner-applications/invitation/route");
+        const verifiedResponse = await invitationApi.POST(
+          new Request("https://fixture.example.invalid/api/partner-applications/invitation", {
+            method: "POST",
+            headers: {
+              origin: "https://fixture.example.invalid",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ action: "verify", token: invite.token, email, code }),
+          }),
+        );
+        assert.equal(verifiedResponse.status, 200);
+        const cookie = verifiedResponse.headers.get("set-cookie")!;
+        assert.ok(cookie.includes("HttpOnly") && cookie.includes("SameSite=lax"));
+        const token = cookie.match(/useclevr-partner-invitation=([^;]+)/)![1];
+        const session = await invitationSession(token);
+        assert.ok(session);
+        assert.notEqual(session.userId, "test-owner");
+        const agreementsApi = await import("../../src/app/api/partners/contracts/route");
+        const scoped = await agreementsApi.GET(
+          new Request("https://fixture.example.invalid/api/partners/contracts", {
+            headers: { cookie: `useclevr-partner-invitation=${token}` },
+          }),
+        );
+        assert.equal(scoped.status, 200);
+        assert.deepEqual(
+          (await scoped.json()).applications.map((a: { id: string }) => a.id),
+          [guestId],
+        );
+        const guestUser = await db.query.users.findFirst({
+          where: eq(schema.users.id, session.userId),
+        });
+        assert.equal(guestUser!.password, null);
+        assert.ok(guestUser!.emailVerified);
+        const partner = await db.query.partnerAccounts.findFirst({
+          where: eq(schema.partnerAccounts.userId, session.userId),
+        });
+        assert.equal(partner!.status, "pending");
+        await assert.rejects(verifyInvitationCode(invite.token, email, code), /used_invitation/);
+        await assert.rejects(
+          establishPartnerCredentials(token, "Synthetic!Login2847#"),
+          /complete_verified_agreement/,
+        );
+        const view = await contractView(session.userId, false, guestId);
+        assert.deepEqual(
+          view.applications.map((a) => a.id),
+          [guestId],
+        );
+        await assert.rejects(
+          privateContractDocument(liveId, "signed", session.userId, false, guestId),
+          /document_not_found/,
+        );
+        assert.equal(await invitationSession("invalid-session-token"), null);
+        // Renewal revokes old links; established partner and immutable contract identity remain linked.
+        const app = await db.query.partnerApplications.findFirst({
+          where: eq(schema.partnerApplications.id, guestId),
+        });
+        const applicationAdmin = await import("../../src/app/api/admin/partner-applications/route");
+        const renewedResponse = await applicationAdmin.POST(
+          new Request("https://fixture.example.invalid/api/admin/partner-applications", {
+            method: "POST",
+            headers: {
+              origin: "https://fixture.example.invalid",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              id: guestId,
+              action: "renew_invitation",
+              confirm: true,
+              reason: "Synthetic applicant invitation renewal",
+            }),
+          }),
+        );
+        assert.equal(renewedResponse.status, 200);
+        assert.ok(renewedInvite.length >= 32);
+        assert.equal(
+          await invitationSession(token),
+          null,
+          "administrator renewal revokes the old session immediately",
+        );
+        await db
+          .update(schema.partnerOnboardingChallenges)
+          .set({ sentAt: new Date(0) })
+          .where(eq(schema.partnerOnboardingChallenges.applicationId, guestId));
+        await assert.rejects(requestInvitationCode(invite.token, email), /invalid_invitation/);
+        invite = { token: renewedInvite, hash: "unused-fixture-value" };
+        await requestInvitationCode(invite.token, email);
+        const renewed = await verifyInvitationCode(invite.token, email, code);
+        assert.equal((await invitationSession(renewed))!.userId, session.userId);
+        assert.equal(await invitationSession(token), null);
+        assert.equal(
+          (await db.query.partnerApplications.findFirst({
+            where: eq(schema.partnerApplications.id, guestId),
+          }))!.partnerAccountId,
+          app!.partnerAccountId,
+        );
+        // Existing verified identities are linked once and retain their original password.
+        const existingId = "existing-invited-identity";
+        await db.insert(schema.users).values({
+          id: existingId,
+          email: "existing-invited@example.invalid",
+          emailVerified: new Date(),
+          password: "test-only",
+        });
+        const existingInvite = createInvitation();
+        await db.insert(schema.partnerApplications).values({
+          id: "existing-invited-app",
+          email: "existing-invited@example.invalid",
+          fullName: "Existing Invited",
+          country: "NL",
+          category: "Referral Partner",
+          program: "work_with_us",
+          experience: "Synthetic existing applicant",
+          privacyAcceptedAt: new Date(),
+          privacyVersion: "fixture",
+          status: "approved",
+          reviewedBy: "test-owner",
+          reviewedAt: new Date(),
+          invitationHash: existingInvite.hash,
+          invitationExpiresAt: new Date(Date.now() + 86400000),
+        });
+        await requestInvitationCode(existingInvite.token, "existing-invited@example.invalid");
+        const existingToken = await verifyInvitationCode(
+          existingInvite.token,
+          "existing-invited@example.invalid",
+          code,
+        );
+        assert.equal((await invitationSession(existingToken))!.userId, existingId);
+        assert.equal(
+          (await db.query.users.findFirst({ where: eq(schema.users.id, existingId) }))!.password,
+          "test-only",
+        );
+        // Credential creation requires the archived provider-confirmed contract and is single-use.
+        const live = await db.query.partnerContracts.findFirst({
+          where: eq(schema.partnerContracts.id, liveId),
+        });
+        assert.equal(live!.status, "fully_executed");
+        const setup = createInvitation();
+        await db.insert(schema.partnerOnboardingSessions).values({
+          tokenHash: setup.hash,
+          applicationId: live!.applicationId,
+          userId: live!.snapshot.userId,
+          expiresAt: new Date(Date.now() + 86400000),
+        });
+        const beforeStatus = (await db.query.partnerAccounts.findFirst({
+          where: eq(schema.partnerAccounts.id, live!.partnerId),
+        }))!.status;
+        const credentialResult = await establishPartnerCredentials(
+          setup.token,
+          "Synthetic!Login2847#",
+        );
+        assert.ok("ready" in credentialResult && credentialResult.ready);
+        const passwordUser = await db.query.users.findFirst({
+          where: eq(schema.users.id, live!.snapshot.userId),
+        });
+        const bcrypt = (await import("bcryptjs")).default;
+        assert.ok(await bcrypt.compare("Synthetic!Login2847#", passwordUser!.password!));
+        assert.equal(
+          (await db.query.partnerAccounts.findFirst({
+            where: eq(schema.partnerAccounts.id, live!.partnerId),
+          }))!.status,
+          beforeStatus,
+        );
+        await assert.rejects(
+          establishPartnerCredentials(setup.token, "Synthetic!Login2847#"),
+          /partner_account_setup_complete/,
+        );
+        const repeatSetup = createInvitation();
+        await db.insert(schema.partnerOnboardingSessions).values({
+          tokenHash: repeatSetup.hash,
+          applicationId: live!.applicationId,
+          userId: live!.snapshot.userId,
+          expiresAt: new Date(Date.now() + 86400000),
+        });
+        const existingResult = await establishPartnerCredentials(
+          repeatSetup.token,
+          "Different!Login2847#",
+        );
+        assert.ok("existingLogin" in existingResult && existingResult.existingLogin);
+        assert.equal(
+          (await db.query.users.findFirst({ where: eq(schema.users.id, live!.snapshot.userId) }))!
+            .password,
+          passwordUser!.password,
+        );
+        // Independent attempt limit and exclusive expiry; wrong codes never create users.
+        const trial = createInvitation();
+        await db
+          .update(schema.partnerApplications)
+          .set({ invitationHash: trial.hash, invitationUsedAt: null })
+          .where(eq(schema.partnerApplications.id, guestId));
+        await db
+          .update(schema.partnerOnboardingChallenges)
+          .set({ sentAt: new Date(0) })
+          .where(eq(schema.partnerOnboardingChallenges.applicationId, guestId));
+        await requestInvitationCode(trial.token, email);
+        for (let n = 0; n < 5; n++)
+          await assert.rejects(
+            verifyInvitationCode(trial.token, email, "000000"),
+            /verification_incorrect/,
+          );
+        await assert.rejects(
+          verifyInvitationCode(trial.token, email, code),
+          /verification_expired/,
+        );
+        await db
+          .update(schema.partnerApplications)
+          .set({ invitationExpiresAt: new Date(0) })
+          .where(eq(schema.partnerApplications.id, guestId));
+        await assert.rejects(requestInvitationCode(trial.token, email), /expired_invitation/);
+        await db
+          .update(schema.partnerOnboardingSessions)
+          .set({ expiresAt: new Date(0) })
+          .where(eq(schema.partnerOnboardingSessions.applicationId, "existing-invited-app"));
+        assert.equal(await invitationSession(existingToken), null);
+      } finally {
+        globalThis.fetch = priorFetch;
+        setSession(null);
+      }
     },
   );
   console.log(

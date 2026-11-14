@@ -14,6 +14,8 @@ moving work between states.
 
 ## Label: deployment
 
+- T-1106. Require the verified Railway beta environment and TEST service while retaining signing and migration safeguards. (labels: deployment, security, testing; commit: worktree)
+
 - T-1086. Serve the OpenAI domain challenge as exact public plain text without authentication or redirects on the app and MCP hosts. (labels: mcp, deployment, testing; commit: 7eda8504)
 
 - T-1066. The dashboard World Map aggregates the same row scope as the KPI row: semantic-KPI datasets feed the map every stored row through one shared scope selector instead of the default 30-day window, fallback-KPI datasets keep the range-filtered scope on both sides, and a regression suite pins the 220-row/42-row fingerprint with map totals equal to KPI totals. (labels: dashboard, data, metrics; commit: worktree)
@@ -97,6 +99,8 @@ moving work between states.
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
 
 ## Label: workflow
+
+- T-1108. Provide public partner registration, invitation email verification, scoped agreement access, signed-agreement credential setup, private commercial portal views and signed-term commission controls; publish the locally validated review branch without deployment. (labels: workflow, auth, billing, security, testing; commit: 26be67d9)
 
 - T-1102. Finalize approved Global Partner Program policies, audited suspension recovery, controlled pre-termination settlements, stable downgrade grace, and isolated release validation; keep the program disabled. (labels: billing, sales, security, testing; commit: worktree)
 - T-1101. Route clear Usy product questions during contact collection through existing knowledge in all eight languages, preserve drafts across topic switches, and verify contact, billing, and support regressions without publication. (labels: ai, workflow, testing; commit: 890c877f)

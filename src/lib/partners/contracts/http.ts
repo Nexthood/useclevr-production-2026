@@ -6,8 +6,8 @@ export const privateHeaders = {
   "Cache-Control": "private, no-store",
   "X-Content-Type-Options": "nosniff",
 };
-export function contractResponse(value: unknown) {
-  return NextResponse.json(value, { headers: privateHeaders });
+export function contractResponse(value: unknown, status = 200) {
+  return NextResponse.json(value, { status, headers: privateHeaders });
 }
 export function contractError(error: unknown) {
   if (error instanceof ContractError)
