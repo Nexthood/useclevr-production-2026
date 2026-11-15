@@ -8,7 +8,14 @@ import {
   partnerContractProfiles,
   partnerContractSchedules,
 } from "@/lib/db/schema";
-import { ContractError, requireOwner, runtimePolicy, hashObject, featureEnabled } from "./domain";
+import {
+  ContractError,
+  isLiveMode,
+  requireOwner,
+  runtimePolicy,
+  hashObject,
+  featureEnabled,
+} from "./domain";
 import { contractDatabase, registerCatalog, currentFinancialConfig } from "./records";
 import { contractRow, liveGates } from "./lifecycle";
 import { readArtifact } from "./storage";
@@ -71,7 +78,7 @@ export async function contractView(userId: string, admin = false, applicationId?
         where: eq(partnerAccounts.id, c.partnerId),
       });
       let ready = false;
-      if (c.status === "fully_executed" && c.mode === "dropbox_live")
+      if (c.status === "fully_executed" && isLiveMode(c.mode))
         try {
           await liveGates(db, c);
           ready = true;
@@ -193,5 +200,7 @@ export async function privateContractDocument(
         ? c.signedDocumentChecksum
         : c.auditEvidenceChecksum;
   if (!artifactId || !checksum) throw new ContractError("document_not_found", 404);
+  if (c.mode === "native" && kind !== "source")
+    await (await import("./native")).verifyNativeExecution(db, c);
   return readArtifact(db, artifactId, c.id, checksum);
 }

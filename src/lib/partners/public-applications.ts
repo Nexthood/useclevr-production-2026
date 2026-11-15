@@ -84,7 +84,7 @@ export function encryptEmailPayload(payload: Record<string, string>) {
   const ciphertext = Buffer.concat([cipher.update(JSON.stringify(payload)), cipher.final()]);
   return { encrypted: Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString("base64url") };
 }
-function decryptEmailPayload(value?: Record<string, string> | null) {
+export function decryptEmailPayload(value?: Record<string, string> | null) {
   if (!value?.encrypted) return {};
   try {
     const bytes = Buffer.from(value.encrypted, "base64url"),
@@ -101,7 +101,7 @@ function decryptEmailPayload(value?: Record<string, string> | null) {
 }
 export const applicationId = () => randomUUID();
 
-export async function checkApplicationRateLimit(rawClientAddress: string) {
+export async function checkApplicationRateLimit(rawClientAddress: string, limit = 5) {
   const db = getDb();
   if (!db) throw new Error("application_database_unavailable");
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
@@ -115,7 +115,7 @@ export async function checkApplicationRateLimit(rawClientAddress: string) {
   await db.execute(
     sql`DELETE FROM "PartnerProgramApplicationRateLimit" WHERE "windowStart" < now() - interval '48 hours'`,
   );
-  return Number(result.rows[0]?.count || 0) <= 5;
+  return Number(result.rows[0]?.count || 0) <= limit;
 }
 
 export async function deliverApplicationEmail(emailId: string) {

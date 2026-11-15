@@ -237,6 +237,7 @@
     "next-themes": "^0.4.6",
     "papaparse": "^5.5.3",
     "payload": "3.90.2",
+    "pdf-lib": "^1.17.1",
     "pg": "^8.21.0",
     "postcss-import": "^16.1.1",
     "qrcode": "^1.5.4",

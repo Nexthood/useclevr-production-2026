@@ -11,7 +11,7 @@ import {
 } from "@/lib/db/schema";
 import { invitationSession } from "./invitation-access";
 import { validatePasswordPolicy } from "@/lib/auth/password-policy";
-import { ContractError } from "./contracts/domain";
+import { ContractError, isLiveMode } from "./contracts/domain";
 import { readArtifact } from "./contracts/storage";
 export async function establishPartnerCredentials(rawToken: string, password: string) {
   const session = await invitationSession(rawToken),
@@ -44,7 +44,7 @@ export async function establishPartnerCredentials(rawToken: string, password: st
     if (
       !c ||
       c.snapshot.userId !== user.id ||
-      c.mode !== "dropbox_live" ||
+      !isLiveMode(c.mode) ||
       c.status !== "fully_executed" ||
       !c.verifiedAt ||
       !c.executedAt ||
@@ -57,6 +57,8 @@ export async function establishPartnerCredentials(rawToken: string, password: st
       !c.auditEvidenceChecksum
     )
       throw new ContractError("complete_verified_agreement_before_account_setup", 409);
+    if (c.mode === "native")
+      await (await import("./contracts/native")).verifyNativeExecution(tx, c);
     await readArtifact(tx, c.signedArtifactId, c.id, c.signedDocumentChecksum);
     await readArtifact(tx, c.auditArtifactId, c.id, c.auditEvidenceChecksum);
     const [saved] = await tx
@@ -76,14 +78,12 @@ export async function establishPartnerCredentials(rawToken: string, password: st
       actor: user.id,
       action: saved ? "partner_credentials_established" : "existing_login_retained",
     });
-    await tx
-      .insert(partnerApplicationEmails)
-      .values({
-        id: notificationId,
-        applicationId: session.applicationId,
-        kind: "account_update",
-        recipient: user.email,
-      });
+    await tx.insert(partnerApplicationEmails).values({
+      id: notificationId,
+      applicationId: session.applicationId,
+      kind: "account_update",
+      recipient: user.email,
+    });
     return { ready: true, existingLogin: !saved, next: "/partner/login" } as const;
   });
   await Promise.allSettled([deliverApplicationEmail(notificationId)]);

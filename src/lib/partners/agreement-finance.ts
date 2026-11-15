@@ -1,6 +1,6 @@
 import { and, desc, eq, lte } from "drizzle-orm";
 import { partnerContracts, partnerConfigs } from "@/lib/db/schema";
-import { featureEnabled, hashObject } from "./contracts/domain";
+import { featureEnabled, hashObject, isLiveMode } from "./contracts/domain";
 import type { ContractDb } from "./contracts/types";
 
 /** Rates and eligibility policies belong to the immutable financial configuration signed by this partner. */
@@ -12,7 +12,7 @@ export async function signedFinancialConfig(db: ContractDb, partnerId: string, a
   });
   if (
     !c ||
-    c.mode !== "dropbox_live" ||
+    !isLiveMode(c.mode) ||
     c.status !== "fully_executed" ||
     !c.verifiedAt ||
     !c.executedAt ||
@@ -28,6 +28,7 @@ export async function signedFinancialConfig(db: ContractDb, partnerId: string, a
     (c.snapshot.effectiveUntil && Date.parse(c.snapshot.effectiveUntil) <= at.getTime())
   )
     return null;
+  if (c.mode === "native") await (await import("./contracts/native")).verifyNativeExecution(db, c);
   const config = await db.query.partnerConfigs.findFirst({
     where: eq(partnerConfigs.id, c.snapshot.financialConfigId),
   });

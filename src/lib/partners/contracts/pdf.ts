@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { ContractError, type ContractSnapshot, type Template } from "./domain";
 let font: string | undefined;
-function legalFont() {
+export function legalFont() {
   if (!font) {
     const original = path.join(
       process.cwd(),

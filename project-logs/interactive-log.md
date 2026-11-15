@@ -1,3 +1,23 @@
+## 2026-11-15 — Native partner electronic signing (T-1110)
+
+- Goal: Implement native sequential B2B electronic signing on the existing feature branch, retain Dropbox support and publish draft review against beta without merge, deployment or live enablement.
+- Audit: Reuse contract snapshots, PDF generation/fonts, encrypted artifacts/outbox, verified onboarding, persistent request limits, administrator controls and separate activation. Existing legal 1.0.0 templates require external signing; native mode selects separate unapproved 2.0.0 drafts without rewriting signed versions.
+- Changes: Add contract-bound single-use invitations, email codes, scoped thirty-minute signing sessions, complete agreement review, explicit versioned consent and affirmative typed-name signing. Contract locks, persisted verification budgets, permanent renewal revocation and append-only signatures prevent replay and concurrent double execution. Native company signing follows the partner and the exact approved company email/reference. Ed25519 platform attestations chain receipts and bind source/snapshot/final hashes; the final PDF retains source pages and adds a certificate, exact-source attachment and receipts. Existing encryption protects archives; both parties receive PDF and manifest. Offline verification requires independently trusted public keys. Native finance, credentials and activation verify evidence; no signing action grants commercial privileges.
+- Verification: Pass 43 financial/database checks, 26 contract groups including Dropbox/native lifecycle and tampering, 22 browser groups, unit/auth/referral and mocked Railway regressions, deployment configuration and 174 documentation links. Clean-source lint reports zero errors and 448 warnings. Final isolated production compilation, TypeScript, all 105 generated pages, packaging and packaged-runtime acceptance pass, including the native entry page and disabled API gate. Browser checks include same-tab invitation changes and stale-session isolation.
+- Risk: Platform attestations establish recorded email-verified actions, not government identity, personal certificates, qualified signatures or trusted timestamps. Production requires owner/security/legal approval of native templates, schedules, consent/runtime policy, key custody, migration 0045, backups/restoration, ingress/clock behavior and actual email/hosted acceptance. All automated external calls use fixtures; production remains unchanged.
+- Learning: Preserve submitted Unicode names in attested evidence and render the approved signer name on the certificate. Retain historical public keys and consent mappings for archival verification; new invitation links require fresh verification and cannot adopt an older signing session.
+- Publication: PR #425 is merged; beta has the same starting source tree. Publish a new draft from the existing feature branch after final validation.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-14 — Partner signing configuration report
+
+- Goal: Report exact Railway variables, Dropbox callback setup, activation order and production blockers from the T-1109 guide; change no code and create no PR.
+- Findings: Configure the production useclevr app web service. Management enablement, Dropbox credentials, encrypted archives, owner approvals and commercial activation are separate controls. Current Dropbox authentication documentation states that callback hashes use the Primary API Key; this implementation verifies them with DROPBOX_SIGN_API_KEY.
+- Risk: Missing management configuration is the documented blocker; current hosted variables, schema, provider entitlement, email delivery, approvals and real signing acceptance are unverified. Local mocked acceptance does not establish production readiness.
+- Changes: Update only the three required interaction records. No code, service configuration, deployment or PR changes occur.
+- Follow-up: Owner verifies the documented hosted prerequisites and authorizes staged draft, sandbox and live setup. T-1109 remains complete.
+- Sources: T-1109 production setup guide, contract configuration/provider/webhook implementation, official Dropbox authentication and callback documentation; AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-14 — Production partner contract readiness (T-1109)
 
 - Goal: Diagnose disabled production contracts, extract exact Railway/Dropbox configuration, repair confirmed blockers and publish a review branch without merge or deployment.

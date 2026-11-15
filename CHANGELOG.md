@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let partners and authorized company signers execute agreements inside UseClevr with email verification, explicit consent, private signed copies and tamper-evident evidence, without a paid signature provider.
+
 - Let invited partners verify email, review and sign agreements, establish login credentials, and use a dedicated portal without customer signup or a paid subscription.
 - Give partners private customer, sales, performance, agreement, payout and contact views, and let administrators renew invitations with audited notes.
 

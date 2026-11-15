@@ -4,13 +4,16 @@ Status: implementation for review; production signing is disabled by default. Th
 
 For the exact production variable matrix, staged account/callback setup and owner verification steps, use [Partner production setup](PARTNER_PRODUCTION_SETUP.md).
 
+For first-party email-verified signing, attested evidence, native 2.0.0 legal drafts and required
+production configuration, use [Native partner electronic signing](PARTNER_NATIVE_SIGNING.md).
+
 ## Architecture
 
-Application approval → verified single-use onboarding → partner legal identity and electronic-record consent → administrator identity/authority review → versioned commercial schedule → personalized PDF → external provider invitation → partner signature → authorized Atlas Mega Ventures LLC countersignature → authoritative provider verification → encrypted signed PDF and evidence archive → confirmation copies → eligible for explicit administrator activation.
+Application approval → verified single-use onboarding → partner legal identity and electronic-record consent → administrator identity/authority review → versioned commercial schedule → personalized PDF → approved signing invitation → verified partner signature → authorized Atlas Mega Ventures LLC countersignature → authoritative signing-evidence verification → encrypted signed PDF and evidence archive → confirmation copies → eligible for explicit administrator activation.
 
 Application status, contract status and PartnerAccount status are independent. Signature jobs never activate accounts or create commissions or payouts. The existing administrator activation APIs and the database trigger require a fully executed production agreement and an explicit audited manual decision. Active-to-active edits and existing active partners remain operational. New activation and reinstatement fail closed, including while contract flags are disabled. Coordinate migration 0043 with the signed-agreement rollout: deploying it before approvals pauses new commercial activations, although applications, approvals and onboarding remain available.
 
-`src/lib/partners/contracts` contains the domain validators, template catalog, PDF generator, external provider interface, Dropbox Sign adapter, non-binding mock, private storage, records, lifecycle, activation policy, email outbox and durable worker. Admin controls extend `/app/admin/partners`; participants use `/partners/contracts`, linked from completed onboarding while contract management is enabled. Native hosted provider signing supplies the signing ceremony; typing a name or advancing the local mock is never a production signature.
+`src/lib/partners/contracts` contains the domain validators, template catalog, PDF generator, external provider interface, Dropbox Sign adapter, non-binding mock, private storage, records, lifecycle, activation policy, email outbox and durable worker. Admin controls extend `/app/admin/partners`; participants use `/partners/contracts`, linked from completed onboarding while contract management is enabled. Native email verification and attested actions or Dropbox hosted signing supply the signing ceremony; typing a name or advancing the local mock is never a production signature.
 
 The generated agreement snapshots the two legal parties, verified applicant/user/partner binding, company signer reference, exact template/profile/schedule hashes, current financial policy hash and approved runtime fingerprint. Version changes produce a new contract revision. Cancel a pending external signing request before replacing it. Executed versions cannot be modified. Contract schedules document owner-approved commercial terms; they do not modify commission calculations or configuration.
 
@@ -31,12 +34,12 @@ The [ESIGN statute](https://www.law.cornell.edu/uscode/text/15/7001) addresses e
 
 ## Provider configuration
 
-See [provider evidence and costs](PARTNER_SIGNATURE_PROVIDERS.md). Production setup requires an owner-controlled Dropbox Sign API account/application, an appropriate approved paid plan, reviewed processing terms and API credentials. Never commit credentials or paste them into tickets, logs or PRs.
+See [provider evidence and costs](PARTNER_SIGNATURE_PROVIDERS.md). Dropbox production setup requires an owner-controlled Dropbox Sign API account/application, an appropriate approved API plan, reviewed processing terms and API credentials. Native mode requires the owner-reviewed first-party configuration and attestation keys instead. Never commit credentials or paste them into tickets, logs or PRs.
 
 | Variable | Required value / purpose |
 | --- | --- |
 | `PARTNER_CONTRACTS_ENABLED` | `true` exposes contract administration and participant APIs; unset/false disables them. |
-| `PARTNER_CONTRACT_SIGNING_MODE` | `draft` (default), `mock` (non-production only), `dropbox_test`, or `dropbox_live`. |
+| `PARTNER_CONTRACT_SIGNING_MODE` | `draft` (default), `mock` (non-production only), `dropbox_test`, `dropbox_live`, or `native`. |
 | `PARTNER_CONTRACT_LIVE_ENABLED` | Separate `true` gate for binding production requests. |
 | `DROPBOX_SIGN_API_KEY` | Server-only account API credential. |
 | `DROPBOX_SIGN_ACCOUNT_ID` | Expected provider account binding. |
@@ -69,7 +72,7 @@ Ready approved/onboarded applications are scanned for required reviewed identity
 
 External request creation has no assumed idempotency support. Persist `sending` before the external call. A timeout or crash becomes uncertain; reconcile by exact metadata before doing anything else. Never blindly repeat creation. An allowlisted owner can confirm a provider-account review found no request, after the in-flight lease interval; this is an explicit, audited exception and must include a provider support/dashboard reference. The bounded automatic search covers up to 1000 recent requests; owner absence review must cover the whole account, especially above that volume. Creation reservations enforce the owner cap locally, but account usage outside UseClevr also counts toward provider billing. Monitor that account and disable sends before exhausting its plan.
 
-Resend requests use stable per-delivery idempotency keys and a frozen payload checksum. Sent rows do not resend. Unknown network outcomes may retry only within the conservative 23-hour provider idempotency window. Expired ambiguous deliveries become `uncertain`, require provider evidence review, and cannot be blindly retried from the UI. Known failed responses use bounded backoff and can be manually retried. Signing invitations/reminders are delivered by the signature provider; application emails explain status and link to the authenticated portal. Executed PDFs are attached to confirmation emails to the exact snapshotted partner/company recipients. No public download or bearer-document URL is generated.
+Resend requests use stable per-delivery idempotency keys and a frozen payload checksum. Sent rows do not resend. Unknown network outcomes may retry only within the conservative 23-hour provider idempotency window. Expired ambiguous deliveries become `uncertain`, require provider evidence review, and cannot be blindly retried from the UI. Known failed responses use bounded backoff and can be manually retried. Dropbox signing invitations/reminders are delivered by Dropbox; native invitations and codes use the existing encrypted email outbox. application emails explain status and link to the authenticated portal. Executed PDFs are attached to confirmation emails to the exact snapshotted partner/company recipients. No public download or bearer-document URL is generated.
 
 ## Security and storage
 

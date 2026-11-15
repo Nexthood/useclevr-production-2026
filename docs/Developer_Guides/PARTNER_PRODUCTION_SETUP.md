@@ -1,5 +1,10 @@
 # Partner contracts: production setup
 
+For provider-independent signing without a paid signature-provider account, follow
+[Native partner electronic signing](PARTNER_NATIVE_SIGNING.md). It documents `native` mode,
+the three native attestation-key variables, native 2.0.0 legal drafts, migration 0045 and staged
+owner acceptance. The Dropbox account/callback steps below apply only to Dropbox modes.
+
 ## Diagnosis and scope
 
 The owner reports no partner/signing configuration on Railway. With that configuration,
@@ -51,7 +56,7 @@ also require a source rebuild. No provider secrets belong in `NEXT_PUBLIC_*` var
 | Exact variable | Purpose and default | Required or optional | Safe example | Obtain the real value from | Railway service | Redeployment | Verification |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `PARTNER_CONTRACTS_ENABLED` | Exact `true` enables management; default off. | Required for contracts. | `true` | Owner's enablement decision. | useclevr app | Redeploy. | Authenticated participant API stops returning `contract_management_disabled`; admin view has `enabled: true`. |
-| `PARTNER_CONTRACT_SIGNING_MODE` | `draft`, `mock`, `dropbox_test`, `dropbox_live`; unset/unknown selects draft. Runtime fingerprint labels unset mode `disabled`. | Explicit mode required operationally. | `draft` | Owner's staged rollout decision. | useclevr app | Redeploy; policy change needs new runtime approval and contract revision. | Inspect admin runtime policy and each agreement's stored mode. |
+| `PARTNER_CONTRACT_SIGNING_MODE` | `draft`, `mock`, `dropbox_test`, `dropbox_live`, `native`; unset/unknown selects draft. Runtime fingerprint labels unset mode `disabled`. | Explicit mode required operationally. | `draft` | Owner's staged rollout decision. | useclevr app | Redeploy; policy change needs new runtime approval and contract revision. | Inspect admin runtime policy and each agreement's stored mode. |
 | `PARTNER_CONTRACT_LIVE_ENABLED` | Exact `true` permits live sends subject to all approvals; default off. | Required for live, keep false for draft/test. | `false` | Explicit owner authorization after sandbox acceptance. | useclevr app | Redeploy. | Off blocks live runtime approval/sends; on still requires recorded owner approvals. |
 | `DROPBOX_SIGN_API_KEY` | Account API key for Basic authentication and both callback HMAC checks; no default. | Required for Dropbox test/live. | `<private-dropbox-api-key>` | Owner-controlled Dropbox Sign API Settings → API key. | useclevr app | Redeploy; verify callback signing key after rotation. | Private authenticated account lookup succeeds and authenticated callback test succeeds. |
 | `DROPBOX_SIGN_ACCOUNT_ID` | Expected provider account binding; default empty. | Required for Dropbox test/live. | `<dropbox-account-id>` | Authenticated Dropbox account response `account.account_id`. | useclevr app | Redeploy; changes invalidate runtime approval. | Adapter account check matches; callback account matches. |
@@ -103,7 +108,7 @@ webhook signatures. Dropbox OAuth and embedded signing are not used.
 2. Obtain an encrypted database backup and test restoration with all document key versions.
    An authorized operator compares runtime `DATABASE_URL` and predeploy `DIRECT_URL` targets
    privately. A successful health check alone does not establish schema readiness.
-3. Verify migrations 0038–0044 through the existing migration process. Migration 0042 creates
+3. Verify migrations 0038–0045 through the existing migration process. Migration 0042 creates
    public application, audit, email and request-limit storage. Migration 0043 creates `PartnerContract`, `PartnerContractTemplate`, `PartnerContractProfile`,
    `PartnerContractSchedule`, `PartnerContractProviderApproval`, `PartnerContractArtifact`,
    `PartnerContractAudit`, `PartnerContractWebhook`, `PartnerContractJob` and `PartnerContractDelivery`. It installs

@@ -368,6 +368,7 @@ export function providerFor(
   mode: ContractMode,
   mock: () => MockSignatureProvider,
 ): SignatureProvider {
-  if (mode === "draft") throw new ContractError("contract_signing_disabled");
+  if (mode === "draft" || mode === "native")
+    throw new ContractError("contract_signing_requires_native_ceremony");
   return mode === "mock" ? mock() : new DropboxSignProvider(mode);
 }

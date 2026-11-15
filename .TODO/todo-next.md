@@ -19,6 +19,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1110. Implement native email-verified sequential partner signing with single-use invitations, immutable agreements, cryptographically attested evidence, private archives and separate commercial activation; validate and publish draft review without deployment. (labels: workflow, security, auth, testing, docs)
+
 
 - T-1105. Implement versioned partner agreements, provider-backed sequential signatures, private execution evidence, audited contract administration and mandatory executed-agreement activation gates; keep production signing disabled until owner legal and provider approval. (labels: workflow, security, testing, docs)
 
