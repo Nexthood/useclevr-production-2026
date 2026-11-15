@@ -3,6 +3,7 @@
 Status: implementation for owner review. Production signing requires separate release authorization,
 legal review and recorded owner approvals. Native signing uses the existing email service and
 PostgreSQL; it requires no paid signature-provider account. Dropbox Sign remains a supported mode.
+Review: [draft PR #426](https://github.com/Nexthood/useclevr-production-2026/pull/426).
 
 ## Workflow and evidence
 
