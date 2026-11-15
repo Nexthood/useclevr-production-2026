@@ -6,7 +6,13 @@ import {
   partnerContracts,
   partnerApplicationAudit,
 } from "@/lib/db/schema";
-import { ContractError, featureEnabled, type ContractMode, verifySignatures } from "./domain";
+import {
+  ContractError,
+  isLiveMode,
+  featureEnabled,
+  type ContractMode,
+  verifySignatures,
+} from "./domain";
 import { contractDatabase, contractAudit, applicationLock } from "./records";
 import { liveGates, notify, type ContractRow } from "./lifecycle";
 import { readArtifact } from "./storage";
@@ -21,7 +27,7 @@ export async function executedAgreement(db: ContractDb, partnerId: string, appli
   if (
     !c ||
     c.status !== "fully_executed" ||
-    c.mode !== "dropbox_live" ||
+    !isLiveMode(c.mode) ||
     !c.executedAt ||
     !c.verifiedAt ||
     !c.partnerSignedAt ||
@@ -67,6 +73,7 @@ export async function executedAgreement(db: ContractDb, partnerId: string, appli
     c.documentChecksum,
     c.mode as ContractMode,
   );
+  if (c.mode === "native") await (await import("./native")).verifyNativeExecution(db, c);
   await readArtifact(db, c.sourceArtifactId, c.id, c.documentChecksum);
   await readArtifact(db, c.signedArtifactId, c.id, c.signedDocumentChecksum);
   await readArtifact(db, c.auditArtifactId, c.id, c.auditEvidenceChecksum);

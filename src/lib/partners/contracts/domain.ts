@@ -34,7 +34,15 @@ export const text = (min = 1, max = 500) =>
     .refine((v) => !/[<>\u0000-\u001f\u007f]/u.test(v), "Use plain text.");
 export const agreementTypes = ["independent_sales", "authorized_reseller"] as const;
 export type AgreementType = (typeof agreementTypes)[number];
-export type ContractMode = "draft" | "mock" | "dropbox_test" | "dropbox_live";
+export type ContractMode = "draft" | "mock" | "dropbox_test" | "dropbox_live" | "native";
+export const isLiveMode = (mode: string) => mode === "dropbox_live" || mode === "native";
+export const nativeConsentVersion = "native-electronic-signatures-2026-11-v1";
+export const nativeConsentText =
+  "I have reviewed the complete agreement and commercial schedule, can download and retain PDF records, consent to electronic records, signatures and delivery, and intend my typed legal name and this signing action to bind the party I am authorized to represent. I may request a paper copy or assistance through the agreement's notice contact before signing. Withdrawal does not invalidate an executed agreement. This is not a qualified electronic signature.";
+// Retain released versions so historical evidence remains verifiable.
+export const nativeConsentVersions: Readonly<Record<string, string>> = {
+  [nativeConsentVersion]: nativeConsentText,
+};
 export const terminalStates = ["fully_executed", "rejected", "cancelled", "expired"];
 export const companySchema = z
   .object({
@@ -188,7 +196,8 @@ export function requireFeature() {
 }
 export function signingMode(): ContractMode {
   const mode = process.env.PARTNER_CONTRACT_SIGNING_MODE;
-  if (mode !== "mock" && mode !== "dropbox_test" && mode !== "dropbox_live") return "draft";
+  if (mode !== "mock" && mode !== "dropbox_test" && mode !== "dropbox_live" && mode !== "native")
+    return "draft";
   if (mode === "mock" && process.env.NODE_ENV === "production")
     throw new ContractError("mock_signatures_forbidden_in_production");
   return mode;
@@ -204,11 +213,31 @@ export function requireOwner(userId: string) {
     throw new ContractError("owner_approval_required", 403);
 }
 export function runtimePolicy() {
+  const native = process.env.PARTNER_CONTRACT_SIGNING_MODE === "native";
+  let publicKey = "";
+  if (native) {
+    try {
+      publicKey =
+        JSON.parse(process.env.PARTNER_CONTRACT_NATIVE_PUBLIC_KEYS || "{}")[
+          process.env.PARTNER_CONTRACT_NATIVE_KEY_ID || ""
+        ] || "";
+    } catch {
+      /* Invalid configuration fails the live gate. */
+    }
+  }
   return {
-    provider: "dropbox_sign",
+    provider: native ? "native" : "dropbox_sign",
     mode: process.env.PARTNER_CONTRACT_SIGNING_MODE || "disabled",
-    accountId: process.env.DROPBOX_SIGN_ACCOUNT_ID || "",
-    appId: process.env.DROPBOX_SIGN_CLIENT_ID || "",
+    accountId: native ? "" : process.env.DROPBOX_SIGN_ACCOUNT_ID || "",
+    appId: native ? "" : process.env.DROPBOX_SIGN_CLIENT_ID || "",
+    ...(native
+      ? {
+          nativeKeyId: process.env.PARTNER_CONTRACT_NATIVE_KEY_ID || "",
+          nativePublicKey: publicKey,
+          nativeConsentVersion,
+          nativeConsentChecksum: sha256(nativeConsentText),
+        }
+      : {}),
     origin:
       process.env.PARTNER_CONTRACT_PUBLIC_ORIGIN ||
       process.env.AUTH_URL ||
@@ -229,11 +258,12 @@ export function runtimePolicy() {
 export function validateLiveRuntime() {
   const p = runtimePolicy();
   if (
-    p.mode !== "dropbox_live" ||
+    !isLiveMode(p.mode) ||
     process.env.PARTNER_CONTRACT_LIVE_ENABLED !== "true" ||
-    !p.accountId ||
-    !p.appId ||
-    !process.env.DROPBOX_SIGN_API_KEY ||
+    (p.mode === "dropbox_live" &&
+      (!p.accountId || !p.appId || !process.env.DROPBOX_SIGN_API_KEY)) ||
+    (p.mode === "native" &&
+      (!p.nativeKeyId || !p.nativePublicKey || !process.env.PARTNER_CONTRACT_NATIVE_PRIVATE_KEY)) ||
     !p.origin.startsWith("https://") ||
     !Number.isInteger(p.retentionDays) ||
     p.retentionDays < 1 ||
@@ -261,7 +291,7 @@ export function verifySignatures(
   if (
     s.contractId !== contractId ||
     s.sourceChecksum !== sourceChecksum ||
-    s.testMode !== (mode !== "dropbox_live") ||
+    s.testMode !== !isLiveMode(mode) ||
     s.signers.length !== 2
   )
     throw new ContractError("provider_document_binding_mismatch");

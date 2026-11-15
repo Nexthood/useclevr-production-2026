@@ -100,6 +100,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1110. Provide native email-verified sequential partner signing, immutable agreements, single-use proof sessions, cryptographically attested PDF/evidence archives and separate commercial activation; publish the validated draft review without deployment. (labels: workflow, security, auth, testing, docs; commit: c7eec921)
+
 - T-1109. Audit partner contract configuration and signing controls, keep local signing setup failures retryable, document Railway and Dropbox Sign setup, and publish the locally validated draft review PR without merge or deployment. (labels: workflow, security, auth, testing, docs; commit: af568e8e)
 
 - T-1108. Provide public partner registration, invitation email verification, scoped agreement access, signed-agreement credential setup, private commercial portal views and signed-term commission controls; publish the locally validated review branch without deployment. (labels: workflow, auth, billing, security, testing; commit: 26be67d9)

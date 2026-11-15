@@ -12,7 +12,7 @@ import {
   partnerContractTemplates,
   users,
 } from "@/lib/db/schema";
-import { templates, templateChecksum } from "./catalog";
+import { templates, nativeTemplates, templateChecksum } from "./catalog";
 import {
   ContractError,
   hashObject,
@@ -72,7 +72,7 @@ export async function currentFinancialConfig(db: ContractDb) {
   });
 }
 export async function registerCatalog(db: ContractDb) {
-  for (const t of templates) {
+  for (const t of [...templates, ...nativeTemplates]) {
     const checksum = templateChecksum(t);
     await db
       .insert(partnerContractTemplates)

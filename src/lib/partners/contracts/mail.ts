@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
-import { partnerContractDeliveries } from "@/lib/db/schema";
-import { ContractError, hashObject, runtimePolicy } from "./domain";
+import { partnerContractDeliveries, partnerContractNativeInvitations } from "@/lib/db/schema";
+import { ContractError, hashObject, runtimePolicy, isLiveMode, sha256 } from "./domain";
+import { decryptEmailPayload } from "../public-applications";
 import { contractAudit, contractDatabase } from "./records";
 import { contractRow } from "./lifecycle";
 import { readArtifact } from "./storage";
@@ -72,10 +73,48 @@ export async function deliverContractEmail(deliveryId: string) {
     if (!/^https:\/\//.test(origin) && process.env.NODE_ENV === "production")
       throw new ContractError("email_origin_requires_https");
     const link = `${origin.replace(/\/$/, "")}/partners/contracts?contract=${encodeURIComponent(c.id)}`;
-    const nonbinding = c.mode !== "dropbox_live";
-    const label = subjects[d.kind];
+    const nonbinding = !isLiveMode(c.mode);
+    const nativeInvitation = d.kind.startsWith("native_invitation:");
+    const nativeCode = d.kind.startsWith("native_code:");
+    const label = nativeInvitation
+      ? "Review and sign your UseClevr agreement"
+      : nativeCode
+        ? "Your UseClevr signing verification code"
+        : subjects[d.kind];
     if (!label) throw new ContractError("unknown_contract_email_kind");
-    const text = `${nonbinding ? "NON-BINDING TEST / DRAFT\n\n" : ""}${label}.\nAgreement: ${c.snapshot.documentTitle}\nTemplate version: ${c.templateVersion}\nCommercial terms version: ${c.commercialTermsVersion}\n\n${d.kind === "fully_executed" ? "Both signatures are verified and a PDF copy is attached. Commercial activation still requires a separate administrator decision." : d.kind === "activation_confirmed" ? "An administrator explicitly authorized partner activation. Commission and payout rules still apply." : "Review your agreement and status in the secure partner portal. For signing, use the separate invitation sent by the approved signature provider."}\n${link}\n\nAtlas Mega Ventures LLC · UseClevr Partner Program`;
+    let text = `${nonbinding ? "NON-BINDING TEST / DRAFT\n\n" : ""}${label}.\nAgreement: ${c.snapshot.documentTitle}\nTemplate version: ${c.templateVersion}\nCommercial terms version: ${c.commercialTermsVersion}\n\n${d.kind === "fully_executed" ? "Both signatures are verified and a PDF copy is attached. Commercial activation still requires a separate administrator decision." : d.kind === "activation_confirmed" ? "An administrator explicitly authorized partner activation. Commission and payout rules still apply." : c.mode === "native" ? "Use the secure UseClevr signing invitation sent to your verified email. Contact the partner team if it expires." : "Review your agreement and status in the secure partner portal. For signing, use the separate invitation sent by the approved signature provider."}\n${link}\n\nAtlas Mega Ventures LLC · UseClevr Partner Program`;
+    if (nativeInvitation || nativeCode) {
+      const payload = decryptEmailPayload(d.payload);
+      const i = await db.query.partnerContractNativeInvitations.findFirst({
+        where: eq(partnerContractNativeInvitations.id, payload.invitationId || ""),
+      });
+      if (
+        c.mode !== "native" ||
+        !i ||
+        i.contractId !== c.id ||
+        i.email !== d.recipient.toLowerCase() ||
+        i.revokedAt ||
+        i.usedAt ||
+        i.expiresAt <= new Date() ||
+        !["awaiting_partner_signature", "awaiting_company_signature"].includes(c.status)
+      )
+        throw new ContractError("native_email_expired");
+      if (nativeInvitation) {
+        if (!payload.token || sha256(payload.token) !== i.tokenHash)
+          throw new ContractError("native_email_payload_invalid");
+        // Fragment tokens never enter HTTP request URLs or server access logs.
+        text = `${label}.\n${origin.replace(/\/$/, "")}/partners/sign#token=${encodeURIComponent(payload.token)}\nThis single-use invitation expires at ${i.expiresAt.toISOString()}. Verify your email with a one-time code, review the complete agreement, and explicitly consent before signing. Do not forward this link. Signing does not activate commercial privileges.`;
+      } else {
+        if (
+          !payload.code ||
+          !i.codeExpiresAt ||
+          i.codeExpiresAt <= new Date() ||
+          !d.kind.endsWith(`:${i.codeRequests}`)
+        )
+          throw new ContractError("native_email_expired");
+        text = `Your UseClevr agreement signing code is ${payload.code}. It expires at ${i.codeExpiresAt.toISOString()}. Do not share this code. Enter it only in the UseClevr signing page you opened from your invitation.`;
+      }
+    }
     const attachments: { filename: string; content: string }[] = [];
     if (d.kind === "fully_executed") {
       if (c.status !== "fully_executed" || !c.signedArtifactId || !c.signedDocumentChecksum)
@@ -85,6 +124,14 @@ export async function deliverContractEmail(deliveryId: string) {
         filename: nonbinding ? "NON-BINDING-TEST-agreement.pdf" : "executed-partner-agreement.pdf",
         content: file.bytes.toString("base64"),
       });
+      if (c.mode === "native") {
+        await (await import("./native")).verifyNativeExecution(db, c);
+        const manifest = await readArtifact(db, c.auditArtifactId!, c.id, c.auditEvidenceChecksum!);
+        attachments.push({
+          filename: "execution-evidence.json",
+          content: manifest.bytes.toString("base64"),
+        });
+      }
     }
     const payload = {
       from: process.env.EMAIL_FROM || "UseClevr <auth@useclevr.com>",
@@ -155,7 +202,12 @@ export async function deliverContractEmail(deliveryId: string) {
       .update(partnerContractDeliveries)
       .set({
         status:
-          d.attempts >= 5 || code === "email_payload_changed_requires_review"
+          d.attempts >= 5 ||
+          [
+            "email_payload_changed_requires_review",
+            "native_email_expired",
+            "native_email_payload_invalid",
+          ].includes(code)
             ? "failed"
             : "pending",
         nextAttemptAt: new Date(Date.now() + Math.min(3600000, 60000 * 2 ** d.attempts)),

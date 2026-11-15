@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql, inArray } from "drizzle-orm";
 import {
   partnerApplications,
   partnerContractAudit,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema";
 import {
   ContractError,
+  isLiveMode,
   hashObject,
   runtimePolicy,
   signingMode,
@@ -37,8 +38,9 @@ import { MockSignatureProvider, providerFor } from "./provider";
 import { generateAgreementPdf } from "./pdf";
 import { readArtifact, saveArtifact } from "./storage";
 import type { ContractDb } from "./types";
+import { templates, nativeTemplates } from "./catalog";
 export type ContractRow = typeof partnerContracts.$inferSelect;
-async function contractLock(db: ContractDb, id: string) {
+export async function contractLock(db: ContractDb, id: string) {
   await db.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`contract:${id}`},0))`);
 }
 export async function contractRow(db: ContractDb, id: string) {
@@ -93,7 +95,7 @@ export async function liveGates(
   db: ContractDb,
   c: Pick<ContractRow, "templateId" | "scheduleId" | "profileId" | "snapshot" | "mode">,
 ) {
-  if (c.mode !== "dropbox_live") throw new ContractError("nonbinding_contract_cannot_activate");
+  if (!isLiveMode(c.mode)) throw new ContractError("nonbinding_contract_cannot_activate");
   await policyLock(db);
   validateLiveRuntime();
   if (c.snapshot.runtimeHash !== hashObject(runtimePolicy()) || !(await hasRuntimeApproval(db)))
@@ -177,7 +179,13 @@ export async function prepareContract(applicationId: string) {
     if (!profile || !schedule)
       return { blocked: !profile ? "legal_identity_required" : "commercial_schedule_required" };
     const template = await tx.query.partnerContractTemplates.findFirst({
-      where: eq(partnerContractTemplates.agreementType, schedule.agreementType),
+      where: and(
+        eq(partnerContractTemplates.agreementType, schedule.agreementType),
+        inArray(
+          partnerContractTemplates.id,
+          (signingMode() === "native" ? nativeTemplates : templates).map((t) => t.id),
+        ),
+      ),
       orderBy: [desc(partnerContractTemplates.createdAt), desc(partnerContractTemplates.id)],
     });
     if (!template) throw new ContractError("agreement_template_missing");
@@ -204,7 +212,7 @@ export async function prepareContract(applicationId: string) {
     };
     let mode = signingMode();
     let blockingReason: string | null = null;
-    if (mode === "dropbox_live")
+    if (isLiveMode(mode))
       try {
         await liveGates(tx, {
           templateId: template.id,
@@ -227,6 +235,7 @@ export async function prepareContract(applicationId: string) {
       last.scheduleId === schedule.id &&
       last.templateId === template.id &&
       last.mode === mode &&
+      !(mode === "native" && ["expired", "cancelled", "rejected"].includes(last.status)) &&
       last.snapshot.runtimeHash === snapshot.runtimeHash
     )
       return { contractId: last.id, blocked: blockingReason };
@@ -250,12 +259,19 @@ export async function prepareContract(applicationId: string) {
         commercialTermsVersion: schedule.version,
         snapshot,
         mode,
-        provider: mode === "draft" ? "preview" : mode === "mock" ? "mock" : "dropbox_sign",
+        provider:
+          mode === "draft"
+            ? "preview"
+            : mode === "mock"
+              ? "mock"
+              : mode === "native"
+                ? "native"
+                : "dropbox_sign",
         expiresAt: new Date(Date.now() + ttl * 86400000),
         lastErrorCode: blockingReason,
       })
       .returning();
-    const pdf = generateAgreementPdf(template as Template, snapshot, c.id, mode !== "dropbox_live");
+    const pdf = generateAgreementPdf(template as Template, snapshot, c.id, !isLiveMode(mode));
     const artifact = await saveArtifact(tx, c.id, "source", pdf);
     await tx
       .update(partnerContracts)
@@ -290,7 +306,7 @@ export async function prepareContract(applicationId: string) {
     return { contractId: c.id, blocked: blockingReason };
   });
 }
-async function reserveLiveSend(db: ContractDb, c: ContractRow) {
+export async function reserveLiveSend(db: ContractDb, c: ContractRow) {
   const month = new Date().toISOString().slice(0, 7);
   await db.execute(
     sql`select pg_advisory_xact_lock(hashtextextended(${`contract-send-budget:${process.env.DROPBOX_SIGN_ACCOUNT_ID}:${month}`},0))`,
@@ -304,12 +320,16 @@ async function reserveLiveSend(db: ContractDb, c: ContractRow) {
     db,
     "system",
     "live_send_budget_reserved",
-    "Owner-approved application send cap reserved conservatively before external creation",
+    "Owner-approved application send cap reserved before issuing a signature request",
     { contractId: c.id, applicationId: c.applicationId, evidence: { month } },
   );
 }
 export async function sendContract(contractId: string) {
   const db = contractDatabase();
+  if ((await contractRow(db, contractId)).mode === "native") {
+    await (await import("./native")).sendNativeContract(contractId);
+    return;
+  }
   let row: ContractRow | null = null;
   let sourcePdf: Buffer | null = null;
   await db.transaction(async (tx) => {
@@ -397,6 +417,11 @@ export async function reconcileContract(contractId: string) {
   let c = await contractRow(db, contractId);
   if (terminalStates.includes(c.status)) return;
   if (c.mode === "draft") return;
+  if (c.mode === "native") {
+    if (c.expiresAt <= new Date())
+      await closeContract(c.id, "expired", "Native signing period expired");
+    return;
+  }
   const provider = contractProvider(db, c);
   if (!c.providerReference) {
     if (!["sending", "send_uncertain"].includes(c.status)) return;
@@ -608,6 +633,10 @@ export async function cancelContract(id: string, actor: string, reason: string) 
   if (c.status === "fully_executed")
     throw new ContractError("executed_agreement_requires_legal_amendment");
   if (terminalStates.includes(c.status)) return;
+  if (c.mode === "native") {
+    await closeContract(id, "cancelled", reason);
+    return;
+  }
   if (!c.providerReference) {
     if (["sending", "send_uncertain"].includes(c.status))
       throw new ContractError("reconcile_uncertain_provider_request_before_cancellation");
@@ -634,6 +663,10 @@ export async function remindContract(id: string) {
   });
   if (last && Date.now() - last.createdAt.getTime() < 24 * 3600000) return;
   const role = c.partnerSignedAt ? "company" : "partner";
+  if (c.mode === "native") {
+    await notify(db, c, "signing_reminder", [role]);
+    return;
+  }
   await contractProvider(db, c).remind(
     c.providerReference,
     role === "partner" ? c.snapshot.partnerEmail : c.snapshot.companySigner.email,

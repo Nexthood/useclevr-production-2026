@@ -88,6 +88,14 @@ try {
   const login = await fetch(origin + "/login?callbackUrl=%2Fpartner");
   assert.equal(login.status, 200);
   assert.ok((await login.text()).includes("Sign"));
+  const native = await fetch(origin + "/partners/sign");
+  assert.equal(native.status, 200);
+  const nativeHtml = await native.text();
+  assert.ok(nativeHtml.includes("Sign your partner agreement"));
+  assert.ok(nativeHtml.includes('name="referrer" content="no-referrer"'));
+  const nativeApi = await fetch(origin + "/api/partners/contracts/native");
+  assert.equal(nativeApi.status, 404);
+  assert.equal((await nativeApi.json()).code, "contract_management_disabled");
   console.log(
     "PASS packaged runtime serves account-free applications and invitation verification, protects partner login returns, and rejects anonymous private API access",
   );

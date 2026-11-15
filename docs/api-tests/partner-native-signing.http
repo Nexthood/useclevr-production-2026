@@ -1,0 +1,40 @@
+@baseUrl = http://localhost:3000
+@signingToken = replace-privately-from-authorized-fixture-invitation
+@invitedEmail = signer@example.invalid
+
+### Request a code for the exact authorized fixture signer
+# Keep real tokens, cookies, codes and agreement responses outside this repository.
+POST {{baseUrl}}/api/partners/contracts/native
+Origin: {{baseUrl}}
+Content-Type: application/json
+
+{"operation":"request_code","token":"{{signingToken}}","email":"{{invitedEmail}}"}
+
+### Consume the fixture invitation and one-time email code
+# Successful verification sets a contract-scoped HttpOnly signing cookie.
+POST {{baseUrl}}/api/partners/contracts/native
+Origin: {{baseUrl}}
+Content-Type: application/json
+
+{"operation":"verify","token":"{{signingToken}}","email":"{{invitedEmail}}","code":"<private-one-time-code>"}
+
+### Review the complete immutable agreement using the verified fixture cookie
+GET {{baseUrl}}/api/partners/contracts/native
+Cookie: useclevr-native-signing=<private-fixture-signing-cookie>
+
+### Download the exact source PDF
+GET {{baseUrl}}/api/partners/contracts/native?document=source
+Cookie: useclevr-native-signing=<private-fixture-signing-cookie>
+
+### Affirmatively sign only after authorized review and consent
+# This records real signing intent. Use only disposable synthetic legal fixtures.
+POST {{baseUrl}}/api/partners/contracts/native
+Origin: {{baseUrl}}
+Cookie: useclevr-native-signing=<private-fixture-signing-cookie>
+Content-Type: application/json
+
+{"operation":"sign","signing":{"legalName":"<approved-fixture-signer-name>","documentChecksum":"<reviewed-source-sha256>","consentVersion":"native-electronic-signatures-2026-11-v1","consent":true,"reviewed":true,"action":"sign_agreement"}}
+
+### Anonymous document access must fail
+# Expected: 401 when management is enabled; 404 contract_management_disabled when off.
+GET {{baseUrl}}/api/partners/contracts/native?document=source

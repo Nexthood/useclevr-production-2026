@@ -152,6 +152,11 @@ async function main() {
   );
   await pool.query(accessMigration);
   await pool.query(accessMigration);
+  const nativeMigration = await readFile(
+    new URL("../../src/lib/db/migrations/0045_native_partner_signatures.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.query(nativeMigration);
   await db.insert(schema.partnerConfigs).values({
     id: "fixture-policy",
     config: defaultConfig,
@@ -1200,6 +1205,11 @@ async function main() {
       }
     },
   );
+  await pool.query(nativeMigration);
+  await pool.query(nativeMigration);
+  await (
+    await import("./test-native-contracts")
+  ).runNativeContractTests({ db, pool, fixture, check });
   console.log(
     `${passed} contract integration groups passed; external calls intercepted; no production data used.`,
   );

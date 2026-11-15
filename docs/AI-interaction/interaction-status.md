@@ -1,3 +1,20 @@
+## 2026-11-15 — Native partner electronic signing (T-1110)
+
+- Goal: Native email-verified sequential signing on the existing feature branch; preserve Dropbox, commercial controls and owner approval before production.
+- Implementation: Contract-scoped expiring invitation/code/session proofs; full immutable review; explicit consent and typed-name action; company countersigning; Ed25519-attested receipts and final PDF manifest; encrypted archives and delivery; separate activation. Native 2.0.0 templates require new owner legal approval. Raw submitted Unicode names remain in evidence; certificates use the approved signer name.
+- Verification: 43 financial/database checks, 26 contract groups, 22 browser groups, focused regressions, 174 documentation links and zero-error clean-source lint pass; final corrected production build, TypeScript, 105 generated pages, packaging and packaged-runtime acceptance pass, including the native entry page and disabled API gate. New and same-tab invitations require fresh email verification.
+- Release gates: Owner/security/legal review, controlled key custody and retained public keys/consent mappings, migration 0045, backup recovery, trusted ingress/clock configuration and actual hosted email/signing acceptance. No qualified signature or independent identity/timestamp claim.
+- Publication: Source c7eec921 is published in [draft PR #426](https://github.com/Nexthood/useclevr-production-2026/pull/426) against beta on the existing feature branch. Equivalent isolated push checks pass; T-1110 is complete. No merge, deployment, live signing or activation occurs in this task.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-14 — Partner signing configuration report
+
+- Goal: Explain exact Railway/Dropbox variables, callback configuration, staged enablement and remaining production prerequisites; T-1109 stays complete.
+- Finding: Configure useclevr app. Management, signing, approvals and commercial activation are independent gates. Dropbox callback hashes use the Primary API Key, which must match this implementation's DROPBOX_SIGN_API_KEY.
+- Risk: The guide records an absent management flag; current hosted configuration/schema, legal/provider approvals, delivery and real signing acceptance remain unverified.
+- Changes: Required interaction records only; no code, hosted configuration, deployment or PR changes.
+- Sources: T-1109 guide, implementation and official Dropbox documentation; AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-14 — Production partner contract readiness (T-1109)
 
 - Goal: Diagnose disabled production contracts, extract exact Railway/Dropbox configuration, repair confirmed blockers and publish a review branch without merge or deployment.
