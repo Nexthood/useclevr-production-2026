@@ -1,5 +1,6 @@
 ## 2026-11-16 — Production runtime reliability (T-1111)
 
+- Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
 - Rendering: All six loading routes and LoadingScreen render on the server. Flight reproduces the reported message for a server-to-client icon prop; the reviewed client-to-client source does not establish the production root cause.
 - Reliability: PostgreSQL and Neon WebSocket pools handle idle errors safely; active query errors propagate without retries. Partner financial, contract and browser regressions pass.
 - Validation: Runtime regressions, types, full lint (0 errors, 453 warnings), isolated production build/packaging, packaged protected/public partner routes, docs links, workflow/pricing and precommit/deployment checks pass.

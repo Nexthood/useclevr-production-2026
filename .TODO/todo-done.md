@@ -14,7 +14,7 @@ moving work between states.
 
 ## Label: stability
 
-- T-1111. Render dashboard loading screens on the server, contain idle database connection errors, verify protected and partner routes, and document production warning diagnosis for owner review. (labels: stability, security, testing; commit: worktree)
+- T-1111. Render dashboard loading screens on the server, contain idle database connection errors, verify protected and partner routes, and document production warning diagnosis for owner review. (labels: stability, security, testing; commit: ea30e53b)
 
 ## Label: deployment
 

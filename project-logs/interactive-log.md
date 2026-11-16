@@ -1,5 +1,6 @@
 ## 2026-11-16 — Production runtime serialization and warning review (T-1111)
 
+- Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
 - Goal: Repair reported production rendering failures, investigate connection/TLS/CMS warnings, and publish reviewable changes without deployment or commercial activation.
 - Finding: A server-to-client forwardRef icon prop reproduces the reported Flight message. Source review at resumption shows both routes and shared LoadingScreen carry client directives, so this reproduction does not establish the production root cause. All six loading routes and LoadingScreen render on the server; the regression requires server routes. Railway log retrieval returns Unauthorized, so the digest's exact request, deployed revision and reset correlation remain unverified.
 - Changes: Register privacy-safe idle error listeners on PostgreSQL and Neon WebSocket runtime pools; propagate active query failures without retries. Add Flight and pool regressions to the regular test command and extend packaged runtime checks to six protected routes. Correct unsafe TLS troubleshooting and document the incident, CMS email limits and owner checks.
