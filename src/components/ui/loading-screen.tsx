@@ -1,5 +1,3 @@
-"use client"
-
 interface LoadingScreenProps {
   icon: React.ComponentType<{ className?: string }>
   text: string

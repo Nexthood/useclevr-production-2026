@@ -1,5 +1,3 @@
-"use client"
-
 import { LoadingScreen } from "@/components/ui/loading-screen"
 import { Calculator } from "lucide-react"
 
