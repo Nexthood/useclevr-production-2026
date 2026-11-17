@@ -92,6 +92,8 @@
 
 ### Dev
 
+- Check native signing database prerequisites without changing hosted data.
+
 - Add partner invitation regressions for verified email ownership, expiry, reuse and consistent database lookup.
 
 - Bind test deployment artifacts to the dedicated TEST service independently of Railway environment placement.

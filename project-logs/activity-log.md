@@ -1,3 +1,9 @@
+## 2026-11-17 — Production recovery and native release review (T-1113)
+
+- Add a bounded read-only native schema checker and four safety tests; document native prerequisites and unverified incident causes on a dedicated beta review branch.
+- Pass non-security validation, including native integration/browser and packaged runtime checks; record the successful short-temp-path Passport retry.
+- Confirm a problematic vendored matcher in the production artifact and published Next patch; retain the failing audit gate and NO-GO release decision. No dependency, signing, activation, Railway or production schema changes occur.
+
 ## 2026-11-16 — Production runtime reliability (T-1111)
 
 - Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.

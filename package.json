@@ -45,7 +45,7 @@
     "validate:release": "node ./scripts/release/check.cjs",
     "analyze:business": "node -r tsx/esm scripts/analysis/analyze-business.ts",
     "test:railway-auth": "node scripts/server/railway/test-railway-auth.mjs && node scripts/server/railway/test-beta-deployment.mjs",
-    "test:runtime": "node --conditions=react-server scripts/health/test-loading-boundaries.mjs && node scripts/health/test-db-pool-errors.mjs",
+    "test:runtime": "node --conditions=react-server scripts/health/test-loading-boundaries.mjs && node scripts/health/test-db-pool-errors.mjs && node --test scripts/partners/test-native-signing-schema.mjs",
     "test:partners": "node --import ./scripts/partners/register-hooks.mjs -r tsx/esm scripts/partners/test-public-applications.ts && node -r tsx/esm scripts/partners/test-rules.ts && node scripts/partners/test-native-packaging.mjs && node -r tsx/esm scripts/partners/test-contracts.ts",
     "test:partners:browser": "node scripts/partners/test-browser.mjs",
     "test:partners:integration": "node -r tsx/esm --import ./scripts/partners/register-hooks.mjs scripts/partners/test-integration.ts && pnpm test:partner-contracts:integration",

@@ -1,3 +1,15 @@
+## 2026-11-17 — Production recovery and native reseller readiness (T-1113)
+
+- Goal: Investigate runtime errors, resets/restarts and CMS warnings, verify an installable security remedy, validate native signing and publish a dedicated beta review without deployment or activation.
+- Scope: Work in fix/production-native-release-readiness from beta 58fb7c03. Preserve the original dirty worktree. PR #426, migration 0045 and native routes are included. Railway has no token/link; incident stacks, deployed revision, hosted schema, approvals and configuration remain unverified.
+- Findings: Candidate Flight tests pass; digest correlation requires logs. Reset and restart causes remain unconfirmed. Payload has no email adapter, with partner Resend separate; missing-table identifiers and schema require hosted evidence. No speculative runtime, retry, TLS or schema changes occur.
+- Security: Audit fails with 0 critical, 1 high, 10 moderate and 1 low. Public npm has no picomatch 4.0.8; upstream fixes remain unmerged. Next's packaged vendored matcher exceeds the bounded repeated-extglob test; short input completes. Published Next 16.4.6 contains the same tested module as its release tag and also exceeds the limit. Latest Payload retains the schema-tool dependency. Root overrides cannot rewrite vendored code; no safe complete remediation is verified.
+- Changes: Add a read-only native schema prerequisite checker, four safety tests, runtime-suite integration and operator/recovery documentation. The checker loads no app or environment files, rolls back, prints no secrets and grants no migration/release approval.
+- Validation: Types, lint (0 errors, 453 warnings), production build/packaging, packaged regressions, 43 partner database checks, 26 contract groups and 22 browser groups pass. The 46-suite run needs a successful short-TMPDIR Passport retry; its initial socket-path failure remains in the combined exit status. Real disposable-catalog SQL validation passes. Security remains failed; source CI retains its gate.
+- Problems: Blockers — unsafe matcher and missing hosted incident/readiness evidence. Risk — package presence does not prove public reachability; healthy liveness does not prove schema readiness. Follow-up — retain T-1113 until security, hosted verification and owner-authorized release acceptance complete.
+- Learning: Inspect the physical runtime artifact and upstream tarball; do not infer runtime exclusion from development-oriented dependency names or certify migration application from object presence.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts, post-interaction memory prompt, source, isolated validation, npm and official upstream sources.
+
 ## 2026-11-16 — Production runtime serialization and warning review (T-1111)
 
 - Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
