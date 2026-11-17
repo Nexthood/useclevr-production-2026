@@ -29,6 +29,8 @@
 
 ### Fixed
 
+- Render dashboard loading screens on the server and keep idle database disconnects from terminating the application.
+
 - Keep generated partner agreements retryable when local signing credentials or document keys require configuration repair.
 
 - Keep applications recoverable during email or storage failures and calculate payable commissions from verified collected subscription revenue and each partner’s signed commercial terms.

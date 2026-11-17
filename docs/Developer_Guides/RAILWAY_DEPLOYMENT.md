@@ -263,6 +263,9 @@ If logs show `failed to calculate checksum of ref ... "/app/node_modules": not f
 
 ### Runtime Errors (502 / Healthcheck Failures)
 
+For loading-screen serialization failures, connection-reset diagnosis and CMS email warnings,
+use the [16 November runtime review](PRODUCTION_RUNTIME_2026_11_16.md).
+
 If Railway deploys successfully but the app returns 502:
 
 1. Check Railway logs for server startup errors or crash traces.
@@ -274,9 +277,14 @@ If Railway deploys successfully but the app returns 502:
    Email verification requires `RESEND_API_KEY` and `EMAIL_FROM` using a verified
    `useclevr.com` sender.
 3. Confirm the generated start command is `sh start.sh`, with no dashboard start override.
-4. Confirm the database is reachable — Railway Postgres may require SSL:
-   - The `pg` Pool in `src/lib/db/index.ts` uses `{ connectionString: url, max: 10 }` without SSL.
-   - Add `ssl: { rejectUnauthorized: false }` when the hostname contains `railway.app` or `neon.tech`.
+4. Confirm the database is reachable with the provider-required TLS configuration:
+   - Runtime pools and Payload pass the connection URL to `pg`; URL SSL parameters configure TLS.
+   - For certificate-verified public endpoints, use `sslmode=verify-full` and the provider's trusted
+     CA where needed. Verify the certificate hostname before an owner-authorized configuration change.
+   - Never resolve an SSL warning by disabling certificate verification or enabling libpq
+     compatibility semantics. URL SSL parameters can replace an explicitly supplied `ssl` object.
+   - Review the predeploy client's existing `rejectUnauthorized: false` fallback separately: it
+     requires a provider-specific CA/hostname assessment. Do not copy that fallback into runtime pools.
 5. Check `/api/health` JSON for `database: "ready"` after startup:
    - Railway receives HTTP 200 from the liveness healthcheck while database readiness is reported in
      the response body.

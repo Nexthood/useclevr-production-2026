@@ -12,6 +12,10 @@ moving work between states.
 - [TODO-future.md](todo-future.md)
 - [.TODO/config.json](config.json)
 
+## Label: stability
+
+- T-1111. Render dashboard loading screens on the server, contain idle database connection errors, verify protected and partner routes, and document production warning diagnosis for owner review. (labels: stability, security, testing; commit: ea30e53b)
+
 ## Label: deployment
 
 - T-1106. Require the verified Railway beta environment and TEST service while retaining signing and migration safeguards. (labels: deployment, security, testing; commit: worktree)

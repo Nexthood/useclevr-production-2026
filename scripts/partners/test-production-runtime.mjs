@@ -88,6 +88,14 @@ try {
   const login = await fetch(origin + "/login?callbackUrl=%2Fpartner");
   assert.equal(login.status, 200);
   assert.ok((await login.text()).includes("Sign"));
+  for (const route of ["accountancy", "admin/partners", "assistant", "datasets", "settings", "tickets"]) {
+    const response = await fetch(origin + `/app/${route}`, { redirect: "manual" });
+    assert.equal(response.status, 307, `${route} retains its authentication redirect`);
+    assert.equal(new URL(response.headers.get("location"), origin).pathname, "/login");
+    const body = await response.text();
+    assert.ok(!body.includes("Functions cannot be passed directly to Client Components"));
+    assert.ok(!body.includes('"digest":"1975185665"'));
+  }
   const native = await fetch(origin + "/partners/sign");
   assert.equal(native.status, 200);
   const nativeHtml = await native.text();
@@ -96,6 +104,8 @@ try {
   const nativeApi = await fetch(origin + "/api/partners/contracts/native");
   assert.equal(nativeApi.status, 404);
   assert.equal((await nativeApi.json()).code, "contract_management_disabled");
+  assert.ok(!diagnostics.includes("Functions cannot be passed directly to Client Components"));
+  console.log("PASS six protected dashboard loading routes retain login redirects without serialization errors");
   console.log(
     "PASS packaged runtime serves account-free applications and invitation verification, protects partner login returns, and rejects anonymous private API access",
   );

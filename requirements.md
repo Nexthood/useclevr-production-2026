@@ -9,6 +9,11 @@ Text rules for this file:
 - Avoid vague phrases that hide the actor or the required action.
 - Avoid past-state comparison unless it prevents a concrete risk.
 
+## Runtime reliability
+
+- Dashboard route loading screens render their icons without serializing component functions into browser props.
+- Database pools handle idle connection errors without exposing connection details or terminating the process; failed active queries propagate without automatic write retries.
+
 ## Global Partner Program
 
 - Native partner signing requires an expiring single-use invitation, one-time email verification, complete immutable agreement review, explicit versioned electronic-signature consent, the approved signer's typed legal name and an affirmative action; the authorized company signer completes an independent email-verified countersignature after the partner.

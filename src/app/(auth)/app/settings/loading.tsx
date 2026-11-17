@@ -1,5 +1,3 @@
-"use client"
-
 import { LoadingScreen } from "@/components/ui/loading-screen"
 import { Settings2 } from "lucide-react"
 

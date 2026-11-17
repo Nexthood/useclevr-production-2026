@@ -222,6 +222,9 @@ into the active queue.
 
 ## Label: security
 
+- Validate the production database certificate chain and hostname for both application and migration endpoints, then replace the migration client's certificate-verification bypass with provider-trusted TLS under owner review. (labels: security, deployment, testing)
+- Configure a real Payload CMS email adapter with a verified sender and test CMS account recovery using an authorized mailbox. (labels: security, auth, testing)
+
 - Review and remediate dependency audit findings for Auth.js, Next.js, SheetJS, Payload transitive packages, DOMPurify, Sharp, PostCSS, and workflow tooling without broad unreviewed dependency upgrades. (labels: security, ci-build, testing)
 - Re-enable the external Public AI API only after persistent hashed API keys, key revocation, expiration, per-key permissions, rate limits, request-size limits, dataset row/column limits, abuse controls, and audit logging are implemented. (labels: security, api, ai, monitoring)
 - Create API rate limiting per user. (labels: security, api, performance)

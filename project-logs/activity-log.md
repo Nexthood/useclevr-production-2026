@@ -1,3 +1,16 @@
+## 2026-11-16 — Production runtime reliability (T-1111)
+
+- Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
+- Render six dashboard loading fallbacks on the server and handle idle database errors without logging connection details or retrying failed writes.
+- Reproduce the reported Flight serialization failure, verify partner/contract regressions, and document TLS verification, CMS email limitations and blocked Railway log correlation.
+- Pass types, runtime regressions, full lint, isolated production build/packaging, packaged route smoke tests, documentation links and repository checks; publish draft review against beta with hosted changes under owner control.
+
+## 2026-11-16 — Native signing production readiness review
+
+- Confirm PR #426 CI succeeds and PR #425 precedes #426 in beta ancestry; review migration 0045, signing security and exact configuration without hosted changes.
+- Require owner legal/security decisions, read-only production schema/configuration checks, backup/key recovery and two-mailbox hosted acceptance; retain native-aware code and evidence during rollback.
+- Update required interaction records only; create no PR, deployment, configuration change, secret rotation or signing activation.
+
 ## 2026-11-15 — Native partner electronic signing (T-1110)
 
 - Provide email-verified native partner/company signing with single-use invitations, explicit review/consent, immutable versions, attested receipt chains and encrypted PDF/evidence delivery.

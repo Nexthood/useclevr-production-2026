@@ -1,3 +1,20 @@
+## 2026-11-16 — Production runtime reliability (T-1111)
+
+- Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
+- Rendering: All six loading routes and LoadingScreen render on the server. Flight reproduces the reported message for a server-to-client icon prop; the reviewed client-to-client source does not establish the production root cause.
+- Reliability: PostgreSQL and Neon WebSocket pools handle idle errors safely; active query errors propagate without retries. Partner financial, contract and browser regressions pass.
+- Validation: Runtime regressions, types, full lint (0 errors, 453 warnings), isolated production build/packaging, packaged protected/public partner routes, docs links, workflow/pricing and precommit/deployment checks pass.
+- Limits: Railway logs return Unauthorized; digest/request and ECONNRESET correlation remain unverified. Provider CA/hostname review and a real CMS email adapter remain separate follow-ups.
+- Scope: No deployment pipeline, hosted variable, secret, deployment or commercial activation changes. Preserve prior readiness-review records.
+
+## 2026-11-16 — Native signing production readiness review
+
+- CI: PR #426 head 8bfdf7e0 passes run 43698593149, including the full test/build command and docs; no failed checks. PR #425 merges before #426 into beta, with ancestry confirmed.
+- Review: Exact native/shared variables, verified-email proofs, immutable consent/signature evidence, company authorization, encryption and migration 0045 are reviewed from source. Hosted revision, migration state, configuration, approvals, backups and actual delivery remain unverified.
+- Owner gates: Approve native 2.0.0 legal/schedule/assurance and company authority, retention/budget, key custody and QA mailboxes; authorize staged acceptance separately. Preserve schema/evidence/keys and native-aware code during rollback; old predeploy code replaces the activation guard.
+- Actions: Required interaction records only; no code changes, new PR, merge, deployment, Railway writes, secret generation/rotation or signing activation.
+- Sources: Native guide, implementation/migration and GitHub evidence; AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-15 — Native partner electronic signing (T-1110)
 
 - Goal: Native email-verified sequential signing on the existing feature branch; preserve Dropbox, commercial controls and owner approval before production.
