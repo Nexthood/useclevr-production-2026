@@ -3,7 +3,7 @@
 Status: implementation for owner review. Production signing requires separate release authorization,
 legal review and recorded owner approvals. Native signing uses the existing email service and
 PostgreSQL; it requires no paid signature-provider account. Dropbox Sign remains a supported mode.
-Review: [draft PR #426](https://github.com/Nexthood/useclevr-production-2026/pull/426).
+Review: [merged implementation PR #426](https://github.com/Nexthood/useclevr-production-2026/pull/426).
 
 ## Workflow and evidence
 
@@ -125,6 +125,16 @@ receipts remain verifiable.
    Signing and password setup do not activate accounts, accrue commissions or create payouts.
 
 ## Verification and recovery
+
+Run `node scripts/partners/check-native-signing-schema.mjs` with a privately supplied runtime
+`DATABASE_URL` or `DIRECT_URL` to inspect migration 0045 prerequisites. The checker loads no
+environment files, forces a read-only database session and transaction, rolls back every query,
+and emits only object names and presence flags. It executes no migrations or application imports.
+An incomplete catalog or connection failure exits nonzero. Object presence does not establish
+the migration's complete definition, approved templates/schedules, authorized company signer,
+key validity, runtime approval, mail delivery or release authorization. Verify those separately.
+Do not use the management GET endpoint for strict read-only inspection: its enabled admin view
+registers catalog entries.
 
 `pnpm test:partner-contracts:integration` runs native and Dropbox regressions against a fixed
 disposable local PostgreSQL fixture with intercepted external calls. `pnpm test:partners:browser`

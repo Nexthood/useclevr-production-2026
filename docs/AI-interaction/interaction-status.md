@@ -1,3 +1,11 @@
+## 2026-11-17 — Production recovery / native reseller NO-GO (T-1113)
+
+- Candidate: Dedicated beta review branch contains PR #426, migration 0045 and native routes; no deployment or live signing/commission activation.
+- Code: Read-only native prerequisite checker and four safety regressions; no speculative application fix. Hosted incident cause, revision, schema/configuration and approvals remain unverified without Railway access.
+- Security: Audit fails (0 critical, 1 high, 10 moderate, 1 low). A bounded test times out on Next's vendored production matcher and published Next 16.4.6; no safe complete remedy is verified. No audit exception or dependency change.
+- Validation: Types, lint, 46 suites with Passport temp-path retry, 43 database checks, 26 contract groups, 22 browser groups, production build/packaging and packaged smoke pass. The combined runner retains the first Passport failure; security remains blocking.
+- Evidence: [Recovery report](../Developer_Guides/PRODUCTION_RECOVERY_2026_11_17.md). Keep T-1113 active for security remediation, hosted evidence and separately authorized release acceptance. Follow the four repository instruction sources and post-interaction memory prompt.
+
 ## 2026-11-16 — Production runtime reliability (T-1111)
 
 - Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
