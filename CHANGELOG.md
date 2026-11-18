@@ -92,6 +92,8 @@
 
 ### Dev
 
+- Control the single-branch repeated extglob matcher flaw behind the withdrawn high advisory with a reproducible package patch and regression tests, because the registry lists no fixed release yet; the audit stays blocked on the unapproved finding until its owner clears the policy question.
+
 - Check native signing database prerequisites without changing hosted data.
 
 - Add partner invitation regressions for verified email ownership, expiry, reuse and consistent database lookup.

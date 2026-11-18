@@ -1,3 +1,9 @@
+## 2026-11-18 — picomatch extglob ReDoS remediation (T-1112)
+
+- Add pnpm patches for picomatch 4.0.5 and 2.3.2 that collapse the single-branch repeated star extglob path (CVE-2026-112366) with capture fallback, opt-out and excluded syntax preserved.
+- Add 13 regression cases into test:all and a dist artifact patch verifier into validate:artifact-patches; document registry, feed-lag and vendored-matcher evidence with an explicit owner-approval request for a narrow allowlist exception.
+- Pass patch, record, package, changelog and secret checks; the audit gate remains blocked on the unchanged advisory pending feed sync or owner decision. No application source, signing, activation or deployment changes occur.
+
 ## 2026-11-17 — Production recovery and native release review (T-1113)
 
 - Add a bounded read-only native schema checker and four safety tests; document native prerequisites and unverified incident causes on a dedicated beta review branch.

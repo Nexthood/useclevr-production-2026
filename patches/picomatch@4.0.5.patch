@@ -1,0 +1,50 @@
+diff --git a/lib/parse.js b/lib/parse.js
+index a85bb2d441e5c20331181411f67bef7a2d0a0d88..16400ca76939556701565cccefe339a12127d22e 100644
+--- a/lib/parse.js
++++ b/lib/parse.js
+@@ -284,6 +284,17 @@ const repeatedExtglobRecursion = pattern => {
+   return depth;
+ };
+ 
++// Security patch (UseClevr): CVE-2026-112366 / GHSA-fc5q-39xc-vjpf.
++// A single branch made of literals and single stars (no globstar, path
++// separators, quoting, escapes or other glob/regex syntax) is absorbed by its
++// own star, so the outer unbounded quantifier is redundant and only enables
++// catastrophic backtracking. Mirrors upstream micromatch/picomatch#237.
++const isSelfRepeatingStarBranch = branch => {
++  return branch.includes('*') &&
++    !branch.includes('**') &&
++    !/[\\/"?()[\]{}|!+@]/.test(branch);
++};
++
+ const analyzeRepeatedExtglob = (body, options) => {
+   if (options.maxExtglobRecursion === false) {
+     return { risky: false };
+@@ -343,6 +354,14 @@ const analyzeRepeatedExtglob = (body, options) => {
+       : { risky: true };
+   }
+ 
++  // Security patch (UseClevr): collapse the redundant outer repetition for
++  // single-branch star extglobs (CVE-2026-112366). Collapsing changes repeated
++  // captures, so capture mode keeps the existing literal fallback instead of
++  // exposing a backtracking expression.
++  if (branches.length === 1 && isSelfRepeatingStarBranch(branches[0])) {
++    return options.capture === true ? { risky: true } : { risky: false, collapse: true };
++  }
++
+   return { risky: false };
+ };
+ 
+@@ -565,6 +584,12 @@ const parse = (input, options) => {
+       return;
+     }
+ 
++    // Security patch (UseClevr): CVE-2026-112366 — collapse the redundant
++    // outer quantifier of a single-branch repeated star extglob.
++    if (analysis.collapse === true && (token.type === 'plus' || token.type === 'star')) {
++      token.close = token.type === 'plus' ? ')' : ')?';
++    }
++
+     let output = token.close + (opts.capture ? ')' : '');
+     let rest;
+ 

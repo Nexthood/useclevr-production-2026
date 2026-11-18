@@ -1,3 +1,12 @@
+## 2026-11-18 — picomatch extglob ReDoS remediation (T-1112)
+
+- Candidate: Branch fix/picomatch-redos-patch from beta cc24a653 carries pnpm patches for picomatch 4.0.5/2.3.2, 13 regression cases, a release-artifact verifier and the audit evidence pack; no deployment, signing activation or audit-policy edit.
+- Security: Pre-patch reproduction blocks the event loop on short crafted extglobs; post-patch regexes drop the nested quantifier and complete in milliseconds. `audit:allowlist` still fails on the withdrawn-but-still-served high; the owner-approval request for a narrow exception is documented, not applied.
+- Validation: Patch regression suite 13/13, fast precommit checks, changelog wording, package lint and secret scan pass; full validation matrix and PR/CI results land in the release-review record.
+- Evidence: [picomatch remediation record](../security/picomatch-patch-2026-11-18.md). Keep T-1112 open for the audit-policy decision and the upstream fixed release. Follow the four repository instruction sources and post-interaction memory prompt.
+
+## Previous Interaction
+
 ## 2026-11-17 — Production recovery / native reseller NO-GO (T-1113)
 
 - Candidate: Dedicated beta review branch contains PR #426, migration 0045 and native routes; no deployment or live signing/commission activation.
