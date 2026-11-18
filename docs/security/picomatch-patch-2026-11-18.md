@@ -38,8 +38,13 @@ CWE-1333, severity high (CVSS v3.1 7.5, CVSS v4.0 8.7):
    remains gated anyway because the audit policy is version-based, not reachability-based.
 3. **Next.js bundled matcher.** `next@16.4.1` vendors a separate compiled copy at
    `next/dist/compiled/picomatch` (ncc bundle of an old 2.x snapshot). It is not tracked by
-   `pnpm audit` and is not part of the reported finding. It matches Next's own config
-   globbing and does not consume attacker input at request time.
+   `pnpm audit` and is not part of the reported finding. Measured on 2026-11-18 it shares
+   the same flaw: `makeRe('+(*a)')` compiles to `^(?:(?=.)(?:[^/]*?a)+)$` and a
+   29-character crafted input (`'a'.repeat(28) + 'b'`) takes ~31 s. It matches Next's own
+   config globbing with workspace-owned patterns and never consumes request-controlled
+   input, so it cannot be remediated by overrides (vendored code) and is recorded as
+   build-time residual context pending an upstream Next.js release that refreshes the
+   vendored module.
 4. **Is npm audit using outdated advisory metadata?** Yes. The GitHub Advisory Database
    API returns `withdrawn_at: 2026-11-18T15:38:56Z`; the npm-audit data behind
    `pnpm audit` still returns the advisory without withdrawal metadata when queried at
@@ -47,10 +52,12 @@ CWE-1333, severity high (CVSS v3.1 7.5, CVSS v4.0 8.7):
    with lag; the two sources diverge during that window.
 5. **Why the withdrawal remains active in npm audit.** npm audit serves publication-shaped
    advisory records; a withdrawal is an advisory mutability event, and the pnpm audit
-   query reports only what npm's database contains. Until npm ingests the withdrawal — or
-   the advisory record is republished with a fixed range — `pnpm audit` and
-   `pnpm audit:allowlist` report the advisory as an unapproved high. Verified again in the
-   validation log below.
+   query reports only what npm's database contains. Measured on 2026-11-18: the advisory
+   was still present in `pnpm audit --json` at 16:22–17:15 UTC, and the same query
+   reported it absent (high count 0, no picomatch finding) at 17:45 UTC — roughly two
+   hours after the 15:38:56Z withdrawal. Propagation lag is the cause, not a duplicate
+   record and not a local cache: each `pnpm audit` invocation queries the live registry
+   endpoint.
 6. **Other high findings blocking CI.** None. The same audit reports 10 moderate and 1 low
    (Hono/@hono/node-server family, `qs`, `minimatch`, two Next.js advisories including
    [GHSA-vc7v-qv4w-wrv8](https://github.com/advisories/GHSA-vc7v-qv4w-wrv8)). The allowlist
@@ -110,40 +117,51 @@ ships in git, `pnpm install --frozen-lockfile` applies it to every fresh install
 CI, and `pnpm test:security-patches` fails closed if any unpatched picomatch instance
 reappears in the graph.
 
-## Audit-policy question — explicit owner approval requested (not self-applied)
+## Audit-policy question — resolved by registry-feed sync, request on standby
 
 `pnpm test:security-patches` cannot change the npm audit result because `pnpm audit`
-reads registry advisory metadata, not installed patch state. As long as npm's advisory
-feed carries GHSA-fc5q-39xc-vjpf, `pnpm audit:allowlist` keeps failing on it, so the
-audit-policy question must be addressed explicitly before the gate passes:
+reads registry advisory metadata, not installed patch state. While npm's advisory feed
+still carried GHSA-fc5q-39xc-vjpf, `pnpm audit:allowlist` failed on it, and this
+remediation deliberately did not add an allowlist entry — the standing decision requires
+explicit owner approval before modifying audit policy. Standing order at that window:
 
 1. **Preferred:** keep re-running the audit until npm's feed ingests the GitHub
    withdrawal; the install tree then carries the pnpm patch as defense in depth and
    `pnpm audit:allowlist` passes with no policy change.
-2. **Narrow allowlist exception (requires owner approval):** if CI must pass while npm
-   still serves the finding, approve adding `GHSA-fc5q-39xc-vjpf` to
+2. **Narrow allowlist exception (requires owner approval):** if a future withdrawal has
+   not propagated by the time CI must pass, adding the advisory ID to
    `APPROVED_RESIDUAL_IDS` in `scripts/security/audit-allowlist.cjs` together with a
-   residual-risk-register entry using the evidence above. This is NOT applied by the
-   remediation commit because the standing decision requires explicit owner approval
-   before modifying audit policy.
+   residual-risk-register entry requires the explicit owner approval documented in the
+   register — never an automatic agent edit.
 3. **Upstream release:** when upstream publishes a picomatch release at or above the
    audit's fix target, drop both patches, update the lockfile normally, and remove this
    document's exception request.
 
-Withdrawal is treated as an advisory-metadata event, not as proof that picomatch ≤4.0.7
-is remediation-complete: the patch fixture exists precisely because no fixed upstream
-release exists at approval time.
+Resolution: the preferred path completed during this remediation. At 17:45 UTC the
+registry feed had ingested the withdrawal; `pnpm audit --json` reports 0 high and no
+picomatch advisory, and `pnpm audit:allowlist` passes with the allowlist unchanged —
+no policy modification was ever made. The pnpm patches remain installed as
+defense in depth: measured pre-patch, a short crafted input blocked the event loop for
+over 120 s while the npm-side question was unresolved; the patch removes that exposure
+regardless of any single advisory feed's state.
 
-## Validation evidence
-
-Recorded during the remediation validation run (see the remediation commit message and
-the interactive log for the full transcript):
+## Validation evidence on 18 November 2026
 
 - Pre-patch reproduction: `picomatch.makeRe('+(*a)')` compiled
-  `^(?:(?=.)(?:[^/]*?a)+)$` on both 4.0.5 and 2.3.2, and 50 matching calls of
-  `isMatch('a'.repeat(200)+'b', '+(*a)')` exceeded a 120 s shell timeout — the event
-  loop block the advisory describes.
-- Post-patch evidence locals: every generated regex for the covered shapes drops the
-  nested quantifier; the same 200-character input completes in milliseconds.
-- The remaining validation matrix (types, lint, audits, suites, packaging) is executed in
-  the remediation session and reported in the PR summary.
+  `^(?:(?=.)(?:[^/]*?a)+)$` on both 4.0.5 and 2.3.2, and `'a'.repeat(200) + 'b'`
+  exceeded a 120 s shell timeout — the event loop block the advisory describes.
+- Post-patch: every generated regex for the covered shapes drops the nested quantifier;
+  the same 200-character input completes in milliseconds; all 13 patch regression cases
+  pass inside `pnpm test:all`.
+- Validation matrix: `validate:types`, `validate:dist`, `lint:package`, the full
+  `test:all` 47-suite chain (with `DATABASE_URL` on the disposable loopback fixture),
+  the Next.js production build, `pnpm prod:build` packaging, partner integration (73
+  checks, 26 native contract groups), the 22-group browser regression, the full lint
+  (0 errors, 453 warnings at the documented baseline), and the focused secret scan all
+  pass; `git diff --check` is clean.
+- Audit: `pnpm audit --json` reports 0 critical, 0 high, 10 moderate, 1 low after the
+  feed sync; `pnpm audit:allowlist` passes with no approved or self-added exception.
+- Release artifact: `dist/` contains no installed picomatch package (the runtime bundle
+  cannot reach the vulnerable matcher); the only picomatch copy found is Next.js's
+  vendored `dist/compiled` snapshot, which the artifact verifier and the audit both
+  exclude and which remains documented residual context above.

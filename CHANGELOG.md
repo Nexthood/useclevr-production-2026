@@ -92,7 +92,7 @@
 
 ### Dev
 
-- Control the single-branch repeated extglob matcher flaw behind the withdrawn high advisory with a reproducible package patch and regression tests, because the registry lists no fixed release yet; the audit stays blocked on the unapproved finding until its owner clears the policy question.
+- Control the single-branch repeated extglob matcher flaw behind the withdrawn high advisory with reproducible package patches and regression tests, because the registry lists no fixed release yet; the audit gate passes on registry feed sync with no allowlist change.
 
 - Check native signing database prerequisites without changing hosted data.
 
