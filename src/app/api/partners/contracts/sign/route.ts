@@ -18,12 +18,17 @@ export async function POST(request: Request) {
       .parse(await requestBody(request));
     await privateContractDocument(contractId, "source", auth.userId, false, auth.applicationId);
     const c = await contractRow(contractDatabase(), contractId);
-    if (c.mode !== "dropbox_live" || !["generated", "sent"].includes(c.status))
+    if (
+      !["dropbox_live", "native"].includes(c.mode) ||
+      !["generated", "sent", "awaiting_partner_signature"].includes(c.status)
+    )
       throw new ContractError("signing_unavailable_contact_partner_team");
     await sendContract(contractId);
     return contractResponse({
       message:
-        "Open the secure Dropbox Sign invitation in your email to review and sign the agreement.",
+        c.mode === "native"
+          ? "Open the secure UseClevr signing invitation in your email, verify your email, and review the complete agreement before signing."
+          : "Open the secure Dropbox Sign invitation in your email to review and sign the agreement.",
     });
   } catch (e) {
     return contractError(e);

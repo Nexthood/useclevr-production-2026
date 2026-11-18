@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let partners and authorized company signers execute agreements inside UseClevr with email verification, explicit consent, private signed copies and tamper-evident evidence, without a paid signature provider.
+
 - Let invited partners verify email, review and sign agreements, establish login credentials, and use a dedicated portal without customer signup or a paid subscription.
 - Give partners private customer, sales, performance, agreement, payout and contact views, and let administrators renew invitations with audited notes.
 
@@ -26,6 +28,10 @@
 - Locked historical datasets stay visible with their names, sizes, and dates, and reopen automatically the moment the subscription reactivates.
 
 ### Fixed
+
+- Render dashboard loading screens on the server and keep idle database disconnects from terminating the application.
+
+- Keep generated partner agreements retryable when local signing credentials or document keys require configuration repair.
 
 - Keep applications recoverable during email or storage failures and calculate payable commissions from verified collected subscription revenue and each partner’s signed commercial terms.
 
@@ -85,6 +91,10 @@
 - Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
+
+- Control the single-branch repeated extglob matcher flaw behind the withdrawn high advisory with reproducible package patches and regression tests, because the registry lists no fixed release yet; the audit gate passes on registry feed sync with no allowlist change.
+
+- Check native signing database prerequisites without changing hosted data.
 
 - Add partner invitation regressions for verified email ownership, expiry, reuse and consistent database lookup.
 

@@ -3,6 +3,11 @@ import { createHmac, randomBytes } from "node:crypto";
 import { templates, templateChecksum } from "../../src/lib/partners/contracts/catalog";
 import {
   ContractError,
+  featureEnabled,
+  requireFeature,
+  runtimePolicy,
+  validateLiveRuntime,
+  requireOwner,
   verifySignatures,
   selectAgreement,
   identitySchema,
@@ -18,6 +23,7 @@ import {
   normalizeDropbox,
   boundedBytes,
   MockSignatureProvider,
+  DropboxSignProvider,
 } from "../../src/lib/partners/contracts/provider";
 import { agreementText, generateAgreementPdf } from "../../src/lib/partners/contracts/pdf";
 import { sealArtifact } from "../../src/lib/partners/contracts/storage";
@@ -111,6 +117,116 @@ async function main() {
     groups++;
     console.log(`PASS ${name}`);
   }
+  function withEnvironment(values: Record<string, string | undefined>, run: () => void) {
+    const previous = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
+    try {
+      for (const [key, value] of Object.entries(values)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+      run();
+    } finally {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  }
+  check("management opt-in and draft defaults do not enable binding signing", () => {
+    withEnvironment(
+      { PARTNER_CONTRACTS_ENABLED: undefined, PARTNER_CONTRACT_SIGNING_MODE: undefined },
+      () => {
+        assert.equal(featureEnabled(), false);
+        assert.throws(requireFeature, /contract_management_disabled/);
+        assert.equal(signingMode(), "draft");
+        assert.equal(runtimePolicy().mode, "disabled");
+        assert.throws(validateLiveRuntime, /live_provider_configuration_not_approved/);
+      },
+    );
+    for (const value of ["false", "TRUE", "1"])
+      withEnvironment({ PARTNER_CONTRACTS_ENABLED: value }, () =>
+        assert.equal(featureEnabled(), false),
+      );
+    withEnvironment(
+      { PARTNER_CONTRACTS_ENABLED: "true", PARTNER_CONTRACT_SIGNING_MODE: "draft" },
+      () => {
+        assert.doesNotThrow(requireFeature);
+        assert.throws(validateLiveRuntime, /live_provider_configuration_not_approved/);
+      },
+    );
+  });
+  check(
+    "live configuration requires every safety control and validates numeric policy bounds",
+    () => {
+      const configured = {
+        PARTNER_CONTRACT_SIGNING_MODE: "dropbox_live",
+        PARTNER_CONTRACT_LIVE_ENABLED: "true",
+        DROPBOX_SIGN_API_KEY: "unit-provider-only",
+        DROPBOX_SIGN_ACCOUNT_ID: "unit-account",
+        DROPBOX_SIGN_CLIENT_ID: "unit-app",
+        PARTNER_CONTRACT_PUBLIC_ORIGIN: "https://example.invalid",
+        PARTNER_CONTRACT_RETENTION_DAYS: "365",
+        PARTNER_CONTRACT_MONTHLY_SEND_LIMIT: "1",
+        PARTNER_CONTRACT_ENCRYPTION_KEY_ID: "unit-key",
+        PARTNER_CONTRACT_COMPANY_SIGNER_REFS: "unit-company",
+        PARTNER_CONTRACT_SIGNATURE_TTL_DAYS: "7",
+        PARTNER_CONTRACT_REMINDER_HOURS: "72",
+      };
+      withEnvironment(configured, () => {
+        assert.doesNotThrow(validateLiveRuntime);
+        assert.doesNotThrow(() => new DropboxSignProvider("dropbox_live"));
+        for (const key of Object.keys(configured)) {
+          // Expiry/reminder have safe defaults; origin deliberately has configured fallbacks.
+          if (
+            [
+              "PARTNER_CONTRACT_SIGNATURE_TTL_DAYS",
+              "PARTNER_CONTRACT_REMINDER_HOURS",
+              "PARTNER_CONTRACT_PUBLIC_ORIGIN",
+            ].includes(key)
+          )
+            continue;
+          withEnvironment({ [key]: undefined }, () => assert.throws(validateLiveRuntime));
+        }
+        for (const values of [
+          { PARTNER_CONTRACT_PUBLIC_ORIGIN: "http://example.invalid" },
+          { PARTNER_CONTRACT_RETENTION_DAYS: "0" },
+          { PARTNER_CONTRACT_RETENTION_DAYS: "36501" },
+          { PARTNER_CONTRACT_MONTHLY_SEND_LIMIT: "1.5" },
+          { PARTNER_CONTRACT_SIGNATURE_TTL_DAYS: "1" },
+          { PARTNER_CONTRACT_SIGNATURE_TTL_DAYS: "91" },
+          { PARTNER_CONTRACT_REMINDER_HOURS: "23" },
+        ])
+          withEnvironment(values, () => assert.throws(validateLiveRuntime));
+        for (const key of [
+          "DROPBOX_SIGN_API_KEY",
+          "DROPBOX_SIGN_ACCOUNT_ID",
+          "DROPBOX_SIGN_CLIENT_ID",
+        ])
+          withEnvironment({ [key]: undefined }, () =>
+            assert.throws(
+              () => new DropboxSignProvider("dropbox_test"),
+              /provider_credentials_missing/,
+            ),
+          );
+        withEnvironment({ PARTNER_CONTRACT_OWNER_USER_IDS: "unit-owner" }, () => {
+          assert.doesNotThrow(() => requireOwner("unit-owner"));
+          assert.throws(() => requireOwner("unrelated"), /owner_approval_required/);
+        });
+      });
+    },
+  );
+  check("missing or malformed encryption configuration never creates a plaintext artifact", () => {
+    for (const value of [undefined, "{}", "invalid-json", JSON.stringify({ unit: "too-short" })])
+      withEnvironment(
+        { PARTNER_CONTRACT_ENCRYPTION_KEY_ID: "unit", PARTNER_CONTRACT_ENCRYPTION_KEYS: value },
+        () => {
+          assert.throws(
+            () => sealArtifact(Buffer.from("unit-only"), "contract", "checksum"),
+            /document_encryption_/,
+          );
+        },
+      );
+  });
   check("two distinct versioned templates and category routing", () => {
     assert.equal(templates.length, 2);
     assert.notEqual(templateChecksum(templates[0]), templateChecksum(templates[1]));

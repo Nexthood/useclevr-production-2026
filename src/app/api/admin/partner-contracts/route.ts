@@ -18,6 +18,7 @@ import { activateExecutedContract } from "@/lib/partners/contracts/activation";
 import { prepareContract, advanceMock } from "@/lib/partners/contracts/lifecycle";
 import { retryContractDelivery } from "@/lib/partners/contracts/mail";
 import { runContractWorker, recoverAbsentRequest } from "@/lib/partners/contracts/worker";
+import { renewNativeInvitation } from "@/lib/partners/contracts/native";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 export async function GET() {
@@ -46,6 +47,7 @@ const command = z
       "remind",
       "cancel",
       "retry_email",
+      "renew_native_invitation",
       "activate",
       "run",
       "recover_absent",
@@ -74,6 +76,10 @@ export async function POST(request: Request) {
     if (b.action !== "run" && !id) throw new ContractError("record_id_required", 400);
     let result: unknown;
     switch (b.action) {
+      case "renew_native_invitation":
+        await renewNativeInvitation(id, auth.userId, b.reason || "", b.confirm === true);
+        result = { queued: true };
+        break;
       case "prepare":
         result = await prepareContract(id);
         break;

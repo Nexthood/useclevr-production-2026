@@ -1,4 +1,5 @@
 import { customType, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import type { NativeSignaturePayload } from "@/lib/partners/contracts/native-crypto";
 import type {
   ContractIdentity,
   ContractSnapshot,
@@ -147,7 +148,43 @@ export const partnerContractDeliveries = pgTable("PartnerContractDelivery", {
   firstAttemptAt: date("firstAttemptAt"),
   idempotencyExpiresAt: date("idempotencyExpiresAt"),
   payloadChecksum: text("payloadChecksum"),
+  payload: jsonb("payload").$type<Record<string, string>>(),
   providerId: text("providerId"),
   lastErrorCode: text("lastErrorCode"),
+  createdAt: date("createdAt").defaultNow().notNull(),
+});
+
+export const partnerContractNativeInvitations = pgTable("PartnerContractNativeInvitation", {
+  id: text("id").primaryKey(),
+  contractId: text("contractId").notNull(),
+  role: text("role").notNull(),
+  email: text("email").notNull(),
+  tokenHash: text("tokenHash").notNull(),
+  documentChecksum: text("documentChecksum").notNull(),
+  expiresAt: date("expiresAt").notNull(),
+  usedAt: date("usedAt"),
+  revokedAt: date("revokedAt"),
+  codeHash: text("codeHash"),
+  codeExpiresAt: date("codeExpiresAt"),
+  codeSentAt: date("codeSentAt"),
+  attempts: integer("attempts").notNull().default(0),
+  codeRequests: integer("codeRequests").notNull().default(0),
+  sessionHash: text("sessionHash"),
+  sessionExpiresAt: date("sessionExpiresAt"),
+  verifiedAt: date("verifiedAt"),
+  reviewedAt: date("reviewedAt"),
+  signedAt: date("signedAt"),
+  createdAt: date("createdAt").defaultNow().notNull(),
+});
+export const partnerContractNativeSignatures = pgTable("PartnerContractNativeSignature", {
+  id: text("id").primaryKey(),
+  contractId: text("contractId").notNull(),
+  role: text("role").notNull(),
+  payload: jsonb("payload")
+    .$type<NativeSignaturePayload>()
+    .notNull(),
+  checksum: text("checksum").notNull(),
+  keyId: text("keyId").notNull(),
+  signature: text("signature").notNull(),
   createdAt: date("createdAt").defaultNow().notNull(),
 });

@@ -42,7 +42,7 @@ export function ContractManagement() {
     const sensitive =
       action.startsWith("approve_") ||
       action.startsWith("revoke_") ||
-      ["activate", "cancel", "recover_absent"].includes(action);
+      ["activate", "cancel", "recover_absent", "renew_native_invitation"].includes(action);
     if (
       sensitive &&
       !window.confirm(
@@ -290,7 +290,9 @@ export function ContractManagement() {
                   </h4>
                   <p className="text-sm">
                     Template {c.templateVersion} · Terms {c.commercialTermsVersion} ·{" "}
-                    {c.mode === "dropbox_live" ? "Production" : "Non-binding test / draft"}
+                    {["dropbox_live", "native"].includes(c.mode)
+                      ? "Production"
+                      : "Non-binding test / draft"}
                   </p>
                   <p className="text-sm">
                     Partner signature: {c.partnerSignedAt || "Pending"} · Company signature:{" "}
@@ -325,6 +327,18 @@ export function ContractManagement() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {c.mode === "native" &&
+                      !["fully_executed", "cancelled", "expired", "rejected"].includes(
+                        c.status,
+                      ) && (
+                        <Button
+                          disabled={busy || reason.trim().length < 10}
+                          variant="outline"
+                          onClick={() => act("renew_native_invitation", c.id)}
+                        >
+                          Renew signing invitation
+                        </Button>
+                      )}
                     <Button
                       disabled={busy}
                       variant="outline"
@@ -441,27 +455,27 @@ export function ContractManagement() {
       </details>
       {data.owner && data.runtime && (
         <details>
-          <summary>Owner provider configuration approval</summary>
+          <summary>Owner signing configuration approval</summary>
           <pre className="overflow-auto whitespace-pre-wrap text-xs">
             {JSON.stringify(data.runtime.policy, null, 2)}
           </pre>
           <p className="break-all text-xs">Configuration SHA-256 {data.runtime.checksum}</p>
           <p className="text-sm">
-            Approve only after the provider account, signing assurance, data processing, retention,
-            budget and authorized signer have been reviewed.
+            Approve only after signing assurance, key custody, data processing, retention, budget,
+            authorized signer and any provider account have been reviewed.
           </p>
           <Button
             disabled={busy || reason.length < 5}
             onClick={() => act("approve_provider", "runtime", { checksum: data.runtime!.checksum })}
           >
-            Approve reviewed provider configuration
+            Approve reviewed signing configuration
           </Button>
           <Button
             disabled={busy || reason.length < 5}
             variant="outline"
             onClick={() => act("revoke_provider", "runtime", { checksum: data.runtime!.checksum })}
           >
-            Revoke provider approval
+            Revoke signing approval
           </Button>
         </details>
       )}

@@ -36,6 +36,7 @@ const publicApiPaths = [
   "/api/partner-applications/credentials",
   "/api/partners/contracts",
   "/api/partners/contracts/sign",
+  "/api/partners/contracts/native",
   "/api/usy/chat",
   "/api/usy/contact",
   SQUARE_CALLBACK_PATH,

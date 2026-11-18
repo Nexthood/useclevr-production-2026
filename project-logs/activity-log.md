@@ -1,3 +1,48 @@
+## 2026-11-18 — picomatch extglob ReDoS remediation (T-1112)
+
+- Add pnpm patches for picomatch 4.0.5 and 2.3.2 that collapse the single-branch repeated star extglob path (CVE-2026-112366) with capture fallback, opt-out and excluded syntax preserved.
+- Add 13 regression cases into test:all and a dist artifact patch verifier into validate:artifact-patches; document registry, feed-lag and vendored-matcher evidence with an explicit owner-approval request for a narrow allowlist exception.
+- Pass the full validation matrix including the 47-suite chain, packaging artifact verification, partner integration and browser regression; the withdrawn high advisory clears from the registry feed during the session so the audit gate passes with no policy change. No application source, signing, activation or deployment changes occur.
+
+## 2026-11-17 — Production recovery and native release review (T-1113)
+
+- Add a bounded read-only native schema checker and four safety tests; document native prerequisites and unverified incident causes on a dedicated beta review branch.
+- Pass non-security validation, including native integration/browser and packaged runtime checks; record the successful short-temp-path Passport retry.
+- Confirm a problematic vendored matcher in the production artifact and published Next patch; retain the failing audit gate and NO-GO release decision. No dependency, signing, activation, Railway or production schema changes occur.
+
+## 2026-11-16 — Production runtime reliability (T-1111)
+
+- Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
+- Render six dashboard loading fallbacks on the server and handle idle database errors without logging connection details or retrying failed writes.
+- Reproduce the reported Flight serialization failure, verify partner/contract regressions, and document TLS verification, CMS email limitations and blocked Railway log correlation.
+- Pass types, runtime regressions, full lint, isolated production build/packaging, packaged route smoke tests, documentation links and repository checks; publish draft review against beta with hosted changes under owner control.
+
+## 2026-11-16 — Native signing production readiness review
+
+- Confirm PR #426 CI succeeds and PR #425 precedes #426 in beta ancestry; review migration 0045, signing security and exact configuration without hosted changes.
+- Require owner legal/security decisions, read-only production schema/configuration checks, backup/key recovery and two-mailbox hosted acceptance; retain native-aware code and evidence during rollback.
+- Update required interaction records only; create no PR, deployment, configuration change, secret rotation or signing activation.
+
+## 2026-11-15 — Native partner electronic signing (T-1110)
+
+- Provide email-verified native partner/company signing with single-use invitations, explicit review/consent, immutable versions, attested receipt chains and encrypted PDF/evidence delivery.
+- Retain Dropbox support, signed-term commission restrictions and separate audited superadmin activation; add native 2.0.0 legal drafts, migration 0045, production configuration and offline verification.
+- Pass 43 financial/database checks, 26 contract groups, 22 browser groups and clean-source lint with zero errors and 448 warnings; pass final corrected production compilation, packaging and packaged-runtime acceptance; publish draft review without production changes.
+- Publish source c7eec921 in [draft PR #426](https://github.com/Nexthood/useclevr-production-2026/pull/426) targeting beta; close T-1110 and retain owner-controlled production acceptance.
+
+## 2026-11-14 — Partner signing configuration report
+
+- Report exact production web-service variables, staged management/sandbox/live enablement, authenticated app callbacks and unverified hosted prerequisites.
+- Confirm Dropbox callback verification requires the configured Primary API Key; change only required interaction records, with no code or PR changes.
+
+## 2026-11-14 — Production partner contract readiness (T-1109)
+
+- Trace contract disablement to the unset management flag and document exact Railway/Dropbox setup and staged owner acceptance.
+- Keep local credential/key failures retryable before external send state; cover configuration defaults, sandbox restrictions and portal navigation.
+- Pass focused contract/invitation/authentication/browser checks, correct nullable fixture-email typing, and verify production compilation, 105 pages, packaging and packaged-runtime acceptance.
+- Verify clean-source lint with zero errors and 448 warnings, types, deployment configuration, secrets and 171 documentation links; publish review changes without deployment.
+- Publish source commit af568e8e in [draft PR #425](https://github.com/Nexthood/useclevr-production-2026/pull/425) targeting beta; close T-1109 and retain hosted acceptance under T-1103 and T-1107.
+
 ## 2026-11-14 — Partner portal v2 continuation (T-1108)
 
 - Validate public registration, scoped invitation access, credentials, portal projections and signed financial terms with 43 database checks, 16 contract groups and 18 browser groups.

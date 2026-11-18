@@ -38,3 +38,7 @@ minimumReleaseAgeExclude:
   - '@aws-sdk/nested-clients@3.997.20'
   - '@aws-sdk/signature-v4-multi-region@3.996.34'
   - '@aws-sdk/token-providers@3.1066.0'
+
+patchedDependencies:
+  picomatch@2.3.2: patches/picomatch@2.3.2.patch
+  picomatch@4.0.5: patches/picomatch@4.0.5.patch

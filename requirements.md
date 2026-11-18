@@ -9,11 +9,22 @@ Text rules for this file:
 - Avoid vague phrases that hide the actor or the required action.
 - Avoid past-state comparison unless it prevents a concrete risk.
 
+## Runtime reliability
+
+- Dashboard route loading screens render their icons without serializing component functions into browser props.
+- Database pools handle idle connection errors without exposing connection details or terminating the process; failed active queries propagate without automatic write retries.
+
 ## Global Partner Program
+
+- Native partner signing requires an expiring single-use invitation, one-time email verification, complete immutable agreement review, explicit versioned electronic-signature consent, the approved signer's typed legal name and an affirmative action; the authorized company signer completes an independent email-verified countersignature after the partner.
+- Native signing records UTC action/verification times, exact document and snapshot hashes, signer references and privacy-limited security context in append-only Ed25519-attested receipts; the company receipt binds the partner receipt and a signed manifest binds the source PDF, final PDF and both receipts.
+- Native execution retains source pages, adds an evidence certificate, privately archives encrypted source/final PDFs and evidence, and emails both parties the final PDF and manifest; it grants no qualified-signature claim, commercial activation, commissions or payouts. Dropbox Sign remains supported.
+
+- Contract sending validates local provider credentials and decrypts the source PDF before recording an external send attempt; local configuration failures leave the agreement retryable without consuming the live-send budget, while unknown external creation outcomes require provider reconciliation.
 
 - Approved, verified and onboarded partners supply legal identity, authority and electronic-record consent; superadmins review identity before agreement preparation.
 - Contract management uses separate versioned Independent Sales Partner and Authorized Reseller drafts with owner-approved commercial schedules. Qualified legal review and explicit owner approval gate every production template, schedule and provider configuration.
-- The approved external signature provider requests the partner signature before an authorized Atlas Mega Ventures LLC countersignature; verified completion privately archives the signed PDF and audit evidence, then sends confirmation copies.
+- The approved native or Dropbox signing workflow requests the partner signature before an authorized Atlas Mega Ventures LLC countersignature; verified completion privately archives the signed PDF and audit evidence, then sends confirmation copies.
 - Contract, application and activation states remain separate. All new commercial activation requires a fully executed production agreement and an explicit audited administrator decision. Mock/test signatures never authorize activation; existing active accounts remain operational.
 - Private agreement access enforces applicant ownership or superadmin authorization, encrypted storage, immutable evidence, authenticated replay-safe callbacks and bounded idempotent delivery retries. Contract automation creates no commissions, payouts or financial-policy changes.
 

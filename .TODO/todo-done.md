@@ -12,6 +12,10 @@ moving work between states.
 - [TODO-future.md](todo-future.md)
 - [.TODO/config.json](config.json)
 
+## Label: stability
+
+- T-1111. Render dashboard loading screens on the server, contain idle database connection errors, verify protected and partner routes, and document production warning diagnosis for owner review. (labels: stability, security, testing; commit: ea30e53b)
+
 ## Label: deployment
 
 - T-1106. Require the verified Railway beta environment and TEST service while retaining signing and migration safeguards. (labels: deployment, security, testing; commit: worktree)
@@ -99,6 +103,10 @@ moving work between states.
 - T-801. Document hotfix path and emergency rollback procedure in GITHUB_WORKFLOW.md. Cover Railway redeploy rollback, revert PR flow, and verification steps. (labels: workflow, deployment, devops; commit: worktree)
 
 ## Label: workflow
+
+- T-1110. Provide native email-verified sequential partner signing, immutable agreements, single-use proof sessions, cryptographically attested PDF/evidence archives and separate commercial activation; publish the validated draft review without deployment. (labels: workflow, security, auth, testing, docs; commit: c7eec921)
+
+- T-1109. Audit partner contract configuration and signing controls, keep local signing setup failures retryable, document Railway and Dropbox Sign setup, and publish the locally validated draft review PR without merge or deployment. (labels: workflow, security, auth, testing, docs; commit: af568e8e)
 
 - T-1108. Provide public partner registration, invitation email verification, scoped agreement access, signed-agreement credential setup, private commercial portal views and signed-term commission controls; publish the locally validated review branch without deployment. (labels: workflow, auth, billing, security, testing; commit: 26be67d9)
 

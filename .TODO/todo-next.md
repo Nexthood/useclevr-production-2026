@@ -5,6 +5,10 @@ This file is the only active queue. Add confirmed implementation work here befor
 Get the T-number from `.TODO/config.json` before adding new tasks. Keep task numbers stable when
 moving work between states.
 
+## Label: stability
+
+- T-1113. Verify production recovery and native reseller prerequisites, provide a read-only native schema checker, and publish reviewed evidence with release blocked by unresolved security or hosted checks. (labels: stability, security, testing)
+
 ## Label: mcp
 
 - T-807. Configure DNS CNAME records: `mcp.useclevr.com` → Railway production hostname, `mcp-test.useclevr.com` → Railway test hostname; verify subdomain routing to the Payload MCP endpoint. (labels: mcp, deployment, docs)

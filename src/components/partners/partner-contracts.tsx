@@ -21,8 +21,8 @@ export function PartnerContracts() {
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground">
-        Review your legal identity and agreement. The signature provider sends a separate secure
-        signing invitation. Commercial access requires a final administrator decision.
+        Review your legal identity and agreement. You receive a separate secure signing invitation
+        by email. Commercial access requires a final administrator decision.
       </p>
       <p role="status">{message}</p>
       {data?.applications
@@ -38,7 +38,9 @@ export function PartnerContracts() {
                 <div key={c.id} className="space-y-2">
                   <p>
                     {contractLabels[c.status]} · Revision {c.revision}
-                    {c.mode !== "dropbox_live" ? " · Non-binding test / draft" : ""}
+                    {!["dropbox_live", "native"].includes(c.mode)
+                      ? " · Non-binding test / draft"
+                      : ""}
                   </p>
                   <p className="text-sm">
                     Partner signature: {c.partnerSignedAt ? "Completed" : "Pending"} · Company
@@ -52,36 +54,37 @@ export function PartnerContracts() {
                         ? "Ready for Activation"
                         : "Pending"}
                   </p>
-                  {c.mode === "dropbox_live" && ["generated", "sent"].includes(c.status) && (
-                    <Button
-                      disabled={busy}
-                      onClick={async () => {
-                        setBusy(true);
-                        setMessage("");
-                        try {
-                          const r = await fetch("/api/partners/contracts/sign", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ contractId: c.id }),
-                          });
-                          const b = await r.json();
-                          if (!r.ok) throw new Error(b.error);
-                          setMessage(b.message);
-                          await load();
-                        } catch (e) {
-                          setMessage(
-                            e instanceof Error
-                              ? e.message
-                              : "Signing is unavailable. Please contact the partner team.",
-                          );
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      Sign agreement
-                    </Button>
-                  )}
+                  {["dropbox_live", "native"].includes(c.mode) &&
+                    ["generated", "sent"].includes(c.status) && (
+                      <Button
+                        disabled={busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          setMessage("");
+                          try {
+                            const r = await fetch("/api/partners/contracts/sign", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ contractId: c.id }),
+                            });
+                            const b = await r.json();
+                            if (!r.ok) throw new Error(b.error);
+                            setMessage(b.message);
+                            await load();
+                          } catch (e) {
+                            setMessage(
+                              e instanceof Error
+                                ? e.message
+                                : "Signing is unavailable. Please contact the partner team.",
+                            );
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        Sign agreement
+                      </Button>
+                    )}
                   <div className="flex gap-4 text-sm">
                     {c.sourceAvailable && (
                       <a className="underline" href={contractDocument(c.id, "source")}>
@@ -170,8 +173,8 @@ export function PartnerContracts() {
                     Electronic records disclosure: agreements are provided in English as PDF files.
                     You need a current browser, email access and a PDF reader; save or print copies
                     for your records. You can download your agreements from this portal. Signing
-                    takes place with the approved electronic signature provider. Signing alone does
-                    not enable commercial access.
+                    takes place through the approved email-verified signing workflow. Signing alone
+                    does not enable commercial access.
                   </p>
                   <p>
                     Before signing, you may decline electronic delivery, request a paper copy or
@@ -190,7 +193,9 @@ export function PartnerContracts() {
             </details>
           </section>
         ))}
-      {data?.contracts.some((c) => c.status === "fully_executed" && c.mode === "dropbox_live") && (
+      {data?.contracts.some(
+        (c) => c.status === "fully_executed" && ["dropbox_live", "native"].includes(c.mode),
+      ) && (
         <section className="space-y-3 border-t pt-5">
           <h2 className="text-xl font-semibold">Set up partner login</h2>
           <p>

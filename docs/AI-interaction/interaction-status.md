@@ -1,3 +1,66 @@
+## 2026-11-18 — picomatch extglob ReDoS remediation (T-1112)
+
+- Candidate: Branch fix/picomatch-redos-patch from beta cc24a653 carries pnpm patches for picomatch 4.0.5/2.3.2, 13 regression cases, a release-artifact verifier and the audit evidence pack; no deployment, signing activation or audit-policy edit.
+- Security: Pre-patch reproduction blocks the event loop on short crafted extglobs; post-patch regexes drop the nested quantifier and complete in milliseconds. The registry feed ingested the withdrawal during the session, so `audit:allowlist` passes with 0 high and no allowlist modification; the patches remain installed as defense in depth with no upstream fixed release available.
+- Validation: Patch regression suite 13/13 inside the full 47-suite chain; types, deploy configs, production build and packaging, partner integration (73 checks, 26 native contract groups), the 22-group browser regression, full lint (0 errors, 453 warnings), secret scan and git diff --check pass; PR/CI results land in the release-review record.
+- Evidence: [picomatch remediation record](../security/picomatch-patch-2026-11-18.md). Keep T-1112 open for the audit-policy decision and the upstream fixed release. Follow the four repository instruction sources and post-interaction memory prompt.
+
+## Previous Interaction
+
+## 2026-11-17 — Production recovery / native reseller NO-GO (T-1113)
+
+- Candidate: Dedicated beta review branch contains PR #426, migration 0045 and native routes; no deployment or live signing/commission activation.
+- Code: Read-only native prerequisite checker and four safety regressions; no speculative application fix. Hosted incident cause, revision, schema/configuration and approvals remain unverified without Railway access.
+- Security: Audit fails (0 critical, 1 high, 10 moderate, 1 low). A bounded test times out on Next's vendored production matcher and published Next 16.4.6; no safe complete remedy is verified. No audit exception or dependency change.
+- Validation: Types, lint, 46 suites with Passport temp-path retry, 43 database checks, 26 contract groups, 22 browser groups, production build/packaging and packaged smoke pass. The combined runner retains the first Passport failure; security remains blocking.
+- Evidence: [Recovery report](../Developer_Guides/PRODUCTION_RECOVERY_2026_11_17.md). Keep T-1113 active for security remediation, hosted evidence and separately authorized release acceptance. Follow the four repository instruction sources and post-interaction memory prompt.
+
+## 2026-11-16 — Production runtime reliability (T-1111)
+
+- Review: [Draft PR #427](https://github.com/Nexthood/useclevr-production-2026/pull/427) targets beta; implementation commit ea30e53b. No merge, deployment or hosted configuration change occurs.
+- Rendering: All six loading routes and LoadingScreen render on the server. Flight reproduces the reported message for a server-to-client icon prop; the reviewed client-to-client source does not establish the production root cause.
+- Reliability: PostgreSQL and Neon WebSocket pools handle idle errors safely; active query errors propagate without retries. Partner financial, contract and browser regressions pass.
+- Validation: Runtime regressions, types, full lint (0 errors, 453 warnings), isolated production build/packaging, packaged protected/public partner routes, docs links, workflow/pricing and precommit/deployment checks pass.
+- Limits: Railway logs return Unauthorized; digest/request and ECONNRESET correlation remain unverified. Provider CA/hostname review and a real CMS email adapter remain separate follow-ups.
+- Scope: No deployment pipeline, hosted variable, secret, deployment or commercial activation changes. Preserve prior readiness-review records.
+
+## 2026-11-16 — Native signing production readiness review
+
+- CI: PR #426 head 8bfdf7e0 passes run 43698593149, including the full test/build command and docs; no failed checks. PR #425 merges before #426 into beta, with ancestry confirmed.
+- Review: Exact native/shared variables, verified-email proofs, immutable consent/signature evidence, company authorization, encryption and migration 0045 are reviewed from source. Hosted revision, migration state, configuration, approvals, backups and actual delivery remain unverified.
+- Owner gates: Approve native 2.0.0 legal/schedule/assurance and company authority, retention/budget, key custody and QA mailboxes; authorize staged acceptance separately. Preserve schema/evidence/keys and native-aware code during rollback; old predeploy code replaces the activation guard.
+- Actions: Required interaction records only; no code changes, new PR, merge, deployment, Railway writes, secret generation/rotation or signing activation.
+- Sources: Native guide, implementation/migration and GitHub evidence; AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-15 — Native partner electronic signing (T-1110)
+
+- Goal: Native email-verified sequential signing on the existing feature branch; preserve Dropbox, commercial controls and owner approval before production.
+- Implementation: Contract-scoped expiring invitation/code/session proofs; full immutable review; explicit consent and typed-name action; company countersigning; Ed25519-attested receipts and final PDF manifest; encrypted archives and delivery; separate activation. Native 2.0.0 templates require new owner legal approval. Raw submitted Unicode names remain in evidence; certificates use the approved signer name.
+- Verification: 43 financial/database checks, 26 contract groups, 22 browser groups, focused regressions, 174 documentation links and zero-error clean-source lint pass; final corrected production build, TypeScript, 105 generated pages, packaging and packaged-runtime acceptance pass, including the native entry page and disabled API gate. New and same-tab invitations require fresh email verification.
+- Release gates: Owner/security/legal review, controlled key custody and retained public keys/consent mappings, migration 0045, backup recovery, trusted ingress/clock configuration and actual hosted email/signing acceptance. No qualified signature or independent identity/timestamp claim.
+- Publication: Source c7eec921 is published in [draft PR #426](https://github.com/Nexthood/useclevr-production-2026/pull/426) against beta on the existing feature branch. Equivalent isolated push checks pass; T-1110 is complete. No merge, deployment, live signing or activation occurs in this task.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-14 — Partner signing configuration report
+
+- Goal: Explain exact Railway/Dropbox variables, callback configuration, staged enablement and remaining production prerequisites; T-1109 stays complete.
+- Finding: Configure useclevr app. Management, signing, approvals and commercial activation are independent gates. Dropbox callback hashes use the Primary API Key, which must match this implementation's DROPBOX_SIGN_API_KEY.
+- Risk: The guide records an absent management flag; current hosted configuration/schema, legal/provider approvals, delivery and real signing acceptance remain unverified.
+- Changes: Required interaction records only; no code, hosted configuration, deployment or PR changes.
+- Sources: T-1109 guide, implementation and official Dropbox documentation; AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
+## 2026-11-14 — Production partner contract readiness (T-1109)
+
+- Goal: Diagnose disabled production contracts, extract exact Railway/Dropbox configuration, repair confirmed blockers and publish a review branch without merge or deployment.
+- Findings: Latest origin/main f5f69a92 contains merged PRs #420–#424. The owner confirms no partner/signing variables; absent PARTNER_CONTRACTS_ENABLED directly raises contract_management_disabled. Provider, webhook, encryption, database and owner approvals are separate downstream gates; hosted state is not independently inspected.
+- Changes: Document exact defaults, service placement, redeployment, provider/callback setup, database/key protection, sandbox/live distinction and staged owner acceptance in docs/Developer_Guides/PARTNER_PRODUCTION_SETUP.md. Add shared credential-free readiness requests. Validate local provider construction and source decryption before recording an external send or reserving budget; local configuration repair leaves generated agreements retryable. Guard browser polling against a temporarily absent document body during navigation.
+- Verification: Pass 19 financial rules, 12 contract unit groups, 43 PostgreSQL checks, 17 contract integration groups, 18 browser groups, auth redirects, 27 referral regressions, mocked Railway checks, types, focused ESLint, edited-guide Markdown, 171 documentation links and deployment configuration. Continuation corrects nullable fixture-email typing and reruns types, financial/unit tests and all 17 contract integration groups. Isolated production compilation, all 105 pages, packaging and packaged-runtime acceptance pass; clean-source lint reports zero errors and 448 warnings. Secret and project-record checks pass.
+- Risk: Provider/email calls use mocks and disposable local databases. Actual hosted schema, key restore, authorized email receipt, Dropbox sandbox/live signing and company authority require owner verification. No signature is fabricated and no activation bypass is introduced.
+- Learning: Feature enablement, provider configuration, recorded owner approvals and explicit commercial activation are distinct controls. A local preflight failure is not an uncertain external request.
+- Publication: Source commit af568e8e is published on fix/partner-contract-production-readiness with [draft PR #425](https://github.com/Nexthood/useclevr-production-2026/pull/425) targeting beta. Equivalent isolated pre-push checks pass; the duplicate root build is skipped to exclude local environment files. T-1109 is complete.
+- Follow-up: Retain owner-operated hosted acceptance under T-1103 and T-1107. Review-only publication does not authorize merge or deployment.
+- Sources: AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and project-prompts/ai-memory-collection-post-interaction.md.
+
 ## 2026-11-14 — Partner portal v2 continuation (T-1108)
 
 - Goal: Complete the in-progress public partner registration, scoped invitation verification, agreement access, credentials, portal and signed-term financial controls; publish source for review without deployment.

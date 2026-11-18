@@ -152,8 +152,18 @@ const statement = {
 const actions = [];
 let onboardingError = "incorrect_account";
 let signoutReturn = null;
+let nativeVerified = false;
+let nativeSigned = false;
+let nativeRole = "partner";
+let nativeReviewRequests = 0;
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://localhost");
+  if (url.searchParams.has("native")) {
+    nativeVerified = url.searchParams.has("stale");
+    nativeReviewRequests = 0;
+    nativeSigned = false;
+    nativeRole = url.searchParams.has("company") ? "company" : "partner";
+  }
   if (url.pathname === "/bundle.js" || url.pathname === "/styles.css") {
     response.setHeader(
       "Content-Type",
@@ -164,6 +174,55 @@ const server = createServer(async (request, response) => {
   }
   if (url.pathname.startsWith("/api/")) {
     response.setHeader("Content-Type", "application/json");
+    if (url.pathname === "/api/partners/contracts/native") {
+      if (request.method === "GET") {
+        nativeReviewRequests++;
+        response.statusCode = nativeVerified ? 200 : 401;
+        response.end(
+          JSON.stringify(
+            nativeVerified
+              ? {
+                  signed: nativeSigned,
+                  contractId: "native-browser-fixture",
+                  role: nativeRole,
+                  email: "invited@example.invalid",
+                  legalName: "Fixture Signer",
+                  documentChecksum: "a".repeat(64),
+                  text: "Complete immutable agreement\n\nParty schedule\n\nVersioned Commercial Schedule\nAll synthetic terms are displayed before signing.",
+                  consentVersion: "fixture-consent-v1",
+                  consentText:
+                    "I consent to electronic records and signatures. This is not a qualified electronic signature.",
+                  expiresAt: "2099-01-01T00:00:00Z",
+                }
+              : { error: "Verify your signing email." },
+          ),
+        );
+        return;
+      }
+      let raw = "";
+      for await (const part of request) raw += part;
+      const body = JSON.parse(raw);
+      if (body.operation === "request_code") response.end(JSON.stringify({ sent: true }));
+      else if (body.operation === "verify") {
+        nativeVerified = body.code === "123456";
+        response.statusCode = nativeVerified ? 200 : 400;
+        response.end(
+          JSON.stringify(
+            nativeVerified
+              ? { verified: true }
+              : { error: "The signing verification code is incorrect." },
+          ),
+        );
+      } else {
+        assert.ok(
+          nativeVerified && body.signing.consent === true && body.signing.reviewed === true,
+        );
+        assert.equal(body.signing.legalName, "Fixture Signer");
+        nativeSigned = true;
+        response.end(JSON.stringify({ signed: true }));
+      }
+      return;
+    }
     if (url.pathname === "/api/admin/partner-applications" && request.method === "GET") {
       response.end(JSON.stringify({ applications: [] }));
       return;
@@ -380,7 +439,7 @@ try {
   };
   const waitFor = async (expression) => {
     for (let i = 0; i < 100; i++) {
-      if (await evaluate(expression)) return;
+      if (await evaluate(`document.body !== null && (${expression})`)) return;
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     throw new Error(`Browser condition failed: ${expression}`);
@@ -637,6 +696,72 @@ try {
       passed++;
       console.log(
         `PASS partner portal navigation, scoped projections and responsive ${width}px ${theme} layout`,
+      );
+    }
+  for (const role of ["partner", "company"])
+    for (const [width, theme] of [
+      [1280, "light"],
+      [390, "dark"],
+    ]) {
+      await command("Emulation.setDeviceMetricsOverride", {
+        width,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: width < 500,
+      });
+      await command("Page.navigate", {
+        url: `${origin}/?native=1&stale=1&theme=${theme}${role === "company" ? "&company=1" : ""}#token=${"n".repeat(43)}`,
+      });
+      await waitFor('document.querySelector("input[type=email]") !== null');
+      assert.equal(await evaluate('location.hash === ""'), true);
+      assert.equal(
+        nativeReviewRequests,
+        0,
+        "a new invitation requires its own email proof before loading a prior browser session",
+      );
+      await evaluate(
+        `(() => { const input=document.querySelector('input[type=email]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,"invited@example.invalid"); input.dispatchEvent(new Event("input",{bubbles:true})); })()`,
+      );
+      await evaluate('document.querySelector("form").requestSubmit()');
+      await waitFor('document.querySelector("input[autocomplete=one-time-code]") !== null');
+      await evaluate(
+        `(() => { const input=document.querySelector('input[autocomplete=one-time-code]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,"123456"); input.dispatchEvent(new Event("input",{bubbles:true})); })()`,
+      );
+      await evaluate('document.querySelector("form").requestSubmit()');
+      await waitFor('document.querySelector("article") !== null');
+      assert.equal(
+        await evaluate(
+          'document.querySelector("article").innerText.includes("All synthetic terms are displayed before signing")',
+        ),
+        true,
+      );
+      assert.equal(
+        await evaluate('document.querySelector("button[type=submit],form button").disabled'),
+        true,
+      );
+      assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+      await evaluate(
+        'document.querySelectorAll("input[type=checkbox]").forEach(input => input.click())',
+      );
+      await evaluate(
+        `(() => { const input=document.querySelector('input[autocomplete=name]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,"Fixture Signer"); input.dispatchEvent(new Event("input",{bubbles:true})); })()`,
+      );
+      await evaluate('document.querySelector("form").requestSubmit()');
+      await waitFor('document.body.innerText.includes("Your signing action is recorded")');
+      assert.equal(nativeSigned, true);
+      const priorReviews = nativeReviewRequests;
+      await evaluate(`location.hash = "token=" + "m".repeat(43)`);
+      await waitFor('document.querySelector("input[type=email]") !== null');
+      assert.equal(await evaluate('location.hash === ""'), true);
+      assert.equal(
+        nativeReviewRequests,
+        priorReviews,
+        "same-tab invitation changes require fresh email verification",
+      );
+      assert.equal(await evaluate('document.querySelector("article") === null'), true);
+      passed++;
+      console.log(
+        `PASS native ${role} email verification, full review, consent, fragment removal and ${width}px ${theme} signing`,
       );
     }
   console.log(`${passed} browser acceptance groups passed. Artifacts: ${directory}`);

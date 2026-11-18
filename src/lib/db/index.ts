@@ -26,6 +26,12 @@ function shouldUseWsPool(): boolean {
 
 type QueryProbe = { query: (query: string) => Promise<unknown> }
 
+function reportIdleConnectionError() {
+  // pg removes the failed idle connection itself. Never log the raw error:
+  // driver messages can contain connection details or query/user data.
+  console.error('[DB] Idle database connection failed; the pool discarded the connection.')
+}
+
 /** Drizzle Database Client singleton with retry logic for cold-start */
 function createDbClient() {
   const connectionUrl = (process.env.DATABASE_URL || process.env.DIRECT_URL || '').trim()
@@ -41,6 +47,7 @@ function createDbClient() {
   const db = useWsPool
     ? (() => {
       const pool = new NeonPool({ connectionString: connectionUrl, max: 5 })
+      pool.on('error', reportIdleConnectionError)
       probe = pool as QueryProbe
       return drizzleNeonServerless(pool, { schema })
     })()
@@ -52,6 +59,7 @@ function createDbClient() {
       })()
       : (() => {
         const pool = new PgPool({ connectionString: connectionUrl, max: 10 })
+        pool.on('error', reportIdleConnectionError)
         probe = pool as QueryProbe
         return drizzlePostgres(pool, { schema })
       })()
