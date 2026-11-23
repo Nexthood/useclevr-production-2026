@@ -104,6 +104,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1116. Add audited Delete to commercial partner rows, protect accounts with retained records, and verify that eligible account deletion permits registration reuse. (labels: workflow, security, testing; commit: worktree)
+
 - T-1115. Let superadmins delete eligible partner registrations with confirmation and audit logging, and verify same-email registration and preservation of contractual and financial records. (labels: workflow, security, testing; commit: worktree)
 
 - T-1114. Confirm public partner applications and legal identity submissions, show applicants the current agreement review and signing invitation status, and remove runner-owned validation directories after tests. (labels: workflow, ui, testing; commit: worktree)

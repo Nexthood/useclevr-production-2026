@@ -1,3 +1,7 @@
+## 2026-11-23 — Audited commercial partner account deletion (T-1116)
+
+- Add a confirmed commercial partner Delete action with eligibility explanations, audit retention, account count refresh and verified registration reuse.
+
 ## 2026-11-23 — Secure partner registration deletion (T-1115)
 
 - Add confirmed and audited deletion of eligible partner registrations, preserve legal and financial records, and verify registration reuse through the existing application and email flow.

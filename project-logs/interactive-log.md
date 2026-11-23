@@ -1,3 +1,11 @@
+## 2026-11-23 — Audited commercial partner account deletion (T-1116)
+
+- Place Delete beside View on every commercial partner row. Show registered email, current status, eligibility and consequences. Protected accounts lead to the existing account details for non-destructive administration.
+- Require explicit confirmation and a predefined reason. Compare the confirmed account and linked application set again while the records are locked. Delete eligible records in one transaction and retain the general UseClevr identity, referral-code ownership and commercial audit entries.
+- Migration 0047 keeps historical partner IDs in immutable audit records, validates new audit subjects and blocks reuse of deleted partner IDs. Signed, legal, onboarding, financial and previously approved records protect the account.
+- Disposable PostgreSQL and browser fixtures verify access controls, stale confirmation, simultaneous requests, rollback, account count and same-email reuse with a fresh receipt. The feature uses a separate worktree to preserve the existing investigation edits.
+- Follow AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and the post-interaction memory prompt.
+
 ## 2026-11-23 — Secure partner registration deletion (T-1115)
 
 - Superadmins confirm deletion from an eligible application's details and select a predefined reason. The application list refreshes and displays the current count for the selected status.
