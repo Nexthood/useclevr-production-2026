@@ -2,6 +2,8 @@
 
 ### Added
 
+- Show Delete beside View on every commercial partner row so superadmins can review eligibility and remove test accounts for email reuse.
+
 - Let superadmins delete eligible pending or rejected partner registrations after confirmation so applicants can reuse the same email address.
 
 - Confirm Work With Us and Reseller applications and legal identity submissions, and show partners their current agreement review and signing invitation status.

@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PartnerPerformance, money, type PartnerSummary } from "./partner-dashboard";
 import { defaultConfig, type ProgramConfig } from "@/lib/partners/rules";
 import { ContractManagement } from "./contract-management";
 import { PartnerApplicationAdmin } from "./partner-application-admin";
+import { PartnerAccountDeleteDialog } from "./partner-account-delete-dialog";
 
 type PartnerRow = {
   application?: { partnershipType?: string; companyName?: string };
@@ -62,16 +63,23 @@ export function PartnerAdmin() {
     [busy, setBusy] = useState(false),
     [reason, setReason] = useState("");
   const [classificationEvidence, setClassificationEvidence] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<PartnerRow | null>(null);
+  const loadVersion = useRef(0);
+  const detailVersion = useRef(0);
+  const totalsRef = useRef<HTMLParagraphElement>(null);
   async function load(pageOffset = offset) {
+    const version = ++loadVersion.current;
     const r = await fetch(`/api/admin/partners?q=${encodeURIComponent(q)}&offset=${pageOffset}`, {
       cache: "no-store",
     });
     const b = await r.json();
+    if (version !== loadVersion.current) return;
     if (!r.ok) throw new Error(b.error);
     setOverview(b);
     setConfig(b.config);
   }
   async function select(id: string, pageOffset = 0) {
+    const version = ++detailVersion.current;
     const r = await fetch(
       `/api/admin/partners?partnerId=${encodeURIComponent(id)}&offset=${pageOffset}`,
       {
@@ -79,12 +87,34 @@ export function PartnerAdmin() {
       },
     );
     const b = await r.json();
+    if (version !== detailVersion.current) return;
     if (!r.ok) throw new Error(b.error);
     setDetail(b);
   }
   useEffect(() => {
     load().catch((e) => setMessage(e.message));
   }, [offset]); // Search submits explicitly.
+  function accountDeleted(partnerId: string) {
+    loadVersion.current++;
+    detailVersion.current++;
+    setDeleteTarget(null);
+    setDetail((current) => (current?.partner.id === partnerId ? null : current));
+    setOverview(
+      (current) =>
+        current && {
+          ...current,
+          partners: current.partners.filter((partner) => partner.id !== partnerId),
+          totals: { ...current.totals, total: Math.max(0, current.totals.total - 1) },
+        },
+    );
+    setMessage("Partner account deleted successfully.");
+    requestAnimationFrame(() => totalsRef.current?.focus());
+    if (offset > 0 && overview?.partners.length === 1) setOffset(Math.max(0, offset - 50));
+    else
+      load().catch(() =>
+        setMessage("Partner account deleted successfully. Reload the page for the latest list."),
+      );
+  }
   async function act(body: Record<string, unknown>) {
     if (!reason.trim()) {
       setMessage("Enter an audit reason before making a change.");
@@ -132,7 +162,7 @@ export function PartnerAdmin() {
         </p>
       )}
       <div className="flex flex-wrap gap-4">
-        <p className="rounded border p-3 text-sm">
+        <p ref={totalsRef} tabIndex={-1} className="rounded border p-3 text-sm">
           Partners: {overview?.totals.total ?? 0} · Active: {overview?.totals.active ?? 0}
         </p>
         {overview?.liabilities.map((b) => (
@@ -166,7 +196,7 @@ export function PartnerAdmin() {
           <caption className="sr-only">Partners</caption>
           <thead>
             <tr>
-              {["Partner", "Country", "Market", "Status", "Performance"].map((v) => (
+              {["Partner", "Country", "Market", "Status", "Actions"].map((v) => (
                 <th key={v} className="p-2 text-left">
                   {v}
                 </th>
@@ -187,12 +217,22 @@ export function PartnerAdmin() {
                   {p.commercialReview?.status || p.status} · {p.status}
                 </td>
                 <td className="p-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => select(p.id).catch((e) => setMessage(e.message))}
-                  >
-                    View
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => select(p.id).catch((e) => setMessage(e.message))}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      aria-label={`Delete ${p.name}`}
+                      disabled={busy}
+                      onClick={() => setDeleteTarget(p)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -215,6 +255,18 @@ export function PartnerAdmin() {
           Next
         </Button>
       </div>
+      {deleteTarget && (
+        <PartnerAccountDeleteDialog
+          key={deleteTarget.id}
+          partner={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => accountDeleted(deleteTarget.id)}
+          onManage={() => {
+            setDeleteTarget(null);
+            select(deleteTarget.id).catch((error) => setMessage(error.message));
+          }}
+        />
+      )}
       {detail && (
         <section className="space-y-4 rounded-lg border p-4">
           <div className="flex justify-between">

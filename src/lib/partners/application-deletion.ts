@@ -7,6 +7,7 @@ import {
   partnerAudit,
 } from "@/lib/db/schema";
 import type { partnerRegistrationDeletionReasons } from "./application";
+import type { PartnerTx } from "./store";
 
 type Registration = typeof partnerApplications.$inferSelect;
 type DeletionReason = keyof typeof partnerRegistrationDeletionReasons;
@@ -40,27 +41,7 @@ export async function deletePartnerRegistration(
         .for("update");
       if (!application) return "missing";
       if (!canRequestRegistrationDeletion(application)) return "protected";
-
-      await tx.insert(partnerAudit).values({
-        id: `application-deletion:${applicationId}`,
-        actor,
-        action: "application_registration_deleted",
-        reason,
-        data: { applicationId },
-      });
-      await tx
-        .delete(partnerApplicationEmails)
-        .where(
-          and(
-            eq(partnerApplicationEmails.applicationId, applicationId),
-            inArray(partnerApplicationEmails.kind, ["receipt", "admin_notice", "rejected"]),
-          ),
-        );
-      await tx
-        .delete(partnerApplicationAudit)
-        .where(eq(partnerApplicationAudit.applicationId, applicationId));
-      // All other dependencies keep their restrictive foreign keys and roll back the deletion.
-      await tx.delete(partnerApplications).where(eq(partnerApplications.id, applicationId));
+      await removeEligibleApplication(tx, applicationId, actor, reason);
       return "deleted";
     });
   } catch (error) {
@@ -68,4 +49,31 @@ export async function deletePartnerRegistration(
     if ((pg?.code || pg?.cause?.code) === "23503") return "protected";
     throw error;
   }
+}
+
+// Callers lock the application and check its eligibility inside the same transaction.
+export async function removeEligibleApplication(
+  tx: PartnerTx,
+  applicationId: string,
+  actor: string,
+  reason: DeletionReason,
+) {
+  await tx.insert(partnerAudit).values({
+    id: `application-deletion:${applicationId}`,
+    actor,
+    action: "application_registration_deleted",
+    reason,
+    data: { applicationId },
+  });
+  await tx.delete(partnerApplicationEmails).where(
+    and(
+      eq(partnerApplicationEmails.applicationId, applicationId),
+      inArray(partnerApplicationEmails.kind, ["receipt", "admin_notice", "rejected"]),
+    ),
+  );
+  await tx
+    .delete(partnerApplicationAudit)
+    .where(eq(partnerApplicationAudit.applicationId, applicationId));
+  // Other dependencies keep their restrictive foreign keys and roll back the deletion.
+  await tx.delete(partnerApplications).where(eq(partnerApplications.id, applicationId));
 }

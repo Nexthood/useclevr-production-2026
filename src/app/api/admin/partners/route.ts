@@ -4,7 +4,12 @@ import {
   recordManualActivation,
 } from "@/lib/partners/contracts/activation";
 import { ContractError } from "@/lib/partners/contracts/domain";
-import { contractError } from "@/lib/partners/contracts/http";
+import { contractError, privateHeaders, requestBody } from "@/lib/partners/contracts/http";
+import {
+  deletePartnerAccount,
+  previewPartnerAccountDeletion,
+} from "@/lib/partners/account-deletion";
+import { partnerRegistrationDeletionReasons } from "@/lib/partners/application";
 import { PartnerRuleError } from "@/lib/partners/errors";
 import { desc, eq, ilike, or, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -39,6 +44,18 @@ import { getAccountReferralCode } from "@/lib/referrals/owner-code";
 import { financialReport } from "@/lib/partners/export";
 
 const identity = z.string().min(1).max(100);
+const deletionSchema = z
+  .object({
+    partnerId: identity,
+    confirm: z.literal(true),
+    scope: z.string().regex(/^[a-f0-9]{64}$/),
+    reason: z.enum(
+      Object.keys(
+        partnerRegistrationDeletionReasons,
+      ) as (keyof typeof partnerRegistrationDeletionReasons)[],
+    ),
+  })
+  .strict();
 const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("create"),
@@ -109,12 +126,72 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("replay"), eventId: z.string().min(1).max(200) }),
 ]);
 
+export async function DELETE(request: Request) {
+  const auth = await requireSuperAdmin();
+  if (!auth.success) return auth.error;
+  if (!validWriteOrigin(request))
+    return NextResponse.json(
+      { error: "Invalid request origin." },
+      { status: 403, headers: privateHeaders },
+    );
+  if (
+    request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json"
+  )
+    return NextResponse.json(
+      { error: "Send the deletion request as JSON." },
+      { status: 415, headers: privateHeaders },
+    );
+  const parsed = deletionSchema.safeParse(await requestBody(request, 4096).catch(() => null));
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: "Choose an audit reason and explicitly confirm the partner account deletion." },
+      { status: 400, headers: privateHeaders },
+    );
+  try {
+    const result = await deletePartnerAccount(
+      database(),
+      parsed.data.partnerId,
+      auth.userId,
+      parsed.data.reason,
+      parsed.data.scope,
+    );
+    if (result.status === "missing")
+      return NextResponse.json(
+        { error: "Partner account not found." },
+        { status: 404, headers: privateHeaders },
+      );
+    if (result.status === "protected")
+      return NextResponse.json({ error: result.error }, { status: 409, headers: privateHeaders });
+    return NextResponse.json({ ok: true }, { headers: privateHeaders });
+  } catch {
+    return NextResponse.json(
+      { error: "The partner account could not be deleted. Refresh and try again." },
+      { status: 503, headers: privateHeaders },
+    );
+  }
+}
+
 export async function GET(request: Request) {
   const auth = await requireSuperAdmin();
   if (!auth.success) return auth.error;
   try {
-    const url = new URL(request.url),
-      partnerId = url.searchParams.get("partnerId");
+    const url = new URL(request.url);
+    if (url.searchParams.has("deletionPartnerId")) {
+      const deletionPartnerId = identity.safeParse(url.searchParams.get("deletionPartnerId"));
+      if (!deletionPartnerId.success)
+        return NextResponse.json(
+          { error: "Provide a partner account identifier." },
+          { status: 400, headers: privateHeaders },
+        );
+      const preview = await previewPartnerAccountDeletion(database(), deletionPartnerId.data);
+      return preview
+        ? NextResponse.json(preview, { headers: privateHeaders })
+        : NextResponse.json(
+            { error: "Partner account not found." },
+            { status: 404, headers: privateHeaders },
+          );
+    }
+    const partnerId = url.searchParams.get("partnerId");
     if (partnerId) {
       if (url.searchParams.get("export") === "csv") {
         return new Response(financialReport(partnerId), {

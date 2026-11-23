@@ -59,6 +59,19 @@ are protected. Use the existing partner suspension or termination actions when a
 Migration `0046_partner_registration_deletion.sql` installs the audit and deletion guards via
 the existing migration runner. Apply it only during an owner-authorized release.
 
+In the commercial Partners table, **Delete** beside **View** opens a preview with the account's
+registered email and the current eligibility decision. Choose a predefined reason to confirm
+deletion of a never-approved Pending or Rejected account. The transaction removes eligible linked
+applications and routine application records, while retaining the shared login, referral-code
+ownership and all commercial audit events. A separate open application for the email can be
+reviewed in Applications. Use the existing suspension or termination controls for protected accounts
+when appropriate.
+
+Migration `0047_partner_account_deletion.sql` installs the database eligibility and audit guards
+through the existing migration runner. Historical audit entries keep their original partner ID.
+New linked audit entries require an existing account, and deleted partner IDs cannot be reused.
+Apply the migration only during an owner-authorized release.
+
 ## Local verification
 
 Run `pnpm test:partners` and `pnpm test:referral-automation` for deterministic rules and referral contracts. The integration runner uses only a disposable PostgreSQL fixture at `127.0.0.1:55438`, database `partner_tests`, PostgreSQL user `postgres`, with local trust authentication. It creates a fresh schema per run, does not clear existing schemas, replaces database configuration before loading application modules, and uses synthetic Stripe objects without external requests.
