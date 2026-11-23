@@ -1,3 +1,13 @@
+## 2026-11-23 — Partner submission confirmations and validation cleanup (T-1114)
+
+- Complete the Work With Us, Reseller and legal identity confirmations on `feat/partner-submission-confirmations`, preserve existing work and validate locally.
+- Public acknowledgments return applicants to their program overview. Legal identity acknowledgment returns focus to the agreement status. The contract integration fixture checks that agreement preparation waits for administrator review.
+- The isolated build runner creates a per-run snapshot. Its cleanup block removes that snapshot on preparation errors and nonzero child exits. The browser runner waits for its fixture and Chrome to close before removing its own directory. Use `--keep-snapshot` for retained build evidence.
+- 24 browser groups, 43 partner integration checks, 26 contract integration groups, partner units and runtime regressions pass. Simulated setup and child failures remove their snapshots and preserve adjacent artifacts.
+- TypeScript validation, production compilation, generation of 105 static pages, packaging and the local packaged smoke test pass. Both production validation runs remove their snapshots and leave the pre-existing build directories in place.
+- Review the 22-file feature change as one unit. The active GitHub Actions merge job requires a non-draft `beta` to `main` pull request. The beta promotion job requires explicit workflow dispatch authorization. The feature pull request targets `beta` for source validation.
+- Follow AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and the post-interaction memory prompt.
+
 ## 2026-11-18 — picomatch extglob ReDoS remediation (T-1112)
 
 - Goal: Resolve the blocking picomatch finding (GHSA-fc5q-39xc-vjpf / CVE-2026-112366, high, vulnerable <=4.0.7) with a technically valid, reproducible and auditable remedy for the reseller signing release candidate, without disabling the audit gate or self-approving an allowlist entry.

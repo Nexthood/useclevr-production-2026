@@ -20,6 +20,13 @@ export type ContractItem = {
   auditAvailable: boolean;
   documentChecksum: string | null;
   signedDocumentChecksum: string | null;
+  signingAvailability?:
+    | "approval_pending"
+    | "disabled"
+    | "invitation_pending"
+    | "invitation_unavailable"
+    | "invitation_ready"
+    | "delivery_issue";
   audit?: { id: string; action: string; reason: string; createdAt: string }[];
   deliveries?: {
     id: string;
@@ -47,6 +54,7 @@ export type ContractData = {
     version: number;
     checksum: string;
     identity: {
+      entityType: "company" | "individual";
       legalName: string;
       address: string;
       country: string;

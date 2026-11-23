@@ -170,7 +170,6 @@ export async function submitContractIdentity(
       "Partner declares legal identity, signing authority and electronic record consent",
       { applicationId, evidence: { profileId: profile.id, checksum } },
     );
-    await enqueuePreparation(tx, applicationId);
     return profile;
   });
 }

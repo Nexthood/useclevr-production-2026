@@ -278,9 +278,9 @@ the conservative uncertain-request recovery controls.
 Run `pnpm test:partners`, `pnpm test:partners:integration`, `pnpm test:partners:browser`,
 `pnpm test:auth`, `pnpm test:referral-automation`, `pnpm test:railway-auth`, `pnpm validate:types`,
 `pnpm validate:dist`, focused ESLint, `pnpm lint:secrets`, `pnpm lint:todos`, and `pnpm docs:check`.
-Use `node scripts/partners/run-safe-build.mjs` for isolated production compilation/packaging and
-`node scripts/partners/test-production-runtime.mjs <isolated-snapshot-directory>` for packaged
-local acceptance. [Shared read-only requests](../api-tests/partner-contract-readiness.http) verify
+Use `node scripts/partners/run-safe-build.mjs --runtime` for isolated production compilation,
+packaging and local acceptance. The runner removes its snapshot when it finishes. Pass
+`--keep-snapshot` to retain local evidence. [Shared read-only requests](../api-tests/partner-contract-readiness.http) verify
 API boundaries without storing credentials or initiating signing.
 
 Local verification passes 19 financial rules, 12 contract unit groups, 43 PostgreSQL checks,

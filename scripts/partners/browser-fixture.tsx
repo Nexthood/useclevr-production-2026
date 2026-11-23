@@ -6,6 +6,7 @@ import { PartnerApplication } from "../../src/components/partners/partner-applic
 import { PartnerOnboarding } from "../../src/components/partners/partner-onboarding";
 import { PartnerAdmin } from "../../src/components/partners/partner-admin";
 import { NativeSigning } from "../../src/components/partners/native-signing";
+import { PartnerContracts } from "../../src/components/partners/partner-contracts";
 
 const query = new URLSearchParams(location.search);
 document.documentElement.classList.toggle("dark", query.get("theme") === "dark");
@@ -14,6 +15,8 @@ createRoot(document.getElementById("root")!).render(
     <h1 className="text-2xl font-semibold">Synthetic partner acceptance</h1>
     {query.has("native") ? (
       <NativeSigning />
+    ) : location.pathname === "/partners/contracts" ? (
+      <PartnerContracts />
     ) : query.has("guest") ? (
       <InvitationOnboarding
         token={["synthetic", "browser", "invitation", "32", "bytes", "only"].join("-")}
