@@ -380,6 +380,7 @@ const migrationStatements = [
   readMigrationStatement("src/lib/db/migrations/0045_native_partner_signatures.sql"),
   readMigrationStatement("src/lib/db/migrations/0046_partner_registration_deletion.sql"),
   readMigrationStatement("src/lib/db/migrations/0047_partner_account_deletion.sql"),
+  readMigrationStatement("src/lib/db/migrations/0048_partner_invitation_cleanup.sql"),
 ];
 
 const constraints = [

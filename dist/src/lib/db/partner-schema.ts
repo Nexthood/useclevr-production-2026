@@ -274,6 +274,7 @@ export const partnerApplications = pgTable("PartnerProgramApplication", {
 });
 export const partnerApplicationAudit = pgTable("PartnerProgramApplicationAudit", {
   id: text("id").primaryKey(),
+  // New entries require a live application. Historical IDs survive commercial account deletion.
   applicationId: text("applicationId").notNull(),
   actor: text("actor").notNull(),
   action: text("action").notNull(),
