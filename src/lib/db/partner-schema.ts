@@ -238,7 +238,8 @@ export const partnerPayoutItems = pgTable("PartnerPayoutItem", {
 });
 export const partnerAudit = pgTable("PartnerAudit", {
   id: text("id").primaryKey(),
-  partnerId: text("partnerId").references(() => partnerAccounts.id),
+  // New entries validate the live account in a trigger. Historical IDs survive account deletion.
+  partnerId: text("partnerId"),
   actor: text("actor").notNull(),
   action: text("action").notNull(),
   reason: text("reason").notNull(),

@@ -113,6 +113,17 @@ const statement = {
   nextOffset: null,
 };
 const actions = [];
+const commercialTestAccount = {
+  id: "commercial-delete-fixture",
+  name: "Browser Commercial Test Account",
+  country: "NL",
+  market: null,
+  status: "pending",
+};
+let commercialFixture = false;
+let commercialDeleteFailure = true;
+let commercialDeleted = false;
+const commercialDeletionRequests = [];
 let registrationFixture = false;
 let registrationDeleted = false;
 let deletionBlocked = true;
@@ -147,6 +158,30 @@ const server = createServer(async (request, response) => {
   }
   if (url.pathname.startsWith("/api/")) {
     response.setHeader("Content-Type", "application/json");
+    if (url.pathname === "/api/admin/partners" && url.searchParams.has("deletionPartnerId")) {
+      const permitted = url.searchParams.get("deletionPartnerId") === commercialTestAccount.id;
+      const partner = permitted ? commercialTestAccount : statement.partner;
+      response.end(JSON.stringify({
+        id: partner.id, name: partner.name, status: partner.status,
+        email: permitted ? "commercial-deletion@example.invalid" : "active-partner@example.invalid",
+        permitted, explanation: permitted ? null : "The account has retained financial history.",
+        applicationCount: permitted ? 1 : 0, scope: "a".repeat(64),
+      }));
+      return;
+    }
+    if (url.pathname === "/api/admin/partners" && request.method === "DELETE") {
+      let body = "";
+      for await (const part of request) body += part;
+      commercialDeletionRequests.push(JSON.parse(body));
+      if (commercialDeleteFailure) {
+        response.statusCode = 503;
+        response.end(JSON.stringify({ error: "Could not delete the account. Try again." }));
+      } else {
+        commercialDeleted = true;
+        response.end(JSON.stringify({ ok: true }));
+      }
+      return;
+    }
     if (url.pathname === "/api/partners/contracts/native") {
       if (request.method === "GET") {
         nativeReviewRequests++;
@@ -395,7 +430,7 @@ const server = createServer(async (request, response) => {
       url.pathname === "/api/partners" || url.searchParams.has("partnerId")
         ? statement
         : {
-            partners: [statement.partner],
+            partners: commercialFixture && !commercialDeleted ? [statement.partner, commercialTestAccount] : [statement.partner],
             config,
             configId: "fixture-disabled",
             configurations: [
@@ -410,7 +445,7 @@ const server = createServer(async (request, response) => {
               },
             ],
             liabilities: [{ currency: "USD", amountMinor: "10000" }],
-            totals: { total: 1, active: 1 },
+            totals: { total: commercialFixture && !commercialDeleted ? 2 : 1, active: 1 },
             nextOffset: null,
           };
     response.end(JSON.stringify(result));
@@ -686,6 +721,42 @@ try {
   assert.equal(await evaluate(`[...${registrations}.querySelectorAll("button")].some(b => b.textContent === "Delete")`), false);
   passed++;
   console.log("PASS registration deletion confirmation, cancel, protected error, list refresh and count");
+  commercialFixture = true;
+  await command("Page.navigate", { url: `${origin}/?admin=1&theme=dark` });
+  const partnerTable = 'Array.from(document.querySelectorAll("table")).find(table => table.querySelector("caption")?.textContent === "Partners")';
+  const accountDialog = 'document.querySelector("[role=dialog]")';
+  await waitFor(`${partnerTable}?.innerText.includes("Browser Commercial Test Account")`);
+  assert.equal(await evaluate(`[...${partnerTable}.tBodies[0].rows].every(row => [...row.cells[4].querySelectorAll("button")].map(button => button.textContent).join(" ") === "View Delete")`), true);
+  await evaluate(`${partnerTable}.tBodies[0].rows[0].querySelector("button[aria-label^='Delete']").click()`);
+  await waitFor(`${accountDialog}?.innerText.includes("retained financial history")`);
+  assert.equal(await evaluate(`${accountDialog}.innerText.includes("Blocked") && ${accountDialog}.innerText.includes("active-partner@example.invalid") && !${accountDialog}.querySelector("button[type=submit]")`), true);
+  await evaluate(`[...${accountDialog}.querySelectorAll("button")].find(b => b.textContent === "View partner account").click()`);
+  await waitFor('document.body.innerText.includes("Partner performance")');
+  assert.equal(commercialDeletionRequests.length, 0);
+
+  const openAccountDeletion = `${partnerTable}.querySelector('[aria-label="Delete Browser Commercial Test Account"]').click()`;
+  await evaluate(openAccountDeletion);
+  await waitFor(`${accountDialog}?.innerText.includes("Permitted")`);
+  assert.equal(await evaluate(`${accountDialog}.innerText.includes("commercial-deletion@example.invalid") && ${accountDialog}.innerText.includes("1 eligible linked application") && !${accountDialog}.querySelector("form").checkValidity()`), true);
+  await evaluate(`[...${accountDialog}.querySelectorAll("button")].find(b => b.textContent === "Cancel").click()`);
+  await waitFor(`${accountDialog} === null`);
+  assert.equal(commercialDeletionRequests.length, 0);
+  await evaluate(openAccountDeletion);
+  await waitFor(`${accountDialog}?.innerText.includes("Permitted")`);
+  await evaluate(`${accountDialog}.querySelector("[name=reason]").value = "test_registration"`);
+  await evaluate(`${accountDialog}.querySelector("form").requestSubmit()`);
+  await waitFor(`${accountDialog}?.querySelector("[role=alert]")?.innerText.includes("Could not delete")`);
+  assert.equal(await evaluate(`${partnerTable}.innerText.includes("Browser Commercial Test Account")`), true);
+  commercialDeleteFailure = false;
+  await evaluate(`${accountDialog}.querySelector("form").requestSubmit()`);
+  await waitFor(`${accountDialog} === null && document.body.innerText.includes("Partner account deleted successfully.") && document.body.innerText.includes("Partners: 1")`);
+  assert.equal(await evaluate(`${partnerTable}.innerText.includes("Browser Commercial Test Account")`), false);
+  assert.deepEqual(commercialDeletionRequests, Array.from({length: 2}, () => ({
+    partnerId: commercialTestAccount.id, reason: "test_registration", confirm: true, scope: "a".repeat(64),
+  })));
+  assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+  passed++;
+  console.log("PASS table Delete actions, protected alternatives, confirmation, cancellation, errors and count refresh");
   for (const [partnershipType, program] of [
     ["Independent Sales Partner", "work_with_us"],
     ["Authorized Reseller", "reseller_enterprise"],

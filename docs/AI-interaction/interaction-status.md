@@ -1,3 +1,11 @@
+## 2026-11-23 — Audited commercial partner account deletion (T-1116)
+
+- The commercial partner table offers View and Delete. Delete shows the current eligibility decision and requires confirmation of the account and linked application set.
+- Database guards protect approvals, legal records and financial history. The transaction retains commercial audit events and the underlying UseClevr identity, and allows eligible email reuse.
+- Partner and contract integration checks, browser acceptance, TypeScript and the dependency audit gate pass. Migration 0047 applies through the owner-authorized release process.
+
+## Previous Interaction
+
 ## 2026-11-23 — Secure partner registration deletion (T-1115)
 
 - The partner admin application detail offers Delete to authorized superadmins for unlinked pending and rejected registrations.
