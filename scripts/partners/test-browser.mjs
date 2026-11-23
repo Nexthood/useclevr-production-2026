@@ -113,6 +113,10 @@ const statement = {
   nextOffset: null,
 };
 const actions = [];
+let registrationFixture = false;
+let registrationDeleted = false;
+let deletionBlocked = true;
+const deletionRequests = [];
 let applicationFailure = false;
 let applicationGate;
 let savedIdentity;
@@ -192,8 +196,39 @@ const server = createServer(async (request, response) => {
       }
       return;
     }
-    if (url.pathname === "/api/admin/partner-applications" && request.method === "GET") {
-      response.end(JSON.stringify({ applications: [] }));
+    if (url.pathname === "/api/admin/partner-applications") {
+      if (request.method === "DELETE") {
+        let body = "";
+        for await (const part of request) body += part;
+        deletionRequests.push(JSON.parse(body));
+        if (deletionBlocked) {
+          response.statusCode = 409;
+          response.end(JSON.stringify({ error: "This registration is protected by linked records." }));
+        } else {
+          registrationDeleted = true;
+          response.end(JSON.stringify({ ok: true }));
+        }
+        return;
+      }
+      const status = url.searchParams.get("status");
+      const applications =
+        registrationFixture && ((status === "pending" && !registrationDeleted) || status === "approved")
+          ? [{
+              id: "delete-registration-fixture",
+              fullName: "Browser Registration",
+              email: "browser-deletion@example.invalid",
+              category: "Referral Partner",
+              country: "NL",
+              program: "work_with_us",
+              status,
+              createdAt: "2026-11-21T12:00:00.000Z",
+              canRequestDeletion: status === "pending",
+              experience: "Synthetic application contents",
+              audit: [],
+              deliveries: [],
+            }]
+          : [];
+      response.end(JSON.stringify({ applications, count: applications.length }));
       return;
     }
     if (url.pathname === "/api/admin/partner-contracts" && request.method === "GET") {
@@ -611,6 +646,46 @@ try {
     "PASS approval and manual settlement forms submit separate, reasoned actions to fixture transport",
   );
   passed++;
+  registrationFixture = true;
+  await command("Page.navigate", { url: `${origin}/?admin=1` });
+  const registrations = 'document.querySelector("section[aria-labelledby=partner-application-admin-title]")';
+  const registrationDialog = 'document.querySelector("[role=dialog]")';
+  await waitFor(`${registrations}?.innerText.includes("Registrations in this status: 1")`);
+  await evaluate(`${registrations}.querySelector("details").open = true`);
+  const openDeletion = `[...${registrations}.querySelectorAll("button")].find(b => b.textContent === "Delete").click()`;
+  await evaluate(openDeletion);
+  await waitFor(`${registrationDialog}?.innerText.includes("Delete Partner Registration?")`);
+  assert.equal(
+    await evaluate(`["Browser Registration", "browser-deletion@example.invalid", "Referral Partner", "pending", "Please confirm that you want to continue."].every(value => ${registrationDialog}.textContent.includes(value))`),
+    true,
+  );
+  assert.equal(await evaluate(`${registrationDialog}.querySelector("form").checkValidity()`), false);
+  assert.equal(deletionRequests.length, 0);
+  await evaluate(`[...${registrationDialog}.querySelectorAll("button")].find(b => b.textContent === "Cancel").click()`);
+  await waitFor(`${registrationDialog} === null`);
+  assert.equal(deletionRequests.length, 0);
+  await evaluate(openDeletion);
+  await waitFor(`${registrationDialog} !== null`);
+  await evaluate(`${registrationDialog}.querySelector("[name=reason]").value = "test_registration"`);
+  await evaluate(`${registrationDialog}.querySelector("form").requestSubmit()`);
+  await waitFor(`${registrationDialog}?.querySelector("[role=alert]")?.innerText.includes("protected by linked records")`);
+  assert.equal(await evaluate(`${registrations}.innerText.includes("Browser Registration")`), true);
+  deletionBlocked = false;
+  await evaluate(`${registrationDialog}.querySelector("form").requestSubmit()`);
+  await waitFor(`${registrationDialog} === null && ${registrations}.innerText.includes("Partner registration deleted successfully.") && ${registrations}.innerText.includes("Registrations in this status: 0")`);
+  assert.equal(await evaluate(`${registrations}.innerText.includes("Browser Registration")`), false);
+  assert.deepEqual(deletionRequests, Array.from({ length: 2 }, () => ({
+    id: "delete-registration-fixture",
+    reason: "test_registration",
+    confirm: true,
+  })));
+  await evaluate(`(() => { const filter = ${registrations}.querySelector("select"); filter.value = "approved"; filter.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+  await waitFor(`${registrations}.innerText.includes("Registrations in this status: 1")`);
+  await evaluate(`${registrations}.querySelector("details").open = true`);
+  assert.equal(await evaluate(`${registrations}.innerText.includes("This registration is protected")`), true);
+  assert.equal(await evaluate(`[...${registrations}.querySelectorAll("button")].some(b => b.textContent === "Delete")`), false);
+  passed++;
+  console.log("PASS registration deletion confirmation, cancel, protected error, list refresh and count");
   for (const [partnershipType, program] of [
     ["Independent Sales Partner", "work_with_us"],
     ["Authorized Reseller", "reseller_enterprise"],

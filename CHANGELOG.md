@@ -2,6 +2,8 @@
 
 ### Added
 
+- Let superadmins delete eligible pending or rejected partner registrations after confirmation so applicants can reuse the same email address.
+
 - Confirm Work With Us and Reseller applications and legal identity submissions, and show partners their current agreement review and signing invitation status.
 
 - Let partners and authorized company signers execute agreements inside UseClevr with email verification, explicit consent, private signed copies and tamper-evident evidence, without a paid signature provider.

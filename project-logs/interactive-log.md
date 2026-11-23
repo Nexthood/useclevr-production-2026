@@ -1,3 +1,12 @@
+## 2026-11-23 — Secure partner registration deletion (T-1115)
+
+- Superadmins confirm deletion from an eligible application's details and select a predefined reason. The application list refreshes and displays the current count for the selected status.
+- The database locks the application row and removes ordinary delivery history and application-only audit rows in one transaction. A separate append-only audit event stores the application ID, acting administrator, action, timestamp and reason. Restrictive foreign keys preserve onboarding and legal evidence and roll back dependent writes when deletion is blocked.
+- PostgreSQL checks exercise same-email resubmission with a new receipt, permissions, duplicate requests, rollback, signed agreements and financial history. Browser checks cover confirmation, cancellation, protected errors and list updates.
+- TypeScript, the isolated production build, packaging and the local packaged smoke test pass. The build runner removes its snapshot and the repository secret scan passes.
+- The feature branch targets beta for review with the existing production promotion gates. Owner approval governs production release and migration.
+- Follow AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and the post-interaction memory prompt.
+
 ## 2026-11-23 — Partner submission confirmations and validation cleanup (T-1114)
 
 - Complete the Work With Us, Reseller and legal identity confirmations on `feat/partner-submission-confirmations`, preserve existing work and validate locally.

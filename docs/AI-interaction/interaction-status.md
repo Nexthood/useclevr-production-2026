@@ -1,3 +1,12 @@
+## 2026-11-23 — Secure partner registration deletion (T-1115)
+
+- The partner admin application detail offers Delete to authorized superadmins for unlinked pending and rejected registrations.
+- The deletion transaction preserves partner accounts, contracts, financial history and general customer identities. The retained audit entry stores identifiers and a predefined reason.
+- Browser and local PostgreSQL fixtures verify confirmation, cancellation, count refresh, rollback and same-email resubmission with a receipt. Production release and migration require owner approval.
+- TypeScript, the isolated production build and local packaged smoke test pass. The secret scan and dependency audit gate pass.
+
+## Previous Interaction
+
 ## 2026-11-23 — Partner submission confirmations and validation cleanup (T-1114)
 
 - The feature branch confirms successful Work With Us, Reseller and legal identity submissions. Legal identity returns applicants to their agreement review status.
