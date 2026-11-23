@@ -1,3 +1,10 @@
+## 2026-11-23 — Safe invitation revocation during partner deletion (T-1117)
+
+- The Delete dialog identifies the retained record that blocks deletion. Eligible commercial account deletion revokes linked invitation access and preserves logins and application audit history.
+- Migration 0048 preserves historical audit subjects while requiring a live application for new audit events. Owner authorization governs release and migration.
+
+## Previous Interaction
+
 ## 2026-11-23 — Audited commercial partner account deletion (T-1116)
 
 - The commercial partner table offers View and Delete. Delete shows the current eligibility decision and requires confirmation of the account and linked application set.

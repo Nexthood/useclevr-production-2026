@@ -15,7 +15,9 @@ export async function runPartnerAccountDeletionTests({
   check: (name: string, run: () => Promise<void>) => Promise<void>;
 }) {
   const admin = await import("../../src/app/api/admin/partners/route");
+  const applicationAdmin = await import("../../src/app/api/admin/partner-applications/route");
   const applications = await import("../../src/app/api/partner-applications/route");
+  const invitations = await import("../../src/lib/partners/invitation-access");
   const origin = "https://fixture.example.invalid";
   const adminUrl = origin + "/api/admin/partners";
   const owner = { user: { id: "test-owner", role: "superadmin" } };
@@ -71,11 +73,13 @@ export async function runPartnerAccountDeletionTests({
     return { ...(await addAccount(userId)), email };
   };
   let submitCount = 0;
+  const addresses = new Map<string, string>();
   const submit = async (email: string) => {
+    if (!addresses.has(email)) addresses.set(email, `203.0.113.${80 + addresses.size}`);
     const response = await applications.POST(
       new Request(origin + "/api/partner-applications", {
         method: "POST",
-        headers: { origin, "content-type": "application/json", "x-real-ip": "203.0.113.80" },
+        headers: { origin, "content-type": "application/json", "x-real-ip": addresses.get(email)! },
         body: JSON.stringify({
           program: "work_with_us",
           category: "Referral Partner",
@@ -101,13 +105,48 @@ export async function runPartnerAccountDeletionTests({
 
   const previousFetch = globalThis.fetch;
   const receipts: { to: string[]; key: string | null }[] = [];
+  const tokens = new Map<string, string>();
+  const codes = new Map<string, string>();
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     assert.equal(String(input), "https://api.resend.com/emails");
-    const { to, subject } = JSON.parse(String(init?.body));
+    const { to, subject, text } = JSON.parse(String(init?.body));
     if (subject === "We received your UseClevr partner application")
       receipts.push({ to, key: new Headers(init?.headers).get("Idempotency-Key") });
+    const token = text.match(/[?&]token=([A-Za-z0-9_-]+)/)?.[1];
+    const code = text.match(/partner verification code is (\d{6})/)?.[1];
+    if (token) tokens.set(to[0], token);
+    if (code) codes.set(to[0], code);
     return Response.json({ id: `commercial-deletion-email-${receipts.length}-${submitCount}` });
   }) as typeof fetch;
+
+  const applicationHistory = (id: string) =>
+    db.query.partnerApplicationAudit.findMany({
+      where: eq(schema.partnerApplicationAudit.applicationId, id),
+      orderBy: (history, { asc }) => [asc(history.id)],
+    });
+  const approve = async (registration: Awaited<ReturnType<typeof submit>>) => {
+    const response = await applicationAdmin.POST(
+      new Request(origin + "/api/admin/partner-applications", {
+        method: "POST",
+        headers: { origin, "content-type": "application/json" },
+        body: JSON.stringify({ id: registration.id, action: "approve", confirm: true }),
+      }),
+    );
+    assert.equal(response.status, 200, await response.text());
+    const token = tokens.get(registration.email);
+    assert.ok(token);
+    return token;
+  };
+  const expectProtected = async (id: string, explanation: RegExp) => {
+    const decision = await (await preview(id)).json();
+    assert.equal(decision.permitted, false);
+    assert.match(decision.explanation, explanation);
+    const response = await remove(await confirmed(id));
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).error, decision.explanation);
+    assert.ok(await account(id));
+    assert.equal(await audit(id), undefined);
+  };
 
   try {
     setSession(owner);
@@ -179,11 +218,27 @@ export async function runPartnerAccountDeletionTests({
         const before = await db.query.partnerAudit.findMany({
           where: eq(schema.partnerAudit.partnerId, reusable.id),
         });
+        const originalHistory = await applicationHistory(registration.id);
+        assert.ok(originalHistory.some((row) => row.action === "submitted"));
         assert.ok(before.some((row) => row.action === "partner_registered"));
         const confirmation = { ...originalConfirmation, scope };
         const responses = await Promise.all([remove(confirmation), remove(confirmation)]);
         assert.deepEqual(responses.map(({ status }) => status).sort(), [200, 404]);
         assert.equal(await account(reusable.id), undefined);
+        assert.deepEqual(await applicationHistory(registration.id), originalHistory);
+        await assert.rejects(
+          pool.query('DELETE FROM "PartnerProgramApplicationAudit" WHERE id = $1', [
+            originalHistory[0].id,
+          ]),
+          /history is immutable/,
+        );
+        await assert.rejects(
+          pool.query(
+            'INSERT INTO "PartnerProgramApplicationAudit" (id, "applicationId", actor, action) VALUES ($1,$2,$3,$4)',
+            ["late-application-audit-fixture", registration.id, "test-owner", "add_note"],
+          ),
+          /subject does not exist/,
+        );
         assert.equal(
           await db.query.partnerApplications.findFirst({
             where: eq(schema.partnerApplications.id, registration.id),
@@ -242,30 +297,86 @@ export async function runPartnerAccountDeletionTests({
     );
 
     await check(
-      "a separately filed application or linked invitation protects the commercial account",
+      "an unrelated application is protected while a linked unused invitation is revocable",
       async () => {
         const partner = await fixture("invitation");
         const registration = await submit(partner.email);
-        const separate = await preview(partner.id);
-        assert.equal((await separate.json()).permitted, false);
-        assert.match(
-          (await (await remove(await confirmed(partner.id))).json()).error,
-          /separate application/,
-        );
+        await expectProtected(partner.id, /separate application/);
         await db
           .update(schema.partnerApplications)
-          .set({ partnerAccountId: partner.id, invitationExpiresAt: new Date() })
+          .set({ partnerAccountId: partner.id })
           .where(eq(schema.partnerApplications.id, registration.id));
-        const protectedResponse = await remove(await confirmed(partner.id));
-        assert.equal(protectedResponse.status, 409);
-        assert.match((await protectedResponse.json()).error, /invitation/);
-        assert.ok(await account(partner.id));
-        assert.ok(
-          await db.query.partnerApplications.findFirst({
-            where: eq(schema.partnerApplications.id, registration.id),
-          }),
+        const token = await approve(registration);
+        const history = await applicationHistory(registration.id);
+        assert.ok(history.some((event) => event.action === "approved"));
+        assert.equal((await (await preview(partner.id)).json()).permitted, true);
+        assert.equal((await remove(await confirmed(partner.id))).status, 200);
+        assert.equal(await account(partner.id), undefined);
+        assert.deepEqual(await applicationHistory(registration.id), history);
+        await assert.rejects(
+          invitations.requestInvitationCode(token, registration.email),
+          /invalid_invitation/,
         );
-        assert.equal(await audit(partner.id), undefined);
+        assert.notEqual((await submit(partner.email)).id, registration.id);
+      },
+    );
+
+    await check(
+      "incomplete onboarding can be revoked while completed credential evidence blocks deletion",
+      async () => {
+        const partner = await fixture("incomplete-onboarding");
+        const registration = await submit(partner.email);
+        const token = await approve(registration);
+        await invitations.requestInvitationCode(token, partner.email);
+        const code = codes.get(partner.email);
+        assert.ok(code);
+        const session = await invitations.verifyInvitationCode(token, partner.email, code);
+        assert.ok(await invitations.invitationSession(session));
+        const history = await applicationHistory(registration.id);
+        assert.ok(history.some((event) => event.action === "invitation_email_verified"));
+        const scope = await confirmed(partner.id);
+        const job = await db.query.partnerContractJobs.findFirst({
+          where: eq(schema.partnerContractJobs.applicationId, registration.id),
+        });
+        assert.equal(job?.status, "pending");
+        await db
+          .update(schema.partnerContractJobs)
+          .set({ status: "running" })
+          .where(eq(schema.partnerContractJobs.applicationId, registration.id));
+        await expectProtected(partner.id, /running or protected contract job/);
+        await db
+          .update(schema.partnerContractJobs)
+          .set({ status: "pending" })
+          .where(eq(schema.partnerContractJobs.applicationId, registration.id));
+        await db
+          .update(schema.partnerOnboardingSessions)
+          .set({ credentialSetAt: new Date() })
+          .where(eq(schema.partnerOnboardingSessions.applicationId, registration.id));
+        await expectProtected(partner.id, /Credential setup/);
+        await db
+          .update(schema.partnerOnboardingSessions)
+          .set({ credentialSetAt: null })
+          .where(eq(schema.partnerOnboardingSessions.applicationId, registration.id));
+        const response = await remove(scope);
+        assert.equal(response.status, 200, await response.text());
+        assert.equal(await account(partner.id), undefined);
+        assert.equal(await invitations.invitationSession(session), null);
+        assert.equal(
+          await db.query.partnerOnboardingChallenges.findFirst({
+            where: eq(schema.partnerOnboardingChallenges.applicationId, registration.id),
+          }),
+          undefined,
+        );
+        assert.equal(
+          await db.query.partnerContractJobs.findFirst({
+            where: eq(schema.partnerContractJobs.applicationId, registration.id),
+          }),
+          undefined,
+        );
+        assert.deepEqual(await applicationHistory(registration.id), history);
+        assert.ok(await db.query.users.findFirst({ where: eq(schema.users.id, partner.userId) }));
+        assert.notEqual((await submit(partner.email)).id, registration.id);
+        assert.equal(receipts.filter(({ to }) => to.includes(partner.email)).length, 2);
       },
     );
 
@@ -314,6 +425,18 @@ export async function runPartnerAccountDeletionTests({
         where: eq(schema.partnerAccounts.status, "active"),
       });
       assert.ok(contract && active);
+      await expectProtected(active.id, /commercial activation or approval/);
+      const {
+        rows: [unsignedAccountWithSignature],
+      } = await pool.query(
+        `SELECT p.id FROM "PartnerAccount" p JOIN "PartnerContract" c ON c."partnerId" = p.id
+         WHERE p.status = 'pending' AND p."approvedAt" IS NULL AND c.status = 'fully_executed' LIMIT 1`,
+      );
+      assert.ok(unsignedAccountWithSignature);
+      await expectProtected(
+        unsignedAccountWithSignature.id,
+        /signed agreement or signature evidence/,
+      );
       for (const id of new Set([contract.partnerId, active.id])) {
         const response = await remove(await confirmed(id));
         assert.equal(response.status, 409);
@@ -354,6 +477,7 @@ export async function runPartnerAccountDeletionTests({
         userId: customer,
         signedUpAt: new Date(),
       });
+      await expectProtected(partner.id, /protected referral attributions/);
       await db.insert(schema.partnerPayments).values({
         id: "commercial-deletion-payment",
         invoiceId: "commercial-deletion-invoice",
@@ -367,6 +491,7 @@ export async function runPartnerAccountDeletionTests({
         usdMinor: "8000",
         paidAt: new Date(),
       });
+      await expectProtected(partner.id, /partner payment records/);
       await db.insert(schema.partnerCommissions).values({
         id: "commercial-deletion-commission",
         paymentId: "commercial-deletion-payment",
@@ -378,6 +503,7 @@ export async function runPartnerAccountDeletionTests({
         currency: "USD",
         earnedAt: new Date(),
       });
+      await expectProtected(partner.id, /commission records/);
       await db.insert(schema.partnerPayouts).values({
         id: "commercial-deletion-payout",
         partnerId: partner.id,
@@ -388,7 +514,7 @@ export async function runPartnerAccountDeletionTests({
       });
       const response = await remove(await confirmed(partner.id));
       assert.equal(response.status, 409);
-      assert.match((await response.json()).error, /financial transactions/);
+      assert.match((await response.json()).error, /payout history/);
       assert.ok(await account(partner.id));
       assert.ok(
         await db.query.partnerPayments.findFirst({

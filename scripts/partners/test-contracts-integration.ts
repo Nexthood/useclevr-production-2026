@@ -1242,6 +1242,12 @@ async function main() {
   );
   await pool.query(accountDeletionMigration);
   await pool.query(accountDeletionMigration);
+  const invitationCleanupMigration = await readFile(
+    new URL("../../src/lib/db/migrations/0048_partner_invitation_cleanup.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.query(invitationCleanupMigration);
+  await pool.query(invitationCleanupMigration);
   await (await import("./test-partner-account-deletion")).runPartnerAccountDeletionTests({ db, pool, check });
   console.log(
     `${passed} contract integration groups passed; external calls intercepted; no production data used.`,

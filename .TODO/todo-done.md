@@ -104,6 +104,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1117. Revoke disposable partner invitation and onboarding records during eligible account deletion and explain which protected records prevent deletion. (labels: workflow, security, testing; commit: worktree)
+
 - T-1116. Add audited Delete to commercial partner rows, protect accounts with retained records, and verify that eligible account deletion permits registration reuse. (labels: workflow, security, testing; commit: worktree)
 
 - T-1115. Let superadmins delete eligible partner registrations with confirmation and audit logging, and verify same-email registration and preservation of contractual and financial records. (labels: workflow, security, testing; commit: worktree)

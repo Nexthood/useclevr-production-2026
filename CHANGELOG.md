@@ -35,6 +35,8 @@
 
 ### Fixed
 
+- Let superadmins delete eligible pending and rejected partner accounts with unused invitations or incomplete onboarding, and explain which records block deletion.
+
 - Render dashboard loading screens on the server and keep idle database disconnects from terminating the application.
 
 - Keep generated partner agreements retryable when local signing credentials or document keys require configuration repair.
