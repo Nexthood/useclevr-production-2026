@@ -45,9 +45,12 @@ DialogTrigger.displayName = "DialogTrigger";
 type DialogContentProps = {
   children: React.ReactNode;
   className?: string;
+  dismissible?: boolean;
+  "aria-labelledby"?: string;
+  "aria-describedby"?: string;
 };
 
-const DialogContent = ({ children, className }: DialogContentProps) => {
+const DialogContent = ({ children, className, dismissible = true, ...aria }: DialogContentProps) => {
   const { open, onOpenChange } = useDialog();
   const [mounted, setMounted] = React.useState(false);
   const [visible, setVisible] = React.useState(false);
@@ -91,7 +94,7 @@ const DialogContent = ({ children, className }: DialogContentProps) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onOpenChange(false);
+        if (dismissible) onOpenChange(false);
         return;
       }
 
@@ -117,7 +120,7 @@ const DialogContent = ({ children, className }: DialogContentProps) => {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, visible, onOpenChange]);
+  }, [open, visible, onOpenChange, dismissible]);
 
   if (!mounted || !visible) return null;
 
@@ -130,17 +133,19 @@ const DialogContent = ({ children, className }: DialogContentProps) => {
         isolation: "isolate",
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onOpenChange(false);
+        if (dismissible && e.target === e.currentTarget) onOpenChange(false);
       }}
     >
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
+        {...aria}
         tabIndex={-1}
         className={[
           "relative my-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/[0.08] bg-card/95 p-6 shadow-[0_34px_100px_rgba(8,13,30,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] outline-none backdrop-blur-xl",
           open ? "animate-in fade-in-0 zoom-in-95" : "animate-out fade-out-0 zoom-out-95",
+          "motion-reduce:animate-none",
           className,
         ]
           .filter(Boolean)
@@ -148,14 +153,16 @@ const DialogContent = ({ children, className }: DialogContentProps) => {
         onClick={(e) => e.stopPropagation()}
       >
         {children}
-        <button
-          type="button"
-          onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-md p-1.5 opacity-70 transition hover:bg-muted/70 hover:opacity-100"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </button>
+        {dismissible && (
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="absolute right-4 top-4 rounded-md p-1.5 opacity-70 transition hover:bg-muted/70 hover:opacity-100"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
+        )}
       </div>
     </div>,
     document.body,
@@ -185,10 +192,11 @@ DialogHeader.displayName = "DialogHeader";
 type DialogTitleProps = {
   children: React.ReactNode;
   className?: string;
+  id?: string;
 };
 
-const DialogTitle = ({ children, className }: DialogTitleProps) => (
-  <h2 className={["text-lg font-semibold leading-tight", className].filter(Boolean).join(" ")}>{children}</h2>
+const DialogTitle = ({ children, className, id }: DialogTitleProps) => (
+  <h2 id={id} className={["text-lg font-semibold leading-tight", className].filter(Boolean).join(" ")}>{children}</h2>
 );
 DialogTitle.displayName = "DialogTitle";
 

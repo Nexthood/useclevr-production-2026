@@ -172,12 +172,14 @@ export async function prepareContract(applicationId: string) {
       where: eq(partnerContractProfiles.applicationId, applicationId),
       orderBy: desc(partnerContractProfiles.version),
     });
+    if (!profile) return { blocked: "legal_identity_required" };
+    if (!profile.reviewedAt || !profile.reviewedBy)
+      return { blocked: "partner_legal_identity_review_required" };
     const schedule = await tx.query.partnerContractSchedules.findFirst({
       where: eq(partnerContractSchedules.applicationId, applicationId),
       orderBy: [desc(partnerContractSchedules.createdAt), desc(partnerContractSchedules.id)],
     });
-    if (!profile || !schedule)
-      return { blocked: !profile ? "legal_identity_required" : "commercial_schedule_required" };
+    if (!schedule) return { blocked: "commercial_schedule_required" };
     const template = await tx.query.partnerContractTemplates.findFirst({
       where: and(
         eq(partnerContractTemplates.agreementType, schedule.agreementType),

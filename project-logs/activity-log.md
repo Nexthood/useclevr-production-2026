@@ -1,3 +1,8 @@
+## 2026-11-23 — Partner submission confirmations and validation cleanup (T-1114)
+
+- Confirm public partner applications and legal identity submissions, verify review and signing status, and clean up runner-owned build snapshots and browser profiles after passing or failing validation.
+- Review the feature changes and submit them to `beta` for GitHub Actions validation.
+
 ## 2026-11-18 — picomatch extglob ReDoS remediation (T-1112)
 
 - Add pnpm patches for picomatch 4.0.5 and 2.3.2 that collapse the single-branch repeated star extglob path (CVE-2026-112366) with capture fallback, opt-out and excluded syntax preserved.

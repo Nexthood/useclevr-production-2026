@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SubmissionConfirmation } from "./submission-confirmation";
 
 const sales = ["Independent Sales Partner", "Referral Partner"];
 const enterprise = [
@@ -14,6 +15,7 @@ const enterprise = [
 ];
 const field =
   "w-full rounded-xl border border-border bg-background px-4 py-3 text-base outline-none transition focus-visible:ring-2 focus-visible:ring-ring";
+const submissionError = "We could not submit the application. Please try again.";
 
 export function PartnerApplication({
   partnershipType,
@@ -34,10 +36,12 @@ export function PartnerApplication({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const submissionLocked = useRef(false);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const values = new FormData(form);
+    if (submissionLocked.current) return;
+    submissionLocked.current = true;
+    const values = new FormData(event.currentTarget);
     setBusy(true);
     setError("");
     try {
@@ -58,35 +62,17 @@ export function PartnerApplication({
           formStartedAt: startedAt,
         }),
       });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error || "We could not submit the application. Please try again.");
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.received !== true || result.status !== "pending")
+        throw new Error(result?.error || submissionError);
       setSuccess(true);
-      form.reset();
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "We could not submit the application. Please try again.",
-      );
+      submissionLocked.current = false;
+      setError(cause instanceof Error ? cause.message : submissionError);
     } finally {
       setBusy(false);
     }
   }
-  if (success)
-    return (
-      <section
-        role="status"
-        aria-live="polite"
-        className="rounded-2xl border border-emerald-700/30 bg-emerald-500/10 p-6 sm:p-8"
-      >
-        <h2 className="text-2xl font-semibold">Application received</h2>
-        <p className="mt-3 leading-7">
-          Your application is pending administrator review. We’ll send a confirmation to your
-          business email. No UseClevr customer account is needed to apply.
-        </p>
-      </section>
-    );
   return (
     <div className="space-y-6">
       <p className="text-base leading-7 text-muted-foreground">
@@ -99,12 +85,18 @@ export function PartnerApplication({
           {error}
         </p>
       )}
-      <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
+      <form
+        onSubmit={submit}
+        inert={success}
+        aria-busy={busy}
+        className="grid gap-5 sm:grid-cols-2"
+      >
         <label className="space-y-2 text-sm font-medium">
           Partner program
           <select
             className={field}
             value={program}
+            disabled={busy}
             onChange={(e) => {
               const value = e.target.value;
               setProgram(value);
@@ -220,7 +212,7 @@ export function PartnerApplication({
         <div className="sm:col-span-2">
           <Button
             type="submit"
-            disabled={busy}
+            disabled={busy || success}
             className="min-h-12 w-full rounded-xl px-6 text-base font-semibold sm:w-auto"
           >
             {busy ? "Submitting…" : "Submit partner application"}
@@ -230,6 +222,21 @@ export function PartnerApplication({
           </p>
         </div>
       </form>
+      <SubmissionConfirmation
+        open={success}
+        title="Application Submitted Successfully!"
+        onDone={() =>
+          window.location.assign(
+            program === "reseller_enterprise"
+              ? "https://useclevr.com/resellers.html"
+              : "https://useclevr.com/work-with-us",
+          )
+        }
+      >
+        <p>Thank you for your interest in joining UseClevr!</p>
+        <p>Your application has been successfully submitted and is now under review by our team.</p>
+        <p>We will contact you by email once a decision has been made.</p>
+      </SubmissionConfirmation>
     </div>
   );
 }

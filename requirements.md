@@ -23,12 +23,14 @@ Text rules for this file:
 - Contract sending validates local provider credentials and decrypts the source PDF before recording an external send attempt; local configuration failures leave the agreement retryable without consuming the live-send budget, while unknown external creation outcomes require provider reconciliation.
 
 - Approved, verified and onboarded partners supply legal identity, authority and electronic-record consent; superadmins review identity before agreement preparation.
+- After a successful legal identity submission, the portal confirms receipt and returns the partner to the agreement status when they select Done. The status shows pending review and the availability of a signing invitation as the agreement progresses.
 - Contract management uses separate versioned Independent Sales Partner and Authorized Reseller drafts with owner-approved commercial schedules. Qualified legal review and explicit owner approval gate every production template, schedule and provider configuration.
 - The approved native or Dropbox signing workflow requests the partner signature before an authorized Atlas Mega Ventures LLC countersignature; verified completion privately archives the signed PDF and audit evidence, then sends confirmation copies.
 - Contract, application and activation states remain separate. All new commercial activation requires a fully executed production agreement and an explicit audited administrator decision. Mock/test signatures never authorize activation; existing active accounts remain operational.
 - Private agreement access enforces applicant ownership or superadmin authorization, encrypted storage, immutable evidence, authenticated replay-safe callbacks and bounded idempotent delivery retries. Contract automation creates no commissions, payouts or financial-policy changes.
 
 - Visitors submit sales, referral, reseller and enterprise applications at `/partners/apply` without a customer account, subscription or payment; the form collects essential contact, company, country, category, description and privacy consent, with an optional website.
+- After a successful Work With Us or Reseller application, the confirmation explains how the applicant will hear back and returns them to the corresponding program overview when they select Done.
 - Superadmins review company applications through Pending, Under Review, Approved and Rejected decisions. Application approval leaves commercial tools inactive until a reviewed agreement and explicit onboarding evidence authorize activation.
 - Submitted company evidence remains immutable; separate commercial review decisions and onboarding evidence use existing administrator authorization and audit controls.
 

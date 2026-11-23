@@ -2,6 +2,8 @@
 
 ### Added
 
+- Confirm Work With Us and Reseller applications and legal identity submissions, and show partners their current agreement review and signing invitation status.
+
 - Let partners and authorized company signers execute agreements inside UseClevr with email verification, explicit consent, private signed copies and tamper-evident evidence, without a paid signature provider.
 
 - Let invited partners verify email, review and sign agreements, establish login credentials, and use a dedicated portal without customer signup or a paid subscription.
@@ -91,6 +93,8 @@
 - Show Business at £360/month for the UK, $485/month for the US, and CA$680/month for Canada so Business checkout matches the live Stripe prices for those markets.
 
 ### Dev
+
+- Remove temporary partner validation snapshots and browser profiles after passing and failing runs so local build artifacts stay intact.
 
 - Control the single-branch repeated extglob matcher flaw behind the withdrawn high advisory with reproducible package patches and regression tests, because the registry lists no fixed release yet; the audit gate passes on registry feed sync with no allowlist change.
 

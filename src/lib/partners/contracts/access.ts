@@ -1,10 +1,11 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import {
   partnerApplications,
   partnerAccounts,
   partnerContracts,
   partnerContractAudit,
   partnerContractDeliveries,
+  partnerContractNativeInvitations,
   partnerContractProfiles,
   partnerContractSchedules,
 } from "@/lib/db/schema";
@@ -17,8 +18,69 @@ import {
   featureEnabled,
 } from "./domain";
 import { contractDatabase, registerCatalog, currentFinancialConfig } from "./records";
-import { contractRow, liveGates } from "./lifecycle";
+import { contractRow, liveGates, type ContractRow } from "./lifecycle";
 import { readArtifact } from "./storage";
+import type { ContractDb } from "./types";
+
+async function partnerSigningAvailability(db: ContractDb, contract: ContractRow) {
+  const c = contract;
+  if (
+    c.partnerSignedAt ||
+    !["generated", "sending", "send_uncertain", "sent", "awaiting_partner_signature"].includes(
+      c.status,
+    )
+  )
+    return undefined;
+  if (c.expiresAt <= new Date()) return "invitation_unavailable";
+  if (!isLiveMode(c.mode)) {
+    if (c.lastErrorCode && c.lastErrorCode !== "live_provider_configuration_not_approved")
+      return "approval_pending";
+    return "disabled";
+  }
+
+  try {
+    await liveGates(db, c);
+  } catch (error) {
+    if (!(error instanceof ContractError)) throw error;
+    return error.code === "live_provider_configuration_not_approved"
+      ? "disabled"
+      : "approval_pending";
+  }
+
+  if (c.status === "send_uncertain") return "delivery_issue";
+  if (c.mode === "dropbox_live")
+    return c.providerReference && ["sent", "awaiting_partner_signature"].includes(c.status)
+      ? "invitation_ready"
+      : "invitation_pending";
+  if (c.status !== "awaiting_partner_signature" || !c.documentChecksum) return "invitation_pending";
+
+  const invitations = partnerContractNativeInvitations;
+  const invitation = await db.query.partnerContractNativeInvitations.findFirst({
+    columns: { id: true },
+    where: and(
+      eq(invitations.contractId, c.id),
+      eq(invitations.role, "partner"),
+      eq(invitations.email, c.snapshot.partnerEmail.toLowerCase()),
+      eq(invitations.documentChecksum, c.documentChecksum),
+      gt(invitations.expiresAt, new Date()),
+      isNull(invitations.usedAt),
+      isNull(invitations.revokedAt),
+    ),
+  });
+  if (!invitation) return "invitation_unavailable";
+
+  const delivery = await db.query.partnerContractDeliveries.findFirst({
+    columns: { status: true },
+    where: and(
+      eq(partnerContractDeliveries.contractId, c.id),
+      eq(partnerContractDeliveries.kind, `native_invitation:${invitation.id}`),
+      eq(partnerContractDeliveries.recipientRole, "partner"),
+    ),
+  });
+  if (delivery?.status === "sent") return "invitation_ready";
+  if (!delivery || ["failed", "uncertain"].includes(delivery.status)) return "delivery_issue";
+  return "invitation_pending";
+}
 export function ownerAllowed(id: string) {
   try {
     requireOwner(id);
@@ -55,7 +117,7 @@ export async function contractView(userId: string, admin = false, applicationId?
     ids.length
       ? db.query.partnerContracts.findMany({
           where: inArray(partnerContracts.applicationId, ids),
-          orderBy: desc(partnerContracts.createdAt),
+          orderBy: [desc(partnerContracts.createdAt), desc(partnerContracts.revision)],
         })
       : [],
     ids.length
@@ -72,6 +134,11 @@ export async function contractView(userId: string, admin = false, applicationId?
       : [],
     admin ? db.query.partnerContractTemplates.findMany() : [],
   ]);
+  const latestContractIds = new Map<string, string>();
+  for (const contract of contracts) {
+    if (!latestContractIds.has(contract.applicationId))
+      latestContractIds.set(contract.applicationId, contract.id);
+  }
   const rows = await Promise.all(
     contracts.map(async (c) => {
       const p = await db.query.partnerAccounts.findFirst({
@@ -117,6 +184,9 @@ export async function contractView(userId: string, admin = false, applicationId?
         auditAvailable: !!c.auditArtifactId,
         documentChecksum: c.documentChecksum,
         signedDocumentChecksum: c.signedDocumentChecksum,
+        ...(!admin && latestContractIds.get(c.applicationId) === c.id
+          ? { signingAvailability: await partnerSigningAvailability(db, c) }
+          : {}),
         ...(admin
           ? {
               audit,
