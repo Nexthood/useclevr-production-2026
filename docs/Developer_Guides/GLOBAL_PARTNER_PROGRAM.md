@@ -61,16 +61,25 @@ the existing migration runner. Apply it only during an owner-authorized release.
 
 In the commercial Partners table, **Delete** beside **View** opens a preview with the account's
 registered email and the current eligibility decision. Choose a predefined reason to confirm
-deletion of a never-approved Pending or Rejected account. The transaction removes eligible linked
-applications and routine application records, while retaining the shared login, referral-code
-ownership and all commercial audit events. A separate open application for the email can be
-reviewed in Applications. Use the existing suspension or termination controls for protected accounts
-when appropriate.
+deletion of a never-activated Pending or Rejected account. The transaction removes eligible linked
+applications, unused invitations and application-scoped onboarding access that reached only identity
+verification. It retains the shared login, referral-code ownership, application audit records and
+commercial audit events. A separate open application for the email can be reviewed in Applications.
+The preview identifies the protected record and offers access to the account details. Use the
+existing suspension or termination controls when appropriate.
 
 Migration `0047_partner_account_deletion.sql` installs the database eligibility and audit guards
 through the existing migration runner. Historical audit entries keep their original partner ID.
 New linked audit entries require an existing account, and deleted partner IDs cannot be reused.
 Apply the migration only during an owner-authorized release.
+
+Migration `0048_partner_invitation_cleanup.sql` runs after `0046` and `0047` using the same
+runner. It enforces commercial deletion eligibility again in the transaction, preserves historical
+application audit subjects by registration ID, and requires a live application for new audit
+events. Credential setup, legal identity submissions, schedules, agreements, running or protected
+contract jobs, activation, referrals and financial records continue to protect the corresponding
+account or application. Apply the migration with the matching application code during an
+owner-authorized release.
 
 ## Local verification
 

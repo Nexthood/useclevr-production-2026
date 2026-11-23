@@ -1,3 +1,7 @@
+## 2026-11-23 — Safe invitation revocation during partner deletion (T-1117)
+
+- Revoke eligible linked invitations and incomplete onboarding access during audited account deletion, and show the specific blocker for protected accounts.
+
 ## 2026-11-23 — Audited commercial partner account deletion (T-1116)
 
 - Add a confirmed commercial partner Delete action with eligibility explanations, audit retention, account count refresh and verified registration reuse.

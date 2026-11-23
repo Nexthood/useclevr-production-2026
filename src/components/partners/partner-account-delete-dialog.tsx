@@ -134,8 +134,11 @@ export function PartnerAccountDeleteDialog({
             This permanently removes the commercial partner account
             {preview.applicationCount > 0 &&
               ` and its ${preview.applicationCount} eligible linked application${preview.applicationCount === 1 ? "" : "s"}`}
-            . The UseClevr login and commercial audit events stay available. The email can be used
-            to register again.
+            .{" "}
+            {preview.applicationCount > 0 &&
+              "Any linked invitations and incomplete onboarding access will be revoked. "}
+            The UseClevr login and audit history stay available. The email can be used to register
+            again.
           </p>
         )}
         {preview && !preview.permitted && (
