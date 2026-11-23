@@ -96,7 +96,8 @@ async function main() {
   const { prepareContract, sendContract, reconcileContract, advanceMock, cancelContract } =
     await import("../../src/lib/partners/contracts/lifecycle");
   const { activateExecutedContract } = await import("../../src/lib/partners/contracts/activation");
-  const { privateContractDocument } = await import("../../src/lib/partners/contracts/access");
+  const { contractView, privateContractDocument } =
+    await import("../../src/lib/partners/contracts/access");
   const { deliverContractEmail, retryContractDelivery } =
     await import("../../src/lib/partners/contracts/mail");
   const { acceptDropboxWebhook, runContractWorker } =
@@ -169,6 +170,7 @@ async function main() {
   async function fixture(
     type: "independent_sales" | "authorized_reseller" = "independent_sales",
     rates?: { standard: number; premium: number },
+    reviewIdentity = true,
   ) {
     const id = `fixture-${++sequence}`,
       userId = `${id}-user`,
@@ -214,11 +216,19 @@ async function main() {
       authorityConfirmed: true,
       electronicRecordsConsent: true,
     });
-    await reviewContractIdentity(
-      "test-owner",
-      profile.id,
-      "Synthetic identity reviewed in disposable test database",
-    );
+    if (reviewIdentity)
+      await reviewContractIdentity(
+        "test-owner",
+        profile.id,
+        "Synthetic identity reviewed in disposable test database",
+      );
+    else
+      assert.equal(
+        await db.query.partnerContractJobs.findFirst({
+          where: eq(schema.partnerContractJobs.applicationId, id),
+        }),
+        undefined,
+      );
     const schedule = await createSchedule("test-owner", id, {
       version: "fixture-1",
       agreementType: type,
@@ -268,10 +278,19 @@ async function main() {
     );
   let mockId = "";
   await check(
-    "mock complete ordered lifecycle, private PDF archive, emails and no activation",
+    "identity review gate, ordered mock lifecycle, private PDF archive, emails and no activation",
     async () => {
-      const f = await fixture();
+      const f = await fixture("independent_sales", undefined, false);
+      const pending = await contractView(f.userId, false, f.id);
+      assert.equal(pending.profiles[0].id, f.profile.id);
+      assert.equal(pending.profiles[0].reviewedAt, null);
+      assert.deepEqual(pending.contracts, []);
+      assert.deepEqual(await prepareContract(f.id), {
+        blocked: "partner_legal_identity_review_required",
+      });
+      await reviewContractIdentity("test-owner", f.profile.id, "Synthetic identity review complete");
       const p = await prepareContract(f.id);
+      assert.ok((await contractView(f.userId, false, f.id)).profiles[0].reviewedAt);
       mockId = p.contractId!;
       assert.equal((await prepareContract(f.id)).contractId, mockId);
       await sendContract(mockId);

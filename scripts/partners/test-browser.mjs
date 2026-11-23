@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -12,44 +13,6 @@ import compiledWebpack from "next/dist/compiled/webpack/webpack.js";
 // Component acceptance uses an isolated HTTP fixture server; no auth, database, or provider modules load.
 if (process.argv.length > 2) throw new Error("Browser acceptance accepts no service targets");
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const directory = mkdtempSync(path.join(os.tmpdir(), "useclevr-partner-browser-"));
-compiledWebpack.init?.();
-await new Promise((resolve, reject) => {
-  compiledWebpack.webpack(
-    {
-      mode: "development",
-      optimization: { minimize: false, minimizer: [] },
-      // Match Next's browser process shim when exercising the real Auth.js client.
-      plugins: [
-        new compiledWebpack.webpack.ProvidePlugin({
-          process: "next/dist/build/polyfills/process.js",
-        }),
-      ],
-      context: root,
-      entry: path.join(root, "scripts/partners/browser-fixture.tsx"),
-      output: { path: directory, filename: "bundle.js" },
-      resolve: { extensions: [".tsx", ".ts", ".js"], alias: { "@": path.join(root, "src") } },
-      module: {
-        rules: [
-          {
-            test: /\.tsx?$/,
-            exclude: /node_modules/,
-            use: path.join(root, "scripts/partners/browser-loader.cjs"),
-          },
-        ],
-      },
-    },
-    (error, stats) =>
-      error || stats?.hasErrors()
-        ? reject(error || new Error(stats.toString({ all: false, errors: true })))
-        : resolve(),
-  );
-});
-const css = await postcss([tailwind({ config: path.join(root, "tailwind.config.ts") })]).process(
-  readFileSync(path.join(root, "src/assets/styles/globals.css"), "utf8"),
-  { from: path.join(root, "src/assets/styles/globals.css") },
-);
-writeFileSync(path.join(directory, "styles.css"), css.css);
 const config = {
   enabled: false,
   standardBps: 1500,
@@ -150,6 +113,12 @@ const statement = {
   nextOffset: null,
 };
 const actions = [];
+let applicationFailure = false;
+let applicationGate;
+let savedIdentity;
+let signingAvailability;
+let identityFailure = false;
+let signingRequests = 0;
 let onboardingError = "incorrect_account";
 let signoutReturn = null;
 let nativeVerified = false;
@@ -231,13 +200,57 @@ const server = createServer(async (request, response) => {
       response.end(JSON.stringify({ enabled: false }));
       return;
     }
+    if (url.pathname === "/api/partners/contracts/sign") {
+      signingRequests++;
+      response.statusCode = 500;
+      response.end(JSON.stringify({ error: "Unexpected signing request." }));
+      return;
+    }
     if (url.pathname === "/api/partners/contracts") {
+      if (request.method === "POST") {
+        let body = "";
+        for await (const part of request) body += part;
+        const action = JSON.parse(body);
+        actions.push(action);
+        if (identityFailure) {
+          response.statusCode = 503;
+          response.end(JSON.stringify({ error: "Could not save legal information." }));
+          return;
+        }
+        savedIdentity = {
+          id: "fixture-identity",
+          applicationId: action.applicationId,
+          identity: action.identity,
+          reviewedAt: null,
+        };
+        response.end(JSON.stringify(savedIdentity));
+        return;
+      }
       response.end(
         JSON.stringify({
           enabled: true,
-          applications: [],
-          contracts: [],
-          profiles: [],
+          applications: [
+            {
+              id: "fixture-application",
+              fullName: "Fixture Partner",
+              category: "Authorized Reseller",
+              status: "approved",
+              onboardedAt: "2026-11-21T12:00:00.000Z",
+            },
+          ],
+          contracts: signingAvailability
+            ? [
+                {
+                  id: "fixture-contract",
+                  applicationId: "fixture-application",
+                  revision: 1,
+                  mode: "native",
+                  status: "awaiting_partner_signature",
+                  signingAvailability,
+                },
+              ]
+            : [],
+          profiles: savedIdentity ? [savedIdentity] : [],
           schedules: [],
         }),
       );
@@ -321,8 +334,14 @@ const server = createServer(async (request, response) => {
       const action = JSON.parse(body);
       actions.push(action);
       if (url.pathname === "/api/partner-applications") {
+        if (applicationGate) await applicationGate;
+        if (applicationFailure) {
+          response.statusCode = 503;
+          response.end(JSON.stringify({ error: "Could not save application." }));
+          return;
+        }
         response.statusCode = 201;
-        response.end(JSON.stringify({ ok: true, status: "pending" }));
+        response.end(JSON.stringify({ received: true, status: "pending" }));
         return;
       }
       if (action.action === "approve") statement.commissions[0].state = "approved";
@@ -367,41 +386,88 @@ const server = createServer(async (request, response) => {
     '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/styles.css"></head><body class="bg-background"><div id="root"></div><script src="/bundle.js"></script></body></html>',
   );
 });
-await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-const origin = `http://127.0.0.1:${server.address().port}`;
-const chrome = spawn(
-  "google-chrome",
-  [
-    "--headless=new",
-    "--no-sandbox",
-    "--disable-gpu",
-    "--disable-background-networking",
-    "--disable-sync",
-    "--no-first-run",
-    "--remote-debugging-port=0",
-    `--user-data-dir=${directory}/profile`,
-    "about:blank",
-  ],
-  {
-    env: { PATH: process.env.PATH, HOME: directory, LANG: "C.UTF-8" },
-    stdio: ["ignore", "ignore", "pipe"],
-  },
-);
+const directory = mkdtempSync(path.join(os.tmpdir(), "useclevr-partner-browser-"));
 let socket;
+let chrome;
+let chromeClosed;
 try {
+  compiledWebpack.init?.();
+  await new Promise((resolve, reject) => {
+    compiledWebpack.webpack(
+      {
+        mode: "development",
+        optimization: { minimize: false, minimizer: [] },
+        // Match Next's browser process shim when exercising the real Auth.js client.
+        plugins: [
+          new compiledWebpack.webpack.ProvidePlugin({
+            process: "next/dist/build/polyfills/process.js",
+          }),
+        ],
+        context: root,
+        entry: path.join(root, "scripts/partners/browser-fixture.tsx"),
+        output: { path: directory, filename: "bundle.js" },
+        resolve: { extensions: [".tsx", ".ts", ".js"], alias: { "@": path.join(root, "src") } },
+        module: {
+          rules: [
+            {
+              test: /\.tsx?$/,
+              exclude: /node_modules/,
+              use: path.join(root, "scripts/partners/browser-loader.cjs"),
+            },
+          ],
+        },
+      },
+      (error, stats) =>
+        error || stats?.hasErrors()
+          ? reject(error || new Error(stats.toString({ all: false, errors: true })))
+          : resolve(),
+    );
+  });
+  const css = await postcss([tailwind({ config: path.join(root, "tailwind.config.ts") })]).process(
+    readFileSync(path.join(root, "src/assets/styles/globals.css"), "utf8"),
+    { from: path.join(root, "src/assets/styles/globals.css") },
+  );
+  writeFileSync(path.join(directory, "styles.css"), css.css);
+  const listening = once(server, "listening");
+  server.listen(0, "127.0.0.1");
+  await listening;
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  chrome = spawn(
+    "google-chrome",
+    [
+      "--headless=new",
+      "--no-sandbox",
+      "--disable-gpu",
+      "--disable-background-networking",
+      "--disable-sync",
+      "--no-first-run",
+      "--remote-debugging-port=0",
+      `--user-data-dir=${directory}/profile`,
+      "about:blank",
+    ],
+    {
+      env: { PATH: process.env.PATH, HOME: directory, LANG: "C.UTF-8" },
+      stdio: ["ignore", "ignore", "pipe"],
+    },
+  );
+  chromeClosed = new Promise((resolve) => chrome.once("close", resolve));
+  let startupTimeout;
   const endpoint = await new Promise((resolve, reject) => {
     let output = "";
-    const timeout = setTimeout(() => reject(new Error("Chrome startup timed out")), 15000);
-    chrome.on("error", reject);
-    chrome.stderr.on("data", (chunk) => {
+    startupTimeout = setTimeout(() => reject(new Error("Chrome startup timed out")), 15000);
+    chrome.once("error", reject);
+    chromeClosed.then(() => reject(new Error("Chrome exited before DevTools started")));
+    const onStartupOutput = (chunk) => {
       output += chunk;
       const match = output.match(/DevTools listening on (ws:\/\/[^\s]+)/);
       if (match) {
-        clearTimeout(timeout);
+        chrome.stderr.off("data", onStartupOutput);
+        chrome.stderr.resume();
         resolve(match[1]);
       }
-    });
-  });
+    };
+    chrome.stderr.on("data", onStartupOutput);
+  }).finally(() => clearTimeout(startupTimeout));
   socket = new WebSocket(endpoint);
   await new Promise((resolve, reject) => {
     socket.onopen = resolve;
@@ -409,6 +475,7 @@ try {
   });
   let sequence = 0;
   const pending = new Map();
+  let onOverviewRequest;
   socket.onmessage = (event) => {
     const message = JSON.parse(event.data);
     if (message.id) {
@@ -418,6 +485,7 @@ try {
         ? callback.reject(new Error(message.error.message))
         : callback.resolve(message.result);
     }
+    if (message.method === "Fetch.requestPaused") onOverviewRequest?.(message.params);
   };
   const send = (method, params = {}, sessionId) =>
     new Promise((resolve, reject) => {
@@ -428,6 +496,17 @@ try {
   const { targetId } = await send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
   const command = (method, params) => send(method, params, sessionId);
+  const overviewRequests = [];
+  onOverviewRequest = ({ requestId, request }) => {
+    overviewRequests.push(request.url);
+    void command("Fetch.fulfillRequest", {
+      requestId,
+      responseCode: 200,
+      responseHeaders: [{ name: "Content-Type", value: "text/html" }],
+      body: Buffer.from("<!doctype html><title>Overview fixture</title>").toString("base64"),
+    });
+  };
+  await command("Fetch.enable", { patterns: [{ urlPattern: "https://useclevr.com/*" }] });
   const evaluate = async (expression) => {
     const r = await command("Runtime.evaluate", {
       expression,
@@ -554,26 +633,128 @@ try {
         0,
       );
       await evaluate(`(() => {
-        const values = { fullName: "Browser applicant", email: "browser@example.invalid", companyName: "Browser Company", country: "NL", experience: "I work with independent retailers on analytics and reporting." };
-        for (const [key,value] of Object.entries(values)) { const input = document.querySelector('[name="'+key+'"]'); input.value=value; input.dispatchEvent(new Event("input",{bubbles:true})); }
-        document.querySelector('input[name="privacyAccepted"]').click();
-        if (!document.querySelector("form").checkValidity()) throw new Error("Public application fixture is invalid");
-        document.querySelector("form").requestSubmit();
+        const values = { fullName: "Browser applicant", email: "invalid-address", companyName: "Browser Company", country: "1L", experience: "I work with independent retailers on analytics and reporting." };
+        for (const [key,value] of Object.entries(values)) document.querySelector('[name="'+key+'"]').value = value;
       })()`);
-      await waitFor('document.body?.innerText.includes("Application received")');
+      assert.equal(
+        await evaluate('document.querySelector("[name=email]").validity.typeMismatch'),
+        true,
+      );
+      assert.equal(
+        await evaluate('document.querySelector("[name=country]").validity.patternMismatch'),
+        true,
+      );
+      assert.equal(
+        await evaluate('document.querySelector("[name=privacyAccepted]").validity.valueMissing'),
+        true,
+      );
+      await evaluate(`(() => {
+        document.querySelector("[name=email]").value = "browser@example.invalid";
+        document.querySelector("[name=country]").value = "NL";
+        document.querySelector("[name=privacyAccepted]").click();
+      })()`);
+      assert.equal(await evaluate('document.querySelector("form").checkValidity()'), true);
+
+      if (program === "work_with_us" && width === 1280) {
+        applicationFailure = true;
+        await evaluate('document.querySelector("form").requestSubmit()');
+        await waitFor(
+          'document.querySelector("[role=alert]")?.textContent.includes("Could not save application.")',
+        );
+        assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null);
+        assert.equal(
+          await evaluate('document.querySelector("[name=email]").value'),
+          "browser@example.invalid",
+        );
+        applicationFailure = false;
+      }
+
+      const postedBefore = actions.length;
+      let releaseSubmission;
+      applicationGate = new Promise((resolve) => {
+        releaseSubmission = resolve;
+      });
+      await evaluate(`(() => {
+        const form = document.querySelector("form");
+        form.requestSubmit();
+        form.requestSubmit();
+      })()`);
+      await waitFor('document.querySelector("form [type=submit]").disabled');
+      assert.equal(
+        await evaluate('document.querySelector("form [type=submit]").textContent'),
+        "Submitting…",
+      );
+      assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null);
+      releaseSubmission();
+      applicationGate = undefined;
+      await waitFor(
+        'document.querySelector("[role=dialog]")?.innerText.includes("Application Submitted Successfully!")',
+      );
+      await waitFor('document.activeElement.textContent === "Done"');
+      assert.equal(actions.length, postedBefore + 1);
       assert.equal(actions.at(-1).program, program);
       assert.equal(actions.at(-1).category, partnershipType);
       assert.equal(actions.at(-1).privacyAccepted, true);
       assert.equal(actions.at(-1).country, "NL");
       assert.equal(actions.at(-1).website, "");
-      assert.equal(await evaluate('document.querySelector("form") === null'), true);
-      assert.equal(await evaluate('document.querySelector("#partner-link") === null'), true);
+      assert.equal(await evaluate("location.pathname"), "/");
+      assert.equal(await evaluate('document.querySelector("form").inert'), true);
       assert.equal(
-        await evaluate(
-          'document.body.innerText.includes("No UseClevr customer account is needed")',
-        ),
+        await evaluate(`(() => {
+        const dialog = document.querySelector("[role=dialog]");
+        return dialog.getAttribute("aria-modal") === "true" &&
+          document.getElementById(dialog.getAttribute("aria-labelledby")).textContent === "Application Submitted Successfully!" &&
+          document.getElementById(dialog.getAttribute("aria-describedby")).textContent.includes("We will contact you by email");
+      })()`),
         true,
       );
+
+      for (const [key, modifiers] of [
+        ["Tab", 0],
+        ["Tab", 8],
+        ["Escape", 0],
+      ]) {
+        await command("Input.dispatchKeyEvent", { type: "keyDown", key, code: key, modifiers });
+        await command("Input.dispatchKeyEvent", { type: "keyUp", key, code: key, modifiers });
+        assert.equal(await evaluate("document.activeElement.textContent"), "Done");
+      }
+      if (width === 390) {
+        await command("Emulation.setEmulatedMedia", {
+          features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+        });
+        assert.equal(
+          await evaluate('getComputedStyle(document.querySelector("[role=dialog]")).animationName'),
+          "none",
+        );
+        await command("Emulation.setEmulatedMedia", { features: [] });
+      }
+      const overview =
+        program === "work_with_us"
+          ? "https://useclevr.com/work-with-us"
+          : "https://useclevr.com/resellers.html";
+      const overviewCount = overviewRequests.length;
+      await command("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key: "Enter",
+        code: "Enter",
+        windowsVirtualKeyCode: 13,
+        text: "\r",
+      });
+      await command("Input.dispatchKeyEvent", {
+        type: "keyUp",
+        key: "Enter",
+        code: "Enter",
+        windowsVirtualKeyCode: 13,
+      });
+      try {
+        await waitFor('document.title === "Overview fixture"');
+      } catch (error) {
+        throw new Error(
+          `Expected overview navigation to ${overview}. Intercepted: ${overviewRequests.slice(overviewCount).join(", ")}. Page: ${await evaluate("location.href")}`,
+          { cause: error },
+        );
+      }
+      assert.equal(overviewRequests[overviewCount], overview);
       passed++;
       console.log(
         "PASS public " +
@@ -584,6 +765,96 @@ try {
       );
     }
   }
+  await command("Page.navigate", { url: origin + "/partners/contracts" });
+  await waitFor('document.body?.innerText.includes("Status: Legal Information Required")');
+  assert.equal(await evaluate('document.querySelector("[name=registrationId]").required'), true);
+  for (const field of [
+    "legalName",
+    "signerName",
+    "signerTitle",
+    "authorityConfirmed",
+    "electronicRecordsConsent",
+  ]) {
+    assert.equal(
+      await evaluate(`document.querySelector('[name="${field}"]').validity.valueMissing`),
+      true,
+    );
+  }
+  await evaluate(`(() => {
+    const entity = document.querySelector("[name=entityType]");
+    entity.value = "individual";
+    entity.dispatchEvent(new Event("change", { bubbles: true }));
+    const values = { legalName: "Fixture Applicant", address: "12 Synthetic Test Street", country: "nl", signerName: "Fixture Applicant", signerTitle: "Self" };
+    for (const [key, value] of Object.entries(values)) document.querySelector('[name="'+key+'"]').value = value;
+    document.querySelector("[name=authorityConfirmed]").click();
+    document.querySelector("[name=electronicRecordsConsent]").click();
+  })()`);
+  assert.equal(await evaluate('document.querySelector("[name=registrationId]").required'), false);
+  assert.equal(await evaluate('document.querySelector("form").checkValidity()'), true);
+  identityFailure = true;
+  await evaluate('document.querySelector("form").requestSubmit()');
+  await waitFor(
+    'document.querySelector("[role=alert]")?.textContent.includes("Could not save legal information.")',
+  );
+  assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null);
+  identityFailure = false;
+  const identityRequests = actions.length;
+  await evaluate(`(() => {
+    const form = document.querySelector("form");
+    form.requestSubmit();
+    form.requestSubmit();
+  })()`);
+  await waitFor(
+    'document.querySelector("[role=dialog]")?.innerText.includes("Information Submitted Successfully!")',
+  );
+  assert.equal(actions.length, identityRequests + 1);
+  assert.deepEqual(actions.at(-1).identity, {
+    legalName: "Fixture Applicant",
+    entityType: "individual",
+    address: "12 Synthetic Test Street",
+    country: "NL",
+    signerName: "Fixture Applicant",
+    signerTitle: "Self",
+    authorityConfirmed: true,
+    electronicRecordsConsent: true,
+  });
+  await evaluate('document.querySelector("[role=dialog] button").click()');
+  await waitFor(
+    'document.querySelector("[role=dialog]") === null && document.activeElement.textContent.includes("Status: Pending Review")',
+  );
+  assert.equal(await evaluate("location.pathname"), "/partners/contracts");
+  assert.equal(
+    await evaluate('document.querySelector("[name=legalName]").value'),
+    "Fixture Applicant",
+  );
+  await command("Page.reload", {});
+  await waitFor('document.body?.innerText.includes("Status: Pending Review")');
+  assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null);
+  passed++;
+  console.log(
+    "PASS legal identity validation, response handling, acknowledgment focus and persisted Pending Review",
+  );
+
+  savedIdentity.reviewedAt = "2026-11-22T12:00:00.000Z";
+  for (const [availability, expected] of [
+    ["approval_pending", "awaiting approval"],
+    ["disabled", "Online signing is currently unavailable"],
+    ["invitation_pending", "secure signing invitation is pending"],
+    ["invitation_unavailable", "signing invitation is unavailable or expired"],
+    ["delivery_issue", "could not confirm delivery"],
+    ["invitation_ready", "Open the secure signing invitation in your email"],
+  ]) {
+    signingAvailability = availability;
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(button => button.textContent === "Refresh agreement status").click()',
+    );
+    await waitFor(
+      `document.querySelector("#agreement-status-fixture-application").textContent.includes(${JSON.stringify(expected)})`,
+    );
+  }
+  assert.equal(signingRequests, 0);
+  passed++;
+  console.log("PASS agreement approval, configuration, delivery and valid invitation messaging");
   for (const code of [
     "incorrect_account",
     "email_verification_required",
@@ -764,12 +1035,21 @@ try {
         `PASS native ${role} email verification, full review, consent, fragment removal and ${width}px ${theme} signing`,
       );
     }
-  console.log(`${passed} browser acceptance groups passed. Artifacts: ${directory}`);
+  console.log(`${passed} browser acceptance groups passed.`);
   console.log(
     "Scope: real components and design-system CSS with synthetic HTTP responses. Full application login, attribution navigation, and production hosting are not exercised.",
   );
 } finally {
   socket?.close();
-  chrome.kill("SIGTERM");
-  server.close();
+  if (chrome) {
+    chrome.kill("SIGTERM");
+    await chromeClosed;
+  }
+  if (server.listening) {
+    await new Promise((resolve) => {
+      server.close(resolve);
+      server.closeAllConnections();
+    });
+  }
+  rmSync(directory, { recursive: true, force: true, maxRetries: 3 });
 }

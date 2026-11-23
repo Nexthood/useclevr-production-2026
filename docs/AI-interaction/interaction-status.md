@@ -1,3 +1,13 @@
+## 2026-11-23 — Partner submission confirmations and validation cleanup (T-1114)
+
+- The feature branch confirms successful Work With Us, Reseller and legal identity submissions. Legal identity returns applicants to their agreement review status.
+- The isolated build and browser runners remove their own temporary directories when validation ends. The build runner accepts `--keep-snapshot` for explicit evidence retention.
+- Partner unit, browser, runtime and local PostgreSQL integration checks pass. Deliberate setup and child process failures verify snapshot cleanup and sibling artifact preservation.
+- TypeScript, the production build and the local packaged smoke test pass. The build directory contains the pre-existing artifacts after both validation runs.
+- The feature pull request targets `beta` for review. Automatic production merge applies to a non-draft `beta` to `main` pull request.
+
+## Previous Interaction
+
 ## 2026-11-18 — picomatch extglob ReDoS remediation (T-1112)
 
 - Candidate: Branch fix/picomatch-redos-patch from beta cc24a653 carries pnpm patches for picomatch 4.0.5/2.3.2, 13 regression cases, a release-artifact verifier and the audit evidence pack; no deployment, signing activation or audit-policy edit.

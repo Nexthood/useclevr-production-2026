@@ -134,9 +134,11 @@ A successful glibc build does not establish Alpine runtime compatibility: verify
 artifact loads `sharp` and completes an image transformation in the actual Railway runtime before
 release acceptance. Treat missing native dependencies as a release blocker.
 
-Run `node scripts/partners/test-production-runtime.mjs <isolated-snapshot-directory>` after
-packaging to verify startup, public applications, invitation verification, the partner login return URL and anonymous API restrictions using
-synthetic secrets and an unreachable database. It does not verify hosted authentication or health.
+Run `node scripts/partners/run-safe-build.mjs --runtime` to build, package and verify local startup,
+public applications, invitation verification, the partner login return URL and anonymous API
+restrictions using synthetic secrets and an unreachable database. The runner deletes its snapshot
+after success or failure. Use `--keep-snapshot` when you need to inspect the artifact or run
+`node scripts/partners/test-production-runtime.mjs <isolated-snapshot-directory>` separately.
 The 8 November 2026 dependency audit passes the existing Critical/High gate and reports three
 Moderate advisories (`@hono/node-server`, `qs`, `minimatch`) and one Low advisory (`deepmerge`).
 These residual dependencies remain visible to release review; no audit allowlist is expanded.
@@ -147,10 +149,11 @@ settlement verification stays pending until it does. Do not shorten waiting peri
 related-party test purchases, fabricate transfer references or record an uncompleted payout to
 produce release evidence. Local fixtures advance time only inside the test process.
 
-For an isolated regression failure caused by fixture/environment setup, correct the runner and
-use `node scripts/partners/run-safe-build.mjs --retry-regression <isolated-snapshot-directory>`.
-It restores shared test fixtures and the two tracked example templates, reruns only failed suites
-with a new disposable database, and retains initial failures in `regression-results.json`.
+Use `--regression --keep-snapshot` when you need retry evidence. After correcting the fixture or
+environment, run `node scripts/partners/run-safe-build.mjs --retry-regression <isolated-snapshot-directory>`.
+The runner restores shared test fixtures and example templates, reruns failed suites with a new
+disposable database, and records initial and current failures in `regression-results.json`. Add
+`--keep-snapshot` to retain the retry snapshot and results.
 
 ## Release readiness review — 8 November 2026
 

@@ -100,7 +100,7 @@ The existing beta → dist-test GitHub Actions path supports test deployment wit
 - `pnpm test:partners` (public applications, existing financial rules, packaging, contract unit/security cases)
 - `pnpm test:partners:integration` (42 legacy partner checks plus contract lifecycle/security fixture groups)
 - `pnpm lint:secrets`, `pnpm lint:todos`, `pnpm lint:project-records`, `pnpm lint:package`, `pnpm docs:check`, `pnpm validate:dist`
-- `node scripts/partners/run-safe-build.mjs` (isolated production build and deployment packaging without workspace secrets; `USECLEVR_SAFE_BUILD_DIRECTORY` selects a writable disk directory when temporary storage is constrained)
+- `node scripts/partners/run-safe-build.mjs --runtime` runs an isolated production build, packaging and local smoke test, then removes its temporary snapshot. Set `USECLEVR_SAFE_BUILD_DIRECTORY` to select the working directory or pass `--keep-snapshot` to retain evidence.
 
 Integration runners accept no configurable production database. They use only the disposable loopback PostgreSQL container on port 55438 and unique empty schemas; signature/email calls in contract tests are intercepted. The live-adapter fixture exercises real serialization, validation and activation code with synthetic responses, not a real provider account. The older financial suite seeds legacy active fixtures after asserting API activation is denied, to isolate existing commission behavior; the contract suite verifies the successful executed-agreement gate under migration 0043. Never run financial fixtures against production.
 
