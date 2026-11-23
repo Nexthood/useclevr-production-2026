@@ -104,6 +104,8 @@ moving work between states.
 
 ## Label: workflow
 
+- T-1115. Let superadmins delete eligible partner registrations with confirmation and audit logging, and verify same-email registration and preservation of contractual and financial records. (labels: workflow, security, testing; commit: worktree)
+
 - T-1114. Confirm public partner applications and legal identity submissions, show applicants the current agreement review and signing invitation status, and remove runner-owned validation directories after tests. (labels: workflow, ui, testing; commit: worktree)
 
 - T-1110. Provide native email-verified sequential partner signing, immutable agreements, single-use proof sessions, cryptographically attested PDF/evidence archives and separate commercial activation; publish the validated draft review without deployment. (labels: workflow, security, auth, testing, docs; commit: c7eec921)

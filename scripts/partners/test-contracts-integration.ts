@@ -1229,6 +1229,13 @@ async function main() {
   await (
     await import("./test-native-contracts")
   ).runNativeContractTests({ db, pool, fixture, check });
+  const deletionMigration = await readFile(
+    new URL("../../src/lib/db/migrations/0046_partner_registration_deletion.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.query(deletionMigration);
+  await pool.query(deletionMigration);
+  await (await import("./test-registration-deletion")).runRegistrationDeletionTests({ db, pool, check });
   console.log(
     `${passed} contract integration groups passed; external calls intercepted; no production data used.`,
   );

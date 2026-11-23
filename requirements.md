@@ -38,6 +38,7 @@ Text rules for this file:
 
 - Approved applicants verify invitation email ownership with a single-use, expiring email code and receive an application-scoped agreement session; customer and superadmin sessions do not select the invited identity.
 - The server persists one open application per normalized email with audit history and transactional email delivery records; superadmins review, approve, reject, add internal notes and renew invitations with audited reasons.
+- Superadmins can confirm deletion of a pending or rejected registration with a predefined reason when it has no linked account, onboarding or contract records. The server removes the registration and its application-only history in one transaction, records an append-only administrative audit event, and leaves the email available for a new application through the normal submission flow.
 - Pending and rejected applicants see their decision state; approved partners access their own referral tools and financial history. Rejected applications cannot reactivate; suspension and termination restrict new referrals.
 - The owner authorizes publication, production migrations and activation separately from local implementation; coordinated release acceptance requires both hosted domains and the full payment-to-settlement journey.
 
