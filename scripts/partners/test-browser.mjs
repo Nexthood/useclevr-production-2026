@@ -164,7 +164,7 @@ const server = createServer(async (request, response) => {
       response.end(JSON.stringify({
         id: partner.id, name: partner.name, status: partner.status,
         email: permitted ? "commercial-deletion@example.invalid" : "active-partner@example.invalid",
-        permitted, explanation: permitted ? null : "The account has retained financial history.",
+        permitted, explanation: permitted ? null : "This account has payout history that must be retained.",
         applicationCount: permitted ? 1 : 0, scope: "a".repeat(64),
       }));
       return;
@@ -728,7 +728,7 @@ try {
   await waitFor(`${partnerTable}?.innerText.includes("Browser Commercial Test Account")`);
   assert.equal(await evaluate(`[...${partnerTable}.tBodies[0].rows].every(row => [...row.cells[4].querySelectorAll("button")].map(button => button.textContent).join(" ") === "View Delete")`), true);
   await evaluate(`${partnerTable}.tBodies[0].rows[0].querySelector("button[aria-label^='Delete']").click()`);
-  await waitFor(`${accountDialog}?.innerText.includes("retained financial history")`);
+  await waitFor(`${accountDialog}?.innerText.includes("payout history that must be retained")`);
   assert.equal(await evaluate(`${accountDialog}.innerText.includes("Blocked") && ${accountDialog}.innerText.includes("active-partner@example.invalid") && !${accountDialog}.querySelector("button[type=submit]")`), true);
   await evaluate(`[...${accountDialog}.querySelectorAll("button")].find(b => b.textContent === "View partner account").click()`);
   await waitFor('document.body.innerText.includes("Partner performance")');
@@ -737,7 +737,7 @@ try {
   const openAccountDeletion = `${partnerTable}.querySelector('[aria-label="Delete Browser Commercial Test Account"]').click()`;
   await evaluate(openAccountDeletion);
   await waitFor(`${accountDialog}?.innerText.includes("Permitted")`);
-  assert.equal(await evaluate(`${accountDialog}.innerText.includes("commercial-deletion@example.invalid") && ${accountDialog}.innerText.includes("1 eligible linked application") && !${accountDialog}.querySelector("form").checkValidity()`), true);
+  assert.equal(await evaluate(`${accountDialog}.innerText.includes("commercial-deletion@example.invalid") && ${accountDialog}.innerText.includes("1 eligible linked application") && ${accountDialog}.innerText.includes("incomplete onboarding access will be revoked") && !${accountDialog}.querySelector("form").checkValidity()`), true);
   await evaluate(`[...${accountDialog}.querySelectorAll("button")].find(b => b.textContent === "Cancel").click()`);
   await waitFor(`${accountDialog} === null`);
   assert.equal(commercialDeletionRequests.length, 0);

@@ -1,3 +1,10 @@
+## 2026-11-23 — Safe invitation revocation during partner deletion (T-1117)
+
+- Let superadmins delete never-activated Pending or Rejected partner accounts with ordinary linked applications, unused invitations, or identity-only onboarding.
+- Preserve shared logins, contractual and financial records, and immutable audit history. Classify distinct blockers in the account preview and repeat eligibility checks inside the deletion transaction.
+- Use disposable PostgreSQL and browser fixtures for invitation revocation, email reuse, retention, and concurrent deletion. The release runner applies migration 0048 after 0046 and 0047 when the owner authorizes release.
+- Follow AGENTS.md, .kilo/agent/changelog.md, ai-chat-behavior.config.ts, gemini-behavior.config.ts and the post-interaction memory prompt.
+
 ## 2026-11-23 — Audited commercial partner account deletion (T-1116)
 
 - Place Delete beside View on every commercial partner row. Show registered email, current status, eligibility and consequences. Protected accounts lead to the existing account details for non-destructive administration.
