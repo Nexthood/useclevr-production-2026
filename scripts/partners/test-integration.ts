@@ -785,6 +785,49 @@ async function main() {
       assert.equal((await db.query.partnerPayouts.findMany())[0].amountMinor, "1500");
     },
   );
+  await check("registration deletion preserves linked payments, commissions and payouts", async () => {
+    await pool.query(
+      await readFile(
+        new URL("../../src/lib/db/migrations/0046_partner_registration_deletion.sql", import.meta.url),
+        "utf8",
+      ),
+    );
+    const applicationId = "deletion-protected-financial";
+    await db.insert(schema.partnerApplications).values({
+      id: applicationId,
+      program: "work_with_us",
+      category: "Referral Partner",
+      fullName: "Synthetic Financial Partner",
+      country: "US",
+      email: "financial-deletion@example.invalid",
+      experience: "Synthetic fixture with financial history",
+      privacyAcceptedAt: new Date(),
+      privacyVersion: "fixture",
+      status: "rejected",
+      partnerAccountId: "partner",
+    });
+    const [payments, commissions, payouts] = await Promise.all([
+      db.query.partnerPayments.findMany(),
+      db.query.partnerCommissions.findMany(),
+      db.query.partnerPayouts.findMany(),
+    ]);
+    assert.ok(payments.length && commissions.length && payouts.length);
+    setSession({ user: { id: "local-admin", role: "superadmin" } });
+    const result = await partnerApplicationAdminApi.DELETE(
+      new Request("http://localhost:3000/api/admin/partner-applications", {
+        method: "DELETE",
+        headers: { origin: "http://localhost:3000", "content-type": "application/json" },
+        body: JSON.stringify({ id: applicationId, confirm: true, reason: "test_registration" }),
+      }),
+    );
+    assert.equal(result.status, 409);
+    assert.ok(await db.query.partnerApplications.findFirst({
+      where: eq(schema.partnerApplications.id, applicationId),
+    }));
+    assert.deepEqual(await db.query.partnerPayments.findMany(), payments);
+    assert.deepEqual(await db.query.partnerCommissions.findMany(), commissions);
+    assert.deepEqual(await db.query.partnerPayouts.findMany(), payouts);
+  });
   await check(
     "partial post-payout refund adjusts the original earned commission proportionally",
     async () => {

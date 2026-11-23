@@ -47,6 +47,18 @@ Railway predeploy includes additive migrations `0038_global_partner_program.sql`
 
 Partner APIs derive ownership from the signed-in session. Superadmin APIs require the existing superadmin guard, and writes require an accepted origin and audit reason. Partners do not receive customer identities, internal notes, or audit records. Database triggers protect financial snapshots, event evidence, audit records, attribution ownership, and reward exclusion.
 
+In Partner Administration → Applications, expand a pending or rejected registration's details,
+select **Delete**, and choose a predefined reason in the confirmation dialog. The count reflects
+the selected status. Deletion removes the unlinked registration, its application-only audit
+history, and ordinary receipt, admin notice, and rejection delivery rows. The append-only
+partner audit stores the registration ID, administrator ID, action, timestamp, and reason.
+The email can be used for a new application through the standard validation and delivery flow.
+
+Approved registrations, linked accounts and registrations with onboarding or contract records
+are protected. Use the existing partner suspension or termination actions when appropriate.
+Migration `0046_partner_registration_deletion.sql` installs the audit and deletion guards via
+the existing migration runner. Apply it only during an owner-authorized release.
+
 ## Local verification
 
 Run `pnpm test:partners` and `pnpm test:referral-automation` for deterministic rules and referral contracts. The integration runner uses only a disposable PostgreSQL fixture at `127.0.0.1:55438`, database `partner_tests`, PostgreSQL user `postgres`, with local trust authentication. It creates a fresh schema per run, does not clear existing schemas, replaces database configuration before loading application modules, and uses synthetic Stripe objects without external requests.

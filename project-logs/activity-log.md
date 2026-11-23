@@ -1,3 +1,7 @@
+## 2026-11-23 — Secure partner registration deletion (T-1115)
+
+- Add confirmed and audited deletion of eligible partner registrations, preserve legal and financial records, and verify registration reuse through the existing application and email flow.
+
 ## 2026-11-23 — Partner submission confirmations and validation cleanup (T-1114)
 
 - Confirm public partner applications and legal identity submissions, verify review and signing status, and clean up runner-owned build snapshots and browser profiles after passing or failing validation.

@@ -3,10 +3,11 @@ import {
   executedAgreementReference,
   recordManualActivation,
 } from "@/lib/partners/contracts/activation";
-import { contractError } from "@/lib/partners/contracts/http";
+import { contractError, privateHeaders, requestBody } from "@/lib/partners/contracts/http";
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireSuperAdmin } from "@/lib/auth/require-session";
 import { getDb } from "@/lib/db";
 import {
@@ -18,12 +19,87 @@ import {
 } from "@/lib/db/schema";
 import { validWriteOrigin } from "@/lib/partners/api";
 import {
+  partnerRegistrationDeletionReasons,
+  protectedRegistrationMessage,
+} from "@/lib/partners/application";
+import {
+  canRequestRegistrationDeletion,
+  deletePartnerRegistration,
+} from "@/lib/partners/application-deletion";
+import {
   createInvitation,
   encryptEmailPayload,
   retryApplicationEmails,
 } from "@/lib/partners/public-applications";
 
 export const dynamic = "force-dynamic";
+const deletionSchema = z
+  .object({
+    id: z
+      .string()
+      .trim()
+      .min(1)
+      .max(150)
+      .regex(/^[A-Za-z0-9_-]+$/),
+    confirm: z.literal(true),
+    reason: z.enum(
+      Object.keys(
+        partnerRegistrationDeletionReasons,
+      ) as (keyof typeof partnerRegistrationDeletionReasons)[],
+    ),
+  })
+  .strict();
+
+export async function DELETE(request: Request) {
+  const admin = await requireSuperAdmin();
+  if (!admin.success) return admin.error;
+  if (!validWriteOrigin(request))
+    return NextResponse.json(
+      { error: "Request origin could not be verified." },
+      { status: 403, headers: privateHeaders },
+    );
+  if (
+    request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json"
+  )
+    return NextResponse.json(
+      { error: "Send the deletion request as JSON." },
+      { status: 415, headers: privateHeaders },
+    );
+  const body = deletionSchema.safeParse(await requestBody(request, 4096).catch(() => null));
+  if (!body.success)
+    return NextResponse.json(
+      { error: "Provide a registration identifier, choose a reason, and confirm deletion." },
+      { status: 400, headers: privateHeaders },
+    );
+  const db = getDb();
+  if (db) {
+    try {
+      const result = await deletePartnerRegistration(
+        db,
+        body.data.id,
+        admin.userId,
+        body.data.reason,
+      );
+      if (result === "deleted") return NextResponse.json({ ok: true }, { headers: privateHeaders });
+      return result === "missing"
+        ? NextResponse.json(
+            { error: "Partner registration not found." },
+            { status: 404, headers: privateHeaders },
+          )
+        : NextResponse.json(
+            { error: protectedRegistrationMessage },
+            { status: 409, headers: privateHeaders },
+          );
+    } catch {
+      // Database errors may include identifiers or application data.
+    }
+  }
+  return NextResponse.json(
+    { error: "The registration could not be deleted. Please try again." },
+    { status: 503, headers: privateHeaders },
+  );
+}
+
 export async function GET(request: Request) {
   const admin = await requireSuperAdmin();
   if (!admin.success) return admin.error;
@@ -37,6 +113,7 @@ export async function GET(request: Request) {
         ? eq(partnerApplications.status, status)
         : undefined,
     orderBy: desc(partnerApplications.createdAt),
+    extras: { totalCount: sql<number>`count(*) over ()`.mapWith(Number).as("total_count") },
     limit: 500,
   });
   const history = rows.length
@@ -72,11 +149,16 @@ export async function GET(request: Request) {
     : [];
   return NextResponse.json(
     {
-      applications: rows.map(({ invitationHash: _invitationHash, ...row }) => ({
-        ...row,
-        audit: history.filter((entry) => entry.applicationId === row.id),
-        deliveries: deliveries.filter((entry) => entry.applicationId === row.id),
-      })),
+      count: rows[0]?.totalCount ?? 0,
+      applications: rows.map((row) => {
+        const { invitationHash: _invitationHash, totalCount: _totalCount, ...application } = row;
+        return {
+          ...application,
+          canRequestDeletion: canRequestRegistrationDeletion(row),
+          audit: history.filter((entry) => entry.applicationId === row.id),
+          deliveries: deliveries.filter((entry) => entry.applicationId === row.id),
+        };
+      }),
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );

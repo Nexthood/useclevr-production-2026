@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 export const partnerPrivacyVersion = "2026-11-08";
+export const partnerRegistrationDeletionReasons = {
+  test_registration: "Test registration",
+  duplicate_registration: "Duplicate registration",
+  applicant_request: "Applicant requested removal",
+} as const;
+export const protectedRegistrationMessage =
+  "This registration is protected because of its status or linked records. Use the existing partner account suspension or termination controls where appropriate.";
 export const salesApplicationSchema = z
   .object({
     name: z.string().trim().min(2).max(200),

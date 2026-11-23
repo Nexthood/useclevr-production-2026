@@ -1,7 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  partnerRegistrationDeletionReasons,
+  protectedRegistrationMessage,
+} from "@/lib/partners/application";
 
 type AuditRow = {
   id: string;
@@ -30,6 +41,7 @@ type ApplicationRow = {
   status: string;
   createdAt: string;
   onboardedAt: string | null;
+  canRequestDeletion: boolean;
   audit: AuditRow[];
   deliveries: DeliveryRow[];
 };
@@ -39,24 +51,83 @@ const input = "w-full rounded-xl border border-border bg-background px-3 py-2.5 
 
 export function PartnerApplicationAdmin() {
   const [items, setItems] = useState<ApplicationRow[]>([]);
+  const [count, setCount] = useState(0);
   const [filter, setFilter] = useState("pending");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [agreement] = useState<Record<string, string>>({});
   const [evidence] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<ApplicationRow | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [notice, setNotice] = useState("");
+  const deleteInFlight = useRef(false);
+  const loadVersion = useRef(0);
+  const countRef = useRef<HTMLParagraphElement>(null);
+  const deleteTitleId = useId();
+  const deleteDescriptionId = useId();
 
-  async function load() {
+  const load = useCallback(async () => {
+    const version = ++loadVersion.current;
     const response = await fetch(`/api/admin/partner-applications?status=${filter}`, {
       cache: "no-store",
     });
     const body = await response.json();
+    if (version !== loadVersion.current) return;
     if (!response.ok) throw new Error(body.error || "Unable to load applications.");
     setItems(body.applications);
-  }
+    setCount(body.count);
+  }, [filter]);
   useEffect(() => {
     load().catch((cause) => setError(cause.message));
-  }, [filter]);
+  }, [load]);
+
+  async function confirmDeletion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!deleteTarget || deleteInFlight.current) return;
+    deleteInFlight.current = true;
+    const id = deleteTarget.id;
+    const reason = new FormData(event.currentTarget).get("reason");
+    setBusy(id);
+    setDeleteError("");
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/partner-applications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, reason, confirm: true }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.ok !== true)
+        throw new Error(
+          result?.error || "The registration could not be deleted. Please try again.",
+        );
+    } catch (cause) {
+      setDeleteError(
+        cause instanceof Error ? cause.message : "The registration could not be deleted.",
+      );
+      deleteInFlight.current = false;
+      setBusy("");
+      return;
+    }
+
+    setDeleteTarget(null);
+    setItems((current) => current.filter((item) => item.id !== id));
+    setCount((current) => Math.max(0, current - 1));
+    setNotice("Partner registration deleted successfully.");
+    requestAnimationFrame(() => countRef.current?.focus());
+    try {
+      await load();
+    } catch {
+      setError(
+        "The application list could not be refreshed. Reload the page for the latest count.",
+      );
+    } finally {
+      deleteInFlight.current = false;
+      setBusy("");
+    }
+  }
 
   async function action(row: ApplicationRow, actionName: string) {
     const confirmation =
@@ -113,6 +184,7 @@ export function PartnerApplicationAdmin() {
           <select
             className={`${input} mt-1`}
             value={filter}
+            disabled={!!busy || !!deleteTarget}
             onChange={(event) => setFilter(event.target.value)}
           >
             {statuses.map((status) => (
@@ -123,6 +195,14 @@ export function PartnerApplicationAdmin() {
           </select>
         </label>
       </header>
+      <p ref={countRef} tabIndex={-1} className="text-sm text-muted-foreground">
+        Registrations in this status: {count}
+      </p>
+      {notice && (
+        <p role="status" className="rounded-xl border p-3 text-sm">
+          {notice}
+        </p>
+      )}
       {error && (
         <p
           role="alert"
@@ -160,6 +240,24 @@ export function PartnerApplicationAdmin() {
                       Application details, audit history and email delivery
                     </summary>
                     <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{row.experience}</p>
+                    {!row.canRequestDeletion && (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {protectedRegistrationMessage}
+                      </p>
+                    )}
+                    {row.canRequestDeletion && (
+                      <Button
+                        className="mt-3"
+                        variant="destructive"
+                        disabled={!!busy}
+                        onClick={() => {
+                          setDeleteError("");
+                          setDeleteTarget(row);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    )}
                     <ul className="mt-3 space-y-1 border-t pt-3 text-xs text-muted-foreground">
                       {row.audit.map((entry) => (
                         <li key={entry.id}>
@@ -264,6 +362,75 @@ export function PartnerApplicationAdmin() {
             </article>
           ))}
         </div>
+      )}
+      {deleteTarget && (
+        <Dialog
+          open
+          onOpenChange={(open) => !open && !deleteInFlight.current && setDeleteTarget(null)}
+        >
+          <DialogContent
+            aria-labelledby={deleteTitleId}
+            aria-describedby={deleteDescriptionId}
+            dismissible={!busy}
+          >
+            <DialogTitle id={deleteTitleId}>Delete Partner Registration?</DialogTitle>
+            <div id={deleteDescriptionId} className="mt-3">
+              <DialogDescription>
+                You are about to delete this partner registration. This action may permanently
+                remove associated application data. Please confirm that you want to continue.
+              </DialogDescription>
+            </div>
+            <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt>Name</dt>
+              <dd className="break-words">{deleteTarget.fullName}</dd>
+              <dt>Email</dt>
+              <dd className="break-all">{deleteTarget.email}</dd>
+              <dt>Category</dt>
+              <dd>{deleteTarget.category}</dd>
+              <dt>Status</dt>
+              <dd className="capitalize">{deleteTarget.status.replace("_", " ")}</dd>
+            </dl>
+            <form className="mt-4 space-y-3" onSubmit={confirmDeletion} aria-busy={!!busy}>
+              <label className="block text-sm">
+                Reason for deletion
+                <select
+                  name="reason"
+                  className={`${input} mt-1`}
+                  defaultValue=""
+                  required
+                  disabled={!!busy}
+                >
+                  <option value="" disabled>
+                    Choose a reason
+                  </option>
+                  {Object.entries(partnerRegistrationDeletionReasons).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {deleteError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {deleteError}
+                </p>
+              )}
+              <DialogFooter className="flex-wrap">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!!busy}
+                  onClick={() => setDeleteTarget(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="destructive" disabled={!!busy}>
+                  {busy ? "Deleting…" : "Delete Registration"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </section>
   );
